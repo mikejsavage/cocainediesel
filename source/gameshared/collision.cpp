@@ -49,7 +49,7 @@ static bool IsConvex( GLTFCollisionData data, GLTFCollisionBrush brush ) {
 		Plane plane = data.planes[ brush.first_plane + i ];
 		for( u32 j = 0; j < brush.num_vertices; j++ ) {
 			Vec3 v = data.vertices[ brush.first_vertex + j ];
-			if( Dot( plane.normal, v ) - plane.distance > 0.001f ) {
+			if( Dot( plane.normal, v ) - plane.distance > 0.1f ) {
 				return false;
 			}
 		}
@@ -118,6 +118,9 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 		brush.first_plane = planes.size();
 		brush.first_vertex = vertices.size();
 		brush.solidity = material->solidity;
+		
+		DynamicArray< Vec3 > brush_vertices( sys_allocator );
+		DynamicArray< Plane > brush_planes( sys_allocator );
 
 		Span< const Vec3 > gltf_verts;
 		for( size_t j = 0; j < prim.attributes_count; j++ ) {
@@ -144,7 +147,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 		for( Vec3 gltf_vert : gltf_verts ) {
 			gltf_vert = y_up_to_z_up * gltf_vert;
 			bool found = false;
-			for( Vec3 & vert : vertices ) {
+			for( Vec3 & vert : brush_vertices ) {
 				if( Length( gltf_vert - vert ) < 0.01f ) {
 					found = true;
 					break;
@@ -153,11 +156,13 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 			if( found ) {
 				continue;
 			}
+			brush_vertices.add( gltf_vert );
 			vertices.add( gltf_vert );
 		}
 
 		Span< const u8 > indices_data = AccessorToSpan( prim.indices );
 		Assert( prim.indices->count % 3 == 0 );
+
 		for( size_t j = 0; j < prim.indices->count; j += 3 ) {
 			u32 a, b, c;
 			if( prim.indices->component_type == cgltf_component_type_r_16u ) {
@@ -177,8 +182,8 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 			}
 
 			bool found = false;
-			for( Plane & other_plane : planes ) {
-				if( Abs( plane.distance - other_plane.distance ) < 0.01f && Dot( plane.normal, other_plane.normal ) >= 0.99999f ) {
+			for( Plane & other_plane : brush_planes ) {
+				if( Abs( plane.distance - other_plane.distance ) < 1.0f && Dot( plane.normal, other_plane.normal ) >= 0.9f ) {
 					found = true;
 					break;
 				}
@@ -187,6 +192,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 				continue;
 			}
 
+			brush_planes.add( plane );
 			planes.add( plane );
 		}
 		brush.num_planes = planes.size() - brush.first_plane;
@@ -205,7 +211,8 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 
 	for( GLTFCollisionBrush brush : data.brushes ) {
 		if( !IsConvex( data, brush ) ) {
-			Fatal( "failed convexity check" );
+			// Fatal( "failed convexity check" );
+			Com_GGPrint( "failed convexity check on {}", path );
 			DeleteGLTFCollisionData( data );
 			return false;
 		}

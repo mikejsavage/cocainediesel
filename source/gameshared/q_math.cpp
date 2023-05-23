@@ -422,7 +422,7 @@ Mat4 Mat4Rotation( EulerDegrees3 angles ) {
 		0, 0, 0, 1
 	);
 
-	return rp * ry * rr;
+	return ry * rp * rr;
 }
 
 MinMax3 Union( MinMax3 bounds, Vec3 p ) {

@@ -999,7 +999,7 @@ static float EvaluateWaveFunc( Wave wave ) {
 	return wave.args[ 0 ] + wave.args[ 1 ] * v;
 }
 
-PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned, GPUMaterial * gpu_material ) {
+PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned, bool map_model, GPUMaterial * gpu_material ) {
 	if( material == &world_material || material == &wallbang_material ) {
 		PipelineState pipeline;
 		pipeline.shader = &shaders.world;
@@ -1122,6 +1122,19 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		gpu_material->color = color;
 		gpu_material->tcmod[ 0 ] = tcmod_row0;
 		gpu_material->tcmod[ 1 ] = tcmod_row1;
+	}
+
+	if( map_model ) {
+		pipeline.shader = &shaders.world_instanced;
+		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
+		pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
+		// pipeline.set_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( Vec2( 0.0f ), material->specular, material->shininess ) );
+		// pipeline.set_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );
+		pipeline.set_texture_array( "u_ShadowmapTextureArray", frame_static.shadowmap_texture_array );
+		pipeline.set_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
+		pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
+		AddDynamicsToPipeline( &pipeline );
+		return pipeline;
 	}
 
 	if( skinned ) {

@@ -296,7 +296,8 @@ static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 	trace_t trace;
 	G_Trace( &trace, start, MinMax3( 0.0f ), end, ent, SolidMask_Opaque );
 
-	if( trace.ent != 0 )
+	edict_t * target = &game.edicts[ trace.ent ];
+	if( target->s.type != ET_MAPMODEL && target != world )
 		return;
 
 	ent->r.client->level.last_spray = svs.realtime;

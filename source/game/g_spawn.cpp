@@ -169,6 +169,7 @@ static void ED_ParseField( Span< const char > key, Span< const char > value, Str
 	used = used || DoField( "dmg", &ent->dmg, key, value );
 	used = used || DoField( "angles", &ent->s.angles, key, value );
 	used = used || DoField( "modelscale", &ent->s.scale, key, value );
+	used = used || DoField( "modelscale_vec", &ent->s.scale, key, value );
 	used = used || DoField( "mass", &ent->mass, key, value );
 	used = used || DoField( "random", &ent->wait_randomness, key, value );
 

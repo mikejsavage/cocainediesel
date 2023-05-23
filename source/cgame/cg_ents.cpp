@@ -422,6 +422,7 @@ static void DrawEntityModel( centity_t * cent ) {
 
 	DrawModelConfig config = { };
 	config.draw_model.enabled = true;
+	config.draw_model.map_model = cent->current.type == ET_MAPMODEL;
 	config.draw_shadows.enabled = true;
 
 	if( cent->current.silhouetteColor.a > 0 ) {
@@ -743,6 +744,10 @@ void DrawEntities() {
 			case ET_SPEAKER:
 				DrawEntityModel( cent );
 				break;
+			
+			case ET_MAPMODEL:
+				DrawEntityModel( cent );
+				break;
 
 			default:
 				Com_Error( "DrawEntities: unknown entity type" );
@@ -787,6 +792,7 @@ void CG_LerpEntities() {
 			case ET_GHOST:
 			case ET_SPEAKER:
 			case ET_BOMB:
+			case ET_MAPMODEL:
 				if( state->linearMovement ) {
 					CG_ExtrapolateLinearProjectile( cent );
 				} else {
@@ -860,6 +866,7 @@ void CG_UpdateEntities() {
 			case ET_RAILALT:
 			case ET_THROWING_AXE:
 			case ET_SHURIKEN:
+			case ET_MAPMODEL:
 				break;
 
 			case ET_PLAYER:

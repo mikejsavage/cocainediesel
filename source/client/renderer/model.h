@@ -7,6 +7,7 @@ struct DrawModelConfig {
 	struct DrawModel {
 		bool enabled;
 		bool view_weapon;
+		bool map_model;
 	} draw_model;
 
 	struct DrawShadows {

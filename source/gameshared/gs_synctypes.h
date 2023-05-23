@@ -60,6 +60,7 @@ enum EntityType : u8 {
 	ET_LASER,
 	ET_SPIKES,
 	ET_SPEAKER,
+	ET_MAPMODEL,
 
 	// eventual entities: types below this will get event treatment
 	ET_EVENT = EVENT_ENTITIES_START,

@@ -87,6 +87,8 @@ void SP_path_corner( edict_t * self, const spawn_temp_t * st ) {
 
 void SP_model( edict_t * ent, const spawn_temp_t * st ) {
 	ent->s.svflags &= ~SVF_NOCLIENT;
+	ent->s.type = ET_MAPMODEL;
+	ent->s.solidity = SolidMask_AnySolid;
 	GClip_LinkEntity( ent );
 }
 

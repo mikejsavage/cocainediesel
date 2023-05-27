@@ -238,8 +238,10 @@ static const PlayerModelMetadata * GetPlayerModelMetadata( StringHash name ) {
 const PlayerModelMetadata * GetPlayerModelMetadata( int ent_num ) {
 	const SyncEntityState * ent = &cg_entities[ ent_num ].current;
 	switch( ent->perk ) {
-	case Perk_Jetpack: 	return GetPlayerModelMetadata( "players/jetpack/model" );
-	default:			return GetPlayerModelMetadata( "players/rigg/model" );
+		case Perk_Jetpack:
+			return GetPlayerModelMetadata( "players/jetpack/model" );
+		default:
+			return GetPlayerModelMetadata( "players/rigg/model" );
 	}
 }
 

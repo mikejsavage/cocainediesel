@@ -148,6 +148,29 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 	return true;
 }
 
+static bool FindTag( const Model * model, PlayerModelMetadata::Tag * tag, const char * node_name, const char * model_name ) {
+	u8 idx;
+	if( !FindNodeByName( model, Hash32( node_name ), &idx ) ) {
+		Com_Printf( S_COLOR_YELLOW "Can't find node %s in %s\n", node_name, model_name );
+		return false;
+	}
+
+	tag->node_idx = idx;
+	tag->transform = Mat4::Identity();
+
+	return true;
+}
+
+static bool LoadPlayerModelMetadata( PlayerModelMetadata * meta, const char * model_name ) {
+	bool ok = true;
+	ok = ok && FindTag( meta->model, &meta->tag_bomb, "bomb", model_name );
+	ok = ok && FindTag( meta->model, &meta->tag_hat, "hat", model_name );
+	ok = ok && FindTag( meta->model, &meta->tag_mask, "mask", model_name );
+	ok = ok && FindTag( meta->model, &meta->tag_weapon, "weapon", model_name );
+	ok = ok && FindTag( meta->model, &meta->tag_gadget, "gadget", model_name );
+	return ok;
+}
+
 static constexpr const char * PLAYER_SOUND_NAMES[] = {
 	"death",
 	"void_death",
@@ -183,12 +206,19 @@ void InitPlayerModels() {
 			u64 hash = Hash64( StripExtension( path ) );
 
 			PlayerModelMetadata * meta = &player_model_metadatas[ num_player_models ];
+			*meta = { };
 			meta->model = FindModel( StringHash( hash ) );
 
 			TempAllocator temp = cls.frame_arena.temp();
 			const char * config_path = temp( "{}/model.cfg", dir );
-			if( !ParsePlayerModelConfig( meta, config_path ) )
+			if( AssetString( config_path ).ptr == NULL ) {
+				if( !LoadPlayerModelMetadata( meta, path ) ) {
+					continue;
+				}
+			}
+			else if( !ParsePlayerModelConfig( meta, config_path ) ) {
 				continue;
+			}
 
 			FindPlayerSounds( meta, dir );
 

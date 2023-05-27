@@ -36,6 +36,7 @@ require( "libs.jsmn" )
 require( "libs.luau" )
 require( "libs.mbedtls" )
 require( "libs.meshoptimizer" )
+require( "libs.metal-cpp" )
 require( "libs.monocypher" )
 require( "libs.openal" )
 require( "libs.picohttpparser" )
@@ -62,6 +63,7 @@ do
 			"source/gameshared/*.cpp",
 			"source/qcommon/**.cpp",
 			"source/server/sv_*.cpp",
+			{ OS == "macos" and "source/client/renderer/metal_objc.m" or nil },
 		},
 
 		libs = {
@@ -88,12 +90,13 @@ do
 			"yoga",
 			"zstd",
 			platform_curl_libs,
+			{ OS == "macos" and "metal-cpp" or nil },
 		},
 
 		rc = "source/client/platform/client",
 
 		windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib /SUBSYSTEM:WINDOWS",
-		macos_ldflags = "-lcurl -framework AudioUnit -framework Cocoa -framework CoreAudio -framework CoreVideo -framework IOKit",
+		macos_ldflags = "-lcurl -framework AppKit -framework AudioUnit -framework Cocoa -framework CoreAudio -framework CoreVideo -framework Foundation -framework IOKit -framework Metal -framework QuartzCore",
 		linux_ldflags = "-lm -lpthread -ldl",
 		no_static_link = true,
 	} )

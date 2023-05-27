@@ -21,34 +21,6 @@ enum DepthFunc : u8 {
 	DepthFunc_Disabled, // also disables writing
 };
 
-enum TextureFormat : u8 {
-	TextureFormat_R_U8,
-	TextureFormat_R_S8,
-	TextureFormat_R_UI8,
-	TextureFormat_R_U16,
-
-	TextureFormat_A_U8,
-
-	TextureFormat_RG_Half,
-
-	TextureFormat_RA_U8,
-
-	TextureFormat_RGB_U8,
-	TextureFormat_RGB_U8_sRGB,
-	TextureFormat_RGB_Half,
-
-	TextureFormat_RGBA_U8,
-	TextureFormat_RGBA_U8_sRGB,
-
-	TextureFormat_BC1_sRGB,
-	TextureFormat_BC3_sRGB,
-	TextureFormat_BC4,
-	TextureFormat_BC5,
-
-	TextureFormat_Depth,
-	TextureFormat_Shadow,
-};
-
 enum TextureWrap : u8 {
 	TextureWrap_Repeat,
 	TextureWrap_Clamp,
@@ -82,18 +54,6 @@ enum VertexFormat : u8 {
 	VertexFormat_Floatx2,
 	VertexFormat_Floatx3,
 	VertexFormat_Floatx4,
-};
-
-struct Texture {
-	u32 texture;
-	u32 width, height;
-	u32 num_mipmaps;
-	bool msaa;
-	TextureFormat format;
-};
-
-struct TextureArray {
-	u32 texture;
 };
 
 struct Framebuffer {

@@ -24,32 +24,32 @@ enum VertexAttributeType : u32 {
 	VertexAttribute_Count
 };
 
-struct Shader {
-	u32 program;
-	u64 uniforms[ 8 ];
-	u64 textures[ 4 ];
-	u64 texture_arrays[ 2 ];
-	u64 buffers[ 8 ];
-};
+enum TextureFormat : u8 {
+	TextureFormat_R_U8,
+	TextureFormat_R_S8,
+	TextureFormat_R_UI8,
+	TextureFormat_R_U16,
 
-struct GPUBuffer {
-	u32 buffer;
-};
+	TextureFormat_A_U8,
 
-struct UniformBlock {
-	u32 ubo;
-	u32 offset;
-	u32 size;
-};
+	TextureFormat_RG_Half,
 
-struct Mesh {
-	u32 vao;
-	GPUBuffer vertex_buffers[ VertexAttribute_Count ];
-	GPUBuffer index_buffer;
+	TextureFormat_RA_U8,
 
-	IndexFormat index_format;
-	u32 num_vertices;
-	bool cw_winding;
+	TextureFormat_RGB_U8,
+	TextureFormat_RGB_U8_sRGB,
+	TextureFormat_RGB_Half,
+
+	TextureFormat_RGBA_U8,
+	TextureFormat_RGBA_U8_sRGB,
+
+	TextureFormat_BC1_sRGB,
+	TextureFormat_BC3_sRGB,
+	TextureFormat_BC4,
+	TextureFormat_BC5,
+
+	TextureFormat_Depth,
+	TextureFormat_Shadow,
 };
 
 struct TRS {
@@ -72,3 +72,6 @@ struct GPUMaterial {
 	Vec4 color;
 	Vec3 tcmod[ 2 ];
 };
+
+#include "client/renderer/opengl_types.h"
+#include "client/renderer/metal_types.h"

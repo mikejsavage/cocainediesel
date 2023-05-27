@@ -182,6 +182,16 @@ void InitAssets( TempAllocator * temp ) {
 	fs_change_monitor = NewFSChangeMonitor( sys_allocator, base.c_str() );
 	LoadAssetsRecursive( temp, &base, base.length() + 1 );
 
+	// const char * base = temp( "{}/base", RootDirPath() );
+	// size_t skip = strlen( base ) + 1;
+	// Span< Span< char > > assets = ListDir( sys_allocator, base, true );
+	// for( Span< char > asset : assets ) {
+	// 	LoadAsset( temp, asset, skip );
+	// 	FREE( sys_allocator, asset.ptr );
+	// }
+	// // FreeAll( sys_allocator, assets );
+	// FREE( sys_allocator, assets.ptr );
+
 	num_modified_assets = 0;
 }
 

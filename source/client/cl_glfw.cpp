@@ -309,8 +309,9 @@ void CreateWindow( WindowMode mode ) {
 
 #if PLATFORM_MACOS
 	DisableFPEScoped;
-#endif
 
+	glfwWindowHint( GLFW_CLIENT_API, GLFW_NO_API );
+#else
 	glfwWindowHint( GLFW_CLIENT_API, GLFW_OPENGL_API );
 	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
 	glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE );
@@ -325,6 +326,7 @@ void CreateWindow( WindowMode mode ) {
 	else {
 		glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE );
 	}
+#endif
 
 	mode = CompleteWindowMode( mode );
 
@@ -366,7 +368,9 @@ void CreateWindow( WindowMode mode ) {
 	glfwSetKeyCallback( window, OnKeyPressed );
 	glfwSetCharCallback( window, OnCharTyped );
 
+#if !PLATFORM_MACOS
 	glfwMakeContextCurrent( window );
+#endif
 }
 
 void DestroyWindow() {

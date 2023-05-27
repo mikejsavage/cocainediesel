@@ -1,3 +1,7 @@
+#include "qcommon/platform.h"
+
+#if !PLATFORM_MACOS
+
 #include <algorithm> // std::stable_sort
 #include <new>
 
@@ -1806,3 +1810,5 @@ void DispatchComputeIndirect( const PipelineState & pipeline, GPUBuffer indirect
 void DownloadFramebuffer( void * buf ) {
 	glReadPixels( 0, 0, frame_static.viewport_width, frame_static.viewport_height, GL_RGB, GL_UNSIGNED_BYTE, buf );
 }
+
+#endif // #if !PLATFORM_MACOS

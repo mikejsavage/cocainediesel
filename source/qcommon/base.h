@@ -74,6 +74,13 @@ constexpr Span< T > StaticSpan( T ( &arr )[ N ] ) {
 	return Span< T >( arr, N );
 }
 
+template< typename T >
+Span< T > CopySpan( Allocator * a, Span< const T > span ) {
+	Span< T > copy = ALLOC_SPAN( a, T, span.n );
+	memcpy( copy.ptr, span.ptr, span.num_bytes() );
+	return copy;
+}
+
 /*
  * Optional
  */

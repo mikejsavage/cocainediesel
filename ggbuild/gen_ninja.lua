@@ -356,6 +356,12 @@ rule cpp
     description = $in
     deps = gcc
 
+rule m
+    command = $cpp -MD -MF $out.d -Ilibs -c -o $out $in
+    depfile = $out.d
+    description = $in
+    deps = gcc
+
 rule lib
     command = $ar cr $out $in
     description = $out
@@ -410,7 +416,8 @@ build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
 	end
 
 	for src_name, cfg in sort_by_key( objs ) do
-		printf( "build %s/%s%s: cpp %s | %s", dir, src_name, obj_suffix, src_name, can_static_link and "ggbuild/zig/zig" or "" )
+		local rule = src_name:match( "%.([^.]+)$" ) == "cpp" and "cpp" or "m"
+		printf( "build %s/%s%s: %s %s | %s", dir, src_name, obj_suffix, rule, src_name, can_static_link and "ggbuild/zig/zig" or "" )
 		if cfg.cxxflags then
 			printf( "    cxxflags = %s", cfg.cxxflags )
 		end

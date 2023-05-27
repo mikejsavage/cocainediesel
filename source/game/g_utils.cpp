@@ -370,7 +370,6 @@ void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int assisto
 	}
 }
 
-
 /*
 * G_PrintMsg
 *

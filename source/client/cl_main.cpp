@@ -207,7 +207,6 @@ static void CL_Connect_f() {
 	CL_Connect( address );
 }
 
-
 void CL_ClearState() {
 	TracyZoneScoped;
 

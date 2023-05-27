@@ -416,7 +416,6 @@ static int GClip_EntitiesInBox_AreaGrid( areagrid_t *areagrid, Vec3 mins, Vec3 m
 	return numlist;
 }
 
-
 /*
 * GClip_ClearWorld
 * called after the world model has been loaded, before linking any entities
@@ -570,7 +569,6 @@ void GClip_SetAreaPortalState( edict_t *ent, bool open ) {
 	// change areaportal's state
 	CM_SetAreaPortalState( svs.cms, ent->r.areanum, ent->r.areanum2, open );
 }
-
 
 /*
 * GClip_AreaEdicts
@@ -777,7 +775,6 @@ bool IsHeadshot( int entNum, Vec3 hit, int timeDelta ) {
 }
 
 //===========================================================================
-
 
 /*
 * GClip_SetBrushModel

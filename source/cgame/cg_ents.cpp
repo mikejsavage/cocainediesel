@@ -386,7 +386,6 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 			xorigin1 = Lerp( oldPosition, cg.xerpSmoothFrac, xorigin1 );
 		}
 
-
 		// extrapolation with full-snapshot smoothing
 		xorigin2 = cent->current.origin + cent->velocity * cg.xerpTime;
 		if( cent->canExtrapolatePrev ) {

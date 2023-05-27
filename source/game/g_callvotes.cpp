@@ -242,7 +242,6 @@ static void G_VoteSpectatePassed( callvotedata_t *vote ) {
 	G_Teams_SetTeam( ent, Team_None );
 }
 
-
 /*
 * kick
 */
@@ -290,7 +289,6 @@ static void G_VoteKickPassed( callvotedata_t *vote ) {
 
 	PF_DropClient( ent, "Kicked" );
 }
-
 
 /*
 * timeout

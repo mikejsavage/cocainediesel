@@ -381,7 +381,6 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span
 			return false;
 		}
 
-
 		SoundEffect::PlaybackConfig * config = &sfx->sounds[ sfx->num_sounds ];
 		config->volume = 1.0f;
 		config->pitch = 1.0f;

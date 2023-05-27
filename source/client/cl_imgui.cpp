@@ -285,7 +285,6 @@ void CenterTextY( const char * str, float height ) {
 	ImGui::Text( "%s", str );
 }
 
-
 void CellCenter( float item_width ) {
 	float cell_width = ImGui::GetContentRegionAvail().x;
 	ImGui::SetCursorPosX( ImGui::GetCursorPosX() + 0.5f * ( cell_width - item_width ) );

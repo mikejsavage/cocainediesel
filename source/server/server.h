@@ -278,7 +278,6 @@ void SV_Status_f();
 void SV_WriteFrameSnapToClient( client_t *client, msg_t *msg );
 void SV_BuildClientFrameSnap( client_t *client );
 
-
 //
 // sv_game.c
 //

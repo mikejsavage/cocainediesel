@@ -283,7 +283,6 @@ static void DeltaAngle( DeltaBuffer * buf, Vec3 & v, const Vec3 & baseline ) {
 // WRITE FUNCTIONS
 //==================================================
 
-
 void MSG_Write( msg_t * msg, const void * data, size_t length ) {
 	memcpy( MSG_GetSpace( msg, length ), data, length );
 }

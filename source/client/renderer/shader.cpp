@@ -35,6 +35,11 @@ static void BuildShaderSrcs( DynamicString * src, const char * path, const char 
 	src->append( "#define DLIGHT_CUTOFF {}\n", DLIGHT_CUTOFF );
 	src->append( "#define SKINNED_MODEL_MAX_JOINTS {}\n", SKINNED_MODEL_MAX_JOINTS );
 
+	src->append( "#define PARTICLE_COLLISION_POINT {}u\n", ParticleFlag_CollisionPoint );
+	src->append( "#define PARTICLE_COLLISION_SPHERE {}u\n", ParticleFlag_CollisionSphere );
+	src->append( "#define PARTICLE_ROTATE {}u\n", ParticleFlag_Rotate );
+	src->append( "#define PARTICLE_STRETCH {}u\n", ParticleFlag_Stretch );
+
 	src->append( "{}", variant_switches );
 
 	Span< const char > glsl = AssetString( path );
@@ -149,7 +154,6 @@ static void LoadShaders() {
 	LoadShader( &shaders.scope, "glsl/scope.glsl" );
 	LoadShader( &shaders.skybox, "glsl/skybox.glsl" );
 	LoadShader( &shaders.text, "glsl/text.glsl" );
-	LoadShader( &shaders.blur, "glsl/blur.glsl" );
 	LoadShader( &shaders.postprocess, "glsl/postprocess.glsl" );
 
 	LoadComputeShader( &shaders.particle_compute, "glsl/particle_compute.glsl" );
@@ -223,6 +227,5 @@ void ShutdownShaders() {
 
 	DeleteShader( shaders.text );
 
-	DeleteShader( shaders.blur );
 	DeleteShader( shaders.postprocess );
 }

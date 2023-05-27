@@ -8,9 +8,13 @@ msvc_global_cxxflags( "/wd4244 /wd4267" ) -- silence conversion warnings because
 msvc_global_cxxflags( "/wd4611" ) -- setjmp warning
 msvc_global_cxxflags( "/GR- /EHs-c-" )
 
-gcc_global_cxxflags( "-std=c++17 -msse4.2 -mpopcnt -fno-exceptions -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fno-math-errno -fvisibility=hidden" )
+gcc_global_cxxflags( "-std=c++20 -fno-exceptions -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fno-math-errno -fvisibility=hidden" )
 gcc_global_cxxflags( "-Wall -Wextra -Wcast-align -Wvla -Wformat-security -Wimplicit-fallthrough" ) -- -Wconversion
 gcc_global_cxxflags( "-Wno-unused-parameter -Wno-missing-field-initializers" )
+
+if OS == "linux" then
+	gcc_global_cxxflags( "-msse4.2 -mpopcnt" )
+end
 
 if config == "release" then
 	global_cxxflags( "-DPUBLIC_BUILD" )
@@ -44,9 +48,12 @@ require( "libs.zstd" )
 require( "source.tools.bc4" )
 require( "source.tools.dieselmap" )
 
-do
-	local platform_libs = OS == "linux" and { "mbedtls" } or { }
+local platform_curl_libs = {
+	{ OS ~= "macos" and "curl" or nil },
+	{ OS == "linux" and "mbedtls" or nil },
+}
 
+do
 	bin( "client", {
 		srcs = {
 			"source/cgame/*.cpp",
@@ -61,7 +68,6 @@ do
 			"imgui",
 
 			"cgltf",
-			"curl",
 			"discord",
 			"freetype",
 			"ggentropy",
@@ -81,12 +87,13 @@ do
 			"tracy",
 			"yoga",
 			"zstd",
-			platform_libs,
+			platform_curl_libs,
 		},
 
 		rc = "source/client/platform/client",
 
 		windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib /SUBSYSTEM:WINDOWS",
+		macos_ldflags = "-lcurl -framework AudioUnit -framework Cocoa -framework CoreAudio -framework CoreVideo -framework IOKit",
 		linux_ldflags = "-lm -lpthread -ldl",
 		no_static_link = true,
 	} )

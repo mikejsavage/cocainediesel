@@ -47,15 +47,15 @@ void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, 
 }
 
 DamageType::DamageType( WeaponType weapon ) {
-	encoded = weapon;
+	encoded = u8( weapon );
 }
 
 DamageType::DamageType( GadgetType gadget ) {
-	encoded = gadget + Weapon_Count;
+	encoded = u8( gadget ) + u8( Weapon_Count );
 }
 
 DamageType::DamageType( WorldDamage world ) {
-	encoded = world + Weapon_Count + Gadget_Count;
+	encoded = u8( world ) + u8( Weapon_Count ) + u8( Gadget_Count );
 }
 
 bool operator==( DamageType a, DamageType b ) {
@@ -74,7 +74,7 @@ DamageCategory DecodeDamageType( DamageType type, WeaponType * weapon, GadgetTyp
 		return DamageCategory_Weapon;
 	}
 
-	if( type.encoded < Weapon_Count + Gadget_Count ) {
+	if( type.encoded < u8( Weapon_Count ) + u8( Gadget_Count ) ) {
 		if( gadget != NULL ) {
 			*gadget = GadgetType( type.encoded - Weapon_Count );
 		}

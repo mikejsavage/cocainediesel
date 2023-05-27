@@ -76,6 +76,7 @@ static const LuauConst<int> numeric_constants[] = {
 	{ "Perk_Ninja", Perk_Ninja },
 	{ "Perk_Hooligan", Perk_Hooligan },
 	{ "Perk_Midget", Perk_Midget },
+	{ "Perk_Wheel", Perk_Wheel },
 	{ "Perk_Jetpack", Perk_Jetpack },
 	{ "Perk_Boomer", Perk_Boomer },
 
@@ -421,7 +422,7 @@ void CG_DrawScope() {
 		pipeline.depth_func = DepthFunc_Disabled;
 		pipeline.blend_func = BlendFunc_Blend;
 		pipeline.write_depth = false;
-		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+		pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 		DrawFullscreenMesh( pipeline );
 
 		if( cg.predictedPlayerState.weapon == Weapon_Sniper ) {

@@ -6,6 +6,8 @@
 #include "qcommon/hash.h"
 #include "client/renderer/types.h"
 
+constexpr size_t MAX_FRAMES_IN_FLIGHT = 3;
+
 enum CullFace : u8 {
 	CullFace_Back,
 	CullFace_Front,
@@ -104,8 +106,9 @@ struct Framebuffer {
 };
 
 struct StreamingBuffer {
-	GPUBuffer buffers[ 3 ];
-	u8 * mappings[ 3 ];
+	GPUBuffer buffer;
+	void * ptr;
+	u32 size;
 };
 
 struct PipelineState {
@@ -124,9 +127,11 @@ struct PipelineState {
 		TextureArray ta;
 	};
 
-	struct GPUBufferBinding {
+	struct BufferBinding {
 		u64 name_hash;
 		GPUBuffer buffer;
+		u32 offset;
+		u32 size;
 	};
 
 	struct Scissor {
@@ -136,7 +141,7 @@ struct PipelineState {
 	UniformBinding uniforms[ ARRAY_COUNT( &Shader::uniforms ) ];
 	TextureBinding textures[ ARRAY_COUNT( &Shader::textures ) ];
 	TextureArrayBinding texture_arrays[ ARRAY_COUNT( &Shader::texture_arrays ) ];
-	GPUBufferBinding buffers[ ARRAY_COUNT( &Shader::buffers ) ];
+	BufferBinding buffers[ ARRAY_COUNT( &Shader::buffers ) ];
 	size_t num_uniforms = 0;
 	size_t num_textures = 0;
 	size_t num_texture_arrays = 0;
@@ -153,105 +158,60 @@ struct PipelineState {
 	bool view_weapon_depth_hack = false;
 	bool wireframe = false;
 
-	void set_uniform( StringHash name, UniformBlock block ) {
-		for( size_t i = 0; i < num_uniforms; i++ ) {
-			if( uniforms[ i ].name_hash == name.hash ) {
-				uniforms[ i ].block = block;
-				return;
-			}
-		}
+	void bind_uniform( StringHash name, UniformBlock block );
+	void bind_texture( StringHash name, const Texture * texture );
+	void bind_texture_array( StringHash name, TextureArray ta );
+	void bind_buffer( StringHash name, GPUBuffer buffer, u32 offset = 0, u32 size = 0 );
+	void bind_streaming_buffer( StringHash name, StreamingBuffer stream );
+};
 
-		uniforms[ num_uniforms ].name_hash = name.hash;
-		uniforms[ num_uniforms ].block = block;
-		num_uniforms++;
-	}
+struct VertexAttribute {
+	VertexFormat format;
+	size_t buffer;
+	size_t offset;
+};
 
-	void set_texture( StringHash name, const Texture * texture ) {
-		for( size_t i = 0; i < num_textures; i++ ) {
-			if( textures[ i ].name_hash == name.hash ) {
-				textures[ i ].texture = texture;
-				return;
-			}
-		}
-
-		textures[ num_textures ].name_hash = name.hash;
-		textures[ num_textures ].texture = texture;
-		num_textures++;
-	}
-
-	void set_texture_array( StringHash name, TextureArray ta ) {
-		for( size_t i = 0; i < num_texture_arrays; i++ ) {
-			if( texture_arrays[ i ].name_hash == name.hash ) {
-				texture_arrays[ i ].ta = ta;
-				return;
-			}
-		}
-
-		texture_arrays[ num_texture_arrays ].name_hash = name.hash;
-		texture_arrays[ num_texture_arrays ].ta = ta;
-		num_texture_arrays++;
-	}
-
-	void set_buffer( StringHash name, GPUBuffer buffer ) {
-		for( size_t i = 0; i < num_buffers; i++ ) {
-			if( buffers[ i ].name_hash == name.hash ) {
-				buffers[ i ].buffer = buffer;
-				return;
-			}
-		}
-
-		buffers[ num_buffers ].name_hash = name.hash;
-		buffers[ num_buffers ].buffer = buffer;
-		num_buffers++;
-	}
+struct VertexDescriptor {
+	Optional< VertexAttribute > attributes[ VertexAttribute_Count ];
+	u32 buffer_strides[ VertexAttribute_Count ];
 };
 
 struct MeshConfig {
-	MeshConfig() {
-		positions = { };
-		normals = { };
-		tex_coords = { };
-		colors = { };
-		joints = { };
-		weights = { };
-	}
+	const char * name;
 
-	GPUBuffer unified_buffer = { };
-	u32 stride = 0;
+	VertexDescriptor vertex_descriptor;
+	GPUBuffer vertex_buffers[ VertexAttribute_Count ];
 
-	union {
-		struct {
-			GPUBuffer positions;
-			GPUBuffer normals;
-			GPUBuffer tex_coords;
-			GPUBuffer colors;
-			GPUBuffer joints;
-			GPUBuffer weights;
-		};
-		struct {
-			u32 positions_offset;
-			u32 normals_offset;
-			u32 tex_coords_offset;
-			u32 colors_offset;
-			u32 joints_offset;
-			u32 weights_offset;
-		};
+	IndexFormat index_format;
+	GPUBuffer index_buffer;
+	u32 num_vertices;
+
+	bool cw_winding;
+
+	static constexpr VertexFormat default_attribute_formats[] = {
+		VertexFormat_Floatx3,
+		VertexFormat_Floatx3,
+		VertexFormat_Floatx2,
+		VertexFormat_U8x4_Norm,
+		VertexFormat_U16x4,
+		VertexFormat_Floatx4,
 	};
 
-	const char * name = NULL;
+	void set_attribute( VertexAttributeType type, GPUBuffer buffer, Optional< VertexFormat > format = NONE ) {
+		VertexAttribute attribute = { };
+		attribute.format = format.exists ? format.value : default_attribute_formats[ type ];
+		attribute.buffer = type;
+		vertex_descriptor.attributes[ type ] = attribute;
+		vertex_buffers[ type ] = buffer;
+	}
 
-	VertexFormat positions_format = VertexFormat_Floatx3;
-	VertexFormat normals_format = VertexFormat_Floatx3;
-	VertexFormat tex_coords_format = VertexFormat_Floatx2;
-	VertexFormat colors_format = VertexFormat_U8x4_Norm;
-	VertexFormat joints_format = VertexFormat_U16x4;
-	VertexFormat weights_format = VertexFormat_Floatx4;
-	IndexFormat indices_format = IndexFormat_U16;
-
-	GPUBuffer indices = { };
-	u32 num_vertices = 0;
-
-	bool ccw_winding = true;
+	void set_attribute( VertexAttributeType type, size_t buffer, size_t offset ) {
+		VertexAttribute attribute = { };
+		attribute.format = default_attribute_formats[ type ];
+		attribute.buffer = buffer;
+		attribute.offset = offset;
+		vertex_descriptor.attributes[ type ] = attribute;
+	}
 };
 
 struct TextureConfig {
@@ -331,16 +291,15 @@ void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, Framebuffer sr
 
 UniformBlock UploadUniforms( const void * data, size_t size );
 
-GPUBuffer NewGPUBuffer( const void * data, u32 len, const char * name = NULL );
-GPUBuffer NewGPUBuffer( u32 len, const char * name = NULL );
-void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 len, u32 offset = 0 );
-void ReadGPUBuffer( GPUBuffer buf, void * data, u32 len, u32 offset = 0 );
+GPUBuffer NewGPUBuffer( const void * data, u32 size, const char * name = NULL );
+GPUBuffer NewGPUBuffer( u32 size, const char * name = NULL );
+void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 size, u32 offset = 0 );
 void DeleteGPUBuffer( GPUBuffer buf );
 void DeferDeleteGPUBuffer( GPUBuffer buf );
 
-StreamingBuffer NewStreamingBuffer( u32 len, const char * name = NULL );
-u8 * GetStreamingBufferMapping( StreamingBuffer stream );
-GPUBuffer GetStreamingBufferBuffer( StreamingBuffer stream );
+StreamingBuffer NewStreamingBuffer( u32 size, const char * name = NULL );
+void * GetStreamingBufferMemory( StreamingBuffer stream );
+// void FlushStreamingBuffer( StreamingBuffer stream, size_t length, size_t offset = 0 );
 void DeleteStreamingBuffer( StreamingBuffer buf );
 void DeferDeleteStreamingBuffer( StreamingBuffer buf );
 
@@ -369,17 +328,15 @@ bool NewShader( Shader * shader, const char * src, const char * name );
 bool NewComputeShader( Shader * shader, const char * src, const char * name );
 void DeleteShader( Shader shader );
 
-Mesh NewMesh( MeshConfig config );
+Mesh NewMesh( const MeshConfig & config );
 void DeleteMesh( const Mesh & mesh );
 void DeferDeleteMesh( const Mesh & mesh );
 
-void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0 );
-void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer instance_data, u32 num_instances, InstanceType instance_type, u32 num_vertices_override = 0, u32 first_index = 0 );
-
+void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0, u32 base_vertex = 0 );
+void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_instances, u32 num_vertices_override = 0, u32 first_index = 0, u32 base_vertex = 0 );
+void DrawMeshIndirect( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer indirect );
 void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z );
 void DispatchComputeIndirect( const PipelineState & pipeline, GPUBuffer indirect );
-
-void DrawInstancedParticles( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer indirect );
 
 void DownloadFramebuffer( void * buf );
 

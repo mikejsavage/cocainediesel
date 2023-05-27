@@ -44,7 +44,6 @@ struct FrameStatic {
 	UniformBlock identity_material_static_uniforms;
 	UniformBlock identity_material_dynamic_uniforms;
 	UniformBlock fog_uniforms;
-	UniformBlock blue_noise_uniforms;
 
 	Mat4 V, inverse_V;
 	Mat4 P, inverse_P;
@@ -108,6 +107,8 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height );
 void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov );
 void RendererSubmitFrame();
 
+size_t FrameSlot();
+
 const Texture * BlueNoiseTexture();
 void DrawFullscreenMesh( const PipelineState & pipeline );
 
@@ -117,7 +118,6 @@ void Draw2DBox( float x, float y, float w, float h, const Material * material, V
 void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color );
 // void DrawRotatedBox( float x, float y, float w, float h, float angle, const Material * material, RGBA8 color );
 
-u16 DynamicMeshBaseIndex();
 void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh );
 
 UniformBlock UploadModelUniforms( const Mat4 & M );

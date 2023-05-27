@@ -58,7 +58,7 @@ static MainMenuState mainmenu_state;
 static GameMenuState gamemenu_state;
 static DemoMenuState demomenu_state;
 
-static int selected_server;
+static Optional< size_t > selected_server;
 
 static bool yolodemo;
 
@@ -80,7 +80,7 @@ static void PushButtonColor( ImVec4 color ) {
 }
 
 static void ResetServerBrowser() {
-	selected_server = -1;
+	selected_server = NONE;
 }
 
 static void ClearMasksList() {
@@ -855,10 +855,10 @@ static void MainMenu() {
 
 	ImGui::SetCursorPosX( -1000.0f + 500.0f * Sin( cls.monotonicTime, Milliseconds( 6029 ) ) );
 	ImGui::PushFont( cls.idi_nahui_font );
-	constexpr const char * idi_nahui = u8"\u0418\u0434\u0438 \u043d\u0430 \u0445\u0443\u0439";
+	const char * idi_nahui = ( const char * ) u8"\u0418\u0434\u0438 \u043d\u0430 \u0445\u0443\u0439";
 	for( int i = 0; i < 100; i++ ) {
 		ImGui::PushStyleColor( ImGuiCol_Text, i % 2 == 0 ? ukraine_blue : ukraine_yellow );
-		ImGui::Text( idi_nahui );
+		ImGui::Text( "%s", idi_nahui );
 		ImGui::PopStyleColor();
 		if( i < 99 ) {
 			ImGui::SameLine();
@@ -934,7 +934,7 @@ static void MainMenu() {
 		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, IM_COL32( 0, 0, 0, 0 ) );
 		ImGui::PushStyleColor( ImGuiCol_ButtonActive, IM_COL32( 0, 0, 0, 0 ) );
 
-		const char * buf = APP_VERSION u8" \u00A9 AHA CHEERS";
+		const char * buf = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
 		ImVec2 size = ImGui::CalcTextSize( buf );
 		ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - window_padding.x - 1.0f - Sin( cls.monotonicTime, Milliseconds( 182 ) ) );
 
@@ -1032,7 +1032,7 @@ static void InitCategory( const char * category_name, float padding ) {
 }
 
 static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
-	InitCategory( label, icon_size.y * 0.8 );
+	InitCategory( label, icon_size.y * 0.5 );
 
 	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( i );
@@ -1048,7 +1048,7 @@ static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 i
 }
 
 static void Perks( Vec2 icon_size ) {
-	InitCategory( "CLASS", icon_size.y * 0.8 );
+	InitCategory( "CLASS", icon_size.y * 0.5 );
 
 	for( PerkType i = PerkType( Perk_None + 1 ); i < Perk_Count; i++ ) {
 		if( !GetPerkDef( i )->enabled )
@@ -1064,7 +1064,7 @@ static void Perks( Vec2 icon_size ) {
 
 
 static void Gadgets( Vec2 icon_size ) {
-	InitCategory( "GADGET", icon_size.y * 0.8 );
+	InitCategory( "GADGET", icon_size.y * 0.5 );
 
 	for( GadgetType i = GadgetType( Gadget_None + 1 ); i < Gadget_Count; i++ ) {
 		const GadgetDef * def = GetGadgetDef( i );
@@ -1090,7 +1090,7 @@ static bool LoadoutMenu() {
 	ImGui::Begin( "Loadout", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 
 	{
-		size_t title_height = displaySize.y * 0.15f;
+		size_t title_height = displaySize.y * 0.075f;
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
 		ImGui::BeginChild( "loadout title", ImVec2( -1, title_height ) );
 

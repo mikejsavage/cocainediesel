@@ -52,17 +52,13 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash materia
 		RGBA8( 255, 255, 255, 255 * width / end_width ),
 	};
 
-	u16 base_index = DynamicMeshBaseIndex();
-	u16 indices[] = { 0, 1, 2, 1, 3, 2 };
-	for( u16 & idx : indices ) {
-		idx += base_index;
-	}
+	constexpr u16 indices[] = { 0, 1, 2, 1, 3, 2 };
 
 	PipelineState pipeline = MaterialToPipelineState( material, color );
 	pipeline.shader = &shaders.standard_vertexcolors;
 	pipeline.blend_func = BlendFunc_Add;
-	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+	pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 
 	DynamicMesh mesh = { };
 	mesh.positions = positions;

@@ -38,6 +38,11 @@ void FatalImpl( const char * file, int line, const char * format, ... ) __attrib
 #endif
 void FatalErrnoImpl( const char * msg, const char * file, int line );
 
+template< typename T >
+constexpr bool HasBit( T bits, T bit ) {
+	return ( bits & bit ) != 0;
+}
+
 /*
  * defer
  */
@@ -76,6 +81,16 @@ constexpr Span< T > StaticSpan( T ( &arr )[ N ] ) {
 template< typename T >
 Optional< T > MakeOptional( const T & x ) {
 	return x;
+}
+
+template< typename T >
+bool operator==( const Optional< T > & opt, const T & x ) {
+	return opt.exists && opt.value == x;
+}
+
+template< typename T >
+bool operator==( const T & x, const Optional< T > & opt ) {
+	return opt == x;
 }
 
 /*

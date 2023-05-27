@@ -155,13 +155,14 @@ static void SubmitPostprocessPass() {
 
 	PipelineState pipeline;
 	pipeline.pass = frame_static.postprocess_pass;
-	pipeline.depth_func = DepthFunc_Disabled;
 	pipeline.shader = &shaders.postprocess;
+	pipeline.depth_func = DepthFunc_Disabled;
+	pipeline.write_depth = false;
 
 	const Framebuffer & fb = frame_static.postprocess_fb;
-	pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
-	pipeline.set_texture( "u_Screen", &fb.albedo_texture );
-	pipeline.set_texture( "u_Noise", FindMaterial( "textures/noise" )->texture );
+	pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
+	pipeline.bind_texture( "u_Screen", &fb.albedo_texture );
+	pipeline.bind_texture( "u_Noise", FindMaterial( "textures/noise" )->texture );
 	float damage_effect = cg.view.type == VIEWDEF_PLAYERVIEW ? cg.damage_effect : 0.0f;
 
 	float contrast = 1.0f;
@@ -194,7 +195,7 @@ static void SubmitPostprocessPass() {
 	uniforms.brightness = 0.0f;
 	uniforms.contrast = contrast;
 
-	pipeline.set_uniform( "u_PostProcess", UploadPostprocessUniforms( uniforms ) );
+	pipeline.bind_uniform( "u_PostProcess", UploadPostprocessUniforms( uniforms ) );
 
 	DrawFullscreenMesh( pipeline );
 }

@@ -3,6 +3,9 @@
 
 #include "glad/glad.h"
 
+#define GLFW_INCLUDE_NONE
+#include "glfw3/GLFW/glfw3.h"
+
 #include "tracy/Tracy.hpp"
 #include "tracy/TracyOpenGL.hpp"
 
@@ -22,46 +25,29 @@ struct SameType< T, T > { static constexpr bool value = true; };
 
 STATIC_ASSERT( ( SameType< u32, GLuint >::value ) );
 
-enum VertexAttribute : GLuint {
-	VertexAttribute_Position,
-	VertexAttribute_Normal,
-	VertexAttribute_TexCoord,
-	VertexAttribute_Color,
-	VertexAttribute_JointIndices,
-	VertexAttribute_JointWeights,
-
-	// instance stuff
-	VertexAttribute_MaterialColor,
-	VertexAttribute_MaterialTextureMatrix0,
-	VertexAttribute_MaterialTextureMatrix1,
-	VertexAttribute_OutlineHeight,
-	VertexAttribute_ModelTransformRow0,
-	VertexAttribute_ModelTransformRow1,
-	VertexAttribute_ModelTransformRow2,
-};
-
 static const u32 UNIFORM_BUFFER_SIZE = 64 * 1024;
 
+enum DrawCallType {
+	DrawCallType_Normal,
+	DrawCallType_Indirect,
+	DrawCallType_Compute,
+	DrawCallType_IndirectCompute,
+};
+
 struct DrawCall {
+	DrawCallType type;
 	PipelineState pipeline;
 	Mesh mesh;
 	u32 num_vertices;
-	u32 index_offset;
-
-	InstanceType instance_type;
 	u32 num_instances;
-	GPUBuffer instance_data;
-	GPUBuffer update_data;
+	u32 first_index;
+	u32 base_vertex;
 
 	u32 dispatch_size[ 3 ];
 	GPUBuffer indirect;
 };
 
-static GLsync fences[ 3 ];
-static u64 frame_counter;
-
-STATIC_ASSERT( ARRAY_COUNT( fences ) == ARRAY_COUNT( &StreamingBuffer::buffers ) );
-STATIC_ASSERT( ARRAY_COUNT( fences ) == ARRAY_COUNT( &StreamingBuffer::mappings ) );
+static GLsync fences[ MAX_FRAMES_IN_FLIGHT ];
 
 static NonRAIIDynamicArray< RenderPass > render_passes;
 static NonRAIIDynamicArray< DrawCall > draw_calls;
@@ -96,7 +82,7 @@ static u32 prev_viewport_height;
 
 static struct {
 	UniformBlock uniforms[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
-	GPUBuffer buffers[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
+	PipelineState::BufferBinding buffers[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
 	const Texture * textures[ ARRAY_COUNT( &Shader::textures ) ] = { };
 	TextureArray texture_arrays[ ARRAY_COUNT( &Shader::texture_arrays ) ] = { };
 } prev_bindings;
@@ -425,6 +411,14 @@ static void RunDeferredDeletes() {
 
 void InitRenderBackend() {
 	TracyZoneScoped;
+
+	{
+		TracyZoneScopedN( "Load OpenGL" );
+		if( gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) != 1 ) {
+			Fatal( "Couldn't load GL" );
+		}
+	}
+
 	TracyGpuContext;
 
 	{
@@ -476,7 +470,6 @@ void InitRenderBackend() {
 	for( GLsync & fence : fences ) {
 		fence = 0;
 	}
-	frame_counter = 0;
 
 	render_passes.init( sys_allocator );
 	draw_calls.init( sys_allocator );
@@ -552,10 +545,11 @@ void RenderBackendBeginFrame() {
 	render_passes.clear();
 	draw_calls.clear();
 
-	if( fences[ frame_counter % ARRAY_COUNT( fences ) ] != 0 ) {
+	size_t fence_id = FrameSlot();
+	if( fences[ fence_id ] != 0 ) {
 		TracyZoneScopedN( "Wait on frame fence" );
-		glClientWaitSync( fences[ frame_counter % ARRAY_COUNT( fences ) ], GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED );
-		glDeleteSync( fences[ frame_counter % ARRAY_COUNT( fences ) ] );
+		glClientWaitSync( fences[ fence_id ], GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED );
+		glDeleteSync( fences[ fence_id ] );
 	}
 
 	num_vertices_this_frame = 0;
@@ -577,7 +571,71 @@ static bool operator!=( PipelineState::Scissor a, PipelineState::Scissor b ) {
 	return a.x != b.x || a.y != b.y || a.w != b.w || a.h != b.h;
 }
 
-static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
+void PipelineState::bind_uniform( StringHash name, UniformBlock block ) {
+	for( size_t i = 0; i < num_uniforms; i++ ) {
+		if( uniforms[ i ].name_hash == name.hash ) {
+			uniforms[ i ].block = block;
+			return;
+		}
+	}
+
+	Assert( num_uniforms < ARRAY_COUNT( uniforms ) );
+	uniforms[ num_uniforms ].name_hash = name.hash;
+	uniforms[ num_uniforms ].block = block;
+	num_uniforms++;
+}
+
+void PipelineState::bind_texture( StringHash name, const Texture * texture ) {
+	for( size_t i = 0; i < num_textures; i++ ) {
+		if( textures[ i ].name_hash == name.hash ) {
+			textures[ i ].texture = texture;
+			return;
+		}
+	}
+
+	Assert( num_textures < ARRAY_COUNT( textures ) );
+	textures[ num_textures ].name_hash = name.hash;
+	textures[ num_textures ].texture = texture;
+	num_textures++;
+}
+
+void PipelineState::bind_texture_array( StringHash name, TextureArray ta ) {
+	for( size_t i = 0; i < num_texture_arrays; i++ ) {
+		if( texture_arrays[ i ].name_hash == name.hash ) {
+			texture_arrays[ i ].ta = ta;
+			return;
+		}
+	}
+
+	Assert( num_texture_arrays < ARRAY_COUNT( texture_arrays ) );
+	texture_arrays[ num_texture_arrays ].name_hash = name.hash;
+	texture_arrays[ num_texture_arrays ].ta = ta;
+	num_texture_arrays++;
+}
+
+void PipelineState::bind_buffer( StringHash name, GPUBuffer buffer, u32 offset, u32 size ) {
+	for( size_t i = 0; i < num_buffers; i++ ) {
+		if( buffers[ i ].name_hash == name.hash ) {
+			buffers[ i ].buffer = buffer;
+			buffers[ i ].offset = offset;
+			return;
+		}
+	}
+
+	Assert( num_buffers < ARRAY_COUNT( buffers ) );
+	buffers[ num_buffers ].name_hash = name.hash;
+	buffers[ num_buffers ].buffer = buffer;
+	buffers[ num_buffers ].offset = offset;
+	buffers[ num_buffers ].size = size;
+	num_buffers++;
+}
+
+void PipelineState::bind_streaming_buffer( StringHash name, StreamingBuffer stream ) {
+	u32 offset = stream.size * FrameSlot();
+	bind_buffer( name, stream.buffer, offset, stream.size );
+}
+
+static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) {
 	TracyGpuZone( "Set pipeline state" );
 
 	if( pipeline.shader != NULL && ( prev_pipeline.shader == NULL || pipeline.shader->program != prev_pipeline.shader->program ) ) {
@@ -642,16 +700,21 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	// buffers
 	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->buffers ); i++ ) {
 		u64 name_hash = pipeline.shader->buffers[ i ];
-		GPUBuffer prev_buffer = prev_bindings.buffers[ i ];
+		PipelineState::BufferBinding prev = prev_bindings.buffers[ i ];
 
-		bool should_unbind = prev_buffer.buffer != 0;
+		bool should_unbind = prev.buffer.buffer != 0;
 		if( name_hash != 0 ) {
 			for( size_t j = 0; j < pipeline.num_buffers; j++ ) {
-				if( pipeline.buffers[ j ].name_hash == name_hash ) {
-					GPUBuffer buffer = pipeline.buffers[ j ].buffer;
-					if( buffer.buffer != prev_buffer.buffer ) {
-						glBindBufferBase( GL_SHADER_STORAGE_BUFFER, i, buffer.buffer );
-						prev_bindings.buffers[ i ] = buffer;
+				const PipelineState::BufferBinding & binding = pipeline.buffers[ j ];
+				if( binding.name_hash == name_hash ) {
+					if( binding.buffer.buffer != prev.buffer.buffer || binding.offset != prev.offset || binding.size != prev.size ) {
+						if( binding.offset == 0 && binding.size == 0 ) {
+							glBindBufferBase( GL_SHADER_STORAGE_BUFFER, i, binding.buffer.buffer );
+						}
+						else {
+							glBindBufferRange( GL_SHADER_STORAGE_BUFFER, i, binding.buffer.buffer, binding.offset, binding.size );
+						}
+						prev_bindings.buffers[ i ] = binding;
 					}
 					should_unbind = false;
 					break;
@@ -724,19 +787,20 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	}
 
 	// backface culling
-	if( pipeline.cull_face != CullFace_Disabled && !ccw_winding ) {
-		pipeline.cull_face = pipeline.cull_face == CullFace_Front ? CullFace_Back : CullFace_Front;
+	CullFace cull_face = pipeline.cull_face;
+	if( cull_face != CullFace_Disabled && cw_winding ) {
+		cull_face = cull_face == CullFace_Front ? CullFace_Back : CullFace_Front;
 	}
 
-	if( pipeline.cull_face != prev_pipeline.cull_face ) {
-		if( pipeline.cull_face == CullFace_Disabled ) {
+	if( cull_face != prev_pipeline.cull_face ) {
+		if( cull_face == CullFace_Disabled ) {
 			glDisable( GL_CULL_FACE );
 		}
 		else {
 			if( prev_pipeline.cull_face == CullFace_Disabled ) {
 				glEnable( GL_CULL_FACE );
 			}
-			glCullFace( pipeline.cull_face == CullFace_Front ? GL_FRONT : GL_BACK );
+			glCullFace( cull_face == CullFace_Front ? GL_FRONT : GL_BACK );
 		}
 	}
 
@@ -790,6 +854,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	}
 
 	prev_pipeline = pipeline;
+	prev_pipeline.cull_face = cull_face;
 }
 
 static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
@@ -798,37 +863,6 @@ static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 	if( !render_passes[ a.pipeline.pass ].sorted )
 		return false;
 	return a.pipeline.shader < b.pipeline.shader;
-}
-
-static void SetupAttribute( GLuint vao, GLuint buffer, GLuint index, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {
-	if( buffer == 0 )
-		return;
-
-	GLenum type;
-	int num_components;
-	bool integral;
-	GLboolean normalized;
-	VertexFormatToGL( format, &type, &num_components, &integral, &normalized, stride == 0 ? &stride : NULL );
-
-	glEnableVertexArrayAttrib( vao, index );
-	glVertexArrayVertexBuffer( vao, index, buffer, 0, stride );
-	if( integral && !normalized ) {
-		/*
-		 * wintel driver ignores the type and treats everything as u32
-		 * non-DSA call works fine so fall back to that here
-		 *
-		 * see also https://doc.magnum.graphics/magnum/opengl-workarounds.html
-		 *
-		 * glVertexArrayAttribIFormat( vao, index, num_components, type, offset );
-		 */
-
-		glBindVertexArray( vao );
-		glVertexAttribIFormat( index, num_components, type, offset );
-		glBindVertexArray( 0 );
-	}
-	else {
-		glVertexArrayAttribFormat( vao, index, num_components, type, normalized, offset );
-	}
 }
 
 static void SubmitFramebufferBlit( const RenderPass & pass ) {
@@ -926,102 +960,42 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	if( dc.pipeline.shader->program == 0 )
 		return;
 
-	SetPipelineState( dc.pipeline, dc.mesh.ccw_winding );
+	SetPipelineState( dc.pipeline, dc.mesh.cw_winding );
 
-	if( dc.instance_type == InstanceType_ComputeShader ) {
+	if( dc.type == DrawCallType_Compute ) {
 		glDispatchCompute( dc.dispatch_size[ 0 ], dc.dispatch_size[ 1 ], dc.dispatch_size[ 2 ] );
 		return;
 	}
 
-	if( dc.instance_type == InstanceType_ComputeShaderIndirect ) {
+	if( dc.type == DrawCallType_IndirectCompute ) {
 		glBindBuffer( GL_DISPATCH_INDIRECT_BUFFER, dc.indirect.buffer );
 		glDispatchComputeIndirect( 0 );
 		glBindBuffer( GL_DISPATCH_INDIRECT_BUFFER, 0 );
 		return;
 	}
 
+	GLenum gl_index_format = dc.mesh.index_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
 	glBindVertexArray( dc.mesh.vao );
 
-	if( dc.instance_type == InstanceType_Particles ) {
-		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-
+	if( dc.type == DrawCallType_Normal ) {
+		if( dc.mesh.index_buffer.buffer != 0 ) {
+			size_t index_size = dc.mesh.index_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
+			const void * offset = ( const void * ) ( uintptr_t( dc.first_index ) * index_size );
+			glDrawElementsInstancedBaseVertex( GL_TRIANGLES, dc.num_vertices, gl_index_format, offset, dc.num_instances, dc.base_vertex );
+		}
+		else {
+			glDrawArraysInstanced( GL_TRIANGLES, dc.first_index, dc.num_vertices, dc.num_instances );
+		}
+	}
+	else if( dc.type == DrawCallType_Indirect ) {
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, dc.indirect.buffer );
-		glDrawElementsIndirect( GL_TRIANGLES, type, 0 );
+		if( dc.mesh.index_buffer.buffer != 0 ) {
+			glDrawElementsIndirect( GL_TRIANGLES, gl_index_format, 0 );
+		}
+		else {
+			glDrawArraysIndirect( GL_TRIANGLES, 0 );
+		}
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0 );
-	}
-	else if( dc.instance_type == InstanceType_Model ) {
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, material.color ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_MaterialTextureMatrix0, VertexFormat_Floatx3, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, material.tcmod[ 0 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_MaterialTextureMatrix1, VertexFormat_Floatx3, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, material.tcmod[ 1 ] ) );
-
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, transform[ 0 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, transform[ 1 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, transform[ 2 ] ) );
-
-		glVertexAttribDivisor( VertexAttribute_MaterialColor, 1 );
-		glVertexAttribDivisor( VertexAttribute_MaterialTextureMatrix0, 1 );
-		glVertexAttribDivisor( VertexAttribute_MaterialTextureMatrix1, 1 );
-
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow0, 1 );
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow1, 1 );
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
-
-		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, type, 0, dc.num_instances );
-	}
-	else if( dc.instance_type == InstanceType_ModelShadows ) {
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelShadowsInstance ), offsetof( GPUModelShadowsInstance, transform[ 0 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelShadowsInstance ), offsetof( GPUModelShadowsInstance, transform[ 1 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelShadowsInstance ), offsetof( GPUModelShadowsInstance, transform[ 2 ] ) );
-
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow0, 1 );
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow1, 1 );
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
-
-		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, type, 0, dc.num_instances );
-	}
-	else if( dc.instance_type == InstanceType_ModelOutlines ) {
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, color ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_OutlineHeight, VertexFormat_Floatx1, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, height ) );
-
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, transform[ 0 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, transform[ 1 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, transform[ 2 ] ) );
-
-		glVertexAttribDivisor( VertexAttribute_MaterialColor, 1 );
-		glVertexAttribDivisor( VertexAttribute_OutlineHeight, 1 );
-
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow0, 1 );
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow1, 1 );
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
-
-		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, type, 0, dc.num_instances );
-	}
-	else if( dc.instance_type == InstanceType_ModelSilhouette ) {
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, color ) );
-
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, transform[ 0 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, transform[ 1 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, transform[ 2 ] ) );
-
-		glVertexAttribDivisor( VertexAttribute_MaterialColor, 1 );
-
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow0, 1 );
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow1, 1 );
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
-
-		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, type, 0, dc.num_instances );
-	}
-	else if( dc.mesh.indices.buffer != 0 ) {
-		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-		const void * offset = ( const void * ) uintptr_t( dc.index_offset );
-		glDrawElements( GL_TRIANGLES, dc.num_vertices, type, offset );
-	}
-	else {
-		glDrawArrays( GL_TRIANGLES, dc.index_offset, dc.num_vertices );
 	}
 
 	glBindVertexArray( 0 );
@@ -1073,8 +1047,7 @@ void RenderBackendSubmitFrame() {
 
 	RunDeferredDeletes();
 
-	fences[ frame_counter % ARRAY_COUNT( fences ) ] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
-	frame_counter++;
+	fences[ FrameSlot() ] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
 
 	u32 ubo_bytes_used = 0;
 	for( const UBO & ubo : ubos ) {
@@ -1106,27 +1079,21 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 		Fatal( "Ran out of UBO space" );
 
 	UniformBlock block;
-	block.ubo = GetStreamingBufferBuffer( ubo->stream ).buffer;
-	block.offset = offset;
+	block.ubo = ubo->stream.buffer.buffer;
+	block.offset = offset + ubo->stream.size * FrameSlot();
 	block.size = AlignPow2( checked_cast< u32 >( size ), u32( 16 ) );
 
-	// memset so we don't leave any gaps. good for write combined memory!
-	u8 * mapping = GetStreamingBufferMapping( ubo->stream );
-	memset( mapping + ubo->bytes_used, 0, offset - ubo->bytes_used );
+	u8 * mapping = ( u8 * ) GetStreamingBufferMemory( ubo->stream );
 	memcpy( mapping + offset, data, size );
 	ubo->bytes_used = offset + size;
 
 	return block;
 }
 
-void ReadGPUBuffer( GPUBuffer buf, void * data, u32 len, u32 offset ) {
-	glGetNamedBufferSubData( buf.buffer, offset, len, data );
-}
-
-GPUBuffer NewGPUBuffer( const void * data, u32 len, const char * name ) {
+GPUBuffer NewGPUBuffer( const void * data, u32 size, const char * name ) {
 	GPUBuffer buf = { };
 	glCreateBuffers( 1, &buf.buffer );
-	glNamedBufferStorage( buf.buffer, len, data, GL_DYNAMIC_STORAGE_BIT );
+	glNamedBufferStorage( buf.buffer, size, data, data == NULL ? GL_DYNAMIC_STORAGE_BIT : 0 );
 
 	if( name != NULL ) {
 		DebugLabel( GL_BUFFER, buf.buffer, name );
@@ -1135,12 +1102,13 @@ GPUBuffer NewGPUBuffer( const void * data, u32 len, const char * name ) {
 	return buf;
 }
 
-GPUBuffer NewGPUBuffer( u32 len, const char * name ) {
-	return NewGPUBuffer( NULL, len, name );
+GPUBuffer NewGPUBuffer( u32 size, const char * name ) {
+	return NewGPUBuffer( NULL, size, name );
 }
 
-void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 len, u32 offset ) {
-	glNamedBufferSubData( buf.buffer, offset, len, data );
+void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 size, u32 offset ) {
+	// TODO: remove GL_DYNAMIC_STORAGE_BIT when we delete this
+	glNamedBufferSubData( buf.buffer, offset, size, data );
 }
 
 void DeleteGPUBuffer( GPUBuffer buf ) {
@@ -1153,38 +1121,30 @@ void DeferDeleteGPUBuffer( GPUBuffer buf ) {
 	deferred_buffer_deletes.add( buf );
 }
 
-StreamingBuffer NewStreamingBuffer( u32 len, const char * name ) {
+StreamingBuffer NewStreamingBuffer( u32 size, const char * name ) {
 	StreamingBuffer stream = { };
 
-	for( size_t i = 0; i < ARRAY_COUNT( stream.buffers ); i++ ) {
-		GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
-		glCreateBuffers( 1, &stream.buffers[ i ].buffer );
-		glNamedBufferStorage( stream.buffers[ i ].buffer, len, NULL, flags );
+	GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+	glCreateBuffers( 1, &stream.buffer.buffer );
+	glNamedBufferStorage( stream.buffer.buffer, size * ARRAY_COUNT( fences ), NULL, flags );
 
-		if( name != NULL ) {
-			TempAllocator temp = cls.frame_arena.temp();
-			DebugLabel( GL_BUFFER, stream.buffers[ i ].buffer, temp( "{} #{}", name, i ) );
-		}
-
-		stream.mappings[ i ] = ( u8 * ) glMapNamedBufferRange( stream.buffers[ i ].buffer, 0, len, flags );
+	if( name != NULL ) {
+		DebugLabel( GL_BUFFER, stream.buffer.buffer, name );
 	}
+
+	stream.ptr = glMapNamedBufferRange( stream.buffer.buffer, 0, size, flags );
+	stream.size = size;
 
 	return stream;
 }
 
-u8 * GetStreamingBufferMapping( StreamingBuffer stream ) {
-	return stream.mappings[ frame_counter % ARRAY_COUNT( stream.mappings ) ];
-}
-
-GPUBuffer GetStreamingBufferBuffer( StreamingBuffer stream ) {
-	return stream.buffers[ frame_counter % ARRAY_COUNT( stream.buffers ) ];
+void * GetStreamingBufferMemory( StreamingBuffer stream ) {
+	return ( ( u8 * ) stream.ptr ) + stream.size * FrameSlot();
 }
 
 void DeleteStreamingBuffer( StreamingBuffer stream ) {
-	for( GPUBuffer buf : stream.buffers ) {
-		glUnmapNamedBuffer( buf.buffer );
-		DeleteGPUBuffer( buf );
-	}
+	glUnmapNamedBuffer( stream.buffer.buffer );
+	DeleteGPUBuffer( stream.buffer );
 }
 
 void DeferDeleteStreamingBuffer( StreamingBuffer stream ) {
@@ -1487,7 +1447,7 @@ void DeleteFramebuffer( Framebuffer fb ) {
 	DeleteTexture( fb.depth_texture );
 }
 
-static GLuint CompileShader( GLenum type, const char * body ) {
+static GLuint CompileShader( GLenum type, const char * body, const char * name ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	DynamicString src( &temp, "#version 450 core\n" );
@@ -1515,7 +1475,7 @@ static GLuint CompileShader( GLenum type, const char * body ) {
 	if( status == GL_FALSE ) {
 		char buf[ 1024 ];
 		glGetShaderInfoLog( shader, sizeof( buf ), NULL, buf );
-		Com_Printf( S_COLOR_YELLOW "Shader compilation failed: %s\n", buf );
+		Com_Printf( S_COLOR_YELLOW "Shader compilation failed %s: %s\n", name, buf );
 		glDeleteShader( shader );
 
 		// static char src[ 65536 ];
@@ -1606,22 +1566,24 @@ bool NewShader( Shader * shader, const char * src, const char * name ) {
 
 	*shader = { };
 
-	GLuint vs = CompileShader( GL_VERTEX_SHADER, src );
-	if( vs == 0 )
+	const char * vertex_shader_name = temp( "{} [VS]", name );
+	GLuint vertex_shader = CompileShader( GL_VERTEX_SHADER, src, vertex_shader_name );
+	if( vertex_shader == 0 )
 		return false;
-	DebugLabel( GL_SHADER, vs, temp( "{} [VS]", name ) );
-	defer { glDeleteShader( vs ); };
+	DebugLabel( GL_SHADER, vertex_shader, vertex_shader_name );
+	defer { glDeleteShader( vertex_shader ); };
 
-	GLuint fs = CompileShader( GL_FRAGMENT_SHADER, src );
-	if( fs == 0 )
+	const char * fragment_shader_name = temp( "{} [FS]", name );
+	GLuint fragment_shader = CompileShader( GL_FRAGMENT_SHADER, src, fragment_shader_name );
+	if( fragment_shader == 0 )
 		return false;
-	DebugLabel( GL_SHADER, fs, temp( "{} [FS]", name ) );
-	defer { glDeleteShader( fs ); };
+	DebugLabel( GL_SHADER, fragment_shader, fragment_shader_name );
+	defer { glDeleteShader( fragment_shader ); };
 
 	shader->program = glCreateProgram();
 	DebugLabel( GL_PROGRAM, shader->program, name );
-	glAttachShader( shader->program, vs );
-	glAttachShader( shader->program, fs );
+	glAttachShader( shader->program, vertex_shader );
+	glAttachShader( shader->program, fragment_shader );
 
 	glBindAttribLocation( shader->program, VertexAttribute_Position, "a_Position" );
 	glBindAttribLocation( shader->program, VertexAttribute_Normal, "a_Normal" );
@@ -1629,13 +1591,6 @@ bool NewShader( Shader * shader, const char * src, const char * name ) {
 	glBindAttribLocation( shader->program, VertexAttribute_Color, "a_Color" );
 	glBindAttribLocation( shader->program, VertexAttribute_JointIndices, "a_JointIndices" );
 	glBindAttribLocation( shader->program, VertexAttribute_JointWeights, "a_JointWeights" );
-	glBindAttribLocation( shader->program, VertexAttribute_MaterialColor, "a_MaterialColor" );
-	glBindAttribLocation( shader->program, VertexAttribute_MaterialTextureMatrix0, "a_MaterialTextureMatrix0" );
-	glBindAttribLocation( shader->program, VertexAttribute_MaterialTextureMatrix1, "a_MaterialTextureMatrix1" );
-	glBindAttribLocation( shader->program, VertexAttribute_OutlineHeight, "a_OutlineHeight" );
-	glBindAttribLocation( shader->program, VertexAttribute_ModelTransformRow0, "a_ModelTransformRow0" );
-	glBindAttribLocation( shader->program, VertexAttribute_ModelTransformRow1, "a_ModelTransformRow1" );
-	glBindAttribLocation( shader->program, VertexAttribute_ModelTransformRow2, "a_ModelTransformRow2" );
 
 	glBindFragDataLocation( shader->program, 0, "f_Albedo" );
 	glBindFragDataLocation( shader->program, 1, "f_Mask" );
@@ -1648,7 +1603,7 @@ bool NewComputeShader( Shader * shader, const char * src, const char * name ) {
 
 	*shader = { };
 
-	GLuint cs = CompileShader( GL_COMPUTE_SHADER, src );
+	GLuint cs = CompileShader( GL_COMPUTE_SHADER, src, name );
 	if( cs == 0 )
 		return false;
 	DebugLabel( GL_SHADER, cs, temp( "{} [CS]", name ) );
@@ -1673,52 +1628,60 @@ void DeleteShader( Shader shader ) {
 	glDeleteProgram( shader.program );
 }
 
-Mesh NewMesh( MeshConfig config ) {
+Mesh NewMesh( const MeshConfig & config ) {
 	GLuint vao;
 	glCreateVertexArrays( 1, &vao );
 	DebugLabel( GL_VERTEX_ARRAY, vao, config.name );
 
-	if( config.unified_buffer.buffer == 0 ) {
-		SetupAttribute( vao, config.positions.buffer, VertexAttribute_Position, config.positions_format );
-		SetupAttribute( vao, config.normals.buffer, VertexAttribute_Normal, config.normals_format );
-		SetupAttribute( vao, config.tex_coords.buffer, VertexAttribute_TexCoord, config.tex_coords_format );
-		SetupAttribute( vao, config.colors.buffer, VertexAttribute_Color, config.colors_format );
-		SetupAttribute( vao, config.joints.buffer, VertexAttribute_JointIndices, config.joints_format );
-		SetupAttribute( vao, config.weights.buffer, VertexAttribute_JointWeights, config.weights_format );
-	}
-	else {
-		Assert( config.stride != 0 );
+	for( size_t i = 0; i < ARRAY_COUNT( config.vertex_descriptor.attributes ); i++ ) {
+		if( !config.vertex_descriptor.attributes[ i ].exists )
+			continue;
 
-		GLuint buffer = config.unified_buffer.buffer;
-		SetupAttribute( vao, buffer, VertexAttribute_Position, config.positions_format, config.stride, config.positions_offset );
-		SetupAttribute( vao, buffer, VertexAttribute_Normal, config.normals_format, config.stride, config.normals_offset );
-		SetupAttribute( vao, buffer, VertexAttribute_TexCoord, config.tex_coords_format, config.stride, config.tex_coords_offset );
-		SetupAttribute( vao, buffer, VertexAttribute_Color, config.colors_format, config.stride, config.colors_offset );
-		SetupAttribute( vao, buffer, VertexAttribute_JointIndices, config.joints_format, config.stride, config.joints_offset );
-		SetupAttribute( vao, buffer, VertexAttribute_JointWeights, config.weights_format, config.stride, config.weights_offset );
+		const VertexAttribute & attribute = config.vertex_descriptor.attributes[ i ].value;
+
+		GLenum type;
+		int num_components;
+		bool integral;
+		GLboolean normalized;
+		u32 stride = config.vertex_descriptor.buffer_strides[ attribute.buffer ];
+		VertexFormatToGL( attribute.format, &type, &num_components, &integral, &normalized, stride == 0 ? &stride : NULL );
+
+		glEnableVertexArrayAttrib( vao, i );
+		glVertexArrayVertexBuffer( vao, i, config.vertex_buffers[ attribute.buffer ].buffer, 0, stride );
+
+		if( integral && !normalized ) {
+			/*
+			 * wintel driver ignores the type and treats everything as u32
+			 * non-DSA call works fine so fall back to that here
+			 *
+			 * see also https://doc.magnum.graphics/magnum/opengl-workarounds.html
+			 *
+			 * glVertexArrayAttribIFormat( vao, attribute, num_components, type, attribute.offset );
+			 */
+
+			glBindVertexArray( vao );
+			glVertexAttribIFormat( i, num_components, type, attribute.offset );
+			glBindVertexArray( 0 );
+		}
+		else {
+			glVertexArrayAttribFormat( vao, i, num_components, type, normalized, attribute.offset );
+		}
 	}
 
-	if( config.indices.buffer != 0 ) {
-		glVertexArrayElementBuffer( vao, config.indices.buffer );
+	if( config.index_buffer.buffer != 0 ) {
+		glVertexArrayElementBuffer( vao, config.index_buffer.buffer );
 	}
 
 	Mesh mesh = { };
-	mesh.num_vertices = config.num_vertices;
-	mesh.ccw_winding = config.ccw_winding;
 	mesh.vao = vao;
-	if( config.unified_buffer.buffer == 0 ) {
-		mesh.positions = config.positions;
-		mesh.normals = config.normals;
-		mesh.tex_coords = config.tex_coords;
-		mesh.colors = config.colors;
-		mesh.joints = config.joints;
-		mesh.weights = config.weights;
+	mesh.index_format = config.index_format;
+	mesh.num_vertices = config.num_vertices;
+	mesh.cw_winding = config.cw_winding;
+
+	for( size_t i = 0; i < ARRAY_COUNT( mesh.vertex_buffers ); i++ ) {
+		mesh.vertex_buffers[ i ] = config.vertex_buffers[ i ];
 	}
-	else {
-		mesh.positions = config.unified_buffer;
-	}
-	mesh.indices = config.indices;
-	mesh.indices_format = config.indices_format;
+	mesh.index_buffer = config.index_buffer;
 
 	return mesh;
 }
@@ -1727,52 +1690,16 @@ void DeleteMesh( const Mesh & mesh ) {
 	if( mesh.vao == 0 )
 		return;
 
-	DeleteGPUBuffer( mesh.positions );
-	DeleteGPUBuffer( mesh.normals );
-	DeleteGPUBuffer( mesh.tex_coords );
-	DeleteGPUBuffer( mesh.colors );
-	DeleteGPUBuffer( mesh.joints );
-	DeleteGPUBuffer( mesh.weights );
-	DeleteGPUBuffer( mesh.indices );
+	for( GPUBuffer buffer : mesh.vertex_buffers ) {
+		DeleteGPUBuffer( buffer );
+	}
+	DeleteGPUBuffer( mesh.index_buffer );
 
 	glDeleteVertexArrays( 1, &mesh.vao );
 }
 
 void DeferDeleteMesh( const Mesh & mesh ) {
 	deferred_mesh_deletes.add( mesh );
-}
-
-void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 index_offset ) {
-	Assert( in_frame );
-	Assert( pipeline.pass != U8_MAX );
-	Assert( pipeline.shader != NULL );
-
-	DrawCall dc = { };
-	dc.mesh = mesh;
-	dc.pipeline = pipeline;
-	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
-	dc.index_offset = index_offset;
-	draw_calls.add( dc );
-
-	num_vertices_this_frame += dc.num_vertices;
-}
-
-void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer instance_data, u32 num_instances, InstanceType instance_type, u32 num_vertices_override, u32 index_offset ) {
-	Assert( in_frame );
-	Assert( pipeline.pass != U8_MAX );
-	Assert( pipeline.shader != NULL );
-
-	DrawCall dc = { };
-	dc.mesh = mesh;
-	dc.pipeline = pipeline;
-	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
-	dc.index_offset = index_offset;
-	dc.instance_type = instance_type;
-	dc.instance_data = instance_data;
-	dc.num_instances = num_instances;
-	draw_calls.add( dc );
-
-	num_vertices_this_frame += dc.num_vertices * num_instances;
 }
 
 static u8 AddRenderPass( const RenderPass & pass ) {
@@ -1827,10 +1754,41 @@ void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, Framebuffer sr
 	AddBlitPass( tracy, src, dst, clear_color, clear_depth );
 }
 
+void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 first_index, u32 base_vertex ) {
+	DrawInstancedMesh( mesh, pipeline, 1, num_vertices_override, first_index, base_vertex );
+}
+
+void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_instances, u32 num_vertices_override, u32 first_index, u32 base_vertex ) {
+	Assert( in_frame );
+	Assert( pipeline.pass != U8_MAX );
+	Assert( pipeline.shader != NULL );
+
+	DrawCall dc = { };
+	dc.type = DrawCallType_Normal;
+	dc.mesh = mesh;
+	dc.pipeline = pipeline;
+	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
+	dc.first_index = first_index;
+	dc.base_vertex = base_vertex;
+	dc.num_instances = num_instances;
+	draw_calls.add( dc );
+
+	num_vertices_this_frame += dc.num_vertices * num_instances;
+}
+
+void DrawMeshIndirect( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer indirect ) {
+	DrawCall dc = { };
+	dc.type = DrawCallType_Indirect;
+	dc.pipeline = pipeline;
+	dc.mesh = mesh;
+	dc.indirect = indirect;
+	draw_calls.add( dc );
+}
+
 void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z ) {
 	DrawCall dc = { };
+	dc.type = DrawCallType_Compute;
 	dc.pipeline = pipeline;
-	dc.instance_type = InstanceType_ComputeShader;
 	dc.dispatch_size[ 0 ] = x;
 	dc.dispatch_size[ 1 ] = y;
 	dc.dispatch_size[ 2 ] = z;
@@ -1839,17 +1797,8 @@ void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z ) {
 
 void DispatchComputeIndirect( const PipelineState & pipeline, GPUBuffer indirect ) {
 	DrawCall dc = { };
+	dc.type = DrawCallType_IndirectCompute;
 	dc.pipeline = pipeline;
-	dc.instance_type = InstanceType_ComputeShaderIndirect;
-	dc.indirect = indirect;
-	draw_calls.add( dc );
-}
-
-void DrawInstancedParticles( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer indirect ) {
-	DrawCall dc = { };
-	dc.pipeline = pipeline;
-	dc.instance_type = InstanceType_Particles;
-	dc.mesh = mesh;
 	dc.indirect = indirect;
 	draw_calls.add( dc );
 }

@@ -1,9 +1,4 @@
-// this must all match c++
-#define PARTICLE_COLLISION_POINT 1u
-#define PARTICLE_COLLISION_SPHERE 2u
-#define PARTICLE_ROTATE 4u
-#define PARTICLE_STRETCH 8u
-
+// this must match c++
 struct Particle {
 	vec3 position;
 	float angle;

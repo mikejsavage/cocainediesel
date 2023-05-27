@@ -5,4 +5,4 @@
 void InitLivePP() { }
 void LivePPFrame() { }
 
-#endif // #ifdef PLATFORM_UNIX
+#endif // #if PLATFORM_UNIX

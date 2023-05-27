@@ -257,7 +257,7 @@ static float ParseFogStrength( const BSPSpans * bsp ) {
 
 struct BSPDrawCall {
 	u32 base_vertex;
-	u32 index_offset;
+	u32 first_index;
 	u32 num_vertices;
 	const Material * material;
 
@@ -349,7 +349,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 			BSPDrawCall dc;
 
 			dc.base_vertex = face->first_vertex;
-			dc.index_offset = face->first_index;
+			dc.first_index = face->first_index;
 			dc.num_vertices = face->num_indices;
 			if( bsp.materials[ face->material ].flags & CONTENTS_WALLBANGABLE ) {
 				dc.material = FindMaterial( bsp.materials[ face->material ].name, &wallbang_material );
@@ -371,7 +371,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 			BSPDrawCall dc;
 
 			dc.base_vertex = face->first_vertex;
-			dc.index_offset = face->first_index;
+			dc.first_index = face->first_index;
 			dc.num_vertices = face->num_indices;
 			if( bsp.materials[ face->material ].flags & CONTENTS_WALLBANGABLE ) {
 				dc.material = FindMaterial( bsp.materials[ face->material ].name, &wallbang_material );
@@ -473,7 +473,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 		}
 		else {
 			for( u32 j = 0; j < dc.num_vertices; j++ ) {
-				u32 index = dc.base_vertex + bsp.indices[ j + dc.index_offset ];
+				u32 index = dc.base_vertex + bsp.indices[ j + dc.first_index ];
 				indices.add( index );
 			}
 
@@ -501,14 +501,14 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 	{
 		TracyZoneScopedN( "Upload to GPU" );
 
-		MeshConfig mesh_config;
+		MeshConfig mesh_config = { };
 		mesh_config.name = temp( "{} models[{}]", filename, model_idx );
-		mesh_config.ccw_winding = false;
-		mesh_config.unified_buffer = NewGPUBuffer( vertices.ptr(), vertices.num_bytes(), temp( "{} - {} vertices", filename, model_idx ) );
-		mesh_config.stride = sizeof( vertices[ 0 ] );
-		mesh_config.positions_offset = offsetof( BSPModelVertex, position );
-		mesh_config.normals_offset = offsetof( BSPModelVertex, normal );
-		mesh_config.tex_coords_offset = offsetof( BSPModelVertex, uv );
+		mesh_config.cw_winding = true;
+		mesh_config.vertex_buffers[ 0 ] = NewGPUBuffer( vertices.ptr(), vertices.num_bytes(), temp( "{} - {} vertices", filename, model_idx ) );
+		mesh_config.vertex_descriptor.buffer_strides[ 0 ] = sizeof( vertices[ 0 ] );
+		mesh_config.set_attribute( VertexAttribute_Position, 0, offsetof( BSPModelVertex, position ) );
+		mesh_config.set_attribute( VertexAttribute_Normal, 0, offsetof( BSPModelVertex, normal ) );
+		mesh_config.set_attribute( VertexAttribute_TexCoord, 0, offsetof( BSPModelVertex, uv ) );
 		mesh_config.num_vertices = indices.size();
 
 		// if( num_verts <= U16_MAX ) {
@@ -519,8 +519,8 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 		// 	mesh_config.indices = NewGPUBuffer( indices.ptr(), indices.num_bytes(), temp( "{} - {} indices", filename, model_idx ) );
 		// }
 		// else {
-			mesh_config.indices = NewGPUBuffer( indices.ptr(), indices.num_bytes(), temp( "{} - {} indices", filename, model_idx ) );
-			mesh_config.indices_format = IndexFormat_U32;
+			mesh_config.index_buffer = NewGPUBuffer( indices.ptr(), indices.num_bytes(), temp( "{} - {} indices", filename, model_idx ) );
+			mesh_config.index_format = IndexFormat_U32;
 		// }
 
 		model.mesh = NewMesh( mesh_config );

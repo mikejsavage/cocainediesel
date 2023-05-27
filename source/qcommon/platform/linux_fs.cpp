@@ -164,4 +164,4 @@ Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor 
 	return Span< const char * >( results, num_results );
 }
 
-#endif // #ifdef PLATFORM_LINUX
+#endif // #if PLATFORM_LINUX

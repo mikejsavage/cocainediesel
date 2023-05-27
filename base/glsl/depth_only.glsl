@@ -2,20 +2,20 @@
 #include "include/common.glsl"
 #include "include/skinning.glsl"
 
+#if INSTANCED
+layout( std430 ) readonly buffer b_Instances {
+	AffineTransform instances[];
+};
+#endif
+
 #if VERTEX_SHADER
 
 in vec4 a_Position;
 in vec3 a_Normal;
 
-#if INSTANCED
-in vec4 a_ModelTransformRow0;
-in vec4 a_ModelTransformRow1;
-in vec4 a_ModelTransformRow2;
-#endif
-
 void main() {
 #if INSTANCED
-	mat4 u_M = transpose( mat4( a_ModelTransformRow0, a_ModelTransformRow1, a_ModelTransformRow2, vec4( 0.0, 0.0, 0.0, 1.0 ) ) );
+	mat4 u_M = AffineToMat4( instances[ gl_InstanceID ] );
 #endif
 
 	vec4 Position = a_Position;

@@ -468,8 +468,8 @@ static void DrawEntityModel( centity_t * cent ) {
 			if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
 				{
 					PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
-					pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-					pipeline.set_uniform( "u_Model", model_uniforms );
+					pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+					pipeline.bind_uniform( "u_Model", model_uniforms );
 
 					DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 				}
@@ -479,8 +479,8 @@ static void DrawEntityModel( centity_t * cent ) {
 					pipeline.shader = &shaders.depth_only;
 					pipeline.clamp_depth = true;
 					// pipeline.cull_face = CullFace_Disabled;
-					pipeline.set_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
-					pipeline.set_uniform( "u_Model", model_uniforms );
+					pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
+					pipeline.bind_uniform( "u_Model", model_uniforms );
 
 					DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 				}

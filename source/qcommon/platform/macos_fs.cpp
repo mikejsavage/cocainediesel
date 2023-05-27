@@ -38,6 +38,16 @@ bool MoveFile( Allocator * a, const char * old_path, const char * new_path, Move
 	return false;
 }
 
-// TODO: FSChangeMonitor
+FSChangeMonitor * NewFSChangeMonitor( Allocator * a, const char * path ) {
+	return NULL;
+}
 
-#endif // #ifdef PLATFORM_MACOS
+void DeleteFSChangeMonitor( Allocator * a, FSChangeMonitor * monitor ) {
+}
+
+Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor * monitor, const char ** results, size_t n ) {
+	Fatal( "not implemented" );
+	return { };
+}
+
+#endif // #if PLATFORM_MACOS

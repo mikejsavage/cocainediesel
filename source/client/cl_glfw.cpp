@@ -1,9 +1,8 @@
 #include "client/client.h"
 #include "client/icon.h"
 #include "client/renderer/renderer.h"
+#include "qcommon/fpe.h"
 #include "qcommon/renderdoc.h"
-
-#include "glad/glad.h"
 
 #define GLFW_INCLUDE_NONE
 #include "glfw3/GLFW/glfw3.h"
@@ -308,6 +307,10 @@ static WindowMode CompleteWindowMode( WindowMode mode ) {
 void CreateWindow( WindowMode mode ) {
 	TracyZoneScoped;
 
+#if PLATFORM_MACOS
+	DisableFPEScoped;
+#endif
+
 	glfwWindowHint( GLFW_CLIENT_API, GLFW_OPENGL_API );
 	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
 	glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE );
@@ -364,13 +367,6 @@ void CreateWindow( WindowMode mode ) {
 	glfwSetCharCallback( window, OnCharTyped );
 
 	glfwMakeContextCurrent( window );
-
-	{
-		TracyZoneScopedN( "Load OpenGL" );
-		if( gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) != 1 ) {
-			Fatal( "Couldn't load GL" );
-		}
-	}
 }
 
 void DestroyWindow() {

@@ -179,15 +179,14 @@ static void SubmitDrawCalls() {
 			continue;
 		}
 
-		MeshConfig config;
+		MeshConfig config = { };
 		config.name = temp( "ImGui - {}", n );
-		config.unified_buffer = NewGPUBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ), temp( "ImGui vertices - {}", n ) );
-		config.positions_offset = offsetof( ImDrawVert, pos );
-		config.tex_coords_offset = offsetof( ImDrawVert, uv );
-		config.colors_offset = offsetof( ImDrawVert, col );
-		config.positions_format = VertexFormat_Floatx2;
-		config.stride = sizeof( ImDrawVert );
-		config.indices = NewGPUBuffer( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof( u16 ), temp( "ImGui indices - {}", n ) );
+		config.vertex_buffers[ 0 ] = NewGPUBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ), temp( "ImGui vertices - {}", n ) );
+		config.vertex_descriptor.buffer_strides[ 0 ] = sizeof( ImDrawVert );
+		config.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, pos ) };
+		config.set_attribute( VertexAttribute_TexCoord, 0, offsetof( ImDrawVert, uv ) );
+		config.set_attribute( VertexAttribute_Color, 0, offsetof( ImDrawVert, col ) );
+		config.index_buffer = NewGPUBuffer( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof( u16 ), temp( "ImGui indices - {}", n ) );
 		Mesh mesh = NewMesh( config );
 		DeferDeleteMesh( mesh );
 
@@ -211,18 +210,18 @@ static void SubmitDrawCalls() {
 					pipeline.scissor.w = scissor.maxs.x - scissor.mins.x;
 					pipeline.scissor.h = scissor.maxs.y - scissor.mins.y;
 
-					pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
-					pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-					pipeline.set_uniform( "u_MaterialStatic", frame_static.identity_material_static_uniforms );
-					pipeline.set_uniform( "u_MaterialDynamic", frame_static.identity_material_dynamic_uniforms );
+					pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
+					pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
+					pipeline.bind_uniform( "u_MaterialStatic", frame_static.identity_material_static_uniforms );
+					pipeline.bind_uniform( "u_MaterialDynamic", frame_static.identity_material_dynamic_uniforms );
 
 					if( pcmd->TextureId.uniform_name != EMPTY_HASH ) {
-						pipeline.set_uniform( pcmd->TextureId.uniform_name, pcmd->TextureId.uniform_block );
+						pipeline.bind_uniform( pcmd->TextureId.uniform_name, pcmd->TextureId.uniform_block );
 					}
 
-					pipeline.set_texture( "u_BaseTexture", pcmd->TextureId.material->texture );
+					pipeline.bind_texture( "u_BaseTexture", pcmd->TextureId.material->texture );
 
-					DrawMesh( mesh, pipeline, pcmd->ElemCount, pcmd->IdxOffset * sizeof( ImDrawIdx ) );
+					DrawMesh( mesh, pipeline, pcmd->ElemCount, pcmd->IdxOffset );
 				}
 			}
 		}

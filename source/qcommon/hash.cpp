@@ -39,7 +39,7 @@ u64 CaseHash64( const char * str ) {
 	return CaseHash64( MakeSpan( str ) );
 }
 
-#ifdef PUBLIC_BUILD
+#if PUBLIC_BUILD
 StringHash::StringHash( const char * s ) {
 	hash = Hash64( s );
 }
@@ -60,7 +60,7 @@ StringHash::StringHash( Span< const char > s ) {
 #endif
 
 void format( FormatBuffer * fb, const StringHash & v, const FormatOpts & opts ) {
-#ifdef PUBLIC_BUILD
+#if PUBLIC_BUILD
 	ggformat_impl( fb, "0x{08x}", v.hash );
 #else
 	ggformat_impl( fb, "{} (0x{08x})", v.str == NULL ? "NULL" : v.str, v.hash );

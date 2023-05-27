@@ -2,7 +2,6 @@
 #include "qcommon/fs.h"
 #include "qcommon/string.h"
 #include "qcommon/hash.h"
-#include "qcommon/sys_fs.h"
 #include "gameshared/q_shared.h"
 
 #include "qcommon/qfiles.h"
@@ -20,7 +19,7 @@ struct Material {
 static char * shader_files[ 1024 ];
 static u32 num_shader_files;
 
-static Material materials[ 1024 ];
+static Material materials[ 4096 ];
 static u32 num_materials;
 
 static Span< const char > ParseLine( Span< const char > * line, Span< const char > str ) {

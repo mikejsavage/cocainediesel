@@ -107,4 +107,4 @@ u32 GetCoreCount() {
 	return info.dwNumberOfProcessors;
 }
 
-#endif // #ifdef PLATFORM_WINDOWS
+#endif // #if PLATFORM_WINDOWS

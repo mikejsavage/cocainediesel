@@ -373,7 +373,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type, UserCommand * cmd ) {
 
 			viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
 			view->origin = cg.predictedPlayerState.pmove.origin + viewoffset - ( 1.0f - cg.lerpfrac ) * cg.predictionError;
-			
+
 			view->angles = cg.predictedPlayerState.viewangles;
 
 			CG_Recoil( cg.predictedPlayerState.weapon );
@@ -443,8 +443,8 @@ static void DrawWorld() {
 				pipeline.shader = &shaders.depth_only;
 				pipeline.clamp_depth = true;
 				// pipeline.cull_face = CullFace_Disabled;
-				pipeline.set_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
-				pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+				pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
+				pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 
 				DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 			}
@@ -454,16 +454,16 @@ static void DrawWorld() {
 			PipelineState pipeline;
 			pipeline.pass = frame_static.world_opaque_prepass_pass;
 			pipeline.shader = &shaders.depth_only;
-			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+			pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 
 			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 		}
 
 		{
 			PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
-			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+			pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 			pipeline.write_depth = false;
 			pipeline.depth_func = DepthFunc_Equal;
 
@@ -484,8 +484,8 @@ static void DrawSilhouettes() {
 		pipeline.write_depth = false;
 
 		const Framebuffer & fb = frame_static.silhouette_gbuffer;
-		pipeline.set_texture( "u_SilhouetteTexture", &fb.albedo_texture );
-		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
+		pipeline.bind_texture( "u_SilhouetteTexture", &fb.albedo_texture );
+		pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
 		DrawFullscreenMesh( pipeline );
 	}
 }
@@ -503,11 +503,11 @@ static void DrawOutlines() {
 	constexpr RGBA8 gray = RGBA8( 30, 30, 30, 255 );
 
 	const Framebuffer & fb = msaa ? frame_static.msaa_fb_masked : frame_static.postprocess_fb_masked;
-	pipeline.set_texture( "u_DepthTexture", &fb.depth_texture );
-	pipeline.set_texture( "u_MaskTexture", &fb.mask_texture );
-	pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
-	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.set_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );
+	pipeline.bind_texture( "u_DepthTexture", &fb.depth_texture );
+	pipeline.bind_texture( "u_MaskTexture", &fb.mask_texture );
+	pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
+	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+	pipeline.bind_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );
 	DrawFullscreenMesh( pipeline );
 }
 

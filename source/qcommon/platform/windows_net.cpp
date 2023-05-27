@@ -8,7 +8,7 @@
 #include "qcommon/platform/windows_net_headers.h"
 
 #include "qcommon/base.h"
-#include "qcommon/sys_net.h"
+#include "qcommon/platform/net.h"
 
 static void FatalWSA( const char * name ) {
 	int err = WSAGetLastError();
@@ -216,4 +216,4 @@ void WaitForSockets( TempAllocator * temp, const Socket * sockets, size_t num_so
 	}
 }
 
-#endif // #ifdef PLATFORM_WINDOWS
+#endif // #if PLATFORM_WINDOWS

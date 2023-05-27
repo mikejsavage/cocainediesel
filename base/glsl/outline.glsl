@@ -17,17 +17,20 @@ in vec4 a_Position;
 in vec3 a_Normal;
 
 #if INSTANCED
-in vec4 a_MaterialColor;
-in float a_OutlineHeight;
+struct Instance {
+	AffineTransform transform;
+	vec4 outline_color;
+	float outline_height;
+};
 
-in vec4 a_ModelTransformRow0;
-in vec4 a_ModelTransformRow1;
-in vec4 a_ModelTransformRow2;
+layout( std430 ) readonly buffer b_Instances {
+	Instance instances[];
+};
 #endif
 
 void main() {
 #if INSTANCED
-	mat4 u_M = transpose( mat4( a_ModelTransformRow0, a_ModelTransformRow1, a_ModelTransformRow2, vec4( 0.0, 0.0, 0.0, 1.0 ) ) );
+	mat4 u_M = AffineToMat4( instances[ gl_InstanceID ].transform );
 #endif
 	vec4 Position = a_Position;
 	vec3 Normal = a_Normal;
@@ -37,7 +40,7 @@ void main() {
 #endif
 
 #if INSTANCED
-	Position += vec4( Normal * a_OutlineHeight, 0.0 );
+	Position += vec4( Normal * instances[ gl_InstanceID ].outline_height, 0.0 );
 #else
 	Position += vec4( Normal * u_OutlineHeight, 0.0 );
 #endif
@@ -46,7 +49,7 @@ void main() {
 	gl_Position = u_P * u_V * Position;
 
 #if INSTANCED
-	v_Color = sRGBToLinear( a_MaterialColor );
+	v_Color = sRGBToLinear( instances[ gl_InstanceID ].outline_color );
 #else
 	v_Color = sRGBToLinear( u_OutlineColor );
 #endif

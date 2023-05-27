@@ -76,7 +76,7 @@ static void LoadGeometry( const char * filename, Model * model, const cgltf_node
 
 	const cgltf_primitive & prim = node->mesh->primitives[ 0 ];
 
-	MeshConfig mesh_config;
+	MeshConfig mesh_config = { };
 	mesh_config.name = temp( "{} nodes[{}]", filename, node->name );
 
 	for( size_t i = 0; i < prim.attributes_count; i++ ) {
@@ -84,7 +84,7 @@ static void LoadGeometry( const char * filename, Model * model, const cgltf_node
 
 		if( attr.type == cgltf_attribute_type_position ) {
 			mesh_config.num_vertices = attr.data->count;
-			mesh_config.positions = NewGPUBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.set_attribute( VertexAttribute_Position, NewGPUBuffer( AccessorToSpan( attr.data ) ) );
 
 			Vec3 min, max;
 			for( int j = 0; j < 3; j++ ) {
@@ -97,39 +97,38 @@ static void LoadGeometry( const char * filename, Model * model, const cgltf_node
 		}
 
 		if( attr.type == cgltf_attribute_type_normal ) {
-			mesh_config.normals = NewGPUBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.set_attribute( VertexAttribute_Normal, NewGPUBuffer( AccessorToSpan( attr.data ) ) );
 		}
 
 		if( attr.type == cgltf_attribute_type_texcoord ) {
-			if( mesh_config.tex_coords.buffer != 0 ) {
+			if( mesh_config.vertex_descriptor.attributes[ VertexAttribute_TexCoord ].exists ) {
 				Com_Printf( S_COLOR_YELLOW "%s has multiple sets of uvs\n", filename );
 			}
 			else {
-				mesh_config.tex_coords = NewGPUBuffer( AccessorToSpan( attr.data ) );
-				mesh_config.tex_coords_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
+				VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
+				mesh_config.set_attribute( VertexAttribute_TexCoord, NewGPUBuffer( AccessorToSpan( attr.data ) ), format );
 			}
 		}
 
 		if( attr.type == cgltf_attribute_type_color ) {
-			mesh_config.colors = NewGPUBuffer( AccessorToSpan( attr.data ) );
-			mesh_config.colors_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
+			VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
+			mesh_config.set_attribute( VertexAttribute_Color, NewGPUBuffer( AccessorToSpan( attr.data ) ), format );
 		}
 
 		if( attr.type == cgltf_attribute_type_joints ) {
-			mesh_config.joints = NewGPUBuffer( AccessorToSpan( attr.data ) );
-			mesh_config.joints_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
+			VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
+			mesh_config.set_attribute( VertexAttribute_JointIndices, NewGPUBuffer( AccessorToSpan( attr.data ) ), format );
 		}
 
 		if( attr.type == cgltf_attribute_type_weights ) {
-			mesh_config.weights = NewGPUBuffer( AccessorToSpan( attr.data ) );
-			mesh_config.weights_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
+			VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
+			mesh_config.set_attribute( VertexAttribute_JointWeights, NewGPUBuffer( AccessorToSpan( attr.data ) ), format );
 		}
 	}
 
-	mesh_config.indices = NewGPUBuffer( AccessorToSpan( prim.indices ) );
-	mesh_config.indices_format = prim.indices->component_type == cgltf_component_type_r_16u ? IndexFormat_U16 : IndexFormat_U32;
+	mesh_config.index_buffer = NewGPUBuffer( AccessorToSpan( prim.indices ) );
+	mesh_config.index_format = prim.indices->component_type == cgltf_component_type_r_16u ? IndexFormat_U16 : IndexFormat_U32;
 	mesh_config.num_vertices = prim.indices->count;
-	mesh_config.ccw_winding = true;
 
 	Model::Primitive * primitive = &model->primitives[ model->num_primitives ];
 	model->num_primitives++;

@@ -284,8 +284,8 @@ void SV_DemoGetUrl_f( edict_t * ent, msg_t args ) {
 	};
 
 	Span< const char > arg = MakeSpan( Cmd_Argv( 0 ) );
-	int id;
-	if( !TrySpanToInt( arg, &id ) || id <= 0 || id > demos.n ) {
+	u64 id;
+	if( !TrySpanToU64( arg, &id ) || id > demos.n ) {
 		PF_GameCmd( ent, "pr \"demoget <id from demolist>\"\n" );
 		return;
 	}

@@ -40,4 +40,4 @@ void LivePPFrame() {
 	}
 }
 
-#endif // #ifdef PLATFORM_WINDOWS
+#endif // #if PLATFORM_WINDOWS

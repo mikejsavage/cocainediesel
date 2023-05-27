@@ -13,6 +13,17 @@ enum IndexFormat : u8 {
 	IndexFormat_U32,
 };
 
+enum VertexAttributeType : u32 {
+	VertexAttribute_Position,
+	VertexAttribute_Normal,
+	VertexAttribute_TexCoord,
+	VertexAttribute_Color,
+	VertexAttribute_JointIndices,
+	VertexAttribute_JointWeights,
+
+	VertexAttribute_Count
+};
+
 struct Shader {
 	u32 program;
 	u64 uniforms[ 8 ];
@@ -32,37 +43,13 @@ struct UniformBlock {
 };
 
 struct Mesh {
-	u32 num_vertices;
 	u32 vao;
-	GPUBuffer positions;
-	GPUBuffer normals;
-	GPUBuffer tex_coords;
-	GPUBuffer colors;
-	GPUBuffer joints;
-	GPUBuffer weights;
-	GPUBuffer indices;
-	IndexFormat indices_format;
-	bool ccw_winding;
-};
+	GPUBuffer vertex_buffers[ VertexAttribute_Count ];
+	GPUBuffer index_buffer;
 
-struct GPUParticle {
-	Vec3 position;
-	float angle;
-	Vec3 velocity;
-	float angular_velocity;
-	float acceleration;
-	float drag;
-	float restitution;
-	float PADDING;
-	Vec4 uvwh;
-	RGBA8 start_color;
-	RGBA8 end_color;
-	float start_size;
-	float end_size;
-	float age;
-	float lifetime;
-	u32 flags;
-	u32 PADDING2;
+	IndexFormat index_format;
+	u32 num_vertices;
+	bool cw_winding;
 };
 
 struct TRS {
@@ -81,39 +68,7 @@ struct Material;
 struct Model;
 struct PipelineState;
 
-enum InstanceType {
-	InstanceType_None,
-	InstanceType_Particles,
-	InstanceType_Model,
-	InstanceType_ModelShadows,
-	InstanceType_ModelOutlines,
-	InstanceType_ModelSilhouette,
-
-	InstanceType_ComputeShader,
-	InstanceType_ComputeShaderIndirect,
-};
-
 struct GPUMaterial {
 	Vec4 color;
 	Vec3 tcmod[ 2 ];
-};
-
-struct GPUModelInstance {
-	GPUMaterial material;
-	Vec4 transform[ 3 ];
-};
-
-struct GPUModelShadowsInstance {
-	Vec4 transform[ 3 ];
-};
-
-struct GPUModelOutlinesInstance {
-	Vec4 transform[ 3 ];
-	Vec4 color;
-	float height;
-};
-
-struct GPUModelSilhouetteInstance {
-	Vec4 transform[ 3 ];
-	Vec4 color;
 };

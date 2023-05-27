@@ -102,4 +102,4 @@ void Sys_ConsoleOutput( const char * str ) {
 	printf( "%s\033[0m", print_from );
 }
 
-#endif // #ifdef PLATFORM_UNIX
+#endif // #if PLATFORM_UNIX

@@ -1,0 +1,22 @@
+skin
+{
+	texture $whiteimage
+	shaded
+	rgbgen entity
+}
+
+glass
+{
+	texture $whiteimage
+	shaded
+	rgbgen const 0 0 1
+	alphagen const 0.5
+	blendfunc blend
+}
+
+metal
+{
+	texture $whiteimage
+	shaded
+	rgbgen const 0.5 0.5 0.5
+}

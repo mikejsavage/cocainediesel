@@ -39,7 +39,7 @@ struct TCMod {
 struct ColorGen {
 	ColorGenType type = ColorGenType_Constant;
 	float args[ 4 ] = { 1.0f, 1.0f, 1.0f, 1.0f };
-	Wave wave;
+	Wave wave = { };
 };
 
 struct Material {

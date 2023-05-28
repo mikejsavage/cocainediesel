@@ -1,0 +1,5 @@
+weapons/ar/impact_decal
+{
+	texture weapons/ar/impact_decal
+	decal
+}

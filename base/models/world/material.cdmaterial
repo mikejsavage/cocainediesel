@@ -1,0 +1,31 @@
+models/static
+{
+	shaded
+	texture $whiteimage
+	rgbGen const 0.35 0.35 0.35
+}
+
+models/static_wallbangable
+{
+	shaded
+	texture $whiteimage
+	rgbGen const 0.15 0.15 0.15
+}
+
+models/static_glass
+{
+	shaded
+	specular 5
+	shininess 8
+	texture $whiteimage
+	rgbGen const 0.05 0.05 0.05
+}
+
+models/signs/truckad
+{
+	shaded
+	// specular 3
+	// shininess 8
+	blendfunc blend
+	texture models/truckad
+}

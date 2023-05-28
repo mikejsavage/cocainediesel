@@ -1,0 +1,7 @@
+weapons/stake/stake
+{
+	cull disable
+	texture $whiteimage
+	rgbgen entity
+	alphagen entity
+}

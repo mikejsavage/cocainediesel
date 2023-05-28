@@ -1,0 +1,5 @@
+weapons/rifle/bullet
+{
+	texture $whiteimage
+	rgbgen entity
+}

@@ -4,7 +4,6 @@ gadgets/hatchet/handle
 	specular 10
 	shininess 8
 	cull disable
-	texture $whiteimage
 	rgbgen const 0.18 0.18 0.18
 	alphagen entity
 }
@@ -15,7 +14,6 @@ gadgets/hatchet/head
 	specular 10
 	shininess 8
 	cull disable
-	texture $whiteimage
 	rgbgen entity
 	alphagen entity
 }

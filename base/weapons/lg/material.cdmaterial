@@ -9,6 +9,5 @@ weapons/lg/beam
 
 models/weapons/lasergun/lasergun_fx
 {
-	texture $whiteimage
 	rgbGen const 0.086 0.086 0.086
 }

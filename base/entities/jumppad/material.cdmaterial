@@ -1,7 +1,6 @@
 models/static
 {
 	shaded
-	texture $whiteimage
 	rgbGen const 0.3 0.3 0.3
 }
 
@@ -12,7 +11,6 @@ models/jumppad
 	shaded
 	specular 3
 	shininess 8
-	texture $whiteimage
 	rgbGen const 0.23 0.65 0.36
 }
 
@@ -23,7 +21,6 @@ models/jumppad_shine
 	shaded
 	specular 3
 	shininess 8
-	texture $whiteimage
 	rgbGen const 0.23 0.65 0.36
 }
 
@@ -34,6 +31,5 @@ models/jumppad_bars
 	shaded
 	specular 3
 	shininess 8
-	texture $whiteimage
 	rgbGen const 0.7 0.7 0.7
 }

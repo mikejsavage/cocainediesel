@@ -279,12 +279,14 @@ static void ParseTCMod( Material * material, Span< const char > name, Span< cons
 	}
 }
 
+static Texture * FindTexture( Span< const char > name ) {
+	u64 idx;
+	return textures_hashtable.get( StringHash( name ).hash, &idx ) ? &textures[ idx ] : NULL;
+}
+
 static void ParseTexture( Material * material, Span< const char > name, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
-	u64 idx;
-	if( textures_hashtable.get( StringHash( token ).hash, &idx ) ) {
-		material->texture = &textures[ idx ];
-	}
+	material->texture = FindTexture( token );
 }
 
 static void SkipComment( Material * material, Span< const char > name, Span< const char > * data ) {
@@ -321,6 +323,8 @@ static void ParseMaterialKey( Material * material, Span< const char > name, Span
 
 static bool ParseMaterial( Material * material, Span< const char > name, Span< const char > * data ) {
 	TracyZoneScoped;
+
+	material->texture = FindTexture( MakeSpan( "$whiteimage" ) );
 
 	while( true ) {
 		Span< const char > token = ParseToken( data, Parse_DontStopOnNewLine );

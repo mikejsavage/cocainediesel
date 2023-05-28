@@ -1,5 +1,4 @@
 models/objects/gibs/gib
 {
-	texture $whiteimage
 	rgbGen entity
 }

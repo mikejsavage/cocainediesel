@@ -1,5 +1,4 @@
 weapons/sawblade/blade
 {
-	texture $whiteimage
 	rgbgen entity
 }

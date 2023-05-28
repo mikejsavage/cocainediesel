@@ -1,6 +1,5 @@
 models/indicators/crown
 {
 	cull none
-	texture $whiteimage
 	rgbGen const 1.000 0.675 0.118
 }

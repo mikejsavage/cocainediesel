@@ -775,10 +775,8 @@ void CG_DrawPlayer( centity_t * cent ) {
 		pose = ComputeMatrixPalettes( &temp, meta->model, lower );
 	}
 	else {
-		pose.node_transforms = ALLOC_SPAN( &temp, Mat4, meta->model->num_nodes );
-		for( u8 i = 0; i < meta->model->num_nodes; i++ ) {
-			pose.node_transforms[ i ] = Mat4::Identity();
-		}
+		Span< TRS > sample = SampleAnimation( &temp, meta->model, 0.0f );
+		pose = ComputeMatrixPalettes( &temp, meta->model, sample );
 	}
 
 	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->interpolated.scale );

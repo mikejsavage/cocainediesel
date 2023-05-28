@@ -321,32 +321,8 @@ float RadiusFromBounds( Vec3 mins, Vec3 maxs ) {
 
 //============================================================================
 
-void Matrix3_Identity( mat3_t m ) {
-	int i, j;
-
-	for( i = 0; i < 3; i++ )
-		for( j = 0; j < 3; j++ )
-			if( i == j ) {
-				m[i * 3 + j] = 1.0;
-			} else {
-				m[i * 3 + j] = 0.0;
-			}
-}
-
 void Matrix3_Copy( const mat3_t m1, mat3_t m2 ) {
 	memcpy( m2, m1, sizeof( mat3_t ) );
-}
-
-void Matrix3_Multiply( const mat3_t m1, const mat3_t m2, mat3_t out ) {
-	out[0] = m1[0] * m2[0] + m1[1] * m2[3] + m1[2] * m2[6];
-	out[1] = m1[0] * m2[1] + m1[1] * m2[4] + m1[2] * m2[7];
-	out[2] = m1[0] * m2[2] + m1[1] * m2[5] + m1[2] * m2[8];
-	out[3] = m1[3] * m2[0] + m1[4] * m2[3] + m1[5] * m2[6];
-	out[4] = m1[3] * m2[1] + m1[4] * m2[4] + m1[5] * m2[7];
-	out[5] = m1[3] * m2[2] + m1[4] * m2[5] + m1[5] * m2[8];
-	out[6] = m1[6] * m2[0] + m1[7] * m2[3] + m1[8] * m2[6];
-	out[7] = m1[6] * m2[1] + m1[7] * m2[4] + m1[8] * m2[7];
-	out[8] = m1[6] * m2[2] + m1[7] * m2[5] + m1[8] * m2[8];
 }
 
 void Matrix3_TransformVector( const mat3_t m, Vec3 v, Vec3 * out ) {

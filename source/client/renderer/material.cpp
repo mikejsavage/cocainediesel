@@ -1009,7 +1009,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		color.x = material->rgbgen.args[ 0 ];
 		color.y = material->rgbgen.args[ 1 ];
 		color.z = material->rgbgen.args[ 2 ];
-		pipeline.bind_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( Vec2( 0.0f ), material->specular, material->shininess ) );
+		pipeline.bind_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( material->specular, material->shininess ) );
 		pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );
 		pipeline.bind_texture_array( "u_ShadowmapTextureArray", frame_static.shadowmap_texture_array );
 		pipeline.bind_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
@@ -1107,7 +1107,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		if( !material_static_uniforms_hashtable.get( hash, &idx ) ) {
 			Assert( num_material_static_uniforms < ARRAY_COUNT( material_static_uniforms ) );
 			material_static_uniforms_hashtable.add( hash, num_material_static_uniforms );
-			material_static_uniforms[ idx ] = UploadMaterialStaticUniforms( Vec2( material->texture->width, material->texture->height ), material->specular, material->shininess );
+			material_static_uniforms[ idx ] = UploadMaterialStaticUniforms( material->specular, material->shininess );
 			num_material_static_uniforms++;
 		}
 

@@ -374,7 +374,7 @@ static void CreateFramebuffers() {
 	if( frame_static.msaa_samples > 1 ) {
 		FramebufferConfig fb;
 
-		texture_config.format = TextureFormat_RGB_U8_sRGB;
+		texture_config.format = TextureFormat_RGBA_U8_sRGB;
 		fb.albedo_attachment = texture_config;
 
 		texture_config.filter = TextureFilter_Point;
@@ -393,7 +393,7 @@ static void CreateFramebuffers() {
 	{
 		FramebufferConfig fb;
 
-		texture_config.format = TextureFormat_RGB_U8_sRGB;
+		texture_config.format = TextureFormat_RGBA_U8_sRGB;
 		fb.albedo_attachment = texture_config;
 
 		texture_config.filter = TextureFilter_Point;

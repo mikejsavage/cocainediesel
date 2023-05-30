@@ -134,18 +134,6 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 			*type = GL_HALF_FLOAT;
 			return;
 
-		case TextureFormat_RGB_U8:
-		case TextureFormat_RGB_U8_sRGB:
-			*internal = format == TextureFormat_RGB_U8 ? GL_RGB8 : GL_SRGB8;
-			*channels = GL_RGB;
-			*type = GL_UNSIGNED_BYTE;
-			return;
-		case TextureFormat_RGB_Half:
-			*internal = GL_RGB16F;
-			*channels = GL_RGB;
-			*type = GL_HALF_FLOAT;
-			return;
-
 		case TextureFormat_RGBA_U8:
 		case TextureFormat_RGBA_U8_sRGB:
 			*internal = format == TextureFormat_RGBA_U8 ? GL_RGBA8 : GL_SRGB8_ALPHA8;

@@ -33,10 +33,6 @@ enum TextureFormat : u8 {
 
 	TextureFormat_RA_U8,
 
-	TextureFormat_RGB_U8,
-	TextureFormat_RGB_U8_sRGB,
-	TextureFormat_RGB_Half,
-
 	TextureFormat_RGBA_U8,
 	TextureFormat_RGBA_U8_sRGB,
 

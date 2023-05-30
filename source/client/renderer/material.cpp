@@ -424,11 +424,11 @@ static void LoadBuiltinTextures() {
 	}
 
 	{
-		constexpr RGB8 pixels[] = {
-			RGB8( 255, 0, 255 ),
-			RGB8( 0, 0, 0 ),
-			RGB8( 255, 255, 255 ),
-			RGB8( 255, 0, 255 ),
+		constexpr RGBA8 pixels[] = {
+			RGBA8( 255, 0, 255, 255 ),
+			RGBA8( 0, 0, 0, 255 ),
+			RGBA8( 255, 255, 255, 255 ),
+			RGBA8( 255, 0, 255, 255 ),
 		};
 
 		TextureConfig config;
@@ -436,7 +436,7 @@ static void LoadBuiltinTextures() {
 		config.height = 2;
 		config.data = pixels;
 		config.filter = TextureFilter_Point;
-		config.format = TextureFormat_RGB_U8;
+		config.format = TextureFormat_RGBA_U8_sRGB;
 
 		missing_texture = NewTexture( config );
 	}
@@ -454,7 +454,7 @@ static void LoadSTBTexture( const char * path, u8 * pixels, int w, int h, int ch
 	constexpr TextureFormat formats[] = {
 		TextureFormat_R_U8,
 		TextureFormat_RA_U8,
-		TextureFormat_RGB_U8_sRGB,
+		{ },
 		TextureFormat_RGBA_U8_sRGB,
 	};
 
@@ -859,6 +859,27 @@ void InitMaterials() {
 			TracyZoneText( job->in.path, strlen( job->in.path ) );
 
 			job->out.pixels = stbi_load_from_memory( job->in.data.ptr, job->in.data.num_bytes(), &job->out.width, &job->out.height, &job->out.channels, 0 );
+
+			if( job->out.channels == 3 ) {
+				TracyZoneScopedN( "RGB -> RGBA" );
+
+				// stb_image uses sys_allocator so this is ok
+				size_t num_pixels = checked_cast< size_t >( job->out.width * job->out.height );
+				RGBA8 * rgba_pixels = ALLOC_MANY( sys_allocator, RGBA8, num_pixels );
+				for( size_t i = 0; i < num_pixels; i++ ) {
+					rgba_pixels[ i ] = RGBA8(
+						job->out.pixels[ i * 3 + 0 ],
+						job->out.pixels[ i * 3 + 1 ],
+						job->out.pixels[ i * 3 + 2 ],
+						255
+					);
+				}
+
+				stbi_image_free( job->out.pixels );
+				job->out.pixels = ( u8 * ) rgba_pixels;
+				job->out.channels = 4;
+			}
+
 		} );
 
 		for( DecodeSTBTextureJob job : jobs ) {

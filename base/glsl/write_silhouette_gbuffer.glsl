@@ -21,7 +21,7 @@ v2f flat int v_Instance;
 
 #if VERTEX_SHADER
 
-in vec4 a_Position;
+layout( location = VertexAttribute_Position ) in vec4 a_Position;
 
 void main() {
 #if INSTANCED

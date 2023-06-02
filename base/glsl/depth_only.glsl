@@ -10,8 +10,8 @@ layout( std430 ) readonly buffer b_Instances {
 
 #if VERTEX_SHADER
 
-in vec4 a_Position;
-in vec3 a_Normal;
+layout( location = VertexAttribute_Position ) in vec4 a_Position;
+layout( location = VertexAttribute_Normal ) in vec3 a_Normal;
 
 void main() {
 #if INSTANCED

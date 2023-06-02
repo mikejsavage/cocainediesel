@@ -40,6 +40,13 @@ static void BuildShaderSrcs( DynamicString * src, const char * path, const char 
 	src->append( "#define PARTICLE_ROTATE {}u\n", ParticleFlag_Rotate );
 	src->append( "#define PARTICLE_STRETCH {}u\n", ParticleFlag_Stretch );
 
+	src->append( "const int VertexAttribute_Position = {};\n", VertexAttribute_Position );
+	src->append( "const int VertexAttribute_Normal = {};\n", VertexAttribute_Normal );
+	src->append( "const int VertexAttribute_TexCoord = {};\n", VertexAttribute_TexCoord );
+	src->append( "const int VertexAttribute_Color = {};\n", VertexAttribute_Color );
+	src->append( "const int VertexAttribute_JointIndices = {};\n", VertexAttribute_JointIndices );
+	src->append( "const int VertexAttribute_JointWeights = {};\n", VertexAttribute_JointWeights );
+
 	src->append( "{}", variant_switches );
 
 	Span< const char > glsl = AssetString( path );

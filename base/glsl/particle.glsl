@@ -11,8 +11,8 @@ flat v2f vec4 v_Color;
 #if VERTEX_SHADER
 
 #if MODEL
-	in vec3 a_Position;
-	in vec2 a_TexCoord;
+	layout( location = VertexAttribute_Position ) in vec3 a_Position;
+	layout( location = VertexAttribute_TexCoord ) in vec2 a_TexCoord;
 #else
 	const vec2 quad_positions[] = {
 		vec2( -0.5f, -0.5f ),

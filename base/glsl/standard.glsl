@@ -34,10 +34,10 @@ v2f float v_Depth;
 
 #if VERTEX_SHADER
 
-in vec4 a_Position;
-in vec3 a_Normal;
-in vec4 a_Color;
-in vec2 a_TexCoord;
+layout( location = VertexAttribute_Position ) in vec4 a_Position;
+layout( location = VertexAttribute_Normal ) in vec3 a_Normal;
+layout( location = VertexAttribute_Color ) in vec4 a_Color;
+layout( location = VertexAttribute_TexCoord ) in vec2 a_TexCoord;
 
 vec2 ApplyTCMod( vec2 uv ) {
 #if INSTANCED

@@ -1573,13 +1573,6 @@ bool NewShader( Shader * shader, const char * src, const char * name ) {
 	glAttachShader( shader->program, vertex_shader );
 	glAttachShader( shader->program, fragment_shader );
 
-	glBindAttribLocation( shader->program, VertexAttribute_Position, "a_Position" );
-	glBindAttribLocation( shader->program, VertexAttribute_Normal, "a_Normal" );
-	glBindAttribLocation( shader->program, VertexAttribute_TexCoord, "a_TexCoord" );
-	glBindAttribLocation( shader->program, VertexAttribute_Color, "a_Color" );
-	glBindAttribLocation( shader->program, VertexAttribute_JointIndices, "a_JointIndices" );
-	glBindAttribLocation( shader->program, VertexAttribute_JointWeights, "a_JointWeights" );
-
 	glBindFragDataLocation( shader->program, 0, "f_Albedo" );
 	glBindFragDataLocation( shader->program, 1, "f_Mask" );
 

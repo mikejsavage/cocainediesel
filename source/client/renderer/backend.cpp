@@ -1112,7 +1112,7 @@ void DeferDeleteGPUBuffer( GPUBuffer buf ) {
 StreamingBuffer NewStreamingBuffer( u32 size, const char * name ) {
 	StreamingBuffer stream = { };
 
-	GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+	GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT;
 	glCreateBuffers( 1, &stream.buffer.buffer );
 	glNamedBufferStorage( stream.buffer.buffer, size * ARRAY_COUNT( fences ), NULL, flags );
 
@@ -1128,6 +1128,12 @@ StreamingBuffer NewStreamingBuffer( u32 size, const char * name ) {
 
 void * GetStreamingBufferMemory( StreamingBuffer stream ) {
 	return ( ( u8 * ) stream.ptr ) + stream.size * FrameSlot();
+}
+
+void FlushStreamingBuffer( StreamingBuffer stream, u32 offset, u32 length ) {
+	glFlushMappedNamedBufferRange( stream.buffer.buffer,
+		checked_cast< GLintptr >( offset * stream.size * FrameSlot() ),
+		checked_cast< GLsizeiptr >( length ) );
 }
 
 void DeleteStreamingBuffer( StreamingBuffer stream ) {

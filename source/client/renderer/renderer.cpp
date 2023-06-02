@@ -708,24 +708,16 @@ void DrawFullscreenMesh( const PipelineState & pipeline ) {
 	DrawMesh( fullscreen_mesh, pipeline );
 }
 
-template< typename T >
-static void FillDynamicGeometryBuffer( StreamingBuffer stream, const T * data, size_t n, size_t old_n ) {
-	T * stream_memory = ( T * ) GetStreamingBufferMemory( stream );
-	for( size_t i = 0; i < n; i++ ) {
-		stream_memory[ i + old_n ] = data[ i ];
-	}
-}
-
 void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh ) {
 	if( dynamic_geometry.num_vertices + mesh.num_vertices > DynamicGeometry::MaxVerts ) {
 		Com_Printf( S_COLOR_YELLOW "Too much dynamic geometry!\n" );
 		return;
 	}
 
-	FillDynamicGeometryBuffer( dynamic_geometry.positions_buffer, mesh.positions, mesh.num_vertices, dynamic_geometry.num_vertices );
-	FillDynamicGeometryBuffer( dynamic_geometry.uvs_buffer, mesh.uvs, mesh.num_vertices, dynamic_geometry.num_vertices );
-	FillDynamicGeometryBuffer( dynamic_geometry.colors_buffer, mesh.colors, mesh.num_vertices, dynamic_geometry.num_vertices );
-	FillDynamicGeometryBuffer( dynamic_geometry.index_buffer, mesh.indices, mesh.num_indices, dynamic_geometry.num_indices );
+	WriteAndFlushStreamingBuffer( dynamic_geometry.positions_buffer, mesh.positions, mesh.num_vertices, dynamic_geometry.num_vertices );
+	WriteAndFlushStreamingBuffer( dynamic_geometry.uvs_buffer, mesh.uvs, mesh.num_vertices, dynamic_geometry.num_vertices );
+	WriteAndFlushStreamingBuffer( dynamic_geometry.colors_buffer, mesh.colors, mesh.num_vertices, dynamic_geometry.num_vertices );
+	WriteAndFlushStreamingBuffer( dynamic_geometry.index_buffer, mesh.indices, mesh.num_indices, dynamic_geometry.num_indices );
 
 	size_t first_index = dynamic_geometry.num_indices + FrameSlot() * DynamicGeometry::MaxVerts;
 	size_t base_vertex = dynamic_geometry.num_vertices + FrameSlot() * DynamicGeometry::MaxVerts;

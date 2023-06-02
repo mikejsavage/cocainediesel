@@ -412,6 +412,7 @@ template< typename T >
 static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collection ) {
 	for( u32 i = 0; i < collection.groups_hashtable.size(); i++ ) {
 		ModelInstanceGroup< T > & group = collection.groups[ i ];
+		FlushStreamingBuffer( group.instance_data, 0, group.num_instances * sizeof( T ) );
 
 		group.pipeline.bind_streaming_buffer( "b_Instances", group.instance_data );
 

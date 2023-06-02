@@ -295,9 +295,15 @@ void DeferDeleteGPUBuffer( GPUBuffer buf );
 
 StreamingBuffer NewStreamingBuffer( u32 size, const char * name = NULL );
 void * GetStreamingBufferMemory( StreamingBuffer stream );
-// void FlushStreamingBuffer( StreamingBuffer stream, size_t length, size_t offset = 0 );
+void FlushStreamingBuffer( StreamingBuffer stream, u32 offset, u32 length );
 void DeleteStreamingBuffer( StreamingBuffer buf );
 void DeferDeleteStreamingBuffer( StreamingBuffer buf );
+
+template< typename T >
+void WriteAndFlushStreamingBuffer( StreamingBuffer stream, const T * data, size_t n, size_t offset = 0 ) {
+	memcpy( ( ( u8 * ) GetStreamingBufferMemory( stream ) ) + offset * sizeof( T ), data, n * sizeof( T ) );
+	FlushStreamingBuffer( stream, offset * sizeof( T ), n * sizeof( T ) );
+}
 
 template< typename T >
 GPUBuffer NewGPUBuffer( Span< T > data, const char * name = NULL ) {

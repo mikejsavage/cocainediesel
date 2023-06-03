@@ -84,7 +84,6 @@ static struct {
 	UniformBlock uniforms[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
 	PipelineState::BufferBinding buffers[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
 	const Texture * textures[ ARRAY_COUNT( &Shader::textures ) ] = { };
-	TextureArray texture_arrays[ ARRAY_COUNT( &Shader::texture_arrays ) ] = { };
 } prev_bindings;
 
 static GLenum DepthFuncToGL( DepthFunc depth_func ) {
@@ -587,20 +586,6 @@ void PipelineState::bind_texture( StringHash name, const Texture * texture ) {
 	num_textures++;
 }
 
-void PipelineState::bind_texture_array( StringHash name, TextureArray ta ) {
-	for( size_t i = 0; i < num_texture_arrays; i++ ) {
-		if( texture_arrays[ i ].name_hash == name.hash ) {
-			texture_arrays[ i ].ta = ta;
-			return;
-		}
-	}
-
-	Assert( num_texture_arrays < ARRAY_COUNT( texture_arrays ) );
-	texture_arrays[ num_texture_arrays ].name_hash = name.hash;
-	texture_arrays[ num_texture_arrays ].ta = ta;
-	num_texture_arrays++;
-}
-
 void PipelineState::bind_buffer( StringHash name, GPUBuffer buffer, u32 offset, u32 size ) {
 	for( size_t i = 0; i < num_buffers; i++ ) {
 		if( buffers[ i ].name_hash == name.hash ) {
@@ -667,7 +652,7 @@ static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) 
 				if( pipeline.textures[ j ].name_hash == name_hash ) {
 					const Texture * texture = pipeline.textures[ j ].texture;
 					if( texture != prev_texture ) {
-						if( prev_texture != NULL && prev_texture->msaa != texture->msaa ) {
+						if( prev_texture != NULL && prev_texture->msaa_samples != texture->msaa_samples ) {
 							glBindTextureUnit( i, 0 );
 						}
 						glBindTextureUnit( i, texture->texture );
@@ -713,33 +698,6 @@ static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) 
 		if( should_unbind ) {
 			glBindBufferBase( GL_SHADER_STORAGE_BUFFER, i, 0 );
 			prev_bindings.buffers[ i ] = { };
-		}
-	}
-
-	// texture arrays
-	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->texture_arrays ); i++ ) {
-		u64 name_hash = pipeline.shader->texture_arrays[ i ];
-		GLenum tex_unit = ARRAY_COUNT( pipeline.shader->textures ) + i;
-		TextureArray prev_texture = prev_bindings.texture_arrays[ i ];
-
-		bool found = prev_texture.texture == 0;
-		if( name_hash != 0 ) {
-			for( size_t j = 0; j < pipeline.num_texture_arrays; j++ ) {
-				if( pipeline.texture_arrays[ j ].name_hash == name_hash ) {
-					TextureArray texture = pipeline.texture_arrays[ j ].ta;
-					if( texture.texture != prev_texture.texture ) {
-						glBindTextureUnit( tex_unit, texture.texture );
-						prev_bindings.texture_arrays[ i ] = texture;
-					}
-					found = true;
-					break;
-				}
-			}
-		}
-
-		if( !found ) {
-			glBindTextureUnit( tex_unit, 0 );
-			prev_bindings.texture_arrays[ i ] = { };
 		}
 	}
 
@@ -854,8 +812,8 @@ static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 }
 
 static void SubmitFramebufferBlit( const RenderPass & pass ) {
-	Framebuffer src = pass.blit_source;
-	Framebuffer target = pass.target;
+	RenderTarget src = pass.blit_source;
+	RenderTarget target = pass.target;
 	GLbitfield clear_mask = 0;
 	clear_mask |= pass.clear_color ? GL_COLOR_BUFFER_BIT : 0;
 	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
@@ -883,7 +841,7 @@ static void SetupRenderPass( const RenderPass & pass ) {
 
 	glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.tracy->name );
 
-	const Framebuffer & fb = pass.target;
+	const RenderTarget & fb = pass.target;
 	if( fb.fbo != prev_fbo ) {
 		glBindFramebuffer( GL_DRAW_FRAMEBUFFER, fb.fbo );
 		prev_fbo = fb.fbo;
@@ -1145,27 +1103,46 @@ void DeferDeleteStreamingBuffer( StreamingBuffer stream ) {
 	deferred_streaming_buffer_deletes.add( stream );
 }
 
-static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
+Texture NewTexture( const TextureConfig & config ) {
 	Texture texture = { };
 	texture.width = config.width;
 	texture.height = config.height;
+	texture.num_layers = config.num_layers;
 	texture.num_mipmaps = config.num_mipmaps;
-	texture.msaa = msaa_samples > 1;
+	texture.msaa_samples = config.msaa_samples;
 	texture.format = config.format;
 
-	GLenum target = msaa_samples == 0 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+	GLenum target;
+	if( config.msaa_samples == 0 ) {
+		target = config.num_layers == 0 ? GL_TEXTURE_2D : GL_TEXTURE_2D_ARRAY;
+	}
+	else {
+		target = config.num_layers == 0 ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+	}
 	glCreateTextures( target, 1, &texture.texture );
 
 	GLenum internal_format, channels, type;
 	TextureFormatToGL( config.format, &internal_format, &channels, &type );
 
-	if( msaa_samples != 0 ) {
-		glTextureStorage2DMultisample( texture.texture, msaa_samples,
-			internal_format, config.width, config.height, GL_TRUE );
+	if( config.msaa_samples != 0 ) {
+		Assert( config.data == NULL );
+		if( config.num_layers == 0 ) {
+			glTextureStorage2DMultisample( texture.texture, config.msaa_samples,
+				internal_format, config.width, config.height, GL_TRUE );
+		}
+		else {
+			glTextureStorage3DMultisample( texture.texture, config.msaa_samples,
+				internal_format, config.width, config.height, config.num_layers, GL_TRUE );
+		}
 		return texture;
 	}
 
-	glTextureStorage2D( texture.texture, config.num_mipmaps, internal_format, config.width, config.height );
+	if( config.num_layers == 0 ) {
+		glTextureStorage2D( texture.texture, config.num_mipmaps, internal_format, config.width, config.height );
+	}
+	else {
+		glTextureStorage3D( texture.texture, config.num_mipmaps, internal_format, config.width, config.height, config.num_layers );
+	}
 
 	glTextureParameteri( texture.texture, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
 	glTextureParameteri( texture.texture, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
@@ -1177,6 +1154,11 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 	glTextureParameteri( texture.texture, GL_TEXTURE_MAG_FILTER, mag_filter );
 	glTextureParameteri( texture.texture, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
 	glTextureParameterf( texture.texture, GL_TEXTURE_LOD_BIAS, -1.0f );
+
+	if( config.format == TextureFormat_Shadow ) {
+		glTextureParameteri( texture.texture, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
+		glTextureParameteri( texture.texture, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE );
+	}
 
 	if( config.wrap == TextureWrap_Border ) {
 		glTextureParameterfv( texture.texture, GL_TEXTURE_BORDER_COLOR, config.border_color.ptr() );
@@ -1207,8 +1189,14 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 		}
 
 		if( config.data != NULL ) {
-			glTextureSubImage2D( texture.texture, 0, 0, 0,
-				config.width, config.height, channels, type, config.data );
+			if( config.num_layers == 0 ) {
+				glTextureSubImage2D( texture.texture, 0, 0, 0,
+					config.width, config.height, channels, type, config.data );
+			}
+			else {
+				glTextureSubImage3D( texture.texture, 0, 0, 0, 0,
+					config.width, config.height, config.num_layers, channels, type, config.data );
+			}
 		}
 	}
 	else {
@@ -1227,11 +1215,18 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 		for( u32 i = 0; i < config.num_mipmaps; i++ ) {
 			u32 w = config.width >> i;
 			u32 h = config.height >> i;
-			u32 size = ( BitsPerPixel( config.format ) * w * h ) / 8;
+			u32 layers = Max2( u32( 1 ), config.num_layers );
+			u32 size = ( BitsPerPixel( config.format ) * w * h * layers ) / 8;
 			Assert( size < S32_MAX );
 
-			glCompressedTextureSubImage2D( texture.texture, i, 0, 0,
-				w, h, internal_format, size, cursor );
+			if( config.num_layers == 0 ) {
+				glCompressedTextureSubImage2D( texture.texture, i, 0, 0,
+					w, h, internal_format, size, cursor );
+			}
+			else {
+				glCompressedTextureSubImage3D( texture.texture, i, 0, 0, 0,
+					w, h, config.num_layers, internal_format, size, cursor );
+			}
 
 			cursor += size;
 		}
@@ -1240,205 +1235,75 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 	return texture;
 }
 
-Texture NewTexture( const TextureConfig & config ) {
-	return NewTextureSamples( config, 0 );
-}
-
 void DeleteTexture( Texture texture ) {
 	if( texture.texture == 0 )
 		return;
 	glDeleteTextures( 1, &texture.texture );
 }
 
-TextureArray NewTextureArray( const TextureArrayConfig & config ) {
-	TextureArray ta;
+static void AddRenderTargetAttachment( GLuint fbo, const RenderTargetConfig::Attachment & config, GLenum attachment, u32 * width, u32 * height ) {
+	Assert( config.texture.texture != 0 );
+	Assert( ( config.texture.num_layers != 0 ) == config.layer.exists );
 
-	glCreateTextures( GL_TEXTURE_2D_ARRAY, 1, &ta.texture );
-
-	GLenum internal_format, channels, type;
-	TextureFormatToGL( config.format, &internal_format, &channels, &type );
-	glTextureStorage3D( ta.texture, config.num_mipmaps, internal_format, config.width, config.height, config.layers );
-
-	glTextureParameteri( ta.texture, GL_TEXTURE_WRAP_S, GL_REPEAT );
-	glTextureParameteri( ta.texture, GL_TEXTURE_WRAP_T, GL_REPEAT );
-	glTextureParameteri( ta.texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-	glTextureParameteri( ta.texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	glTextureParameteri( ta.texture, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
-
-	if( config.format == TextureFormat_Shadow ) {
-		glTextureParameteri( ta.texture, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
-		glTextureParameteri( ta.texture, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE );
-	}
-
-	if( !CompressedTextureFormat( config.format ) ) {
-		Assert( config.num_mipmaps == 1 );
-
-		if( channels == GL_RED ) {
-			if( config.format == TextureFormat_A_U8 ) {
-				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_A, GL_RED );
-			}
-			else {
-				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_R, GL_RED );
-				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_G, GL_RED );
-				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_B, GL_RED );
-				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_A, GL_ONE );
-			}
-		}
-		else if( channels == GL_RG && config.format == TextureFormat_RA_U8 ) {
-			glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_R, GL_RED );
-			glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_G, GL_RED );
-			glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_B, GL_RED );
-			glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
-		}
-
-		if( config.data != NULL ) {
-			glTextureSubImage3D( ta.texture, 0, 0, 0, 0,
-				config.width, config.height, config.layers, channels, type, config.data );
-		}
+	if( config.texture.num_layers == 0 ) {
+		glNamedFramebufferTexture( fbo, attachment, config.texture.texture, 0 );
 	}
 	else {
-		glTextureParameterf( ta.texture, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
-
-		const char * cursor = ( const char * ) config.data;
-		for( u32 i = 0; i < config.num_mipmaps; i++ ) {
-			u32 w = config.width >> i;
-			u32 h = config.height >> i;
-			u32 size = ( BitsPerPixel( config.format ) * w * h * config.layers ) / 8;
-			Assert( size < S32_MAX );
-
-			glCompressedTextureSubImage3D( ta.texture, i, 0, 0, 0,
-				w, h, config.layers, internal_format, size, cursor );
-
-			cursor += size;
-		}
+		glNamedFramebufferTextureLayer( fbo, attachment, config.texture.texture, 0, config.layer.value );
 	}
 
-	return ta;
+	Assert( *width == 0 || config.texture.width == *width );
+	Assert( *height == 0 || config.texture.height == *height );
+	*width = config.texture.width;
+	*height = config.texture.height;
 }
 
-void DeleteTextureArray( TextureArray ta ) {
-	if( ta.texture == 0 )
-		return;
-	glDeleteTextures( 1, &ta.texture );
-}
+RenderTarget NewRenderTarget( const RenderTargetConfig & config ) {
+	RenderTarget rt = { };
 
-Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
-	Framebuffer fb = { };
-
-	glCreateFramebuffers( 1, &fb.fbo );
+	glCreateFramebuffers( 1, &rt.fbo );
 
 	u32 width = 0;
 	u32 height = 0;
-	GLenum bufs[ 2 ] = { GL_NONE, GL_NONE };
 
-	if( config.albedo_attachment.width != 0 ) {
-		Texture texture = NewTextureSamples( config.albedo_attachment, config.msaa_samples );
-		glNamedFramebufferTexture( fb.fbo, GL_COLOR_ATTACHMENT0, texture.texture, 0 );
-		bufs[ 0 ] = GL_COLOR_ATTACHMENT0;
+	GLenum opengl_sucks[ FragmentShaderOutput_Count ] = { };
 
-		fb.albedo_texture = texture;
-
-		width = texture.width;
-		height = texture.height;
+	for( size_t i = 0; i < ARRAY_COUNT( config.color_attachments ); i++ ) {
+		const Optional< RenderTargetConfig::Attachment > & attachment = config.color_attachments[ i ];
+		if( !attachment.exists )
+			continue;
+		AddRenderTargetAttachment( rt.fbo, attachment.value, GL_COLOR_ATTACHMENT0 + i, &width, &height );
+		rt.color_attachments[ i ] = attachment.value.texture;
+		opengl_sucks[ i ] = GL_COLOR_ATTACHMENT0 + i;
 	}
 
-	if( config.mask_attachment.width != 0 ) {
-		Texture texture = NewTextureSamples( config.mask_attachment, config.msaa_samples );
-		glNamedFramebufferTexture( fb.fbo, GL_COLOR_ATTACHMENT1, texture.texture, 0 );
-		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
-
-		fb.mask_texture = texture;
-
-		width = texture.width;
-		height = texture.height;
+	if( config.depth_attachment.exists ) {
+		AddRenderTargetAttachment( rt.fbo, config.depth_attachment.value, GL_DEPTH_ATTACHMENT, &width, &height );
+		rt.depth_attachment = config.depth_attachment.value.texture;
 	}
 
-	if( config.depth_attachment.width != 0 ) {
-		Texture texture = NewTextureSamples( config.depth_attachment, config.msaa_samples );
-		glNamedFramebufferTexture( fb.fbo, GL_DEPTH_ATTACHMENT, texture.texture, 0 );
+	glNamedFramebufferDrawBuffers( rt.fbo, ARRAY_COUNT( opengl_sucks ), opengl_sucks );
 
-		fb.depth_texture = texture;
-
-		width = texture.width;
-		height = texture.height;
-	}
-
-	glNamedFramebufferDrawBuffers( fb.fbo, ARRAY_COUNT( bufs ), bufs );
-
-	Assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
+	Assert( glCheckNamedFramebufferStatus( rt.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
 	Assert( width > 0 && height > 0 );
+	rt.width = width;
+	rt.height = height;
 
-	fb.width = width;
-	fb.height = height;
-
-	return fb;
+	return rt;
 }
 
-Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * mask_texture, Texture * depth_texture ) {
-	Framebuffer fb = { };
-
-	glCreateFramebuffers( 1, &fb.fbo );
-
-	u32 width = 0;
-	u32 height = 0;
-	GLenum bufs[ 2 ] = { GL_NONE, GL_NONE };
-	if( albedo_texture != NULL ) {
-		glNamedFramebufferTexture( fb.fbo, GL_COLOR_ATTACHMENT0, albedo_texture->texture, 0 );
-		fb.albedo_texture = *albedo_texture;
-		bufs[ 0 ] = GL_COLOR_ATTACHMENT0;
-		width = albedo_texture->width;
-		height = albedo_texture->height;
-	}
-	if( mask_texture != NULL ) {
-		glNamedFramebufferTexture( fb.fbo, GL_COLOR_ATTACHMENT1, mask_texture->texture, 0 );
-		fb.mask_texture = *mask_texture;
-		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
-		width = mask_texture->width;
-		height = mask_texture->height;
-	}
-	if( depth_texture != NULL ) {
-		glNamedFramebufferTexture( fb.fbo, GL_DEPTH_ATTACHMENT, depth_texture->texture, 0 );
-		fb.depth_texture = *depth_texture;
-		width = depth_texture->width;
-		height = depth_texture->height;
-	}
-	glNamedFramebufferDrawBuffers( fb.fbo, ARRAY_COUNT( bufs ), bufs );
-
-	Assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
-	Assert( width > 0 && height > 0 );
-
-	fb.width = width;
-	fb.height = height;
-
-	return fb;
-}
-
-Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer ) {
-	Framebuffer fb = { };
-
-	glCreateFramebuffers( 1, &fb.fbo );
-
-	glNamedFramebufferTextureLayer( fb.fbo, GL_DEPTH_ATTACHMENT, texture_array.texture, 0, layer );
-
-	Assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
-
-	fb.width = frame_static.shadow_parameters.shadowmap_res;
-	fb.height = frame_static.shadow_parameters.shadowmap_res;
-
-	return fb;
-}
-
-void DeleteFramebuffer( Framebuffer fb ) {
-	if( fb.fbo == 0 )
+void DeleteRenderTarget( RenderTarget rt ) {
+	if( rt.fbo == 0 )
 		return;
+	glDeleteFramebuffers( 1, &rt.fbo );
+}
 
-	glDeleteFramebuffers( 1, &fb.fbo );
-	DeleteTexture( fb.albedo_texture );
-	DeleteTexture( fb.mask_texture );
-	DeleteTexture( fb.depth_texture );
+void DeleteRenderTargetAndTextures( RenderTarget rt ) {
+	DeleteRenderTarget( rt );
+	for( Texture texture : rt.color_attachments ) {
+		DeleteTexture( texture );
+	}
+	DeleteTexture( rt.depth_attachment );
 }
 
 static GLuint CompileShader( GLenum type, const char * body, const char * name ) {
@@ -1502,14 +1367,18 @@ static bool LinkShader( Shader * shader, GLuint program ) {
 	glGetProgramiv( program, GL_ACTIVE_UNIFORMS, &count );
 
 	size_t num_textures = 0;
-	size_t num_texture_arrays = 0;
 	for( GLint i = 0; i < count; i++ ) {
 		char name[ 128 ];
 		GLint size, len;
 		GLenum type;
 		glGetActiveUniform( program, i, sizeof( name ), &len, &size, &type, name );
 
-		if( type == GL_SAMPLER_2D || type == GL_SAMPLER_2D_MULTISAMPLE || type == GL_UNSIGNED_INT_SAMPLER_2D || type == GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE ) {
+		bool is_texture = false;
+		is_texture = is_texture || type == GL_SAMPLER_2D || type == GL_SAMPLER_2D_MULTISAMPLE;
+		is_texture = is_texture || type == GL_UNSIGNED_INT_SAMPLER_2D || type == GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE;
+		is_texture = is_texture || type == GL_SAMPLER_2D_ARRAY || type == GL_SAMPLER_2D_ARRAY_SHADOW;
+
+		if( is_texture ) {
 			if( num_textures == ARRAY_COUNT( shader->textures ) ) {
 				glDeleteProgram( program );
 				Com_Printf( S_COLOR_YELLOW "Too many samplers in shader\n" );
@@ -1519,18 +1388,6 @@ static bool LinkShader( Shader * shader, GLuint program ) {
 			glProgramUniform1i( program, glGetUniformLocation( program, name ), num_textures );
 			shader->textures[ num_textures ] = Hash64( name, len );
 			num_textures++;
-		}
-
-		if( type == GL_SAMPLER_2D_ARRAY || type == GL_SAMPLER_2D_ARRAY_SHADOW ) {
-			if( num_texture_arrays == ARRAY_COUNT( shader->texture_arrays ) ) {
-				glDeleteProgram( program );
-				Com_Printf( S_COLOR_YELLOW "Too many samplers in shader\n" );
-				return false;
-			}
-
-			glProgramUniform1i( program, glGetUniformLocation( program, name ), ARRAY_COUNT( &Shader::textures ) + num_texture_arrays );
-			shader->texture_arrays[ num_texture_arrays ] = Hash64( name, len );
-			num_texture_arrays++;
 		}
 	}
 
@@ -1578,9 +1435,6 @@ bool NewShader( Shader * shader, const char * src, const char * name ) {
 	DebugLabel( GL_PROGRAM, shader->program, name );
 	glAttachShader( shader->program, vertex_shader );
 	glAttachShader( shader->program, fragment_shader );
-
-	glBindFragDataLocation( shader->program, 0, "f_Albedo" );
-	glBindFragDataLocation( shader->program, 1, "f_Mask" );
 
 	return LinkShader( shader, shader->program );
 }
@@ -1693,7 +1547,7 @@ static u8 AddRenderPass( const RenderPass & pass ) {
 	return checked_cast< u8 >( render_passes.add( pass ) );
 }
 
-u8 AddRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target, ClearColor clear_color, ClearDepth clear_depth ) {
+u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, ClearColor clear_color, ClearDepth clear_depth ) {
 	RenderPass pass;
 	pass.type = RenderPass_Normal;
 	pass.target = target;
@@ -1704,11 +1558,11 @@ u8 AddRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target, C
 }
 
 u8 AddRenderPass( const tracy::SourceLocationData * tracy, ClearColor clear_color, ClearDepth clear_depth ) {
-	Framebuffer target = { };
+	RenderTarget target = { };
 	return AddRenderPass( tracy, target, clear_color, clear_depth );
 }
 
-u8 AddBarrierRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target ) {
+u8 AddBarrierRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target ) {
 	RenderPass pass;
 	pass.type = RenderPass_Normal;
 	pass.target = target;
@@ -1717,7 +1571,7 @@ u8 AddBarrierRenderPass( const tracy::SourceLocationData * tracy, Framebuffer ta
 	return AddRenderPass( pass );
 }
 
-u8 AddUnsortedRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target ) {
+u8 AddUnsortedRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target ) {
 	RenderPass pass;
 	pass.type = RenderPass_Normal;
 	pass.target = target;
@@ -1726,7 +1580,7 @@ u8 AddUnsortedRenderPass( const tracy::SourceLocationData * tracy, Framebuffer t
 	return AddRenderPass( pass );
 }
 
-void AddBlitPass( const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color, ClearDepth clear_depth ) {
+void AddBlitPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst, ClearColor clear_color, ClearDepth clear_depth ) {
 	RenderPass pass;
 	pass.type = RenderPass_Blit;
 	pass.tracy = tracy;
@@ -1737,7 +1591,7 @@ void AddBlitPass( const tracy::SourceLocationData * tracy, Framebuffer src, Fram
 	AddRenderPass( pass );
 }
 
-void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color, ClearDepth clear_depth ) {
+void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst, ClearColor clear_color, ClearDepth clear_depth ) {
 	AddBlitPass( tracy, src, dst, clear_color, clear_depth );
 }
 

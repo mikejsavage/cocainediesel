@@ -98,10 +98,10 @@ const Font * RegisterFont( const char * path ) {
 		}
 
 		TextureConfig config;
+		config.format = TextureFormat_RGBA_U8;
 		config.width = checked_cast< u32 >( w );
 		config.height = checked_cast< u32 >( h );
 		config.data = pixels;
-		config.format = TextureFormat_RGBA_U8;
 
 		font->atlas = NewTexture( config );
 		font->material.texture = &font->atlas;

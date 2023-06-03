@@ -11,7 +11,7 @@ void main() {
 
 #else
 
-out vec4 f_Albedo;
+layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
 
 void main() {
 	const vec4 crosshair_color = vec4( 1.0, 0.0, 0.0, 1.0 );

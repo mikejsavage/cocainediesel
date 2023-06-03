@@ -13,7 +13,7 @@ void main() {
 
 #else
 
-out vec4 f_Albedo;
+layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
 
 void main() {
 	ivec2 p = ivec2( gl_FragCoord.xy );

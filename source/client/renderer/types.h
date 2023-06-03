@@ -24,11 +24,17 @@ enum VertexAttributeType : u32 {
 	VertexAttribute_Count
 };
 
+enum FragmentShaderOutputType : u32 {
+	FragmentShaderOutput_Albedo,
+	FragmentShaderOutput_CurvedSurfaceMask,
+
+	FragmentShaderOutput_Count
+};
+
 struct Shader {
 	u32 program;
 	u64 uniforms[ 8 ];
 	u64 textures[ 4 ];
-	u64 texture_arrays[ 2 ];
 	u64 buffers[ 8 ];
 };
 

@@ -83,21 +83,16 @@ enum VertexFormat : u8 {
 struct Texture {
 	u32 texture;
 	u32 width, height;
+	u32 num_layers;
 	u32 num_mipmaps;
-	bool msaa;
+	int msaa_samples;
 	TextureFormat format;
 };
 
-struct TextureArray {
-	u32 texture;
-};
-
-struct Framebuffer {
+struct RenderTarget {
 	u32 fbo;
-	Texture albedo_texture;
-	Texture mask_texture;
-	Texture depth_texture;
-	TextureArray texture_array;
+	Texture color_attachments[ FragmentShaderOutput_Count ];
+	Texture depth_attachment;
 	u32 width, height;
 };
 
@@ -118,11 +113,6 @@ struct PipelineState {
 		const Texture * texture;
 	};
 
-	struct TextureArrayBinding {
-		u64 name_hash;
-		TextureArray ta;
-	};
-
 	struct BufferBinding {
 		u64 name_hash;
 		GPUBuffer buffer;
@@ -136,7 +126,6 @@ struct PipelineState {
 
 	UniformBinding uniforms[ ARRAY_COUNT( &Shader::uniforms ) ];
 	TextureBinding textures[ ARRAY_COUNT( &Shader::textures ) ];
-	TextureArrayBinding texture_arrays[ ARRAY_COUNT( &Shader::texture_arrays ) ];
 	BufferBinding buffers[ ARRAY_COUNT( &Shader::buffers ) ];
 	size_t num_uniforms = 0;
 	size_t num_textures = 0;
@@ -156,7 +145,6 @@ struct PipelineState {
 
 	void bind_uniform( StringHash name, UniformBlock block );
 	void bind_texture( StringHash name, const Texture * texture );
-	void bind_texture_array( StringHash name, TextureArray ta );
 	void bind_buffer( StringHash name, GPUBuffer buffer, u32 offset = 0, u32 size = 0 );
 	void bind_streaming_buffer( StringHash name, StreamingBuffer stream );
 };
@@ -211,28 +199,19 @@ struct MeshConfig {
 };
 
 struct TextureConfig {
+	TextureFormat format;
 	u32 width = 0;
 	u32 height = 0;
+	u32 num_layers = 0;
 	u32 num_mipmaps = 1;
+	int msaa_samples = 0;
 
 	const void * data = NULL;
 
-	TextureFormat format;
 	TextureWrap wrap = TextureWrap_Repeat;
 	TextureFilter filter = TextureFilter_Linear;
 
 	Vec4 border_color;
-};
-
-struct TextureArrayConfig {
-	u32 width = 0;
-	u32 height = 0;
-	u32 num_mipmaps = 1;
-	u32 layers = 0;
-
-	const void * data = NULL;
-
-	TextureFormat format;
 };
 
 namespace tracy { struct SourceLocationData; }
@@ -245,7 +224,7 @@ enum RenderPassType {
 struct RenderPass {
 	RenderPassType type;
 
-	Framebuffer target = { };
+	RenderTarget target = { };
 
 	bool barrier = false;
 
@@ -257,16 +236,19 @@ struct RenderPass {
 
 	bool sorted = true;
 
-	Framebuffer blit_source = { };
+	RenderTarget blit_source = { };
 
 	const tracy::SourceLocationData * tracy;
 };
 
-struct FramebufferConfig {
-	TextureConfig albedo_attachment = { };
-	TextureConfig mask_attachment = { };
-	TextureConfig depth_attachment = { };
-	int msaa_samples = 0;
+struct RenderTargetConfig {
+	struct Attachment {
+		Texture texture;
+		Optional< u32 > layer;
+	};
+
+	Optional< Attachment > color_attachments[ FragmentShaderOutput_Count ] = { };
+	Optional< Attachment > depth_attachment = NONE;
 };
 
 enum ClearColor { ClearColor_Dont, ClearColor_Do };
@@ -279,11 +261,11 @@ void RenderBackendBeginFrame();
 void RenderBackendSubmitFrame();
 
 u8 AddRenderPass( const tracy::SourceLocationData * tracy, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
-u8 AddRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
-u8 AddUnsortedRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target = { } );
-u8 AddBarrierRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target = { } );
-void AddBlitPass( const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
-void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
+u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
+u8 AddUnsortedRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target = { } );
+u8 AddBarrierRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target = { } );
+void AddBlitPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
+void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
 
 UniformBlock UploadUniforms( const void * data, size_t size );
 
@@ -318,13 +300,9 @@ void WriteGPUBuffer( GPUBuffer buf, Span< T > data, u32 offset = 0 ) {
 Texture NewTexture( const TextureConfig & config );
 void DeleteTexture( Texture texture );
 
-TextureArray NewTextureArray( const TextureArrayConfig & config );
-void DeleteTextureArray( TextureArray ta );
-
-Framebuffer NewFramebuffer( const FramebufferConfig & config );
-Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, Texture * depth_texture );
-Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer );
-void DeleteFramebuffer( Framebuffer fb );
+RenderTarget NewRenderTarget( const RenderTargetConfig & config );
+void DeleteRenderTarget( RenderTarget rt );
+void DeleteRenderTargetAndTextures( RenderTarget rt );
 
 bool NewShader( Shader * shader, const char * src, const char * name );
 bool NewComputeShader( Shader * shader, const char * src, const char * name );

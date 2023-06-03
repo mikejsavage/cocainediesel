@@ -77,8 +77,8 @@ void main() {
 
 #else
 
-out vec4 f_Albedo;
-out uint f_Mask;
+layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
+layout( location = FragmentShaderOutput_CurvedSurfaceMask ) out uint f_CurvedSurfaceMask;
 
 const uint MASK_CURVED = 1u;
 
@@ -114,7 +114,7 @@ layout( std430 ) readonly buffer b_DynamicTiles {
 
 void main() {
 	vec3 normal = normalize( v_Normal );
-	f_Mask = length( fwidth( normal ) ) < 0.000001 ? 0u : MASK_CURVED;
+	f_CurvedSurfaceMask = length( fwidth( normal ) ) < 0.000001 ? 0u : MASK_CURVED;
 #if APPLY_DRAWFLAT
 #if INSTANCED
 	vec4 diffuse = instances[ v_Instance ].color;

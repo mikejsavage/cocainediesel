@@ -85,10 +85,10 @@ void CL_InitImGui() {
 		io.Fonts->GetTexDataAsAlpha8( &pixels, &width, &height );
 
 		TextureConfig config;
+		config.format = TextureFormat_A_U8;
 		config.width = width;
 		config.height = height;
 		config.data = pixels;
-		config.format = TextureFormat_A_U8;
 
 		atlas_texture = NewTexture( config );
 		atlas_material.texture = &atlas_texture;

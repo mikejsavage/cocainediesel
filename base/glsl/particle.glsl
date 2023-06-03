@@ -79,7 +79,7 @@ void main() {
 uniform sampler2D u_BaseTexture;
 uniform lowp sampler2DArray u_DecalAtlases;
 
-out vec4 f_Albedo;
+layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
 
 void main() {
 	// TODO: soft particles
@@ -87,7 +87,7 @@ void main() {
 #if MODEL
 	color = texture( u_BaseTexture, v_TexCoord ) * v_Color;
 #else
-	color = vec4( vec3( 1.0 ), texture( u_DecalAtlases, vec3( v_TexCoord, v_Layer ) ).r ) * v_Color;
+	color = vec4( vec3( 1.0 ), texture( u_DecalAtlases, vec3( v_TexCoord, v_Layer ) ).a ) * v_Color;
 #endif
 	color.a = FogAlpha( color.a, length( v_Position - u_CameraPos ) );
 	color.a = VoidFogAlpha( color.a, v_Position.z );

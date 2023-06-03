@@ -20,7 +20,7 @@ enum ShadowQuality {
 struct ShadowParameters {
 	u32 num_cascades;
 	float cascade_dists[ 4 ];
-	u32 shadowmap_res;
+	u32 resolution;
 	u32 entity_cascades;
 };
 
@@ -52,16 +52,16 @@ struct FrameStatic {
 	float vertical_fov;
 	float near_plane;
 
-	Framebuffer silhouette_gbuffer;
-	Framebuffer msaa_fb;
-	Framebuffer postprocess_fb;
-	Framebuffer msaa_fb_masked;
-	Framebuffer postprocess_fb_masked;
-	Framebuffer msaa_fb_onlycolor;
-	Framebuffer postprocess_fb_onlycolor;
-	Framebuffer shadowmap_fb[ 4 ];
-
-	TextureArray shadowmap_texture_array;
+	struct {
+		RenderTarget silhouette_mask;
+		RenderTarget msaa;
+		RenderTarget postprocess;
+		RenderTarget msaa_masked;
+		RenderTarget postprocess_masked;
+		RenderTarget msaa_onlycolor;
+		RenderTarget postprocess_onlycolor;
+		RenderTarget shadowmaps[ 4 ];
+	} render_targets;
 
 	u8 particle_update_pass;
 	u8 particle_setup_indirect_pass;

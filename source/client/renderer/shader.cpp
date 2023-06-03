@@ -47,6 +47,9 @@ static void BuildShaderSrcs( DynamicString * src, const char * path, const char 
 	src->append( "const int VertexAttribute_JointIndices = {};\n", VertexAttribute_JointIndices );
 	src->append( "const int VertexAttribute_JointWeights = {};\n", VertexAttribute_JointWeights );
 
+	src->append( "const int FragmentShaderOutput_Albedo = {};\n", FragmentShaderOutput_Albedo );
+	src->append( "const int FragmentShaderOutput_CurvedSurfaceMask = {};\n", FragmentShaderOutput_CurvedSurfaceMask );
+
 	src->append( "{}", variant_switches );
 
 	Span< const char > glsl = AssetString( path );

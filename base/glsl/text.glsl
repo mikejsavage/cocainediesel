@@ -24,7 +24,7 @@ void main() {
 
 #else
 
-out vec4 f_Albedo;
+layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
 
 float Median( vec3 v ) {
 	return max( min( v.x, v.y ), min( max( v.x, v.y ), v.z ) );

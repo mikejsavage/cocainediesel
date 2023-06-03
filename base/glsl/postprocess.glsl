@@ -22,7 +22,7 @@ layout( std140 ) uniform u_PostProcess {
 	float u_Contrast;
 };
 
-out vec4 f_Albedo;
+layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
 
 #define SPEED 0.025 // 0.1
 #define ABERRATION 1.0 // 1.0

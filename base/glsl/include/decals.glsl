@@ -84,7 +84,7 @@ void ApplyDecals( uint count, int tile_index, inout vec4 diffuse, inout vec3 nor
 			vec2 dUV_dx = DecalUV( uvwh, v_Position + dPos_dx, bottom_left, basis_u, basis_v, rotation ) - uv;
 			vec2 dUV_dy = DecalUV( uvwh, v_Position + dPos_dy, bottom_left, basis_u, basis_v, rotation ) - uv;
 
-			float alpha = textureGrad( u_DecalAtlases, vec3( uv, layer ), dUV_dx, dUV_dy ).r;
+			float alpha = textureGrad( u_DecalAtlases, vec3( uv, layer ), dUV_dx, dUV_dy ).a;
 			float inv_cos_45_degrees = 1.41421356237;
 			float decal_alpha = min( 1.0, alpha * decal_color.a * max( 0.0, dot( normal, decal_normal ) * inv_cos_45_degrees ) );
 			accumulated_color += decal_color.rgb * decal_alpha * accumulated_alpha;

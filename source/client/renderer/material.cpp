@@ -47,7 +47,7 @@ Material wallbang_material;
 static Vec4 decal_uvwhs[ MAX_DECALS ];
 static u32 num_decals;
 static Hashtable< MAX_DECALS * 2 > decals_hashtable;
-static TextureArray decals_atlases;
+static Texture decals_atlases;
 
 static UniformBlock material_static_uniforms[ MAX_MATERIALS ];
 static Hashtable< MAX_MATERIALS * 2 > material_static_uniforms_hashtable;
@@ -415,10 +415,10 @@ static void LoadBuiltinTextures() {
 		u8 white = 255;
 
 		TextureConfig config;
+		config.format = TextureFormat_R_U8;
 		config.width = 1;
 		config.height = 1;
 		config.data = &white;
-		config.format = TextureFormat_R_U8;
 
 		AddTexture( "$whiteimage", Hash64( "$whiteimage" ), config );
 	}
@@ -432,11 +432,11 @@ static void LoadBuiltinTextures() {
 		};
 
 		TextureConfig config;
+		config.format = TextureFormat_RGBA_U8_sRGB;
 		config.width = 2;
 		config.height = 2;
 		config.data = pixels;
 		config.filter = TextureFilter_Point;
-		config.format = TextureFormat_RGBA_U8_sRGB;
 
 		missing_texture = NewTexture( config );
 	}
@@ -459,10 +459,10 @@ static void LoadSTBTexture( const char * path, u8 * pixels, int w, int h, int ch
 	};
 
 	TextureConfig config;
+	config.format = formats[ channels - 1 ];
 	config.width = checked_cast< u32 >( w );
 	config.height = checked_cast< u32 >( h );
 	config.data = pixels;
-	config.format = formats[ channels - 1 ];
 
 	size_t idx = AddTexture( path, Hash64( StripExtension( path ) ), config );
 	texture_stb_data[ idx ] = pixels;
@@ -781,17 +781,17 @@ static void PackDecalAtlas() {
 	{
 		TracyZoneScopedN( "Upload atlas" );
 
-		DeleteTextureArray( decals_atlases );
+		DeleteTexture( decals_atlases );
 
-		TextureArrayConfig config;
+		TextureConfig config;
+		config.format = TextureFormat_BC4;
 		config.width = DECAL_ATLAS_SIZE;
 		config.height = DECAL_ATLAS_SIZE;
+		config.num_layers = num_layers;
 		config.num_mipmaps = num_mipmaps;
-		config.layers = num_layers;
 		config.data = blocks.ptr;
-		config.format = TextureFormat_BC4;
 
-		decals_atlases = NewTextureArray( config );
+		decals_atlases = NewTexture( config );
 	}
 }
 
@@ -958,7 +958,7 @@ void ShutdownMaterials() {
 	}
 
 	DeleteTexture( missing_texture );
-	DeleteTextureArray( decals_atlases );
+	DeleteTexture( decals_atlases );
 }
 
 bool TryFindMaterial( StringHash name, const Material ** material ) {
@@ -988,8 +988,8 @@ bool TryFindDecal( StringHash name, Vec4 * uvwh ) {
 	return true;
 }
 
-TextureArray DecalAtlasTextureArray() {
-	return decals_atlases;
+const Texture * DecalAtlasTextureArray() {
+	return &decals_atlases;
 }
 
 Vec2 HalfPixelSize( const Material * material ) {
@@ -1032,9 +1032,9 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		color.z = material->rgbgen.args[ 2 ];
 		pipeline.bind_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( Vec2( 0.0f ), material->specular, material->shininess ) );
 		pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );
-		pipeline.bind_texture_array( "u_ShadowmapTextureArray", frame_static.shadowmap_texture_array );
+		pipeline.bind_texture( "u_ShadowmapTextureArray", &frame_static.render_targets.shadowmaps[ 0 ].depth_attachment );
 		pipeline.bind_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
-		pipeline.bind_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
+		pipeline.bind_texture( "u_DecalAtlases", DecalAtlasTextureArray() );
 		AddDynamicsToPipeline( &pipeline );
 		return pipeline;
 	}

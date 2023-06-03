@@ -1114,13 +1114,13 @@ StreamingBuffer NewStreamingBuffer( u32 size, const char * name ) {
 
 	GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT;
 	glCreateBuffers( 1, &stream.buffer.buffer );
-	glNamedBufferStorage( stream.buffer.buffer, size * ARRAY_COUNT( fences ), NULL, flags );
+	glNamedBufferStorage( stream.buffer.buffer, size * MAX_FRAMES_IN_FLIGHT, NULL, flags );
 
 	if( name != NULL ) {
 		DebugLabel( GL_BUFFER, stream.buffer.buffer, name );
 	}
 
-	stream.ptr = glMapNamedBufferRange( stream.buffer.buffer, 0, size, flags );
+	stream.ptr = glMapNamedBufferRange( stream.buffer.buffer, 0, size * MAX_FRAMES_IN_FLIGHT, flags | GL_MAP_FLUSH_EXPLICIT_BIT );
 	stream.size = size;
 
 	return stream;
@@ -1132,7 +1132,7 @@ void * GetStreamingBufferMemory( StreamingBuffer stream ) {
 
 void FlushStreamingBuffer( StreamingBuffer stream, u32 offset, u32 length ) {
 	glFlushMappedNamedBufferRange( stream.buffer.buffer,
-		checked_cast< GLintptr >( offset * stream.size * FrameSlot() ),
+		checked_cast< GLintptr >( offset + stream.size * FrameSlot() ),
 		checked_cast< GLsizeiptr >( length ) );
 }
 

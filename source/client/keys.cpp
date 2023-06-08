@@ -18,9 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include <ctype.h>
-
 #include "qcommon/string.h"
+#include "gameshared/q_shared.h"
 #include "client/client.h"
 
 static char *keybindings[256];
@@ -117,7 +116,7 @@ int Key_StringToKeynum( const char *str ) {
 		return -1;
 	}
 	if( !str[1] ) {
-		return tolower( (unsigned char)str[0] );
+		return ToLowerASCII( (unsigned char)str[0] );
 	}
 
 	for( kn = keynames; kn->name; kn++ ) {

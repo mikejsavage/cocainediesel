@@ -129,7 +129,6 @@ struct PipelineState {
 	BufferBinding buffers[ ARRAY_COUNT( &Shader::buffers ) ];
 	size_t num_uniforms = 0;
 	size_t num_textures = 0;
-	size_t num_texture_arrays = 0;
 	size_t num_buffers = 0;
 
 	u8 pass = U8_MAX;

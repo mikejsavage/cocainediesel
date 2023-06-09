@@ -137,7 +137,7 @@ struct PipelineState {
 	BlendFunc blend_func = BlendFunc_Disabled;
 	DepthFunc depth_func = DepthFunc_Less;
 	CullFace cull_face = CullFace_Back;
-	Scissor scissor = { };
+	Optional< Scissor > scissor = NONE;
 	bool write_depth = true;
 	bool clamp_depth = false;
 	bool view_weapon_depth_hack = false;

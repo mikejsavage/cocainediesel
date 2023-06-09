@@ -205,10 +205,12 @@ static void SubmitDrawCalls() {
 					pipeline.blend_func = BlendFunc_Blend;
 					pipeline.cull_face = CullFace_Disabled;
 					pipeline.write_depth = false;
-					pipeline.scissor.x = scissor.mins.x;
-					pipeline.scissor.y = scissor.mins.y;
-					pipeline.scissor.w = scissor.maxs.x - scissor.mins.x;
-					pipeline.scissor.h = scissor.maxs.y - scissor.mins.y;
+					pipeline.scissor = {
+						u32( scissor.mins.x ),
+						u32( scissor.mins.y ),
+						u32( scissor.maxs.x - scissor.mins.x ),
+						u32( scissor.maxs.y - scissor.mins.y ),
+					};
 
 					pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
 					pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );

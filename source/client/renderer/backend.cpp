@@ -554,8 +554,8 @@ void RenderBackendBeginFrame() {
 	PlotVRAMUsage();
 }
 
-static bool operator!=( PipelineState::Scissor a, PipelineState::Scissor b ) {
-	return a.x != b.x || a.y != b.y || a.w != b.w || a.h != b.h;
+static bool operator==( PipelineState::Scissor a, PipelineState::Scissor b ) {
+	return a.x == b.x && a.y == b.y && a.w == b.w && a.h == b.h;
 }
 
 void PipelineState::bind_uniform( StringHash name, UniformBlock block ) {
@@ -752,15 +752,14 @@ static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) 
 
 	// scissor
 	if( pipeline.scissor != prev_pipeline.scissor ) {
-		PipelineState::Scissor s = pipeline.scissor;
-		if( s.x == 0 && s.y == 0 && s.w == 0 && s.h == 0 ) {
+		if( !pipeline.scissor.exists ) {
 			glDisable( GL_SCISSOR_TEST );
 		}
 		else {
-			PipelineState::Scissor old = prev_pipeline.scissor;
-			if( old.x == 0 && old.y == 0 && old.w == 0 && old.h == 0 ) {
+			if( !prev_pipeline.scissor.exists ) {
 				glEnable( GL_SCISSOR_TEST );
 			}
+			PipelineState::Scissor s = pipeline.scissor.value;
 			glScissor( s.x, frame_static.viewport_height - s.y - s.h, s.w, s.h );
 		}
 	}
@@ -869,10 +868,9 @@ static void SetupRenderPass( const RenderPass & pass ) {
 	clear_mask |= pass.clear_color ? GL_COLOR_BUFFER_BIT : 0;
 	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
 	if( clear_mask != 0 ) {
-		PipelineState::Scissor scissor = prev_pipeline.scissor;
-		if( scissor.x != 0 || scissor.y != 0 || scissor.w != 0 || scissor.h != 0 ) {
+		if( prev_pipeline.scissor.exists ) {
 			glDisable( GL_SCISSOR_TEST );
-			prev_pipeline.scissor = { };
+			prev_pipeline.scissor = NONE;
 		}
 
 		if( pass.clear_color ) {
@@ -987,7 +985,7 @@ void RenderBackendSubmitFrame() {
 		// OBS captures the game with glBlitFramebuffer which gets
 		// nuked by scissor, so turn it off at the end of every frame
 		PipelineState no_scissor_test = prev_pipeline;
-		no_scissor_test.scissor = { };
+		no_scissor_test.scissor = NONE;
 		SetPipelineState( no_scissor_test, true );
 	}
 

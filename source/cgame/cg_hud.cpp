@@ -244,7 +244,7 @@ static const char * RandomPrefix( RNG * rng, float p ) {
 static char * Uppercase( Allocator * a, const char * str ) {
 	char * upper = ALLOC_MANY( a, char, strlen( str ) + 1 );
 	for( size_t i = 0; i < strlen( str ); i++ ) {
-		upper[ i ] = toupper( str[ i ] );
+		upper[ i ] = ToUpperASCII( str[ i ] );
 	}
 	upper[ strlen( str ) ] = '\0';
 	return upper;

@@ -46,6 +46,7 @@ int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop );
 float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop );
 
 char ToLowerASCII( char c );
+char ToUpperASCII( char c );
 
 bool StrEqual( Span< const char > lhs, Span< const char > rhs );
 bool StrEqual( Span< const char > lhs, const char * rhs );

@@ -223,6 +223,10 @@ char ToLowerASCII( char c ) {
 	return c >= 'A' && c <= 'Z' ? c + 'a' - 'A' : c;
 }
 
+char ToUpperASCII( char c ) {
+	return c >= 'a' && c <= 'z' ? c + 'A' - 'a' : c;
+}
+
 bool StrEqual( Span< const char > lhs, Span< const char > rhs ) {
 	return lhs.n == rhs.n && memcmp( lhs.ptr, rhs.ptr, lhs.n ) == 0;
 }

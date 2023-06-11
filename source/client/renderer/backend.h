@@ -25,7 +25,6 @@ enum TextureFormat : u8 {
 	TextureFormat_R_U8,
 	TextureFormat_R_S8,
 	TextureFormat_R_UI8,
-	TextureFormat_R_U16,
 
 	TextureFormat_A_U8,
 
@@ -72,9 +71,6 @@ enum VertexFormat : u8 {
 	VertexFormat_U16x4,
 	VertexFormat_U16x4_Norm,
 
-	VertexFormat_U32x1,
-
-	VertexFormat_Floatx1,
 	VertexFormat_Floatx2,
 	VertexFormat_Floatx3,
 	VertexFormat_Floatx4,

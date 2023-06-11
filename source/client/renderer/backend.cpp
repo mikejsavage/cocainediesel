@@ -116,11 +116,6 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 			*channels = GL_RED;
 			*type = GL_UNSIGNED_BYTE;
 			return;
-		case TextureFormat_R_U16:
-			*internal = GL_R16;
-			*channels = GL_RED;
-			*type = GL_UNSIGNED_SHORT;
-			return;
 
 		case TextureFormat_RA_U8:
 			*internal = GL_RG8;
@@ -261,16 +256,6 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 			*normalized = format == VertexFormat_U16x4_Norm;
 			break;
 
-		case VertexFormat_U32x1:
-			*type = GL_UNSIGNED_INT;
-			*num_components = 1;
-			*integral = true;
-			break;
-
-		case VertexFormat_Floatx1:
-			*type = GL_FLOAT;
-			*num_components = 1;
-			break;
 		case VertexFormat_Floatx2:
 			*type = GL_FLOAT;
 			*num_components = 2;

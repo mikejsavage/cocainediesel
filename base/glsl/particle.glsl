@@ -77,7 +77,7 @@ void main() {
 #else
 
 uniform sampler2D u_BaseTexture;
-uniform lowp sampler2DArray u_DecalAtlases;
+uniform sampler2DArray u_DecalAtlases;
 
 layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
 

@@ -12,8 +12,8 @@ static constexpr float pm_maxjetpackupspeedslowdown = 0.75f;
 static constexpr float pm_boostspeed = 7.45f * 62.0f;
 static constexpr float pm_boostupspeed = 15.0f * 62.0f;
 
-static constexpr float fuel_use_jetpack = 0.2f;
-static constexpr float fuel_use_boost = 0.6f;
+static constexpr float fuel_use_jetpack = 0.125f;
+static constexpr float fuel_use_boost = 0.45f;
 static constexpr float fuel_min = 0.01f;
 
 static constexpr float refuel_min = 0.1f; //50%

@@ -36,15 +36,14 @@ constexpr u64 U64_MAX = UINT64_MAX;
 
 inline void integer_constant_too_big() { }
 
-// TODO: make these consteval
-constexpr u32 operator""_u32( unsigned long long value ) {
+consteval u32 operator""_u32( unsigned long long value ) {
 	if( value > U32_MAX ) {
 		integer_constant_too_big();
 	}
 	return value;
 }
 
-constexpr u64 operator""_u64( unsigned long long value ) {
+consteval u64 operator""_u64( unsigned long long value ) {
 	if( value > U64_MAX ) {
 		integer_constant_too_big();
 	}

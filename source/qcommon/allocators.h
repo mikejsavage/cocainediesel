@@ -51,11 +51,16 @@ private:
 };
 
 template< typename... Rest >
-char * Allocator::operator()( const char * fmt, const Rest & ... rest ) {
+char * Allocator::operator()( SourceLocation src, const char * fmt, const Rest & ... rest ) {
 	size_t len = ggformat( NULL, 0, fmt, rest... );
-	char * buf = ALLOC_MANY( this, char, len + 1 );
+	char * buf = AllocMany< char >( this, len + 1, src );
 	ggformat( buf, len + 1, fmt, rest... );
 	return buf;
 }
 
-char * CopyString( Allocator * a, const char * str );
+template< typename... Rest >
+char * Allocator::operator()( const char * fmt, const Rest & ... rest ) {
+	return ( *this )( CurrentSourceLocation(), fmt, rest... );
+}
+
+char * CopyString( Allocator * a, const char * str, SourceLocation src = CurrentSourceLocation() );

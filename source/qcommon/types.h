@@ -63,6 +63,9 @@ struct Allocator {
 	virtual void deallocate( void * ptr, SourceLocation src = CurrentSourceLocation() ) = 0;
 
 	template< typename... Rest >
+	char * operator()( SourceLocation src, const char * fmt, const Rest & ... rest );
+
+	template< typename... Rest >
 	char * operator()( const char * fmt, const Rest & ... rest );
 };
 

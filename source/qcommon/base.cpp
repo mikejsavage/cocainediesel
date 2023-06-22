@@ -38,8 +38,8 @@ void format( FormatBuffer * fb, Span< const char > span, const FormatOpts & opts
 	fb->len += span.n;
 }
 
-char * CopyString( Allocator * a, const char * str ) {
-	return ( *a )( "{}", str );
+char * CopyString( Allocator * a, const char * str, SourceLocation src ) {
+	return ( *a )( src, "{}", str );
 }
 
 Span< char > MakeSpan( char * str ) {

@@ -19,7 +19,7 @@ void InitDemoBrowser() {
 
 static void ClearDemos() {
 	for( DemoBrowserEntry & demo : demos ) {
-		FREE( sys_allocator, demo.path );
+		Free( sys_allocator, demo.path );
 	}
 	demos.clear();
 	metadata_load_cursor = 0;
@@ -40,7 +40,7 @@ static Span< u8 > ReadFirst1kBytes( TempAllocator * temp, const char * path ) {
 	if( f == NULL )
 		return Span< u8 >();
 
-	u8 * buf = ALLOC_MANY( temp, u8, 1024 );
+	u8 * buf = AllocMany< u8 >( temp, 1024 );
 	size_t n;
 	if( !ReadPartialFile( f, buf, 1024, &n ) ) {
 		return Span< u8 >();

@@ -382,7 +382,7 @@ void G_LoadMap( const char * name ) {
 	SafeStrCpy( sv.mapname, name, sizeof( sv.mapname ) );
 
 	Span< u8 > data;
-	defer { FREE( sys_allocator, data.ptr ); };
+	defer { Free( sys_allocator, data.ptr ); };
 
 	const char * bsp_path = temp( "{}/base/maps/{}.bsp", RootDirPath(), name );
 	data = ReadFileBinary( sys_allocator, bsp_path );
@@ -390,7 +390,7 @@ void G_LoadMap( const char * name ) {
 	if( data.ptr == NULL ) {
 		const char * zst_path = temp( "{}.zst", bsp_path );
 		Span< u8 > compressed = ReadFileBinary( sys_allocator, zst_path );
-		defer { FREE( sys_allocator, compressed.ptr ); };
+		defer { Free( sys_allocator, compressed.ptr ); };
 		if( compressed.ptr == NULL ) {
 			Fatal( "Couldn't find map %s", name );
 		}

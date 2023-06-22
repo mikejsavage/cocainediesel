@@ -32,37 +32,37 @@ static Hashmap< cmodel_t, 4096 > * GetCModels( CModelServerOrClient soc ) {
 
 static void CM_AllocateCheckCounts( CollisionModel *cms ) {
 	cms->checkcount = 0;
-	cms->map_brush_checkcheckouts = ALLOC_MANY( sys_allocator, int, cms->numbrushes );
-	cms->map_face_checkcheckouts = ALLOC_MANY( sys_allocator, int, cms->numfaces );
+	cms->map_brush_checkcheckouts = AllocMany< int >( sys_allocator, cms->numbrushes );
+	cms->map_face_checkcheckouts = AllocMany< int >( sys_allocator, cms->numfaces );
 }
 
 static void CM_FreeCheckCounts( CollisionModel *cms ) {
 	cms->checkcount = 0;
 
 	if( cms->map_brush_checkcheckouts ) {
-		FREE( sys_allocator, cms->map_brush_checkcheckouts );
+		Free( sys_allocator, cms->map_brush_checkcheckouts );
 		cms->map_brush_checkcheckouts = NULL;
 	}
 
 	if( cms->map_face_checkcheckouts ) {
-		FREE( sys_allocator, cms->map_face_checkcheckouts );
+		Free( sys_allocator, cms->map_face_checkcheckouts );
 		cms->map_face_checkcheckouts = NULL;
 	}
 }
 
 static void CM_Clear( CModelServerOrClient soc, CollisionModel * cms ) {
 	if( cms->map_shaderrefs ) {
-		FREE( sys_allocator, cms->map_shaderrefs[0].name );
-		FREE( sys_allocator, cms->map_shaderrefs );
+		Free( sys_allocator, cms->map_shaderrefs[0].name );
+		Free( sys_allocator, cms->map_shaderrefs );
 		cms->map_shaderrefs = NULL;
 		cms->numshaderrefs = 0;
 	}
 
 	if( cms->map_faces ) {
 		for( int i = 0; i < cms->numfaces; i++ ) {
-			FREE( sys_allocator, cms->map_faces[i].facets );
+			Free( sys_allocator, cms->map_faces[i].facets );
 		}
-		FREE( sys_allocator, cms->map_faces );
+		Free( sys_allocator, cms->map_faces );
 		cms->map_faces = NULL;
 		cms->numfaces = 0;
 	}
@@ -72,73 +72,73 @@ static void CM_Clear( CModelServerOrClient soc, CollisionModel * cms ) {
 		u64 hash = Hash64( suffix.span(), cms->base_hash );
 		cmodel_t * model = GetCModels( soc )->get( hash );
 
-		FREE( sys_allocator, model->markfaces );
-		FREE( sys_allocator, model->markbrushes );
+		Free( sys_allocator, model->markfaces );
+		Free( sys_allocator, model->markbrushes );
 
 		bool ok = GetCModels( soc )->remove( hash );
 		Assert( ok );
 	}
 
 	if( cms->map_nodes ) {
-		FREE( sys_allocator, cms->map_nodes );
+		Free( sys_allocator, cms->map_nodes );
 		cms->map_nodes = NULL;
 		cms->numnodes = 0;
 	}
 
 	if( cms->map_markfaces ) {
-		FREE( sys_allocator, cms->map_markfaces );
+		Free( sys_allocator, cms->map_markfaces );
 		cms->map_markfaces = NULL;
 		cms->nummarkfaces = 0;
 	}
 
 	if( cms->map_leafs != &cms->map_leaf_empty ) {
-		FREE( sys_allocator, cms->map_leafs );
+		Free( sys_allocator, cms->map_leafs );
 		cms->map_leafs = &cms->map_leaf_empty;
 		cms->numleafs = 0;
 	}
 
 	if( cms->map_areas != &cms->map_area_empty ) {
-		FREE( sys_allocator, cms->map_areas );
+		Free( sys_allocator, cms->map_areas );
 		cms->map_areas = &cms->map_area_empty;
 		cms->numareas = 0;
 	}
 
 	if( cms->map_areaportals ) {
-		FREE( sys_allocator, cms->map_areaportals );
+		Free( sys_allocator, cms->map_areaportals );
 		cms->map_areaportals = NULL;
 	}
 
 	if( cms->map_planes ) {
-		FREE( sys_allocator, cms->map_planes );
+		Free( sys_allocator, cms->map_planes );
 		cms->map_planes = NULL;
 		cms->numplanes = 0;
 	}
 
 	if( cms->map_markbrushes ) {
-		FREE( sys_allocator, cms->map_markbrushes );
+		Free( sys_allocator, cms->map_markbrushes );
 		cms->map_markbrushes = NULL;
 		cms->nummarkbrushes = 0;
 	}
 
 	if( cms->map_brushsides ) {
-		FREE( sys_allocator, cms->map_brushsides );
+		Free( sys_allocator, cms->map_brushsides );
 		cms->map_brushsides = NULL;
 		cms->numbrushsides = 0;
 	}
 
 	if( cms->map_brushes ) {
-		FREE( sys_allocator, cms->map_brushes );
+		Free( sys_allocator, cms->map_brushes );
 		cms->map_brushes = NULL;
 		cms->numbrushes = 0;
 	}
 
 	if( cms->map_pvs ) {
-		FREE( sys_allocator, cms->map_pvs );
+		Free( sys_allocator, cms->map_pvs );
 		cms->map_pvs = NULL;
 	}
 
 	if( cms->map_entitystring != &cms->map_entitystring_empty ) {
-		FREE( sys_allocator, cms->map_entitystring );
+		Free( sys_allocator, cms->map_entitystring );
 		cms->map_entitystring = &cms->map_entitystring_empty;
 	}
 
@@ -162,7 +162,7 @@ MAP LOADING
 CollisionModel * CM_LoadMap( CModelServerOrClient soc, Span< const u8 > data, u64 base_hash ) {
 	TracyZoneScoped;
 
-	CollisionModel * cms = ALLOC( sys_allocator, CollisionModel );
+	CollisionModel * cms = Alloc< CollisionModel >( sys_allocator );
 	*cms = { };
 
 	cms->base_hash = base_hash;
@@ -177,8 +177,8 @@ CollisionModel * CM_LoadMap( CModelServerOrClient soc, Span< const u8 > data, u6
 	CM_LoadQ3BrushModel( soc, cms, data );
 
 	if( cms->numareas ) {
-		cms->map_areas = ALLOC_MANY( sys_allocator, carea_t, cms->numareas );
-		cms->map_areaportals = ALLOC_MANY( sys_allocator, int, cms->numareas * cms->numareas );
+		cms->map_areas = AllocMany< carea_t >( sys_allocator, cms->numareas );
+		cms->map_areaportals = AllocMany< int >( sys_allocator, cms->numareas * cms->numareas );
 
 		memset( cms->map_areaportals, 0, cms->numareas * cms->numareas * sizeof( *cms->map_areaportals ) );
 		CM_FloodAreaConnections( cms );
@@ -193,7 +193,7 @@ CollisionModel * CM_LoadMap( CModelServerOrClient soc, Span< const u8 > data, u6
 
 void CM_Free( CModelServerOrClient soc, CollisionModel * cms ) {
 	CM_Clear( soc, cms );
-	FREE( sys_allocator, cms );
+	Free( sys_allocator, cms );
 }
 
 cmodel_t * CM_NewCModel( CModelServerOrClient soc, u64 hash ) {

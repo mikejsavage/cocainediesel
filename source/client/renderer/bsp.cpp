@@ -492,7 +492,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 	Model model = { };
 	model.transform = Mat4::Identity();
 
-	model.primitives = ALLOC_MANY( sys_allocator, Model::Primitive, primitives.size() );
+	model.primitives = AllocMany< Model::Primitive >( sys_allocator, primitives.size() );
 	model.num_primitives = primitives.size();
 	memcpy( model.primitives, primitives.ptr(), primitives.num_bytes() );
 
@@ -563,7 +563,7 @@ bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< c
 	map->num_models = bsp.models.n;
 	map->fog_strength = ParseFogStrength( &bsp );
 
-	map->models = ALLOC_MANY( sys_allocator, Model, bsp.models.n );
+	map->models = AllocMany< Model >( sys_allocator, bsp.models.n );
 
 	for( size_t i = 0; i < bsp.models.n; i++ ) {
 		map->models[ i ] = LoadBSPModel( filename, vertices, bsp, i );
@@ -618,7 +618,7 @@ void DeleteBSPRenderData( Map * map ) {
 		DeleteModel( &map->models[ i ] );
 	}
 
-	FREE( sys_allocator, map->models );
+	Free( sys_allocator, map->models );
 
 	DeleteGPUBuffer( map->nodeBuffer );
 	DeleteGPUBuffer( map->leafBuffer );

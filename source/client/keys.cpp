@@ -145,7 +145,7 @@ Span< const char > Key_KeynumToString( int keynum ) {
 
 void Key_SetBinding( int keynum, const char *binding ) {
 	if( keybindings[keynum] ) {
-		FREE( sys_allocator, keybindings[keynum] );
+		Free( sys_allocator, keybindings[keynum] );
 		keybindings[keynum] = NULL;
 	}
 

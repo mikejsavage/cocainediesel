@@ -52,8 +52,8 @@ static Cvar * r_samples;
 static Cvar * r_shadow_quality;
 
 static void TakeScreenshot() {
-	RGB8 * framebuffer = ALLOC_MANY( sys_allocator, RGB8, frame_static.viewport_width * frame_static.viewport_height );
-	defer { FREE( sys_allocator, framebuffer ); };
+	RGB8 * framebuffer = AllocMany< RGB8 >( sys_allocator, frame_static.viewport_width * frame_static.viewport_height );
+	defer { Free( sys_allocator, framebuffer ); };
 	DownloadFramebuffer( framebuffer );
 
 	stbi_flip_vertically_on_write( 1 );

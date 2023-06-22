@@ -215,7 +215,7 @@ void SV_Demo_Purge_f() {
 	Span< char * > demos = GetServerDemos( &temp );
 	defer {
 		for( char * demo : demos ) {
-			FREE( sys_allocator, demo );
+			Free( sys_allocator, demo );
 		}
 	};
 
@@ -250,7 +250,7 @@ void SV_DemoList_f( edict_t * ent ) {
 	Span< char * > demos = GetServerDemos( &temp );
 	defer {
 		for( char * demo : demos ) {
-			FREE( sys_allocator, demo );
+			Free( sys_allocator, demo );
 		}
 	};
 
@@ -278,7 +278,7 @@ void SV_DemoGetUrl_f( edict_t * ent, msg_t args ) {
 	Span< char * > demos = GetServerDemos( &temp );
 	defer {
 		for( char * demo : demos ) {
-			FREE( sys_allocator, demo );
+			Free( sys_allocator, demo );
 		}
 	};
 

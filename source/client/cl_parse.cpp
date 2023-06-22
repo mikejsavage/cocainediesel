@@ -38,7 +38,7 @@ static void OnDownloadDone( int http_status, Span< const u8 > data ) {
 
 	download.callback( download.path, data );
 
-	FREE( sys_allocator, download.path );
+	Free( sys_allocator, download.path );
 	download.path = NULL;
 }
 

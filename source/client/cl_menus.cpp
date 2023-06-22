@@ -85,7 +85,7 @@ static void ResetServerBrowser() {
 
 static void ClearMasksList() {
 	for( char * mask : masks ) {
-		FREE( sys_allocator, mask );
+		Free( sys_allocator, mask );
 	}
 	masks.clear();
 }

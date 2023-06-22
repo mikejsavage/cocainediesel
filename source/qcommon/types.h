@@ -5,6 +5,7 @@
 #include <float.h>
 
 #include "qcommon/platform.h"
+#include "qcommon/source_location.h"
 
 /*
  * ints
@@ -55,11 +56,11 @@ consteval u64 operator""_u64( unsigned long long value ) {
  */
 
 struct Allocator {
-	virtual void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) = 0;
-	virtual void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) = 0;
-	void * allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
-	void * reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
-	virtual void deallocate( void * ptr, const char * func, const char * file, int line ) = 0;
+	virtual void * try_allocate( size_t size, size_t alignment, SourceLocation src = CurrentSourceLocation() ) = 0;
+	virtual void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src = CurrentSourceLocation() ) = 0;
+	void * allocate( size_t size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
+	void * reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
+	virtual void deallocate( void * ptr, SourceLocation src = CurrentSourceLocation() ) = 0;
 
 	template< typename... Rest >
 	char * operator()( const char * fmt, const Rest & ... rest );
@@ -67,21 +68,27 @@ struct Allocator {
 
 struct TempAllocator;
 
-#if COMPILER_MSVC
-#define __PRETTY_FUNCTION__ __FUNCSIG__
-#endif
+void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, SourceLocation src );
+void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t new_n, size_t size, size_t alignment, SourceLocation src );
 
-void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, const char * func, const char * file, int line );
-void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t new_n, size_t size, size_t alignment, const char * func, const char * file, int line );
+template< typename T >
+T * Alloc( Allocator * a, SourceLocation src = CurrentSourceLocation() ) {
+	return ( T * ) a->allocate( sizeof( T ), alignof( T ) );
+}
 
-#define ALLOC_SIZE( a, size, alignment ) ( a )->allocate( size, alignment, __PRETTY_FUNCTION__, __FILE__, __LINE__ )
-#define REALLOC( a, ptr, current_size, new_size, alignment ) ( a )->reallocate( ptr, current_size, new_size, alignment, __PRETTY_FUNCTION__, __FILE__, __LINE__ )
-#define FREE( a, p ) a->deallocate( p, __PRETTY_FUNCTION__, __FILE__, __LINE__ )
+template< typename T >
+T * AllocMany( Allocator * a, size_t n, SourceLocation src = CurrentSourceLocation() ) {
+	return ( T * ) AllocManyHelper( a, n, sizeof( T ), alignof( T ), src );
+}
 
-#define ALLOC( a, T ) ( ( T * ) ( a )->allocate( sizeof( T ), alignof( T ), __PRETTY_FUNCTION__, __FILE__, __LINE__ ) )
-#define ALLOC_MANY( a, T, n ) ( ( T * ) AllocManyHelper( a, checked_cast< size_t >( n ), sizeof( T ), alignof( T ), __PRETTY_FUNCTION__, __FILE__, __LINE__ ) )
-#define REALLOC_MANY( a, T, ptr, current_n, new_n ) ( ( T * ) ReallocManyHelper( a, ptr, checked_cast< size_t >( current_n ), checked_cast< size_t >( new_n ), sizeof( T ), alignof( T ), __PRETTY_FUNCTION__, __FILE__, __LINE__ ) )
-#define ALLOC_SPAN( a, T, n ) Span< T >( ALLOC_MANY( a, T, n ), n )
+template< typename T >
+T * ReallocMany( Allocator * a, T * ptr, size_t current_n, size_t new_n, SourceLocation src = CurrentSourceLocation() ) {
+	return ( T * ) ReallocManyHelper( a, ptr, current_n, new_n, sizeof( T ), alignof( T ), src );
+}
+
+inline void Free( Allocator * a, void * p, SourceLocation src = CurrentSourceLocation() ) {
+	a->deallocate( p, src );
+}
 
 /*
  * helper functions that are useful in templates. so headers don't need to include base.h
@@ -229,6 +236,11 @@ struct Span {
 		return Span< S >( align_cast< S >( ptr ), num_bytes() / sizeof( S ) );
 	}
 };
+
+template< typename T >
+Span< T > AllocSpan( Allocator * a, size_t n, SourceLocation src = CurrentSourceLocation() ) {
+	return Span< T >( AllocMany< T >( a, n, src ), n );
+}
 
 /*
  * Optional

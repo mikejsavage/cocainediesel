@@ -55,7 +55,7 @@ static void AddAsset( const char * path, u64 hash, Span< u8 > data, IsCompressed
 	Asset * a;
 	if( exists ) {
 		a = &assets[ idx ];
-		FREE( sys_allocator, a->data.ptr );
+		Free( sys_allocator, a->data.ptr );
 	}
 	else {
 		a = &assets[ num_assets ];
@@ -94,9 +94,9 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 		AddAsset( job->path, job->hash, decompressed, IsCompressed_Yes );
 	}
 
-	FREE( sys_allocator, job->path );
-	FREE( sys_allocator, job->compressed.ptr );
-	FREE( sys_allocator, job );
+	Free( sys_allocator, job->path );
+	Free( sys_allocator, job->compressed.ptr );
+	Free( sys_allocator, job );
 }
 
 static void LoadAsset( TempAllocator * temp, const char * game_path, const char * full_path ) {
@@ -135,7 +135,7 @@ static void LoadAsset( TempAllocator * temp, const char * game_path, const char 
 		return;
 
 	if( compressed ) {
-		DecompressAssetJob * job = ALLOC( sys_allocator, DecompressAssetJob );
+		DecompressAssetJob * job = Alloc< DecompressAssetJob >( sys_allocator );
 		job->path = ( *sys_allocator )( "{}", game_path_no_zst );
 		job->hash = hash;
 		job->compressed = contents;
@@ -217,8 +217,8 @@ void ShutdownAssets() {
 	TracyZoneScoped;
 
 	for( u32 i = 0; i < num_assets; i++ ) {
-		FREE( sys_allocator, assets[ i ].path );
-		FREE( sys_allocator, assets[ i ].data.ptr );
+		Free( sys_allocator, assets[ i ].path );
+		Free( sys_allocator, assets[ i ].data.ptr );
 	}
 
 	DeleteFSChangeMonitor( sys_allocator, fs_change_monitor );

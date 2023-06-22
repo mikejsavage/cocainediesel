@@ -595,7 +595,7 @@ static BC4Block FastBC4( Span2D< const RGBA8 > rgba ) {
 static Span2D< BC4Block > RGBAToBC4( Span2D< const RGBA8 > rgba ) {
 	TracyZoneScoped;
 
-	Span2D< BC4Block > bc4 = ALLOC_SPAN2D( sys_allocator, BC4Block, rgba.w / 4, rgba.h / 4 );
+	Span2D< BC4Block > bc4 = AllocSpan2D< BC4Block >( sys_allocator, rgba.w / 4, rgba.h / 4 );
 
 	for( u32 row = 0; row < bc4.h; row++ ) {
 		for( u32 col = 0; col < bc4.w; col++ ) {
@@ -736,9 +736,9 @@ static void PackDecalAtlas() {
 	}
 	num_blocks *= num_layers;
 
-	Span< BC4Block > blocks = ALLOC_SPAN( sys_allocator, BC4Block, num_blocks );
+	Span< BC4Block > blocks = AllocSpan< BC4Block >( sys_allocator, num_blocks );
 	memset( blocks.ptr, 0, blocks.num_bytes() );
-	defer { FREE( sys_allocator, blocks.ptr ); };
+	defer { Free( sys_allocator, blocks.ptr ); };
 
 	Span< BC4Block > cursor = blocks;
 
@@ -773,7 +773,7 @@ static void PackDecalAtlas() {
 			continue;
 
 		u64 texture_idx = material->texture - textures;
-		FREE( sys_allocator, const_cast< BC4Block * >( texture_bc4_data[ texture_idx ].ptr ) );
+		Free( sys_allocator, const_cast< BC4Block * >( texture_bc4_data[ texture_idx ].ptr ) );
 		texture_bc4_data[ texture_idx ] = Span< const BC4Block >();
 	}
 
@@ -865,7 +865,7 @@ void InitMaterials() {
 
 				// stb_image uses sys_allocator so this is ok
 				size_t num_pixels = checked_cast< size_t >( job->out.width * job->out.height );
-				RGBA8 * rgba_pixels = ALLOC_MANY( sys_allocator, RGBA8, num_pixels );
+				RGBA8 * rgba_pixels = AllocMany< RGBA8 >( sys_allocator, num_pixels );
 				for( size_t i = 0; i < num_pixels; i++ ) {
 					rgba_pixels[ i ] = RGBA8(
 						job->out.pixels[ i * 3 + 0 ],
@@ -954,7 +954,7 @@ void ShutdownMaterials() {
 	}
 
 	for( u32 i = 0; i < num_materials; i++ ) {
-		FREE( sys_allocator, materials[ i ].name );
+		Free( sys_allocator, materials[ i ].name );
 	}
 
 	DeleteTexture( missing_texture );

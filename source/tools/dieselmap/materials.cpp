@@ -172,7 +172,7 @@ void ShutdownMaterials() {
 	TracyZoneScoped;
 
 	for( u32 i = 0; i < num_shader_files; i++ ) {
-		FREE( sys_allocator, shader_files[ i ] );
+		Free( sys_allocator, shader_files[ i ] );
 	}
 }
 

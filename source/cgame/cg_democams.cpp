@@ -135,7 +135,7 @@ static cg_democam_t *CG_Democam_RegisterCam( int type ) {
 	}
 
 	if( cam == NULL ) {
-		cam = ALLOC( sys_allocator, cg_democam_t );
+		cam = Alloc< cg_democam_t >( sys_allocator );
 		cam->next = cg_cams_headnode;
 		cg_cams_headnode = cam;
 	}
@@ -166,7 +166,7 @@ static void CG_Democam_UnregisterCam( cg_democam_t *cam ) {
 	// headnode shortcut
 	if( cg_cams_headnode == cam ) {
 		cg_cams_headnode = cg_cams_headnode->next;
-		FREE( sys_allocator, cam );
+		Free( sys_allocator, cam );
 		return;
 	}
 
@@ -175,7 +175,7 @@ static void CG_Democam_UnregisterCam( cg_democam_t *cam ) {
 	while( tcam != NULL ) {
 		if( tcam->next == cam ) {
 			tcam->next = cam->next;
-			FREE( sys_allocator, cam );
+			Free( sys_allocator, cam );
 			break;
 		}
 		tcam = tcam->next;
@@ -332,7 +332,7 @@ static bool CG_LoadRecamScriptFile( const char *filename ) {
 
 	size_t len;
 	char * buf = ReadFileString( sys_allocator, filename, &len );
-	defer { FREE( sys_allocator, buf ); };
+	defer { Free( sys_allocator, buf ); };
 	if( buf == NULL )
 		return false;
 

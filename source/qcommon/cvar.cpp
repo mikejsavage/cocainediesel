@@ -86,7 +86,7 @@ void SetCvar( Cvar * cvar, const char * value ) {
 		return;
 	}
 
-	FREE( sys_allocator, cvar->value );
+	Free( sys_allocator, cvar->value );
 	cvar->value = CopyString( sys_allocator, value );
 	cvar->number = SpanToFloat( MakeSpan( cvar->value ), 0.0f );
 	cvar->integer = SpanToInt( MakeSpan( cvar->value ), 0 );
@@ -266,7 +266,7 @@ static void SetConfigCvar() {
 		config_entries[ idx ].value = NULL;
 	}
 
-	FREE( sys_allocator, config_entries[ idx ].value );
+	Free( sys_allocator, config_entries[ idx ].value );
 	config_entries[ idx ].value = CopyString( sys_allocator, Cmd_Argv( 2 ) );
 }
 
@@ -306,7 +306,7 @@ void Cvar_WriteVariables( DynamicString * config ) {
 
 	for( char * line : lines ) {
 		config->append_raw( line, strlen( line ) );
-		FREE( sys_allocator, line );
+		Free( sys_allocator, line );
 	}
 }
 
@@ -344,13 +344,13 @@ void Cvar_Shutdown() {
 	RemoveCommand( "reset" );
 
 	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
-		FREE( sys_allocator, cvars[ i ].name );
-		FREE( sys_allocator, cvars[ i ].value );
-		FREE( sys_allocator, cvars[ i ].default_value );
+		Free( sys_allocator, cvars[ i ].name );
+		Free( sys_allocator, cvars[ i ].value );
+		Free( sys_allocator, cvars[ i ].default_value );
 	}
 
 	for( size_t i = 0; i < config_entries_hashtable.size(); i++ ) {
-		FREE( sys_allocator, config_entries[ i ].name );
-		FREE( sys_allocator, config_entries[ i ].value );
+		Free( sys_allocator, config_entries[ i ].name );
+		Free( sys_allocator, config_entries[ i ].value );
 	}
 }

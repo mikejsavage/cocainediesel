@@ -573,10 +573,10 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, const ginfo_t *gi, int64_t 
 
 		numareas *= CM_AreaRowSize( cms );
 		if( frame->areabits ) {
-			FREE( sys_allocator, frame->areabits );
+			Free( sys_allocator, frame->areabits );
 			frame->areabits = NULL;
 		}
-		frame->areabits = ALLOC_MANY( sys_allocator, uint8_t, numareas );
+		frame->areabits = AllocMany< uint8_t >( sys_allocator, numareas );
 	}
 
 	// grab the current SyncPlayerState
@@ -642,7 +642,7 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, const ginfo_t *gi, int64_t 
 */
 static void SNAP_FreeClientFrame( client_snapshot_t *frame ) {
 	if( frame->areabits ) {
-		FREE( sys_allocator, frame->areabits );
+		Free( sys_allocator, frame->areabits );
 		frame->areabits = NULL;
 	}
 	frame->numareas = 0;

@@ -119,7 +119,7 @@ bool StartRecordingDemo(
 	if( ctx->temp_file == NULL ) {
 		Com_Printf( S_COLOR_YELLOW "Can't open %s for writing\n", ctx->temp_filename );
 		CloseFile( ctx->file );
-		FREE( sys_allocator, ctx->temp_file );
+		Free( sys_allocator, ctx->temp_file );
 		return false;
 	}
 	ctx->filename = CopyString( sys_allocator, filename );
@@ -132,9 +132,9 @@ bool StartRecordingDemo(
 	CheckedZstdSetParameter( ctx->zstd, ZSTD_c_checksumFlag, 1 );
 
 	ctx->in_buf_capacity = ZSTD_CStreamInSize();
-	ctx->in_buf = ALLOC_SIZE( sys_allocator, ctx->in_buf_capacity, 16 );
+	ctx->in_buf = sys_allocator->allocate( ctx->in_buf_capacity, 16 );
 	ctx->out_buf_capacity = ZSTD_CStreamOutSize();
-	ctx->out_buf = ALLOC_SIZE( sys_allocator, ctx->out_buf_capacity, 16 );
+	ctx->out_buf = sys_allocator->allocate( ctx->out_buf_capacity, 16 );
 
 	uint8_t msg_buffer[MAX_MSGLEN];
 	msg_t msg = NewMSGWriter( msg_buffer, sizeof( msg_buffer ) );
@@ -188,15 +188,15 @@ void StopRecordingDemo( TempAllocator * temp, RecordDemoContext * ctx, const Dem
 		if( !ok ) {
 			RemoveFile( temp, ctx->filename );
 		}
-		FREE( sys_allocator, ctx->filename );
+		Free( sys_allocator, ctx->filename );
 
 		fclose( ctx->temp_file );
 		RemoveFile( temp, ctx->temp_filename );
-		FREE( sys_allocator, ctx->temp_filename );
+		Free( sys_allocator, ctx->temp_filename );
 
 		ZSTD_freeCCtx( ctx->zstd );
-		FREE( sys_allocator, ctx->in_buf );
-		FREE( sys_allocator, ctx->out_buf );
+		Free( sys_allocator, ctx->in_buf );
+		Free( sys_allocator, ctx->out_buf );
 	};
 
 	if( ferror( ctx->temp_file ) ) {
@@ -258,13 +258,13 @@ bool DecompressDemo( Allocator * a, const DemoMetadata & metadata, Span< u8 > * 
 	const DemoHeader * header = ReadDemoHeader( demo );
 	Assert( header != NULL );
 
-	*decompressed = ALLOC_SPAN( a, u8, metadata.decompressed_size );
+	*decompressed = AllocSpan< u8 >( a, metadata.decompressed_size );
 	Span< const u8 > compressed = demo.slice( sizeof( DemoHeader ) + header->metadata_size, demo.n );
 
 	size_t r = ZSTD_decompress( decompressed->ptr, decompressed->n, compressed.ptr, compressed.n );
 	if( r != decompressed->n ) {
 		Com_Printf( S_COLOR_RED "Can't decompress demo: %s\n", ZSTD_getErrorName( r ) );
-		FREE( sys_allocator, decompressed->ptr );
+		Free( sys_allocator, decompressed->ptr );
 		return false;
 	}
 

@@ -294,7 +294,7 @@ static float LoadChannel( const cgltf_animation_channel * chan, Model::Animation
 	constexpr size_t lanes = sizeof( T ) / sizeof( float );
 	size_t n = chan->sampler->input->count;
 
-	float * memory = ALLOC_MANY( sys_allocator, float, n * ( lanes + 1 ) );
+	float * memory = AllocMany< float >( sys_allocator, n * ( lanes + 1 ) );
 	out_channel->times = memory;
 	out_channel->samples = ( T * ) ( memory + n );
 	out_channel->num_samples = n;
@@ -313,7 +313,7 @@ static float LoadChannel( const cgltf_animation_channel * chan, Model::Animation
 static float LoadScaleChannel( const cgltf_animation_channel * chan, Model::AnimationChannel< float > * out_channel ) {
 	size_t n = chan->sampler->input->count;
 
-	float * memory = ALLOC_MANY( sys_allocator, float, n * 2 );
+	float * memory = AllocMany< float >( sys_allocator, n * 2 );
 	out_channel->times = memory;
 	out_channel->samples = memory + n;
 	out_channel->num_samples = n;
@@ -339,7 +339,7 @@ template< typename T >
 static void CreateSingleSampleChannel( Model::AnimationChannel< T > * out_channel, T sample ) {
 	constexpr size_t lanes = sizeof( T ) / sizeof( float );
 
-	float * memory = ALLOC_MANY( sys_allocator, float, lanes + 1 );
+	float * memory = AllocMany< float >( sys_allocator, lanes + 1 );
 	out_channel->times = memory;
 	out_channel->samples = ( T * ) ( memory + 1 );
 	out_channel->num_samples = 1;
@@ -373,7 +373,7 @@ static void LoadAnimation( Model * model, const cgltf_animation * animation, u8 
 }
 
 static void LoadSkin( Model * model, const cgltf_skin * skin ) {
-	model->skin = ALLOC_MANY( sys_allocator, Model::Joint, skin->joints_count );
+	model->skin = AllocMany< Model::Joint >( sys_allocator, skin->joints_count );
 	model->num_joints = skin->joints_count;
 
 	for( size_t i = 0; i < skin->joints_count; i++ ) {
@@ -440,9 +440,9 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 	);
 	model->transform = y_up_to_z_up;
 
-	model->primitives = ALLOC_MANY( sys_allocator, Model::Primitive, gltf->meshes_count );
+	model->primitives = AllocMany< Model::Primitive >( sys_allocator, gltf->meshes_count );
 
-	model->nodes = ALLOC_MANY( sys_allocator, Model::Node, gltf->nodes_count );
+	model->nodes = AllocMany< Model::Node >( sys_allocator, gltf->nodes_count );
 	memset( model->nodes, 0, sizeof( Model::Node ) * gltf->nodes_count );
 	model->num_nodes = gltf->nodes_count;
 
@@ -458,9 +458,9 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 			LoadSkin( model, &gltf->skins[ 0 ] );
 		}
 
-		model->animations = ALLOC_MANY( sys_allocator, Model::Animation, gltf->animations_count );
+		model->animations = AllocMany< Model::Animation >( sys_allocator, gltf->animations_count );
 		for( size_t i = 0; i < model->num_nodes; i++ ) {
-			model->nodes[ i ].animations = ALLOC_SPAN( sys_allocator, Model::NodeAnimation, gltf->animations_count );
+			model->nodes[ i ].animations = AllocSpan< Model::NodeAnimation >( sys_allocator, gltf->animations_count );
 			memset( model->nodes[ i ].animations.ptr, 0, sizeof( Model::NodeAnimation ) * gltf->animations_count );
 		}
 		for( size_t i = 0; i < gltf->animations_count; i++ ) {

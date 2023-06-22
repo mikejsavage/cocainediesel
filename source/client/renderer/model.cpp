@@ -105,19 +105,19 @@ void DeleteModel( Model * model ) {
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		for( u8 j = 0; j < model->num_animations; j++ ) {
-			FREE( sys_allocator, model->nodes[ i ].animations[ j ].rotations.times );
-			FREE( sys_allocator, model->nodes[ i ].animations[ j ].translations.times );
-			FREE( sys_allocator, model->nodes[ i ].animations[ j ].scales.times );
+			Free( sys_allocator, model->nodes[ i ].animations[ j ].rotations.times );
+			Free( sys_allocator, model->nodes[ i ].animations[ j ].translations.times );
+			Free( sys_allocator, model->nodes[ i ].animations[ j ].scales.times );
 		}
-		FREE( sys_allocator, model->nodes[ i ].animations.ptr );
+		Free( sys_allocator, model->nodes[ i ].animations.ptr );
 	}
 
 	DeleteMesh( model->mesh );
 
-	FREE( sys_allocator, model->primitives );
-	FREE( sys_allocator, model->nodes );
-	FREE( sys_allocator, model->skin );
-	FREE( sys_allocator, model->animations );
+	Free( sys_allocator, model->primitives );
+	Free( sys_allocator, model->nodes );
+	Free( sys_allocator, model->skin );
+	Free( sys_allocator, model->animations );
 }
 
 void HotloadModels() {
@@ -470,7 +470,7 @@ static float LerpFloat( float a, float t, float b ) { return Lerp( a, t, b ); }
 Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t, u8 animation ) {
 	TracyZoneScoped;
 
-	Span< TRS > local_poses = ALLOC_SPAN( a, TRS, model->num_nodes );
+	Span< TRS > local_poses = AllocSpan< TRS >( a, model->num_nodes );
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		const Model::Node * node = &model->nodes[ i ];
@@ -514,9 +514,9 @@ MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< 
 	Assert( local_poses.n == model->num_nodes );
 
 	MatrixPalettes palettes = { };
-	palettes.node_transforms = ALLOC_SPAN( a, Mat4, model->num_nodes );
+	palettes.node_transforms = AllocSpan< Mat4 >( a, model->num_nodes );
 	if( model->num_joints != 0 ) {
-		palettes.skinning_matrices = ALLOC_SPAN( a, Mat4, model->num_joints );
+		palettes.skinning_matrices = AllocSpan< Mat4 >( a, model->num_joints );
 	}
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {

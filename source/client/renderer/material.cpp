@@ -1141,8 +1141,8 @@ PipelineState MaterialToPipelineState( const Material * material, const VertexDe
 	if( gpu_material != NULL ) {
 		// instanced matrial
 		gpu_material->color = color;
-		gpu_material->tcmod[ 0 ] = tcmod_row0;
-		gpu_material->tcmod[ 1 ] = tcmod_row1;
+		gpu_material->tcmod_row0 = tcmod_row0;
+		gpu_material->tcmod_row1 = tcmod_row1;
 	}
 
 	if( skinned ) {

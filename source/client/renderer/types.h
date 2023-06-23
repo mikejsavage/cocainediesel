@@ -111,5 +111,6 @@ struct PipelineState;
 
 struct GPUMaterial {
 	Vec4 color;
-	Vec3 tcmod[ 2 ];
+	alignas( 16 ) Vec3 tcmod_row0;
+	alignas( 16 ) Vec3 tcmod_row1;
 };

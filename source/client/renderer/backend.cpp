@@ -47,6 +47,7 @@ struct DrawCall {
 	GPUBuffer indirect;
 };
 
+static GLuint vao;
 static GLsync fences[ MAX_FRAMES_IN_FLIGHT ];
 
 static NonRAIIDynamicArray< RenderPass > render_passes;
@@ -194,20 +195,7 @@ static void TextureFilterToGL( TextureFilter filter, GLenum * min, GLenum * mag 
 	Assert( false );
 }
 
-static u32 GLTypeSize( GLenum type ) {
-	switch( type ) {
-		case GL_UNSIGNED_BYTE: return 1;
-		case GL_UNSIGNED_SHORT: return 2;
-		case GL_UNSIGNED_INT:
-		case GL_FLOAT:
-			return 4;
-	}
-
-	Assert( false );
-	return 0;
-}
-
-static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_components, bool * integral, GLboolean * normalized, u32 * stride ) {
+static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_components, bool * integral, GLboolean * normalized ) {
 	*integral = false;
 	*normalized = false;
 
@@ -272,10 +260,27 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 		default:
 			Assert( false );
 	}
+}
 
-	if( stride != NULL ) {
-		*stride = GLTypeSize( *type ) * *num_components;
+static u32 VertexFormatDefaultStride( VertexFormat format ) {
+	GLenum type;
+	int num_components;
+	bool integral;
+	GLboolean normalized;
+	VertexFormatToGL( format, &type, &num_components, &integral, &normalized );
+
+	u32 component_size = 0;
+	if( type == GL_UNSIGNED_BYTE ) {
+		component_size = 1;
 	}
+	else if( type == GL_UNSIGNED_SHORT ) {
+		component_size = 2;
+	}
+	else if( type == GL_FLOAT ) {
+		component_size = 4;
+	}
+
+	return component_size * num_components;
 }
 
 static const char * DebugTypeString( GLenum type ) {
@@ -470,6 +475,10 @@ void InitRenderBackend() {
 
 	glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropic_filtering );
 
+	glCreateVertexArrays( 1, &vao );
+	DebugLabel( GL_VERTEX_ARRAY, vao, "Global VAO" );
+	glBindVertexArray( vao );
+
 	GLint max_ubo_size;
 	glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, &max_ubo_size );
 	Assert( max_ubo_size >= s32( UNIFORM_BUFFER_SIZE ) );
@@ -491,6 +500,9 @@ void ShutdownRenderBackend() {
 	for( UBO ubo : ubos ) {
 		DeleteStreamingBuffer( ubo.stream );
 	}
+
+	glBindVertexArray( 0 );
+	glDeleteVertexArrays( 1, &vao );
 
 	RunDeferredDeletes();
 
@@ -593,16 +605,65 @@ void PipelineState::bind_streaming_buffer( StringHash name, StreamingBuffer stre
 	bind_buffer( name, stream.buffer, offset, stream.size );
 }
 
+static bool operator==( const VertexAttribute & lhs, const VertexAttribute & rhs ) {
+	return lhs.format == rhs.format && lhs.buffer == rhs.buffer && lhs.offset == rhs.offset;
+}
+
 static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) {
 	TracyGpuZone( "Set pipeline state" );
 
-	if( pipeline.shader != NULL && ( prev_pipeline.shader == NULL || pipeline.shader->program != prev_pipeline.shader->program ) ) {
-		glUseProgram( pipeline.shader->program );
+	if( pipeline.shader.shader != NULL && ( prev_pipeline.shader.shader == NULL || pipeline.shader.shader->program != prev_pipeline.shader.shader->program ) ) {
+		glUseProgram( pipeline.shader.shader->program );
+	}
+
+	// vertex descriptor
+	const VertexDescriptor & prev_vertex_descriptor = prev_pipeline.shader.vertex_descriptor;
+	const VertexDescriptor & vertex_descriptor = pipeline.shader.vertex_descriptor;
+	for( size_t i = 0; i < ARRAY_COUNT( vertex_descriptor.attributes ); i++ ) {
+		const Optional< VertexAttribute > & opt_prev_attr = prev_vertex_descriptor.attributes[ i ];
+		const Optional< VertexAttribute > & opt_attr = vertex_descriptor.attributes[ i ];
+		if( opt_attr == opt_prev_attr )
+			continue;
+
+		if( opt_prev_attr.exists != opt_attr.exists ) {
+			if( opt_attr.exists ) {
+				glEnableVertexArrayAttrib( vao, i );
+			}
+			else {
+				glDisableVertexArrayAttrib( vao, i );
+			}
+		}
+
+		if( opt_attr.exists ) {
+			const VertexAttribute & attr = opt_attr.value;
+
+			GLenum type;
+			int num_components;
+			bool integral;
+			GLboolean normalized;
+			VertexFormatToGL( attr.format, &type, &num_components, &integral, &normalized );
+
+			if( integral && !normalized ) {
+				/*
+				 * wintel driver ignores the type and treats everything as u32
+				 * non-DSA call works fine so fall back to that here
+				 *
+				 * see also https://doc.magnum.graphics/magnum/opengl-workarounds.html
+				 *
+				 * glVertexArrayAttribIFormat( vao, attr, num_components, type, attr.offset );
+				 */
+
+				glVertexAttribIFormat( i, num_components, type, attr.offset );
+			}
+			else {
+				glVertexArrayAttribFormat( vao, i, num_components, type, normalized, attr.offset );
+			}
+		}
 	}
 
 	// uniforms
-	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->uniforms ); i++ ) {
-		u64 name_hash = pipeline.shader->uniforms[ i ];
+	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader.shader->uniforms ); i++ ) {
+		u64 name_hash = pipeline.shader.shader->uniforms[ i ];
 		UniformBlock prev_block = prev_bindings.uniforms[ i ];
 
 		bool found = prev_block.size == 0;
@@ -627,8 +688,8 @@ static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) 
 	}
 
 	// textures
-	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->textures ); i++ ) {
-		u64 name_hash = pipeline.shader->textures[ i ];
+	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader.shader->textures ); i++ ) {
+		u64 name_hash = pipeline.shader.shader->textures[ i ];
 		const Texture * prev_texture = prev_bindings.textures[ i ];
 
 		bool found = prev_texture == NULL;
@@ -656,8 +717,8 @@ static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) 
 	}
 
 	// buffers
-	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->buffers ); i++ ) {
-		u64 name_hash = pipeline.shader->buffers[ i ];
+	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader.shader->buffers ); i++ ) {
+		u64 name_hash = pipeline.shader.shader->buffers[ i ];
 		PipelineState::BufferBinding prev = prev_bindings.buffers[ i ];
 
 		bool should_unbind = prev.buffer.buffer != 0;
@@ -792,7 +853,7 @@ static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 		return a.pipeline.pass < b.pipeline.pass;
 	if( !render_passes[ a.pipeline.pass ].sorted )
 		return false;
-	return a.pipeline.shader < b.pipeline.shader;
+	return a.pipeline.shader.shader < b.pipeline.shader.shader;
 }
 
 static void SubmitFramebufferBlit( const RenderPass & pass ) {
@@ -886,7 +947,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	TracyZoneScoped;
 	TracyGpuZone( "Draw call" );
 
-	if( dc.pipeline.shader->program == 0 )
+	if( dc.pipeline.shader.shader->program == 0 )
 		return;
 
 	SetPipelineState( dc.pipeline, dc.mesh.cw_winding );
@@ -904,7 +965,20 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	}
 
 	GLenum gl_index_format = dc.mesh.index_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-	glBindVertexArray( dc.mesh.vao );
+
+	for( size_t i = 0; i < ARRAY_COUNT( dc.mesh.vertex_descriptor.attributes ); i++ ) {
+		if( !dc.mesh.vertex_descriptor.attributes[ i ].exists )
+			continue;
+
+		const VertexAttribute & attribute = dc.mesh.vertex_descriptor.attributes[ i ].value;
+		u32 stride = dc.mesh.vertex_descriptor.buffer_strides[ attribute.buffer ];
+		if( stride == 0 ) {
+			stride = VertexFormatDefaultStride( attribute.format );
+		}
+		glVertexArrayVertexBuffer( vao, i, dc.mesh.vertex_buffers[ attribute.buffer ].buffer, 0, stride );
+	}
+
+	glVertexArrayElementBuffer( vao, dc.mesh.index_buffer.buffer );
 
 	if( dc.type == DrawCallType_Normal ) {
 		if( dc.mesh.index_buffer.buffer != 0 ) {
@@ -927,7 +1001,11 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0 );
 	}
 
-	glBindVertexArray( 0 );
+	for( size_t i = 0; i < ARRAY_COUNT( dc.mesh.vertex_buffers ); i++ ) {
+		glVertexArrayVertexBuffer( vao, i, 0, 0, 0 );
+	}
+
+	glVertexArrayElementBuffer( vao, 0 );
 }
 
 void RenderBackendSubmitFrame() {
@@ -1444,8 +1522,8 @@ void DeleteShader( Shader shader ) {
 	if( shader.program == 0 )
 		return;
 
-	if( prev_pipeline.shader != NULL && prev_pipeline.shader->program == shader.program ) {
-		prev_pipeline.shader = NULL;
+	if( prev_pipeline.shader.shader != NULL && prev_pipeline.shader.shader->program == shader.program ) {
+		prev_pipeline.shader = { };
 		glUseProgram( 0 );
 	}
 
@@ -1453,51 +1531,8 @@ void DeleteShader( Shader shader ) {
 }
 
 Mesh NewMesh( const MeshConfig & config ) {
-	GLuint vao;
-	glCreateVertexArrays( 1, &vao );
-	DebugLabel( GL_VERTEX_ARRAY, vao, config.name );
-
-	for( size_t i = 0; i < ARRAY_COUNT( config.vertex_descriptor.attributes ); i++ ) {
-		if( !config.vertex_descriptor.attributes[ i ].exists )
-			continue;
-
-		const VertexAttribute & attribute = config.vertex_descriptor.attributes[ i ].value;
-
-		GLenum type;
-		int num_components;
-		bool integral;
-		GLboolean normalized;
-		u32 stride = config.vertex_descriptor.buffer_strides[ attribute.buffer ];
-		VertexFormatToGL( attribute.format, &type, &num_components, &integral, &normalized, stride == 0 ? &stride : NULL );
-
-		glEnableVertexArrayAttrib( vao, i );
-		glVertexArrayVertexBuffer( vao, i, config.vertex_buffers[ attribute.buffer ].buffer, 0, stride );
-
-		if( integral && !normalized ) {
-			/*
-			 * wintel driver ignores the type and treats everything as u32
-			 * non-DSA call works fine so fall back to that here
-			 *
-			 * see also https://doc.magnum.graphics/magnum/opengl-workarounds.html
-			 *
-			 * glVertexArrayAttribIFormat( vao, attribute, num_components, type, attribute.offset );
-			 */
-
-			glBindVertexArray( vao );
-			glVertexAttribIFormat( i, num_components, type, attribute.offset );
-			glBindVertexArray( 0 );
-		}
-		else {
-			glVertexArrayAttribFormat( vao, i, num_components, type, normalized, attribute.offset );
-		}
-	}
-
-	if( config.index_buffer.buffer != 0 ) {
-		glVertexArrayElementBuffer( vao, config.index_buffer.buffer );
-	}
-
 	Mesh mesh = { };
-	mesh.vao = vao;
+	mesh.vertex_descriptor = config.vertex_descriptor;
 	mesh.index_format = config.index_format;
 	mesh.num_vertices = config.num_vertices;
 	mesh.cw_winding = config.cw_winding;
@@ -1511,15 +1546,10 @@ Mesh NewMesh( const MeshConfig & config ) {
 }
 
 void DeleteMesh( const Mesh & mesh ) {
-	if( mesh.vao == 0 )
-		return;
-
 	for( GPUBuffer buffer : mesh.vertex_buffers ) {
 		DeleteGPUBuffer( buffer );
 	}
 	DeleteGPUBuffer( mesh.index_buffer );
-
-	glDeleteVertexArrays( 1, &mesh.vao );
 }
 
 void DeferDeleteMesh( const Mesh & mesh ) {
@@ -1585,7 +1615,7 @@ void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertic
 void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_instances, u32 num_vertices_override, u32 first_index, u32 base_vertex ) {
 	Assert( in_frame );
 	Assert( pipeline.pass != U8_MAX );
-	Assert( pipeline.shader != NULL );
+	Assert( pipeline.shader.shader != NULL );
 
 	DrawCall dc = { };
 	dc.type = DrawCallType_Normal;

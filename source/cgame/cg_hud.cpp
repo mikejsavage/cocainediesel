@@ -416,7 +416,7 @@ void CG_DrawScope() {
 
 		PipelineState pipeline;
 		pipeline.pass = frame_static.ui_pass;
-		pipeline.shader = &shaders.scope;
+		pipeline.shader = SelectShaderVariant( &shaders.scope, FullscreenMeshVertexDescriptor() );
 		pipeline.depth_func = DepthFunc_Disabled;
 		pipeline.blend_func = BlendFunc_Blend;
 		pipeline.write_depth = false;

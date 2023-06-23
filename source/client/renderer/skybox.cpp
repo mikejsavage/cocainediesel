@@ -48,7 +48,7 @@ void DrawSkybox( Time time ) {
 	TracyZoneScoped;
 
 	PipelineState pipeline;
-	pipeline.shader = &shaders.skybox;
+	pipeline.shader = SelectShaderVariant( &shaders.skybox, sky_mesh.vertex_descriptor );
 	pipeline.pass = frame_static.sky_pass;
 	pipeline.cull_face = CullFace_Front;
 	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );

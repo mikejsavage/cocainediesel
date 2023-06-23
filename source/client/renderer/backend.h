@@ -56,26 +56,6 @@ enum TextureFilter : u8 {
 	TextureFilter_Point,
 };
 
-enum VertexFormat : u8 {
-	VertexFormat_U8x2,
-	VertexFormat_U8x2_Norm,
-	VertexFormat_U8x3,
-	VertexFormat_U8x3_Norm,
-	VertexFormat_U8x4,
-	VertexFormat_U8x4_Norm,
-
-	VertexFormat_U16x2,
-	VertexFormat_U16x2_Norm,
-	VertexFormat_U16x3,
-	VertexFormat_U16x3_Norm,
-	VertexFormat_U16x4,
-	VertexFormat_U16x4_Norm,
-
-	VertexFormat_Floatx2,
-	VertexFormat_Floatx3,
-	VertexFormat_Floatx4,
-};
-
 struct Texture {
 	u32 texture;
 	u32 width, height;
@@ -128,7 +108,7 @@ struct PipelineState {
 	size_t num_buffers = 0;
 
 	u8 pass = U8_MAX;
-	const Shader * shader = NULL;
+	ShaderVariant shader = { };
 	BlendFunc blend_func = BlendFunc_Disabled;
 	DepthFunc depth_func = DepthFunc_Less;
 	CullFace cull_face = CullFace_Back;
@@ -142,17 +122,6 @@ struct PipelineState {
 	void bind_texture( StringHash name, const Texture * texture );
 	void bind_buffer( StringHash name, GPUBuffer buffer, u32 offset = 0, u32 size = 0 );
 	void bind_streaming_buffer( StringHash name, StreamingBuffer stream );
-};
-
-struct VertexAttribute {
-	VertexFormat format;
-	size_t buffer;
-	size_t offset;
-};
-
-struct VertexDescriptor {
-	Optional< VertexAttribute > attributes[ VertexAttribute_Count ];
-	u32 buffer_strides[ VertexAttribute_Count ];
 };
 
 struct MeshConfig {

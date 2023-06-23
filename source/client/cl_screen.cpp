@@ -155,7 +155,7 @@ static void SubmitPostprocessPass() {
 
 	PipelineState pipeline;
 	pipeline.pass = frame_static.postprocess_pass;
-	pipeline.shader = &shaders.postprocess;
+	pipeline.shader = SelectShaderVariant( &shaders.postprocess, FullscreenMeshVertexDescriptor() );
 	pipeline.depth_func = DepthFunc_Disabled;
 	pipeline.write_depth = false;
 

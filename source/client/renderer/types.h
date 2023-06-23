@@ -8,6 +8,26 @@ enum BlendFunc : u8 {
 	BlendFunc_Add,
 };
 
+enum VertexFormat : u8 {
+	VertexFormat_U8x2,
+	VertexFormat_U8x2_Norm,
+	VertexFormat_U8x3,
+	VertexFormat_U8x3_Norm,
+	VertexFormat_U8x4,
+	VertexFormat_U8x4_Norm,
+
+	VertexFormat_U16x2,
+	VertexFormat_U16x2_Norm,
+	VertexFormat_U16x3,
+	VertexFormat_U16x3_Norm,
+	VertexFormat_U16x4,
+	VertexFormat_U16x4_Norm,
+
+	VertexFormat_Floatx2,
+	VertexFormat_Floatx3,
+	VertexFormat_Floatx4,
+};
+
 enum IndexFormat : u8 {
 	IndexFormat_U16,
 	IndexFormat_U32,
@@ -31,11 +51,27 @@ enum FragmentShaderOutputType : u32 {
 	FragmentShaderOutput_Count
 };
 
+struct VertexAttribute {
+	VertexFormat format;
+	size_t buffer;
+	size_t offset;
+};
+
+struct VertexDescriptor {
+	Optional< VertexAttribute > attributes[ VertexAttribute_Count ];
+	u32 buffer_strides[ VertexAttribute_Count ];
+};
+
 struct Shader {
 	u32 program;
 	u64 uniforms[ 8 ];
 	u64 textures[ 4 ];
 	u64 buffers[ 8 ];
+};
+
+struct ShaderVariant {
+	const Shader * shader;
+	VertexDescriptor vertex_descriptor;
 };
 
 struct GPUBuffer {
@@ -49,12 +85,11 @@ struct UniformBlock {
 };
 
 struct Mesh {
-	u32 vao;
 	GPUBuffer vertex_buffers[ VertexAttribute_Count ];
 	GPUBuffer index_buffer;
-
-	IndexFormat index_format;
 	u32 num_vertices;
+	VertexDescriptor vertex_descriptor;
+	IndexFormat index_format;
 	bool cw_winding;
 };
 

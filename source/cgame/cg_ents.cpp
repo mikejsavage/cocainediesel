@@ -466,7 +466,7 @@ static void DrawEntityModel( centity_t * cent ) {
 		for( u32 i = 0; i < model->num_primitives; i++ ) {
 			if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
 				{
-					PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
+					PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material, model->primitives[ i ].mesh.vertex_descriptor );
 					pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 					pipeline.bind_uniform( "u_Model", model_uniforms );
 
@@ -475,7 +475,7 @@ static void DrawEntityModel( centity_t * cent ) {
 				for( u32 j = 0; j < frame_static.shadow_parameters.num_cascades; j++ ) {
 					PipelineState pipeline;
 					pipeline.pass = frame_static.shadowmap_pass[ j ];
-					pipeline.shader = &shaders.depth_only;
+					pipeline.shader = SelectShaderVariant( &shaders.depth_only, model->primitives[ i ].mesh.vertex_descriptor );
 					pipeline.clamp_depth = true;
 					// pipeline.cull_face = CullFace_Disabled;
 					pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );

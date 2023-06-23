@@ -750,6 +750,10 @@ void DrawFullscreenMesh( const PipelineState & pipeline ) {
 	DrawMesh( fullscreen_mesh, pipeline );
 }
 
+const VertexDescriptor & FullscreenMeshVertexDescriptor() {
+	return fullscreen_mesh.vertex_descriptor;
+}
+
 void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh ) {
 	if( dynamic_geometry.num_vertices + mesh.num_vertices > DynamicGeometry::MaxVerts ) {
 		Com_Printf( S_COLOR_YELLOW "Too much dynamic geometry!\n" );
@@ -767,6 +771,10 @@ void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh )
 
 	dynamic_geometry.num_vertices += mesh.num_vertices;
 	dynamic_geometry.num_indices += mesh.num_indices;
+}
+
+const VertexDescriptor & DynamicMeshVertexDescriptor() {
+	return dynamic_geometry.mesh.vertex_descriptor;
 }
 
 void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color ) {

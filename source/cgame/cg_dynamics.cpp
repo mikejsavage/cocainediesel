@@ -246,7 +246,7 @@ void UploadDecalBuffers() {
 
 	PipelineState pipeline;
 	pipeline.pass = frame_static.tile_culling_pass;
-	pipeline.shader = &shaders.tile_culling;
+	pipeline.shader = SelectComputeShader( &shaders.tile_culling );
 	pipeline.bind_streaming_buffer( "b_Decals", decals_buffer );
 	pipeline.bind_streaming_buffer( "b_Dlights", dlights_buffer );
 	pipeline.bind_buffer( "b_TileCounts", dynamic_count );

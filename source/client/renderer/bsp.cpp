@@ -397,7 +397,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 	DynamicArray< u32 > indices( sys_allocator );
 
 	DynamicArray< Model::Primitive > primitives( sys_allocator );
-	Model::Primitive first;
+	Model::Primitive first = { };
 	first.first_index = 0;
 	first.num_vertices = 0;
 	first.material = draw_calls[ 0 ].material;
@@ -405,7 +405,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 
 	for( const BSPDrawCall & dc : draw_calls ) {
 		if( dc.material != primitives.top().material ) {
-			Model::Primitive prim;
+			Model::Primitive prim = { };
 			prim.first_index = primitives.top().first_index + primitives.top().num_vertices;
 			prim.num_vertices = 0;
 			prim.material = dc.material;

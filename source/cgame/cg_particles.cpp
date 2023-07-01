@@ -871,7 +871,7 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 	{
 		PipelineState pipeline;
 		pipeline.pass = frame_static.particle_update_pass;
-		pipeline.shader = SelectComputeShader( &shaders.particle_compute );
+		pipeline.shader = &shaders.particle_compute;
 		pipeline.bind_buffer( "b_ParticlesIn", ps->gpu_particles1 );
 		pipeline.bind_buffer( "b_ParticlesOut", ps->gpu_particles2 );
 		pipeline.bind_buffer( "b_ComputeCountIn", ps->compute_count1 );
@@ -890,7 +890,7 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 	{
 		PipelineState pipeline;
 		pipeline.pass = frame_static.particle_setup_indirect_pass;
-		pipeline.shader = SelectComputeShader( &shaders.particle_setup_indirect );
+		pipeline.shader = &shaders.particle_setup_indirect;
 		pipeline.bind_buffer( "b_NextComputeCount", ps->compute_count1 );
 		pipeline.bind_buffer( "b_ComputeCount", ps->compute_count2 );
 		pipeline.bind_buffer( "b_ComputeIndirect", ps->compute_indirect );
@@ -907,7 +907,7 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	PipelineState pipeline;
 	pipeline.pass = frame_static.transparent_pass;
-	pipeline.shader = SelectShaderVariant( &shaders.particle, ps->mesh.vertex_descriptor );
+	pipeline.shader = &shaders.particle;
 	pipeline.blend_func = ps->blend_func;
 	pipeline.cull_face = CullFace_Disabled;
 	pipeline.write_depth = false;

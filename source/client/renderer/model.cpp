@@ -210,7 +210,7 @@ static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Model * 
 	if( !config.enabled )
 		return;
 
-	pipeline.shader = SelectShaderVariant( skinned ? &shaders.depth_only_skinned : &shaders.depth_only_instanced, primitive->mesh.vertex_descriptor );
+	pipeline.shader = skinned ? &shaders.depth_only_skinned : &shaders.depth_only_instanced;
 	pipeline.clamp_depth = true;
 	// pipeline.cull_face = CullFace_Disabled;
 	pipeline.write_depth = true;
@@ -237,7 +237,7 @@ static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Model 
 	if( !config.enabled )
 		return;
 
-	pipeline.shader = SelectShaderVariant( skinned ? &shaders.outline_skinned : &shaders.outline_instanced, primitive->mesh.vertex_descriptor );
+	pipeline.shader = skinned ? &shaders.outline_skinned : &shaders.outline_instanced;
 	pipeline.pass = frame_static.nonworld_opaque_pass;
 	pipeline.cull_face = CullFace_Front;
 
@@ -259,7 +259,7 @@ static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Mo
 	if( !config.enabled )
 		return;
 
-	pipeline.shader = SelectShaderVariant( skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer_instanced, primitive->mesh.vertex_descriptor );
+	pipeline.shader = skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer_instanced;
 	pipeline.pass = frame_static.write_silhouette_gbuffer_pass;
 	pipeline.write_depth = false;
 	pipeline.blend_func = BlendFunc_Disabled;
@@ -359,7 +359,7 @@ void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transf
 
 		const Model::Primitive * primitive = &model->primitives[ node->primitive ];
 		GPUMaterial gpu_material;
-		PipelineState pipeline = MaterialToPipelineState( primitive->material, primitive->mesh.vertex_descriptor, color, skinned, &gpu_material );
+		PipelineState pipeline = MaterialToPipelineState( primitive->material, color, skinned, &gpu_material );
 		pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 
 		// skinned models can't be instanced

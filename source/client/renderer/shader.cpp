@@ -239,16 +239,3 @@ void ShutdownShaders() {
 
 	DeleteShader( shaders.postprocess );
 }
-
-ShaderVariant SelectShaderVariant( const Shader * shader, const VertexDescriptor & vertex_descriptor ) {
-	return ShaderVariant {
-		.shader = shader,
-		.vertex_descriptor = vertex_descriptor,
-	};
-}
-
-ShaderVariant SelectComputeShader( const Shader * shader ) {
-	return ShaderVariant {
-		.shader = shader,
-	};
-}

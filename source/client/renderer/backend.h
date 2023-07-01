@@ -108,7 +108,7 @@ struct PipelineState {
 	size_t num_buffers = 0;
 
 	u8 pass = U8_MAX;
-	ShaderVariant shader = { };
+	const Shader * shader = NULL;
 	BlendFunc blend_func = BlendFunc_Disabled;
 	DepthFunc depth_func = DepthFunc_Less;
 	CullFace cull_face = CullFace_Back;

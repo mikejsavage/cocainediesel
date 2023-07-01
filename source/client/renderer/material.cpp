@@ -1020,10 +1020,10 @@ static float EvaluateWaveFunc( Wave wave ) {
 	return wave.args[ 0 ] + wave.args[ 1 ] * v;
 }
 
-PipelineState MaterialToPipelineState( const Material * material, const VertexDescriptor & vertex_descriptor, Vec4 color, bool skinned, GPUMaterial * gpu_material ) {
+PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned, GPUMaterial * gpu_material ) {
 	if( material == &world_material || material == &wallbang_material ) {
 		PipelineState pipeline;
-		pipeline.shader = SelectShaderVariant( &shaders.world, vertex_descriptor );
+		pipeline.shader = &shaders.world;
 		pipeline.pass = frame_static.world_opaque_pass;
 		pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
 		pipeline.bind_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
@@ -1042,7 +1042,7 @@ PipelineState MaterialToPipelineState( const Material * material, const VertexDe
 	if( material->mask_outlines ) {
 		PipelineState pipeline;
 		pipeline.pass = frame_static.world_opaque_pass;
-		pipeline.shader = SelectShaderVariant( &shaders.depth_only, vertex_descriptor );
+		pipeline.shader = &shaders.depth_only;
 		return pipeline;
 	}
 
@@ -1147,20 +1147,20 @@ PipelineState MaterialToPipelineState( const Material * material, const VertexDe
 
 	if( skinned ) {
 		if( material->shaded ) {
-			pipeline.shader = SelectShaderVariant( &shaders.standard_skinned_shaded, vertex_descriptor );
+			pipeline.shader = &shaders.standard_skinned_shaded;
 			AddDynamicsToPipeline( &pipeline );
 		}
 		else {
-			pipeline.shader = SelectShaderVariant( &shaders.standard_skinned, vertex_descriptor );
+			pipeline.shader = &shaders.standard_skinned;
 		}
 	}
 	else {
 		if( material->shaded ) {
-			pipeline.shader = SelectShaderVariant( &shaders.standard_shaded_instanced, vertex_descriptor );
+			pipeline.shader = &shaders.standard_shaded_instanced;
 			AddDynamicsToPipeline( &pipeline );
 		}
 		else {
-			pipeline.shader = SelectShaderVariant( &shaders.standard_instanced, vertex_descriptor );
+			pipeline.shader = &shaders.standard_instanced;
 		}
 	}
 

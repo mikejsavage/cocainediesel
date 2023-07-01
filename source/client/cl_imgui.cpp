@@ -200,7 +200,7 @@ static void SubmitDrawCalls() {
 				if( scissor.mins.x < fb_width && scissor.mins.y < fb_height && scissor.maxs.x >= 0.0f && scissor.maxs.y >= 0.0f ) {
 					PipelineState pipeline;
 					pipeline.pass = pass == 0 ? frame_static.ui_pass : frame_static.post_ui_pass;
-					pipeline.shader = SelectShaderVariant( pcmd->TextureId.shader, config.vertex_descriptor );
+					pipeline.shader = pcmd->TextureId.shader;
 					pipeline.depth_func = DepthFunc_Disabled;
 					pipeline.blend_func = BlendFunc_Blend;
 					pipeline.cull_face = CullFace_Disabled;

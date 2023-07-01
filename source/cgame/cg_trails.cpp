@@ -200,8 +200,8 @@ static void DrawActualTrail( Trail & trail ) {
 		}
 	}
 
-	PipelineState pipeline = MaterialToPipelineState( material, DynamicMeshVertexDescriptor(), trail.color );
-	pipeline.shader = SelectShaderVariant( &shaders.standard_vertexcolors, DynamicMeshVertexDescriptor() );
+	PipelineState pipeline = MaterialToPipelineState( material, trail.color );
+	pipeline.shader = &shaders.standard_vertexcolors;
 	pipeline.blend_func = BlendFunc_Add;
 	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );

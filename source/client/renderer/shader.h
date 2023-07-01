@@ -54,6 +54,3 @@ extern Shaders shaders;
 void InitShaders();
 void HotloadShaders();
 void ShutdownShaders();
-
-ShaderVariant SelectShaderVariant( const Shader * shader, const VertexDescriptor & vertex_descriptor );
-ShaderVariant SelectComputeShader( const Shader * shader );

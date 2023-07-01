@@ -440,7 +440,7 @@ static void DrawWorld() {
 			for( u32 j = 0; j < frame_static.shadow_parameters.num_cascades; j++ ) {
 				PipelineState pipeline;
 				pipeline.pass = frame_static.shadowmap_pass[ j ];
-				pipeline.shader = SelectShaderVariant( &shaders.depth_only, model->mesh.vertex_descriptor );
+				pipeline.shader = &shaders.depth_only;
 				pipeline.clamp_depth = true;
 				// pipeline.cull_face = CullFace_Disabled;
 				pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
@@ -453,7 +453,7 @@ static void DrawWorld() {
 		{
 			PipelineState pipeline;
 			pipeline.pass = frame_static.world_opaque_prepass_pass;
-			pipeline.shader = SelectShaderVariant( &shaders.depth_only, model->mesh.vertex_descriptor );
+			pipeline.shader = &shaders.depth_only;
 			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 
@@ -461,7 +461,7 @@ static void DrawWorld() {
 		}
 
 		{
-			PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material, model->mesh.vertex_descriptor );
+			PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
 			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 			pipeline.write_depth = false;
@@ -477,7 +477,7 @@ static void DrawSilhouettes() {
 
 	PipelineState pipeline;
 	pipeline.pass = frame_static.add_silhouettes_pass;
-	pipeline.shader = SelectShaderVariant( &shaders.postprocess_silhouette_gbuffer, FullscreenMeshVertexDescriptor() );
+	pipeline.shader = &shaders.postprocess_silhouette_gbuffer;
 	pipeline.depth_func = DepthFunc_Disabled;
 	pipeline.blend_func = BlendFunc_Blend;
 	pipeline.write_depth = false;
@@ -493,7 +493,7 @@ static void DrawOutlines() {
 
 	PipelineState pipeline;
 	pipeline.pass = frame_static.add_outlines_pass;
-	pipeline.shader = SelectShaderVariant( msaa ? &shaders.postprocess_world_gbuffer_msaa : &shaders.postprocess_world_gbuffer, FullscreenMeshVertexDescriptor() );
+	pipeline.shader = msaa ? &shaders.postprocess_world_gbuffer_msaa : &shaders.postprocess_world_gbuffer;
 	pipeline.depth_func = DepthFunc_Disabled;
 	pipeline.blend_func = BlendFunc_Blend;
 	pipeline.write_depth = false;

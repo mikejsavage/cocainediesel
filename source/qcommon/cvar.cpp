@@ -18,13 +18,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include <algorithm> // std::sort
-
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/string.h"
+
+#include "nanosort/nanosort.hpp"
 
 struct ConfigEntry {
 	char * name;
@@ -204,7 +204,7 @@ Span< const char * > TabCompleteCvar( TempAllocator * a, const char * partial ) 
 		}
 	}
 
-	std::sort( results.begin(), results.end(), SortCStringsComparator );
+	nanosort( results.begin(), results.end(), SortCStringsComparator );
 
 	return results.span();
 }
@@ -219,7 +219,7 @@ Span< const char * > SearchCvars( Allocator * a, const char * partial ) {
 		}
 	}
 
-	std::sort( results.begin(), results.end(), SortCStringsComparator );
+	nanosort( results.begin(), results.end(), SortCStringsComparator );
 
 	return results.span();
 }
@@ -302,7 +302,7 @@ void Cvar_WriteVariables( DynamicString * config ) {
 		lines.add( ( *sys_allocator )( "set {} \"{}\"\r\n", entry->name, entry->value ) );
 	}
 
-	std::sort( lines.begin(), lines.end(), SortCStringsComparator );
+	nanosort( lines.begin(), lines.end(), SortCStringsComparator );
 
 	for( char * line : lines ) {
 		config->append_raw( line, strlen( line ) );

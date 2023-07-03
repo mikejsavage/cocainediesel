@@ -7,7 +7,7 @@
 #include "client/demo_browser.h"
 #include "gameshared/demo.h"
 
-#include <algorithm>
+#include "nanosort/nanosort.hpp"
 
 static NonRAIIDynamicArray< DemoBrowserEntry > demos;
 static size_t metadata_load_cursor;
@@ -105,7 +105,7 @@ void RefreshDemoBrowser() {
 	DynamicString base( &temp, "{}/demos", HomeDirPath() );
 	FindDemosRecursive( &temp, &base, base.length() + 1 );
 
-	std::sort( demos.begin(), demos.end(), []( const DemoBrowserEntry & a, const DemoBrowserEntry & b ) {
+	nanosort( demos.begin(), demos.end(), []( const DemoBrowserEntry & a, const DemoBrowserEntry & b ) {
 		return !SortCStringsComparator( a.path, b.path );
 	} );
 }

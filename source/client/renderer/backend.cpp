@@ -1,5 +1,11 @@
-#include <algorithm> // std::stable_sort
-#include <new>
+#include "qcommon/base.h"
+#include "qcommon/qcommon.h"
+#include "qcommon/array.h"
+#include "qcommon/hash.h"
+#include "qcommon/string.h"
+#include "client/renderer/renderer.h"
+
+#include "cgame/cg_local.h"
 
 #include "glad/glad.h"
 
@@ -9,14 +15,8 @@
 #include "tracy/Tracy.hpp"
 #include "tracy/TracyOpenGL.hpp"
 
-#include "qcommon/base.h"
-#include "qcommon/qcommon.h"
-#include "qcommon/array.h"
-#include "qcommon/hash.h"
-#include "qcommon/string.h"
-#include "client/renderer/renderer.h"
-
-#include "cgame/cg_local.h"
+#include <algorithm> // std::stable_sort
+#include <new>
 
 template< typename S, typename T >
 struct SameType { static constexpr bool value = false; };

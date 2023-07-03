@@ -1,5 +1,3 @@
-#include <algorithm> // std::sort
-
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/qfiles.h"
@@ -11,6 +9,8 @@
 #include "client/maps.h"
 
 #include "meshoptimizer/meshoptimizer.h"
+
+#include "nanosort/nanosort.hpp"
 
 enum BSPLump {
 	BSPLump_Entities,
@@ -388,7 +388,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 		}
 	}
 
-	std::sort( draw_calls.begin(), draw_calls.end(), []( const BSPDrawCall & a, const BSPDrawCall & b ) {
+	nanosort( draw_calls.begin(), draw_calls.end(), []( const BSPDrawCall & a, const BSPDrawCall & b ) {
 		return a.material < b.material;
 	} );
 

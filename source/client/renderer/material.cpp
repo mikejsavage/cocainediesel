@@ -1,5 +1,3 @@
-#include <algorithm> // std::sort
-
 #include "qcommon/base.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
@@ -12,6 +10,8 @@
 #include "client/renderer/renderer.h"
 #include "client/renderer/dds.h"
 #include "cgame/cg_dynamics.h"
+
+#include "nanosort/nanosort.hpp"
 
 #include "stb/stb_image.h"
 #include "stb/stb_rect_pack.h"
@@ -847,7 +847,7 @@ void InitMaterials() {
 				}
 			}
 
-			std::sort( jobs.begin(), jobs.end(), []( const DecodeSTBTextureJob & a, const DecodeSTBTextureJob & b ) {
+			nanosort( jobs.begin(), jobs.end(), []( const DecodeSTBTextureJob & a, const DecodeSTBTextureJob & b ) {
 				return a.in.data.n > b.in.data.n;
 			} );
 		}

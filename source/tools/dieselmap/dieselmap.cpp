@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <inttypes.h> // PRIu32
 #include <math.h>
 
@@ -14,6 +13,8 @@
 #include "qcommon/hash.h"
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
+
+#include "nanosort/nanosort.hpp"
 
 #include "zstd/zstd.h"
 
@@ -680,7 +681,7 @@ static void ProcessBrush( BSP * bsp, MinMax3 * bounds, DynamicArray< MaterialMes
 		}
 
 		// sort CCW around the centroid
-		std::sort( projected, projected + verts.n, []( ProjectedVert a, ProjectedVert b ) {
+		nanosort( projected, projected + verts.n, []( ProjectedVert a, ProjectedVert b ) {
 			return a.theta < b.theta;
 		} );
 
@@ -982,7 +983,7 @@ static CandidatePlanes BuildCandidatePlanes( Allocator * a, Span< const u32 > br
 
 		{
 			TracyZoneScopedN( "sort" );
-			std::sort( axis.begin(), axis.end(), []( const CandidatePlane & a, const CandidatePlane & b ) {
+			nanosort( axis.begin(), axis.end(), []( const CandidatePlane & a, const CandidatePlane & b ) {
 				if( a.distance == b.distance )
 					return a.start_edge < b.start_edge;
 				return a.distance < b.distance;

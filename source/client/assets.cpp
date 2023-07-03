@@ -1,5 +1,3 @@
-#include <algorithm>
-
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -13,6 +11,8 @@
 #include "qcommon/threads.h"
 #include "client/assets.h"
 #include "client/threadpool.h"
+
+#include "nanosort/nanosort.hpp"
 
 struct Asset {
 	char * path;
@@ -190,7 +190,7 @@ void HotloadAssets( TempAllocator * temp ) {
 
 	const char * buf[ 1024 ];
 	Span< const char * > changes = PollFSChangeMonitor( temp, fs_change_monitor, buf, ARRAY_COUNT( buf ) );
-	std::sort( changes.begin(), changes.end(), SortCStringsComparator );
+	nanosort( changes.begin(), changes.end(), SortCStringsComparator );
 
 	for( size_t i = 0; i < changes.n; i++ ) {
 		if( i > 0 && StrEqual( changes[ i ], changes[ i - 1 ] ) )

@@ -227,16 +227,17 @@ void StopRecordingDemo( TempAllocator * temp, RecordDemoContext * ctx, const Dem
 	}
 }
 
-static const DemoHeader * ReadDemoHeader( Span< const u8 > demo ) {
+static Optional< DemoHeader > ReadDemoHeader( Span< const u8 > demo ) {
 	if( demo.n < sizeof( DemoHeader ) )
-		return NULL;
+		return NONE;
 
-	const DemoHeader * header = align_cast< const DemoHeader >( demo.ptr );
-	if( memcmp( &header->magic, DEMO_METADATA_MAGIC, sizeof( DEMO_METADATA_MAGIC ) ) != 0 )
-		return NULL;
+	DemoHeader header;
+	memcpy( &header, demo.ptr, sizeof( header ) );
+	if( memcmp( &header.magic, DEMO_METADATA_MAGIC, sizeof( DEMO_METADATA_MAGIC ) ) != 0 )
+		return NONE;
 
-	if( demo.n < sizeof( DemoHeader ) + header->metadata_size )
-		return NULL;
+	if( demo.n < sizeof( DemoHeader ) + header.metadata_size )
+		return NONE;
 
 	return header;
 }
@@ -244,22 +245,22 @@ static const DemoHeader * ReadDemoHeader( Span< const u8 > demo ) {
 bool ReadDemoMetadata( Allocator * a, DemoMetadata * metadata, Span< const u8 > demo ) {
 	*metadata = { };
 
-	const DemoHeader * header = ReadDemoHeader( demo );
-	if( header == NULL )
+	Optional< DemoHeader > header = ReadDemoHeader( demo );
+	if( !header.exists )
 		return false;
 
-	Span< const u8 > serialised_metadata = demo.slice( sizeof( DemoHeader ), sizeof( DemoHeader ) + header->metadata_size );
+	Span< const u8 > serialised_metadata = demo.slice( sizeof( DemoHeader ), sizeof( DemoHeader ) + header.value.metadata_size );
 	return Deserialize( a, metadata, serialised_metadata.ptr, serialised_metadata.n );
 }
 
 bool DecompressDemo( Allocator * a, const DemoMetadata & metadata, Span< u8 > * decompressed, Span< const u8 > demo ) {
 	TracyZoneScoped;
 
-	const DemoHeader * header = ReadDemoHeader( demo );
-	Assert( header != NULL );
+	Optional< DemoHeader > header = ReadDemoHeader( demo );
+	Assert( header.exists );
 
 	*decompressed = AllocSpan< u8 >( a, metadata.decompressed_size );
-	Span< const u8 > compressed = demo.slice( sizeof( DemoHeader ) + header->metadata_size, demo.n );
+	Span< const u8 > compressed = demo.slice( sizeof( DemoHeader ) + header.value.metadata_size, demo.n );
 
 	size_t r = ZSTD_decompress( decompressed->ptr, decompressed->n, compressed.ptr, compressed.n );
 	if( r != decompressed->n ) {

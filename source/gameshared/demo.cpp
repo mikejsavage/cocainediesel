@@ -30,6 +30,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "zstd/zstd.h"
 
+struct DemoHeader {
+	u64 magic;
+	u64 metadata_size;
+};
+
+static constexpr const char DEMO_METADATA_MAGIC[ sizeof( DemoHeader::magic ) ] = "cddemo";
+
 static void Serialize( SerializationBuffer * buf, DemoMetadata & meta ) {
 	*buf & meta.metadata_version & meta.server & meta.map & meta.game_version & meta.utc_time;
 

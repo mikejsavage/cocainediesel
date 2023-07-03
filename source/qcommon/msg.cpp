@@ -18,10 +18,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include <type_traits>
-
 #include "qcommon/qcommon.h"
 #include "qcommon/serialization.h"
+
+#include <type_traits>
 
 #define MAX_MSG_STRING_CHARS    2048
 

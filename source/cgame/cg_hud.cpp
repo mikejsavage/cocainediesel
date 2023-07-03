@@ -1850,7 +1850,10 @@ void CG_DrawHUD() {
 	}
 
 	inspecting = { };
-	CallWithStackTrace( hud_L, 1, 0 );
+	{
+		TracyZoneScopedN( "Luau" );
+		CallWithStackTrace( hud_L, 1, 0 );
+	}
 
 	if( inspecting.hovered ) {
 		Draw2DBox( inspecting.x, inspecting.y, inspecting.w, inspecting.h, cls.white_material, Vec4( 0.0f, 1.0f, 1.0f, 0.25f ) );

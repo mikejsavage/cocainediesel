@@ -280,6 +280,8 @@ const char * NextChunkEnd( const char * str ) {
 }
 
 void Con_Draw() {
+	TracyZoneScoped;
+
 	u32 bg = IM_COL32( 27, 27, 27, 224 );
 
 	ImGui::PushFont( cls.console_font );

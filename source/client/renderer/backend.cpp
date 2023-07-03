@@ -612,6 +612,7 @@ static bool operator==( const VertexAttribute & lhs, const VertexAttribute & rhs
 }
 
 static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) {
+	TracyZoneScoped;
 	TracyGpuZone( "Set pipeline state" );
 
 	if( pipeline.shader != NULL && ( prev_pipeline.shader == NULL || pipeline.shader->program != prev_pipeline.shader->program ) ) {
@@ -806,6 +807,8 @@ static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) 
 }
 
 static void BindVertexDescriptorAndBuffers( const Mesh & mesh ) {
+	TracyZoneScoped;
+
 	const VertexDescriptor & vertex_descriptor = mesh.vertex_descriptor;
 
 	// vertex descriptor
@@ -975,11 +978,13 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	SetPipelineState( dc.pipeline, dc.mesh.cw_winding );
 
 	if( dc.type == DrawCallType_Compute ) {
+		TracyZoneScopedN( "Compute command" );
 		glDispatchCompute( dc.dispatch_size[ 0 ], dc.dispatch_size[ 1 ], dc.dispatch_size[ 2 ] );
 		return;
 	}
 
 	if( dc.type == DrawCallType_IndirectCompute ) {
+		TracyZoneScopedN( "Compute command" );
 		glBindBuffer( GL_DISPATCH_INDIRECT_BUFFER, dc.indirect.buffer );
 		glDispatchComputeIndirect( 0 );
 		glBindBuffer( GL_DISPATCH_INDIRECT_BUFFER, 0 );
@@ -990,33 +995,41 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 
 	GLenum gl_index_format = dc.mesh.index_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
 
-	if( dc.type == DrawCallType_Normal ) {
-		if( dc.mesh.index_buffer.buffer != 0 ) {
-			size_t index_size = dc.mesh.index_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
-			const void * offset = ( const void * ) ( uintptr_t( dc.first_index ) * index_size );
-			glDrawElementsInstancedBaseVertex( GL_TRIANGLES, dc.num_vertices, gl_index_format, offset, dc.num_instances, dc.base_vertex );
+	{
+		TracyZoneScopedN( "Draw command" );
+
+		if( dc.type == DrawCallType_Normal ) {
+			if( dc.mesh.index_buffer.buffer != 0 ) {
+				size_t index_size = dc.mesh.index_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
+				const void * offset = ( const void * ) ( uintptr_t( dc.first_index ) * index_size );
+				glDrawElementsInstancedBaseVertex( GL_TRIANGLES, dc.num_vertices, gl_index_format, offset, dc.num_instances, dc.base_vertex );
+			}
+			else {
+				glDrawArraysInstanced( GL_TRIANGLES, dc.first_index, dc.num_vertices, dc.num_instances );
+			}
 		}
-		else {
-			glDrawArraysInstanced( GL_TRIANGLES, dc.first_index, dc.num_vertices, dc.num_instances );
+		else if( dc.type == DrawCallType_Indirect ) {
+			glBindBuffer( GL_DRAW_INDIRECT_BUFFER, dc.indirect.buffer );
+			if( dc.mesh.index_buffer.buffer != 0 ) {
+				glDrawElementsIndirect( GL_TRIANGLES, gl_index_format, 0 );
+			}
+			else {
+				glDrawArraysIndirect( GL_TRIANGLES, 0 );
+			}
+			glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0 );
 		}
-	}
-	else if( dc.type == DrawCallType_Indirect ) {
-		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, dc.indirect.buffer );
-		if( dc.mesh.index_buffer.buffer != 0 ) {
-			glDrawElementsIndirect( GL_TRIANGLES, gl_index_format, 0 );
-		}
-		else {
-			glDrawArraysIndirect( GL_TRIANGLES, 0 );
-		}
-		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0 );
 	}
 
-	// unbind buffers
-	for( size_t i = 0; i < ARRAY_COUNT( dc.mesh.vertex_buffers ); i++ ) {
-		glVertexArrayVertexBuffer( vao, i, 0, 0, 0 );
-	}
+	{
+		TracyZoneScopedN( "Unbind buffers" );
 
-	glVertexArrayElementBuffer( vao, 0 );
+		// unbind buffers
+		for( size_t i = 0; i < ARRAY_COUNT( dc.mesh.vertex_buffers ); i++ ) {
+			glVertexArrayVertexBuffer( vao, i, 0, 0, 0 );
+		}
+
+		glVertexArrayElementBuffer( vao, 0 );
+	}
 }
 
 void RenderBackendSubmitFrame() {

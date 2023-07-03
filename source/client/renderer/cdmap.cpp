@@ -44,8 +44,8 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 			pipeline.pass = frame_static.shadowmap_pass[ j ];
 			pipeline.shader = &shaders.depth_only;
 			pipeline.clamp_depth = true;
-			pipeline.set_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
-			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+			pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
+			pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 
 			DrawMesh( map->render_data.mesh, pipeline, mesh.num_vertices, mesh.first_vertex_index );
 		}
@@ -54,16 +54,16 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 			PipelineState pipeline = MaterialToPipelineState( FindMaterial( StringHash( mesh.material ) ) );
 			pipeline.pass = frame_static.world_opaque_prepass_pass;
 			pipeline.shader = &shaders.depth_only;
-			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-			pipeline.set_uniform( "u_Model", UploadModelUniforms( transform ) );
+			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+			pipeline.bind_uniform( "u_Model", UploadModelUniforms( transform ) );
 
 			DrawMesh( map->render_data.mesh, pipeline, mesh.num_vertices, mesh.first_vertex_index );
 		}
 
 		{
 			PipelineState pipeline = MaterialToPipelineState( FindMaterial( StringHash( mesh.material ) ) );
-			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+			pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 			pipeline.write_depth = false;
 			pipeline.depth_func = DepthFunc_Equal;
 

@@ -125,11 +125,11 @@ static void SV_InitGame() {
 
 	svs.spawncount = RandomUniform( &svs.rng, 0, S16_MAX );
 
-	svs.clients = ALLOC_MANY( sys_allocator, client_t, sv_maxclients->integer );
+	svs.clients = AllocMany< client_t >( sys_allocator, sv_maxclients->integer );
 	memset( svs.clients, 0, sizeof( svs.clients[ 0 ] ) * sv_maxclients->integer );
 
 	svs.client_entities.num_entities = sv_maxclients->integer * UPDATE_BACKUP * MAX_SNAP_ENTITIES;
-	svs.client_entities.entities = ALLOC_MANY( sys_allocator, SyncEntityState, svs.client_entities.num_entities );
+	svs.client_entities.entities = AllocMany< SyncEntityState >( sys_allocator, svs.client_entities.num_entities );
 	memset( svs.client_entities.entities, 0, sizeof( svs.client_entities.entities[ 0 ] ) * svs.client_entities.num_entities );
 
 	svs.socket = NewUDPServer( sv_port->integer, NonBlocking_Yes );
@@ -193,8 +193,8 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 
 	CloseSocket( svs.socket );
 
-	FREE( sys_allocator, svs.clients );
-	FREE( sys_allocator, svs.client_entities.entities );
+	Free( sys_allocator, svs.clients );
+	Free( sys_allocator, svs.client_entities.entities );
 
 	ShutdownServerCollisionModels();
 	ShutdownWebServer();

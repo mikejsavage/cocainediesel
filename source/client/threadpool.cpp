@@ -83,7 +83,7 @@ void InitThreadPool() {
 
 	for( u32 i = 0; i < num_workers; i++ ) {
 		constexpr size_t arena_size = 1024 * 1024; // 1MB
-		void * arena_memory = ALLOC_SIZE( sys_allocator, arena_size, 16 );
+		void * arena_memory = sys_allocator->allocate( arena_size, 16 );
 		workers[ i ].arena = ArenaAllocator( arena_memory, arena_size );
 		workers[ i ].thread = NewThread( ThreadPoolWorker, &workers[ i ].arena );
 	}
@@ -102,7 +102,7 @@ void ShutdownThreadPool() {
 
 	for( u32 i = 0; i < num_workers; i++ ) {
 		JoinThread( workers[ i ].thread );
-		FREE( sys_allocator, workers[ i ].arena.get_memory() );
+		Free( sys_allocator, workers[ i ].arena.get_memory() );
 	}
 
 	DeleteSemaphore( completion_sem );

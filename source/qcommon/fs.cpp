@@ -1,7 +1,7 @@
 #include "qcommon/base.h"
 #include "qcommon/fs.h"
 #include "qcommon/utf8.h"
-#include "qcommon/sys_fs.h"
+#include "qcommon/platform/fs.h"
 #include "gameshared/q_shared.h"
 
 static char * root_dir_path;
@@ -27,8 +27,8 @@ void InitFS() {
 }
 
 void ShutdownFS() {
-	FREE( sys_allocator, root_dir_path );
-	FREE( sys_allocator, home_dir_path );
+	Free( sys_allocator, root_dir_path );
+	Free( sys_allocator, home_dir_path );
 }
 
 const char * RootDirPath() {
@@ -54,12 +54,12 @@ char * ReadFileString( Allocator * a, const char * path, size_t * len ) {
 		return NULL;
 
 	size_t size = FileSize( file );
-	char * contents = ( char * ) ALLOC_SIZE( a, size + 1, 16 );
+	char * contents = ( char * ) a->allocate( size + 1, 16 );
 	size_t r = fread( contents, 1, size, file );
 	fclose( file );
 
 	if( r != size ) {
-		FREE( a, contents );
+		Free( a, contents );
 		return NULL;
 	}
 
@@ -76,11 +76,11 @@ Span< u8 > ReadFileBinary( Allocator * a, const char * path ) {
 		return Span< u8 >();
 
 	size_t size = FileSize( file );
-	u8 * contents = ( u8 * ) ALLOC_SIZE( a, size, 16 );
+	u8 * contents = ( u8 * ) a->allocate( size, 16 );
 	size_t r = fread( contents, 1, size, file );
 	fclose( file );
 	if( r != size ) {
-		FREE( a, contents );
+		Free( a, contents );
 		return Span< u8 >();
 	}
 
@@ -97,7 +97,7 @@ bool FileExists( Allocator * a, const char * path ) {
 
 bool CreatePathForFile( Allocator * a, const char * path ) {
 	char * mutable_path = CopyString( a, path );
-	defer { FREE( a, mutable_path ); };
+	defer { Free( a, mutable_path ); };
 
 	char * cursor = mutable_path;
 

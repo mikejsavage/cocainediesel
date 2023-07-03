@@ -4,4 +4,4 @@
 
 void Sys_Init() { }
 
-#endif // #ifdef PLATFORM_UNIX
+#endif // #if PLATFORM_UNIX

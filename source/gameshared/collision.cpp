@@ -27,9 +27,9 @@ CollisionModel CollisionModelGLTF( StringHash name ) {
 }
 
 static void DeleteGLTFCollisionData( GLTFCollisionData data ) {
-	FREE( sys_allocator, data.vertices.ptr );
-	FREE( sys_allocator, data.planes.ptr );
-	FREE( sys_allocator, data.brushes.ptr );
+	Free( sys_allocator, data.vertices.ptr );
+	Free( sys_allocator, data.planes.ptr );
+	Free( sys_allocator, data.brushes.ptr );
 }
 
 void InitCollisionModelStorage( CollisionModelStorage * storage ) {

@@ -3,23 +3,19 @@
 #include "include/skinning.glsl"
 
 #if INSTANCED
-struct Instance {
-	mat4 transform;
-};
-
 layout( std430 ) readonly buffer b_Instances {
-	Instance instances[];
+	AffineTransform instances[];
 };
 #endif
 
 #if VERTEX_SHADER
 
-in vec4 a_Position;
-in vec3 a_Normal;
+layout( location = VertexAttribute_Position ) in vec4 a_Position;
+layout( location = VertexAttribute_Normal ) in vec3 a_Normal;
 
 void main() {
 #if INSTANCED
-	mat4 u_M = instances[ gl_InstanceID ].transform;
+	mat4 u_M = AffineToMat4( instances[ gl_InstanceID ] );
 #endif
 
 	vec4 Position = a_Position;

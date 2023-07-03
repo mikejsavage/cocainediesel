@@ -4,7 +4,7 @@
     blendfunc add
 
     position line 0
-    
+
     collision point
 
     speed 8

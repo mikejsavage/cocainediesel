@@ -2,7 +2,7 @@
   particles {
     material textures/vfx/glow1
     blendfunc add
-    
+
     position line 0
 
 
@@ -20,7 +20,7 @@
     particles {
     material textures/vfx/glow2
     blendfunc add
-    
+
     position line 0
 
 
@@ -44,7 +44,7 @@
     material textures/vfx/smoke8
     material textures/vfx/smoke9
     blendfunc add
-    
+
     position point
 
     speed 0

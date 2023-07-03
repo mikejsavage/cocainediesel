@@ -1,10 +1,10 @@
-#include <algorithm>
-
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/maplist.h"
+
+#include "nanosort/nanosort.hpp"
 
 static NonRAIIDynamicArray< char * > maps;
 
@@ -17,7 +17,7 @@ void InitMapList() {
 
 static void FreeMaps() {
 	for( char * map : maps ) {
-		FREE( sys_allocator, map );
+		Free( sys_allocator, map );
 	}
 
 	maps.clear();
@@ -34,7 +34,7 @@ void RefreshMapList( Allocator * a ) {
 	FreeMaps();
 
 	char * path = ( *a )( "{}/base/maps", RootDirPath() );
-	defer { FREE( a, path ); };
+	defer { Free( a, path ); };
 
 	ListDirHandle scan = BeginListDir( a, path );
 
@@ -50,7 +50,7 @@ void RefreshMapList( Allocator * a ) {
 		}
 	}
 
-	std::sort( maps.begin(), maps.end(), SortCStringsComparator );
+	nanosort( maps.begin(), maps.end(), SortCStringsComparator );
 }
 
 Span< const char * const > GetMapList() {

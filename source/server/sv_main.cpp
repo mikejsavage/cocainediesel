@@ -326,7 +326,7 @@ void SV_Init() {
 	memset( &svc, 0, sizeof( svc ) );
 
 	constexpr size_t frame_arena_size = 1024 * 1024 * 32; // 32MB
-	void * frame_arena_memory = ALLOC_SIZE( sys_allocator, frame_arena_size, 16 );
+	void * frame_arena_memory = sys_allocator->allocate( frame_arena_size, 16 );
 	svs.frame_arena = ArenaAllocator( frame_arena_memory, frame_arena_size );
 
 	u64 entropy[ 2 ];
@@ -404,5 +404,5 @@ void SV_Shutdown( const char *finalmsg ) {
 
 	SV_ShutdownOperatorCommands();
 
-	FREE( sys_allocator, svs.frame_arena.get_memory() );
+	Free( sys_allocator, svs.frame_arena.get_memory() );
 }

@@ -2,7 +2,7 @@
   particles {
     material textures/vfx/glow2
     blendfunc add
-    
+
     position sphere 0 0
 
     speed 5
@@ -17,7 +17,7 @@
   particles {
     material textures/vfx/glow1
     blendfunc add
-    
+
     position sphere 0 0
 
     speed 5
@@ -33,7 +33,7 @@
   particles {
     material textures/vfx/light3
     blendfunc add
-    
+
     position sphere 0 0
 
     speed 0

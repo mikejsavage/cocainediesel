@@ -64,7 +64,6 @@ static bool G_Teleport( edict_t * ent, Vec3 origin, Vec3 angles ) {
 	return true;
 }
 
-
 //=================================================================================
 
 static void Cmd_Noclip_f( edict_t * ent, msg_t args ) {
@@ -206,7 +205,6 @@ bool CheckFlood( edict_t * ent, bool teamonly ) {
 			return true;
 		}
 	}
-
 
 	if( teamonly ) {
 		if( g_floodprotection_team->integer && g_floodprotection_penalty->number > 0 ) {

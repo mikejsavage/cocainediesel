@@ -1,14 +1,15 @@
 #include "gameshared/movement.h"
 #include "qcommon/qfiles.h"
 
-static constexpr float dash_min_speed = 650.0f;
-static constexpr float dash_speed_factor = 1.05f;
+//f(speed) = base_speed + speed * speed_factor
+static constexpr float dash_base_speed = 350.0f;
+static constexpr float dash_speed_factor = 0.55f;
 
 static constexpr float jump_speed = 500.0f;
 static constexpr float jump_buffering = 0.1f;
 
 static constexpr float min_bounce_speed = 250.0f;
-static constexpr float bounce_factor = 0.5f;
+static constexpr float bounce_factor = 0.4f;
 
 static constexpr float stamina_recover = 0.65f;
 static constexpr float stamina_recover_used = 0.2f;
@@ -29,10 +30,7 @@ static void PM_WheelDash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 			AngleVectors( pm->playerState->viewangles, &fwd, NULL, NULL );
 			Vec3 dashdir = fwd;
 
-			float speed = Length( pml->velocity ) * dash_speed_factor;
-			if( speed < dash_min_speed ) {
-				speed = dash_min_speed;
-			}
+			float speed =  dash_base_speed + Length( pml->velocity ) * dash_speed_factor;
 			dashdir = Normalize( dashdir );
 			dashdir *= speed;
 

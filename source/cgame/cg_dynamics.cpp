@@ -241,19 +241,19 @@ void UploadDecalBuffers() {
 	u32 rows = PixelsToTiles( frame_static.viewport_height );
 	u32 cols = PixelsToTiles( frame_static.viewport_width );
 
-	memcpy( GetStreamingBufferMapping( decals_buffer ), decals, num_decals * sizeof( Decal ) );
-	memcpy( GetStreamingBufferMapping( dlights_buffer ), dlights, num_dlights * sizeof( DynamicLight ) );
+	WriteAndFlushStreamingBuffer( decals_buffer, decals, num_decals );
+	WriteAndFlushStreamingBuffer( dlights_buffer, dlights, num_dlights );
 
 	PipelineState pipeline;
 	pipeline.pass = frame_static.tile_culling_pass;
 	pipeline.shader = &shaders.tile_culling;
-	pipeline.set_buffer( "b_Decals", GetStreamingBufferBuffer( decals_buffer ) );
-	pipeline.set_buffer( "b_Dlights", GetStreamingBufferBuffer( dlights_buffer ) );
-	pipeline.set_buffer( "b_TileCounts", dynamic_count );
-	pipeline.set_buffer( "b_DecalTiles", decal_tiles_buffer );
-	pipeline.set_buffer( "b_DLightTiles", dlight_tiles_buffer );
-	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.set_uniform( "u_TileCulling", UploadUniformBlock( cols, rows, u32( num_decals ), u32( num_dlights ) ) );
+	pipeline.bind_streaming_buffer( "b_Decals", decals_buffer );
+	pipeline.bind_streaming_buffer( "b_Dlights", dlights_buffer );
+	pipeline.bind_buffer( "b_TileCounts", dynamic_count );
+	pipeline.bind_buffer( "b_DecalTiles", decal_tiles_buffer );
+	pipeline.bind_buffer( "b_DLightTiles", dlight_tiles_buffer );
+	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+	pipeline.bind_uniform( "u_TileCulling", UploadUniformBlock( cols, rows, u32( num_decals ), u32( num_dlights ) ) );
 	DispatchCompute( pipeline, ( cols * rows ) / 64 + 1, 1, 1 );
 
 	num_decals = 0;
@@ -261,9 +261,9 @@ void UploadDecalBuffers() {
 }
 
 void AddDynamicsToPipeline( PipelineState * pipeline ) {
-	pipeline->set_buffer( "b_Decals", GetStreamingBufferBuffer( decals_buffer ) );
-	pipeline->set_buffer( "b_DecalTiles", decal_tiles_buffer );
-	pipeline->set_buffer( "b_DynamicLights", GetStreamingBufferBuffer( dlights_buffer ) );
-	pipeline->set_buffer( "b_DynamicLightTiles", dlight_tiles_buffer );
-	pipeline->set_buffer( "b_DynamicTiles", dynamic_count );
+	pipeline->bind_streaming_buffer( "b_Decals", decals_buffer );
+	pipeline->bind_buffer( "b_DecalTiles", decal_tiles_buffer );
+	pipeline->bind_streaming_buffer( "b_DynamicLights", dlights_buffer );
+	pipeline->bind_buffer( "b_DynamicLightTiles", dlight_tiles_buffer );
+	pipeline->bind_buffer( "b_DynamicTiles", dynamic_count );
 }

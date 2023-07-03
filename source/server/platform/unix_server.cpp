@@ -55,4 +55,4 @@ int main( int argc, char ** argv ) {
 	return 0;
 }
 
-#endif // #ifdef PLATFORM_UNIX
+#endif // #if PLATFORM_UNIX

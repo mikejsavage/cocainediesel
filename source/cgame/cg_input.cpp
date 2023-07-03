@@ -189,7 +189,6 @@ UserCommandButton CG_GetButtonDownEdges() {
 		edges |= Button_Plant;
 	}
 
-
 	button_attack1.edge = false;
 	button_attack2.edge = false;
 	button_gadget.edge = false;

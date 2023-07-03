@@ -146,12 +146,10 @@ static void DrawActualTrail( Trail & trail ) {
 	}
 
 	TempAllocator temp = cls.frame_arena.temp();
-	Span< Vec3 > positions = ALLOC_SPAN( &temp, Vec3, trail.points.n * 2 );
-	Span< Vec2 > uvs = ALLOC_SPAN( &temp, Vec2, trail.points.n * 2 );
-	Span< RGBA8 > colors = ALLOC_SPAN( &temp, RGBA8, trail.points.n * 2 );
-	Span< u16 > indices = ALLOC_SPAN( &temp, u16, ( trail.points.n - 1 ) * 6 );
-
-	u16 base_index = DynamicMeshBaseIndex();
+	Span< Vec3 > positions = AllocSpan< Vec3 >( &temp, trail.points.n * 2 );
+	Span< Vec2 > uvs = AllocSpan< Vec2 >( &temp, trail.points.n * 2 );
+	Span< RGBA8 > colors = AllocSpan< RGBA8 >( &temp, trail.points.n * 2 );
+	Span< u16 > indices = AllocSpan< u16 >( &temp, ( trail.points.n - 1 ) * 6 );
 
 	const Material * material = FindMaterial( trail.material );
 	float texture_aspect_ratio = float( material->texture->width ) / float( material->texture->height );
@@ -193,20 +191,20 @@ static void DrawActualTrail( Trail & trail ) {
 		colors[ i * 2 + 1 ] = RGBA8( 255, 255, 255, 255 * alpha );
 
 		if( i < trail.points.n - 1 ) {
-			indices[ i * 6 + 0 ] = base_index + i * 2 + 0;
-			indices[ i * 6 + 1 ] = base_index + i * 2 + 1;
-			indices[ i * 6 + 2 ] = base_index + i * 2 + 2;
-			indices[ i * 6 + 3 ] = base_index + i * 2 + 1;
-			indices[ i * 6 + 4 ] = base_index + i * 2 + 3;
-			indices[ i * 6 + 5 ] = base_index + i * 2 + 2;
+			indices[ i * 6 + 0 ] = i * 2 + 0;
+			indices[ i * 6 + 1 ] = i * 2 + 1;
+			indices[ i * 6 + 2 ] = i * 2 + 2;
+			indices[ i * 6 + 3 ] = i * 2 + 1;
+			indices[ i * 6 + 4 ] = i * 2 + 3;
+			indices[ i * 6 + 5 ] = i * 2 + 2;
 		}
 	}
 
 	PipelineState pipeline = MaterialToPipelineState( material, trail.color );
 	pipeline.shader = &shaders.standard_vertexcolors;
 	pipeline.blend_func = BlendFunc_Add;
-	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+	pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 
 	DynamicMesh mesh = { };
 	mesh.positions = positions.ptr;

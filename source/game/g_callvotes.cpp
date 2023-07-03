@@ -242,7 +242,6 @@ static void G_VoteSpectatePassed( callvotedata_t *vote ) {
 	G_Teams_SetTeam( ent, Team_None );
 }
 
-
 /*
 * kick
 */
@@ -290,7 +289,6 @@ static void G_VoteKickPassed( callvotedata_t *vote ) {
 
 	PF_DropClient( ent, "Kicked" );
 }
-
 
 /*
 * timeout
@@ -469,7 +467,7 @@ static void G_CallVotes_Reset( bool vote_happened ) {
 	callvoteState.vote.target = 0;
 	for( int i = 0; i < callvoteState.vote.argc; i++ ) {
 		if( callvoteState.vote.argv[i] ) {
-			FREE( sys_allocator, callvoteState.vote.argv[i] );
+			Free( sys_allocator, callvoteState.vote.argv[i] );
 		}
 	}
 

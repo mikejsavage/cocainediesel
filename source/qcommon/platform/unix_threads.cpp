@@ -95,4 +95,4 @@ u32 GetCoreCount() {
 	return checked_cast< u32 >( ok );
 }
 
-#endif // #ifdef PLATFORM_UNIX
+#endif // #if PLATFORM_UNIX

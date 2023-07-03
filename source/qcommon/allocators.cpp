@@ -3,30 +3,30 @@
 #include "qcommon/asan.h"
 #include "qcommon/string.h"
 
-void * Allocator::allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
-	void * p = try_allocate( size, alignment, func, file, line );
+void * Allocator::allocate( size_t size, size_t alignment, SourceLocation src ) {
+	void * p = try_allocate( size, alignment, src );
 	if( p == NULL )
-		Fatal( "Allocation failed in '%s' (%s:%d)", func, file, line );
+		Fatal( "Allocation failed in '%s' (%s:%d)", src.function, src.file, src.line );
 	return p;
 }
 
-void * Allocator::reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
-	void * new_p = try_reallocate( ptr, current_size, new_size, alignment, func, file, line );
+void * Allocator::reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src ) {
+	void * new_p = try_reallocate( ptr, current_size, new_size, alignment, src );
 	if( new_p == NULL )
-		Fatal( "Reallocation failed in '%s' (%s:%d)", func, file, line );
+		Fatal( "Reallocation failed in '%s' (%s:%d)", src.function, src.file, src.line );
 	return new_p;
 }
 
-void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
+void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, SourceLocation src ) {
 	if( n != 0 && SIZE_MAX / n < size )
 		Fatal( "allocation too large" );
-	return a->allocate( n * size, alignment, func, file, line );
+	return a->allocate( n * size, alignment, src );
 }
 
-void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t new_n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
+void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t new_n, size_t size, size_t alignment, SourceLocation src ) {
 	if( SIZE_MAX / new_n < size )
 		Fatal( "allocation too large" );
-	return a->reallocate( ptr, current_n * size, new_n * size, alignment, func, file, line );
+	return a->reallocate( ptr, current_n * size, new_n * size, alignment, src );
 }
 
 /*
@@ -36,8 +36,8 @@ void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t ne
 #if PUBLIC_BUILD
 
 struct AllocationTracker {
-	void track( void * ptr, const char * func, const char * file, int line, size_t size ) { }
-	void untrack( void * ptr, const char * func, const char * file, int line ) { }
+	void track( void * ptr, SourceLocation src, size_t size ) { }
+	void untrack( void * ptr, SourceLocation src ) { }
 };
 
 #else
@@ -51,9 +51,7 @@ struct AllocationTracker {
 	NONCOPYABLE( AllocationTracker );
 
 	struct AllocInfo {
-		const char * func;
-		const char * file;
-		int line;
+		SourceLocation src;
 		size_t size;
 	};
 
@@ -70,7 +68,7 @@ struct AllocationTracker {
 		size_t leaks = 0;
 		for( auto & alloc : allocations ) {
 			const AllocInfo & info = alloc.second;
-			msg.append( "\n{} bytes at {} ({}:{})", info.size, info.func, info.file, info.line );
+			msg.append( "\n{} bytes at {} ({}:{})", info.size, info.src.function, info.src.file, info.src.line );
 
 			leaks++;
 			if( leaks == 5 )
@@ -88,20 +86,20 @@ struct AllocationTracker {
 		DeleteMutex( mutex );
 	}
 
-	void track( void * ptr, const char * func, const char * file, int line, size_t size ) {
+	void track( void * ptr, SourceLocation src, size_t size ) {
 		if( ptr == NULL )
 			return;
 		Lock( mutex );
-		allocations[ ptr ] = { func, file, line, size };
+		allocations[ ptr ] = { src, size };
 		Unlock( mutex );
 	}
 
-	void untrack( void * ptr, const char * func, const char * file, int line ) {
+	void untrack( void * ptr, SourceLocation src ) {
 		if( ptr == NULL )
 			return;
 		Lock( mutex );
 		if( allocations.erase( ptr ) == 0 )
-			Fatal( "Stray free in '%s' (%s:%d)", func, file, line );
+			Fatal( "Stray free in '%s' (%s:%d)", src.function, src.file, src.line );
 		Unlock( mutex );
 	};
 };
@@ -111,7 +109,7 @@ struct AllocationTracker {
 struct SystemAllocator final : public Allocator {
 	AllocationTracker tracker;
 
-	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
+	void * try_allocate( size_t size, size_t alignment, SourceLocation src ) {
 		TracyZoneScoped;
 
 		/*
@@ -128,35 +126,35 @@ struct SystemAllocator final : public Allocator {
 		Assert( alignment <= 16 );
 		void * ptr = malloc( size );
 		TracyCAlloc( ptr, size );
-		tracker.track( ptr, func, file, line, size );
+		tracker.track( ptr, src, size );
 		return ptr;
 	}
 
-	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
+	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src ) {
 		TracyZoneScoped;
 
 		Assert( alignment <= 16 );
 
 		TracyCFree( ptr );
-		tracker.untrack( ptr, func, file, line );
+		tracker.untrack( ptr, src );
 
 		void * new_ptr = realloc( ptr, new_size );
 		if( new_ptr == NULL ) {
 			TracyCAlloc( ptr, new_size );
-			tracker.track( ptr, func, file, line, new_size );
+			tracker.track( ptr, src, new_size );
 			return NULL;
 		}
 
 		TracyCAlloc( new_ptr, new_size );
-		tracker.track( new_ptr, func, file, line, new_size );
+		tracker.track( new_ptr, src, new_size );
 
 		return new_ptr;
 	}
 
-	void deallocate( void * ptr, const char * func, const char * file, int line ) {
+	void deallocate( void * ptr, SourceLocation src ) {
 		TracyZoneScoped;
 		TracyCFree( ptr );
-		tracker.untrack( ptr, func, file, line );
+		tracker.untrack( ptr, src );
 		free( ptr );
 	}
 };
@@ -177,15 +175,15 @@ TempAllocator::~TempAllocator() {
 	ASAN_POISON_MEMORY_REGION( arena->cursor, arena->top - arena->cursor );
 }
 
-void * TempAllocator::try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
-	return arena->try_temp_allocate( size, alignment, func, file, line );
+void * TempAllocator::try_allocate( size_t size, size_t alignment, SourceLocation src ) {
+	return arena->try_temp_allocate( size, alignment, src );
 }
 
-void * TempAllocator::try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
-	return arena->try_temp_reallocate( ptr, current_size, new_size, alignment, func, file, line );
+void * TempAllocator::try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src ) {
+	return arena->try_temp_reallocate( ptr, current_size, new_size, alignment, src );
 }
 
-void TempAllocator::deallocate( void * ptr, const char * func, const char * file, int line ) { }
+void TempAllocator::deallocate( void * ptr, SourceLocation src ) { }
 
 ArenaAllocator::ArenaAllocator( void * mem, size_t size ) {
 	ASAN_POISON_MEMORY_REGION( mem, size );
@@ -196,17 +194,17 @@ ArenaAllocator::ArenaAllocator( void * mem, size_t size ) {
 	num_temp_allocators = 0;
 }
 
-void * ArenaAllocator::try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
+void * ArenaAllocator::try_allocate( size_t size, size_t alignment, SourceLocation src ) {
 	Assert( num_temp_allocators == 0 );
-	return try_temp_allocate( size, alignment, func, file, line );
+	return try_temp_allocate( size, alignment, src );
 }
 
-void * ArenaAllocator::try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
+void * ArenaAllocator::try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src ) {
 	Assert( num_temp_allocators == 0 );
-	return try_temp_reallocate( ptr, current_size, new_size, alignment, func, file, line );
+	return try_temp_reallocate( ptr, current_size, new_size, alignment, src );
 }
 
-void * ArenaAllocator::try_temp_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
+void * ArenaAllocator::try_temp_allocate( size_t size, size_t alignment, SourceLocation src ) {
 	Assert( IsPowerOf2( alignment ) );
 	u8 * aligned = ( u8 * ) ( size_t( cursor + alignment - 1 ) & ~( alignment - 1 ) );
 	if( aligned + size > top )
@@ -217,9 +215,9 @@ void * ArenaAllocator::try_temp_allocate( size_t size, size_t alignment, const c
 	return aligned;
 }
 
-void * ArenaAllocator::try_temp_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
+void * ArenaAllocator::try_temp_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src ) {
 	if( ptr == NULL )
-		return try_temp_allocate( new_size, alignment, func, file, line );
+		return try_temp_allocate( new_size, alignment, src );
 
 	if( ptr == cursor - current_size && size_t( ptr ) % alignment == 0 ) {
 		Assert( size_t( ptr ) % alignment == 0 );
@@ -237,14 +235,14 @@ void * ArenaAllocator::try_temp_reallocate( void * ptr, size_t current_size, siz
 		return ptr;
 	}
 
-	void * mem = try_temp_allocate( new_size, alignment, func, file, line );
+	void * mem = try_temp_allocate( new_size, alignment, src );
 	if( mem == NULL )
 		return NULL;
 	memcpy( mem, ptr, current_size );
 	return mem;
 }
 
-void ArenaAllocator::deallocate( void * ptr, const char * func, const char * file, int line ) { }
+void ArenaAllocator::deallocate( void * ptr, SourceLocation src ) { }
 
 TempAllocator ArenaAllocator::temp() {
 	num_temp_allocators++;

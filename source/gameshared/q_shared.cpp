@@ -18,7 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include <ctype.h>
 #include <limits.h>
 #include <type_traits>
 
@@ -220,6 +219,14 @@ float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine sto
 	return SpanToFloat( token, def );
 }
 
+char ToLowerASCII( char c ) {
+	return c >= 'A' && c <= 'Z' ? c + 'a' - 'A' : c;
+}
+
+char ToUpperASCII( char c ) {
+	return c >= 'a' && c <= 'z' ? c + 'A' - 'a' : c;
+}
+
 bool StrEqual( Span< const char > lhs, Span< const char > rhs ) {
 	return lhs.n == rhs.n && memcmp( lhs.ptr, rhs.ptr, lhs.n ) == 0;
 }
@@ -241,7 +248,7 @@ bool StrCaseEqual( Span< const char > lhs, Span< const char > rhs ) {
 		return false;
 
 	for( size_t i = 0; i < lhs.n; i++ ) {
-		if( tolower( lhs[ i ] ) != tolower( rhs[ i ] ) ) {
+		if( ToLowerASCII( lhs[ i ] ) != ToLowerASCII( rhs[ i ] ) ) {
 			return false;
 		}
 	}

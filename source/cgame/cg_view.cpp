@@ -375,7 +375,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type, UserCommand * cmd ) {
 
 			viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
 			view->origin = cg.predictedPlayerState.pmove.origin + viewoffset - ( 1.0f - cg.lerpfrac ) * cg.predictionError;
-			
+
 			view->angles = cg.predictedPlayerState.viewangles;
 
 			CG_Recoil( cg.predictedPlayerState.weapon );
@@ -452,8 +452,8 @@ static void DrawWorld() {
 				pipeline.pass = frame_static.shadowmap_pass[ j ];
 				pipeline.shader = &shaders.depth_only;
 				pipeline.clamp_depth = true;
-				pipeline.set_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
-				pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+				pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
+				pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 
 				DrawMesh( map->render_data.mesh, pipeline, mesh.num_vertices, mesh.first_vertex_index );
 			}
@@ -463,16 +463,16 @@ static void DrawWorld() {
 			PipelineState pipeline;
 			pipeline.pass = frame_static.world_opaque_prepass_pass;
 			pipeline.shader = &shaders.depth_only;
-			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+			pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 
 			DrawMesh( map->render_data.mesh, pipeline, mesh.num_vertices, mesh.first_vertex_index );
 		}
 
 		{
 			PipelineState pipeline = MaterialToPipelineState( material );
-			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+			pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 			pipeline.write_depth = false;
 			pipeline.depth_func = DepthFunc_Equal;
 
@@ -484,19 +484,17 @@ static void DrawWorld() {
 static void DrawSilhouettes() {
 	TracyZoneScoped;
 
-	{
-		PipelineState pipeline;
-		pipeline.pass = frame_static.add_silhouettes_pass;
-		pipeline.shader = &shaders.postprocess_silhouette_gbuffer;
-		pipeline.depth_func = DepthFunc_Disabled;
-		pipeline.blend_func = BlendFunc_Blend;
-		pipeline.write_depth = false;
+	PipelineState pipeline;
+	pipeline.pass = frame_static.add_silhouettes_pass;
+	pipeline.shader = &shaders.postprocess_silhouette_gbuffer;
+	pipeline.depth_func = DepthFunc_Disabled;
+	pipeline.blend_func = BlendFunc_Blend;
+	pipeline.write_depth = false;
 
-		const Framebuffer & fb = frame_static.silhouette_gbuffer;
-		pipeline.set_texture( "u_SilhouetteTexture", &fb.albedo_texture );
-		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
-		DrawFullscreenMesh( pipeline );
-	}
+	const RenderTarget & rt = frame_static.render_targets.silhouette_mask;
+	pipeline.bind_texture( "u_SilhouetteTexture", &rt.color_attachments[ FragmentShaderOutput_Albedo ] );
+	pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
+	DrawFullscreenMesh( pipeline );
 }
 
 static void DrawOutlines() {
@@ -511,12 +509,12 @@ static void DrawOutlines() {
 
 	constexpr RGBA8 gray = RGBA8( 30, 30, 30, 255 );
 
-	const Framebuffer & fb = msaa ? frame_static.msaa_fb_masked : frame_static.postprocess_fb_masked;
-	pipeline.set_texture( "u_DepthTexture", &fb.depth_texture );
-	pipeline.set_texture( "u_MaskTexture", &fb.mask_texture );
-	pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
-	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.set_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );
+	const RenderTarget & rt = msaa ? frame_static.render_targets.msaa_masked : frame_static.render_targets.postprocess_masked;
+	pipeline.bind_texture( "u_DepthTexture", &rt.depth_attachment );
+	pipeline.bind_texture( "u_CurvedSurfaceMask", &rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ] );
+	pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
+	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+	pipeline.bind_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );
 	DrawFullscreenMesh( pipeline );
 }
 

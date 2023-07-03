@@ -1,5 +1,3 @@
-#include <algorithm>
-
 #include "qcommon/base.h"
 #include "qcommon/array.h"
 #include "qcommon/locked.h"
@@ -8,6 +6,8 @@
 #include "qcommon/version.h"
 #include "client/client.h"
 #include "client/server_browser.h"
+
+#include "nanosort/nanosort.hpp"
 
 #include "tracy/Tracy.hpp"
 
@@ -168,7 +168,7 @@ void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
 		return;
 	}
 
-	std::sort( game_servers_to_query.begin(), game_servers_to_query.end(), []( const NetAddress & a, const NetAddress & b ) {
+	nanosort( game_servers_to_query.begin(), game_servers_to_query.end(), []( const NetAddress & a, const NetAddress & b ) {
 		if( a.family != b.family )
 			return a.family < b.family;
 		if( a.port != b.port )

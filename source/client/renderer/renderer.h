@@ -22,7 +22,7 @@ enum ShadowQuality {
 struct ShadowParameters {
 	u32 num_cascades;
 	float cascade_dists[ 4 ];
-	u32 shadowmap_res;
+	u32 resolution;
 	u32 entity_cascades;
 };
 
@@ -54,16 +54,16 @@ struct FrameStatic {
 	float vertical_fov;
 	float near_plane;
 
-	Framebuffer silhouette_gbuffer;
-	Framebuffer msaa_fb;
-	Framebuffer postprocess_fb;
-	Framebuffer msaa_fb_masked;
-	Framebuffer postprocess_fb_masked;
-	Framebuffer msaa_fb_onlycolor;
-	Framebuffer postprocess_fb_onlycolor;
-	Framebuffer shadowmap_fb[ 4 ];
-
-	TextureArray shadowmap_texture_array;
+	struct {
+		RenderTarget silhouette_mask;
+		RenderTarget msaa;
+		RenderTarget postprocess;
+		RenderTarget msaa_masked;
+		RenderTarget postprocess_masked;
+		RenderTarget msaa_onlycolor;
+		RenderTarget postprocess_onlycolor;
+		RenderTarget shadowmaps[ 4 ];
+	} render_targets;
 
 	u8 particle_update_pass;
 	u8 particle_setup_indirect_pass;
@@ -109,7 +109,10 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height );
 void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov );
 void RendererSubmitFrame();
 
+size_t FrameSlot();
+
 const Texture * BlueNoiseTexture();
+
 void DrawFullscreenMesh( const PipelineState & pipeline );
 
 PipelineState MaterialToPipelineState( const Material * material, Vec4 color = vec4_white, bool skinned = false, bool map_model = false, GPUMaterial * gpu_material = NULL );
@@ -118,7 +121,6 @@ void Draw2DBox( float x, float y, float w, float h, const Material * material, V
 void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color );
 // void DrawRotatedBox( float x, float y, float w, float h, float angle, const Material * material, RGBA8 color );
 
-u16 DynamicMeshBaseIndex();
 void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh );
 
 UniformBlock UploadModelUniforms( const Mat4 & M );

@@ -1,5 +1,3 @@
-#include <algorithm> // std::sort
-
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
@@ -12,6 +10,8 @@
 #include "client/threadpool.h"
 #include "cgame/cg_local.h"
 #include "gameshared/gs_public.h"
+
+#include "nanosort/nanosort.hpp"
 
 #define AL_LIBTYPE_STATIC
 #include "openal/al.h"
@@ -322,7 +322,7 @@ static void LoadSounds() {
 			}
 		}
 
-		std::sort( jobs.begin(), jobs.end(), []( const DecodeSoundJob & a, const DecodeSoundJob & b ) {
+		nanosort( jobs.begin(), jobs.end(), []( const DecodeSoundJob & a, const DecodeSoundJob & b ) {
 			return a.in.ogg.n > b.in.ogg.n;
 		} );
 	}
@@ -380,7 +380,6 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span
 			Com_Printf( S_COLOR_YELLOW "Expected {\n" );
 			return false;
 		}
-
 
 		SoundEffect::PlaybackConfig * config = &sfx->sounds[ sfx->num_sounds ];
 		config->volume = 1.0f;

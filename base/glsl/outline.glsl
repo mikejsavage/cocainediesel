@@ -13,12 +13,12 @@ v2f vec4 v_Color;
 
 #if VERTEX_SHADER
 
-in vec4 a_Position;
-in vec3 a_Normal;
+layout( location = VertexAttribute_Position ) in vec4 a_Position;
+layout( location = VertexAttribute_Normal ) in vec3 a_Normal;
 
 #if INSTANCED
 struct Instance {
-	mat4 transform;
+	AffineTransform transform;
 	vec4 outline_color;
 	float outline_height;
 };
@@ -30,7 +30,7 @@ layout( std430 ) readonly buffer b_Instances {
 
 void main() {
 #if INSTANCED
-	mat4 u_M = instances[ gl_InstanceID ].transform;
+	mat4 u_M = AffineToMat4( instances[ gl_InstanceID ].transform );
 #endif
 	vec4 Position = a_Position;
 	vec3 Normal = a_Normal;
@@ -57,7 +57,7 @@ void main() {
 
 #else
 
-out vec4 f_Albedo;
+layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
 
 void main() {
 	vec4 color = v_Color;

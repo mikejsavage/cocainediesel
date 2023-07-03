@@ -92,7 +92,7 @@ static CollisionEntity LerpCollisionEntity4D( CollisionEntity * older, float t, 
 	ent.scale = Lerp( older->scale, t, newer->scale );
 	ent.angles = LerpAngles( older->angles, t, newer->angles );
 	ent.view_height = Lerp( older->view_height, t, newer->view_height );
-	
+
 	switch( ent.override_collision_model.value.type ) {
 		case CollisionModelType_AABB: {
 			ent.override_collision_model.value.aabb.mins = Lerp( older->override_collision_model.value.aabb.mins, t, newer->override_collision_model.value.aabb.mins );
@@ -155,7 +155,7 @@ static bool CollisionEntity4D( int entity_id, int time_delta, edict_t * ent ) {
 		if( !CheckSimilarCollisionEntities( older, newer ) ) {
 			// entity changed before this point, use most recent version
 			ApplyCollisionEntity( *newer, ent );
-			return true; 
+			return true;
 		}
 
 		s64 older_time = g_collision_frames[ index ].timestamp;
@@ -210,7 +210,7 @@ void G_Trace4D( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_
 			continue;
 		if( touch.r.owner && ( touch.r.owner->s.number == passent ) )
 			continue;
-		if( game.edicts[passent].r.owner && ( game.edicts[passent].r.owner->s.number == touch.s.number ) ) 
+		if( game.edicts[passent].r.owner && ( game.edicts[passent].r.owner->s.number == touch.s.number ) )
 			continue;
 		// wsw : jal : never clipmove against SVF_PROJECTILE entities
 		if( touch.s.svflags & SVF_PROJECTILE )
@@ -288,7 +288,7 @@ void GClip_TouchTriggers( edict_t * ent ) {
 	for( size_t i = 0; i < touchnum; i++ ) {
 		if( !ent->r.inuse )
 			break;
-		
+
 		edict_t * hit = &game.edicts[ touchlist[ i ] ];
 		if( !hit->r.inuse )
 			continue;
@@ -296,14 +296,15 @@ void GClip_TouchTriggers( edict_t * ent ) {
 			continue;
 		if( !EntityOverlap( ServerCollisionModelStorage(), &ent->s, &hit->s, SolidMask_Everything ) )
 			continue;
-		
+
 		G_CallTouch( hit, ent, Vec3( 0.0f ), SolidMask_AnySolid );
 	}
 }
+
 void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	if( pm->playerState->POVnum <= 0 || (int)pm->playerState->POVnum > MAX_CLIENTS )
 		return;
-	
+
 	edict_t * ent = game.edicts + pm->playerState->POVnum;
 	if( !ent->r.client || G_IsDead( ent ) )  // dead things don't activate triggers!
 		return;
@@ -331,7 +332,7 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	for( size_t i = 0; i < num; i++ ) {
 		if( !ent->r.inuse )
 			break;
-		
+
 		edict_t * hit = &game.edicts[ touchlist[ i ] ];
 		MinMax3 hit_bounds = EntityBounds( ServerCollisionModelStorage(), &hit->s );
 		hit_bounds += hit->s.origin;
@@ -362,7 +363,7 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 			if( trace.GotSomewhere() )
 				continue;
 		}
-		
+
 		G_CallTouch( hit, ent, Vec3( 0.0f ), SolidMask_AnySolid );
 	}
 }

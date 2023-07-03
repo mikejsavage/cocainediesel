@@ -58,7 +58,6 @@ static void ClientObituary( edict_t * self, edict_t * inflictor, edict_t * attac
 	}
 }
 
-
 //=======================================================
 // DEAD BODIES
 //=======================================================
@@ -928,7 +927,6 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 		}
 	}
 }
-
 
 void G_GivePerk( edict_t * ent, PerkType perk ) {
 	const PerkDef * def = GetPerkDef( perk );

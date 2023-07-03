@@ -52,7 +52,7 @@ struct StringHash {
 	explicit StringHash( const char * s );
 	explicit StringHash( Span< const char > s );
 
-#ifdef PUBLIC_BUILD
+#if PUBLIC_BUILD
 	template< size_t N >
 	constexpr StringHash( const char ( &s )[ N ] ) : hash( Hash64_CT( s, N - 1 ) ) { }
 

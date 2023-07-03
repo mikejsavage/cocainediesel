@@ -562,7 +562,7 @@ static void PM_FlyMove() {
 
 	pml.velocity = wishdir * pm_specspeed * special;
 	pml.velocity.z += (int( (pm->cmd.buttons & Button_Ability1) != 0 ) - int( (pm->cmd.buttons & Button_Ability2) != 0 )) * pm_specspeed * special;
-	
+
 	Vec3 origin = pml.origin;
 	Vec3 velocity = pml.velocity;
 

@@ -8,7 +8,7 @@ v2f float v_Height;
 
 #if VERTEX_SHADER
 
-in vec4 a_Position;
+layout( location = VertexAttribute_Position ) in vec4 a_Position;
 
 void main() {
 	v_Position = a_Position.xyz;
@@ -22,7 +22,7 @@ layout( std140 ) uniform u_Time {
 };
 uniform sampler2D u_Noise;
 
-out vec3 f_Albedo;
+layout( location = FragmentShaderOutput_Albedo ) out vec3 f_Albedo;
 
 float value( vec2 p ) {
   vec2 f = floor( p );

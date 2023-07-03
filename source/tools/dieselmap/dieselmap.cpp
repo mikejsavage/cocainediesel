@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <inttypes.h> // PRIu32
 #include <math.h>
 
@@ -18,6 +17,8 @@
 #include "gameshared/q_shared.h"
 
 #include "meshoptimizer/meshoptimizer.h"
+
+#include "nanosort/nanosort.hpp"
 
 #include "zstd/zstd.h"
 
@@ -156,7 +157,7 @@ static std::vector< Vec3 > BrushFaceToHull( Span< const Plane > brush, size_t fa
 		projected_points.push_back( { p, atan2f( projected.y, projected.x ) } );
 	}
 
-	std::sort( projected_points.begin(), projected_points.end(), []( const SortedPoint & a, const SortedPoint & b ) {
+	nanosort( projected_points.begin(), projected_points.end(), []( const SortedPoint & a, const SortedPoint & b ) {
 		return a.theta < b.theta;
 	} );
 
@@ -259,7 +260,7 @@ static CandidatePlanes BuildCandidatePlanes( Span< const u32 > brush_ids, Span< 
 
 		{
 			TracyZoneScopedN( "Sort" );
-			std::sort( axis.begin(), axis.end(), []( const CandidatePlane & a, const CandidatePlane & b ) {
+			nanosort( axis.begin(), axis.end(), []( const CandidatePlane & a, const CandidatePlane & b ) {
 				if( a.distance == b.distance )
 					return a.start_edge < b.start_edge;
 				return a.distance < b.distance;
@@ -479,7 +480,7 @@ static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & 
 	// 	face_meshes.push_back( PatchToCompiledMesh( patch ) );
 	// }
 
-	std::sort( face_meshes.begin(), face_meshes.end(), []( const CompiledMesh & a, const CompiledMesh & b ) {
+	nanosort( face_meshes.begin(), face_meshes.end(), []( const CompiledMesh & a, const CompiledMesh & b ) {
 		return a.material < b.material;
 	} );
 
@@ -714,7 +715,7 @@ static void WriteCDMap( ArenaAllocator * arena, const char * path, const MapData
 		TracyZoneScopedN( "ZSTD_compress" );
 
 		size_t compressed_max_size = ZSTD_compressBound( packed.size() );
-		u8 * compressed = ALLOC_MANY( arena, u8, compressed_max_size );
+		u8 * compressed = AllocMany< u8 >( arena, compressed_max_size );
 		size_t compressed_size = ZSTD_compress( compressed, compressed_max_size, packed.ptr(), packed.size(), ZSTD_maxCLevel() );
 		if( ZSTD_isError( compressed_size ) ) {
 			Fatal( "Compression failed: %s", ZSTD_getErrorName( compressed_size ) );
@@ -811,13 +812,13 @@ int main( int argc, char ** argv ) {
 	if( src == NULL ) {
 		char * msg = ( *sys_allocator )( "Can't read {}", src_path );
 		perror( msg );
-		FREE( sys_allocator, msg );
+		Free( sys_allocator, msg );
 		return 1;
 	}
-	defer { FREE( sys_allocator, src ); };
+	defer { Free( sys_allocator, src ); };
 
 	constexpr size_t arena_size = 1024 * 1024 * 1024; // 1GB
-	ArenaAllocator arena( ALLOC_SIZE( sys_allocator, arena_size, 16 ), arena_size );
+	ArenaAllocator arena( sys_allocator->allocate( arena_size, 16 ), arena_size );
 
 	// parse the .map
 	std::vector< ParsedEntity > entities = ParseEntities( Span< char >( src, src_len ) );
@@ -1009,7 +1010,7 @@ int main( int argc, char ** argv ) {
 	// TODO: new map format
 	// - flip CW to CCW winding. q3 bsp was CW lol
 
-	FREE( sys_allocator, arena.get_memory() );
+	Free( sys_allocator, arena.get_memory() );
 
 	return 0;
 }

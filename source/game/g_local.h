@@ -465,7 +465,6 @@ void G_SnapClients();
 void G_ClearSnap();
 void G_SnapFrame();
 
-
 //
 // g_spawn.c
 //

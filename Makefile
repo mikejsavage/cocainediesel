@@ -1,14 +1,13 @@
 all: debug
 .PHONY: debug asan tsan bench release clean
 
-EXE = linux
+EXE = exe
 
-WSLENV ?= notwsl
-ifndef WSLENV
-	EXE = exe
-else
+ifndef WSL_DISTRO_NAME
 	ifeq ($(shell uname -s),Darwin)
 		EXE = macos
+	else
+		EXE = linux
 	endif
 endif
 

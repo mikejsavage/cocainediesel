@@ -10,7 +10,7 @@
 
 #include "qcommon/base.h"
 #include "qcommon/array.h"
-#include "qcommon/sys_net.h"
+#include "qcommon/platform/net.h"
 
 void InitNetworking() { }
 void ShutdownNetworking() { }
@@ -197,4 +197,4 @@ void WaitForSockets( TempAllocator * temp, const Socket * sockets, size_t num_so
 	}
 }
 
-#endif // #ifdef PLATFORM_UNIX
+#endif // #if PLATFORM_UNIX

@@ -14,8 +14,8 @@ v2f vec2 v_TexCoord;
 
 #if VERTEX_SHADER
 
-in vec4 a_Position;
-in vec2 a_TexCoord;
+layout( location = VertexAttribute_Position ) in vec4 a_Position;
+layout( location = VertexAttribute_TexCoord ) in vec2 a_TexCoord;
 
 void main() {
 	gl_Position = u_P * a_Position;
@@ -24,7 +24,7 @@ void main() {
 
 #else
 
-out vec4 f_Albedo;
+layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
 
 float Median( vec3 v ) {
 	return max( min( v.x, v.y ), min( max( v.x, v.y ), v.z ) );

@@ -101,7 +101,7 @@ void ShutdownServerCollisionModels() {
 	ShutdownCollisionModelStorage( &collision_models );
 
 	for( size_t i = 0; i < num_maps; i++ ) {
-		FREE( sys_allocator, maps[ i ].data.ptr );
+		Free( sys_allocator, maps[ i ].data.ptr );
 	}
 }
 
@@ -117,7 +117,7 @@ bool LoadServerMap( const char * name ) {
 	if( map.data.ptr == NULL ) {
 		const char * zst_path = temp( "{}.zst", path );
 		Span< u8 > compressed = ReadFileBinary( sys_allocator, zst_path );
-		defer { FREE( sys_allocator, compressed.ptr ); };
+		defer { Free( sys_allocator, compressed.ptr ); };
 		if( compressed.ptr == NULL ) {
 			Com_Printf( "Couldn't find map %s\n", name );
 			return false;
@@ -134,7 +134,7 @@ bool LoadServerMap( const char * name ) {
 	DecodeMapResult res = DecodeMap( &decoded, map.data );
 	if( res != DecodeMapResult_Ok ) {
 		Com_Printf( "Can't decode map %s\n", name );
-		FREE( sys_allocator, map.data.ptr );
+		Free( sys_allocator, map.data.ptr );
 		return false;
 	}
 

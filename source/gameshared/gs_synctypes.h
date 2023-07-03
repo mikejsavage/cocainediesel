@@ -180,7 +180,6 @@ enum StaminaState : u8 {
 	Stamina_Count,
 };
 
-
 struct Loadout {
 	WeaponType weapons[ WeaponCategory_Count ];
 	GadgetType gadget;

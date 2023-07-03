@@ -40,4 +40,4 @@ bool IsRenderDocAttached() {
 	return false;
 }
 
-#endif // #ifdef PLATFORM_MACOS
+#endif // #if PLATFORM_MACOS

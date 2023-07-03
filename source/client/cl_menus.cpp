@@ -85,7 +85,7 @@ static void ResetServerBrowser() {
 
 static void ClearMasksList() {
 	for( char * mask : masks ) {
-		FREE( sys_allocator, mask );
+		Free( sys_allocator, mask );
 	}
 	masks.clear();
 }
@@ -855,10 +855,10 @@ static void MainMenu() {
 
 	ImGui::SetCursorPosX( -1000.0f + 500.0f * Sin( cls.monotonicTime, Milliseconds( 6029 ) ) );
 	ImGui::PushFont( cls.idi_nahui_font );
-	constexpr const char * idi_nahui = u8"\u0418\u0434\u0438 \u043d\u0430 \u0445\u0443\u0439";
+	const char * idi_nahui = ( const char * ) u8"\u0418\u0434\u0438 \u043d\u0430 \u0445\u0443\u0439";
 	for( int i = 0; i < 100; i++ ) {
 		ImGui::PushStyleColor( ImGuiCol_Text, i % 2 == 0 ? ukraine_blue : ukraine_yellow );
-		ImGui::Text( idi_nahui );
+		ImGui::Text( "%s", idi_nahui );
 		ImGui::PopStyleColor();
 		if( i < 99 ) {
 			ImGui::SameLine();
@@ -934,7 +934,7 @@ static void MainMenu() {
 		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, IM_COL32( 0, 0, 0, 0 ) );
 		ImGui::PushStyleColor( ImGuiCol_ButtonActive, IM_COL32( 0, 0, 0, 0 ) );
 
-		const char * buf = APP_VERSION u8" \u00A9 AHA CHEERS";
+		const char * buf = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
 		ImVec2 size = ImGui::CalcTextSize( buf );
 		ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - window_padding.x - 1.0f - Sin( cls.monotonicTime, Milliseconds( 182 ) ) );
 

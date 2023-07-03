@@ -1,6 +1,6 @@
 #include "qcommon/base.h"
+#include "qcommon/platform/net.h"
 #include "gameshared/q_shared.h"
-#include "qcommon/sys_net.h"
 
 #if PLATFORM_WINDOWS
 #include "qcommon/platform/windows_net_headers.h"

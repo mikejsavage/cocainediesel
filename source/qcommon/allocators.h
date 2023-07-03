@@ -10,9 +10,9 @@ struct TempAllocator final : public Allocator {
 
 	void operator=( const TempAllocator & ) = delete;
 
-	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
-	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
-	void deallocate( void * ptr, const char * func, const char * file, int line );
+	void * try_allocate( size_t size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
+	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
+	void deallocate( void * ptr, SourceLocation src = CurrentSourceLocation() );
 
 private:
 	ArenaAllocator * arena;
@@ -25,9 +25,9 @@ struct ArenaAllocator final : public Allocator {
 	ArenaAllocator() = default;
 	ArenaAllocator( void * mem, size_t size );
 
-	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
-	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
-	void deallocate( void * ptr, const char * func, const char * file, int line );
+	void * try_allocate( size_t size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
+	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
+	void deallocate( void * ptr, SourceLocation src = CurrentSourceLocation() );
 
 	TempAllocator temp();
 
@@ -44,18 +44,23 @@ private:
 
 	u32 num_temp_allocators;
 
-	void * try_temp_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
-	void * try_temp_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
+	void * try_temp_allocate( size_t size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
+	void * try_temp_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
 
 	friend struct TempAllocator;
 };
 
 template< typename... Rest >
-char * Allocator::operator()( const char * fmt, const Rest & ... rest ) {
+char * Allocator::operator()( SourceLocation src, const char * fmt, const Rest & ... rest ) {
 	size_t len = ggformat( NULL, 0, fmt, rest... );
-	char * buf = ALLOC_MANY( this, char, len + 1 );
+	char * buf = AllocMany< char >( this, len + 1, src );
 	ggformat( buf, len + 1, fmt, rest... );
 	return buf;
 }
 
-char * CopyString( Allocator * a, const char * str );
+template< typename... Rest >
+char * Allocator::operator()( const char * fmt, const Rest & ... rest ) {
+	return ( *this )( CurrentSourceLocation(), fmt, rest... );
+}
+
+char * CopyString( Allocator * a, const char * str, SourceLocation src = CurrentSourceLocation() );

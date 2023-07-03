@@ -1,5 +1,3 @@
-#include <algorithm> // std::sort
-
 #include "qcommon/base.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
@@ -12,6 +10,8 @@
 #include "client/renderer/renderer.h"
 #include "client/renderer/dds.h"
 #include "cgame/cg_dynamics.h"
+
+#include "nanosort/nanosort.hpp"
 
 #include "stb/stb_image.h"
 #include "stb/stb_rect_pack.h"
@@ -47,7 +47,7 @@ Material wallbang_material;
 static Vec4 decal_uvwhs[ MAX_DECALS ];
 static u32 num_decals;
 static Hashtable< MAX_DECALS * 2 > decals_hashtable;
-static TextureArray decals_atlases;
+static Texture decals_atlases;
 
 static UniformBlock material_static_uniforms[ MAX_MATERIALS ];
 static Hashtable< MAX_MATERIALS * 2 > material_static_uniforms_hashtable;
@@ -415,28 +415,28 @@ static void LoadBuiltinTextures() {
 		u8 white = 255;
 
 		TextureConfig config;
+		config.format = TextureFormat_R_U8;
 		config.width = 1;
 		config.height = 1;
 		config.data = &white;
-		config.format = TextureFormat_R_U8;
 
 		AddTexture( "$whiteimage", Hash64( "$whiteimage" ), config );
 	}
 
 	{
-		constexpr RGB8 pixels[] = {
-			RGB8( 255, 0, 255 ),
-			RGB8( 0, 0, 0 ),
-			RGB8( 255, 255, 255 ),
-			RGB8( 255, 0, 255 ),
+		constexpr RGBA8 pixels[] = {
+			RGBA8( 255, 0, 255, 255 ),
+			RGBA8( 0, 0, 0, 255 ),
+			RGBA8( 255, 255, 255, 255 ),
+			RGBA8( 255, 0, 255, 255 ),
 		};
 
 		TextureConfig config;
+		config.format = TextureFormat_RGBA_U8_sRGB;
 		config.width = 2;
 		config.height = 2;
 		config.data = pixels;
 		config.filter = TextureFilter_Point;
-		config.format = TextureFormat_RGB_U8;
 
 		missing_texture = NewTexture( config );
 	}
@@ -454,15 +454,15 @@ static void LoadSTBTexture( const char * path, u8 * pixels, int w, int h, int ch
 	constexpr TextureFormat formats[] = {
 		TextureFormat_R_U8,
 		TextureFormat_RA_U8,
-		TextureFormat_RGB_U8_sRGB,
+		{ },
 		TextureFormat_RGBA_U8_sRGB,
 	};
 
 	TextureConfig config;
+	config.format = formats[ channels - 1 ];
 	config.width = checked_cast< u32 >( w );
 	config.height = checked_cast< u32 >( h );
 	config.data = pixels;
-	config.format = formats[ channels - 1 ];
 
 	size_t idx = AddTexture( path, Hash64( StripExtension( path ) ), config );
 	texture_stb_data[ idx ] = pixels;
@@ -595,7 +595,7 @@ static BC4Block FastBC4( Span2D< const RGBA8 > rgba ) {
 static Span2D< BC4Block > RGBAToBC4( Span2D< const RGBA8 > rgba ) {
 	TracyZoneScoped;
 
-	Span2D< BC4Block > bc4 = ALLOC_SPAN2D( sys_allocator, BC4Block, rgba.w / 4, rgba.h / 4 );
+	Span2D< BC4Block > bc4 = AllocSpan2D< BC4Block >( sys_allocator, rgba.w / 4, rgba.h / 4 );
 
 	for( u32 row = 0; row < bc4.h; row++ ) {
 		for( u32 col = 0; col < bc4.w; col++ ) {
@@ -736,9 +736,9 @@ static void PackDecalAtlas() {
 	}
 	num_blocks *= num_layers;
 
-	Span< BC4Block > blocks = ALLOC_SPAN( sys_allocator, BC4Block, num_blocks );
+	Span< BC4Block > blocks = AllocSpan< BC4Block >( sys_allocator, num_blocks );
 	memset( blocks.ptr, 0, blocks.num_bytes() );
-	defer { FREE( sys_allocator, blocks.ptr ); };
+	defer { Free( sys_allocator, blocks.ptr ); };
 
 	Span< BC4Block > cursor = blocks;
 
@@ -773,7 +773,7 @@ static void PackDecalAtlas() {
 			continue;
 
 		u64 texture_idx = material->texture - textures;
-		FREE( sys_allocator, const_cast< BC4Block * >( texture_bc4_data[ texture_idx ].ptr ) );
+		Free( sys_allocator, const_cast< BC4Block * >( texture_bc4_data[ texture_idx ].ptr ) );
 		texture_bc4_data[ texture_idx ] = Span< const BC4Block >();
 	}
 
@@ -781,17 +781,17 @@ static void PackDecalAtlas() {
 	{
 		TracyZoneScopedN( "Upload atlas" );
 
-		DeleteTextureArray( decals_atlases );
+		DeleteTexture( decals_atlases );
 
-		TextureArrayConfig config;
+		TextureConfig config;
+		config.format = TextureFormat_BC4;
 		config.width = DECAL_ATLAS_SIZE;
 		config.height = DECAL_ATLAS_SIZE;
+		config.num_layers = num_layers;
 		config.num_mipmaps = num_mipmaps;
-		config.layers = num_layers;
 		config.data = blocks.ptr;
-		config.format = TextureFormat_BC4;
 
-		decals_atlases = NewTextureArray( config );
+		decals_atlases = NewTexture( config );
 	}
 }
 
@@ -847,7 +847,7 @@ void InitMaterials() {
 				}
 			}
 
-			std::sort( jobs.begin(), jobs.end(), []( const DecodeSTBTextureJob & a, const DecodeSTBTextureJob & b ) {
+			nanosort( jobs.begin(), jobs.end(), []( const DecodeSTBTextureJob & a, const DecodeSTBTextureJob & b ) {
 				return a.in.data.n > b.in.data.n;
 			} );
 		}
@@ -859,6 +859,27 @@ void InitMaterials() {
 			TracyZoneText( job->in.path, strlen( job->in.path ) );
 
 			job->out.pixels = stbi_load_from_memory( job->in.data.ptr, job->in.data.num_bytes(), &job->out.width, &job->out.height, &job->out.channels, 0 );
+
+			if( job->out.channels == 3 ) {
+				TracyZoneScopedN( "RGB -> RGBA" );
+
+				// stb_image uses sys_allocator so this is ok
+				size_t num_pixels = checked_cast< size_t >( job->out.width * job->out.height );
+				RGBA8 * rgba_pixels = AllocMany< RGBA8 >( sys_allocator, num_pixels );
+				for( size_t i = 0; i < num_pixels; i++ ) {
+					rgba_pixels[ i ] = RGBA8(
+						job->out.pixels[ i * 3 + 0 ],
+						job->out.pixels[ i * 3 + 1 ],
+						job->out.pixels[ i * 3 + 2 ],
+						255
+					);
+				}
+
+				stbi_image_free( job->out.pixels );
+				job->out.pixels = ( u8 * ) rgba_pixels;
+				job->out.channels = 4;
+			}
+
 		} );
 
 		for( DecodeSTBTextureJob job : jobs ) {
@@ -933,11 +954,11 @@ void ShutdownMaterials() {
 	}
 
 	for( u32 i = 0; i < num_materials; i++ ) {
-		FREE( sys_allocator, materials[ i ].name );
+		Free( sys_allocator, materials[ i ].name );
 	}
 
 	DeleteTexture( missing_texture );
-	DeleteTextureArray( decals_atlases );
+	DeleteTexture( decals_atlases );
 }
 
 bool TryFindMaterial( StringHash name, const Material ** material ) {
@@ -967,8 +988,8 @@ bool TryFindDecal( StringHash name, Vec4 * uvwh ) {
 	return true;
 }
 
-TextureArray DecalAtlasTextureArray() {
-	return decals_atlases;
+const Texture * DecalAtlasTextureArray() {
+	return &decals_atlases;
 }
 
 Vec2 HalfPixelSize( const Material * material ) {
@@ -1004,16 +1025,16 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		PipelineState pipeline;
 		pipeline.shader = &shaders.world;
 		pipeline.pass = frame_static.world_opaque_pass;
-		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
-		pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
+		pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
+		pipeline.bind_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
 		color.x = material->rgbgen.args[ 0 ];
 		color.y = material->rgbgen.args[ 1 ];
 		color.z = material->rgbgen.args[ 2 ];
-		pipeline.set_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( Vec2( 0.0f ), material->specular, material->shininess ) );
-		pipeline.set_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );
-		pipeline.set_texture_array( "u_ShadowmapTextureArray", frame_static.shadowmap_texture_array );
-		pipeline.set_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
-		pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
+		pipeline.bind_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( Vec2( 0.0f ), material->specular, material->shininess ) );
+		pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );
+		pipeline.bind_texture( "u_ShadowmapTextureArray", &frame_static.render_targets.shadowmaps[ 0 ].depth_attachment );
+		pipeline.bind_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
+		pipeline.bind_texture( "u_DecalAtlases", DecalAtlasTextureArray() );
 		AddDynamicsToPipeline( &pipeline );
 		return pipeline;
 	}
@@ -1098,7 +1119,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		pipeline.write_depth = false;
 	}
 
-	pipeline.set_texture( "u_BaseTexture", material->texture );
+	pipeline.bind_texture( "u_BaseTexture", material->texture );
 
 	{
 		u64 hash = Hash64( u64( material ) );
@@ -1111,28 +1132,28 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 			num_material_static_uniforms++;
 		}
 
-		pipeline.set_uniform( "u_MaterialStatic", material_static_uniforms[ idx ] );
+		pipeline.bind_uniform( "u_MaterialStatic", material_static_uniforms[ idx ] );
 	}
 
 	if( skinned || gpu_material == NULL ) {
-		pipeline.set_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, tcmod_row0, tcmod_row1 ) );
+		pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, tcmod_row0, tcmod_row1 ) );
 	}
 	if( gpu_material != NULL ) {
 		// instanced matrial
 		gpu_material->color = color;
-		gpu_material->tcmod[ 0 ] = tcmod_row0;
-		gpu_material->tcmod[ 1 ] = tcmod_row1;
+		gpu_material->tcmod_row0 = tcmod_row0;
+		gpu_material->tcmod_row1 = tcmod_row1;
 	}
 
 	if( map_model ) {
 		pipeline.shader = &shaders.world_instanced;
-		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
-		pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
-		// pipeline.set_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( Vec2( 0.0f ), material->specular, material->shininess ) );
-		// pipeline.set_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );
-		pipeline.set_texture_array( "u_ShadowmapTextureArray", frame_static.shadowmap_texture_array );
-		pipeline.set_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
-		pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
+		pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
+		pipeline.bind_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
+		// pipeline.bind_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( Vec2( 0.0f ), material->specular, material->shininess ) );
+		// pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );
+		pipeline.bind_texture( "u_ShadowmapTextureArray", &frame_static.render_targets.shadowmaps[ 0 ].depth_attachment );
+		pipeline.bind_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
+		pipeline.bind_texture( "u_DecalAtlases", DecalAtlasTextureArray() );
 		AddDynamicsToPipeline( &pipeline );
 		return pipeline;
 	}

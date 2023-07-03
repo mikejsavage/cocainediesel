@@ -25,7 +25,7 @@ static Hashtable< MAX_MAP_MODELS * 2 > map_models_hashtable;
 static CollisionModelStorage collision_models;
 
 static void DeleteMap( Map * map ) {
-	FREE( sys_allocator, const_cast< char * >( map->name ) );
+	Free( sys_allocator, const_cast< char * >( map->name ) );
 	DeleteMapRenderData( map->render_data );
 }
 

@@ -11,8 +11,9 @@ v2f vec2 v_TexCoord;
 
 #ifdef INSTANCED
 struct Instance {
-	mat4 transform;
-	Material material;
+	AffineTransform transform;
+	vec4 color;
+	vec3 texture_matrix[ 2 ];
 };
 
 layout( std430 ) readonly buffer b_Instances {
@@ -33,14 +34,14 @@ v2f float v_Depth;
 
 #if VERTEX_SHADER
 
-in vec4 a_Position;
-in vec3 a_Normal;
-in vec4 a_Color;
-in vec2 a_TexCoord;
+layout( location = VertexAttribute_Position ) in vec4 a_Position;
+layout( location = VertexAttribute_Normal ) in vec3 a_Normal;
+layout( location = VertexAttribute_Color ) in vec4 a_Color;
+layout( location = VertexAttribute_TexCoord ) in vec2 a_TexCoord;
 
 vec2 ApplyTCMod( vec2 uv ) {
 #if INSTANCED
-	mat3x2 m = transpose( mat2x3( instances[ gl_InstanceID ].material.texture_matrix[ 0 ], instances[ gl_InstanceID ].material.texture_matrix[ 1 ] ) );
+	mat3x2 m = transpose( mat2x3( instances[ gl_InstanceID ].texture_matrix[ 0 ], instances[ gl_InstanceID ].texture_matrix[ 1 ] ) );
 #else
 	mat3x2 m = transpose( mat2x3( u_TextureMatrix[ 0 ], u_TextureMatrix[ 1 ] ) );
 #endif
@@ -49,7 +50,7 @@ vec2 ApplyTCMod( vec2 uv ) {
 
 void main() {
 #if INSTANCED
-	mat4 u_M = instances[ gl_InstanceID ].transform;
+	mat4 u_M = AffineToMat4( instances[ gl_InstanceID ].transform );
 	v_Instance = gl_InstanceID;
 #endif
 	vec4 Position = a_Position;
@@ -76,8 +77,8 @@ void main() {
 
 #else
 
-out vec4 f_Albedo;
-out uint f_Mask;
+layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
+layout( location = FragmentShaderOutput_CurvedSurfaceMask ) out uint f_CurvedSurfaceMask;
 
 const uint MASK_CURVED = 1u;
 
@@ -113,16 +114,16 @@ layout( std430 ) readonly buffer b_DynamicTiles {
 
 void main() {
 	vec3 normal = normalize( v_Normal );
-	f_Mask = length( fwidth( normal ) ) < 0.000001 ? 0u : MASK_CURVED;
+	f_CurvedSurfaceMask = length( fwidth( normal ) ) < 0.000001 ? 0u : MASK_CURVED;
 #if APPLY_DRAWFLAT
 #if INSTANCED
-	vec4 diffuse = instances[ v_Instance ].material.color;
+	vec4 diffuse = instances[ v_Instance ].color;
 #else
 	vec4 diffuse = u_MaterialColor;
 #endif
 #else
 #if INSTANCED
-	vec4 color = instances[ v_Instance ].material.color;
+	vec4 color = instances[ v_Instance ].color;
 #else
 	vec4 color = u_MaterialColor;
 #endif

@@ -69,4 +69,4 @@ bool IsRenderDocAttached() {
 	return dlopen( "librenderdoc.so", RTLD_NOW | RTLD_NOLOAD ) != NULL;
 }
 
-#endif // #ifdef PLATFORM_LINUX
+#endif // #if PLATFORM_LINUX

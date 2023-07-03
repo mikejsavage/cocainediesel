@@ -318,7 +318,7 @@ static float LoadChannel( const cgltf_animation_channel * chan, GLTFRenderData::
 	constexpr size_t lanes = sizeof( T ) / sizeof( float );
 	size_t n = chan->sampler->input->count;
 
-	out_channel->samples = ALLOC_SPAN( sys_allocator, GLTFRenderData::AnimationSample< T >, n );
+	out_channel->samples = AllocSpan< GLTFRenderData::AnimationSample< T > >( sys_allocator, n );
 	out_channel->interpolation = InterpolationModeFromGLTF( chan->sampler->interpolation );
 
 	for( size_t i = 0; i < n; i++ ) {
@@ -334,7 +334,7 @@ static float LoadChannel( const cgltf_animation_channel * chan, GLTFRenderData::
 static float LoadScaleChannel( const cgltf_animation_channel * chan, GLTFRenderData::AnimationChannel< float > * out_channel ) {
 	size_t n = chan->sampler->input->count;
 
-	out_channel->samples = ALLOC_SPAN( sys_allocator, GLTFRenderData::AnimationSample< float >, n );
+	out_channel->samples = AllocSpan< GLTFRenderData::AnimationSample< float > >( sys_allocator, n );
 	out_channel->interpolation = InterpolationModeFromGLTF( chan->sampler->interpolation );
 
 	for( size_t i = 0; i < n; i++ ) {
@@ -355,7 +355,7 @@ static float LoadScaleChannel( const cgltf_animation_channel * chan, GLTFRenderD
 
 template< typename T >
 static void CreateSingleSampleChannel( GLTFRenderData::AnimationChannel< T > * out_channel, T value ) {
-	out_channel->samples = ALLOC_SPAN( sys_allocator, T, 1 );
+	out_channel->samples = AllocSpan< T >( sys_allocator, 1 );
 	out_channel->samples[ 0 ] = value;
 }
 
@@ -383,7 +383,7 @@ static void LoadAnimation( GLTFRenderData * model, const cgltf_animation * anima
 }
 
 static void LoadSkin( GLTFRenderData * model, const cgltf_skin * skin ) {
-	model->skin = ALLOC_SPAN( sys_allocator, GLTFRenderData::Joint, skin->joints_count );
+	model->skin = AllocSpan< GLTFRenderData::Joint >( sys_allocator, skin->joints_count );
 
 	for( size_t i = 0; i < skin->joints_count; i++ ) {
 		GLTFRenderData::Joint * joint = &model->skin[ i ];
@@ -418,7 +418,7 @@ bool NewGLTFRenderData( GLTFRenderData * render_data, cgltf_data * gltf, const c
 	);
 	render_data->transform = y_up_to_z_up;
 
-	render_data->nodes = ALLOC_SPAN( sys_allocator, GLTFRenderData::Node, gltf->nodes_count );
+	render_data->nodes = AllocSpan< GLTFRenderData::Node >( sys_allocator, gltf->nodes_count );
 	memset( render_data->nodes.ptr, 0, render_data->nodes.num_bytes() );
 
 	u8 node_idx = 0;
@@ -432,10 +432,10 @@ bool NewGLTFRenderData( GLTFRenderData * render_data, cgltf_data * gltf, const c
 			LoadSkin( render_data, &gltf->skins[ 0 ] );
 		}
 
-		render_data->animations = ALLOC_SPAN( sys_allocator, StringHash, gltf->animations_count );
+		render_data->animations = AllocSpan< StringHash >( sys_allocator, gltf->animations_count );
 
 		for( size_t i = 0; i < render_data->nodes.n; i++ ) {
-			render_data->nodes[ i ].animations = ALLOC_SPAN( sys_allocator, GLTFRenderData::NodeAnimation, gltf->animations_count );
+			render_data->nodes[ i ].animations = AllocSpan< GLTFRenderData::NodeAnimation >( sys_allocator, gltf->animations_count );
 			memset( render_data->nodes[ i ].animations.ptr, 0, render_data->nodes[ i ].animations.num_bytes() );
 		}
 
@@ -458,18 +458,18 @@ bool NewGLTFRenderData( GLTFRenderData * render_data, cgltf_data * gltf, const c
 void DeleteGLTFRenderData( GLTFRenderData * render_data ) {
 	for( GLTFRenderData::Node node : render_data->nodes ) {
 		for( GLTFRenderData::NodeAnimation animation : node.animations ) {
-			FREE( sys_allocator, animation.rotations.samples.ptr );
-			FREE( sys_allocator, animation.translations.samples.ptr );
-			FREE( sys_allocator, animation.scales.samples.ptr );
+			Free( sys_allocator, animation.rotations.samples.ptr );
+			Free( sys_allocator, animation.translations.samples.ptr );
+			Free( sys_allocator, animation.scales.samples.ptr );
 		}
 		DeleteMesh( node.mesh );
-		FREE( sys_allocator, node.animations.ptr );
+		Free( sys_allocator, node.animations.ptr );
 	}
 
-	FREE( sys_allocator, render_data->name );
-	FREE( sys_allocator, render_data->nodes.ptr );
-	FREE( sys_allocator, render_data->skin.ptr );
-	FREE( sys_allocator, render_data->animations.ptr );
+	Free( sys_allocator, render_data->name );
+	Free( sys_allocator, render_data->nodes.ptr );
+	Free( sys_allocator, render_data->skin.ptr );
+	Free( sys_allocator, render_data->animations.ptr );
 }
 
 template< typename T, typename F >
@@ -505,7 +505,7 @@ static float LerpFloat( float a, float t, float b ) { return Lerp( a, t, b ); }
 Span< TRS > SampleAnimation( Allocator * a, const GLTFRenderData * render_data, float t, u8 animation ) {
 	TracyZoneScoped;
 
-	Span< TRS > local_poses = ALLOC_SPAN( a, TRS, render_data->nodes.n );
+	Span< TRS > local_poses = AllocSpan< TRS >( a, render_data->nodes.n );
 
 	for( u8 i = 0; i < render_data->nodes.n; i++ ) {
 		const GLTFRenderData::Node * node = &render_data->nodes[ i ];
@@ -549,9 +549,9 @@ MatrixPalettes ComputeMatrixPalettes( Allocator * a, const GLTFRenderData * rend
 	Assert( local_poses.n == render_data->nodes.n );
 
 	MatrixPalettes palettes = { };
-	palettes.node_transforms = ALLOC_SPAN( a, Mat4, render_data->nodes.n );
+	palettes.node_transforms = AllocSpan< Mat4 >( a, render_data->nodes.n );
 	if( render_data->skin.n != 0 ) {
-		palettes.skinning_matrices = ALLOC_SPAN( a, Mat4, render_data->skin.n );
+		palettes.skinning_matrices = AllocSpan< Mat4 >( a, render_data->skin.n );
 	}
 
 	for( u8 i = 0; i < render_data->nodes.n; i++ ) {
@@ -687,7 +687,7 @@ static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Mesh & m
 
 	for( u32 i = 0; i < frame_static.shadow_parameters.entity_cascades; i++ ) {
 		pipeline.pass = frame_static.shadowmap_pass[ i ];
-		pipeline.set_uniform( "u_View", frame_static.shadowmap_view_uniforms[ i ] );
+		pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ i ] );
 
 		if( skinned ) {
 			DrawMesh( mesh, pipeline );
@@ -712,7 +712,7 @@ static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Mesh &
 	pipeline.cull_face = CullFace_Front;
 
 	if( skinned ) {
-		pipeline.set_uniform( "u_Outline", outline_uniforms );
+		pipeline.bind_uniform( "u_Outline", outline_uniforms );
 		DrawMesh( mesh, pipeline );
 		return;
 	}
@@ -735,7 +735,7 @@ static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Me
 	pipeline.write_depth = false;
 
 	if( skinned ) {
-		pipeline.set_uniform( "u_Silhouette", silhouette_uniforms );
+		pipeline.bind_uniform( "u_Silhouette", silhouette_uniforms );
 		DrawMesh( mesh, pipeline );
 		return;
 	}
@@ -796,12 +796,12 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 
 		GPUMaterial gpu_material;
 		PipelineState pipeline = MaterialToPipelineState( FindMaterial( node->material ), color, skinned, config.draw_model.map_model, &gpu_material );
-		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+		pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 
 		// skinned models can't be instanced
 		if( skinned ) {
-			pipeline.set_uniform( "u_Model", UploadModelUniforms( node_transform ) );
-			pipeline.set_uniform( "u_Pose", pose_uniforms );
+			pipeline.bind_uniform( "u_Model", UploadModelUniforms( node_transform ) );
+			pipeline.bind_uniform( "u_Pose", pose_uniforms );
 		}
 
 		DrawModelNode( config.draw_model, node->mesh, skinned, pipeline, node_transform, gpu_material );

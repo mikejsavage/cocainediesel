@@ -1,11 +1,3 @@
-#include <algorithm> // std::stable_sort
-#include <new>
-
-#include "glad/glad.h"
-
-#include "tracy/Tracy.hpp"
-#include "tracy/TracyOpenGL.hpp"
-
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
@@ -14,6 +6,17 @@
 #include "client/renderer/renderer.h"
 
 #include "cgame/cg_local.h"
+
+#include "glad/glad.h"
+
+#define GLFW_INCLUDE_NONE
+#include "glfw3/GLFW/glfw3.h"
+
+#include "tracy/Tracy.hpp"
+#include "tracy/TracyOpenGL.hpp"
+
+#include <algorithm> // std::stable_sort
+#include <new>
 
 template< typename S, typename T >
 struct SameType { static constexpr bool value = false; };
@@ -38,16 +41,14 @@ struct DrawCall {
 	u32 num_vertices;
 	u32 num_instances;
 	u32 first_index;
+	u32 base_vertex;
 
 	u32 dispatch_size[ 3 ];
 	GPUBuffer indirect;
 };
 
-static GLsync fences[ 3 ];
-static u64 frame_counter;
-
-STATIC_ASSERT( ARRAY_COUNT( fences ) == ARRAY_COUNT( &StreamingBuffer::buffers ) );
-STATIC_ASSERT( ARRAY_COUNT( fences ) == ARRAY_COUNT( &StreamingBuffer::mappings ) );
+static GLuint vao;
+static GLsync fences[ MAX_FRAMES_IN_FLIGHT ];
 
 static NonRAIIDynamicArray< RenderPass > render_passes;
 static NonRAIIDynamicArray< DrawCall > draw_calls;
@@ -76,15 +77,15 @@ static u32 ubo_offset_alignment;
 static float max_anisotropic_filtering;
 
 static PipelineState prev_pipeline;
+static VertexDescriptor prev_vertex_descriptor;
 static GLuint prev_fbo;
 static u32 prev_viewport_width;
 static u32 prev_viewport_height;
 
 static struct {
 	UniformBlock uniforms[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
-	GPUBuffer buffers[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
+	PipelineState::BufferBinding buffers[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
 	const Texture * textures[ ARRAY_COUNT( &Shader::textures ) ] = { };
-	TextureArray texture_arrays[ ARRAY_COUNT( &Shader::texture_arrays ) ] = { };
 } prev_bindings;
 
 static GLenum DepthFuncToGL( DepthFunc depth_func ) {
@@ -117,11 +118,6 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 			*channels = GL_RED;
 			*type = GL_UNSIGNED_BYTE;
 			return;
-		case TextureFormat_R_U16:
-			*internal = GL_R16;
-			*channels = GL_RED;
-			*type = GL_UNSIGNED_SHORT;
-			return;
 
 		case TextureFormat_RA_U8:
 			*internal = GL_RG8;
@@ -131,18 +127,6 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 		case TextureFormat_RG_Half:
 			*internal = GL_RG16F;
 			*channels = GL_RG;
-			*type = GL_HALF_FLOAT;
-			return;
-
-		case TextureFormat_RGB_U8:
-		case TextureFormat_RGB_U8_sRGB:
-			*internal = format == TextureFormat_RGB_U8 ? GL_RGB8 : GL_SRGB8;
-			*channels = GL_RGB;
-			*type = GL_UNSIGNED_BYTE;
-			return;
-		case TextureFormat_RGB_Half:
-			*internal = GL_RGB16F;
-			*channels = GL_RGB;
 			*type = GL_HALF_FLOAT;
 			return;
 
@@ -212,20 +196,7 @@ static void TextureFilterToGL( TextureFilter filter, GLenum * min, GLenum * mag 
 	Assert( false );
 }
 
-static u32 GLTypeSize( GLenum type ) {
-	switch( type ) {
-		case GL_UNSIGNED_BYTE: return 1;
-		case GL_UNSIGNED_SHORT: return 2;
-		case GL_UNSIGNED_INT:
-		case GL_FLOAT:
-			return 4;
-	}
-
-	Assert( false );
-	return 0;
-}
-
-static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_components, bool * integral, GLboolean * normalized, u32 * stride ) {
+static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_components, bool * integral, GLboolean * normalized ) {
 	*integral = false;
 	*normalized = false;
 
@@ -274,16 +245,6 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 			*normalized = format == VertexFormat_U16x4_Norm;
 			break;
 
-		case VertexFormat_U32x1:
-			*type = GL_UNSIGNED_INT;
-			*num_components = 1;
-			*integral = true;
-			break;
-
-		case VertexFormat_Floatx1:
-			*type = GL_FLOAT;
-			*num_components = 1;
-			break;
 		case VertexFormat_Floatx2:
 			*type = GL_FLOAT;
 			*num_components = 2;
@@ -300,10 +261,27 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 		default:
 			Assert( false );
 	}
+}
 
-	if( stride != NULL ) {
-		*stride = GLTypeSize( *type ) * *num_components;
+static u32 VertexFormatDefaultStride( VertexFormat format ) {
+	GLenum type;
+	int num_components;
+	bool integral;
+	GLboolean normalized;
+	VertexFormatToGL( format, &type, &num_components, &integral, &normalized );
+
+	u32 component_size = 0;
+	if( type == GL_UNSIGNED_BYTE ) {
+		component_size = 1;
 	}
+	else if( type == GL_UNSIGNED_SHORT ) {
+		component_size = 2;
+	}
+	else if( type == GL_FLOAT ) {
+		component_size = 4;
+	}
+
+	return component_size * num_components;
 }
 
 static const char * DebugTypeString( GLenum type ) {
@@ -411,6 +389,14 @@ static void RunDeferredDeletes() {
 
 void InitRenderBackend() {
 	TracyZoneScoped;
+
+	{
+		TracyZoneScopedN( "Load OpenGL" );
+		if( gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) != 1 ) {
+			Fatal( "Couldn't load GL" );
+		}
+	}
+
 	TracyGpuContext;
 
 	{
@@ -462,7 +448,6 @@ void InitRenderBackend() {
 	for( GLsync & fence : fences ) {
 		fence = 0;
 	}
-	frame_counter = 0;
 
 	render_passes.init( sys_allocator );
 	draw_calls.init( sys_allocator );
@@ -491,6 +476,10 @@ void InitRenderBackend() {
 
 	glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropic_filtering );
 
+	glCreateVertexArrays( 1, &vao );
+	DebugLabel( GL_VERTEX_ARRAY, vao, "Global VAO" );
+	glBindVertexArray( vao );
+
 	GLint max_ubo_size;
 	glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, &max_ubo_size );
 	Assert( max_ubo_size >= s32( UNIFORM_BUFFER_SIZE ) );
@@ -503,6 +492,7 @@ void InitRenderBackend() {
 	in_frame = false;
 
 	prev_pipeline = PipelineState();
+	prev_vertex_descriptor = { };
 	prev_fbo = 0;
 	prev_viewport_width = 0;
 	prev_viewport_height = 0;
@@ -512,6 +502,9 @@ void ShutdownRenderBackend() {
 	for( UBO ubo : ubos ) {
 		DeleteStreamingBuffer( ubo.stream );
 	}
+
+	glBindVertexArray( 0 );
+	glDeleteVertexArrays( 1, &vao );
 
 	RunDeferredDeletes();
 
@@ -538,10 +531,11 @@ void RenderBackendBeginFrame() {
 	render_passes.clear();
 	draw_calls.clear();
 
-	if( fences[ frame_counter % ARRAY_COUNT( fences ) ] != 0 ) {
+	size_t fence_id = FrameSlot();
+	if( fences[ fence_id ] != 0 ) {
 		TracyZoneScopedN( "Wait on frame fence" );
-		glClientWaitSync( fences[ frame_counter % ARRAY_COUNT( fences ) ], GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED );
-		glDeleteSync( fences[ frame_counter % ARRAY_COUNT( fences ) ] );
+		glClientWaitSync( fences[ fence_id ], GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED );
+		glDeleteSync( fences[ fence_id ] );
 	}
 
 	num_vertices_this_frame = 0;
@@ -559,11 +553,66 @@ void RenderBackendBeginFrame() {
 	PlotVRAMUsage();
 }
 
-static bool operator!=( PipelineState::Scissor a, PipelineState::Scissor b ) {
-	return a.x != b.x || a.y != b.y || a.w != b.w || a.h != b.h;
+static bool operator==( PipelineState::Scissor a, PipelineState::Scissor b ) {
+	return a.x == b.x && a.y == b.y && a.w == b.w && a.h == b.h;
 }
 
-static void SetPipelineState( PipelineState pipeline, bool cw_winding ) {
+void PipelineState::bind_uniform( StringHash name, UniformBlock block ) {
+	for( size_t i = 0; i < num_uniforms; i++ ) {
+		if( uniforms[ i ].name_hash == name.hash ) {
+			uniforms[ i ].block = block;
+			return;
+		}
+	}
+
+	Assert( num_uniforms < ARRAY_COUNT( uniforms ) );
+	uniforms[ num_uniforms ].name_hash = name.hash;
+	uniforms[ num_uniforms ].block = block;
+	num_uniforms++;
+}
+
+void PipelineState::bind_texture( StringHash name, const Texture * texture ) {
+	for( size_t i = 0; i < num_textures; i++ ) {
+		if( textures[ i ].name_hash == name.hash ) {
+			textures[ i ].texture = texture;
+			return;
+		}
+	}
+
+	Assert( num_textures < ARRAY_COUNT( textures ) );
+	textures[ num_textures ].name_hash = name.hash;
+	textures[ num_textures ].texture = texture;
+	num_textures++;
+}
+
+void PipelineState::bind_buffer( StringHash name, GPUBuffer buffer, u32 offset, u32 size ) {
+	for( size_t i = 0; i < num_buffers; i++ ) {
+		if( buffers[ i ].name_hash == name.hash ) {
+			buffers[ i ].buffer = buffer;
+			buffers[ i ].offset = offset;
+			return;
+		}
+	}
+
+	Assert( num_buffers < ARRAY_COUNT( buffers ) );
+	buffers[ num_buffers ].name_hash = name.hash;
+	buffers[ num_buffers ].buffer = buffer;
+	buffers[ num_buffers ].offset = offset;
+	buffers[ num_buffers ].size = size;
+	num_buffers++;
+}
+
+void PipelineState::bind_streaming_buffer( StringHash name, StreamingBuffer stream ) {
+	u32 offset = stream.size * FrameSlot();
+	bind_buffer( name, stream.buffer, offset, stream.size );
+}
+
+static bool operator==( const VertexAttribute & lhs, const VertexAttribute & rhs ) {
+	return lhs.format == rhs.format && lhs.buffer == rhs.buffer && lhs.offset == rhs.offset;
+}
+
+static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) {
+	TracyZoneScoped;
 	TracyGpuZone( "Set pipeline state" );
 
 	if( pipeline.shader != NULL && ( prev_pipeline.shader == NULL || pipeline.shader->program != prev_pipeline.shader->program ) ) {
@@ -607,7 +656,7 @@ static void SetPipelineState( PipelineState pipeline, bool cw_winding ) {
 				if( pipeline.textures[ j ].name_hash == name_hash ) {
 					const Texture * texture = pipeline.textures[ j ].texture;
 					if( texture != prev_texture ) {
-						if( prev_texture != NULL && prev_texture->msaa != texture->msaa ) {
+						if( prev_texture != NULL && prev_texture->msaa_samples != texture->msaa_samples ) {
 							glBindTextureUnit( i, 0 );
 						}
 						glBindTextureUnit( i, texture->texture );
@@ -628,16 +677,21 @@ static void SetPipelineState( PipelineState pipeline, bool cw_winding ) {
 	// buffers
 	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->buffers ); i++ ) {
 		u64 name_hash = pipeline.shader->buffers[ i ];
-		GPUBuffer prev_buffer = prev_bindings.buffers[ i ];
+		PipelineState::BufferBinding prev = prev_bindings.buffers[ i ];
 
-		bool should_unbind = prev_buffer.buffer != 0;
+		bool should_unbind = prev.buffer.buffer != 0;
 		if( name_hash != 0 ) {
 			for( size_t j = 0; j < pipeline.num_buffers; j++ ) {
-				if( pipeline.buffers[ j ].name_hash == name_hash ) {
-					GPUBuffer buffer = pipeline.buffers[ j ].buffer;
-					if( buffer.buffer != prev_buffer.buffer ) {
-						glBindBufferBase( GL_SHADER_STORAGE_BUFFER, i, buffer.buffer );
-						prev_bindings.buffers[ i ] = buffer;
+				const PipelineState::BufferBinding & binding = pipeline.buffers[ j ];
+				if( binding.name_hash == name_hash ) {
+					if( binding.buffer.buffer != prev.buffer.buffer || binding.offset != prev.offset || binding.size != prev.size ) {
+						if( binding.offset == 0 && binding.size == 0 ) {
+							glBindBufferBase( GL_SHADER_STORAGE_BUFFER, i, binding.buffer.buffer );
+						}
+						else {
+							glBindBufferRange( GL_SHADER_STORAGE_BUFFER, i, binding.buffer.buffer, binding.offset, binding.size );
+						}
+						prev_bindings.buffers[ i ] = binding;
 					}
 					should_unbind = false;
 					break;
@@ -648,33 +702,6 @@ static void SetPipelineState( PipelineState pipeline, bool cw_winding ) {
 		if( should_unbind ) {
 			glBindBufferBase( GL_SHADER_STORAGE_BUFFER, i, 0 );
 			prev_bindings.buffers[ i ] = { };
-		}
-	}
-
-	// texture arrays
-	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->texture_arrays ); i++ ) {
-		u64 name_hash = pipeline.shader->texture_arrays[ i ];
-		GLenum tex_unit = ARRAY_COUNT( pipeline.shader->textures ) + i;
-		TextureArray prev_texture = prev_bindings.texture_arrays[ i ];
-
-		bool found = prev_texture.texture == 0;
-		if( name_hash != 0 ) {
-			for( size_t j = 0; j < pipeline.num_texture_arrays; j++ ) {
-				if( pipeline.texture_arrays[ j ].name_hash == name_hash ) {
-					TextureArray texture = pipeline.texture_arrays[ j ].ta;
-					if( texture.texture != prev_texture.texture ) {
-						glBindTextureUnit( tex_unit, texture.texture );
-						prev_bindings.texture_arrays[ i ] = texture;
-					}
-					found = true;
-					break;
-				}
-			}
-		}
-
-		if( !found ) {
-			glBindTextureUnit( tex_unit, 0 );
-			prev_bindings.texture_arrays[ i ] = { };
 		}
 	}
 
@@ -710,33 +737,33 @@ static void SetPipelineState( PipelineState pipeline, bool cw_winding ) {
 	}
 
 	// backface culling
-	if( pipeline.cull_face != CullFace_Disabled && cw_winding ) {
-		pipeline.cull_face = pipeline.cull_face == CullFace_Front ? CullFace_Back : CullFace_Front;
+	CullFace cull_face = pipeline.cull_face;
+	if( cull_face != CullFace_Disabled && cw_winding ) {
+		cull_face = cull_face == CullFace_Front ? CullFace_Back : CullFace_Front;
 	}
 
-	if( pipeline.cull_face != prev_pipeline.cull_face ) {
-		if( pipeline.cull_face == CullFace_Disabled ) {
+	if( cull_face != prev_pipeline.cull_face ) {
+		if( cull_face == CullFace_Disabled ) {
 			glDisable( GL_CULL_FACE );
 		}
 		else {
 			if( prev_pipeline.cull_face == CullFace_Disabled ) {
 				glEnable( GL_CULL_FACE );
 			}
-			glCullFace( pipeline.cull_face == CullFace_Front ? GL_FRONT : GL_BACK );
+			glCullFace( cull_face == CullFace_Front ? GL_FRONT : GL_BACK );
 		}
 	}
 
 	// scissor
 	if( pipeline.scissor != prev_pipeline.scissor ) {
-		PipelineState::Scissor s = pipeline.scissor;
-		if( s.x == 0 && s.y == 0 && s.w == 0 && s.h == 0 ) {
+		if( !pipeline.scissor.exists ) {
 			glDisable( GL_SCISSOR_TEST );
 		}
 		else {
-			PipelineState::Scissor old = prev_pipeline.scissor;
-			if( old.x == 0 && old.y == 0 && old.w == 0 && old.h == 0 ) {
+			if( !prev_pipeline.scissor.exists ) {
 				glEnable( GL_SCISSOR_TEST );
 			}
+			PipelineState::Scissor s = pipeline.scissor.value;
 			glScissor( s.x, frame_static.viewport_height - s.y - s.h, s.w, s.h );
 		}
 	}
@@ -776,6 +803,74 @@ static void SetPipelineState( PipelineState pipeline, bool cw_winding ) {
 	}
 
 	prev_pipeline = pipeline;
+	prev_pipeline.cull_face = cull_face;
+}
+
+static void BindVertexDescriptorAndBuffers( const Mesh & mesh ) {
+	TracyZoneScoped;
+
+	const VertexDescriptor & vertex_descriptor = mesh.vertex_descriptor;
+
+	// vertex descriptor
+	for( size_t i = 0; i < ARRAY_COUNT( vertex_descriptor.attributes ); i++ ) {
+		const Optional< VertexAttribute > & opt_prev_attr = prev_vertex_descriptor.attributes[ i ];
+		const Optional< VertexAttribute > & opt_attr = vertex_descriptor.attributes[ i ];
+		if( opt_attr == opt_prev_attr )
+			continue;
+
+		if( opt_prev_attr.exists != opt_attr.exists ) {
+			if( opt_attr.exists ) {
+				glEnableVertexArrayAttrib( vao, i );
+			}
+			else {
+				glDisableVertexArrayAttrib( vao, i );
+			}
+		}
+
+		if( opt_attr.exists ) {
+			const VertexAttribute & attr = opt_attr.value;
+
+			GLenum type;
+			int num_components;
+			bool integral;
+			GLboolean normalized;
+			VertexFormatToGL( attr.format, &type, &num_components, &integral, &normalized );
+
+			if( integral && !normalized ) {
+				/*
+				 * wintel driver ignores the type and treats everything as u32
+				 * non-DSA call works fine so fall back to that here
+				 *
+				 * see also https://doc.magnum.graphics/magnum/opengl-workarounds.html
+				 *
+				 * glVertexArrayAttribIFormat( vao, attr, num_components, type, attr.offset );
+				 */
+
+				glVertexAttribIFormat( i, num_components, type, attr.offset );
+			}
+			else {
+				glVertexArrayAttribFormat( vao, i, num_components, type, normalized, attr.offset );
+			}
+		}
+	}
+
+	prev_vertex_descriptor = vertex_descriptor;
+
+	// vertex buffers
+	for( size_t i = 0; i < ARRAY_COUNT( mesh.vertex_descriptor.attributes ); i++ ) {
+		if( !mesh.vertex_descriptor.attributes[ i ].exists )
+			continue;
+
+		const VertexAttribute & attribute = mesh.vertex_descriptor.attributes[ i ].value;
+		u32 stride = mesh.vertex_descriptor.buffer_strides[ attribute.buffer ];
+		if( stride == 0 ) {
+			stride = VertexFormatDefaultStride( attribute.format );
+		}
+		glVertexArrayVertexBuffer( vao, i, mesh.vertex_buffers[ attribute.buffer ].buffer, 0, stride );
+	}
+
+	// index buffer
+	glVertexArrayElementBuffer( vao, mesh.index_buffer.buffer );
 }
 
 static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
@@ -787,8 +882,8 @@ static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 }
 
 static void SubmitFramebufferBlit( const RenderPass & pass ) {
-	Framebuffer src = pass.blit_source;
-	Framebuffer target = pass.target;
+	RenderTarget src = pass.blit_source;
+	RenderTarget target = pass.target;
 	GLbitfield clear_mask = 0;
 	clear_mask |= pass.clear_color ? GL_COLOR_BUFFER_BIT : 0;
 	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
@@ -816,7 +911,7 @@ static void SetupRenderPass( const RenderPass & pass ) {
 
 	glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.tracy->name );
 
-	const Framebuffer & fb = pass.target;
+	const RenderTarget & fb = pass.target;
 	if( fb.fbo != prev_fbo ) {
 		glBindFramebuffer( GL_DRAW_FRAMEBUFFER, fb.fbo );
 		prev_fbo = fb.fbo;
@@ -844,10 +939,9 @@ static void SetupRenderPass( const RenderPass & pass ) {
 	clear_mask |= pass.clear_color ? GL_COLOR_BUFFER_BIT : 0;
 	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
 	if( clear_mask != 0 ) {
-		PipelineState::Scissor scissor = prev_pipeline.scissor;
-		if( scissor.x != 0 || scissor.y != 0 || scissor.w != 0 || scissor.h != 0 ) {
+		if( prev_pipeline.scissor.exists ) {
 			glDisable( GL_SCISSOR_TEST );
-			prev_pipeline.scissor = { };
+			prev_pipeline.scissor = NONE;
 		}
 
 		if( pass.clear_color ) {
@@ -884,42 +978,58 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	SetPipelineState( dc.pipeline, dc.mesh.cw_winding );
 
 	if( dc.type == DrawCallType_Compute ) {
+		TracyZoneScopedN( "Compute command" );
 		glDispatchCompute( dc.dispatch_size[ 0 ], dc.dispatch_size[ 1 ], dc.dispatch_size[ 2 ] );
 		return;
 	}
 
 	if( dc.type == DrawCallType_IndirectCompute ) {
+		TracyZoneScopedN( "Compute command" );
 		glBindBuffer( GL_DISPATCH_INDIRECT_BUFFER, dc.indirect.buffer );
 		glDispatchComputeIndirect( 0 );
 		glBindBuffer( GL_DISPATCH_INDIRECT_BUFFER, 0 );
 		return;
 	}
 
+	BindVertexDescriptorAndBuffers( dc.mesh );
+
 	GLenum gl_index_format = dc.mesh.index_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-	glBindVertexArray( dc.mesh.vao );
 
-	if( dc.type == DrawCallType_Normal ) {
-		if( dc.mesh.index_buffer.buffer != 0 ) {
-			size_t index_size = dc.mesh.index_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
-			const void * offset = ( const void * ) ( uintptr_t( dc.first_index ) * index_size );
-			glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, gl_index_format, offset, dc.num_instances );
+	{
+		TracyZoneScopedN( "Draw command" );
+
+		if( dc.type == DrawCallType_Normal ) {
+			if( dc.mesh.index_buffer.buffer != 0 ) {
+				size_t index_size = dc.mesh.index_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
+				const void * offset = ( const void * ) ( uintptr_t( dc.first_index ) * index_size );
+				glDrawElementsInstancedBaseVertex( GL_TRIANGLES, dc.num_vertices, gl_index_format, offset, dc.num_instances, dc.base_vertex );
+			}
+			else {
+				glDrawArraysInstanced( GL_TRIANGLES, dc.first_index, dc.num_vertices, dc.num_instances );
+			}
 		}
-		else {
-			glDrawArraysInstanced( GL_TRIANGLES, dc.first_index, dc.num_vertices, dc.num_instances );
+		else if( dc.type == DrawCallType_Indirect ) {
+			glBindBuffer( GL_DRAW_INDIRECT_BUFFER, dc.indirect.buffer );
+			if( dc.mesh.index_buffer.buffer != 0 ) {
+				glDrawElementsIndirect( GL_TRIANGLES, gl_index_format, 0 );
+			}
+			else {
+				glDrawArraysIndirect( GL_TRIANGLES, 0 );
+			}
+			glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0 );
 		}
 	}
-	else if( dc.type == DrawCallType_Indirect ) {
-		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, dc.indirect.buffer );
-		if( dc.mesh.index_buffer.buffer != 0 ) {
-			glDrawElementsIndirect( GL_TRIANGLES, gl_index_format, 0 );
-		}
-		else {
-			glDrawArraysIndirect( GL_TRIANGLES, 0 );
-		}
-		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0 );
-	}
 
-	glBindVertexArray( 0 );
+	{
+		TracyZoneScopedN( "Unbind buffers" );
+
+		// unbind buffers
+		for( size_t i = 0; i < ARRAY_COUNT( dc.mesh.vertex_buffers ); i++ ) {
+			glVertexArrayVertexBuffer( vao, i, 0, 0, 0 );
+		}
+
+		glVertexArrayElementBuffer( vao, 0 );
+	}
 }
 
 void RenderBackendSubmitFrame() {
@@ -962,14 +1072,13 @@ void RenderBackendSubmitFrame() {
 		// OBS captures the game with glBlitFramebuffer which gets
 		// nuked by scissor, so turn it off at the end of every frame
 		PipelineState no_scissor_test = prev_pipeline;
-		no_scissor_test.scissor = { };
+		no_scissor_test.scissor = NONE;
 		SetPipelineState( no_scissor_test, true );
 	}
 
 	RunDeferredDeletes();
 
-	fences[ frame_counter % ARRAY_COUNT( fences ) ] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
-	frame_counter++;
+	fences[ FrameSlot() ] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
 
 	u32 ubo_bytes_used = 0;
 	for( const UBO & ubo : ubos ) {
@@ -1001,27 +1110,21 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 		Fatal( "Ran out of UBO space" );
 
 	UniformBlock block;
-	block.ubo = GetStreamingBufferBuffer( ubo->stream ).buffer;
-	block.offset = offset;
+	block.ubo = ubo->stream.buffer.buffer;
+	block.offset = offset + ubo->stream.size * FrameSlot();
 	block.size = AlignPow2( checked_cast< u32 >( size ), u32( 16 ) );
 
-	// memset so we don't leave any gaps. good for write combined memory!
-	u8 * mapping = GetStreamingBufferMapping( ubo->stream );
-	memset( mapping + ubo->bytes_used, 0, offset - ubo->bytes_used );
+	u8 * mapping = ( u8 * ) GetStreamingBufferMemory( ubo->stream );
 	memcpy( mapping + offset, data, size );
 	ubo->bytes_used = offset + size;
 
 	return block;
 }
 
-void ReadGPUBuffer( GPUBuffer buf, void * data, u32 len, u32 offset ) {
-	glGetNamedBufferSubData( buf.buffer, offset, len, data );
-}
-
-GPUBuffer NewGPUBuffer( const void * data, u32 len, const char * name ) {
+GPUBuffer NewGPUBuffer( const void * data, u32 size, const char * name ) {
 	GPUBuffer buf = { };
 	glCreateBuffers( 1, &buf.buffer );
-	glNamedBufferStorage( buf.buffer, len, data, GL_DYNAMIC_STORAGE_BIT );
+	glNamedBufferStorage( buf.buffer, size, data, data == NULL ? GL_DYNAMIC_STORAGE_BIT : 0 );
 
 	if( name != NULL ) {
 		DebugLabel( GL_BUFFER, buf.buffer, name );
@@ -1030,12 +1133,13 @@ GPUBuffer NewGPUBuffer( const void * data, u32 len, const char * name ) {
 	return buf;
 }
 
-GPUBuffer NewGPUBuffer( u32 len, const char * name ) {
-	return NewGPUBuffer( NULL, len, name );
+GPUBuffer NewGPUBuffer( u32 size, const char * name ) {
+	return NewGPUBuffer( NULL, size, name );
 }
 
-void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 len, u32 offset ) {
-	glNamedBufferSubData( buf.buffer, offset, len, data );
+void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 size, u32 offset ) {
+	// TODO: remove GL_DYNAMIC_STORAGE_BIT when we delete this
+	glNamedBufferSubData( buf.buffer, offset, size, data );
 }
 
 void DeleteGPUBuffer( GPUBuffer buf ) {
@@ -1048,65 +1152,82 @@ void DeferDeleteGPUBuffer( GPUBuffer buf ) {
 	deferred_buffer_deletes.add( buf );
 }
 
-StreamingBuffer NewStreamingBuffer( u32 len, const char * name ) {
+StreamingBuffer NewStreamingBuffer( u32 size, const char * name ) {
 	StreamingBuffer stream = { };
 
-	for( size_t i = 0; i < ARRAY_COUNT( stream.buffers ); i++ ) {
-		GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
-		glCreateBuffers( 1, &stream.buffers[ i ].buffer );
-		glNamedBufferStorage( stream.buffers[ i ].buffer, len, NULL, flags );
+	GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT;
+	glCreateBuffers( 1, &stream.buffer.buffer );
+	glNamedBufferStorage( stream.buffer.buffer, size * MAX_FRAMES_IN_FLIGHT, NULL, flags );
 
-		if( name != NULL ) {
-			TempAllocator temp = cls.frame_arena.temp();
-			DebugLabel( GL_BUFFER, stream.buffers[ i ].buffer, temp( "{} #{}", name, i ) );
-		}
-
-		stream.mappings[ i ] = ( u8 * ) glMapNamedBufferRange( stream.buffers[ i ].buffer, 0, len, flags );
+	if( name != NULL ) {
+		DebugLabel( GL_BUFFER, stream.buffer.buffer, name );
 	}
+
+	stream.ptr = glMapNamedBufferRange( stream.buffer.buffer, 0, size * MAX_FRAMES_IN_FLIGHT, flags | GL_MAP_FLUSH_EXPLICIT_BIT );
+	stream.size = size;
 
 	return stream;
 }
 
-u8 * GetStreamingBufferMapping( StreamingBuffer stream ) {
-	return stream.mappings[ frame_counter % ARRAY_COUNT( stream.mappings ) ];
+void * GetStreamingBufferMemory( StreamingBuffer stream ) {
+	return ( ( u8 * ) stream.ptr ) + stream.size * FrameSlot();
 }
 
-GPUBuffer GetStreamingBufferBuffer( StreamingBuffer stream ) {
-	return stream.buffers[ frame_counter % ARRAY_COUNT( stream.buffers ) ];
+void FlushStreamingBuffer( StreamingBuffer stream, u32 offset, u32 length ) {
+	glFlushMappedNamedBufferRange( stream.buffer.buffer,
+		checked_cast< GLintptr >( offset + stream.size * FrameSlot() ),
+		checked_cast< GLsizeiptr >( length ) );
 }
 
 void DeleteStreamingBuffer( StreamingBuffer stream ) {
-	for( GPUBuffer buf : stream.buffers ) {
-		glUnmapNamedBuffer( buf.buffer );
-		DeleteGPUBuffer( buf );
-	}
+	glUnmapNamedBuffer( stream.buffer.buffer );
+	DeleteGPUBuffer( stream.buffer );
 }
 
 void DeferDeleteStreamingBuffer( StreamingBuffer stream ) {
 	deferred_streaming_buffer_deletes.add( stream );
 }
 
-static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
+Texture NewTexture( const TextureConfig & config ) {
 	Texture texture = { };
 	texture.width = config.width;
 	texture.height = config.height;
+	texture.num_layers = config.num_layers;
 	texture.num_mipmaps = config.num_mipmaps;
-	texture.msaa = msaa_samples > 1;
+	texture.msaa_samples = config.msaa_samples;
 	texture.format = config.format;
 
-	GLenum target = msaa_samples == 0 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+	GLenum target;
+	if( config.msaa_samples == 0 ) {
+		target = config.num_layers == 0 ? GL_TEXTURE_2D : GL_TEXTURE_2D_ARRAY;
+	}
+	else {
+		target = config.num_layers == 0 ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+	}
 	glCreateTextures( target, 1, &texture.texture );
 
 	GLenum internal_format, channels, type;
 	TextureFormatToGL( config.format, &internal_format, &channels, &type );
 
-	if( msaa_samples != 0 ) {
-		glTextureStorage2DMultisample( texture.texture, msaa_samples,
-			internal_format, config.width, config.height, GL_TRUE );
+	if( config.msaa_samples != 0 ) {
+		Assert( config.data == NULL );
+		if( config.num_layers == 0 ) {
+			glTextureStorage2DMultisample( texture.texture, config.msaa_samples,
+				internal_format, config.width, config.height, GL_TRUE );
+		}
+		else {
+			glTextureStorage3DMultisample( texture.texture, config.msaa_samples,
+				internal_format, config.width, config.height, config.num_layers, GL_TRUE );
+		}
 		return texture;
 	}
 
-	glTextureStorage2D( texture.texture, config.num_mipmaps, internal_format, config.width, config.height );
+	if( config.num_layers == 0 ) {
+		glTextureStorage2D( texture.texture, config.num_mipmaps, internal_format, config.width, config.height );
+	}
+	else {
+		glTextureStorage3D( texture.texture, config.num_mipmaps, internal_format, config.width, config.height, config.num_layers );
+	}
 
 	glTextureParameteri( texture.texture, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
 	glTextureParameteri( texture.texture, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
@@ -1118,6 +1239,11 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 	glTextureParameteri( texture.texture, GL_TEXTURE_MAG_FILTER, mag_filter );
 	glTextureParameteri( texture.texture, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
 	glTextureParameterf( texture.texture, GL_TEXTURE_LOD_BIAS, -1.0f );
+
+	if( config.format == TextureFormat_Shadow ) {
+		glTextureParameteri( texture.texture, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
+		glTextureParameteri( texture.texture, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE );
+	}
 
 	if( config.wrap == TextureWrap_Border ) {
 		glTextureParameterfv( texture.texture, GL_TEXTURE_BORDER_COLOR, config.border_color.ptr() );
@@ -1148,8 +1274,14 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 		}
 
 		if( config.data != NULL ) {
-			glTextureSubImage2D( texture.texture, 0, 0, 0,
-				config.width, config.height, channels, type, config.data );
+			if( config.num_layers == 0 ) {
+				glTextureSubImage2D( texture.texture, 0, 0, 0,
+					config.width, config.height, channels, type, config.data );
+			}
+			else {
+				glTextureSubImage3D( texture.texture, 0, 0, 0, 0,
+					config.width, config.height, config.num_layers, channels, type, config.data );
+			}
 		}
 	}
 	else {
@@ -1168,11 +1300,18 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 		for( u32 i = 0; i < config.num_mipmaps; i++ ) {
 			u32 w = config.width >> i;
 			u32 h = config.height >> i;
-			u32 size = ( BitsPerPixel( config.format ) * w * h ) / 8;
+			u32 layers = Max2( u32( 1 ), config.num_layers );
+			u32 size = ( BitsPerPixel( config.format ) * w * h * layers ) / 8;
 			Assert( size < S32_MAX );
 
-			glCompressedTextureSubImage2D( texture.texture, i, 0, 0,
-				w, h, internal_format, size, cursor );
+			if( config.num_layers == 0 ) {
+				glCompressedTextureSubImage2D( texture.texture, i, 0, 0,
+					w, h, internal_format, size, cursor );
+			}
+			else {
+				glCompressedTextureSubImage3D( texture.texture, i, 0, 0, 0,
+					w, h, config.num_layers, internal_format, size, cursor );
+			}
 
 			cursor += size;
 		}
@@ -1181,205 +1320,75 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 	return texture;
 }
 
-Texture NewTexture( const TextureConfig & config ) {
-	return NewTextureSamples( config, 0 );
-}
-
 void DeleteTexture( Texture texture ) {
 	if( texture.texture == 0 )
 		return;
 	glDeleteTextures( 1, &texture.texture );
 }
 
-TextureArray NewTextureArray( const TextureArrayConfig & config ) {
-	TextureArray ta;
+static void AddRenderTargetAttachment( GLuint fbo, const RenderTargetConfig::Attachment & config, GLenum attachment, u32 * width, u32 * height ) {
+	Assert( config.texture.texture != 0 );
+	Assert( ( config.texture.num_layers != 0 ) == config.layer.exists );
 
-	glCreateTextures( GL_TEXTURE_2D_ARRAY, 1, &ta.texture );
-
-	GLenum internal_format, channels, type;
-	TextureFormatToGL( config.format, &internal_format, &channels, &type );
-	glTextureStorage3D( ta.texture, config.num_mipmaps, internal_format, config.width, config.height, config.layers );
-
-	glTextureParameteri( ta.texture, GL_TEXTURE_WRAP_S, GL_REPEAT );
-	glTextureParameteri( ta.texture, GL_TEXTURE_WRAP_T, GL_REPEAT );
-	glTextureParameteri( ta.texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-	glTextureParameteri( ta.texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	glTextureParameteri( ta.texture, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
-
-	if( config.format == TextureFormat_Shadow ) {
-		glTextureParameteri( ta.texture, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
-		glTextureParameteri( ta.texture, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE );
-	}
-
-	if( !CompressedTextureFormat( config.format ) ) {
-		Assert( config.num_mipmaps == 1 );
-
-		if( channels == GL_RED ) {
-			if( config.format == TextureFormat_A_U8 ) {
-				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_A, GL_RED );
-			}
-			else {
-				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_R, GL_RED );
-				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_G, GL_RED );
-				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_B, GL_RED );
-				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_A, GL_ONE );
-			}
-		}
-		else if( channels == GL_RG && config.format == TextureFormat_RA_U8 ) {
-			glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_R, GL_RED );
-			glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_G, GL_RED );
-			glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_B, GL_RED );
-			glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
-		}
-
-		if( config.data != NULL ) {
-			glTextureSubImage3D( ta.texture, 0, 0, 0, 0,
-				config.width, config.height, config.layers, channels, type, config.data );
-		}
+	if( config.texture.num_layers == 0 ) {
+		glNamedFramebufferTexture( fbo, attachment, config.texture.texture, 0 );
 	}
 	else {
-		glTextureParameterf( ta.texture, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
-
-		const char * cursor = ( const char * ) config.data;
-		for( u32 i = 0; i < config.num_mipmaps; i++ ) {
-			u32 w = config.width >> i;
-			u32 h = config.height >> i;
-			u32 size = ( BitsPerPixel( config.format ) * w * h * config.layers ) / 8;
-			Assert( size < S32_MAX );
-
-			glCompressedTextureSubImage3D( ta.texture, i, 0, 0, 0,
-				w, h, config.layers, internal_format, size, cursor );
-
-			cursor += size;
-		}
+		glNamedFramebufferTextureLayer( fbo, attachment, config.texture.texture, 0, config.layer.value );
 	}
 
-	return ta;
+	Assert( *width == 0 || config.texture.width == *width );
+	Assert( *height == 0 || config.texture.height == *height );
+	*width = config.texture.width;
+	*height = config.texture.height;
 }
 
-void DeleteTextureArray( TextureArray ta ) {
-	if( ta.texture == 0 )
-		return;
-	glDeleteTextures( 1, &ta.texture );
-}
+RenderTarget NewRenderTarget( const RenderTargetConfig & config ) {
+	RenderTarget rt = { };
 
-Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
-	Framebuffer fb = { };
-
-	glCreateFramebuffers( 1, &fb.fbo );
+	glCreateFramebuffers( 1, &rt.fbo );
 
 	u32 width = 0;
 	u32 height = 0;
-	GLenum bufs[ 2 ] = { GL_NONE, GL_NONE };
 
-	if( config.albedo_attachment.width != 0 ) {
-		Texture texture = NewTextureSamples( config.albedo_attachment, config.msaa_samples );
-		glNamedFramebufferTexture( fb.fbo, GL_COLOR_ATTACHMENT0, texture.texture, 0 );
-		bufs[ 0 ] = GL_COLOR_ATTACHMENT0;
+	GLenum opengl_sucks[ FragmentShaderOutput_Count ] = { };
 
-		fb.albedo_texture = texture;
-
-		width = texture.width;
-		height = texture.height;
+	for( size_t i = 0; i < ARRAY_COUNT( config.color_attachments ); i++ ) {
+		const Optional< RenderTargetConfig::Attachment > & attachment = config.color_attachments[ i ];
+		if( !attachment.exists )
+			continue;
+		AddRenderTargetAttachment( rt.fbo, attachment.value, GL_COLOR_ATTACHMENT0 + i, &width, &height );
+		rt.color_attachments[ i ] = attachment.value.texture;
+		opengl_sucks[ i ] = GL_COLOR_ATTACHMENT0 + i;
 	}
 
-	if( config.mask_attachment.width != 0 ) {
-		Texture texture = NewTextureSamples( config.mask_attachment, config.msaa_samples );
-		glNamedFramebufferTexture( fb.fbo, GL_COLOR_ATTACHMENT1, texture.texture, 0 );
-		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
-
-		fb.mask_texture = texture;
-
-		width = texture.width;
-		height = texture.height;
+	if( config.depth_attachment.exists ) {
+		AddRenderTargetAttachment( rt.fbo, config.depth_attachment.value, GL_DEPTH_ATTACHMENT, &width, &height );
+		rt.depth_attachment = config.depth_attachment.value.texture;
 	}
 
-	if( config.depth_attachment.width != 0 ) {
-		Texture texture = NewTextureSamples( config.depth_attachment, config.msaa_samples );
-		glNamedFramebufferTexture( fb.fbo, GL_DEPTH_ATTACHMENT, texture.texture, 0 );
+	glNamedFramebufferDrawBuffers( rt.fbo, ARRAY_COUNT( opengl_sucks ), opengl_sucks );
 
-		fb.depth_texture = texture;
-
-		width = texture.width;
-		height = texture.height;
-	}
-
-	glNamedFramebufferDrawBuffers( fb.fbo, ARRAY_COUNT( bufs ), bufs );
-
-	Assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
+	Assert( glCheckNamedFramebufferStatus( rt.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
 	Assert( width > 0 && height > 0 );
+	rt.width = width;
+	rt.height = height;
 
-	fb.width = width;
-	fb.height = height;
-
-	return fb;
+	return rt;
 }
 
-Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * mask_texture, Texture * depth_texture ) {
-	Framebuffer fb = { };
-
-	glCreateFramebuffers( 1, &fb.fbo );
-
-	u32 width = 0;
-	u32 height = 0;
-	GLenum bufs[ 2 ] = { GL_NONE, GL_NONE };
-	if( albedo_texture != NULL ) {
-		glNamedFramebufferTexture( fb.fbo, GL_COLOR_ATTACHMENT0, albedo_texture->texture, 0 );
-		fb.albedo_texture = *albedo_texture;
-		bufs[ 0 ] = GL_COLOR_ATTACHMENT0;
-		width = albedo_texture->width;
-		height = albedo_texture->height;
-	}
-	if( mask_texture != NULL ) {
-		glNamedFramebufferTexture( fb.fbo, GL_COLOR_ATTACHMENT1, mask_texture->texture, 0 );
-		fb.mask_texture = *mask_texture;
-		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
-		width = mask_texture->width;
-		height = mask_texture->height;
-	}
-	if( depth_texture != NULL ) {
-		glNamedFramebufferTexture( fb.fbo, GL_DEPTH_ATTACHMENT, depth_texture->texture, 0 );
-		fb.depth_texture = *depth_texture;
-		width = depth_texture->width;
-		height = depth_texture->height;
-	}
-	glNamedFramebufferDrawBuffers( fb.fbo, ARRAY_COUNT( bufs ), bufs );
-
-	Assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
-	Assert( width > 0 && height > 0 );
-
-	fb.width = width;
-	fb.height = height;
-
-	return fb;
-}
-
-Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer ) {
-	Framebuffer fb = { };
-
-	glCreateFramebuffers( 1, &fb.fbo );
-
-	glNamedFramebufferTextureLayer( fb.fbo, GL_DEPTH_ATTACHMENT, texture_array.texture, 0, layer );
-
-	Assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
-
-	fb.width = frame_static.shadow_parameters.shadowmap_res;
-	fb.height = frame_static.shadow_parameters.shadowmap_res;
-
-	return fb;
-}
-
-void DeleteFramebuffer( Framebuffer fb ) {
-	if( fb.fbo == 0 )
+void DeleteRenderTarget( RenderTarget rt ) {
+	if( rt.fbo == 0 )
 		return;
+	glDeleteFramebuffers( 1, &rt.fbo );
+}
 
-	glDeleteFramebuffers( 1, &fb.fbo );
-	DeleteTexture( fb.albedo_texture );
-	DeleteTexture( fb.mask_texture );
-	DeleteTexture( fb.depth_texture );
+void DeleteRenderTargetAndTextures( RenderTarget rt ) {
+	DeleteRenderTarget( rt );
+	for( Texture texture : rt.color_attachments ) {
+		DeleteTexture( texture );
+	}
+	DeleteTexture( rt.depth_attachment );
 }
 
 static GLuint CompileShader( GLenum type, const char * body, const char * name ) {
@@ -1443,14 +1452,18 @@ static bool LinkShader( Shader * shader, GLuint program ) {
 	glGetProgramiv( program, GL_ACTIVE_UNIFORMS, &count );
 
 	size_t num_textures = 0;
-	size_t num_texture_arrays = 0;
 	for( GLint i = 0; i < count; i++ ) {
 		char name[ 128 ];
 		GLint size, len;
 		GLenum type;
 		glGetActiveUniform( program, i, sizeof( name ), &len, &size, &type, name );
 
-		if( type == GL_SAMPLER_2D || type == GL_SAMPLER_2D_MULTISAMPLE || type == GL_UNSIGNED_INT_SAMPLER_2D || type == GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE ) {
+		bool is_texture = false;
+		is_texture = is_texture || type == GL_SAMPLER_2D || type == GL_SAMPLER_2D_MULTISAMPLE;
+		is_texture = is_texture || type == GL_UNSIGNED_INT_SAMPLER_2D || type == GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE;
+		is_texture = is_texture || type == GL_SAMPLER_2D_ARRAY || type == GL_SAMPLER_2D_ARRAY_SHADOW;
+
+		if( is_texture ) {
 			if( num_textures == ARRAY_COUNT( shader->textures ) ) {
 				glDeleteProgram( program );
 				Com_Printf( S_COLOR_YELLOW "Too many samplers in shader\n" );
@@ -1460,18 +1473,6 @@ static bool LinkShader( Shader * shader, GLuint program ) {
 			glProgramUniform1i( program, glGetUniformLocation( program, name ), num_textures );
 			shader->textures[ num_textures ] = Hash64( name, len );
 			num_textures++;
-		}
-
-		if( type == GL_SAMPLER_2D_ARRAY || type == GL_SAMPLER_2D_ARRAY_SHADOW ) {
-			if( num_texture_arrays == ARRAY_COUNT( shader->texture_arrays ) ) {
-				glDeleteProgram( program );
-				Com_Printf( S_COLOR_YELLOW "Too many samplers in shader\n" );
-				return false;
-			}
-
-			glProgramUniform1i( program, glGetUniformLocation( program, name ), ARRAY_COUNT( &Shader::textures ) + num_texture_arrays );
-			shader->texture_arrays[ num_texture_arrays ] = Hash64( name, len );
-			num_texture_arrays++;
 		}
 	}
 
@@ -1520,16 +1521,6 @@ bool NewShader( Shader * shader, const char * src, const char * name ) {
 	glAttachShader( shader->program, vertex_shader );
 	glAttachShader( shader->program, fragment_shader );
 
-	glBindAttribLocation( shader->program, VertexAttribute_Position, "a_Position" );
-	glBindAttribLocation( shader->program, VertexAttribute_Normal, "a_Normal" );
-	glBindAttribLocation( shader->program, VertexAttribute_TexCoord, "a_TexCoord" );
-	glBindAttribLocation( shader->program, VertexAttribute_Color, "a_Color" );
-	glBindAttribLocation( shader->program, VertexAttribute_JointIndices, "a_JointIndices" );
-	glBindAttribLocation( shader->program, VertexAttribute_JointWeights, "a_JointWeights" );
-
-	glBindFragDataLocation( shader->program, 0, "f_Albedo" );
-	glBindFragDataLocation( shader->program, 1, "f_Mask" );
-
 	return LinkShader( shader, shader->program );
 }
 
@@ -1556,7 +1547,7 @@ void DeleteShader( Shader shader ) {
 		return;
 
 	if( prev_pipeline.shader != NULL && prev_pipeline.shader->program == shader.program ) {
-		prev_pipeline.shader = NULL;
+		prev_pipeline.shader = { };
 		glUseProgram( 0 );
 	}
 
@@ -1564,51 +1555,8 @@ void DeleteShader( Shader shader ) {
 }
 
 Mesh NewMesh( const MeshConfig & config ) {
-	GLuint vao;
-	glCreateVertexArrays( 1, &vao );
-	DebugLabel( GL_VERTEX_ARRAY, vao, config.name );
-
-	for( size_t i = 0; i < ARRAY_COUNT( config.vertex_descriptor.attributes ); i++ ) {
-		if( !config.vertex_descriptor.attributes[ i ].exists )
-			continue;
-
-		const VertexAttribute & attribute = config.vertex_descriptor.attributes[ i ].value;
-
-		GLenum type;
-		int num_components;
-		bool integral;
-		GLboolean normalized;
-		u32 stride = config.vertex_descriptor.buffer_strides[ attribute.buffer ];
-		VertexFormatToGL( attribute.format, &type, &num_components, &integral, &normalized, stride == 0 ? &stride : NULL );
-
-		glEnableVertexArrayAttrib( vao, i );
-		glVertexArrayVertexBuffer( vao, i, config.vertex_buffers[ attribute.buffer ].buffer, 0, stride );
-
-		if( integral && !normalized ) {
-			/*
-			 * wintel driver ignores the type and treats everything as u32
-			 * non-DSA call works fine so fall back to that here
-			 *
-			 * see also https://doc.magnum.graphics/magnum/opengl-workarounds.html
-			 *
-			 * glVertexArrayAttribIFormat( vao, attribute, num_components, type, attribute.offset );
-			 */
-
-			glBindVertexArray( vao );
-			glVertexAttribIFormat( i, num_components, type, attribute.offset );
-			glBindVertexArray( 0 );
-		}
-		else {
-			glVertexArrayAttribFormat( vao, i, num_components, type, normalized, attribute.offset );
-		}
-	}
-
-	if( config.index_buffer.buffer != 0 ) {
-		glVertexArrayElementBuffer( vao, config.index_buffer.buffer );
-	}
-
 	Mesh mesh = { };
-	mesh.vao = vao;
+	mesh.vertex_descriptor = config.vertex_descriptor;
 	mesh.index_format = config.index_format;
 	mesh.num_vertices = config.num_vertices;
 	mesh.cw_winding = config.cw_winding;
@@ -1622,60 +1570,21 @@ Mesh NewMesh( const MeshConfig & config ) {
 }
 
 void DeleteMesh( const Mesh & mesh ) {
-	if( mesh.vao == 0 )
-		return;
-
 	for( GPUBuffer buffer : mesh.vertex_buffers ) {
 		DeleteGPUBuffer( buffer );
 	}
 	DeleteGPUBuffer( mesh.index_buffer );
-
-	glDeleteVertexArrays( 1, &mesh.vao );
 }
 
 void DeferDeleteMesh( const Mesh & mesh ) {
 	deferred_mesh_deletes.add( mesh );
 }
 
-void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 first_index ) {
-	Assert( in_frame );
-	Assert( pipeline.pass != U8_MAX );
-	Assert( pipeline.shader != NULL );
-
-	DrawCall dc = { };
-	dc.type = DrawCallType_Normal;
-	dc.mesh = mesh;
-	dc.pipeline = pipeline;
-	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
-	dc.num_instances = 1;
-	dc.first_index = first_index;
-	draw_calls.add( dc );
-
-	num_vertices_this_frame += dc.num_vertices;
-}
-
-void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_instances, u32 num_vertices_override, u32 first_index ) {
-	Assert( in_frame );
-	Assert( pipeline.pass != U8_MAX );
-	Assert( pipeline.shader != NULL );
-
-	DrawCall dc = { };
-	dc.type = DrawCallType_Normal;
-	dc.mesh = mesh;
-	dc.pipeline = pipeline;
-	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
-	dc.first_index = first_index;
-	dc.num_instances = num_instances;
-	draw_calls.add( dc );
-
-	num_vertices_this_frame += dc.num_vertices * num_instances;
-}
-
 static u8 AddRenderPass( const RenderPass & pass ) {
 	return checked_cast< u8 >( render_passes.add( pass ) );
 }
 
-u8 AddRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target, ClearColor clear_color, ClearDepth clear_depth ) {
+u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, ClearColor clear_color, ClearDepth clear_depth ) {
 	RenderPass pass;
 	pass.type = RenderPass_Normal;
 	pass.target = target;
@@ -1686,11 +1595,11 @@ u8 AddRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target, C
 }
 
 u8 AddRenderPass( const tracy::SourceLocationData * tracy, ClearColor clear_color, ClearDepth clear_depth ) {
-	Framebuffer target = { };
+	RenderTarget target = { };
 	return AddRenderPass( tracy, target, clear_color, clear_depth );
 }
 
-u8 AddBarrierRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target ) {
+u8 AddBarrierRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target ) {
 	RenderPass pass;
 	pass.type = RenderPass_Normal;
 	pass.target = target;
@@ -1699,7 +1608,7 @@ u8 AddBarrierRenderPass( const tracy::SourceLocationData * tracy, Framebuffer ta
 	return AddRenderPass( pass );
 }
 
-u8 AddUnsortedRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target ) {
+u8 AddUnsortedRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target ) {
 	RenderPass pass;
 	pass.type = RenderPass_Normal;
 	pass.target = target;
@@ -1708,7 +1617,7 @@ u8 AddUnsortedRenderPass( const tracy::SourceLocationData * tracy, Framebuffer t
 	return AddRenderPass( pass );
 }
 
-void AddBlitPass( const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color, ClearDepth clear_depth ) {
+void AddBlitPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst, ClearColor clear_color, ClearDepth clear_depth ) {
 	RenderPass pass;
 	pass.type = RenderPass_Blit;
 	pass.tracy = tracy;
@@ -1719,8 +1628,39 @@ void AddBlitPass( const tracy::SourceLocationData * tracy, Framebuffer src, Fram
 	AddRenderPass( pass );
 }
 
-void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color, ClearDepth clear_depth ) {
+void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst, ClearColor clear_color, ClearDepth clear_depth ) {
 	AddBlitPass( tracy, src, dst, clear_color, clear_depth );
+}
+
+void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 first_index, u32 base_vertex ) {
+	DrawInstancedMesh( mesh, pipeline, 1, num_vertices_override, first_index, base_vertex );
+}
+
+void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_instances, u32 num_vertices_override, u32 first_index, u32 base_vertex ) {
+	Assert( in_frame );
+	Assert( pipeline.pass != U8_MAX );
+	Assert( pipeline.shader != NULL );
+
+	DrawCall dc = { };
+	dc.type = DrawCallType_Normal;
+	dc.mesh = mesh;
+	dc.pipeline = pipeline;
+	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
+	dc.first_index = first_index;
+	dc.base_vertex = base_vertex;
+	dc.num_instances = num_instances;
+	draw_calls.add( dc );
+
+	num_vertices_this_frame += dc.num_vertices * num_instances;
+}
+
+void DrawMeshIndirect( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer indirect ) {
+	DrawCall dc = { };
+	dc.type = DrawCallType_Indirect;
+	dc.pipeline = pipeline;
+	dc.mesh = mesh;
+	dc.indirect = indirect;
+	draw_calls.add( dc );
 }
 
 void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z ) {
@@ -1737,15 +1677,6 @@ void DispatchComputeIndirect( const PipelineState & pipeline, GPUBuffer indirect
 	DrawCall dc = { };
 	dc.type = DrawCallType_IndirectCompute;
 	dc.pipeline = pipeline;
-	dc.indirect = indirect;
-	draw_calls.add( dc );
-}
-
-void DrawInstancedParticles( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer indirect ) {
-	DrawCall dc = { };
-	dc.type = DrawCallType_Indirect;
-	dc.pipeline = pipeline;
-	dc.mesh = mesh;
 	dc.indirect = indirect;
 	draw_calls.add( dc );
 }

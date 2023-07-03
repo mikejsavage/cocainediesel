@@ -1,5 +1,3 @@
-#include <algorithm>
-
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_internal.h"
@@ -11,6 +9,8 @@
 #include "client/client.h"
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
+
+#include "nanosort/nanosort.hpp"
 
 static Texture atlas_texture;
 static Material atlas_material;
@@ -85,10 +85,10 @@ void CL_InitImGui() {
 		io.Fonts->GetTexDataAsAlpha8( &pixels, &width, &height );
 
 		TextureConfig config;
+		config.format = TextureFormat_A_U8;
 		config.width = width;
 		config.height = height;
 		config.data = pixels;
-		config.format = TextureFormat_A_U8;
 
 		atlas_texture = NewTexture( config );
 		atlas_material.texture = &atlas_texture;
@@ -205,21 +205,23 @@ static void SubmitDrawCalls() {
 					pipeline.blend_func = BlendFunc_Blend;
 					pipeline.cull_face = CullFace_Disabled;
 					pipeline.write_depth = false;
-					pipeline.scissor.x = scissor.mins.x;
-					pipeline.scissor.y = scissor.mins.y;
-					pipeline.scissor.w = scissor.maxs.x - scissor.mins.x;
-					pipeline.scissor.h = scissor.maxs.y - scissor.mins.y;
+					pipeline.scissor = {
+						u32( scissor.mins.x ),
+						u32( scissor.mins.y ),
+						u32( scissor.maxs.x - scissor.mins.x ),
+						u32( scissor.maxs.y - scissor.mins.y ),
+					};
 
-					pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
-					pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-					pipeline.set_uniform( "u_MaterialStatic", frame_static.identity_material_static_uniforms );
-					pipeline.set_uniform( "u_MaterialDynamic", frame_static.identity_material_dynamic_uniforms );
+					pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
+					pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
+					pipeline.bind_uniform( "u_MaterialStatic", frame_static.identity_material_static_uniforms );
+					pipeline.bind_uniform( "u_MaterialDynamic", frame_static.identity_material_dynamic_uniforms );
 
 					if( pcmd->TextureId.uniform_name != EMPTY_HASH ) {
-						pipeline.set_uniform( pcmd->TextureId.uniform_name, pcmd->TextureId.uniform_block );
+						pipeline.bind_uniform( pcmd->TextureId.uniform_name, pcmd->TextureId.uniform_block );
 					}
 
-					pipeline.set_texture( "u_BaseTexture", pcmd->TextureId.material->texture );
+					pipeline.bind_texture( "u_BaseTexture", pcmd->TextureId.material->texture );
 
 					DrawMesh( mesh, pipeline, pcmd->ElemCount, pcmd->IdxOffset );
 				}
@@ -241,7 +243,7 @@ void CL_ImGuiEndFrame() {
 	// ImGui::ShowDemoWindow();
 
 	ImGuiContext * ctx = ImGui::GetCurrentContext();
-	std::stable_sort( ctx->Windows.begin(), ctx->Windows.end(),
+	nanosort( ctx->Windows.begin(), ctx->Windows.end(),
 		[]( const ImGuiWindow * a, const ImGuiWindow * b ) {
 			return a->BeginOrderWithinContext < b->BeginOrderWithinContext;
 		}
@@ -284,7 +286,6 @@ void CenterTextY( const char * str, float height ) {
 	ImGui::SetCursorPosY( ImGui::GetCursorPosY() + 0.5f * ( height - text_height ) );
 	ImGui::Text( "%s", str );
 }
-
 
 void CellCenter( float item_width ) {
 	float cell_width = ImGui::GetContentRegionAvail().x;

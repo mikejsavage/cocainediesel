@@ -50,4 +50,4 @@ Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor 
 	return { };
 }
 
-#endif // #ifdef PLATFORM_MACOS
+#endif // #if PLATFORM_MACOS

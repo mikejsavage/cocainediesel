@@ -430,57 +430,6 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type, UserCommand * cmd ) {
 	}
 }
 
-static void DrawWorld() {
-	TracyZoneScoped;
-
-	const char * suffix = "*0";
-	u64 hash = Hash64( suffix, strlen( suffix ), cl.map->base_hash.hash );
-	const MapSubModelRenderData * model = FindMapSubModelRenderData( StringHash( hash ) );
-	if( model == NULL )
-		return;
-
-	const Map * map = FindMap( model->base_hash );
-
-	u32 first_mesh = map->data.models[ model->sub_model ].first_mesh;
-	for( u32 i = 0; i < map->data.models[ model->sub_model ].num_meshes; i++ ) {
-		const MapMesh & mesh = map->data.meshes[ i + first_mesh ];
-		const Material * material = FindMaterial( StringHash( mesh.material ), &world_material );
-
-		if( material->blend_func == BlendFunc_Disabled ) {
-			for( u32 j = 0; j < frame_static.shadow_parameters.num_cascades; j++ ) {
-				PipelineState pipeline;
-				pipeline.pass = frame_static.shadowmap_pass[ j ];
-				pipeline.shader = &shaders.depth_only;
-				pipeline.clamp_depth = true;
-				pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
-				pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
-
-				DrawMesh( map->render_data.mesh, pipeline, mesh.num_vertices, mesh.first_vertex_index );
-			}
-		}
-
-		{
-			PipelineState pipeline;
-			pipeline.pass = frame_static.world_opaque_prepass_pass;
-			pipeline.shader = &shaders.depth_only;
-			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-			pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
-
-			DrawMesh( map->render_data.mesh, pipeline, mesh.num_vertices, mesh.first_vertex_index );
-		}
-
-		{
-			PipelineState pipeline = MaterialToPipelineState( material );
-			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-			pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
-			pipeline.write_depth = false;
-			pipeline.depth_func = DepthFunc_Equal;
-
-			DrawMesh( map->render_data.mesh, pipeline, mesh.num_vertices, mesh.first_vertex_index );
-		}
-	}
-}
-
 static void DrawSilhouettes() {
 	TracyZoneScoped;
 
@@ -615,10 +564,9 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	DoVisualEffect( "vfx/rain", cg.view.origin );
 
-	// DrawWorld();
+	DrawEntities();
 	DrawOutlines();
 	DrawSilhouettes();
-	DrawEntities();
 	CG_AddViewWeapon( &cg.weapon );
 	DrawGibs();
 	DrawParticles();

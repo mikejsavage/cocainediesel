@@ -615,7 +615,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	DoVisualEffect( "vfx/rain", cg.view.origin );
 
-	DrawWorld();
+	// DrawWorld();
 	DrawOutlines();
 	DrawSilhouettes();
 	DrawEntities();

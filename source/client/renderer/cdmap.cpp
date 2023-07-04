@@ -61,7 +61,7 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 		}
 
 		{
-			PipelineState pipeline = MaterialToPipelineState( FindMaterial( StringHash( mesh.material ) ) );
+			PipelineState pipeline = MaterialToPipelineState( FindMaterial( StringHash( mesh.material ), &world_material ) );
 			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 			pipeline.write_depth = false;

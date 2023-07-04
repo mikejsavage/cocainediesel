@@ -33,22 +33,22 @@ struct ModelInstanceCollection {
 };
 
 struct GPUModelInstance {
-	Mat4 transform;
+	Mat3x4 transform;
 	GPUMaterial material;
 };
 
 struct GPUModelShadowsInstance {
-	Mat4 transform;
+	Mat3x4 transform;
 };
 
 struct GPUModelOutlinesInstance {
-	Mat4 transform;
+	Mat3x4 transform;
 	Vec4 color;
 	float height;
 };
 
 struct GPUModelSilhouetteInstance {
-	Mat4 transform;
+	Mat3x4 transform;
 	Vec4 color;
 };
 
@@ -666,12 +666,12 @@ static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh,
 		return;
 	}
 
-	u64 hash = Hash64( &config.view_weapon, sizeof( config.view_weapon ), Hash64( mesh.vao ) );
+	u64 hash = Hash64( &config.view_weapon, sizeof( config.view_weapon ), Hash64( mesh.vertex_buffers->buffer ) );
 	hash = Hash64( &config.map_model, sizeof( config.map_model ), hash );
 
 	GPUModelInstance instance = { };
 	instance.material = gpu_material;
-	instance.transform = transform;
+	instance.transform = Mat3x4( transform );
 
 	AddInstanceToCollection( model_instance_collection, mesh, pipeline, instance, hash );
 }
@@ -694,10 +694,10 @@ static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Mesh & m
 			continue;
 		}
 
-		u64 hash = Hash64( &i, sizeof( i ), Hash64( mesh.vao ) );
+		u64 hash = Hash64( &i, sizeof( i ), Hash64( mesh.vertex_buffers->buffer ) );
 
 		GPUModelShadowsInstance instance = { };
-		instance.transform = transform;
+		instance.transform = Mat3x4( transform );
 
 		AddInstanceToCollection( model_shadows_instance_collection, mesh, pipeline, instance, hash );
 	}
@@ -720,9 +720,9 @@ static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Mesh &
 	GPUModelOutlinesInstance instance = { };
 	instance.color = config.outline_color;
 	instance.height = config.outline_height;
-	instance.transform = transform;
+	instance.transform = Mat3x4( transform );
 
-	u64 hash = Hash64( mesh.vao );
+	u64 hash = Hash64( mesh.vertex_buffers->buffer );
 	AddInstanceToCollection( model_outlines_instance_collection, mesh, pipeline, instance, hash );
 }
 
@@ -742,9 +742,9 @@ static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Me
 
 	GPUModelSilhouetteInstance instance = { };
 	instance.color = config.silhouette_color;
-	instance.transform = transform;
+	instance.transform = Mat3x4( transform );
 
-	u64 hash = Hash64( mesh.vao );
+	u64 hash = Hash64( mesh.vertex_buffers->buffer );
 	AddInstanceToCollection( model_silhouette_instance_collection, mesh, pipeline, instance, hash );
 }
 
@@ -772,7 +772,7 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 
 	for( u8 i = 0; i < render_data->nodes.n; i++ ) {
 		const GLTFRenderData::Node * node = &render_data->nodes[ i ];
-		if( node->mesh.vao == 0 && node->vfx_type == ModelVfxType_None )
+		if( node->mesh.num_vertices == 0 && node->vfx_type == ModelVfxType_None )
 			continue;
 
 		bool skinned = animated && node->skinned;
@@ -791,7 +791,7 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 
 		DrawVfxNode( config.draw_model, node, node_transform, color );
 
-		if( node->mesh.vao == 0 )
+		if( node->mesh.num_vertices == 0 )
 			continue;
 
 		GPUMaterial gpu_material;
@@ -841,8 +841,8 @@ template< typename T >
 static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collection ) {
 	for( u32 i = 0; i < collection.num_groups; i++ ) {
 		ModelInstanceGroup< T > & group = collection.groups[ i ];
-		group.pipeline.set_buffer( "b_Instances", group.instance_data );
 		WriteGPUBuffer( group.instance_data, group.instances, sizeof( T ) * group.num_instances );
+		group.pipeline.bind_buffer( "b_Instances", group.instance_data );
 		DrawInstancedMesh( group.mesh, group.pipeline, group.num_instances );
 		group.num_instances = 0;
 	}

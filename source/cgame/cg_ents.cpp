@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "qcommon/time.h"
 #include "client/renderer/renderer.h"
 
 static void CG_UpdateEntities();
@@ -416,6 +417,11 @@ static void DrawEntityModel( centity_t * cent ) {
 	MatrixPalettes palettes = { };
 	if( cent->interpolated.animating && model.type == ModelType_GLTF && model.gltf->animations.n > 0 ) { // TODO: this is fragile and we should do something better
 		Span< TRS > pose = SampleAnimation( &temp, model.gltf, cent->interpolated.animation_time );
+		palettes = ComputeMatrixPalettes( &temp, model.gltf, pose );
+	}
+	else if( cent->current.type == ET_MAPMODEL && model.type == ModelType_GLTF && model.gltf->animations.n > 0 ) {
+		float t = PositiveMod( ToSeconds( cls.monotonicTime ), model.gltf->animations[ 0 ].duration );
+		Span< TRS > pose = SampleAnimation( &temp, model.gltf, t );
 		palettes = ComputeMatrixPalettes( &temp, model.gltf, pose );
 	}
 

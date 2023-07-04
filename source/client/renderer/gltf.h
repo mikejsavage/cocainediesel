@@ -31,6 +31,7 @@ struct GLTFRenderData {
 
 	struct Animation {
 		StringHash name;
+		float duration;
 	};
 
 	struct NodeAnimation {
@@ -93,7 +94,7 @@ struct GLTFRenderData {
 
 	Span< Node > nodes;
 	Span< Joint > skin;
-	Span< StringHash > animations;
+	Span< Animation > animations;
 };
 
 struct cgltf_data;

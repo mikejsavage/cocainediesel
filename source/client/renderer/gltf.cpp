@@ -379,7 +379,8 @@ static void LoadAnimation( GLTFRenderData * model, const cgltf_animation * anima
 		}
 		duration = Max2( channel_duration, duration );
 	}
-	model->animations[ index ] = StringHash( animation->name );
+	model->animations[ index ].name = StringHash( animation->name );
+	model->animations[ index ].duration = duration;
 }
 
 static void LoadSkin( GLTFRenderData * model, const cgltf_skin * skin ) {
@@ -432,7 +433,7 @@ bool NewGLTFRenderData( GLTFRenderData * render_data, cgltf_data * gltf, const c
 			LoadSkin( render_data, &gltf->skins[ 0 ] );
 		}
 
-		render_data->animations = AllocSpan< StringHash >( sys_allocator, gltf->animations_count );
+		render_data->animations = AllocSpan< GLTFRenderData::Animation >( sys_allocator, gltf->animations_count );
 
 		for( size_t i = 0; i < render_data->nodes.n; i++ ) {
 			render_data->nodes[ i ].animations = AllocSpan< GLTFRenderData::NodeAnimation >( sys_allocator, gltf->animations_count );
@@ -585,7 +586,7 @@ bool FindNodeByName( const GLTFRenderData * render_data, StringHash name, u8 * i
 
 bool FindAnimationByName( const GLTFRenderData * render_data, StringHash name, u8 * idx ) {
 	for( u8 i = 0; i < render_data->animations.n; i++ ) {
-		if( render_data->animations[ i ] == name ) {
+		if( render_data->animations[ i ].name == name ) {
 			*idx = i;
 			return true;
 		}

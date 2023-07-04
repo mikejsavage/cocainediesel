@@ -1,12 +1,3 @@
-models/static
-{
-	shaded
-	{
-		map $whiteimage
-		rgbGen const 0.3 0.3 0.3
-	}
-}
-
 models/jumppad
 {
 	surfaceparm nonsolid

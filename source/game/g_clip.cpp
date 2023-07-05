@@ -57,6 +57,7 @@ void GClip_BackUpCollisionFrame() {
 
 	CollisionFrame * newframe = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
 	newframe->grid = frame->grid;
+	memcpy( newframe->entities, frame->entities, frame->num_entities * sizeof( CollisionEntity ) );
 }
 
 static void GetCollisionFrames4D( CollisionFrame ** older, CollisionFrame ** newer, int time_delta ) {

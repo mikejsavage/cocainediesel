@@ -4,7 +4,6 @@
 #include "include/fog.glsl"
 
 v2f vec3 v_Position;
-v2f float v_Height;
 
 #if VERTEX_SHADER
 

@@ -47,7 +47,6 @@ void main() {
   sky_color = mix( sky_color, sun_color, sun_fract );
 
   // clouds
-  vec2 c = uv;
   vec2 h = vec2( 0.0 );
   float a = 1.0;
   float s = 1.0;

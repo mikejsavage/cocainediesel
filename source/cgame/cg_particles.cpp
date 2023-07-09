@@ -2,7 +2,7 @@
 #include "qcommon/serialization.h"
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
-#include "client/renderer/shader_constants.h"
+#include "client/renderer/shader_shared.h"
 #include "cgame/cg_local.h"
 
 #include "qcommon/hash.h"

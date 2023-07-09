@@ -4,7 +4,8 @@
 #include "client/client.h"
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
-#include "client/renderer/shader_constants.h"
+#include "client/renderer/shader_shared.h"
+#include "client/renderer/shader_variants.h"
 
 Shaders shaders;
 
@@ -34,11 +35,6 @@ static void BuildShaderSrcs( DynamicString * src, const char * path, const char 
 	src->append( "#define FORWARD_PLUS_TILE_CAPACITY {}\n", FORWARD_PLUS_TILE_CAPACITY );
 	src->append( "#define DLIGHT_CUTOFF {}\n", DLIGHT_CUTOFF );
 	src->append( "#define SKINNED_MODEL_MAX_JOINTS {}\n", SKINNED_MODEL_MAX_JOINTS );
-
-	src->append( "#define PARTICLE_COLLISION_POINT {}u\n", ParticleFlag_CollisionPoint );
-	src->append( "#define PARTICLE_COLLISION_SPHERE {}u\n", ParticleFlag_CollisionSphere );
-	src->append( "#define PARTICLE_ROTATE {}u\n", ParticleFlag_Rotate );
-	src->append( "#define PARTICLE_STRETCH {}u\n", ParticleFlag_Stretch );
 
 	src->append( "{}", variant_switches );
 

@@ -23,14 +23,9 @@ layout( std430 ) readonly buffer b_Instances {
 v2f flat int v_Instance;
 #endif
 
+layout( constant_id = 0 ) const bool VertexColors = false;
 
-#if VERTEX_COLORS
 v2f vec4 v_Color;
-#endif
-
-#if APPLY_SOFT_PARTICLE
-v2f float v_Depth;
-#endif
 
 #if VERTEX_SHADER
 
@@ -41,7 +36,7 @@ in vec2 a_TexCoord;
 
 vec2 ApplyTCMod( vec2 uv ) {
 #if INSTANCED
-	mat3x2 m = transpose( mat2x3( instances[ gl_InstanceID ].texture_matrix[ 0 ], instances[ gl_InstanceID ].texture_matrix[ 1 ] ) );
+	mat3x2 m = transpose( mat2x3( instances[ gl_InstanceIndex ].texture_matrix[ 0 ], instances[ gl_InstanceIndex ].texture_matrix[ 1 ] ) );
 #else
 	mat3x2 m = transpose( mat2x3( u_TextureMatrix[ 0 ], u_TextureMatrix[ 1 ] ) );
 #endif
@@ -50,8 +45,8 @@ vec2 ApplyTCMod( vec2 uv ) {
 
 void main() {
 #if INSTANCED
-	mat4 u_M = AffineToMat4( instances[ gl_InstanceID ].transform );
-	v_Instance = gl_InstanceID;
+	mat4 u_M = AffineToMat4( instances[ gl_InstanceIndex ].transform );
+	v_Instance = gl_InstanceIndex;
 #endif
 	vec4 Position = a_Position;
 	vec3 Normal = a_Normal;
@@ -68,9 +63,9 @@ void main() {
 
 	v_TexCoord = ApplyTCMod( a_TexCoord );
 
-#if VERTEX_COLORS
-	v_Color = sRGBToLinear( a_Color );
-#endif
+	if( VertexColors ) {
+		v_Color = sRGBToLinear( a_Color );
+	}
 
 	gl_Position = u_P * u_V * u_M * Position;
 }
@@ -82,12 +77,7 @@ out uint f_Mask;
 
 const uint MASK_CURVED = 1u;
 
-uniform sampler2D u_BaseTexture;
-
-#if APPLY_SOFT_PARTICLE
-#include "include/softparticle.glsl"
-uniform sampler2D u_DepthTexture;
-#endif
+/*layout( set = DescriptorSet_Material )*/ uniform sampler2D u_BaseTexture;
 
 #if APPLY_DECALS || APPLY_DLIGHTS
 struct DynamicTile {
@@ -95,7 +85,7 @@ struct DynamicTile {
 	uint num_dlights;
 };
 
-layout( std430 ) readonly buffer b_DynamicTiles {
+layout( std430/*, set = DescriptorSet_RenderPass*/ ) readonly buffer b_DynamicTiles {
 	DynamicTile dynamic_tiles[];
 };
 #endif

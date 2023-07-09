@@ -48,6 +48,7 @@ require( "libs.zstd" )
 
 require( "source.tools.bc4" )
 require( "source.tools.dieselmap" )
+require( "source.tools.shadercompiler" )
 
 local platform_curl_libs = {
 	{ OS ~= "macos" and "curl" or nil },

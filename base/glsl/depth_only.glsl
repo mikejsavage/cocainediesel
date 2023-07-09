@@ -15,7 +15,7 @@ in vec3 a_Normal;
 
 void main() {
 #if INSTANCED
-	mat4 u_M = AffineToMat4( instances[ gl_InstanceID ] );
+	mat4 u_M = AffineToMat4( instances[ gl_InstanceIndex ] );
 #endif
 
 	vec4 Position = a_Position;

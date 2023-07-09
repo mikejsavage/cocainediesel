@@ -1,11 +1,34 @@
 #pragma once
 
 #include "qcommon/types.h"
+#include "client/renderer/shader_shared.h"
 
 enum BlendFunc : u8 {
 	BlendFunc_Disabled,
 	BlendFunc_Blend,
 	BlendFunc_Add,
+};
+
+enum VertexFormat : u8 {
+	VertexFormat_U8x2,
+	VertexFormat_U8x2_Norm,
+	VertexFormat_U8x3,
+	VertexFormat_U8x3_Norm,
+	VertexFormat_U8x4,
+	VertexFormat_U8x4_Norm,
+
+	VertexFormat_U10x3_U2x1_Norm,
+
+	VertexFormat_U16x2,
+	VertexFormat_U16x2_Norm,
+	VertexFormat_U16x3,
+	VertexFormat_U16x3_Norm,
+	VertexFormat_U16x4,
+	VertexFormat_U16x4_Norm,
+
+	VertexFormat_Floatx2,
+	VertexFormat_Floatx3,
+	VertexFormat_Floatx4,
 };
 
 enum IndexFormat : u8 {
@@ -22,6 +45,12 @@ enum VertexAttributeType : u32 {
 	VertexAttribute_JointWeights,
 
 	VertexAttribute_Count
+};
+
+struct VertexAttribute {
+	VertexFormat format;
+	size_t buffer;
+	size_t offset;
 };
 
 enum TextureFormat : u8 {
@@ -50,6 +79,27 @@ enum TextureFormat : u8 {
 
 	TextureFormat_Depth,
 	TextureFormat_Shadow,
+};
+
+struct GPUBufferSpan {
+	GPUBuffer buffer;
+	u32 offset;
+	u32 size;
+};
+
+struct UniformBlock {
+	u32 ubo;
+	u32 offset;
+	u32 size;
+};
+
+struct Mesh {
+	GPUBuffer vertex_buffers[ VertexAttribute_Count ];
+	GPUBuffer index_buffer;
+	u32 num_vertices;
+	VertexDescriptor vertex_descriptor;
+	IndexFormat index_format;
+	bool cw_winding;
 };
 
 struct TRS {

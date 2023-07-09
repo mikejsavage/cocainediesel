@@ -56,7 +56,35 @@ enum VertexFormat : u8 {
 	VertexFormat_Floatx4,
 };
 
-struct Framebuffer {
+struct BindGroupDescriptor {
+	struct UniformBinding {
+		u64 name_hash;
+		GPUBufferSpan span;
+	};
+
+	struct TextureBinding {
+		u64 name_hash;
+		const Texture * texture;
+	};
+
+	struct BufferBinding {
+		u64 name_hash;
+		GPUBufferSpan span;
+	};
+
+	UniformBinding uniforms[ ARRAY_COUNT( &Shader::uniforms ) ];
+	TextureBinding textures[ ARRAY_COUNT( &Shader::textures ) ];
+	BufferBinding buffers[ ARRAY_COUNT( &Shader::buffers ) ];
+	size_t num_uniforms = 0;
+	size_t num_textures = 0;
+	size_t num_buffers = 0;
+};
+
+struct BindGroup {
+	BindGroupDescriptor lol;
+};
+
+struct RenderTarget {
 	u32 fbo;
 	Texture albedo_texture;
 	Texture mask_texture;

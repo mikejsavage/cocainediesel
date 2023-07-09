@@ -25,8 +25,8 @@ in vec4 a_Position;
 
 void main() {
 #if INSTANCED
-	mat4 u_M = AffineToMat4( instances[ gl_InstanceID ].transform );
-	v_Instance = gl_InstanceID;
+	mat4 u_M = AffineToMat4( instances[ gl_InstanceIndex ].transform );
+	v_Instance = gl_InstanceIndex;
 #endif
 	vec4 Position = a_Position;
 	vec3 NormalDontCare = vec3( 0 );

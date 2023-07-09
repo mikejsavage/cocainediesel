@@ -33,7 +33,7 @@ layout( std430 ) readonly buffer b_Particles {
 };
 
 void main() {
-	Particle particle = particles[ gl_InstanceID ];
+	Particle particle = particles[ gl_InstanceIndex ];
 
 	float fage = particle.age / particle.lifetime;
 
@@ -41,7 +41,7 @@ void main() {
 #if MODEL
 	v_TexCoord = a_TexCoord;
 #else
-	vec2 position = quad_positions[ index_buffer[ gl_VertexID ] ];
+	vec2 position = quad_positions[ index_buffer[ gl_VertexIndex ] ];
 	v_TexCoord = PositionToTexCoord( position ) * particle.uvwh.zw + particle.uvwh.xy;
 	v_Layer = floor( particle.uvwh.x );
 #endif
@@ -58,14 +58,14 @@ void main() {
 	vec3 view_velocity = ( u_V * vec4( particle.velocity * 0.01, 0.0 ) ).xyz;
 	vec3 quadPos = vec3( scale * position, 0.0 );
 	float angle = particle.angle;
-	if ( ( particle.flags & PARTICLE_ROTATE ) != 0u ) {
+	if ( ( particle.flags & ParticleFlag_Rotate ) != 0u ) {
 		angle += atan( view_velocity.x, -view_velocity.y );
 	}
 	float ca = cos( angle );
 	float sa = sin( angle );
 	mat2 rot = mat2( ca, sa, -sa, ca );
 	quadPos.xy = rot * quadPos.xy;
-	if ( ( particle.flags & PARTICLE_STRETCH ) != 0u ) {
+	if ( ( particle.flags & ParticleFlag_Stretch ) != 0u ) {
 		vec3 stretch = dot( quadPos, view_velocity ) * view_velocity;
 		quadPos += normalize( stretch ) * clamp( length( stretch ), 0.0, scale );
 	}

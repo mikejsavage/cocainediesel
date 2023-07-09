@@ -12,6 +12,8 @@
 /bc4-*
 /dieselmap
 /dieselmap-*
+/shadercompiler
+/shadercompiler-*
 
 /livepp_shim.*
 /libs/LivePP
@@ -36,5 +38,7 @@
 /*.ilk
 /*.lib
 /*.pdb
+*.spv
+*.metallib
 
 *.cddemo

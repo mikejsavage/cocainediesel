@@ -3,7 +3,7 @@
 #include "qcommon/span2d.h"
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
-#include "client/renderer/shader_constants.h"
+#include "client/renderer/shader_shared.h"
 #include "qcommon/array.h"
 
 static StreamingBuffer decals_buffer;

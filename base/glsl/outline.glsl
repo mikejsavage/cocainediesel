@@ -30,7 +30,7 @@ layout( std430 ) readonly buffer b_Instances {
 
 void main() {
 #if INSTANCED
-	mat4 u_M = AffineToMat4( instances[ gl_InstanceID ].transform );
+	mat4 u_M = AffineToMat4( instances[ gl_InstanceIndex ].transform );
 #endif
 	vec4 Position = a_Position;
 	vec3 Normal = a_Normal;
@@ -40,7 +40,7 @@ void main() {
 #endif
 
 #if INSTANCED
-	Position += vec4( Normal * instances[ gl_InstanceID ].outline_height, 0.0 );
+	Position += vec4( Normal * instances[ gl_InstanceIndex ].outline_height, 0.0 );
 #else
 	Position += vec4( Normal * u_OutlineHeight, 0.0 );
 #endif
@@ -49,7 +49,7 @@ void main() {
 	gl_Position = u_P * u_V * Position;
 
 #if INSTANCED
-	v_Color = sRGBToLinear( instances[ gl_InstanceID ].outline_color );
+	v_Color = sRGBToLinear( instances[ gl_InstanceIndex ].outline_color );
 #else
 	v_Color = sRGBToLinear( u_OutlineColor );
 #endif

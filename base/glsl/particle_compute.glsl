@@ -1,3 +1,4 @@
+#include "../../source/client/renderer/shader_shared.h"
 #include "include/trace.glsl"
 #include "include/particles.glsl"
 
@@ -27,12 +28,12 @@ layout( std430 ) coherent buffer b_ComputeCountOut {
 };
 
 bool collide( inout Particle particle, float dt ) {
-	if( u_Collision == 0 || ( particle.flags & ( PARTICLE_COLLISION_POINT | PARTICLE_COLLISION_SPHERE ) ) == 0 ) {
+	if( u_Collision == 0 || ( particle.flags & ( ParticleFlag_CollisionPoint | ParticleFlag_CollisionSphere ) ) == 0 ) {
 		return false;
 	}
 
 	float radius = 0.0;
-	if( ( particle.flags & PARTICLE_COLLISION_SPHERE ) != 0 ) {
+	if( ( particle.flags & ParticleFlag_CollisionSphere ) != 0 ) {
 		float fage = particle.age / particle.lifetime;
 		radius = mix( particle.start_size, particle.end_size, fage );
 		radius *= u_Radius;

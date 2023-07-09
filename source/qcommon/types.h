@@ -67,6 +67,7 @@ struct Allocator {
 };
 
 struct TempAllocator;
+struct ArenaAllocator;
 
 #if COMPILER_MSVC
 #define __PRETTY_FUNCTION__ __FUNCSIG__
@@ -182,6 +183,18 @@ constexpr T Clamp01( const T & x ) {
  * Span
  */
 
+// workaround for
+// candidate template ignored: deduced conflicting types for parameter 'T' ('const char **' vs. 'const char *const *')
+template< typename R, typename T >
+R * DestupidInitializerLists( T x ) {
+	return x;
+}
+
+template<>
+inline const char ** DestupidInitializerLists( const char * const * str ) {
+	return const_cast< const char ** >( str );
+}
+
 template< typename T >
 struct Span {
 	T * ptr;
@@ -189,6 +202,9 @@ struct Span {
 
 	constexpr Span() : ptr( NULL ), n( 0 ) { }
 	constexpr Span( T * ptr_, size_t n_ ) : ptr( ptr_ ), n( n_ ) { }
+
+	// it's not safe to pass anything but temporaries here, so make elems an r-value reference
+	constexpr Span( std::initializer_list< T > && elems ) : ptr( DestupidInitializerLists< T >( elems.begin() ) ), n( elems.size() ) { }
 
 	// allow implicit conversion to Span< const T >
 	operator Span< const T >() const { return Span< const T >( ptr, n ); }
@@ -243,13 +259,10 @@ struct Optional {
 	T value;
 	bool exists;
 
-	Optional() = default;
+	constexpr Optional() = default;
 
-	Optional( NoneType ) { exists = false; }
-	Optional( const T & other ) {
-		value = other;
-		exists = true;
-	}
+	constexpr Optional( NoneType ) : exists( false ) { }
+	constexpr Optional( const T & other ) : value( other ), exists( true ) { }
 
 	void operator=( NoneType ) { exists = false; }
 	void operator=( const T & other ) {

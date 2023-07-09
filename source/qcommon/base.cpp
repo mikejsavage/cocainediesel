@@ -9,6 +9,8 @@ bool break2 = false;
 bool break3 = false;
 bool break4 = false;
 
+bool tracy_is_active = true;
+
 void FatalImpl( const char * file, int line, const char * format, ... ) {
 	va_list argptr;
 	char msg[ 1024 ];
@@ -38,8 +40,8 @@ void format( FormatBuffer * fb, Span< const char > span, const FormatOpts & opts
 	fb->len += span.n;
 }
 
-char * CopyString( Allocator * a, const char * str ) {
-	return ( *a )( "{}", str );
+char * CopyString( Allocator * a, const char * str, SourceLocation src ) {
+	return ( *a )( src, "{}", str );
 }
 
 Span< char > MakeSpan( char * str ) {

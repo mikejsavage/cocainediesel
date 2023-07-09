@@ -99,7 +99,7 @@ static void AddInotifyWatchesRecursive( Allocator * a, FSChangeMonitor * monitor
 }
 
 FSChangeMonitor * NewFSChangeMonitor( Allocator * a, const char * path ) {
-	FSChangeMonitor * monitor = ALLOC( a, FSChangeMonitor );
+	FSChangeMonitor * monitor = Alloc< FSChangeMonitor >( a );
 	monitor->fd = inotify_init();
 	if( monitor->fd == -1 ) {
 		FatalErrno( "inotify_init" );
@@ -116,10 +116,10 @@ FSChangeMonitor * NewFSChangeMonitor( Allocator * a, const char * path ) {
 
 void DeleteFSChangeMonitor( Allocator * a, FSChangeMonitor * monitor ) {
 	for( size_t i = 0; i < monitor->num_wd_paths; i++ ) {
-		FREE( a, monitor->wd_paths[ i ] );
+		Free( a, monitor->wd_paths[ i ] );
 	}
 	close( monitor->fd );
-	FREE( a, monitor );
+	Free( a, monitor );
 }
 
 Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor * monitor, const char ** results, size_t n ) {

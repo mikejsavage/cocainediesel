@@ -75,14 +75,14 @@ Semaphore * NewSemaphore() {
 		FatalGLE( "CreateSemaphoreA" );
 	}
 
-	Semaphore * sem = ALLOC( sys_allocator, Semaphore );
+	Semaphore * sem = Alloc< Semaphore >( sys_allocator );
 	sem->handle = handle;
 	return sem;
 }
 
 void DeleteSemaphore( Semaphore * sem ) {
 	CloseHandle( sem->handle );
-	FREE( sys_allocator, sem );
+	Free( sys_allocator, sem );
 }
 
 void Signal( Semaphore * sem, int n ) {

@@ -27,7 +27,7 @@ static wchar_t * UTF8ToWide( Allocator * a, const char * utf8 ) {
 	int len = MultiByteToWideChar( CP_UTF8, 0, utf8, -1, NULL, 0 );
 	Assert( len != 0 );
 
-	wchar_t * wide = ALLOC_MANY( a, wchar_t, len );
+	wchar_t * wide = AllocMany< wchar_t >( a, len );
 	MultiByteToWideChar( CP_UTF8, 0, utf8, -1, wide, len );
 
 	return wide;
@@ -37,7 +37,7 @@ static char * WideToUTF8( Allocator * a, Span< const wchar_t > wide ) {
 	int len = WideCharToMultiByte( CP_UTF8, 0, wide.ptr, wide.n, NULL, 0, NULL, NULL );
 	Assert( len != 0 );
 
-	char * utf8 = ALLOC_MANY( a, char, len + 1 );
+	char * utf8 = AllocMany< char >( a, len + 1 );
 	WideCharToMultiByte( CP_UTF8, 0, wide.ptr, wide.n, utf8, len, NULL, NULL );
 	utf8[ len ] = '\0';
 
@@ -56,7 +56,7 @@ char * FindHomeDirectory( Allocator * a ) {
 	defer { CoTaskMemFree( wide_documents_path ); };
 
 	char * documents_path = WideToUTF8( a, wide_documents_path );
-	defer { FREE( a, documents_path ); };
+	defer { Free( a, documents_path ); };
 
 	return ReplaceBackslashes( ( *a )( "{}/My Games/{}", documents_path, APPLICATION ) );
 }
@@ -83,8 +83,8 @@ char * GetExePath( Allocator * a ) {
 FILE * OpenFile( Allocator * a, const char * path, OpenFileMode mode ) {
 	wchar_t * wide_path = UTF8ToWide( a, path );
 	wchar_t * wide_mode = UTF8ToWide( a, OpenFileModeToString( mode ) );
-	defer { FREE( a, wide_path ); };
-	defer { FREE( a, wide_mode ); };
+	defer { Free( a, wide_path ); };
+	defer { Free( a, wide_mode ); };
 	return _wfopen( wide_path, wide_mode );
 }
 
@@ -92,8 +92,8 @@ FILE * OpenFile( Allocator * a, const char * path, OpenFileMode mode ) {
 bool MoveFile( Allocator * a, const char * old_path, const char * new_path, MoveFileReplace replace ) {
 	wchar_t * wide_old_path = UTF8ToWide( a, old_path );
 	wchar_t * wide_new_path = UTF8ToWide( a, new_path );
-	defer { FREE( a, wide_old_path ); };
-	defer { FREE( a, wide_new_path ); };
+	defer { Free( a, wide_old_path ); };
+	defer { Free( a, wide_new_path ); };
 
 	DWORD flags = replace == MoveFile_DoReplace ? MOVEFILE_REPLACE_EXISTING : 0;
 
@@ -102,14 +102,14 @@ bool MoveFile( Allocator * a, const char * old_path, const char * new_path, Move
 
 bool RemoveFile( Allocator * a, const char * path ) {
 	wchar_t * wide_path = UTF8ToWide( a, path );
-	defer { FREE( a, wide_path ); };
+	defer { Free( a, wide_path ); };
 	return DeleteFileW( wide_path ) != 0;
 }
 
 #undef CreateDirectory
 bool CreateDirectory( Allocator * a, const char * path ) {
 	wchar_t * wide_path = UTF8ToWide( a, path );
-	defer { FREE( a, wide_path ); };
+	defer { Free( a, wide_path ); };
 	return CreateDirectoryW( wide_path, NULL ) != 0 || GetLastError() == ERROR_ALREADY_EXISTS;
 }
 
@@ -138,18 +138,18 @@ static ListDirHandle ImplToOpaque( ListDirHandleImpl impl ) {
 ListDirHandle BeginListDir( Allocator * a, const char * path ) {
 	ListDirHandleImpl handle = { };
 	handle.a = a;
-	handle.ffd = ALLOC( a, WIN32_FIND_DATAW );
+	handle.ffd = Alloc< WIN32_FIND_DATAW >( a );
 	handle.first = true;
 
 	char * path_and_wildcard = ( *a )( "{}/*", path );
-	defer { FREE( a, path_and_wildcard ); };
+	defer { Free( a, path_and_wildcard ); };
 
 	wchar_t * wide = UTF8ToWide( a, path_and_wildcard );
-	defer { FREE( a, wide ); };
+	defer { Free( a, wide ); };
 
 	handle.handle = FindFirstFileW( wide, handle.ffd );
 	if( handle.handle == INVALID_HANDLE_VALUE ) {
-		FREE( handle.a, handle.ffd );
+		Free( handle.a, handle.ffd );
 		handle.handle = NULL;
 	}
 
@@ -161,12 +161,12 @@ bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	if( handle.handle == NULL )
 		return false;
 
-	FREE( handle.a, handle.utf8_path );
+	Free( handle.a, handle.utf8_path );
 
 	if( !handle.first ) {
 		if( FindNextFileW( handle.handle, handle.ffd ) == 0 ) {
 			FindClose( handle.handle );
-			FREE( handle.a, handle.ffd );
+			Free( handle.a, handle.ffd );
 			return false;
 		}
 	}
@@ -191,10 +191,10 @@ struct FSChangeMonitor {
 };
 
 FSChangeMonitor * NewFSChangeMonitor( Allocator * a, const char * path ) {
-	FSChangeMonitor * monitor = ALLOC( a, FSChangeMonitor );
+	FSChangeMonitor * monitor = Alloc< FSChangeMonitor >( a );
 
 	wchar_t * wide_path = UTF8ToWide( a, path );
-	defer { FREE( a, wide_path ); };
+	defer { Free( a, wide_path ); };
 	monitor->dir = CreateFileW( wide_path, FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL );
 
 	monitor->event = CreateEvent( NULL, FALSE, FALSE, NULL );
@@ -207,7 +207,7 @@ FSChangeMonitor * NewFSChangeMonitor( Allocator * a, const char * path ) {
 void DeleteFSChangeMonitor( Allocator * a, FSChangeMonitor * monitor ) {
 	CloseHandle( monitor->event );
 	CloseHandle( monitor->dir );
-	FREE( a, monitor );
+	Free( a, monitor );
 }
 
 Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor * monitor, const char ** results, size_t n ) {

@@ -317,7 +317,7 @@ struct DrawArraysIndirect {
 void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	DeleteParticleSystem( a, ps );
 
-	ps->particles = ALLOC_SPAN( a, GPUParticle, ps->max_particles );
+	ps->particles = AllocSpan< GPUParticle >( a, ps->max_particles );
 	ps->gpu_particles1 = NewGPUBuffer( ps->max_particles * sizeof( GPUParticle ), "particles flip" );
 	ps->gpu_particles2 = NewGPUBuffer( ps->max_particles * sizeof( GPUParticle ), "particles flop" );
 
@@ -845,7 +845,7 @@ void DeleteParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	if( !ps->initialized ) {
 		return;
 	}
-	FREE( a, ps->particles.ptr );
+	Free( a, ps->particles.ptr );
 	DeleteGPUBuffer( ps->gpu_particles1 );
 	DeleteGPUBuffer( ps->gpu_particles2 );
 	DeleteGPUBuffer( ps->compute_count1 );
@@ -913,7 +913,7 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	pipeline.write_depth = false;
 	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
-	pipeline.bind_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
+	pipeline.bind_texture( "u_DecalAtlases", DecalAtlasTextureArray() );
 	pipeline.bind_buffer( "b_Particles", ps->gpu_particles2 );
 	DrawMeshIndirect( ps->mesh, pipeline, ps->draw_indirect );
 

@@ -22,11 +22,6 @@ struct RecordDemoContext {
 	size_t out_buf_capacity;
 };
 
-struct DemoHeader {
-	u64 magic;
-	u64 metadata_size;
-};
-
 struct DemoMetadata {
 	u32 metadata_version;
 	Span< char > game_version;
@@ -45,7 +40,6 @@ enum DemoMetadataVersions : u32 {
 };
 
 constexpr u32 DEMO_METADATA_VERSION = DemoMetadataVersion_Count - 1;
-constexpr const char DEMO_METADATA_MAGIC[ sizeof( DemoHeader::magic ) ] = "cddemo";
 
 bool StartRecordingDemo( TempAllocator * temp, RecordDemoContext * ctx, const char * filename, unsigned int spawncount, unsigned int snapFrameTime,
 	int max_clients, const SyncEntityState * baselines );

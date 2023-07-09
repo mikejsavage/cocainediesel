@@ -41,7 +41,7 @@ static u32 MipSize( u32 w, u32 h, u32 level ) {
 // TODO: should put this in qcommon/compression but gotta get rid of the Com_Printfs first
 static Span< u8 > Compress( Allocator * a, Span< const u8 > data ) {
 	size_t max_size = ZSTD_compressBound( data.n );
-	u8 * compressed = ALLOC_MANY( a, u8, max_size );
+	u8 * compressed = AllocMany< u8 >( a, max_size );
 	size_t compressed_size = ZSTD_compress( compressed, max_size, data.ptr, data.n, ZSTD_maxCLevel() );
 	if( ZSTD_isError( compressed_size ) ) {
 		Fatal( "ZSTD_compress: %s", ZSTD_getErrorName( compressed_size ) );
@@ -65,8 +65,8 @@ int main( int argc, char ** argv ) {
 	}
 	defer { stbi_image_free( png ); };
 
-	u8 * alpha_channel = ALLOC_MANY( sys_allocator, u8, w * h );
-	defer { FREE( sys_allocator, alpha_channel ); };
+	u8 * alpha_channel = AllocMany< u8 >( sys_allocator, w * h );
+	defer { Free( sys_allocator, alpha_channel ); };
 	for( size_t i = 0; i < checked_cast< size_t >( w * h ); i++ ) {
 		alpha_channel[ i ] = png[ i * num_channels + num_channels - 1 ];
 	}
@@ -87,13 +87,13 @@ int main( int argc, char ** argv ) {
 	constexpr u32 BC4BlockSize = ( 4 * 4 * BC4BitsPerPixel ) / 8;
 
 	u32 bc4_bytes = ( total_size * BC4BitsPerPixel ) / 8;
-	Span< u8 > bc4 = ALLOC_SPAN( sys_allocator, u8, bc4_bytes );
+	Span< u8 > bc4 = AllocSpan< u8 >( sys_allocator, bc4_bytes );
 	u32 bc4_cursor = 0;
 
-	u8 * resized = ALLOC_MANY( sys_allocator, u8, w * h );
+	u8 * resized = AllocMany< u8 >( sys_allocator, w * h );
 
-	defer { FREE( sys_allocator, bc4.ptr ); };
-	defer { FREE( sys_allocator, resized ); };
+	defer { Free( sys_allocator, bc4.ptr ); };
+	defer { Free( sys_allocator, resized ); };
 
 	rgbcx::init();
 
@@ -136,13 +136,13 @@ int main( int argc, char ** argv ) {
 	dds_header.format_flags = DDSTextureFormatFlag_FourCC;
 	dds_header.format = DDSTextureFormat_BC4;
 
-	Span< u8 > packed = ALLOC_SPAN( sys_allocator, u8, sizeof( dds_header ) + bc4.num_bytes() );
-	defer { FREE( sys_allocator, packed.ptr ); };
+	Span< u8 > packed = AllocSpan< u8 >( sys_allocator, sizeof( dds_header ) + bc4.num_bytes() );
+	defer { Free( sys_allocator, packed.ptr ); };
 	memcpy( packed.ptr, &dds_header, sizeof( dds_header ) );
 	memcpy( packed.ptr + sizeof( dds_header ), bc4.ptr, bc4.num_bytes() );
 
 	Span< u8 > compressed = Compress( sys_allocator, packed );
-	defer { FREE( sys_allocator, compressed.ptr ); };
+	defer { Free( sys_allocator, compressed.ptr ); };
 
 	DynamicString dds_path( sys_allocator, "{}/{}.dds.zst", output_dir, StripExtension( png_path ) );
 	if( !WriteFile( sys_allocator, dds_path.c_str(), compressed.ptr, compressed.num_bytes() ) ) {

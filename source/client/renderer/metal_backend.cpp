@@ -2,12 +2,12 @@
 
 #if PLATFORM_MACOS
 
-#include "metal-cpp/SingleHeader/Metal.hpp"
-#include <dispatch/dispatch.h>
-
 #include "qcommon/base.h"
 #include "qcommon/array.h"
 #include "client/renderer/renderer.h"
+
+#include "metal-cpp/SingleHeader/Metal.hpp"
+#include <dispatch/dispatch.h>
 
 static dispatch_semaphore_t frame_semaphore;
 static bool capturing_this_frame;
@@ -23,29 +23,24 @@ struct {
 	MTL::CommandQueue * command_queue;
 } metal;
 
-static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
-
 void PipelineState::bind_uniform( StringHash name, UniformBlock block ) {
-	bind_buffer( name, block.ubo, block.offset, block.size );
+	bind_buffer( name, block.buffer, block.offset, block.size );
 }
 
 void PipelineState::bind_texture( StringHash name, const Texture * texture ) {
 	for( size_t i = 0; i < ARRAY_COUNT( textures ); i++ ) {
 		if( shader->textures[ i ] == name.hash ) {
-			textures[ num_textures ] = { texture, i };
+			textures[ num_textures ] = { name.hash, texture };
 			num_textures++;
 			return;
 		}
 	}
 }
 
-void PipelineState::bind_texture_array( StringHash name, TextureArray ta ) {
-}
-
 void PipelineState::bind_buffer( StringHash name, GPUBuffer buffer, u32 offset, u32 size ) {
 	for( size_t i = 0; i < ARRAY_COUNT( buffers ); i++ ) {
 		if( shader->buffers[ i ] == name.hash ) {
-			buffers[ num_buffers ] = { buffer, offset, i };
+			buffers[ num_buffers ] = { name.hash, buffer, offset, size };
 			num_buffers++;
 			return;
 		}
@@ -55,7 +50,7 @@ void PipelineState::bind_buffer( StringHash name, GPUBuffer buffer, u32 offset, 
 }
 
 void PipelineState::bind_streaming_buffer( StringHash name, StreamingBuffer stream ) {
-	u32 offset = stream.size * ( frame_counter % ARRAY_COUNT( fences ) );
+	u32 offset = stream.size * FrameSlot();
 	bind_buffer( name, stream.buffer, offset, stream.size );
 }
 
@@ -229,13 +224,13 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 		descriptor->setSwizzle( swizzle.value );
 	}
 
-	texture.texture = metal.device->newTexture( descriptor );
+	texture.handle = metal.device->newTexture( descriptor );
 
 	// TODO: figure out how samplers should work...
 	// TODO: TextureFormat_Shadow needs compare sampler
 	if( !CompressedTextureFormat( config.format ) ) {
 		Assert( config.num_mipmaps == 1 );
-		texture.texture->replaceRegion( MTL::Region( 0, 0, config.width, config.height ), 0, config.data, config.width * BitsPerPixel( config.format ) / 8 );
+		texture.handle->replaceRegion( MTL::Region( 0, 0, config.width, config.height ), 0, config.data, config.width * BitsPerPixel( config.format ) / 8 );
 	}
 	else {
 		const u8 * cursor = ( const u8 * ) config.data;
@@ -243,7 +238,7 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 			u32 w = config.width >> i;
 			u32 h = config.height >> i;
 			u32 bytes_per_row_of_blocks = w * 4 * BitsPerPixel( config.format ) / 8;
-			texture.texture->replaceRegion( MTL::Region( 0, 0, w, h ), i, cursor, bytes_per_row_of_blocks );
+			texture.handle->replaceRegion( MTL::Region( 0, 0, w, h ), i, cursor, bytes_per_row_of_blocks );
 			cursor += ( BitsPerPixel( config.format ) * w * h ) / 8;
 		}
 	}
@@ -256,8 +251,8 @@ Texture NewTexture( TextureConfig config ) {
 }
 
 void DeleteTexture( Texture texture ) {
-	if( texture.texture != NULL ) {
-		texture.texture->release();
+	if( texture.handle != NULL ) {
+		texture.handle->release();
 	}
 }
 

@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <inttypes.h> // PRIu32
 #include <math.h>
 
@@ -14,6 +13,8 @@
 #include "qcommon/hash.h"
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
+
+#include "nanosort/nanosort.hpp"
 
 #include "zstd/zstd.h"
 
@@ -680,7 +681,7 @@ static void ProcessBrush( BSP * bsp, MinMax3 * bounds, DynamicArray< MaterialMes
 		}
 
 		// sort CCW around the centroid
-		std::sort( projected, projected + verts.n, []( ProjectedVert a, ProjectedVert b ) {
+		nanosort( projected, projected + verts.n, []( ProjectedVert a, ProjectedVert b ) {
 			return a.theta < b.theta;
 		} );
 
@@ -971,7 +972,7 @@ static CandidatePlanes BuildCandidatePlanes( Allocator * a, Span< const u32 > br
 
 	for( int i = 0; i < 3; i++ ) {
 		TracyZoneScopedN( "iter" );
-		Span< CandidatePlane > axis = ALLOC_SPAN( a, CandidatePlane, brush_ids.n * 2 );
+		Span< CandidatePlane > axis = AllocSpan< CandidatePlane >( a, brush_ids.n * 2 );
 		planes.axes[ i ] = axis;
 
 		for( u32 j = 0; j < brush_ids.n; j++ ) {
@@ -982,7 +983,7 @@ static CandidatePlanes BuildCandidatePlanes( Allocator * a, Span< const u32 > br
 
 		{
 			TracyZoneScopedN( "sort" );
-			std::sort( axis.begin(), axis.end(), []( const CandidatePlane & a, const CandidatePlane & b ) {
+			nanosort( axis.begin(), axis.end(), []( const CandidatePlane & a, const CandidatePlane & b ) {
 				if( a.distance == b.distance )
 					return a.start_edge < b.start_edge;
 				return a.distance < b.distance;
@@ -1126,9 +1127,9 @@ static s32 BuildKDTreeRecursive( ArenaAllocator * arena, BSP * bsp, Span< const 
 		TracyZoneScopedN( "Split candidate planes" );
 
 		for( int i = 0; i < 3; i++ ) {
-			Span< CandidatePlane > axis_below = ALLOC_SPAN( arena, CandidatePlane, below_brushes.size() * 2 );
+			Span< CandidatePlane > axis_below = AllocSpan< CandidatePlane >( arena, below_brushes.size() * 2 );
 			size_t below_count = 0;
-			Span< CandidatePlane > axis_above = ALLOC_SPAN( arena, CandidatePlane, above_brushes.size() * 2 );
+			Span< CandidatePlane > axis_above = AllocSpan< CandidatePlane >( arena, above_brushes.size() * 2 );
 			size_t above_count = 0;
 
 			for( size_t j = 0; j < candidate_planes.axes[ i ].n; j++ ) {
@@ -1249,7 +1250,7 @@ static void WriteBSP( ArenaAllocator * arena, const char * path, BSP * bsp, bool
 		printf( "Compressing, this is slow...\n" );
 
 		size_t compressed_max_size = ZSTD_compressBound( packed.size() );
-		u8 * compressed = ALLOC_MANY( arena, u8, compressed_max_size );
+		u8 * compressed = AllocMany< u8 >( arena, compressed_max_size );
 		size_t compressed_size = ZSTD_compress( compressed, compressed_max_size, packed.ptr(), packed.size(), ZSTD_maxCLevel() );
 		if( ZSTD_isError( compressed_size ) ) {
 			Fatal( "Compression failed: %s", ZSTD_getErrorName( compressed_size ) );
@@ -1285,13 +1286,13 @@ int main( int argc, char ** argv ) {
 	if( carfentanil == NULL ) {
 		char * msg = ( *sys_allocator )( "Can't read {}", map_path );
 		perror( msg );
-		FREE( sys_allocator, msg );
+		Free( sys_allocator, msg );
 		return 1;
 	}
-	defer { FREE( sys_allocator, carfentanil ); };
+	defer { Free( sys_allocator, carfentanil ); };
 
 	constexpr size_t arena_size = 1024 * 1024 * 1024; // 1GB
-	ArenaAllocator arena( ALLOC_SIZE( sys_allocator, arena_size, 16 ), arena_size );
+	ArenaAllocator arena( sys_allocator->allocate( arena_size, 16 ), arena_size );
 
 	InitFS();
 	InitMaterials();
@@ -1496,7 +1497,7 @@ int main( int argc, char ** argv ) {
 	// - see bsp2.cpp
 	// - flip CW to CCW winding. q3 bsp was CW lol
 
-	FREE( sys_allocator, arena.get_memory() );
+	Free( sys_allocator, arena.get_memory() );
 
 	ShutdownMaterials();
 	ShutdownFS();

@@ -1,9 +1,9 @@
-#include <algorithm>
-
 #include "qcommon/base.h"
 #include "client/assets.h"
 #include "client/renderer/material.h"
 #include "cgame/cg_local.h"
+
+#include "nanosort/nanosort.hpp"
 
 struct Spray {
 	Vec3 origin;
@@ -43,7 +43,7 @@ void InitSprays() {
 		num_spray_assets++;
 	}
 
-	std::sort( spray_assets, spray_assets + num_spray_assets, []( StringHash a, StringHash b ) {
+	nanosort( spray_assets, spray_assets + num_spray_assets, []( StringHash a, StringHash b ) {
 		return a.hash < b.hash;
 	} );
 

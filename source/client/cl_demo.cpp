@@ -74,7 +74,7 @@ void CL_DemoBaseline( const snapshot_t * snap ) {
 	record_demo_utc_time = time( NULL );
 	record_demo_waiting = false;
 
-	defer { FREE( sys_allocator, record_demo_filename ); };
+	defer { Free( sys_allocator, record_demo_filename ); };
 
 	TempAllocator temp = cls.frame_arena.temp();
 	StartRecordingDemo( &temp, &record_demo_context, record_demo_filename, cl.servercount, cl.snapFrameTime, client_gs.maxclients, cl_baselines );
@@ -125,7 +125,7 @@ void CL_StopRecording( bool silent ) {
 	}
 
 	if( record_demo_waiting ) {
-		FREE( sys_allocator, record_demo_filename );
+		Free( sys_allocator, record_demo_filename );
 		record_demo_filename = NULL;
 		record_demo_waiting = false;
 		return;
@@ -150,14 +150,14 @@ void CL_StopRecording( bool silent ) {
 }
 
 static void FreeDemoMetadata() {
-	FREE( sys_allocator, playing_demo_metadata.game_version.ptr );
-	FREE( sys_allocator, playing_demo_metadata.server.ptr );
-	FREE( sys_allocator, playing_demo_metadata.map.ptr );
+	Free( sys_allocator, playing_demo_metadata.game_version.ptr );
+	Free( sys_allocator, playing_demo_metadata.server.ptr );
+	Free( sys_allocator, playing_demo_metadata.map.ptr );
 }
 
 void CL_DemoCompleted() {
 	FreeDemoMetadata();
-	FREE( sys_allocator, playing_demo_contents.data );
+	Free( sys_allocator, playing_demo_contents.data );
 	playing_demo_contents = { };
 
 	Com_Printf( "Demo completed\n" );
@@ -201,14 +201,14 @@ static void CL_StartDemo( const char * demoname, bool yolo ) {
 	else {
 		filename = ( *sys_allocator )( "{}{}", demoname, ext );
 	}
-	defer { FREE( sys_allocator, filename ); };
+	defer { Free( sys_allocator, filename ); };
 
 	Span< u8 > demo = ReadFileBinary( sys_allocator, filename );
 	if( demo.ptr == NULL ) {
 		Com_Printf( S_COLOR_YELLOW "%s doesn't exist\n", filename );
 		return;
 	}
-	defer { FREE( sys_allocator, demo.ptr ); };
+	defer { Free( sys_allocator, demo.ptr ); };
 
 	Span< u8 > decompressed;
 	bool ok = true;

@@ -183,7 +183,7 @@ inline bool operator==( const ImGuiShaderAndMaterial & a, const ImGuiShaderAndMa
 	return a.shader == b.shader
 		&& a.material == b.material
 		&& a.uniform_name == b.uniform_name
-		&& a.uniform_block.ubo == b.uniform_block.ubo
+		&& a.uniform_block.buffer.buffer == b.uniform_block.buffer.buffer
 		&& a.uniform_block.offset == b.uniform_block.offset
 		&& a.uniform_block.size == b.uniform_block.size;
 }

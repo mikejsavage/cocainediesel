@@ -30,6 +30,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "zstd/zstd.h"
 
+struct DemoHeader {
+	u64 magic;
+	u64 metadata_size;
+};
+
+static constexpr const char DEMO_METADATA_MAGIC[ sizeof( DemoHeader::magic ) ] = "cddemo";
+
 static void Serialize( SerializationBuffer * buf, DemoMetadata & meta ) {
 	*buf & meta.metadata_version & meta.server & meta.map & meta.game_version & meta.utc_time;
 
@@ -119,7 +126,7 @@ bool StartRecordingDemo(
 	if( ctx->temp_file == NULL ) {
 		Com_Printf( S_COLOR_YELLOW "Can't open %s for writing\n", ctx->temp_filename );
 		CloseFile( ctx->file );
-		FREE( sys_allocator, ctx->temp_file );
+		Free( sys_allocator, ctx->temp_file );
 		return false;
 	}
 	ctx->filename = CopyString( sys_allocator, filename );
@@ -132,9 +139,9 @@ bool StartRecordingDemo(
 	CheckedZstdSetParameter( ctx->zstd, ZSTD_c_checksumFlag, 1 );
 
 	ctx->in_buf_capacity = ZSTD_CStreamInSize();
-	ctx->in_buf = ALLOC_SIZE( sys_allocator, ctx->in_buf_capacity, 16 );
+	ctx->in_buf = sys_allocator->allocate( ctx->in_buf_capacity, 16 );
 	ctx->out_buf_capacity = ZSTD_CStreamOutSize();
-	ctx->out_buf = ALLOC_SIZE( sys_allocator, ctx->out_buf_capacity, 16 );
+	ctx->out_buf = sys_allocator->allocate( ctx->out_buf_capacity, 16 );
 
 	uint8_t msg_buffer[MAX_MSGLEN];
 	msg_t msg = NewMSGWriter( msg_buffer, sizeof( msg_buffer ) );
@@ -188,15 +195,15 @@ void StopRecordingDemo( TempAllocator * temp, RecordDemoContext * ctx, const Dem
 		if( !ok ) {
 			RemoveFile( temp, ctx->filename );
 		}
-		FREE( sys_allocator, ctx->filename );
+		Free( sys_allocator, ctx->filename );
 
 		fclose( ctx->temp_file );
 		RemoveFile( temp, ctx->temp_filename );
-		FREE( sys_allocator, ctx->temp_filename );
+		Free( sys_allocator, ctx->temp_filename );
 
 		ZSTD_freeCCtx( ctx->zstd );
-		FREE( sys_allocator, ctx->in_buf );
-		FREE( sys_allocator, ctx->out_buf );
+		Free( sys_allocator, ctx->in_buf );
+		Free( sys_allocator, ctx->out_buf );
 	};
 
 	if( ferror( ctx->temp_file ) ) {
@@ -227,16 +234,17 @@ void StopRecordingDemo( TempAllocator * temp, RecordDemoContext * ctx, const Dem
 	}
 }
 
-static const DemoHeader * ReadDemoHeader( Span< const u8 > demo ) {
+static Optional< DemoHeader > ReadDemoHeader( Span< const u8 > demo ) {
 	if( demo.n < sizeof( DemoHeader ) )
-		return NULL;
+		return NONE;
 
-	const DemoHeader * header = align_cast< const DemoHeader >( demo.ptr );
-	if( memcmp( &header->magic, DEMO_METADATA_MAGIC, sizeof( DEMO_METADATA_MAGIC ) ) != 0 )
-		return NULL;
+	DemoHeader header;
+	memcpy( &header, demo.ptr, sizeof( header ) );
+	if( memcmp( &header.magic, DEMO_METADATA_MAGIC, sizeof( DEMO_METADATA_MAGIC ) ) != 0 )
+		return NONE;
 
-	if( demo.n < sizeof( DemoHeader ) + header->metadata_size )
-		return NULL;
+	if( demo.n < sizeof( DemoHeader ) + header.metadata_size )
+		return NONE;
 
 	return header;
 }
@@ -244,27 +252,27 @@ static const DemoHeader * ReadDemoHeader( Span< const u8 > demo ) {
 bool ReadDemoMetadata( Allocator * a, DemoMetadata * metadata, Span< const u8 > demo ) {
 	*metadata = { };
 
-	const DemoHeader * header = ReadDemoHeader( demo );
-	if( header == NULL )
+	Optional< DemoHeader > header = ReadDemoHeader( demo );
+	if( !header.exists )
 		return false;
 
-	Span< const u8 > serialised_metadata = demo.slice( sizeof( DemoHeader ), sizeof( DemoHeader ) + header->metadata_size );
+	Span< const u8 > serialised_metadata = demo.slice( sizeof( DemoHeader ), sizeof( DemoHeader ) + header.value.metadata_size );
 	return Deserialize( a, metadata, serialised_metadata.ptr, serialised_metadata.n );
 }
 
 bool DecompressDemo( Allocator * a, const DemoMetadata & metadata, Span< u8 > * decompressed, Span< const u8 > demo ) {
 	TracyZoneScoped;
 
-	const DemoHeader * header = ReadDemoHeader( demo );
-	Assert( header != NULL );
+	Optional< DemoHeader > header = ReadDemoHeader( demo );
+	Assert( header.exists );
 
-	*decompressed = ALLOC_SPAN( a, u8, metadata.decompressed_size );
-	Span< const u8 > compressed = demo.slice( sizeof( DemoHeader ) + header->metadata_size, demo.n );
+	*decompressed = AllocSpan< u8 >( a, metadata.decompressed_size );
+	Span< const u8 > compressed = demo.slice( sizeof( DemoHeader ) + header.value.metadata_size, demo.n );
 
 	size_t r = ZSTD_decompress( decompressed->ptr, decompressed->n, compressed.ptr, compressed.n );
 	if( r != decompressed->n ) {
 		Com_Printf( S_COLOR_RED "Can't decompress demo: %s\n", ZSTD_getErrorName( r ) );
-		FREE( sys_allocator, decompressed->ptr );
+		Free( sys_allocator, decompressed->ptr );
 		return false;
 	}
 

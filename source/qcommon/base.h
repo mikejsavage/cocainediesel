@@ -76,7 +76,7 @@ constexpr Span< T > StaticSpan( T ( &arr )[ N ] ) {
 
 template< typename T >
 Span< T > CopySpan( Allocator * a, Span< const T > span ) {
-	Span< T > copy = ALLOC_SPAN( a, T, span.n );
+	Span< T > copy = AllocSpan< T >( a, span.n );
 	memcpy( copy.ptr, span.ptr, span.num_bytes() );
 	return copy;
 }
@@ -98,6 +98,16 @@ bool operator==( const Optional< T > & opt, const T & x ) {
 template< typename T >
 bool operator==( const T & x, const Optional< T > & opt ) {
 	return opt == x;
+}
+
+template< typename T >
+bool operator==( const Optional< T > & a, const Optional< T > & b ) {
+	return ( !a.exists && !b.exists ) || ( a.exists && b.exists && a.value == b.value );
+}
+
+template< typename T >
+bool operator!=( const Optional< T > & a, const Optional< T > & b ) {
+	return !( a == b );
 }
 
 /*

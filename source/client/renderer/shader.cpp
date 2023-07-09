@@ -31,11 +31,6 @@ static void BuildShaderSrcs( DynamicString * src, const char * path, const char 
 	TracyZoneScoped;
 	TracyZoneText( path, strlen( path ) );
 
-	src->append( "#define FORWARD_PLUS_TILE_SIZE {}\n", FORWARD_PLUS_TILE_SIZE );
-	src->append( "#define FORWARD_PLUS_TILE_CAPACITY {}\n", FORWARD_PLUS_TILE_CAPACITY );
-	src->append( "#define DLIGHT_CUTOFF {}\n", DLIGHT_CUTOFF );
-	src->append( "#define SKINNED_MODEL_MAX_JOINTS {}\n", SKINNED_MODEL_MAX_JOINTS );
-
 	src->append( "{}", variant_switches );
 
 	Span< const char > glsl = AssetString( path );
@@ -112,13 +107,11 @@ static void LoadShaders() {
 	LoadShader( &shaders.standard, "glsl/standard.glsl" );
 	LoadShader( &shaders.standard_vertexcolors, "glsl/standard.glsl", "#define VERTEX_COLORS 1\n" );
 	LoadShader( &shaders.standard_skinned, "glsl/standard.glsl", "#define SKINNED 1\n" );
-	LoadShader( &shaders.standard_skinned_vertexcolors, "glsl/standard.glsl", "#define SKINNED 1\n#define VERTEX_COLORS 1\n" );
 	LoadShader( &shaders.standard_shaded, "glsl/standard.glsl", "#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
 	LoadShader( &shaders.standard_skinned_shaded, "glsl/standard.glsl", "#define SKINNED 1\n#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
 
 	// standard instanced
 	LoadShader( &shaders.standard_instanced, "glsl/standard.glsl", "#define INSTANCED 1\n" );
-	LoadShader( &shaders.standard_vertexcolors_instanced, "glsl/standard.glsl", "#define VERTEX_COLORS 1\n" );
 	LoadShader( &shaders.standard_shaded_instanced, "glsl/standard.glsl", "#define INSTANCED 1\n#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
 
 	// rest
@@ -186,11 +179,9 @@ void ShutdownShaders() {
 
 	DeleteShader( shaders.standard_skinned );
 	DeleteShader( shaders.standard_skinned_shaded );
-	DeleteShader( shaders.standard_skinned_vertexcolors );
 
 	DeleteShader( shaders.standard_instanced );
 	DeleteShader( shaders.standard_shaded_instanced );
-	DeleteShader( shaders.standard_vertexcolors_instanced );
 
 	DeleteShader( shaders.depth_only );
 	DeleteShader( shaders.depth_only_instanced );

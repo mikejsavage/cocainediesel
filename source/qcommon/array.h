@@ -20,12 +20,12 @@ public:
 	void init( Allocator * a_, size_t initial_capacity = 0 ) {
 		a = a_;
 		capacity = initial_capacity;
-		elems = capacity == 0 ? NULL : ALLOC_MANY( a, T, capacity );
+		elems = capacity == 0 ? NULL : AllocMany< T >( a, capacity );
 		clear();
 	}
 
 	void shutdown() {
-		FREE( a, elems );
+		Free( a, elems );
 	}
 
 	T * add() {
@@ -67,7 +67,7 @@ public:
 		while( new_capacity < new_size )
 			new_capacity *= 2;
 
-		elems = REALLOC_MANY( a, T, elems, capacity, new_capacity );
+		elems = ReallocMany< T >( a, elems, capacity, new_capacity );
 		capacity = new_capacity;
 		n = new_size;
 

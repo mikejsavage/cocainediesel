@@ -1,6 +1,8 @@
 #pragma once
 
 #include "qcommon/types.h"
+#include "client/renderer/opengl_types.h"
+#include "client/renderer/metal_types.h"
 #include "client/renderer/shader_shared.h"
 
 enum BlendFunc : u8 {
@@ -34,17 +36,6 @@ enum VertexFormat : u8 {
 enum IndexFormat : u8 {
 	IndexFormat_U16,
 	IndexFormat_U32,
-};
-
-enum VertexAttributeType : u32 {
-	VertexAttribute_Position,
-	VertexAttribute_Normal,
-	VertexAttribute_TexCoord,
-	VertexAttribute_Color,
-	VertexAttribute_JointIndices,
-	VertexAttribute_JointWeights,
-
-	VertexAttribute_Count
 };
 
 struct VertexAttribute {
@@ -81,17 +72,31 @@ enum TextureFormat : u8 {
 	TextureFormat_Shadow,
 };
 
+struct VertexDescriptor {
+	Optional< VertexAttribute > attributes[ VertexAttribute_Count ];
+	u32 buffer_strides[ VertexAttribute_Count ];
+};
+
+struct ShaderVariant {
+	const Shader * shader;
+	VertexDescriptor vertex_descriptor;
+};
+
+struct Texture {
+	TextureHandle handle;
+	u32 width, height;
+	u32 num_mipmaps;
+	bool msaa;
+	TextureFormat format;
+};
+
 struct GPUBufferSpan {
 	GPUBuffer buffer;
 	u32 offset;
 	u32 size;
 };
 
-struct UniformBlock {
-	u32 ubo;
-	u32 offset;
-	u32 size;
-};
+using UniformBlock = GPUBufferSpan;
 
 struct Mesh {
 	GPUBuffer vertex_buffers[ VertexAttribute_Count ];
@@ -120,8 +125,6 @@ struct PipelineState;
 
 struct GPUMaterial {
 	Vec4 color;
-	Vec3 tcmod[ 2 ];
+	alignas( 16 ) Vec3 tcmod_row0;
+	alignas( 16 ) Vec3 tcmod_row1;
 };
-
-#include "client/renderer/opengl_types.h"
-#include "client/renderer/metal_types.h"

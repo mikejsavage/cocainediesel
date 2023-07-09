@@ -1,11 +1,11 @@
-#include <algorithm> // std::sort
-
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/string.h"
+
+#include "nanosort/nanosort.hpp"
 
 struct ConsoleCommand {
 	char * name;
@@ -161,7 +161,7 @@ static void ExecConfig( const char * path ) {
 	TracyZoneScoped;
 
 	char * config = ReadFileString( sys_allocator, path );
-	defer { FREE( sys_allocator, config ); };
+	defer { Free( sys_allocator, config ); };
 	if( config == NULL ) {
 		Com_Printf( "Couldn't execute: %s\n", path );
 		return;
@@ -205,8 +205,8 @@ static void Cmd_Find_f() {
 	Span< const char * > cmds = SearchCommands( sys_allocator, needle );
 	Span< const char * > cvars = SearchCvars( sys_allocator, needle );
 	defer {
-		FREE( sys_allocator, cmds.ptr );
-		FREE( sys_allocator, cvars.ptr );
+		Free( sys_allocator, cmds.ptr );
+		Free( sys_allocator, cvars.ptr );
 	};
 
 	if( cmds.n == 0 && cvars.n == 0 ) {
@@ -258,7 +258,7 @@ char * Cmd_Args() {
 // TODO: this sucks
 static void Cmd_TokenizeString( Span< const char > str ) {
 	for( int i = 0; i < cmd_argc; i++ ) {
-		FREE( sys_allocator, cmd_argv[ i ] );
+		Free( sys_allocator, cmd_argv[ i ] );
 	}
 
 	strcpy( cmd_args, "" );
@@ -330,7 +330,7 @@ Span< const char * > TabCompleteCommand( TempAllocator * a, const char * partial
 		}
 	}
 
-	std::sort( results.begin(), results.end(), SortCStringsComparator );
+	nanosort( results.begin(), results.end(), SortCStringsComparator );
 
 	return results.span();
 }
@@ -345,7 +345,7 @@ Span< const char * > SearchCommands( Allocator * a, const char * partial ) {
 		}
 	}
 
-	std::sort( results.begin(), results.end(), SortCStringsComparator );
+	nanosort( results.begin(), results.end(), SortCStringsComparator );
 
 	return results.span();
 }
@@ -397,7 +397,7 @@ Span< const char * > TabCompleteFilename( TempAllocator * a, const char * partia
 	NonRAIIDynamicArray< const char * > results( a );
 	FindMatchingFilesRecursive( a, &results, &base_path, partial, base_path.length() + 1, extension );
 
-	std::sort( results.begin(), results.end(), SortCStringsComparator );
+	nanosort( results.begin(), results.end(), SortCStringsComparator );
 
 	return results.span();
 }
@@ -434,12 +434,12 @@ void Cmd_Shutdown() {
 	RemoveCommand( "find" );
 
 	for( int i = 0; i < cmd_argc; i++ ) {
-		FREE( sys_allocator, cmd_argv[ i ] );
+		Free( sys_allocator, cmd_argv[ i ] );
 	}
 
 	for( size_t i = 0; i < commands_hashtable.size(); i++ ) {
 		ConsoleCommand * command = &commands[ i ];
 		Assert( command->disabled );
-		FREE( sys_allocator, command->name );
+		Free( sys_allocator, command->name );
 	}
 }

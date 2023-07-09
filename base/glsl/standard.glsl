@@ -29,10 +29,10 @@ v2f vec4 v_Color;
 
 #if VERTEX_SHADER
 
-in vec4 a_Position;
-in vec3 a_Normal;
-in vec4 a_Color;
-in vec2 a_TexCoord;
+layout( location = VertexAttribute_Position ) in vec4 a_Position;
+layout( location = VertexAttribute_Normal ) in vec3 a_Normal;
+layout( location = VertexAttribute_Color ) in vec4 a_Color;
+layout( location = VertexAttribute_TexCoord ) in vec2 a_TexCoord;
 
 vec2 ApplyTCMod( vec2 uv ) {
 #if INSTANCED
@@ -72,8 +72,8 @@ void main() {
 
 #else
 
-out vec4 f_Albedo;
-out uint f_Mask;
+layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
+layout( location = FragmentShaderOutput_CurvedSurfaceMask ) out uint f_CurvedSurfaceMask;
 
 const uint MASK_CURVED = 1u;
 
@@ -104,7 +104,7 @@ layout( std430/*, set = DescriptorSet_RenderPass*/ ) readonly buffer b_DynamicTi
 
 void main() {
 	vec3 normal = normalize( v_Normal );
-	f_Mask = length( fwidth( normal ) ) < 0.000001 ? 0u : MASK_CURVED;
+	f_CurvedSurfaceMask = length( fwidth( normal ) ) < 0.000001 ? 0u : MASK_CURVED;
 #if APPLY_DRAWFLAT
 #if INSTANCED
 	vec4 diffuse = instances[ v_Instance ].color;

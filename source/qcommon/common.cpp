@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <setjmp.h>
 
 static bool quitting;
+static Time disable_tracy_start_time;
 
 static jmp_buf abortframe;     // an ERR_DROP occured, exit the entire frame
 
@@ -186,6 +187,10 @@ void Qcommon_Init( int argc, char ** argv ) {
 	com_print_mutex = NewMutex();
 
 	InitTime();
+
+	// Now() doesn't start from zero in debug builds so make our own zero
+	disable_tracy_start_time = Now();
+
 	InitFS();
 	Cmd_Init();
 	Cvar_Init();
@@ -225,6 +230,15 @@ void Qcommon_Init( int argc, char ** argv ) {
 }
 
 bool Qcommon_Frame( unsigned int realMsec ) {
+	if( IFDEF( TRACY_ENABLE ) ) {
+		if( Now() - disable_tracy_start_time > Minutes( 10 ) ) {
+			if( tracy_is_active ) {
+				Com_Printf( "Disabled Tracy to conserve memory\n" );
+			}
+			tracy_is_active = false;
+		}
+	}
+
 	TracyZoneScoped;
 
 	static unsigned int gameMsec;

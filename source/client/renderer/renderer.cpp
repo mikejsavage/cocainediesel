@@ -52,8 +52,8 @@ static Cvar * r_samples;
 static Cvar * r_shadow_quality;
 
 static void TakeScreenshot() {
-	RGB8 * framebuffer = ALLOC_MANY( sys_allocator, RGB8, frame_static.viewport_width * frame_static.viewport_height );
-	defer { FREE( sys_allocator, framebuffer ); };
+	RGB8 * framebuffer = AllocMany< RGB8 >( sys_allocator, frame_static.viewport_width * frame_static.viewport_height );
+	defer { Free( sys_allocator, framebuffer ); };
 	DownloadFramebuffer( framebuffer );
 
 	stbi_flip_vertically_on_write( 1 );
@@ -183,18 +183,21 @@ void InitRenderer() {
 	InitVisualEffects();
 }
 
-static void DeleteFramebuffers() {
-	DeleteFramebuffer( frame_static.silhouette_gbuffer );
-	DeleteFramebuffer( frame_static.postprocess_fb );
-	DeleteFramebuffer( frame_static.msaa_fb );
-	DeleteFramebuffer( frame_static.postprocess_fb_masked );
-	DeleteFramebuffer( frame_static.msaa_fb_masked );
-	DeleteFramebuffer( frame_static.postprocess_fb_onlycolor );
-	DeleteFramebuffer( frame_static.msaa_fb_onlycolor );
+static void DeleteRenderTargets() {
+	DeleteRenderTargetAndTextures( frame_static.render_targets.silhouette_mask );
+	DeleteRenderTarget( frame_static.render_targets.postprocess );
+	DeleteRenderTarget( frame_static.render_targets.msaa );
+	DeleteRenderTargetAndTextures( frame_static.render_targets.postprocess_masked );
+	DeleteRenderTargetAndTextures( frame_static.render_targets.msaa_masked );
+	DeleteRenderTarget( frame_static.render_targets.postprocess_onlycolor );
+	DeleteRenderTarget( frame_static.render_targets.msaa_onlycolor );
+
+	DeleteTexture( frame_static.render_targets.shadowmaps[ 0 ].depth_attachment );
 	for( u32 i = 0; i < 4; i++ ) {
-		DeleteFramebuffer( frame_static.shadowmap_fb[ i ] );
+		DeleteRenderTarget( frame_static.render_targets.shadowmaps[ i ] );
 	}
-	DeleteTextureArray( frame_static.shadowmap_texture_array );
+
+	frame_static.render_targets = { };
 }
 
 void ShutdownRenderer() {
@@ -209,7 +212,7 @@ void ShutdownRenderer() {
 
 	DeleteTexture( blue_noise );
 	DeleteMesh( fullscreen_mesh );
-	DeleteFramebuffers();
+	DeleteRenderTargets();
 
 	DeleteStreamingBuffer( dynamic_geometry.positions_buffer );
 	DeleteStreamingBuffer( dynamic_geometry.uvs_buffer );
@@ -354,84 +357,123 @@ static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & inverse_V, 
 	return UploadUniformBlock( V, inverse_V, P, inverse_P, camera_pos, viewport_size, near_plane, samples, light_dir );
 }
 
-static void CreateFramebuffers() {
-	DeleteFramebuffers();
-
-	TextureConfig texture_config;
-	texture_config.width = frame_static.viewport_width;
-	texture_config.height = frame_static.viewport_height;
-	texture_config.wrap = TextureWrap_Clamp;
+static void CreateRenderTargets() {
+	DeleteRenderTargets();
 
 	{
-		FramebufferConfig fb;
+		TextureConfig albedo_desc;
+		albedo_desc.format = TextureFormat_RGBA_U8_sRGB;
+		albedo_desc.width = frame_static.viewport_width;
+		albedo_desc.height = frame_static.viewport_height;
+		albedo_desc.wrap = TextureWrap_Clamp;
 
-		texture_config.format = TextureFormat_RGBA_U8_sRGB;
-		fb.albedo_attachment = texture_config;
+		RenderTargetConfig rt;
+		rt.color_attachments[ FragmentShaderOutput_Albedo ] = { NewTexture( albedo_desc ) };
 
-		frame_static.silhouette_gbuffer = NewFramebuffer( fb );
+		frame_static.render_targets.silhouette_mask = NewRenderTarget( rt );
 	}
 
 	if( frame_static.msaa_samples > 1 ) {
-		FramebufferConfig fb;
+		TextureConfig albedo_desc;
+		albedo_desc.format = TextureFormat_RGBA_U8_sRGB;
+		albedo_desc.width = frame_static.viewport_width;
+		albedo_desc.height = frame_static.viewport_height;
+		albedo_desc.msaa_samples = frame_static.msaa_samples;
+		Texture albedo = NewTexture( albedo_desc );
 
-		texture_config.format = TextureFormat_RGB_U8_sRGB;
-		fb.albedo_attachment = texture_config;
+		TextureConfig curved_surface_mask_desc;
+		curved_surface_mask_desc.format = TextureFormat_R_UI8;
+		curved_surface_mask_desc.width = frame_static.viewport_width;
+		curved_surface_mask_desc.height = frame_static.viewport_height;
+		curved_surface_mask_desc.msaa_samples = frame_static.msaa_samples;
+		curved_surface_mask_desc.filter = TextureFilter_Point;
+		Texture curved_surface_mask = NewTexture( curved_surface_mask_desc );
 
-		texture_config.filter = TextureFilter_Point;
-		texture_config.format = TextureFormat_R_UI8;
-		fb.mask_attachment = texture_config;
-		texture_config.filter = TextureFilter_Linear;
+		TextureConfig depth_desc;
+		depth_desc.format = TextureFormat_Depth;
+		depth_desc.width = frame_static.viewport_width;
+		depth_desc.height = frame_static.viewport_height;
+		depth_desc.msaa_samples = frame_static.msaa_samples;
+		Texture depth = NewTexture( depth_desc );
 
-		texture_config.format = TextureFormat_Depth;
-		fb.depth_attachment = texture_config;
+		{
+			RenderTargetConfig rt;
+			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
+			rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ] = { curved_surface_mask };
+			rt.depth_attachment = { depth };
+			frame_static.render_targets.msaa_masked = NewRenderTarget( rt );
+		}
 
-		fb.msaa_samples = frame_static.msaa_samples;
+		{
+			RenderTargetConfig rt;
+			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
+			rt.depth_attachment = { depth };
+			frame_static.render_targets.msaa = NewRenderTarget( rt );
+		}
 
-		frame_static.msaa_fb_masked = NewFramebuffer( fb );
+		{
+			RenderTargetConfig rt;
+			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
+			frame_static.render_targets.msaa_onlycolor = NewRenderTarget( rt );
+		}
 	}
 
 	{
-		FramebufferConfig fb;
+		TextureConfig albedo_desc;
+		albedo_desc.format = TextureFormat_RGBA_U8_sRGB;
+		albedo_desc.width = frame_static.viewport_width;
+		albedo_desc.height = frame_static.viewport_height;
+		Texture albedo = NewTexture( albedo_desc );
 
-		texture_config.format = TextureFormat_RGB_U8_sRGB;
-		fb.albedo_attachment = texture_config;
+		TextureConfig curved_surface_mask_desc;
+		curved_surface_mask_desc.format = TextureFormat_R_UI8;
+		curved_surface_mask_desc.width = frame_static.viewport_width;
+		curved_surface_mask_desc.height = frame_static.viewport_height;
+		curved_surface_mask_desc.filter = TextureFilter_Point;
+		Texture curved_surface_mask = NewTexture( curved_surface_mask_desc );
 
-		texture_config.filter = TextureFilter_Point;
-		texture_config.format = TextureFormat_R_UI8;
-		fb.mask_attachment = texture_config;
-		texture_config.filter = TextureFilter_Linear;
+		TextureConfig depth_desc;
+		depth_desc.format = TextureFormat_Depth;
+		depth_desc.width = frame_static.viewport_width;
+		depth_desc.height = frame_static.viewport_height;
+		Texture depth = NewTexture( depth_desc );
 
-		texture_config.format = TextureFormat_Depth;
-		fb.depth_attachment = texture_config;
+		{
+			RenderTargetConfig rt;
+			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
+			rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ] = { curved_surface_mask };
+			rt.depth_attachment = { depth };
+			frame_static.render_targets.postprocess_masked = NewRenderTarget( rt );
+		}
 
-		frame_static.postprocess_fb_masked = NewFramebuffer( fb );
-	}
+		{
+			RenderTargetConfig rt;
+			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
+			rt.depth_attachment = { depth };
+			frame_static.render_targets.postprocess = NewRenderTarget( rt );
+		}
 
-	frame_static.postprocess_fb = NewFramebuffer( &frame_static.postprocess_fb_masked.albedo_texture, NULL, &frame_static.postprocess_fb_masked.depth_texture );
-	frame_static.postprocess_fb_onlycolor = NewFramebuffer( &frame_static.postprocess_fb_masked.albedo_texture, NULL, NULL );
-	if( frame_static.msaa_samples > 1 ) {
-		frame_static.msaa_fb = NewFramebuffer( &frame_static.msaa_fb_masked.albedo_texture, NULL, &frame_static.msaa_fb_masked.depth_texture );
-		frame_static.msaa_fb_onlycolor = NewFramebuffer( &frame_static.msaa_fb_masked.albedo_texture, NULL, NULL );
+		{
+			RenderTargetConfig rt;
+			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
+			frame_static.render_targets.postprocess_onlycolor = NewRenderTarget( rt );
+		}
 	}
 
 	{
-		FramebufferConfig fb;
-
-		u32 shadowmap_res = frame_static.shadow_parameters.shadowmap_res;
-		TextureArrayConfig config;
-		config.width = shadowmap_res;
-		config.height = shadowmap_res;
-		config.format = TextureFormat_Shadow;
-		config.layers = frame_static.shadow_parameters.num_cascades;
-		frame_static.shadowmap_texture_array = NewTextureArray( config );
-
-		texture_config.width = shadowmap_res;
-		texture_config.height = shadowmap_res;
-		texture_config.format = TextureFormat_Shadow;
-		fb.albedo_attachment = texture_config;
+		TextureConfig shadowmap_desc;
+		shadowmap_desc.format = TextureFormat_Shadow;
+		shadowmap_desc.width = frame_static.shadow_parameters.resolution;
+		shadowmap_desc.height = frame_static.shadow_parameters.resolution;
+		shadowmap_desc.num_layers = frame_static.shadow_parameters.num_cascades;
+		shadowmap_desc.wrap = TextureWrap_Border;
+		shadowmap_desc.border_color = Vec4( 0.0f );
+		Texture shadowmap = NewTexture( shadowmap_desc );
 
 		for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
-			frame_static.shadowmap_fb[ i ] = NewShadowFramebuffer( frame_static.shadowmap_texture_array, i );
+			RenderTargetConfig rt;
+			rt.depth_attachment = { shadowmap, i };
+			frame_static.render_targets.shadowmaps[ i ] = NewRenderTarget( rt );
 		}
 	}
 }
@@ -482,7 +524,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.shadow_parameters = GetShadowParameters( frame_static.shadow_quality );
 
 	if( frame_static.viewport_resized || frame_static.msaa_samples != last_msaa || frame_static.shadow_quality != last_shadow_quality ) {
-		CreateFramebuffers();
+		CreateRenderTargets();
 	}
 
 	last_viewport_width = viewport_width;
@@ -520,38 +562,38 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.tile_culling_pass = AddRenderPass( &tile_culling_tracy );
 
 	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
-		frame_static.shadowmap_pass[ i ] = AddRenderPass( &write_shadowmap_tracy, frame_static.shadowmap_fb[ i ], ClearColor_Dont, ClearDepth_Do );
+		frame_static.shadowmap_pass[ i ] = AddRenderPass( &write_shadowmap_tracy, frame_static.render_targets.shadowmaps[ i ], ClearColor_Dont, ClearDepth_Do );
 	}
 
 	bool msaa = frame_static.msaa_samples;
 	if( msaa ) {
-		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
-		frame_static.world_opaque_pass = AddBarrierRenderPass( &world_opaque_tracy, frame_static.msaa_fb_masked );
-		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.msaa_fb );
+		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.msaa, ClearColor_Do, ClearDepth_Do );
+		frame_static.world_opaque_pass = AddBarrierRenderPass( &world_opaque_tracy, frame_static.render_targets.msaa_masked );
+		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.render_targets.msaa );
 	}
 	else {
-		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
-		frame_static.world_opaque_pass = AddBarrierRenderPass( &world_opaque_tracy, frame_static.postprocess_fb_masked );
-		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.postprocess_fb );
+		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.postprocess, ClearColor_Do, ClearDepth_Do );
+		frame_static.world_opaque_pass = AddBarrierRenderPass( &world_opaque_tracy, frame_static.render_targets.postprocess_masked );
+		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.render_targets.postprocess );
 	}
 
-	frame_static.write_silhouette_gbuffer_pass = AddRenderPass( &write_silhouette_buffer_tracy, frame_static.silhouette_gbuffer, ClearColor_Do, ClearDepth_Dont );
+	frame_static.write_silhouette_gbuffer_pass = AddRenderPass( &write_silhouette_buffer_tracy, frame_static.render_targets.silhouette_mask, ClearColor_Do, ClearDepth_Dont );
 
 	if( msaa ) {
-		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.msaa_fb_masked );
-		frame_static.add_outlines_pass = AddRenderPass( &add_outlines_tracy, frame_static.msaa_fb_onlycolor );
-		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.msaa_fb );
-		AddResolveMSAAPass( &msaa_tracy, frame_static.msaa_fb, frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
+		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.render_targets.msaa_masked );
+		frame_static.add_outlines_pass = AddRenderPass( &add_outlines_tracy, frame_static.render_targets.msaa_onlycolor );
+		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.render_targets.msaa );
+		AddResolveMSAAPass( &msaa_tracy, frame_static.render_targets.msaa, frame_static.render_targets.postprocess, ClearColor_Do, ClearDepth_Do );
 	}
 	else {
-		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.postprocess_fb_masked );
-		frame_static.add_outlines_pass = AddRenderPass( &add_outlines_tracy, frame_static.postprocess_fb_onlycolor );
-		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.postprocess_fb );
+		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.render_targets.postprocess_masked );
+		frame_static.add_outlines_pass = AddRenderPass( &add_outlines_tracy, frame_static.render_targets.postprocess_onlycolor );
+		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.render_targets.postprocess );
 	}
 
-	frame_static.transparent_pass = AddBarrierRenderPass( &transparent_tracy, frame_static.postprocess_fb );
-	frame_static.add_silhouettes_pass = AddRenderPass( &silhouettes_tracy, frame_static.postprocess_fb );
-	frame_static.ui_pass = AddUnsortedRenderPass( &ui_tracy, frame_static.postprocess_fb );
+	frame_static.transparent_pass = AddBarrierRenderPass( &transparent_tracy, frame_static.render_targets.postprocess );
+	frame_static.add_silhouettes_pass = AddRenderPass( &silhouettes_tracy, frame_static.render_targets.postprocess );
+	frame_static.ui_pass = AddUnsortedRenderPass( &ui_tracy, frame_static.render_targets.postprocess );
 	frame_static.postprocess_pass = AddRenderPass( &postprocess_tracy, ClearColor_Do );
 	frame_static.post_ui_pass = AddUnsortedRenderPass( &post_ui_tracy );
 }
@@ -635,7 +677,7 @@ void SetupShadowCascades() {
 		Mat4 shadow_matrix = shadow_projection * shadow_view;
 
 		{
-			u32 shadowmap_size = frame_static.shadow_parameters.shadowmap_res;
+			u32 shadowmap_size = frame_static.shadow_parameters.resolution;
 			Vec2 shadow_origin = ( shadow_matrix * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xy();
 			shadow_origin *= shadowmap_size / 2.0f;
 			Vec2 rounded_origin = Vec2( roundf( shadow_origin.x ), roundf( shadow_origin.y ) );
@@ -708,24 +750,16 @@ void DrawFullscreenMesh( const PipelineState & pipeline ) {
 	DrawMesh( fullscreen_mesh, pipeline );
 }
 
-template< typename T >
-static void FillDynamicGeometryBuffer( StreamingBuffer stream, const T * data, size_t n, size_t old_n ) {
-	T * stream_memory = ( T * ) GetStreamingBufferMemory( stream );
-	for( size_t i = 0; i < n; i++ ) {
-		stream_memory[ i + old_n ] = data[ i ];
-	}
-}
-
 void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh ) {
 	if( dynamic_geometry.num_vertices + mesh.num_vertices > DynamicGeometry::MaxVerts ) {
 		Com_Printf( S_COLOR_YELLOW "Too much dynamic geometry!\n" );
 		return;
 	}
 
-	FillDynamicGeometryBuffer( dynamic_geometry.positions_buffer, mesh.positions, mesh.num_vertices, dynamic_geometry.num_vertices );
-	FillDynamicGeometryBuffer( dynamic_geometry.uvs_buffer, mesh.uvs, mesh.num_vertices, dynamic_geometry.num_vertices );
-	FillDynamicGeometryBuffer( dynamic_geometry.colors_buffer, mesh.colors, mesh.num_vertices, dynamic_geometry.num_vertices );
-	FillDynamicGeometryBuffer( dynamic_geometry.index_buffer, mesh.indices, mesh.num_indices, dynamic_geometry.num_indices );
+	WriteAndFlushStreamingBuffer( dynamic_geometry.positions_buffer, mesh.positions, mesh.num_vertices, dynamic_geometry.num_vertices );
+	WriteAndFlushStreamingBuffer( dynamic_geometry.uvs_buffer, mesh.uvs, mesh.num_vertices, dynamic_geometry.num_vertices );
+	WriteAndFlushStreamingBuffer( dynamic_geometry.colors_buffer, mesh.colors, mesh.num_vertices, dynamic_geometry.num_vertices );
+	WriteAndFlushStreamingBuffer( dynamic_geometry.index_buffer, mesh.indices, mesh.num_indices, dynamic_geometry.num_indices );
 
 	size_t first_index = dynamic_geometry.num_indices + FrameSlot() * DynamicGeometry::MaxVerts;
 	size_t base_vertex = dynamic_geometry.num_vertices + FrameSlot() * DynamicGeometry::MaxVerts;

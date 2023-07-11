@@ -69,7 +69,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 		},
 		.buffer_strides = {
 			sizeof( u16 ) * 3,
-			sizeof( u16 ) * 4,
+			sizeof( u16 ) * 2 + sizeof( u16 ) * 2 + sizeof( u8 ) * 4 + sizeof( u16 ) * 4,
 		},
 	};
 

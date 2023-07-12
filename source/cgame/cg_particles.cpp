@@ -328,8 +328,10 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	ps->gpu_particles2 = NewGPUBuffer( ps->max_particles * sizeof( GPUParticle ), "particles flop" );
 
 	u32 count = 0;
-	ps->compute_count1 = NewGPUBuffer( &count, sizeof( u32 ), "compute_count flip" );
-	ps->compute_count2 = NewGPUBuffer( &count, sizeof( u32 ), "compute_count flop" );
+	ps->compute_count1 = NewGPUBuffer( sizeof( u32 ), "compute_count flip" );
+	WriteGPUBuffer( ps->compute_count1, &count, sizeof( u32 ) );
+	ps->compute_count2 = NewGPUBuffer( sizeof( u32 ), "compute_count flop" );
+	WriteGPUBuffer( ps->compute_count2, &count, sizeof( u32 ) );
 
 	DispatchComputeIndirectArguments compute_indirect_args = { 1, 1, 1 };
 	ps->compute_indirect = NewGPUBuffer( &compute_indirect_args, sizeof( compute_indirect_args ), "compute_indirect" );

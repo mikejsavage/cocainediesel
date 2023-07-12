@@ -6,6 +6,9 @@
 #include "qcommon/array.h"
 #include "client/renderer/renderer.h"
 
+namespace MTL {
+	class VertexDescriptor;
+}
 #include "metal-cpp/SingleHeader/Metal.hpp"
 #include <dispatch/dispatch.h>
 
@@ -146,10 +149,6 @@ static MTL::PixelFormat TextureFormatToMetal( TextureFormat format ) {
 
 		case TextureFormat_RA_U8: return MTL::PixelFormatRG8Unorm;
 
-		// case TextureFormat_RGB_U8: return MTL::PixelFormatRGB8Unorm;
-		// case TextureFormat_RGB_U8_sRGB: return MTL::PixelFormatRGB8Unorm_sRGB;
-		// case TextureFormat_RGB_Half: return MTL::PixelFormatRGB16Float;
-
 		case TextureFormat_RGBA_U8: return MTL::PixelFormatRGBA8Unorm;
 		case TextureFormat_RGBA_U8_sRGB: return MTL::PixelFormatRGBA8Unorm_sRGB;
 
@@ -208,6 +207,9 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 
 		case TextureFormat_RA_U8:
 			swizzle = swizzle_rrrg;
+			break;
+
+		default:
 			break;
 	}
 

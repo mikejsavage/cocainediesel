@@ -12,17 +12,17 @@ layout( std430 ) coherent buffer b_ComputeCount {
 	uint num_particles;
 };
 
-struct DispatchIndirectCommand {
+struct DispatchComputeIndirectArguments {
 	uint num_groups_x;
 	uint num_groups_y;
 	uint num_groups_z;
 };
 
 layout( std430 ) writeonly buffer b_ComputeIndirect {
-	DispatchIndirectCommand compute_indirect;
+	DispatchComputeIndirectArguments compute_indirect;
 };
 
-struct DrawArraysIndirectCommand {
+struct DrawArraysIndirectArguments {
 	uint count;
 	uint instanceCount;
 	uint baseVertex;
@@ -30,7 +30,7 @@ struct DrawArraysIndirectCommand {
 };
 
 layout( std430 ) writeonly buffer b_DrawIndirect {
-	DrawArraysIndirectCommand draw_indirect;
+	DrawArraysIndirectArguments draw_indirect;
 };
 
 void main() {

@@ -307,7 +307,13 @@ RandomDistribution ParseRandomDistribution( Span< const char > * data, ParseStop
 
 void DeleteParticleSystem( Allocator * a, ParticleSystem * ps );
 
-struct DrawArraysIndirect {
+struct DispatchComputeIndirectArguments {
+	u32 num_groups_x;
+	u32 num_groups_y;
+	u32 num_groups_z;
+};
+
+struct DrawArraysIndirectArguments {
 	u32 count;
 	u32 primCount;
 	u32 baseVertex;
@@ -322,13 +328,11 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	ps->gpu_particles2 = NewGPUBuffer( ps->max_particles * sizeof( GPUParticle ), "particles flop" );
 
 	u32 count = 0;
-	ps->compute_count1 = NewGPUBuffer( sizeof( u32 ), "compute_count flip" );
-	WriteGPUBuffer( ps->compute_count1, &count, sizeof( u32 ) );
-	ps->compute_count2 = NewGPUBuffer( sizeof( u32 ), "compute_count flop" );
-	WriteGPUBuffer( ps->compute_count2, &count, sizeof( u32 ) );
+	ps->compute_count1 = NewGPUBuffer( &count, sizeof( u32 ), "compute_count flip" );
+	ps->compute_count2 = NewGPUBuffer( &count, sizeof( u32 ), "compute_count flop" );
 
-	u32 counts[] = { 1, 1, 1 };
-	ps->compute_indirect = NewGPUBuffer( counts, sizeof( counts ), "compute_indirect" );
+	DispatchComputeIndirectArguments compute_indirect_args = { 1, 1, 1 };
+	ps->compute_indirect = NewGPUBuffer( &compute_indirect_args, sizeof( compute_indirect_args ), "compute_indirect" );
 
 	{
 		MeshConfig mesh_config = { };
@@ -336,7 +340,7 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 		mesh_config.num_vertices = 6;
 		ps->mesh = NewMesh( mesh_config );
 
-		DrawArraysIndirect indirect = { };
+		DrawArraysIndirectArguments indirect = { };
 		indirect.count = 6;
 		ps->draw_indirect = NewGPUBuffer( &indirect, sizeof( indirect ), "draw_indirect" );
 	}

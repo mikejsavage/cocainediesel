@@ -4,6 +4,7 @@ bin( "shadercompiler", {
 		"source/qcommon/allocators.cpp",
 		"source/qcommon/base.cpp",
 		"source/qcommon/fs.cpp",
+		"source/qcommon/threadpool.cpp",
 		"source/qcommon/platform/*_fs.cpp",
 		"source/qcommon/platform/*_threads.cpp",
 		"source/gameshared/q_shared.cpp",

@@ -4,15 +4,22 @@
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/string.h"
+#include "qcommon/threadpool.h"
 #include "gameshared/q_shared.h"
 
 #include "client/renderer/shader_variants.h"
 
 static const char * EXE_SUFFIX = IFDEF( PLATFORM_WINDOWS ) ? ".exe" : "";
 
-static bool CompileGraphicsShader( ArenaAllocator * a, const char * file, Span< const char * > features ) {
-	TempAllocator temp = a->temp();
+struct CompileShaderJob {
+	bool graphics;
+	const char * src;
+	Span< const char * > features;
 
+	bool ok;
+};
+
+static bool CompileGraphicsShader( TempAllocator & temp, const char * file, Span< const char * > features ) {
 	const char * src_path = temp( "base/glsl/{}", file );
 
 	DynamicString features_filename( &temp );
@@ -67,9 +74,7 @@ static bool CompileGraphicsShader( ArenaAllocator * a, const char * file, Span< 
 	return true;
 }
 
-static bool CompileComputeShader( ArenaAllocator * a, const char * file ) {
-	TempAllocator temp = a->temp();
-
+static bool CompileComputeShader( TempAllocator & temp, const char * file ) {
 	const char * src_path = temp( "base/glsl/{}", file );
 	Span< const char > out_path = StripExtension( src_path );
 
@@ -105,15 +110,39 @@ static bool CompileComputeShader( ArenaAllocator * a, const char * file ) {
 	return true;
 }
 
+static void CompileShader( TempAllocator * temp, void * data ) {
+	CompileShaderJob * job = ( CompileShaderJob * ) data;
+
+	if( job->graphics ) {
+		job->ok = CompileGraphicsShader( *temp, job->src, job->features );
+	}
+	else {
+		job->ok = CompileComputeShader( *temp, job->src );
+	}
+}
+
 static bool CompileShadersImpl( const ShaderDescriptors & shaders, ArenaAllocator * a ) {
+	DynamicArray< CompileShaderJob > jobs( a );
+
 	for( const GraphicsShaderDescriptor & shader : shaders.graphics_shaders ) {
-		if( !CompileGraphicsShader( a, shader.src, shader.features ) ) {
-			return false;
-		}
+		jobs.add( CompileShaderJob {
+			.graphics = true,
+			.src = shader.src,
+			.features = shader.features,
+		} );
 	}
 
 	for( const ComputeShaderDescriptor & shader : shaders.compute_shaders ) {
-		if( !CompileComputeShader( a, shader.src ) ) {
+		jobs.add( CompileShaderJob {
+			.graphics = false,
+			.src = shader.src,
+		} );
+	}
+
+	ParallelFor( jobs.span(), CompileShader );
+
+	for( const CompileShaderJob & job : jobs ) {
+		if( !job.ok ) {
 			return false;
 		}
 	}

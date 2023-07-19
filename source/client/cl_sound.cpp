@@ -3,11 +3,11 @@
 #include "qcommon/array.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
+#include "qcommon/threadpool.h"
 #include "qcommon/time.h"
 #include "client/client.h"
 #include "client/assets.h"
 #include "client/sound.h"
-#include "client/threadpool.h"
 #include "cgame/cg_local.h"
 #include "gameshared/gs_public.h"
 

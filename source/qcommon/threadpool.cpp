@@ -1,7 +1,6 @@
 #include "qcommon/base.h"
 #include "qcommon/threads.h"
-#include "client/client.h"
-#include "client/threadpool.h"
+#include "qcommon/threadpool.h"
 
 #include "tracy/Tracy.hpp"
 
@@ -24,6 +23,7 @@ static size_t jobs_head;
 static size_t jobs_not_started;
 static size_t jobs_done;
 
+static ArenaAllocator main_thread_arena;
 static Worker workers[ 32 ];
 static u32 num_workers;
 
@@ -81,12 +81,16 @@ void InitThreadPool() {
 
 	num_workers = Min2( GetCoreCount() - 1, u32( ARRAY_COUNT( workers ) ) );
 
+	constexpr size_t arena_size = 1024 * 1024; // 1MB
+
 	for( u32 i = 0; i < num_workers; i++ ) {
-		constexpr size_t arena_size = 1024 * 1024; // 1MB
 		void * arena_memory = sys_allocator->allocate( arena_size, 16 );
 		workers[ i ].arena = ArenaAllocator( arena_memory, arena_size );
 		workers[ i ].thread = NewThread( ThreadPoolWorker, &workers[ i ].arena );
 	}
+
+	void * arena_memory = sys_allocator->allocate( arena_size, 16 );
+	main_thread_arena = ArenaAllocator( arena_memory, arena_size );
 }
 
 void ShutdownThreadPool() {
@@ -104,6 +108,8 @@ void ShutdownThreadPool() {
 		JoinThread( workers[ i ].thread );
 		Free( sys_allocator, workers[ i ].arena.get_memory() );
 	}
+
+	Free( sys_allocator, main_thread_arena.get_memory() );
 
 	DeleteSemaphore( completion_sem );
 	DeleteSemaphore( jobs_sem );
@@ -170,7 +176,7 @@ void ThreadPoolFinish() {
 		Unlock( jobs_mutex );
 
 		{
-			TempAllocator temp = cls.frame_arena.temp();
+			TempAllocator temp = main_thread_arena.temp();
 			job->callback( &temp, job->data );
 		}
 

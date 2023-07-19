@@ -8,9 +8,9 @@
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/string.h"
+#include "qcommon/threadpool.h"
 #include "qcommon/threads.h"
 #include "client/assets.h"
-#include "client/threadpool.h"
 
 #include "nanosort/nanosort.hpp"
 

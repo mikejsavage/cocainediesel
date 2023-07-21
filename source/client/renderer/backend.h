@@ -43,6 +43,7 @@ struct PipelineState {
 	struct TextureBinding {
 		u64 name_hash;
 		const Texture * texture;
+		SamplerType sampler;
 	};
 
 	struct BufferBinding {
@@ -75,7 +76,7 @@ struct PipelineState {
 	bool wireframe = false;
 
 	void bind_uniform( StringHash name, UniformBlock block );
-	void bind_texture( StringHash name, const Texture * texture );
+	void bind_texture_and_sampler( StringHash name, const Texture * texture, SamplerType sampler );
 	void bind_buffer( StringHash name, GPUBuffer buffer, u32 offset = 0, u32 size = 0 );
 	void bind_streaming_buffer( StringHash name, StreamingBuffer stream );
 };
@@ -134,11 +135,6 @@ struct TextureConfig {
 	int msaa_samples = 0;
 
 	const void * data = NULL;
-
-	SamplerWrap wrap = SamplerWrap_Repeat;
-	bool filter = true;
-	bool shadowmap_sampler = false;
-	float lod_bias = 0.0f;
 };
 
 namespace tracy { struct SourceLocationData; }

@@ -367,7 +367,6 @@ static void CreateRenderTargets() {
 		albedo_desc.format = TextureFormat_RGBA_U8_sRGB;
 		albedo_desc.width = frame_static.viewport_width;
 		albedo_desc.height = frame_static.viewport_height;
-		albedo_desc.wrap = SamplerWrap_Clamp;
 
 		RenderTargetConfig rt;
 		rt.color_attachments[ FragmentShaderOutput_Albedo ] = { NewTexture( albedo_desc ) };
@@ -388,7 +387,6 @@ static void CreateRenderTargets() {
 		curved_surface_mask_desc.width = frame_static.viewport_width;
 		curved_surface_mask_desc.height = frame_static.viewport_height;
 		curved_surface_mask_desc.msaa_samples = frame_static.msaa_samples;
-		curved_surface_mask_desc.filter = false;
 		Texture curved_surface_mask = NewTexture( curved_surface_mask_desc );
 
 		TextureConfig depth_desc;
@@ -431,7 +429,6 @@ static void CreateRenderTargets() {
 		curved_surface_mask_desc.format = TextureFormat_R_UI8;
 		curved_surface_mask_desc.width = frame_static.viewport_width;
 		curved_surface_mask_desc.height = frame_static.viewport_height;
-		curved_surface_mask_desc.filter = false;
 		Texture curved_surface_mask = NewTexture( curved_surface_mask_desc );
 
 		TextureConfig depth_desc;
@@ -468,7 +465,6 @@ static void CreateRenderTargets() {
 			.width = frame_static.shadow_parameters.resolution,
 			.height = frame_static.shadow_parameters.resolution,
 			.num_layers = frame_static.shadow_parameters.num_cascades,
-			.shadowmap_sampler = true,
 		} );
 
 		for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {

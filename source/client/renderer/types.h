@@ -87,11 +87,20 @@ struct UniformBlock {
 enum SamplerWrap : u8 {
 	SamplerWrap_Repeat,
 	SamplerWrap_Clamp,
-	SamplerWrap_Mirror,
 };
 
 struct Sampler {
 	u32 sampler;
+};
+
+enum SamplerType : u8 {
+	Sampler_Standard,
+	Sampler_Clamp,
+	Sampler_Unfiltered,
+	Sampler_LodBiasMinusOne,
+	Sampler_Shadowmap,
+
+	Sampler_Count
 };
 
 enum TextureFormat : u8 {
@@ -118,7 +127,6 @@ enum TextureFormat : u8 {
 };
 
 struct Texture {
-	Sampler sampler;
 	u32 texture;
 	u32 width, height;
 	u32 num_layers;

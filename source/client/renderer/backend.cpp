@@ -170,8 +170,6 @@ static GLenum SamplerWrapToGL( SamplerWrap wrap ) {
 			return GL_REPEAT;
 		case SamplerWrap_Clamp:
 			return GL_CLAMP_TO_EDGE;
-		case SamplerWrap_Mirror:
-			return GL_MIRRORED_REPEAT;
 	}
 
 	Assert( false );
@@ -558,10 +556,11 @@ void PipelineState::bind_uniform( StringHash name, UniformBlock block ) {
 	num_uniforms++;
 }
 
-void PipelineState::bind_texture( StringHash name, const Texture * texture ) {
+void PipelineState::bind_texture_and_sampler( StringHash name, const Texture * texture, SamplerType sampler ) {
 	for( size_t i = 0; i < num_textures; i++ ) {
 		if( textures[ i ].name_hash == name.hash ) {
 			textures[ i ].texture = texture;
+			textures[ i ].sampler = sampler;
 			return;
 		}
 	}
@@ -569,6 +568,7 @@ void PipelineState::bind_texture( StringHash name, const Texture * texture ) {
 	Assert( num_textures < ARRAY_COUNT( textures ) );
 	textures[ num_textures ].name_hash = name.hash;
 	textures[ num_textures ].texture = texture;
+	textures[ num_textures ].sampler = sampler;
 	num_textures++;
 }
 
@@ -648,7 +648,7 @@ static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) 
 							glBindSampler( i, 0 );
 						}
 						glBindTextureUnit( i, texture->texture );
-						glBindSampler( i, texture->sampler.sampler );
+						glBindSampler( i, GetSampler( pipeline.textures[ j ].sampler ).sampler );
 						prev_bindings.textures[ i ] = texture;
 					}
 					found = true;
@@ -1299,13 +1299,6 @@ Texture NewTexture( const TextureConfig & config ) {
 		}
 	}
 
-	texture.sampler = NewSampler( SamplerConfig {
-		.wrap = config.wrap,
-		.filter = config.filter,
-		.shadowmap_sampler = config.shadowmap_sampler,
-		.lod_bias = config.lod_bias,
-	} );
-
 	return texture;
 }
 
@@ -1313,7 +1306,6 @@ void DeleteTexture( Texture texture ) {
 	if( texture.texture == 0 )
 		return;
 	glDeleteTextures( 1, &texture.texture );
-	DeleteSampler( texture.sampler );
 }
 
 static void AddRenderTargetAttachment( GLuint fbo, const RenderTargetConfig::Attachment & config, GLenum attachment, u32 * width, u32 * height ) {

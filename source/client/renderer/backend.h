@@ -210,6 +210,7 @@ struct RenderTargetConfig {
 };
 
 void InitRenderBackend();
+void FlushRenderBackend();
 void ShutdownRenderBackend();
 
 void RenderBackendBeginFrame();

@@ -203,6 +203,8 @@ static void DeleteRenderTargets() {
 void ShutdownRenderer() {
 	TracyZoneScoped;
 
+	FlushRenderBackend();
+
 	ShutdownVisualEffects();
 	ShutdownModels();
 	ShutdownSkybox();

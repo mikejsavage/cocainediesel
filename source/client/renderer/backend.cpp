@@ -496,6 +496,11 @@ void InitRenderBackend() {
 	prev_viewport_height = 0;
 }
 
+void FlushRenderBackend() {
+	TracyZoneScoped;
+	glFinish();
+}
+
 void ShutdownRenderBackend() {
 	for( UBO ubo : ubos ) {
 		DeleteStreamingBuffer( ubo.stream );

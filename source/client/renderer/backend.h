@@ -21,49 +21,6 @@ enum DepthFunc : u8 {
 	DepthFunc_Disabled, // also disables writing
 };
 
-enum TextureFormat : u8 {
-	TextureFormat_R_U8,
-	TextureFormat_R_S8,
-	TextureFormat_R_UI8,
-
-	TextureFormat_A_U8,
-
-	TextureFormat_RG_Half,
-
-	TextureFormat_RA_U8,
-
-	TextureFormat_RGBA_U8,
-	TextureFormat_RGBA_U8_sRGB,
-
-	TextureFormat_BC1_sRGB,
-	TextureFormat_BC3_sRGB,
-	TextureFormat_BC4,
-	TextureFormat_BC5,
-
-	TextureFormat_Depth,
-	TextureFormat_Shadow,
-};
-
-enum TextureWrap : u8 {
-	TextureWrap_Repeat,
-	TextureWrap_Clamp,
-	TextureWrap_Mirror,
-};
-
-enum TextureFilter : u8 {
-	TextureFilter_Linear,
-	TextureFilter_Point,
-};
-
-struct Texture {
-	u32 texture;
-	u32 width, height;
-	u32 num_layers;
-	u32 num_mipmaps;
-	int msaa_samples;
-	TextureFormat format;
-};
-
 struct RenderTarget {
 	u32 fbo;
 	Texture color_attachments[ FragmentShaderOutput_Count ];
@@ -161,6 +118,13 @@ struct MeshConfig {
 	}
 };
 
+struct SamplerConfig {
+	SamplerWrap wrap = SamplerWrap_Repeat;
+	bool filter = true;
+	bool shadowmap_sampler = false;
+	float lod_bias = 0.0f;
+};
+
 struct TextureConfig {
 	TextureFormat format;
 	u32 width = 0;
@@ -171,8 +135,10 @@ struct TextureConfig {
 
 	const void * data = NULL;
 
-	TextureWrap wrap = TextureWrap_Repeat;
-	TextureFilter filter = TextureFilter_Linear;
+	SamplerWrap wrap = SamplerWrap_Repeat;
+	bool filter = true;
+	bool shadowmap_sampler = false;
+	float lod_bias = 0.0f;
 };
 
 namespace tracy { struct SourceLocationData; }
@@ -251,6 +217,9 @@ template< typename T >
 void WriteGPUBuffer( GPUBuffer buf, Span< T > data, u32 offset = 0 ) {
 	WriteGPUBuffer( buf, data.ptr, data.num_bytes(), offset );
 }
+
+Sampler NewSampler( const SamplerConfig & config );
+void DeleteSampler( Sampler sampler );
 
 Texture NewTexture( const TextureConfig & config );
 void DeleteTexture( Texture texture );

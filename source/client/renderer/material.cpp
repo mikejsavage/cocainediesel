@@ -436,7 +436,7 @@ static void LoadBuiltinTextures() {
 		config.width = 2;
 		config.height = 2;
 		config.data = pixels;
-		config.filter = TextureFilter_Point;
+		config.filter = false;
 
 		missing_texture = NewTexture( config );
 	}
@@ -790,6 +790,7 @@ static void PackDecalAtlas() {
 		config.num_layers = num_layers;
 		config.num_mipmaps = num_mipmaps;
 		config.data = blocks.ptr;
+		config.lod_bias = -1.0f;
 
 		decals_atlases = NewTexture( config );
 	}

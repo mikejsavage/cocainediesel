@@ -164,34 +164,18 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 	Assert( false );
 }
 
-static GLenum TextureWrapToGL( TextureWrap wrap ) {
+static GLenum SamplerWrapToGL( SamplerWrap wrap ) {
 	switch( wrap ) {
-		case TextureWrap_Repeat:
+		case SamplerWrap_Repeat:
 			return GL_REPEAT;
-		case TextureWrap_Clamp:
+		case SamplerWrap_Clamp:
 			return GL_CLAMP_TO_EDGE;
-		case TextureWrap_Mirror:
+		case SamplerWrap_Mirror:
 			return GL_MIRRORED_REPEAT;
 	}
 
 	Assert( false );
 	return GL_INVALID_ENUM;
-}
-
-static void TextureFilterToGL( TextureFilter filter, GLenum * min, GLenum * mag ) {
-	switch( filter ) {
-		case TextureFilter_Linear:
-			*min = GL_LINEAR_MIPMAP_LINEAR;
-			*mag = GL_LINEAR;
-			return;
-
-		case TextureFilter_Point:
-			*min = GL_NEAREST_MIPMAP_NEAREST;
-			*mag = GL_NEAREST;
-			return;
-	}
-
-	Assert( false );
 }
 
 static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_components, bool * integral, GLboolean * normalized ) {
@@ -661,8 +645,10 @@ static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) 
 					if( texture != prev_texture ) {
 						if( prev_texture != NULL && prev_texture->msaa_samples != texture->msaa_samples ) {
 							glBindTextureUnit( i, 0 );
+							glBindSampler( i, 0 );
 						}
 						glBindTextureUnit( i, texture->texture );
+						glBindSampler( i, texture->sampler.sampler );
 						prev_bindings.textures[ i ] = texture;
 					}
 					found = true;
@@ -673,6 +659,7 @@ static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) 
 
 		if( !found && prev_texture != NULL ) {
 			glBindTextureUnit( i, 0 );
+			glBindSampler( i, 0 );
 			prev_bindings.textures[ i ] = NULL;
 		}
 	}
@@ -1175,6 +1162,34 @@ void DeferDeleteStreamingBuffer( StreamingBuffer stream ) {
 	deferred_streaming_buffer_deletes.add( stream );
 }
 
+Sampler NewSampler( const SamplerConfig & config ) {
+	Sampler sampler;
+	glCreateSamplers( 1, &sampler.sampler );
+
+	glSamplerParameteri( sampler.sampler, GL_TEXTURE_WRAP_S, SamplerWrapToGL( config.wrap ) );
+	glSamplerParameteri( sampler.sampler, GL_TEXTURE_WRAP_T, SamplerWrapToGL( config.wrap ) );
+
+	GLenum min_filter = config.filter ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST;
+	GLenum mag_filter = config.filter ? GL_LINEAR : GL_NEAREST;
+	glSamplerParameteri( sampler.sampler, GL_TEXTURE_MIN_FILTER, min_filter );
+	glSamplerParameteri( sampler.sampler, GL_TEXTURE_MAG_FILTER, mag_filter );
+
+	glSamplerParameterf( sampler.sampler, GL_TEXTURE_LOD_BIAS, config.lod_bias );
+
+	if( config.shadowmap_sampler ) {
+		glSamplerParameteri( sampler.sampler, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
+		glSamplerParameteri( sampler.sampler, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE );
+	}
+
+	return sampler;
+}
+
+void DeleteSampler( Sampler sampler ) {
+	if( sampler.sampler == 0 )
+		return;
+	glDeleteSamplers( 1, &sampler.sampler );
+}
+
 Texture NewTexture( const TextureConfig & config ) {
 	Texture texture = { };
 	texture.width = config.width;
@@ -1214,22 +1229,6 @@ Texture NewTexture( const TextureConfig & config ) {
 	}
 	else {
 		glTextureStorage3D( texture.texture, config.num_mipmaps, internal_format, config.width, config.height, config.num_layers );
-	}
-
-	glTextureParameteri( texture.texture, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
-	glTextureParameteri( texture.texture, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
-
-	GLenum min_filter = GL_NONE;
-	GLenum mag_filter = GL_NONE;
-	TextureFilterToGL( config.filter, &min_filter, &mag_filter );
-	glTextureParameteri( texture.texture, GL_TEXTURE_MIN_FILTER, min_filter );
-	glTextureParameteri( texture.texture, GL_TEXTURE_MAG_FILTER, mag_filter );
-	glTextureParameteri( texture.texture, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
-	glTextureParameterf( texture.texture, GL_TEXTURE_LOD_BIAS, -1.0f );
-
-	if( config.format == TextureFormat_Shadow ) {
-		glTextureParameteri( texture.texture, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
-		glTextureParameteri( texture.texture, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE );
 	}
 
 	if( !CompressedTextureFormat( config.format ) ) {
@@ -1300,6 +1299,13 @@ Texture NewTexture( const TextureConfig & config ) {
 		}
 	}
 
+	texture.sampler = NewSampler( SamplerConfig {
+		.wrap = config.wrap,
+		.filter = config.filter,
+		.shadowmap_sampler = config.shadowmap_sampler,
+		.lod_bias = config.lod_bias,
+	} );
+
 	return texture;
 }
 
@@ -1307,6 +1313,7 @@ void DeleteTexture( Texture texture ) {
 	if( texture.texture == 0 )
 		return;
 	glDeleteTextures( 1, &texture.texture );
+	DeleteSampler( texture.sampler );
 }
 
 static void AddRenderTargetAttachment( GLuint fbo, const RenderTargetConfig::Attachment & config, GLenum attachment, u32 * width, u32 * height ) {

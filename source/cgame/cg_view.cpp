@@ -468,7 +468,7 @@ static void DrawSilhouettes() {
 	pipeline.write_depth = false;
 
 	const RenderTarget & rt = frame_static.render_targets.silhouette_mask;
-	pipeline.bind_texture( "u_SilhouetteTexture", &rt.color_attachments[ FragmentShaderOutput_Albedo ] );
+	pipeline.bind_texture_and_sampler( "u_SilhouetteTexture", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Clamp );
 	pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
 	DrawFullscreenMesh( pipeline );
 }
@@ -486,8 +486,8 @@ static void DrawOutlines() {
 	constexpr RGBA8 gray = RGBA8( 30, 30, 30, 255 );
 
 	const RenderTarget & rt = msaa ? frame_static.render_targets.msaa_masked : frame_static.render_targets.postprocess_masked;
-	pipeline.bind_texture( "u_DepthTexture", &rt.depth_attachment );
-	pipeline.bind_texture( "u_CurvedSurfaceMask", &rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ] );
+	pipeline.bind_texture_and_sampler( "u_DepthTexture", &rt.depth_attachment, Sampler_Standard );
+	pipeline.bind_texture_and_sampler( "u_CurvedSurfaceMask", &rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ], Sampler_Unfiltered );
 	pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
 	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.bind_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );

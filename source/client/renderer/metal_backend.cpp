@@ -30,10 +30,10 @@ void PipelineState::bind_uniform( StringHash name, UniformBlock block ) {
 	bind_buffer( name, block.buffer, block.offset, block.size );
 }
 
-void PipelineState::bind_texture( StringHash name, const Texture * texture ) {
+void PipelineState::bind_texture_and_sampler( StringHash name, const Texture * texture, SamplerType sampler ) {
 	for( size_t i = 0; i < ARRAY_COUNT( textures ); i++ ) {
 		if( shader->textures[ i ] == name.hash ) {
-			textures[ num_textures ] = { name.hash, texture };
+			textures[ num_textures ] = { name.hash, texture, sampler };
 			num_textures++;
 			return;
 		}
@@ -169,7 +169,7 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 	texture.width = config.width;
 	texture.height = config.height;
 	texture.num_mipmaps = config.num_mipmaps;
-	texture.msaa = msaa_samples > 1;
+	texture.msaa_samples = msaa_samples;
 	texture.format = config.format;
 
 	MTL::TextureSwizzleChannels swizzle_rrr1 = {
@@ -217,7 +217,7 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 	defer { descriptor->release(); };
 	descriptor->setStorageMode( MTL::StorageModeManaged );
 	descriptor->setUsage( MTL::TextureUsageShaderRead ); // TODO
-	descriptor->setTextureType( texture.msaa ? MTL::TextureType2DMultisample : MTL::TextureType2D );
+	descriptor->setTextureType( texture.msaa_samples > 1 ? MTL::TextureType2DMultisample : MTL::TextureType2D );
 	descriptor->setPixelFormat( TextureFormatToMetal( config.format ) );
 	descriptor->setWidth( config.width );
 	descriptor->setHeight( config.height );

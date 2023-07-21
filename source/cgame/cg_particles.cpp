@@ -919,7 +919,7 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	pipeline.write_depth = false;
 	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
-	pipeline.bind_texture( "u_DecalAtlases", DecalAtlasTextureArray() );
+	pipeline.bind_texture_and_sampler( "u_DecalAtlases", DecalAtlasTextureArray(), Sampler_Standard );
 	pipeline.bind_buffer( "b_Particles", ps->gpu_particles2 );
 	DrawMeshIndirect( ps->mesh, pipeline, ps->draw_indirect );
 

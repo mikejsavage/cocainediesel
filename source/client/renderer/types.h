@@ -82,11 +82,31 @@ struct ShaderVariant {
 	VertexDescriptor vertex_descriptor;
 };
 
+enum SamplerWrap : u8 {
+	SamplerWrap_Repeat,
+	SamplerWrap_Clamp,
+};
+
+struct Sampler {
+	u32 sampler;
+};
+
+enum SamplerType : u8 {
+	Sampler_Standard,
+	Sampler_Clamp,
+	Sampler_Unfiltered,
+	Sampler_LodBiasMinusOne,
+	Sampler_Shadowmap,
+
+	Sampler_Count
+};
+
 struct Texture {
 	TextureHandle handle;
 	u32 width, height;
+	u32 num_layers;
 	u32 num_mipmaps;
-	bool msaa;
+	int msaa_samples;
 	TextureFormat format;
 };
 

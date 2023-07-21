@@ -221,7 +221,7 @@ static void SubmitDrawCalls() {
 						pipeline.bind_uniform( pcmd->TextureId.uniform_name, pcmd->TextureId.uniform_block );
 					}
 
-					pipeline.bind_texture( "u_BaseTexture", pcmd->TextureId.material->texture );
+					pipeline.bind_texture_and_sampler( "u_BaseTexture", pcmd->TextureId.material->texture, Sampler_LodBiasMinusOne );
 
 					DrawMesh( mesh, pipeline, pcmd->ElemCount, pcmd->IdxOffset );
 				}

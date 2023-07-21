@@ -21,18 +21,6 @@ enum DepthFunc : u8 {
 	DepthFunc_Disabled, // also disables writing
 };
 
-enum TextureWrap : u8 {
-	TextureWrap_Repeat,
-	TextureWrap_Clamp,
-	TextureWrap_Mirror,
-	TextureWrap_Border,
-};
-
-enum TextureFilter : u8 {
-	TextureFilter_Linear,
-	TextureFilter_Point,
-};
-
 struct BindGroupDescriptor {
 	struct UniformBinding {
 		u64 name_hash;
@@ -83,6 +71,7 @@ struct PipelineState {
 	struct TextureBinding {
 		u64 name_hash;
 		const Texture * texture;
+		SamplerType sampler;
 	};
 
 	struct BufferBinding {
@@ -115,7 +104,7 @@ struct PipelineState {
 	bool wireframe = false;
 
 	void bind_uniform( StringHash name, UniformBlock block );
-	void bind_texture( StringHash name, const Texture * texture );
+	void bind_texture_and_sampler( StringHash name, const Texture * texture, SamplerType sampler );
 	void bind_buffer( StringHash name, GPUBuffer buffer, u32 offset = 0, u32 size = 0 );
 	void bind_streaming_buffer( StringHash name, StreamingBuffer stream );
 };
@@ -158,6 +147,13 @@ struct MeshConfig {
 	}
 };
 
+struct SamplerConfig {
+	SamplerWrap wrap = SamplerWrap_Repeat;
+	bool filter = true;
+	bool shadowmap_sampler = false;
+	float lod_bias = 0.0f;
+};
+
 struct TextureConfig {
 	TextureFormat format;
 	u32 width = 0;
@@ -167,11 +163,6 @@ struct TextureConfig {
 	int msaa_samples = 0;
 
 	const void * data = NULL;
-
-	TextureWrap wrap = TextureWrap_Repeat;
-	TextureFilter filter = TextureFilter_Linear;
-
-	Vec4 border_color;
 };
 
 namespace tracy { struct SourceLocationData; }
@@ -181,18 +172,15 @@ enum RenderPassType {
 	RenderPass_Blit,
 };
 
-struct RenderPass {
-	RenderPassType type;
+struct RenderPassConfig {
+	RenderPassType type = RenderPass_Normal;
 
 	RenderTarget target = { };
 
 	bool barrier = false;
 
-	bool clear_color = false;
-	Vec4 color = Vec4( 0 );
-
-	bool clear_depth = false;
-	float depth = 1.0f;
+	Optional< Vec4 > clear_color[ FragmentShaderOutput_Count ] = { };
+	Optional< float > clear_depth = NONE;
 
 	bool sorted = true;
 
@@ -211,21 +199,16 @@ struct RenderTargetConfig {
 	Optional< Attachment > depth_attachment = NONE;
 };
 
-enum ClearColor { ClearColor_Dont, ClearColor_Do };
-enum ClearDepth { ClearDepth_Dont, ClearDepth_Do };
-
 void InitRenderBackend();
+void FlushRenderBackend();
 void ShutdownRenderBackend();
 
 void RenderBackendBeginFrame();
 void RenderBackendSubmitFrame();
 
-u8 AddRenderPass( const tracy::SourceLocationData * tracy, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
-u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
-u8 AddUnsortedRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target = { } );
-u8 AddBarrierRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target = { } );
-void AddBlitPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
-void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
+u8 AddRenderPass( const RenderPassConfig & config );
+u8 AddRenderPass( const tracy::SourceLocationData * tracy, Optional< Vec4 > clear_color = NONE, Optional< float > clear_depth = NONE );
+u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, Optional< Vec4 > clear_color = NONE, Optional< float > clear_depth = NONE );
 
 UniformBlock UploadUniforms( const void * data, size_t size );
 
@@ -256,6 +239,9 @@ template< typename T >
 void WriteGPUBuffer( GPUBuffer buf, Span< T > data, u32 offset = 0 ) {
 	WriteGPUBuffer( buf, data.ptr, data.num_bytes(), offset );
 }
+
+Sampler NewSampler( const SamplerConfig & config );
+void DeleteSampler( Sampler sampler );
 
 Texture NewTexture( const TextureConfig & config );
 void DeleteTexture( Texture texture );

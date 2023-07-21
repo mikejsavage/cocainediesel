@@ -555,7 +555,9 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 #undef TRACY_HACK
 
 	frame_static.particle_update_pass = AddRenderPass( &particle_update_tracy );
-	frame_static.particle_setup_indirect_pass = AddBarrierRenderPass( &particle_setup_indirect_tracy );
+	frame_static.particle_setup_indirect_pass = AddRenderPass( RenderPassConfig {
+		.tracy = &particle_setup_indirect_tracy,
+	} );
 	frame_static.tile_culling_pass = AddRenderPass( &tile_culling_tracy );
 
 	Vec4 clear_color = Vec4( 0.0f );
@@ -568,12 +570,18 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	bool msaa = frame_static.msaa_samples;
 	if( msaa ) {
 		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.msaa, clear_color, clear_depth );
-		frame_static.world_opaque_pass = AddBarrierRenderPass( &world_opaque_tracy, frame_static.render_targets.msaa_masked );
+		frame_static.world_opaque_pass = AddRenderPass( RenderPassConfig {
+			.target = frame_static.render_targets.msaa_masked,
+			.tracy = &world_opaque_tracy,
+		} );
 		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.render_targets.msaa );
 	}
 	else {
 		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.postprocess, clear_color, clear_depth );
-		frame_static.world_opaque_pass = AddBarrierRenderPass( &world_opaque_tracy, frame_static.render_targets.postprocess_masked );
+		frame_static.world_opaque_pass = AddRenderPass( RenderPassConfig {
+			.target = frame_static.render_targets.postprocess_masked,
+			.tracy = &world_opaque_tracy,
+		} );
 		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.render_targets.postprocess );
 	}
 
@@ -583,7 +591,11 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.render_targets.msaa_masked );
 		frame_static.add_outlines_pass = AddRenderPass( &add_outlines_tracy, frame_static.render_targets.msaa_onlycolor );
 		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.render_targets.msaa );
-		AddResolveMSAAPass( &msaa_tracy, frame_static.render_targets.msaa, frame_static.render_targets.postprocess );
+		AddRenderPass( RenderPassConfig {
+			.type = RenderPass_Blit,
+			.target = frame_static.render_targets.postprocess,
+			.blit_source = frame_static.render_targets.msaa,
+		} );
 	}
 	else {
 		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.render_targets.postprocess_masked );
@@ -591,11 +603,26 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.render_targets.postprocess );
 	}
 
-	frame_static.transparent_pass = AddBarrierRenderPass( &transparent_tracy, frame_static.render_targets.postprocess );
+	frame_static.transparent_pass = AddRenderPass( RenderPassConfig {
+		.target = frame_static.render_targets.postprocess,
+		.barrier = true,
+		.tracy = &transparent_tracy,
+	} );
+
 	frame_static.add_silhouettes_pass = AddRenderPass( &silhouettes_tracy, frame_static.render_targets.postprocess );
-	frame_static.ui_pass = AddUnsortedRenderPass( &ui_tracy, frame_static.render_targets.postprocess );
+
+	frame_static.ui_pass = AddRenderPass( RenderPassConfig {
+		.target = frame_static.render_targets.postprocess,
+		.sorted = false,
+		.tracy = &ui_tracy,
+	} );
+
 	frame_static.postprocess_pass = AddRenderPass( &postprocess_tracy, clear_color );
-	frame_static.post_ui_pass = AddUnsortedRenderPass( &post_ui_tracy );
+
+	frame_static.post_ui_pass = AddRenderPass( RenderPassConfig {
+		.sorted = false,
+		.tracy = &post_ui_tracy,
+	} );
 }
 
 static Mat4 InverseScaleTranslation( Mat4 m ) {

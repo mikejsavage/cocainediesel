@@ -144,8 +144,8 @@ enum RenderPassType {
 	RenderPass_Blit,
 };
 
-struct RenderPass {
-	RenderPassType type;
+struct RenderPassConfig {
+	RenderPassType type = RenderPass_Normal;
 
 	RenderTarget target = { };
 
@@ -178,11 +178,9 @@ void ShutdownRenderBackend();
 void RenderBackendBeginFrame();
 void RenderBackendSubmitFrame();
 
+u8 AddRenderPass( const RenderPassConfig & config );
 u8 AddRenderPass( const tracy::SourceLocationData * tracy, Optional< Vec4 > clear_color = NONE, Optional< float > clear_depth = NONE );
 u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, Optional< Vec4 > clear_color = NONE, Optional< float > clear_depth = NONE );
-u8 AddUnsortedRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target = { } );
-u8 AddBarrierRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target = { } );
-void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst );
 
 UniformBlock UploadUniforms( const void * data, size_t size );
 

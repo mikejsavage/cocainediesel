@@ -12,10 +12,11 @@
 #define GLFW_INCLUDE_NONE
 #include "glfw3/GLFW/glfw3.h"
 
+#include "nanosort/nanosort.hpp"
+
 #include "tracy/Tracy.hpp"
 #include "tracy/TracyOpenGL.hpp"
 
-#include <algorithm> // std::stable_sort
 #include <new>
 
 template< typename S, typename T >
@@ -47,11 +48,16 @@ struct DrawCall {
 	GPUBuffer indirect;
 };
 
+struct RenderPass {
+	RenderPassConfig config;
+	NonRAIIDynamicArray< DrawCall > draws;
+};
+
 static GLuint vao;
 static GLsync fences[ MAX_FRAMES_IN_FLIGHT ];
 
 static NonRAIIDynamicArray< RenderPass > render_passes;
-static NonRAIIDynamicArray< DrawCall > draw_calls;
+static u8 num_render_passes;
 
 static NonRAIIDynamicArray< Mesh > deferred_mesh_deletes;
 static NonRAIIDynamicArray< GPUBuffer > deferred_buffer_deletes;
@@ -430,7 +436,7 @@ void InitRenderBackend() {
 	}
 
 	render_passes.init( sys_allocator );
-	draw_calls.init( sys_allocator );
+	num_render_passes = 0;
 
 	deferred_mesh_deletes.init( sys_allocator );
 	deferred_buffer_deletes.init( sys_allocator );
@@ -499,8 +505,10 @@ void ShutdownRenderBackend() {
 		}
 	}
 
+	for( RenderPass & pass : render_passes ) {
+		pass.draws.shutdown();
+	}
 	render_passes.shutdown();
-	draw_calls.shutdown();
 
 	deferred_mesh_deletes.shutdown();
 	deferred_buffer_deletes.shutdown();
@@ -513,8 +521,7 @@ void RenderBackendBeginFrame() {
 	Assert( !in_frame );
 	in_frame = true;
 
-	render_passes.clear();
-	draw_calls.clear();
+	num_render_passes = 0;
 
 	size_t fence_id = FrameSlot();
 	if( fences[ fence_id ] != 0 ) {
@@ -864,14 +871,10 @@ static void BindVertexDescriptorAndBuffers( const Mesh & mesh ) {
 }
 
 static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
-	if( a.pipeline.pass != b.pipeline.pass )
-		return a.pipeline.pass < b.pipeline.pass;
-	if( !render_passes[ a.pipeline.pass ].sorted )
-		return false;
 	return a.pipeline.shader < b.pipeline.shader;
 }
 
-static void SubmitFramebufferBlit( const RenderPass & pass ) {
+static void SubmitFramebufferBlit( const RenderPassConfig & pass ) {
 	RenderTarget src = pass.blit_source;
 	RenderTarget target = pass.target;
 	glBlitNamedFramebuffer( src.fbo, target.fbo, 0, 0, src.width, src.height, 0, 0, target.width, target.height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
@@ -889,7 +892,7 @@ struct SourceLocationData {
 }
 #endif
 
-static void SetupRenderPass( const RenderPass & pass ) {
+static void SetupRenderPass( const RenderPassConfig & pass ) {
 	TracyZoneScoped;
 	TracyZoneText( pass.tracy->name, strlen( pass.tracy->name ) );
 #if TRACY_ENABLE
@@ -1013,32 +1016,23 @@ void RenderBackendSubmitFrame() {
 	Assert( render_passes.size() > 0 );
 	in_frame = false;
 
-	{
-		TracyZoneScopedN( "Sort draw calls" );
-		std::stable_sort( draw_calls.begin(), draw_calls.end(), SortDrawCall );
-	}
+	size_t num_draw_calls_this_frame = 0;
+	for( RenderPass & pass : render_passes ) {
+		SetupRenderPass( pass.config );
 
-	SetupRenderPass( render_passes[ 0 ] );
-	u8 pass_idx = 0;
-
-	{
-		TracyZoneScopedN( "Submit draw calls" );
-		for( const DrawCall & dc : draw_calls ) {
-			while( dc.pipeline.pass > pass_idx ) {
-				FinishRenderPass();
-				pass_idx++;
-				SetupRenderPass( render_passes[ pass_idx ] );
-			}
-
-			SubmitDrawCall( dc );
+		if( pass.config.sorted ) {
+			TracyZoneScopedN( "Sort draw calls" );
+			nanosort( pass.draws.begin(), pass.draws.end(), SortDrawCall );
 		}
-	}
 
-	FinishRenderPass();
+		{
+			TracyZoneScopedN( "Submit draw calls" );
+			for( const DrawCall & draw : pass.draws ) {
+				SubmitDrawCall( draw );
+				num_draw_calls_this_frame++;
+			}
+		}
 
-	while( pass_idx < render_passes.size() - 1 ) {
-		pass_idx++;
-		SetupRenderPass( render_passes[ pass_idx ] );
 		FinishRenderPass();
 	}
 
@@ -1060,7 +1054,7 @@ void RenderBackendSubmitFrame() {
 	}
 	TracyPlotSample( "UBO utilisation", float( ubo_bytes_used ) / float( UNIFORM_BUFFER_SIZE * ARRAY_COUNT( ubos ) ) );
 
-	TracyPlotSample( "Draw calls", s64( draw_calls.size() ) );
+	TracyPlotSample( "Draw calls", s64( num_draw_calls_this_frame ) );
 	TracyPlotSample( "Vertices", s64( num_vertices_this_frame ) );
 
 	TracyGpuCollect;
@@ -1562,13 +1556,21 @@ void DeferDeleteMesh( const Mesh & mesh ) {
 	deferred_mesh_deletes.add( mesh );
 }
 
-static u8 AddRenderPass( const RenderPass & pass ) {
-	return checked_cast< u8 >( render_passes.add( pass ) );
+u8 AddRenderPass( const RenderPassConfig & config ) {
+	if( num_render_passes >= render_passes.size() ) {
+		num_render_passes = render_passes.add( RenderPass() );
+		render_passes[ num_render_passes ].draws.init( sys_allocator );
+	}
+
+	render_passes[ num_render_passes ].config = config;
+	render_passes[ num_render_passes ].draws.clear();
+	num_render_passes++;
+
+	return num_render_passes - 1;
 }
 
 u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, Optional< Vec4 > clear_color, Optional< float > clear_depth ) {
-	RenderPass pass;
-	pass.type = RenderPass_Normal;
+	RenderPassConfig pass;
 	pass.target = target;
 	for( Optional< Vec4 > & color : pass.clear_color ) {
 		color = clear_color;
@@ -1581,37 +1583,6 @@ u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, 
 u8 AddRenderPass( const tracy::SourceLocationData * tracy, Optional< Vec4 > clear_color, Optional< float > clear_depth ) {
 	RenderTarget target = { };
 	return AddRenderPass( tracy, target, clear_color, clear_depth );
-}
-
-u8 AddBarrierRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target ) {
-	RenderPass pass;
-	pass.type = RenderPass_Normal;
-	pass.target = target;
-	pass.barrier = true;
-	pass.tracy = tracy;
-	return AddRenderPass( pass );
-}
-
-u8 AddUnsortedRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target ) {
-	RenderPass pass;
-	pass.type = RenderPass_Normal;
-	pass.target = target;
-	pass.sorted = false;
-	pass.tracy = tracy;
-	return AddRenderPass( pass );
-}
-
-static void AddBlitPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst ) {
-	RenderPass pass;
-	pass.type = RenderPass_Blit;
-	pass.tracy = tracy;
-	pass.blit_source = src;
-	pass.target = dst;
-	AddRenderPass( pass );
-}
-
-void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst ) {
-	AddBlitPass( tracy, src, dst );
 }
 
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 first_index, u32 base_vertex ) {
@@ -1631,7 +1602,7 @@ void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 n
 	dc.first_index = first_index;
 	dc.base_vertex = base_vertex;
 	dc.num_instances = num_instances;
-	draw_calls.add( dc );
+	render_passes[ pipeline.pass ].draws.add( dc );
 
 	num_vertices_this_frame += dc.num_vertices * num_instances;
 }
@@ -1642,7 +1613,7 @@ void DrawMeshIndirect( const Mesh & mesh, const PipelineState & pipeline, GPUBuf
 	dc.pipeline = pipeline;
 	dc.mesh = mesh;
 	dc.indirect = indirect;
-	draw_calls.add( dc );
+	render_passes[ pipeline.pass ].draws.add( dc );
 }
 
 void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z ) {
@@ -1652,7 +1623,7 @@ void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z ) {
 	dc.dispatch_size[ 0 ] = x;
 	dc.dispatch_size[ 1 ] = y;
 	dc.dispatch_size[ 2 ] = z;
-	draw_calls.add( dc );
+	render_passes[ pipeline.pass ].draws.add( dc );
 }
 
 void DispatchComputeIndirect( const PipelineState & pipeline, GPUBuffer indirect ) {
@@ -1660,7 +1631,7 @@ void DispatchComputeIndirect( const PipelineState & pipeline, GPUBuffer indirect
 	dc.type = DrawCallType_IndirectCompute;
 	dc.pipeline = pipeline;
 	dc.indirect = indirect;
-	draw_calls.add( dc );
+	render_passes[ pipeline.pass ].draws.add( dc );
 }
 
 void DownloadFramebuffer( void * buf ) {

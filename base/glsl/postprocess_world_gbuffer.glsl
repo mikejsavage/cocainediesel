@@ -44,10 +44,10 @@ void main() {
 	const int i = 0;
 #endif
 	{
-		float depth =            texelFetch( u_DepthTexture, p, i ).r;
-		float depth_up =         texelFetch( u_DepthTexture, p + pixel.xz, i ).r;
-		float depth_down_left =  texelFetch( u_DepthTexture, p + pixel.yy, i ).r;
-		float depth_down_right = texelFetch( u_DepthTexture, p + pixel.zy, i ).r;
+		float depth =            ClampedTexelFetch( u_DepthTexture, p, i ).r;
+		float depth_up =         ClampedTexelFetch( u_DepthTexture, p + pixel.xz, i ).r;
+		float depth_down_left =  ClampedTexelFetch( u_DepthTexture, p + pixel.yy, i ).r;
+		float depth_down_right = ClampedTexelFetch( u_DepthTexture, p + pixel.zy, i ).r;
 
 		uint mask = texelFetch( u_CurvedSurfaceMask, p, i ).r;
 		float epsilon = ( mask & MASK_CURVED ) == MASK_CURVED ? 0.005 : 0.00001;

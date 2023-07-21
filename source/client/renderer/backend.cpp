@@ -172,8 +172,6 @@ static GLenum TextureWrapToGL( TextureWrap wrap ) {
 			return GL_CLAMP_TO_EDGE;
 		case TextureWrap_Mirror:
 			return GL_MIRRORED_REPEAT;
-		case TextureWrap_Border:
-			return GL_CLAMP_TO_BORDER;
 	}
 
 	Assert( false );
@@ -1243,10 +1241,6 @@ Texture NewTexture( const TextureConfig & config ) {
 	if( config.format == TextureFormat_Shadow ) {
 		glTextureParameteri( texture.texture, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
 		glTextureParameteri( texture.texture, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE );
-	}
-
-	if( config.wrap == TextureWrap_Border ) {
-		glTextureParameterfv( texture.texture, GL_TEXTURE_BORDER_COLOR, config.border_color.ptr() );
 	}
 
 	if( !CompressedTextureFormat( config.format ) ) {

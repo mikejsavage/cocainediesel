@@ -48,7 +48,6 @@ enum TextureWrap : u8 {
 	TextureWrap_Repeat,
 	TextureWrap_Clamp,
 	TextureWrap_Mirror,
-	TextureWrap_Border,
 };
 
 enum TextureFilter : u8 {
@@ -174,8 +173,6 @@ struct TextureConfig {
 
 	TextureWrap wrap = TextureWrap_Repeat;
 	TextureFilter filter = TextureFilter_Linear;
-
-	Vec4 border_color;
 };
 
 namespace tracy { struct SourceLocationData; }

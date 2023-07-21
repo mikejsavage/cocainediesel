@@ -461,19 +461,17 @@ static void CreateRenderTargets() {
 	}
 
 	{
-		TextureConfig shadowmap_desc;
-		shadowmap_desc.format = TextureFormat_Shadow;
-		shadowmap_desc.width = frame_static.shadow_parameters.resolution;
-		shadowmap_desc.height = frame_static.shadow_parameters.resolution;
-		shadowmap_desc.num_layers = frame_static.shadow_parameters.num_cascades;
-		shadowmap_desc.wrap = TextureWrap_Border;
-		shadowmap_desc.border_color = Vec4( 0.0f );
-		Texture shadowmap = NewTexture( shadowmap_desc );
+		Texture shadowmap = NewTexture( TextureConfig {
+			.format = TextureFormat_Shadow,
+			.width = frame_static.shadow_parameters.resolution,
+			.height = frame_static.shadow_parameters.resolution,
+			.num_layers = frame_static.shadow_parameters.num_cascades,
+		} );
 
 		for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
-			RenderTargetConfig rt;
-			rt.depth_attachment = { shadowmap, i };
-			frame_static.render_targets.shadowmaps[ i ] = NewRenderTarget( rt );
+			frame_static.render_targets.shadowmaps[ i ] = NewRenderTarget( RenderTargetConfig {
+				.depth_attachment = RenderTargetConfig::Attachment { shadowmap, i }
+			} );
 		}
 	}
 }

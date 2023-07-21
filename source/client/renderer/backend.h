@@ -189,11 +189,8 @@ struct RenderPass {
 
 	bool barrier = false;
 
-	bool clear_color = false;
-	Vec4 color = Vec4( 0 );
-
-	bool clear_depth = false;
-	float depth = 1.0f;
+	Optional< Vec4 > clear_color[ FragmentShaderOutput_Count ] = { };
+	Optional< float > clear_depth = NONE;
 
 	bool sorted = true;
 
@@ -212,21 +209,17 @@ struct RenderTargetConfig {
 	Optional< Attachment > depth_attachment = NONE;
 };
 
-enum ClearColor { ClearColor_Dont, ClearColor_Do };
-enum ClearDepth { ClearDepth_Dont, ClearDepth_Do };
-
 void InitRenderBackend();
 void ShutdownRenderBackend();
 
 void RenderBackendBeginFrame();
 void RenderBackendSubmitFrame();
 
-u8 AddRenderPass( const tracy::SourceLocationData * tracy, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
-u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
+u8 AddRenderPass( const tracy::SourceLocationData * tracy, Optional< Vec4 > clear_color = NONE, Optional< float > clear_depth = NONE );
+u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, Optional< Vec4 > clear_color = NONE, Optional< float > clear_depth = NONE );
 u8 AddUnsortedRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target = { } );
 u8 AddBarrierRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target = { } );
-void AddBlitPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
-void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
+void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst );
 
 UniformBlock UploadUniforms( const void * data, size_t size );
 

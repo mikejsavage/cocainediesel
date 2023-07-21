@@ -882,10 +882,7 @@ static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 static void SubmitFramebufferBlit( const RenderPass & pass ) {
 	RenderTarget src = pass.blit_source;
 	RenderTarget target = pass.target;
-	GLbitfield clear_mask = 0;
-	clear_mask |= pass.clear_color ? GL_COLOR_BUFFER_BIT : 0;
-	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
-	glBlitNamedFramebuffer( src.fbo, target.fbo, 0, 0, src.width, src.height, 0, 0, target.width, target.height, clear_mask, GL_NEAREST );
+	glBlitNamedFramebuffer( src.fbo, target.fbo, 0, 0, src.width, src.height, 0, 0, target.width, target.height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 }
 
 #if !TRACY_ENABLE
@@ -933,28 +930,15 @@ static void SetupRenderPass( const RenderPass & pass ) {
 		glMemoryBarrier( GL_SHADER_STORAGE_BARRIER_BIT );
 	}
 
-	GLbitfield clear_mask = 0;
-	clear_mask |= pass.clear_color ? GL_COLOR_BUFFER_BIT : 0;
-	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
-	if( clear_mask != 0 ) {
-		if( prev_pipeline.scissor.exists ) {
-			glDisable( GL_SCISSOR_TEST );
-			prev_pipeline.scissor = NONE;
-		}
+	for( size_t i = 0; i < ARRAY_COUNT( pass.clear_color ); i++ ) {
+		const Optional< Vec4 > & clear_color = pass.clear_color[ i ];
+		if( !clear_color.exists || pass.target.color_attachments[ i ].texture == 0 )
+			continue;
+		glClearNamedFramebufferfv( pass.target.fbo, GL_COLOR, i, clear_color.value.ptr() );
+	}
 
-		if( pass.clear_color ) {
-			glClearColor( pass.color.x, pass.color.y, pass.color.z, pass.color.w );
-		}
-
-		if( pass.clear_depth ) {
-			if( !prev_pipeline.write_depth ) {
-				glDepthMask( GL_TRUE );
-				prev_pipeline.write_depth = true;
-			}
-			glClearDepth( pass.depth );
-		}
-
-		glClear( clear_mask );
+	if( pass.clear_depth.exists && pass.target.depth_attachment.texture != 0 ) {
+		glClearNamedFramebufferfv( pass.target.fbo, GL_DEPTH, 0, &pass.clear_depth.value );
 	}
 }
 
@@ -1578,17 +1562,19 @@ static u8 AddRenderPass( const RenderPass & pass ) {
 	return checked_cast< u8 >( render_passes.add( pass ) );
 }
 
-u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, ClearColor clear_color, ClearDepth clear_depth ) {
+u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, Optional< Vec4 > clear_color, Optional< float > clear_depth ) {
 	RenderPass pass;
 	pass.type = RenderPass_Normal;
 	pass.target = target;
-	pass.clear_color = clear_color == ClearColor_Do;
-	pass.clear_depth = clear_depth == ClearDepth_Do;
+	for( Optional< Vec4 > & color : pass.clear_color ) {
+		color = clear_color;
+	}
+	pass.clear_depth = clear_depth;
 	pass.tracy = tracy;
 	return AddRenderPass( pass );
 }
 
-u8 AddRenderPass( const tracy::SourceLocationData * tracy, ClearColor clear_color, ClearDepth clear_depth ) {
+u8 AddRenderPass( const tracy::SourceLocationData * tracy, Optional< Vec4 > clear_color, Optional< float > clear_depth ) {
 	RenderTarget target = { };
 	return AddRenderPass( tracy, target, clear_color, clear_depth );
 }
@@ -1611,19 +1597,17 @@ u8 AddUnsortedRenderPass( const tracy::SourceLocationData * tracy, RenderTarget 
 	return AddRenderPass( pass );
 }
 
-void AddBlitPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst, ClearColor clear_color, ClearDepth clear_depth ) {
+static void AddBlitPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst ) {
 	RenderPass pass;
 	pass.type = RenderPass_Blit;
 	pass.tracy = tracy;
 	pass.blit_source = src;
 	pass.target = dst;
-	pass.clear_color = clear_color;
-	pass.clear_depth = clear_depth;
 	AddRenderPass( pass );
 }
 
-void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst, ClearColor clear_color, ClearDepth clear_depth ) {
-	AddBlitPass( tracy, src, dst, clear_color, clear_depth );
+void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst ) {
+	AddBlitPass( tracy, src, dst );
 }
 
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 first_index, u32 base_vertex ) {

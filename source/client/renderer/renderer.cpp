@@ -559,29 +559,32 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.particle_setup_indirect_pass = AddBarrierRenderPass( &particle_setup_indirect_tracy );
 	frame_static.tile_culling_pass = AddRenderPass( &tile_culling_tracy );
 
+	Vec4 clear_color = Vec4( 0.0f );
+	float clear_depth = 1.0f;
+
 	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
-		frame_static.shadowmap_pass[ i ] = AddRenderPass( &write_shadowmap_tracy, frame_static.render_targets.shadowmaps[ i ], ClearColor_Dont, ClearDepth_Do );
+		frame_static.shadowmap_pass[ i ] = AddRenderPass( &write_shadowmap_tracy, frame_static.render_targets.shadowmaps[ i ], NONE, clear_depth );
 	}
 
 	bool msaa = frame_static.msaa_samples;
 	if( msaa ) {
-		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.msaa, ClearColor_Do, ClearDepth_Do );
+		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.msaa, clear_color, clear_depth );
 		frame_static.world_opaque_pass = AddBarrierRenderPass( &world_opaque_tracy, frame_static.render_targets.msaa_masked );
 		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.render_targets.msaa );
 	}
 	else {
-		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.postprocess, ClearColor_Do, ClearDepth_Do );
+		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.postprocess, clear_color, clear_depth );
 		frame_static.world_opaque_pass = AddBarrierRenderPass( &world_opaque_tracy, frame_static.render_targets.postprocess_masked );
 		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.render_targets.postprocess );
 	}
 
-	frame_static.write_silhouette_gbuffer_pass = AddRenderPass( &write_silhouette_buffer_tracy, frame_static.render_targets.silhouette_mask, ClearColor_Do, ClearDepth_Dont );
+	frame_static.write_silhouette_gbuffer_pass = AddRenderPass( &write_silhouette_buffer_tracy, frame_static.render_targets.silhouette_mask, clear_color, NONE );
 
 	if( msaa ) {
 		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.render_targets.msaa_masked );
 		frame_static.add_outlines_pass = AddRenderPass( &add_outlines_tracy, frame_static.render_targets.msaa_onlycolor );
 		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.render_targets.msaa );
-		AddResolveMSAAPass( &msaa_tracy, frame_static.render_targets.msaa, frame_static.render_targets.postprocess, ClearColor_Do, ClearDepth_Do );
+		AddResolveMSAAPass( &msaa_tracy, frame_static.render_targets.msaa, frame_static.render_targets.postprocess );
 	}
 	else {
 		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.render_targets.postprocess_masked );
@@ -592,7 +595,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.transparent_pass = AddBarrierRenderPass( &transparent_tracy, frame_static.render_targets.postprocess );
 	frame_static.add_silhouettes_pass = AddRenderPass( &silhouettes_tracy, frame_static.render_targets.postprocess );
 	frame_static.ui_pass = AddUnsortedRenderPass( &ui_tracy, frame_static.render_targets.postprocess );
-	frame_static.postprocess_pass = AddRenderPass( &postprocess_tracy, ClearColor_Do );
+	frame_static.postprocess_pass = AddRenderPass( &postprocess_tracy, clear_color );
 	frame_static.post_ui_pass = AddUnsortedRenderPass( &post_ui_tracy );
 }
 

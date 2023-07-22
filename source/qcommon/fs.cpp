@@ -72,7 +72,7 @@ Span< u8 > ReadFileBinary( Allocator * a, const char * path ) {
 	FILE * file = OpenFile( a, path, OpenFile_Read );
 	if( file == NULL )
 		return Span< u8 >();
-	defer { fclose( f ); };
+	defer { fclose( file ); };
 
 	size_t size = FileSize( file );
 	u8 * contents = ( u8 * ) a->allocate( size, 16 );

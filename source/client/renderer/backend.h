@@ -50,7 +50,9 @@ struct BindGroup {
 };
 
 struct RenderTarget {
+#if !PLATFORM_MACOS
 	u32 fbo;
+#endif
 	Texture color_attachments[ FragmentShaderOutput_Count ];
 	Texture depth_attachment;
 	u32 width, height;

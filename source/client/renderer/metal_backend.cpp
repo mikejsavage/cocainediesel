@@ -164,49 +164,45 @@ static MTL::PixelFormat TextureFormatToMetal( TextureFormat format ) {
 	}
 }
 
-static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
+Texture NewTexture( const TextureConfig & config ) {
 	Texture texture = { };
 	texture.width = config.width;
 	texture.height = config.height;
+	texture.num_layers = config.num_layers;
 	texture.num_mipmaps = config.num_mipmaps;
-	texture.msaa_samples = msaa_samples;
+	texture.msaa_samples = config.msaa_samples;
 	texture.format = config.format;
-
-	MTL::TextureSwizzleChannels swizzle_rrr1 = {
-		.red = MTL::TextureSwizzleRed,
-		.green = MTL::TextureSwizzleRed,
-		.blue = MTL::TextureSwizzleRed,
-		.alpha = MTL::TextureSwizzleOne,
-	};
-
-	MTL::TextureSwizzleChannels swizzle_111r = {
-		.red = MTL::TextureSwizzleOne,
-		.green = MTL::TextureSwizzleOne,
-		.blue = MTL::TextureSwizzleOne,
-		.alpha = MTL::TextureSwizzleRed,
-	};
-
-	MTL::TextureSwizzleChannels swizzle_rrrg = {
-		.red = MTL::TextureSwizzleOne,
-		.green = MTL::TextureSwizzleOne,
-		.blue = MTL::TextureSwizzleOne,
-		.alpha = MTL::TextureSwizzleRed,
-	};
 
 	Optional< MTL::TextureSwizzleChannels > swizzle = NONE;
 	switch( config.format ) {
 		case TextureFormat_R_U8:
 		case TextureFormat_R_S8:
 		case TextureFormat_BC4:
-			swizzle = swizzle_rrr1;
+			swizzle = {
+				.red = MTL::TextureSwizzleRed,
+				.green = MTL::TextureSwizzleRed,
+				.blue = MTL::TextureSwizzleRed,
+				.alpha = MTL::TextureSwizzleOne,
+			};
 			break;
 
 		case TextureFormat_A_U8:
-			swizzle = swizzle_111r;
+			swizzle = {
+				.red = MTL::TextureSwizzleOne,
+				.green = MTL::TextureSwizzleOne,
+				.blue = MTL::TextureSwizzleOne,
+				.alpha = MTL::TextureSwizzleRed,
+			};
+
 			break;
 
 		case TextureFormat_RA_U8:
-			swizzle = swizzle_rrrg;
+			swizzle = {
+				.red = MTL::TextureSwizzleOne,
+				.green = MTL::TextureSwizzleOne,
+				.blue = MTL::TextureSwizzleOne,
+				.alpha = MTL::TextureSwizzleRed,
+			};
 			break;
 
 		default:
@@ -217,17 +213,21 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 	defer { descriptor->release(); };
 	descriptor->setStorageMode( MTL::StorageModeManaged );
 	descriptor->setUsage( MTL::TextureUsageShaderRead ); // TODO
-	descriptor->setTextureType( texture.msaa_samples > 1 ? MTL::TextureType2DMultisample : MTL::TextureType2D );
+	descriptor->setTextureType( config.msaa_samples > 0 ? MTL::TextureType2DMultisample : MTL::TextureType2D );
 	descriptor->setPixelFormat( TextureFormatToMetal( config.format ) );
 	descriptor->setWidth( config.width );
 	descriptor->setHeight( config.height );
+	descriptor->setDepth( config.num_layers );
 	descriptor->setMipmapLevelCount( config.num_mipmaps );
+	descriptor->setSampleCount( config.msaa_samples );
 	if( swizzle.exists ) {
 		descriptor->setSwizzle( swizzle.value );
 	}
 
 	texture.handle = metal.device->newTexture( descriptor );
 
+	// TODO: need to use a staging buffer here
+	// TODO: usage hints
 	// TODO: figure out how samplers should work...
 	// TODO: TextureFormat_Shadow needs compare sampler
 	if( !CompressedTextureFormat( config.format ) ) {
@@ -248,14 +248,19 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 	return texture;
 }
 
-Texture NewTexture( TextureConfig config ) {
-	return NewTextureSamples( config, 0 );
-}
-
 void DeleteTexture( Texture texture ) {
 	if( texture.handle != NULL ) {
 		texture.handle->release();
 	}
 }
 
-#endif
+RenderTarget NewRenderTarget( const RenderTargetConfig & config ) {
+	RenderTarget rt = { };
+
+	for( const Optional< RenderTargetConfig::Attachment > & attachment : config.color_attachments ) {
+	}
+
+	return rt;
+}
+
+#endif // #if PLATFORM_MACOS

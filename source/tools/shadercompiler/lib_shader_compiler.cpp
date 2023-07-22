@@ -8,10 +8,12 @@
 #include "gameshared/q_shared.h"
 
 #include "client/renderer/shader_variants.h"
+#include "client/renderer/spirv.h"
 
 static const char * EXE_SUFFIX = IFDEF( PLATFORM_WINDOWS ) ? ".exe" : "";
 
 struct CompileShaderJob {
+	const CompileShadersSettings * settings;
 	bool graphics;
 	const char * src;
 	Span< const char * > features;
@@ -19,7 +21,23 @@ struct CompileShaderJob {
 	bool ok;
 };
 
-static bool CompileGraphicsShader( TempAllocator & temp, const char * file, Span< const char * > features ) {
+static Optional< u32 > GetSPVInputHash( TempAllocator & temp, const char * file ) {
+	FILE * f = OpenFile( temp, path, OpenFile_Read );
+	if( f == NULL ) {
+		return NONE;
+	}
+	defer { fclose( f ); };
+
+	SPIRVHeader header;
+	size_t n;
+	if( !ReadPartialFile( f, &header, sizeof( header ), &n ) || n != sizeof( header ) ) {
+		return NONE;
+	}
+
+	return header.generator;
+}
+
+static bool CompileGraphicsShader( TempAllocator & temp, const char * file, Span< const char * > features, const CompileShadersSettings * settings ) {
 	const char * src_path = temp( "base/glsl/{}", file );
 
 	DynamicString features_filename( &temp );
@@ -39,8 +57,10 @@ static bool CompileGraphicsShader( TempAllocator & temp, const char * file, Span
 	commands.add( temp( "glslc{} -std=450core --target-env=opengl4.5 -fshader-stage=vertex -DVERTEX_SHADER=1 -Dv2f=out {} -fauto-map-locations -fauto-bind-uniforms {} -o {}.vert.spv", EXE_SUFFIX, features_glslc, src_path, out_path ) );
 	commands.add( temp( "glslc{} -std=450core --target-env=opengl4.5 -fshader-stage=fragment -DFRAGMENT_SHADER=1 -Dv2f=in {} -fauto-map-locations -fauto-bind-uniforms {} -o {}.frag.spv", EXE_SUFFIX, features_glslc, src_path, out_path ) );
 
-	commands.add( temp( "spirv-opt{} -O {}.vert.spv -o {}.vert.spv", EXE_SUFFIX, out_path, out_path ) );
-	commands.add( temp( "spirv-opt{} -O {}.frag.spv -o {}.frag.spv", EXE_SUFFIX, out_path, out_path ) );
+	if( settings->optimize ) {
+		commands.add( temp( "spirv-opt{} -O {}.vert.spv -o {}.vert.spv", EXE_SUFFIX, out_path, out_path ) );
+		commands.add( temp( "spirv-opt{} -O {}.frag.spv -o {}.frag.spv", EXE_SUFFIX, out_path, out_path ) );
+	}
 
 	if( IFDEF( PLATFORM_MACOS ) ) {
 		commands.add( temp( "spirv-cross --msl --rename-entry-point main vertex_main vert --output {}.vert.metal {}.vert.spv", out_path, out_path ) );
@@ -74,7 +94,7 @@ static bool CompileGraphicsShader( TempAllocator & temp, const char * file, Span
 	return true;
 }
 
-static bool CompileComputeShader( TempAllocator & temp, const char * file ) {
+static bool CompileComputeShader( TempAllocator & temp, const char * file, const CompileShadersSettings * settings ) {
 	const char * src_path = temp( "base/glsl/{}", file );
 	Span< const char > out_path = StripExtension( src_path );
 
@@ -82,7 +102,10 @@ static bool CompileComputeShader( TempAllocator & temp, const char * file ) {
 	DynamicArray< const char * > files_to_remove( &temp );
 
 	commands.add( temp( "glslc{} -std=450core --target-env=opengl4.5 -fshader-stage=compute -fauto-map-locations -fauto-bind-uniforms {} -o {}.spv", EXE_SUFFIX, src_path, out_path ) );
-	commands.add( temp( "spirv-opt{} -O {}.spv -o {}.spv", EXE_SUFFIX, out_path, out_path ) );
+
+	if( settings->optimize ) {
+		commands.add( temp( "spirv-opt{} -O {}.spv -o {}.spv", EXE_SUFFIX, out_path, out_path ) );
+	}
 
 	if( IFDEF( PLATFORM_MACOS ) ) {
 		commands.add( temp( "spirv-cross --msl --output {}.metal {}.spv", out_path, out_path ) );
@@ -114,18 +137,19 @@ static void CompileShader( TempAllocator * temp, void * data ) {
 	CompileShaderJob * job = ( CompileShaderJob * ) data;
 
 	if( job->graphics ) {
-		job->ok = CompileGraphicsShader( *temp, job->src, job->features );
+		job->ok = CompileGraphicsShader( *temp, job->src, job->features, job->settings );
 	}
 	else {
-		job->ok = CompileComputeShader( *temp, job->src );
+		job->ok = CompileComputeShader( *temp, job->src, job->settings );
 	}
 }
 
-static bool CompileShadersImpl( const ShaderDescriptors & shaders, ArenaAllocator * a ) {
+static bool CompileShadersImpl( const ShaderDescriptors & shaders, ArenaAllocator * a, const CompileShadersSettings & settings ) {
 	DynamicArray< CompileShaderJob > jobs( a );
 
 	for( const GraphicsShaderDescriptor & shader : shaders.graphics_shaders ) {
 		jobs.add( CompileShaderJob {
+			.settings = &settings,
 			.graphics = true,
 			.src = shader.src,
 			.features = shader.features,
@@ -134,6 +158,7 @@ static bool CompileShadersImpl( const ShaderDescriptors & shaders, ArenaAllocato
 
 	for( const ComputeShaderDescriptor & shader : shaders.compute_shaders ) {
 		jobs.add( CompileShaderJob {
+			.settings = &settings,
 			.graphics = false,
 			.src = shader.src,
 		} );
@@ -151,5 +176,5 @@ static bool CompileShadersImpl( const ShaderDescriptors & shaders, ArenaAllocato
 }
 
 bool CompileShaders( ArenaAllocator * a, const CompileShadersSettings & settings ) {
-	return VisitShaderDescriptors< bool >( CompileShadersImpl, a );
+	return VisitShaderDescriptors< bool >( CompileShadersImpl, a, settings );
 }

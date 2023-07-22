@@ -47,6 +47,7 @@ struct Material {
 	u64 hash;
 
 	const Texture * texture;
+	SamplerType sampler = Sampler_Standard;
 
 	ColorGen rgbgen;
 	ColorGen alphagen;
@@ -58,7 +59,6 @@ struct Material {
 	bool shaded = false;
 	float specular = 0.0f;
 	float shininess = 64.0f;
-	SamplerType sampler = Sampler_Standard;
 
 	TCMod tcmod = { };
 };

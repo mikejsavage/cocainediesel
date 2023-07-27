@@ -598,6 +598,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 			.type = RenderPass_Blit,
 			.target = frame_static.render_targets.postprocess,
 			.blit_source = frame_static.render_targets.msaa,
+			.tracy = &msaa_tracy,
 		} );
 	}
 	else {

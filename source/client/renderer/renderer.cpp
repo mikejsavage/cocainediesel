@@ -556,6 +556,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	frame_static.particle_update_pass = AddRenderPass( &particle_update_tracy );
 	frame_static.particle_setup_indirect_pass = AddRenderPass( RenderPassConfig {
+		.barrier = true,
 		.tracy = &particle_setup_indirect_tracy,
 	} );
 	frame_static.tile_culling_pass = AddRenderPass( &tile_culling_tracy );
@@ -572,6 +573,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.msaa, clear_color, clear_depth );
 		frame_static.world_opaque_pass = AddRenderPass( RenderPassConfig {
 			.target = frame_static.render_targets.msaa_masked,
+			.barrier = true,
 			.tracy = &world_opaque_tracy,
 		} );
 		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.render_targets.msaa );
@@ -580,6 +582,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.postprocess, clear_color, clear_depth );
 		frame_static.world_opaque_pass = AddRenderPass( RenderPassConfig {
 			.target = frame_static.render_targets.postprocess_masked,
+			.barrier = true,
 			.tracy = &world_opaque_tracy,
 		} );
 		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.render_targets.postprocess );

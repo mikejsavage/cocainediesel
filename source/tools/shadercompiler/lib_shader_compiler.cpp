@@ -21,8 +21,8 @@ struct CompileShaderJob {
 	bool ok;
 };
 
-static Optional< u32 > GetSPVInputHash( TempAllocator & temp, const char * file ) {
-	FILE * f = OpenFile( temp, path, OpenFile_Read );
+static Optional< u32 > GetSPVInputHash( TempAllocator & temp, const char * path ) {
+	FILE * f = OpenFile( &temp, path, OpenFile_Read );
 	if( f == NULL ) {
 		return NONE;
 	}
@@ -35,6 +35,25 @@ static Optional< u32 > GetSPVInputHash( TempAllocator & temp, const char * file 
 	}
 
 	return header.generator;
+}
+
+static void WriteSPVInputHash( TempAllocator & temp, const char * path, u32 hash ) {
+	FILE * f = OpenFile( &temp, path, OpenFile_AppendOverwrite );
+	if( f == NULL ) {
+		Fatal( "Can't open %s", path );
+	}
+	defer { fclose( f ); };
+
+	if( FileSize( f ) < sizeof( SPIRVHeader ) ) {
+		Fatal( "%s doesn't have a header", path );
+	}
+
+	Seek( f, offsetof( SPIRVHeader, generator ) );
+
+	size_t w = fwrite( &hash, 1, sizeof( hash ), f );
+	if( w != sizeof( hash ) ) {
+		FatalErrno( "Can't write hash" );
+	}
 }
 
 static bool CompileGraphicsShader( TempAllocator & temp, const char * file, Span< const char * > features, const CompileShadersSettings * settings ) {

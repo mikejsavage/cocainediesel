@@ -2,7 +2,7 @@
 
 #include "qcommon/types.h"
 
-constexpr u32 SPIRV_MAGIC = 0x07230203
+constexpr u32 SPIRV_MAGIC = 0x07230203_u32;
 
 struct SPIRVHeader {
 	u32 magic;

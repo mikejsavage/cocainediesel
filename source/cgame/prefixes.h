@@ -520,7 +520,7 @@
 "GINGER",
 "GIRL",
 "GIT ",
-"GLOW"
+"GLOW",
 "GLOW UP",
 "GNU/",
 "GOAFER",

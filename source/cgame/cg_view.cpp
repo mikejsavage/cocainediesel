@@ -264,13 +264,8 @@ static void CG_UpdateChaseCam( UserCommand * cmd ) {
 	}
 
 	if( cmd->buttons & Button_Attack1 ) {
-		if( cgs.demoPlaying || ISREALSPECTATOR() ) {
-			if( cgs.demoPlaying ) {
-				Cbuf_ExecuteLine( "democamswitch" );
-			}
-			else {
-				CL_AddReliableCommand( ClientCommand_ToggleFreeFly );
-			}
+		if( ISREALSPECTATOR() ) {
+			CL_AddReliableCommand( ClientCommand_ToggleFreeFly );
 		}
 		chaseCam.key_pressed = true;
 	}
@@ -326,23 +321,12 @@ static void ScreenShake( cg_viewdef_t * view ) {
 static void CG_SetupViewDef( cg_viewdef_t *view, int type, UserCommand * cmd ) {
 	memset( view, 0, sizeof( cg_viewdef_t ) );
 
-	//
-	// VIEW SETTINGS
-	//
-
 	view->type = type;
 
 	if( view->type == VIEWDEF_PLAYERVIEW ) {
 		view->POVent = cg.frame.playerState.POVnum;
-
 		view->draw2D = true;
-
-		// set up third-person
-		if( cgs.demoPlaying ) {
-			view->thirdperson = CG_DemoCam_GetThirdPerson();
-		} else {
-			view->thirdperson = ( cg_thirdPerson->integer != 0 );
-		}
+		view->thirdperson = cg_thirdPerson->integer != 0;
 
 		if( cg_entities[view->POVent].serverFrame != cg.frame.serverFrame ) {
 			view->thirdperson = false;
@@ -363,17 +347,16 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type, UserCommand * cmd ) {
 				}
 			}
 		}
-	} else {
-		CG_DemoCam_GetViewDef( view );
+	}
+	else {
+		CG_DemoCamGetViewDef( view );
 	}
 
 	if( view->type == VIEWDEF_PLAYERVIEW ) {
-		Vec3 viewoffset;
-
 		if( view->playerPrediction ) {
 			CG_PredictMovement();
 
-			viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
+			Vec3 viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
 			view->origin = cg.predictedPlayerState.pmove.origin + viewoffset - ( 1.0f - cg.lerpfrac ) * cg.predictionError;
 
 			view->angles = cg.predictedPlayerState.viewangles;
@@ -381,27 +364,29 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type, UserCommand * cmd ) {
 			CG_Recoil( cg.predictedPlayerState.weapon );
 
 			CG_ViewSmoothPredictedSteps( &view->origin ); // smooth out stair climbing
-		} else {
+		}
+		else {
 			cg.predictingTimeStamp = cl.serverTime;
 			cg.predictFrom = 0;
 
 			// we don't run prediction, but we still set cg.predictedPlayerState with the interpolation
 			CG_InterpolatePlayerState( &cg.predictedPlayerState );
 
-			viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
+			Vec3 viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
 
 			view->origin = cg.predictedPlayerState.pmove.origin + viewoffset;
 			view->angles = cg.predictedPlayerState.viewangles;
 		}
 
-		view->fov_y = WidescreenFov( CG_CalcViewFov() );
-
 		CG_CalcViewBob();
 
 		view->velocity = cg.predictedPlayerState.pmove.velocity;
-	} else if( view->type == VIEWDEF_DEMOCAM ) {
-		view->fov_y = WidescreenFov( CG_DemoCam_GetOrientation( &view->origin, &view->angles, &view->velocity ) );
 	}
+	else if( view->type == VIEWDEF_DEMOCAM ) {
+		CG_DemoCamGetOrientation( &view->origin, &view->angles, &view->velocity );
+	}
+
+	view->fov_y = WidescreenFov( CG_CalcViewFov() );
 
 	ScreenShake( view );
 
@@ -441,7 +426,7 @@ static void DrawSilhouettes() {
 	pipeline.write_depth = false;
 
 	const RenderTarget & rt = frame_static.render_targets.silhouette_mask;
-	pipeline.bind_texture( "u_SilhouetteTexture", &rt.color_attachments[ FragmentShaderOutput_Albedo ] );
+	pipeline.bind_texture_and_sampler( "u_SilhouetteTexture", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Clamp );
 	pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
 	DrawFullscreenMesh( pipeline );
 }
@@ -459,8 +444,8 @@ static void DrawOutlines() {
 	constexpr RGBA8 gray = RGBA8( 30, 30, 30, 255 );
 
 	const RenderTarget & rt = msaa ? frame_static.render_targets.msaa_masked : frame_static.render_targets.postprocess_masked;
-	pipeline.bind_texture( "u_DepthTexture", &rt.depth_attachment );
-	pipeline.bind_texture( "u_CurvedSurfaceMask", &rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ] );
+	pipeline.bind_texture_and_sampler( "u_DepthTexture", &rt.depth_attachment, Sampler_Standard );
+	pipeline.bind_texture_and_sampler( "u_CurvedSurfaceMask", &rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ], Sampler_Unfiltered );
 	pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
 	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.bind_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );
@@ -545,16 +530,13 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	CG_UpdateChaseCam( &cmd );
 
-	if( CG_DemoCam_Update() ) {
-		CG_SetupViewDef( &cg.view, CG_DemoCam_GetViewType(), &cmd );
-	} else {
-		CG_SetupViewDef( &cg.view, VIEWDEF_PLAYERVIEW, &cmd );
-	}
+	int view_type = CG_DemoCamUpdate();
+	CG_SetupViewDef( &cg.view, view_type, &cmd );
 
 	RendererSetView( cg.view.origin, EulerDegrees3( cg.view.angles ), cg.view.fov_y );
 	frame_static.fog_uniforms = UploadUniformBlock( cl.map->render_data.fog_strength );
 
-	CG_LerpEntities();  // interpolate packet entities positions
+	CG_LerpEntities();
 
 	CG_CalcViewWeapon( &cg.weapon );
 

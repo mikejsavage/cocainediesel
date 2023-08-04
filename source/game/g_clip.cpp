@@ -60,7 +60,7 @@ void GClip_BackUpCollisionFrame() {
 	memcpy( newframe->entities, frame->entities, frame->num_entities * sizeof( CollisionEntity ) );
 }
 
-static void GetCollisionFrames4D( CollisionFrame ** older, CollisionFrame ** newer, int time_delta ) {
+static void GetCollisionFrames4D( const CollisionFrame ** older, const CollisionFrame ** newer, int time_delta ) {
 	if( time_delta == 0 ) {
 		*older = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
 		*newer = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
@@ -198,7 +198,8 @@ void G_Trace4D( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_
 
 	*tr = MakeMissedTrace( ray );
 
-	CollisionFrame * a, * b;
+	const CollisionFrame * a;
+	const CollisionFrame * b;
 	GetCollisionFrames4D( &a, &b, time_delta );
 	int touchlist[ MAX_EDICTS ];
 	size_t num = TraverseSpatialHashGrid( &a->grid, &b->grid, broadphase_bounds, touchlist, solid_mask );
@@ -233,7 +234,8 @@ void G_Trace( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_t 
 int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int time_delta ) {
 	MinMax3 bounds = MinMax3( org - rad, org + rad );
 
-	CollisionFrame * a, * b;
+	const CollisionFrame * a;
+	const CollisionFrame * b;
 	GetCollisionFrames4D( &a, &b, time_delta );
 	int touchlist[ MAX_EDICTS ];
 	size_t touchnum = TraverseSpatialHashGrid( &a->grid, &b->grid, bounds, touchlist, SolidMask_AnySolid );

@@ -6,6 +6,7 @@
 
 #include "qcommon/platform.h"
 #include "qcommon/source_location.h"
+#include "qcommon/initializer_list.h"
 
 /*
  * ints
@@ -198,6 +199,7 @@ struct Span {
 
 	constexpr Span() : ptr( NULL ), n( 0 ) { }
 	constexpr Span( T * ptr_, size_t n_ ) : ptr( ptr_ ), n( n_ ) { }
+	constexpr Span( std::initializer_list< T > && elems ) : ptr( elems.begin() ), n( elems.size() ) { }
 
 	// allow implicit conversion to Span< const T >
 	operator Span< const T >() const { return Span< const T >( ptr, n ); }

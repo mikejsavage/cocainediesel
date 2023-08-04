@@ -12,10 +12,11 @@
 #define GLFW_INCLUDE_NONE
 #include "glfw3/GLFW/glfw3.h"
 
+#include "nanosort/nanosort.hpp"
+
 #include "tracy/Tracy.hpp"
 #include "tracy/TracyOpenGL.hpp"
 
-#include <algorithm> // std::stable_sort
 #include <new>
 
 template< typename S, typename T >
@@ -47,11 +48,16 @@ struct DrawCall {
 	GPUBuffer indirect;
 };
 
+struct RenderPass {
+	RenderPassConfig config;
+	NonRAIIDynamicArray< DrawCall > draws;
+};
+
 static GLuint vao;
 static GLsync fences[ MAX_FRAMES_IN_FLIGHT ];
 
 static NonRAIIDynamicArray< RenderPass > render_passes;
-static NonRAIIDynamicArray< DrawCall > draw_calls;
+static u8 num_render_passes;
 
 static NonRAIIDynamicArray< Mesh > deferred_mesh_deletes;
 static NonRAIIDynamicArray< GPUBuffer > deferred_buffer_deletes;
@@ -164,36 +170,16 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 	Assert( false );
 }
 
-static GLenum TextureWrapToGL( TextureWrap wrap ) {
+static GLenum SamplerWrapToGL( SamplerWrap wrap ) {
 	switch( wrap ) {
-		case TextureWrap_Repeat:
+		case SamplerWrap_Repeat:
 			return GL_REPEAT;
-		case TextureWrap_Clamp:
+		case SamplerWrap_Clamp:
 			return GL_CLAMP_TO_EDGE;
-		case TextureWrap_Mirror:
-			return GL_MIRRORED_REPEAT;
-		case TextureWrap_Border:
-			return GL_CLAMP_TO_BORDER;
 	}
 
 	Assert( false );
 	return GL_INVALID_ENUM;
-}
-
-static void TextureFilterToGL( TextureFilter filter, GLenum * min, GLenum * mag ) {
-	switch( filter ) {
-		case TextureFilter_Linear:
-			*min = GL_LINEAR_MIPMAP_LINEAR;
-			*mag = GL_LINEAR;
-			return;
-
-		case TextureFilter_Point:
-			*min = GL_NEAREST_MIPMAP_NEAREST;
-			*mag = GL_NEAREST;
-			return;
-	}
-
-	Assert( false );
 }
 
 static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_components, bool * integral, GLboolean * normalized ) {
@@ -450,7 +436,7 @@ void InitRenderBackend() {
 	}
 
 	render_passes.init( sys_allocator );
-	draw_calls.init( sys_allocator );
+	num_render_passes = 0;
 
 	deferred_mesh_deletes.init( sys_allocator );
 	deferred_buffer_deletes.init( sys_allocator );
@@ -498,6 +484,11 @@ void InitRenderBackend() {
 	prev_viewport_height = 0;
 }
 
+void FlushRenderBackend() {
+	TracyZoneScoped;
+	glFinish();
+}
+
 void ShutdownRenderBackend() {
 	for( UBO ubo : ubos ) {
 		DeleteStreamingBuffer( ubo.stream );
@@ -514,8 +505,10 @@ void ShutdownRenderBackend() {
 		}
 	}
 
+	for( RenderPass & pass : render_passes ) {
+		pass.draws.shutdown();
+	}
 	render_passes.shutdown();
-	draw_calls.shutdown();
 
 	deferred_mesh_deletes.shutdown();
 	deferred_buffer_deletes.shutdown();
@@ -528,8 +521,7 @@ void RenderBackendBeginFrame() {
 	Assert( !in_frame );
 	in_frame = true;
 
-	render_passes.clear();
-	draw_calls.clear();
+	num_render_passes = 0;
 
 	size_t fence_id = FrameSlot();
 	if( fences[ fence_id ] != 0 ) {
@@ -571,10 +563,11 @@ void PipelineState::bind_uniform( StringHash name, UniformBlock block ) {
 	num_uniforms++;
 }
 
-void PipelineState::bind_texture( StringHash name, const Texture * texture ) {
+void PipelineState::bind_texture_and_sampler( StringHash name, const Texture * texture, SamplerType sampler ) {
 	for( size_t i = 0; i < num_textures; i++ ) {
 		if( textures[ i ].name_hash == name.hash ) {
 			textures[ i ].texture = texture;
+			textures[ i ].sampler = sampler;
 			return;
 		}
 	}
@@ -582,6 +575,7 @@ void PipelineState::bind_texture( StringHash name, const Texture * texture ) {
 	Assert( num_textures < ARRAY_COUNT( textures ) );
 	textures[ num_textures ].name_hash = name.hash;
 	textures[ num_textures ].texture = texture;
+	textures[ num_textures ].sampler = sampler;
 	num_textures++;
 }
 
@@ -658,8 +652,10 @@ static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) 
 					if( texture != prev_texture ) {
 						if( prev_texture != NULL && prev_texture->msaa_samples != texture->msaa_samples ) {
 							glBindTextureUnit( i, 0 );
+							glBindSampler( i, 0 );
 						}
 						glBindTextureUnit( i, texture->texture );
+						glBindSampler( i, GetSampler( pipeline.textures[ j ].sampler ).sampler );
 						prev_bindings.textures[ i ] = texture;
 					}
 					found = true;
@@ -670,6 +666,7 @@ static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) 
 
 		if( !found && prev_texture != NULL ) {
 			glBindTextureUnit( i, 0 );
+			glBindSampler( i, 0 );
 			prev_bindings.textures[ i ] = NULL;
 		}
 	}
@@ -874,20 +871,13 @@ static void BindVertexDescriptorAndBuffers( const Mesh & mesh ) {
 }
 
 static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
-	if( a.pipeline.pass != b.pipeline.pass )
-		return a.pipeline.pass < b.pipeline.pass;
-	if( !render_passes[ a.pipeline.pass ].sorted )
-		return false;
 	return a.pipeline.shader < b.pipeline.shader;
 }
 
-static void SubmitFramebufferBlit( const RenderPass & pass ) {
+static void SubmitFramebufferBlit( const RenderPassConfig & pass ) {
 	RenderTarget src = pass.blit_source;
 	RenderTarget target = pass.target;
-	GLbitfield clear_mask = 0;
-	clear_mask |= pass.clear_color ? GL_COLOR_BUFFER_BIT : 0;
-	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
-	glBlitNamedFramebuffer( src.fbo, target.fbo, 0, 0, src.width, src.height, 0, 0, target.width, target.height, clear_mask, GL_NEAREST );
+	glBlitNamedFramebuffer( src.fbo, target.fbo, 0, 0, src.width, src.height, 0, 0, target.width, target.height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 }
 
 #if !TRACY_ENABLE
@@ -902,7 +892,7 @@ struct SourceLocationData {
 }
 #endif
 
-static void SetupRenderPass( const RenderPass & pass ) {
+static void SetupRenderPass( const RenderPassConfig & pass ) {
 	TracyZoneScoped;
 	TracyZoneText( pass.tracy->name, strlen( pass.tracy->name ) );
 #if TRACY_ENABLE
@@ -935,28 +925,15 @@ static void SetupRenderPass( const RenderPass & pass ) {
 		glMemoryBarrier( GL_SHADER_STORAGE_BARRIER_BIT );
 	}
 
-	GLbitfield clear_mask = 0;
-	clear_mask |= pass.clear_color ? GL_COLOR_BUFFER_BIT : 0;
-	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
-	if( clear_mask != 0 ) {
-		if( prev_pipeline.scissor.exists ) {
-			glDisable( GL_SCISSOR_TEST );
-			prev_pipeline.scissor = NONE;
-		}
+	for( size_t i = 0; i < ARRAY_COUNT( pass.clear_color ); i++ ) {
+		const Optional< Vec4 > & clear_color = pass.clear_color[ i ];
+		if( !clear_color.exists || pass.target.color_attachments[ i ].texture == 0 )
+			continue;
+		glClearNamedFramebufferfv( pass.target.fbo, GL_COLOR, i, clear_color.value.ptr() );
+	}
 
-		if( pass.clear_color ) {
-			glClearColor( pass.color.x, pass.color.y, pass.color.z, pass.color.w );
-		}
-
-		if( pass.clear_depth ) {
-			if( !prev_pipeline.write_depth ) {
-				glDepthMask( GL_TRUE );
-				prev_pipeline.write_depth = true;
-			}
-			glClearDepth( pass.depth );
-		}
-
-		glClear( clear_mask );
+	if( pass.clear_depth.exists && pass.target.depth_attachment.texture != 0 ) {
+		glClearNamedFramebufferfv( pass.target.fbo, GL_DEPTH, 0, &pass.clear_depth.value );
 	}
 }
 
@@ -1039,32 +1016,23 @@ void RenderBackendSubmitFrame() {
 	Assert( render_passes.size() > 0 );
 	in_frame = false;
 
-	{
-		TracyZoneScopedN( "Sort draw calls" );
-		std::stable_sort( draw_calls.begin(), draw_calls.end(), SortDrawCall );
-	}
+	size_t num_draw_calls_this_frame = 0;
+	for( RenderPass & pass : render_passes ) {
+		SetupRenderPass( pass.config );
 
-	SetupRenderPass( render_passes[ 0 ] );
-	u8 pass_idx = 0;
-
-	{
-		TracyZoneScopedN( "Submit draw calls" );
-		for( const DrawCall & dc : draw_calls ) {
-			while( dc.pipeline.pass > pass_idx ) {
-				FinishRenderPass();
-				pass_idx++;
-				SetupRenderPass( render_passes[ pass_idx ] );
-			}
-
-			SubmitDrawCall( dc );
+		if( pass.config.sorted ) {
+			TracyZoneScopedN( "Sort draw calls" );
+			nanosort( pass.draws.begin(), pass.draws.end(), SortDrawCall );
 		}
-	}
 
-	FinishRenderPass();
+		{
+			TracyZoneScopedN( "Submit draw calls" );
+			for( const DrawCall & draw : pass.draws ) {
+				SubmitDrawCall( draw );
+				num_draw_calls_this_frame++;
+			}
+		}
 
-	while( pass_idx < render_passes.size() - 1 ) {
-		pass_idx++;
-		SetupRenderPass( render_passes[ pass_idx ] );
 		FinishRenderPass();
 	}
 
@@ -1086,7 +1054,7 @@ void RenderBackendSubmitFrame() {
 	}
 	TracyPlotSample( "UBO utilisation", float( ubo_bytes_used ) / float( UNIFORM_BUFFER_SIZE * ARRAY_COUNT( ubos ) ) );
 
-	TracyPlotSample( "Draw calls", s64( draw_calls.size() ) );
+	TracyPlotSample( "Draw calls", s64( num_draw_calls_this_frame ) );
 	TracyPlotSample( "Vertices", s64( num_vertices_this_frame ) );
 
 	TracyGpuCollect;
@@ -1188,6 +1156,34 @@ void DeferDeleteStreamingBuffer( StreamingBuffer stream ) {
 	deferred_streaming_buffer_deletes.add( stream );
 }
 
+Sampler NewSampler( const SamplerConfig & config ) {
+	Sampler sampler;
+	glCreateSamplers( 1, &sampler.sampler );
+
+	glSamplerParameteri( sampler.sampler, GL_TEXTURE_WRAP_S, SamplerWrapToGL( config.wrap ) );
+	glSamplerParameteri( sampler.sampler, GL_TEXTURE_WRAP_T, SamplerWrapToGL( config.wrap ) );
+
+	GLenum min_filter = config.filter ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST;
+	GLenum mag_filter = config.filter ? GL_LINEAR : GL_NEAREST;
+	glSamplerParameteri( sampler.sampler, GL_TEXTURE_MIN_FILTER, min_filter );
+	glSamplerParameteri( sampler.sampler, GL_TEXTURE_MAG_FILTER, mag_filter );
+
+	glSamplerParameterf( sampler.sampler, GL_TEXTURE_LOD_BIAS, config.lod_bias );
+
+	if( config.shadowmap_sampler ) {
+		glSamplerParameteri( sampler.sampler, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
+		glSamplerParameteri( sampler.sampler, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE );
+	}
+
+	return sampler;
+}
+
+void DeleteSampler( Sampler sampler ) {
+	if( sampler.sampler == 0 )
+		return;
+	glDeleteSamplers( 1, &sampler.sampler );
+}
+
 Texture NewTexture( const TextureConfig & config ) {
 	Texture texture = { };
 	texture.width = config.width;
@@ -1227,26 +1223,6 @@ Texture NewTexture( const TextureConfig & config ) {
 	}
 	else {
 		glTextureStorage3D( texture.texture, config.num_mipmaps, internal_format, config.width, config.height, config.num_layers );
-	}
-
-	glTextureParameteri( texture.texture, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
-	glTextureParameteri( texture.texture, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
-
-	GLenum min_filter = GL_NONE;
-	GLenum mag_filter = GL_NONE;
-	TextureFilterToGL( config.filter, &min_filter, &mag_filter );
-	glTextureParameteri( texture.texture, GL_TEXTURE_MIN_FILTER, min_filter );
-	glTextureParameteri( texture.texture, GL_TEXTURE_MAG_FILTER, mag_filter );
-	glTextureParameteri( texture.texture, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
-	glTextureParameterf( texture.texture, GL_TEXTURE_LOD_BIAS, -1.0f );
-
-	if( config.format == TextureFormat_Shadow ) {
-		glTextureParameteri( texture.texture, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
-		glTextureParameteri( texture.texture, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE );
-	}
-
-	if( config.wrap == TextureWrap_Border ) {
-		glTextureParameterfv( texture.texture, GL_TEXTURE_BORDER_COLOR, config.border_color.ptr() );
 	}
 
 	if( !CompressedTextureFormat( config.format ) ) {
@@ -1580,56 +1556,33 @@ void DeferDeleteMesh( const Mesh & mesh ) {
 	deferred_mesh_deletes.add( mesh );
 }
 
-static u8 AddRenderPass( const RenderPass & pass ) {
-	return checked_cast< u8 >( render_passes.add( pass ) );
+u8 AddRenderPass( const RenderPassConfig & config ) {
+	if( num_render_passes >= render_passes.size() ) {
+		num_render_passes = render_passes.add( RenderPass() );
+		render_passes[ num_render_passes ].draws.init( sys_allocator );
+	}
+
+	render_passes[ num_render_passes ].config = config;
+	render_passes[ num_render_passes ].draws.clear();
+	num_render_passes++;
+
+	return num_render_passes - 1;
 }
 
-u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, ClearColor clear_color, ClearDepth clear_depth ) {
-	RenderPass pass;
-	pass.type = RenderPass_Normal;
+u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, Optional< Vec4 > clear_color, Optional< float > clear_depth ) {
+	RenderPassConfig pass;
 	pass.target = target;
-	pass.clear_color = clear_color == ClearColor_Do;
-	pass.clear_depth = clear_depth == ClearDepth_Do;
+	for( Optional< Vec4 > & color : pass.clear_color ) {
+		color = clear_color;
+	}
+	pass.clear_depth = clear_depth;
 	pass.tracy = tracy;
 	return AddRenderPass( pass );
 }
 
-u8 AddRenderPass( const tracy::SourceLocationData * tracy, ClearColor clear_color, ClearDepth clear_depth ) {
+u8 AddRenderPass( const tracy::SourceLocationData * tracy, Optional< Vec4 > clear_color, Optional< float > clear_depth ) {
 	RenderTarget target = { };
 	return AddRenderPass( tracy, target, clear_color, clear_depth );
-}
-
-u8 AddBarrierRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target ) {
-	RenderPass pass;
-	pass.type = RenderPass_Normal;
-	pass.target = target;
-	pass.barrier = true;
-	pass.tracy = tracy;
-	return AddRenderPass( pass );
-}
-
-u8 AddUnsortedRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target ) {
-	RenderPass pass;
-	pass.type = RenderPass_Normal;
-	pass.target = target;
-	pass.sorted = false;
-	pass.tracy = tracy;
-	return AddRenderPass( pass );
-}
-
-void AddBlitPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst, ClearColor clear_color, ClearDepth clear_depth ) {
-	RenderPass pass;
-	pass.type = RenderPass_Blit;
-	pass.tracy = tracy;
-	pass.blit_source = src;
-	pass.target = dst;
-	pass.clear_color = clear_color;
-	pass.clear_depth = clear_depth;
-	AddRenderPass( pass );
-}
-
-void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, RenderTarget src, RenderTarget dst, ClearColor clear_color, ClearDepth clear_depth ) {
-	AddBlitPass( tracy, src, dst, clear_color, clear_depth );
 }
 
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 first_index, u32 base_vertex ) {
@@ -1649,7 +1602,7 @@ void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 n
 	dc.first_index = first_index;
 	dc.base_vertex = base_vertex;
 	dc.num_instances = num_instances;
-	draw_calls.add( dc );
+	render_passes[ pipeline.pass ].draws.add( dc );
 
 	num_vertices_this_frame += dc.num_vertices * num_instances;
 }
@@ -1660,7 +1613,7 @@ void DrawMeshIndirect( const Mesh & mesh, const PipelineState & pipeline, GPUBuf
 	dc.pipeline = pipeline;
 	dc.mesh = mesh;
 	dc.indirect = indirect;
-	draw_calls.add( dc );
+	render_passes[ pipeline.pass ].draws.add( dc );
 }
 
 void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z ) {
@@ -1670,7 +1623,7 @@ void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z ) {
 	dc.dispatch_size[ 0 ] = x;
 	dc.dispatch_size[ 1 ] = y;
 	dc.dispatch_size[ 2 ] = z;
-	draw_calls.add( dc );
+	render_passes[ pipeline.pass ].draws.add( dc );
 }
 
 void DispatchComputeIndirect( const PipelineState & pipeline, GPUBuffer indirect ) {
@@ -1678,7 +1631,7 @@ void DispatchComputeIndirect( const PipelineState & pipeline, GPUBuffer indirect
 	dc.type = DrawCallType_IndirectCompute;
 	dc.pipeline = pipeline;
 	dc.indirect = indirect;
-	draw_calls.add( dc );
+	render_passes[ pipeline.pass ].draws.add( dc );
 }
 
 void DownloadFramebuffer( void * buf ) {

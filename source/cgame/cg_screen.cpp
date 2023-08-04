@@ -501,5 +501,4 @@ void CG_Draw2D() {
 	}
 
 	CG_Draw2DView();
-	CG_DrawDemocam2D();
 }

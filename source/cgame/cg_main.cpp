@@ -166,13 +166,13 @@ void CG_Init( unsigned int playerNum, int max_clients,
 
 	CG_ClearAnnouncerEvents();
 
-	CG_DemocamInit();
+	CG_DemoCamInit();
 
 	AddCommand( "printmap", PrintMap );
 }
 
 void CG_Shutdown() {
-	CG_DemocamShutdown();
+	CG_DemoCamShutdown();
 	CG_UnregisterCGameCommands();
 	CG_ShutdownChat();
 	CG_ShutdownInput();

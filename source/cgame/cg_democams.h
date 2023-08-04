@@ -17,14 +17,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-bool CG_DemoCam_IsFree();
-bool CG_DemoCam(); // Called each frame
-bool CG_DemoCam_Update();
-void CG_DrawDemocam2D();
-void CG_DemocamInit();
-void CG_DemocamShutdown();
-void CG_DemocamReset();
-int CG_DemoCam_GetViewType();
-bool CG_DemoCam_GetThirdPerson();
-float CG_DemoCam_GetOrientation( Vec3 * origin, Vec3 * angles, Vec3 * velocity );
-void CG_DemoCam_GetViewDef( cg_viewdef_t *view );
+void CG_DemoCamInit();
+void CG_DemoCamShutdown();
+
+int CG_DemoCamUpdate();
+void CG_DemoCamGetOrientation( Vec3 * origin, Vec3 * angles, Vec3 * velocity );
+void CG_DemoCamGetViewDef( cg_viewdef_t *view );

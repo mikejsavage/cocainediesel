@@ -1,7 +1,6 @@
 #pragma once
 
-#include <algorithm>
-#include <vector>
+#include <string.h>
 
 #include "qcommon/base.h"
 #include "qcommon/array.h"
@@ -10,7 +9,8 @@
 
 #include "parsing.h"
 
-#include <string.h>
+#include <algorithm>
+#include <vector>
 
 static constexpr Span< const char > NullSpan( NULL, 0 );
 

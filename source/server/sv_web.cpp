@@ -1,5 +1,3 @@
-#include <atomic>
-
 #include "server/server.h"
 #include "qcommon/application.h"
 #include "qcommon/fs.h"
@@ -12,6 +10,8 @@
 #include "picohttpparser/picohttpparser.h"
 
 #include "tracy/Tracy.hpp"
+
+#include <atomic>
 
 static constexpr Time REQUEST_TIMEOUT = Seconds( 10 );
 static constexpr Time RESPONSE_INACTIVITY_TIMEOUT = Seconds( 15 );

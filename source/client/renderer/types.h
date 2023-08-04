@@ -84,6 +84,57 @@ struct UniformBlock {
 	u32 size;
 };
 
+enum SamplerWrap : u8 {
+	SamplerWrap_Repeat,
+	SamplerWrap_Clamp,
+};
+
+struct Sampler {
+	u32 sampler;
+};
+
+enum SamplerType : u8 {
+	Sampler_Standard,
+	Sampler_Clamp,
+	Sampler_Unfiltered,
+	Sampler_LodBiasMinusOne,
+	Sampler_Shadowmap,
+
+	Sampler_Count
+};
+
+enum TextureFormat : u8 {
+	TextureFormat_R_U8,
+	TextureFormat_R_S8,
+	TextureFormat_R_UI8,
+
+	TextureFormat_A_U8,
+
+	TextureFormat_RG_Half,
+
+	TextureFormat_RA_U8,
+
+	TextureFormat_RGBA_U8,
+	TextureFormat_RGBA_U8_sRGB,
+
+	TextureFormat_BC1_sRGB,
+	TextureFormat_BC3_sRGB,
+	TextureFormat_BC4,
+	TextureFormat_BC5,
+
+	TextureFormat_Depth,
+	TextureFormat_Shadow,
+};
+
+struct Texture {
+	u32 texture;
+	u32 width, height;
+	u32 num_layers;
+	u32 num_mipmaps;
+	int msaa_samples;
+	TextureFormat format;
+};
+
 struct Mesh {
 	GPUBuffer vertex_buffers[ VertexAttribute_Count ];
 	GPUBuffer index_buffer;

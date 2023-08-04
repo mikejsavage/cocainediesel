@@ -41,6 +41,8 @@ static Material materials[ MAX_MATERIALS ];
 static u32 num_materials;
 static Hashtable< MAX_MATERIALS * 2 > materials_hashtable;
 
+static Sampler samplers[ Sampler_Count ];
+
 Material world_material;
 Material wallbang_material;
 
@@ -369,6 +371,28 @@ static bool ParseMaterial( Material * material, Span< const char > name, Span< c
 	return true;
 }
 
+static void CreateSamplers() {
+	samplers[ Sampler_Standard ] = NewSampler( SamplerConfig { } );
+	samplers[ Sampler_Clamp ] = NewSampler( SamplerConfig {
+		.wrap = SamplerWrap_Clamp,
+	} );
+	samplers[ Sampler_Unfiltered ] = NewSampler( SamplerConfig {
+		.filter = false,
+	} );
+	samplers[ Sampler_LodBiasMinusOne ] = NewSampler( SamplerConfig {
+		.lod_bias = -1.0f,
+	} );
+	samplers[ Sampler_Shadowmap ] = NewSampler( SamplerConfig {
+		.shadowmap_sampler = true,
+	} );
+}
+
+static void DeleteSamplers() {
+	for( Sampler sampler : samplers ) {
+		DeleteSampler( sampler );
+	}
+}
+
 static void UnloadTexture( u64 idx ) {
 	stbi_image_free( texture_stb_data[ idx ] );
 
@@ -436,7 +460,6 @@ static void LoadBuiltinTextures() {
 		config.width = 2;
 		config.height = 2;
 		config.data = pixels;
-		config.filter = TextureFilter_Point;
 
 		missing_texture = NewTexture( config );
 	}
@@ -818,6 +841,7 @@ void InitMaterials() {
 	wallbang_material.specular = 3.0f;
 	wallbang_material.shininess = 8.0f;
 
+	CreateSamplers();
 	LoadBuiltinTextures();
 
 	{
@@ -902,6 +926,7 @@ void InitMaterials() {
 
 	missing_material = Material();
 	missing_material.texture = &missing_texture;
+	missing_material.sampler = Sampler_Unfiltered;
 
 	PackDecalAtlas();
 }
@@ -957,6 +982,7 @@ void ShutdownMaterials() {
 		Free( sys_allocator, materials[ i ].name );
 	}
 
+	DeleteSamplers();
 	DeleteTexture( missing_texture );
 	DeleteTexture( decals_atlases );
 }
@@ -990,6 +1016,10 @@ bool TryFindDecal( StringHash name, Vec4 * uvwh ) {
 
 const Texture * DecalAtlasTextureArray() {
 	return &decals_atlases;
+}
+
+Sampler GetSampler( SamplerType sampler ) {
+	return samplers[ sampler ];
 }
 
 Vec2 HalfPixelSize( const Material * material ) {
@@ -1026,15 +1056,15 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		pipeline.shader = &shaders.world;
 		pipeline.pass = frame_static.world_opaque_pass;
 		pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
-		pipeline.bind_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
+		pipeline.bind_texture_and_sampler( "u_BlueNoiseTexture", BlueNoiseTexture(), Sampler_Standard );
 		color.x = material->rgbgen.args[ 0 ];
 		color.y = material->rgbgen.args[ 1 ];
 		color.z = material->rgbgen.args[ 2 ];
 		pipeline.bind_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( Vec2( 0.0f ), material->specular, material->shininess ) );
 		pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );
-		pipeline.bind_texture( "u_ShadowmapTextureArray", &frame_static.render_targets.shadowmaps[ 0 ].depth_attachment );
+		pipeline.bind_texture_and_sampler( "u_ShadowmapTextureArray", &frame_static.render_targets.shadowmaps[ 0 ].depth_attachment, Sampler_Shadowmap );
 		pipeline.bind_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
-		pipeline.bind_texture( "u_DecalAtlases", DecalAtlasTextureArray() );
+		pipeline.bind_texture_and_sampler( "u_DecalAtlases", DecalAtlasTextureArray(), Sampler_LodBiasMinusOne );
 		AddDynamicsToPipeline( &pipeline );
 		return pipeline;
 	}
@@ -1119,7 +1149,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		pipeline.write_depth = false;
 	}
 
-	pipeline.bind_texture( "u_BaseTexture", material->texture );
+	pipeline.bind_texture_and_sampler( "u_BaseTexture", material->texture, Sampler_Standard );
 
 	{
 		u64 hash = Hash64( u64( material ) );
@@ -1146,14 +1176,15 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 
 	if( map_model ) {
+		// TODO: heavy duplication between here and MaterialToPipelineState
 		pipeline.shader = &shaders.world_instanced;
 		pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
-		pipeline.bind_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
+		pipeline.bind_texture_and_sampler( "u_BlueNoiseTexture", BlueNoiseTexture(), Sampler_Standard );
 		// pipeline.bind_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( Vec2( 0.0f ), material->specular, material->shininess ) );
 		// pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );
-		pipeline.bind_texture( "u_ShadowmapTextureArray", &frame_static.render_targets.shadowmaps[ 0 ].depth_attachment );
+		pipeline.bind_texture_and_sampler( "u_ShadowmapTextureArray", &frame_static.render_targets.shadowmaps[ 0 ].depth_attachment, Sampler_Shadowmap );
 		pipeline.bind_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
-		pipeline.bind_texture( "u_DecalAtlases", DecalAtlasTextureArray() );
+		pipeline.bind_texture_and_sampler( "u_DecalAtlases", DecalAtlasTextureArray(), Sampler_LodBiasMinusOne );
 		AddDynamicsToPipeline( &pipeline );
 		return pipeline;
 	}

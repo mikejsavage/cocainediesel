@@ -1,10 +1,6 @@
 #include <inttypes.h> // PRIu32
 #include <math.h>
 
-#include <vector>
-
-#include "parsing.h"
-
 #include "qcommon/base.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
@@ -21,6 +17,10 @@
 #include "nanosort/nanosort.hpp"
 
 #include "zstd/zstd.h"
+
+// include these last so initializer_list.h doesn't blow up
+#include "parsing.h"
+#include <vector>
 
 void ShowErrorMessage( const char * msg, const char * file, int line ) {
 	printf( "%s (%s:%d)\n", msg, file, line );

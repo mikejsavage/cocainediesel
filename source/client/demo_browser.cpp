@@ -39,6 +39,7 @@ static Span< u8 > ReadFirst1kBytes( TempAllocator * temp, const char * path ) {
 	FILE * f = OpenFile( temp, path, OpenFile_Read );
 	if( f == NULL )
 		return Span< u8 >();
+	defer { fclose( f ); };
 
 	u8 * buf = AllocMany< u8 >( temp, 1024 );
 	size_t n;

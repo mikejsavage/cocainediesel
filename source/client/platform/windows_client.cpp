@@ -4,6 +4,7 @@
 
 #define _WIN32_WINNT 0x4000
 #include "qcommon/platform/windows_mini_windows_h.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <crtdbg.h>
 #include <shellapi.h>
@@ -37,6 +38,12 @@ bool Sys_OpenInWebBrowser( const char * url ) {
 
 int main( int argc, char ** argv );
 int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, char * szCmdLine, int iCmdShow ) {
+	AttachConsole( ATTACH_PARENT_PROCESS );
+
+	FILE * dont_care;
+	freopen_s( &dont_care, "CON", "w", stdout );
+	freopen_s( &dont_care, "CON", "w", stderr );
+
 	return main( __argc, __argv );
 }
 

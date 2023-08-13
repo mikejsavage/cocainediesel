@@ -38,11 +38,12 @@ bool Sys_OpenInWebBrowser( const char * url ) {
 
 int main( int argc, char ** argv );
 int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, char * szCmdLine, int iCmdShow ) {
-	AttachConsole( ATTACH_PARENT_PROCESS );
-
-	FILE * dont_care;
-	freopen_s( &dont_care, "CON", "w", stdout );
-	freopen_s( &dont_care, "CON", "w", stderr );
+	BOOL reattached = AttachConsole( ATTACH_PARENT_PROCESS );
+	if( reattached == TRUE ) {
+		FILE * dont_care;
+		freopen_s( &dont_care, "CON", "w", stdout );
+		freopen_s( &dont_care, "CON", "w", stderr );
+	}
 
 	return main( __argc, __argv );
 }

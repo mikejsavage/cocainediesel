@@ -6,8 +6,6 @@ models/static
 
 models/jumppad
 {
-	surfaceparm nonsolid
-	surfaceparm wallbangable
 	shaded
 	specular 3
 	shininess 8
@@ -16,8 +14,6 @@ models/jumppad
 
 models/jumppad_shine
 {
-	surfaceparm nonsolid
-	surfaceparm wallbangable
 	shaded
 	specular 3
 	shininess 8
@@ -26,8 +22,6 @@ models/jumppad_shine
 
 models/jumppad_bars
 {
-	surfaceparm nonsolid
-	surfaceparm wallbangable
 	shaded
 	specular 3
 	shininess 8

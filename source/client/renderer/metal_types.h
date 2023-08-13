@@ -4,6 +4,7 @@
 
 namespace MTL {
 	class Buffer;
+	class SamplerState;
 	class Texture;
 };
 
@@ -17,6 +18,7 @@ struct GPUBuffer {
 	MTL::Buffer * buffer;
 };
 
+using SamplerHandle = MTL::SamplerState *;
 using TextureHandle = MTL::Texture *;
 
 #endif // #if PLATFORM_MACOS

@@ -13,6 +13,7 @@ struct GPUBuffer {
 	u32 buffer;
 };
 
+using SamplerHandle = u32;
 using TextureHandle = u32;
 
 #endif // #if !PLATFORM_MACOS

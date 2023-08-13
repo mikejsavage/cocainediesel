@@ -3,6 +3,7 @@
 #if PLATFORM_MACOS
 
 #include "qcommon/base.h"
+#include "qcommon/qcommon.h"
 #include "qcommon/array.h"
 #include "client/renderer/renderer.h"
 
@@ -14,11 +15,14 @@ namespace MTL {
 
 static dispatch_semaphore_t frame_semaphore;
 static bool capturing_this_frame;
-static u64 frame_counter;
 static u64 num_vertices_this_frame;
 
 static NonRAIIDynamicArray< int > render_passes;
 static NonRAIIDynamicArray< int > draw_calls;
+
+static NonRAIIDynamicArray< Mesh > deferred_mesh_deletes;
+static NonRAIIDynamicArray< GPUBuffer > deferred_buffer_deletes;
+static NonRAIIDynamicArray< StreamingBuffer > deferred_streaming_buffer_deletes;
 
 struct {
 	MTL::Device * device;
@@ -59,12 +63,32 @@ void PipelineState::bind_streaming_buffer( StringHash name, StreamingBuffer stre
 
 extern "C" void GLFWShouldDoThisForUs( CA::MetalLayer * swapchain );
 
+// TODO dedupe
+static void RunDeferredDeletes() {
+	TracyZoneScoped;
+
+	for( const Mesh & mesh : deferred_mesh_deletes ) {
+		DeleteMesh( mesh );
+	}
+	deferred_mesh_deletes.clear();
+
+	for( const GPUBuffer & buffer : deferred_buffer_deletes ) {
+		DeleteGPUBuffer( buffer );
+	}
+	deferred_buffer_deletes.clear();
+
+	for( const StreamingBuffer & stream : deferred_streaming_buffer_deletes ) {
+		DeleteStreamingBuffer( stream );
+	}
+	deferred_streaming_buffer_deletes.clear();
+}
+
+
 void InitRenderBackend() {
 	TracyZoneScoped;
 
 	frame_semaphore = dispatch_semaphore_create( MAX_FRAMES_IN_FLIGHT );
 	capturing_this_frame = false;
-	frame_counter = 0;
 
 	metal.device = MTL::CreateSystemDefaultDevice();
 
@@ -78,11 +102,19 @@ void InitRenderBackend() {
 
 	render_passes.init( sys_allocator );
 	draw_calls.init( sys_allocator );
+	deferred_mesh_deletes.init( sys_allocator );
+	deferred_buffer_deletes.init( sys_allocator );
+	deferred_streaming_buffer_deletes.init( sys_allocator );
 }
 
 void ShutdownRenderBackend() {
+	RunDeferredDeletes();
+
 	render_passes.shutdown();
 	draw_calls.shutdown();
+	deferred_mesh_deletes.shutdown();
+	deferred_buffer_deletes.shutdown();
+	deferred_streaming_buffer_deletes.shutdown();
 
 	metal.command_queue->release();
 	metal.swapchain->release();
@@ -103,7 +135,7 @@ void RenderBackendBeginFrame() {
 void RenderBackendSubmitFrame() {
 	TracyZoneScoped;
 
-	frame_counter++;
+	RunDeferredDeletes();
 
 	TracyPlotSample( "Draw calls", s64( draw_calls.size() ) );
 	TracyPlotSample( "Vertices", s64( num_vertices_this_frame ) );
@@ -111,7 +143,18 @@ void RenderBackendSubmitFrame() {
 
 GPUBuffer NewGPUBuffer( const void * data, u32 size, const char * name ) {
 	MTL::Buffer * buf = metal.device->newBuffer( data, size, MTL::ResourceStorageModeManaged );
-	return { buf };
+	NS::String * label = NS::String::string( name, NS::UTF8StringEncoding );
+	defer { label->release(); };
+	buf->setLabel( label );
+	return { .buffer = buf };
+}
+
+GPUBuffer NewGPUBuffer( u32 size, const char * name ) {
+	MTL::Buffer * buf = metal.device->newBuffer( size, MTL::ResourceStorageModeManaged );
+	NS::String * label = NS::String::string( name, NS::UTF8StringEncoding );
+	defer { label->release(); };
+	buf->setLabel( label );
+	return { .buffer = buf };
 }
 
 void DeleteGPUBuffer( GPUBuffer buf ) {
@@ -129,7 +172,7 @@ StreamingBuffer NewStreamingBuffer( u32 size, const char * name ) {
 }
 
 void * GetStreamingBufferMemory( StreamingBuffer stream ) {
-	return ( ( u8 * ) stream.ptr ) + stream.size * ( frame_counter % MAX_FRAMES_IN_FLIGHT );
+	return ( ( u8 * ) stream.ptr ) + stream.size * FrameSlot();
 }
 
 void DeleteStreamingBuffer( StreamingBuffer stream ) {
@@ -161,6 +204,47 @@ static MTL::PixelFormat TextureFormatToMetal( TextureFormat format ) {
 		case TextureFormat_Shadow: return MTL::PixelFormatDepth32Float;
 
 		default: Fatal( "lol" ); return { };
+	}
+}
+
+static MTL::SamplerAddressMode SamplerWrapToMetal( SamplerWrap wrap ) {
+	switch( wrap ) {
+		case SamplerWrap_Repeat:
+			return MTL::SamplerAddressModeRepeat;
+		case SamplerWrap_Clamp:
+			return MTL::SamplerAddressModeClampToEdge;
+	}
+
+	Assert( false );
+	return { };
+}
+
+Sampler NewSampler( const SamplerConfig & config ) {
+	MTL::SamplerDescriptor * descriptor = MTL::SamplerDescriptor::alloc()->init();
+	defer { descriptor->release(); };
+
+	descriptor->setSAddressMode( SamplerWrapToMetal( config.wrap ) );
+	descriptor->setTAddressMode( SamplerWrapToMetal( config.wrap ) );
+
+	MTL::SamplerMinMagFilter minmag_filter = config.filter ? MTL::SamplerMinMagFilterLinear : MTL::SamplerMinMagFilterNearest;
+	descriptor->setMinFilter( minmag_filter );
+	descriptor->setMagFilter( minmag_filter );
+	descriptor->setMipFilter( config.filter ? MTL::SamplerMipFilterLinear : MTL::SamplerMipFilterNearest );
+
+	// TODO: lodbias
+
+	if( config.shadowmap_sampler ) {
+		descriptor->setCompareFunction( MTL::CompareFunctionLessEqual );
+	}
+
+	return Sampler {
+		.handle = metal.device->newSamplerState( descriptor ),
+	};
+}
+
+void DeleteSampler( Sampler sampler ) {
+	if( sampler.handle != NULL ) {
+		sampler.handle->release();
 	}
 }
 
@@ -254,13 +338,80 @@ void DeleteTexture( Texture texture ) {
 	}
 }
 
+static void AddRenderTargetAttachment( const RenderTargetConfig::Attachment & attachment, Optional< u32 > * width, Optional< u32 > * height ) {
+	Assert( !width->exists || attachment.texture.width == *width );
+	Assert( !height->exists || attachment.texture.height == *height );
+	*width = attachment.texture.width;
+	*height = attachment.texture.height;
+}
+
 RenderTarget NewRenderTarget( const RenderTargetConfig & config ) {
 	RenderTarget rt = { };
 
-	for( const Optional< RenderTargetConfig::Attachment > & attachment : config.color_attachments ) {
+	Optional< u32 > width = NONE;
+	Optional< u32 > height = NONE;
+
+	for( size_t i = 0; i < ARRAY_COUNT( config.color_attachments ); i++ ) {
+		const Optional< RenderTargetConfig::Attachment > & attachment = config.color_attachments[ i ];
+		if( !attachment.exists )
+			continue;
+		AddRenderTargetAttachment( attachment.value, &width, &height );
+		rt.color_attachments[ i ] = attachment.value.texture;
 	}
 
+	if( config.depth_attachment.exists ) {
+		AddRenderTargetAttachment( config.depth_attachment.value, &width, &height );
+		rt.depth_attachment = config.depth_attachment.value.texture;
+	}
+
+	Assert( width.exists && height.exists );
+	rt.width = width.value;
+	rt.height = height.value;
+
 	return rt;
+}
+
+void DeleteRenderTarget( RenderTarget rt ) {
+}
+
+void DeleteRenderTargetAndTextures( RenderTarget rt ) {
+	DeleteRenderTarget( rt );
+	for( Texture texture : rt.color_attachments ) {
+		DeleteTexture( texture );
+	}
+	DeleteTexture( rt.depth_attachment );
+}
+
+// TODO: dedupe this
+Mesh NewMesh( const MeshConfig & config ) {
+	Mesh mesh = { };
+	mesh.vertex_descriptor = config.vertex_descriptor;
+	mesh.index_format = config.index_format;
+	mesh.num_vertices = config.num_vertices;
+	mesh.cw_winding = config.cw_winding;
+
+	for( size_t i = 0; i < ARRAY_COUNT( mesh.vertex_buffers ); i++ ) {
+		mesh.vertex_buffers[ i ] = config.vertex_buffers[ i ];
+	}
+	mesh.index_buffer = config.index_buffer;
+
+	return mesh;
+}
+
+void DeleteMesh( const Mesh & mesh ) {
+	for( GPUBuffer buffer : mesh.vertex_buffers ) {
+		DeleteGPUBuffer( buffer );
+	}
+	DeleteGPUBuffer( mesh.index_buffer );
+}
+
+void DeferDeleteMesh( const Mesh & mesh ) {
+	deferred_mesh_deletes.add( mesh );
+}
+
+void DownloadFramebuffer( void * buf ) {
+	// TODO https://stackoverflow.com/questions/33844130/take-a-snapshot-of-current-screen-with-metal-in-swift
+	Com_Printf( S_COLOR_YELLOW "Screenshots aren't implemented on macOS yet\n" );
 }
 
 #endif // #if PLATFORM_MACOS

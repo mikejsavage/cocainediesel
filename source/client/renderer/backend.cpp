@@ -1161,31 +1161,31 @@ void DeferDeleteStreamingBuffer( StreamingBuffer stream ) {
 }
 
 Sampler NewSampler( const SamplerConfig & config ) {
-	Sampler sampler;
-	glCreateSamplers( 1, &sampler.sampler );
+	sampler.handle;
+	glCreateSamplers( 1, &sampler.handle );
 
-	glSamplerParameteri( sampler.sampler, GL_TEXTURE_WRAP_S, SamplerWrapToGL( config.wrap ) );
-	glSamplerParameteri( sampler.sampler, GL_TEXTURE_WRAP_T, SamplerWrapToGL( config.wrap ) );
+	glSamplerParameteri( sampler.handle, GL_TEXTURE_WRAP_S, SamplerWrapToGL( config.wrap ) );
+	glSamplerParameteri( sampler.handle, GL_TEXTURE_WRAP_T, SamplerWrapToGL( config.wrap ) );
 
 	GLenum min_filter = config.filter ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST;
 	GLenum mag_filter = config.filter ? GL_LINEAR : GL_NEAREST;
-	glSamplerParameteri( sampler.sampler, GL_TEXTURE_MIN_FILTER, min_filter );
-	glSamplerParameteri( sampler.sampler, GL_TEXTURE_MAG_FILTER, mag_filter );
+	glSamplerParameteri( sampler.handle, GL_TEXTURE_MIN_FILTER, min_filter );
+	glSamplerParameteri( sampler.handle, GL_TEXTURE_MAG_FILTER, mag_filter );
 
-	glSamplerParameterf( sampler.sampler, GL_TEXTURE_LOD_BIAS, config.lod_bias );
+	glSamplerParameterf( sampler.handle, GL_TEXTURE_LOD_BIAS, config.lod_bias );
 
 	if( config.shadowmap_sampler ) {
-		glSamplerParameteri( sampler.sampler, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
-		glSamplerParameteri( sampler.sampler, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE );
+		glSamplerParameteri( sampler.handle, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
+		glSamplerParameteri( sampler.handle, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE );
 	}
 
 	return sampler;
 }
 
-void DeleteSampler( Sampler sampler ) {
-	if( sampler.sampler == 0 )
+void DeleteSampler( sampler.handle ) {
+	if( sampler.handle == 0 )
 		return;
-	glDeleteSamplers( 1, &sampler.sampler );
+	glDeleteSamplers( 1, &sampler.handle );
 }
 
 Texture NewTexture( const TextureConfig & config ) {

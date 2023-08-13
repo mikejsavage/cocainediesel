@@ -170,12 +170,13 @@ struct TextureConfig {
 namespace tracy { struct SourceLocationData; }
 
 enum RenderPassType {
-	RenderPass_Normal,
+	RenderPass_Render,
+	RenderPass_Compute,
 	RenderPass_Blit,
 };
 
 struct RenderPassConfig {
-	RenderPassType type = RenderPass_Normal;
+	RenderPassType type = RenderPass_Render;
 
 	RenderTarget target = { };
 

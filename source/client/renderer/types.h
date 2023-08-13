@@ -88,7 +88,7 @@ enum SamplerWrap : u8 {
 };
 
 struct Sampler {
-	u32 sampler;
+	SamplerHandle handle;
 };
 
 enum SamplerType : u8 {

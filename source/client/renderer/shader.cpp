@@ -40,6 +40,16 @@ static void BuildShaderSrcs( DynamicString * src, const char * path, const char 
 	src->append( "#define PARTICLE_ROTATE {}u\n", ParticleFlag_Rotate );
 	src->append( "#define PARTICLE_STRETCH {}u\n", ParticleFlag_Stretch );
 
+	src->append( "const int VertexAttribute_Position = {};\n", VertexAttribute_Position );
+	src->append( "const int VertexAttribute_Normal = {};\n", VertexAttribute_Normal );
+	src->append( "const int VertexAttribute_TexCoord = {};\n", VertexAttribute_TexCoord );
+	src->append( "const int VertexAttribute_Color = {};\n", VertexAttribute_Color );
+	src->append( "const int VertexAttribute_JointIndices = {};\n", VertexAttribute_JointIndices );
+	src->append( "const int VertexAttribute_JointWeights = {};\n", VertexAttribute_JointWeights );
+
+	src->append( "const int FragmentShaderOutput_Albedo = {};\n", FragmentShaderOutput_Albedo );
+	src->append( "const int FragmentShaderOutput_CurvedSurfaceMask = {};\n", FragmentShaderOutput_CurvedSurfaceMask );
+
 	src->append( "{}", variant_switches );
 
 	Span< const char > glsl = AssetString( path );
@@ -116,13 +126,11 @@ static void LoadShaders() {
 	LoadShader( &shaders.standard, "glsl/standard.glsl" );
 	LoadShader( &shaders.standard_vertexcolors, "glsl/standard.glsl", "#define VERTEX_COLORS 1\n" );
 	LoadShader( &shaders.standard_skinned, "glsl/standard.glsl", "#define SKINNED 1\n" );
-	LoadShader( &shaders.standard_skinned_vertexcolors, "glsl/standard.glsl", "#define SKINNED 1\n#define VERTEX_COLORS 1\n" );
 	LoadShader( &shaders.standard_shaded, "glsl/standard.glsl", "#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
 	LoadShader( &shaders.standard_skinned_shaded, "glsl/standard.glsl", "#define SKINNED 1\n#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
 
 	// standard instanced
 	LoadShader( &shaders.standard_instanced, "glsl/standard.glsl", "#define INSTANCED 1\n" );
-	LoadShader( &shaders.standard_vertexcolors_instanced, "glsl/standard.glsl", "#define VERTEX_COLORS 1\n" );
 	LoadShader( &shaders.standard_shaded_instanced, "glsl/standard.glsl", "#define INSTANCED 1\n#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
 
 	// rest
@@ -190,11 +198,9 @@ void ShutdownShaders() {
 
 	DeleteShader( shaders.standard_skinned );
 	DeleteShader( shaders.standard_skinned_shaded );
-	DeleteShader( shaders.standard_skinned_vertexcolors );
 
 	DeleteShader( shaders.standard_instanced );
 	DeleteShader( shaders.standard_shaded_instanced );
-	DeleteShader( shaders.standard_vertexcolors_instanced );
 
 	DeleteShader( shaders.depth_only );
 	DeleteShader( shaders.depth_only_instanced );

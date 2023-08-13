@@ -261,7 +261,6 @@ int64_t Sys_Milliseconds();
 void Sys_Sleep( unsigned int millis );
 
 const char * Sys_ConsoleInput();
-void Sys_ConsoleOutput( const char * string );
 
 bool Sys_OpenInWebBrowser( const char * url );
 

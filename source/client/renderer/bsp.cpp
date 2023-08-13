@@ -1,5 +1,3 @@
-#include <algorithm> // std::sort
-
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/qfiles.h"
@@ -11,6 +9,8 @@
 #include "client/maps.h"
 
 #include "meshoptimizer/meshoptimizer.h"
+
+#include "nanosort/nanosort.hpp"
 
 enum BSPLump {
 	BSPLump_Entities,
@@ -388,7 +388,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 		}
 	}
 
-	std::sort( draw_calls.begin(), draw_calls.end(), []( const BSPDrawCall & a, const BSPDrawCall & b ) {
+	nanosort( draw_calls.begin(), draw_calls.end(), []( const BSPDrawCall & a, const BSPDrawCall & b ) {
 		return a.material < b.material;
 	} );
 
@@ -397,7 +397,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 	DynamicArray< u32 > indices( sys_allocator );
 
 	DynamicArray< Model::Primitive > primitives( sys_allocator );
-	Model::Primitive first;
+	Model::Primitive first = { };
 	first.first_index = 0;
 	first.num_vertices = 0;
 	first.material = draw_calls[ 0 ].material;
@@ -405,7 +405,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 
 	for( const BSPDrawCall & dc : draw_calls ) {
 		if( dc.material != primitives.top().material ) {
-			Model::Primitive prim;
+			Model::Primitive prim = { };
 			prim.first_index = primitives.top().first_index + primitives.top().num_vertices;
 			prim.num_vertices = 0;
 			prim.material = dc.material;
@@ -492,7 +492,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 	Model model = { };
 	model.transform = Mat4::Identity();
 
-	model.primitives = ALLOC_MANY( sys_allocator, Model::Primitive, primitives.size() );
+	model.primitives = AllocMany< Model::Primitive >( sys_allocator, primitives.size() );
 	model.num_primitives = primitives.size();
 	memcpy( model.primitives, primitives.ptr(), primitives.num_bytes() );
 
@@ -563,7 +563,7 @@ bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< c
 	map->num_models = bsp.models.n;
 	map->fog_strength = ParseFogStrength( &bsp );
 
-	map->models = ALLOC_MANY( sys_allocator, Model, bsp.models.n );
+	map->models = AllocMany< Model >( sys_allocator, bsp.models.n );
 
 	for( size_t i = 0; i < bsp.models.n; i++ ) {
 		map->models[ i ] = LoadBSPModel( filename, vertices, bsp, i );
@@ -618,7 +618,7 @@ void DeleteBSPRenderData( Map * map ) {
 		DeleteModel( &map->models[ i ] );
 	}
 
-	FREE( sys_allocator, map->models );
+	Free( sys_allocator, map->models );
 
 	DeleteGPUBuffer( map->nodeBuffer );
 	DeleteGPUBuffer( map->leafBuffer );

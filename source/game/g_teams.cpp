@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
-#include <algorithm>
+#include "nanosort/nanosort.hpp"
 
 Cvar *g_teams_maxplayers;
 Cvar *g_teams_allow_uneven;
@@ -63,7 +63,7 @@ void G_Teams_UpdateMembersList() {
 			}
 		}
 
-		std::sort( current_team->player_indices, current_team->player_indices + current_team->num_players, G_Teams_CompareMembers );
+		nanosort( current_team->player_indices, current_team->player_indices + current_team->num_players, G_Teams_CompareMembers );
 	}
 }
 

@@ -9,7 +9,7 @@
 #  define PLATFORM_LINUX 1
 #  define PLATFORM_UNIX 1
 #else
-#  error new platform
+#  error unsupported platform
 #endif
 
 #if defined( _MSC_VER )
@@ -21,5 +21,5 @@
 #  define COMPILER_GCC 1
 #  define COMPILER_GCC_OR_CLANG 1
 #else
-#  error new compiler
+#  error unsupported compiler
 #endif

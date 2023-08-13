@@ -73,3 +73,14 @@ mat4 AffineToMat4( AffineTransform t ) {
 		t.m[ 2 ][ 1 ], t.m[ 2 ][ 2 ], t.m[ 2 ][ 3 ], 1.0
 	);
 }
+
+// out of bounds texelFetch is UB
+vec4 ClampedTexelFetch( sampler2D texture, ivec2 uv, int lod ) {
+	uv = clamp( uv, ivec2( 0 ), ivec2( textureSize( texture, lod ) ) - 1 );
+	return texelFetch( texture, uv, lod );
+}
+
+vec4 ClampedTexelFetch( sampler2DMS texture, ivec2 uv, int msaa_sample ) {
+	uv = clamp( uv, ivec2( 0 ), ivec2( textureSize( texture ) ) - 1 );
+	return texelFetch( texture, uv, msaa_sample );
+}

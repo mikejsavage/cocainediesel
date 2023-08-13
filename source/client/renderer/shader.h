@@ -9,11 +9,9 @@ struct Shaders {
 
 	Shader standard_skinned;
 	Shader standard_skinned_shaded;
-	Shader standard_skinned_vertexcolors;
 
 	Shader standard_instanced;
 	Shader standard_shaded_instanced;
-	Shader standard_vertexcolors_instanced;
 
 	Shader depth_only;
 	Shader depth_only_instanced;

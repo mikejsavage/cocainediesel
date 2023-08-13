@@ -89,7 +89,7 @@ const Font * RegisterFont( const char * path ) {
 		Span< const u8 > data = AssetBinary( atlas_path.c_str() );
 
 		int w, h, channels;
-		u8 * pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
+		u8 * pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 4 );
 		defer { stbi_image_free( pixels ); };
 
 		if( pixels == NULL || channels != 3 ) {
@@ -98,10 +98,10 @@ const Font * RegisterFont( const char * path ) {
 		}
 
 		TextureConfig config;
+		config.format = TextureFormat_RGBA_U8;
 		config.width = checked_cast< u32 >( w );
 		config.height = checked_cast< u32 >( h );
 		config.data = pixels;
-		config.format = TextureFormat_RGB_U8;
 
 		font->atlas = NewTexture( config );
 		font->material.texture = &font->atlas;

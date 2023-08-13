@@ -13,8 +13,8 @@ v2f vec4 v_Color;
 
 #if VERTEX_SHADER
 
-in vec4 a_Position;
-in vec3 a_Normal;
+layout( location = VertexAttribute_Position ) in vec4 a_Position;
+layout( location = VertexAttribute_Normal ) in vec3 a_Normal;
 
 #if INSTANCED
 struct Instance {
@@ -57,7 +57,7 @@ void main() {
 
 #else
 
-out vec4 f_Albedo;
+layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
 
 void main() {
 	vec4 color = v_Color;

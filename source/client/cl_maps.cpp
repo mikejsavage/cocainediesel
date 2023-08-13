@@ -19,7 +19,7 @@ static Hashtable< MAX_MAPS * 2 > maps_hashtable;
 static Hashtable< MAX_MAP_MODELS * 2 > map_models_hashtable;
 
 static void DeleteMap( Map * map ) {
-	FREE( sys_allocator, const_cast< char * >( map->name ) );
+	Free( sys_allocator, const_cast< char * >( map->name ) );
 	CM_Free( CM_Client, map->cms );
 	DeleteBSPRenderData( map );
 }

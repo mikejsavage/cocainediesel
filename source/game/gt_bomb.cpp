@@ -614,6 +614,10 @@ static void BombGiveToRandom() {
 	for( int i = 0; i < num_players; i++ ) {
 		s32 player_num = server_gs.gameState.teams[ AttackingTeam() ].player_indices[ i ] - 1;
 		edict_t * ent = PLAYERENT( player_num );
+		if( ent->s.type == ET_GHOST ) {
+			num_players--;
+		}
+
 		if( ( ent->s.svflags & SVF_FAKECLIENT ) != 0 ) {
 			num_bots++;
 		}
@@ -627,7 +631,7 @@ static void BombGiveToRandom() {
 	for( int i = 0; i < num_players; i++ ) {
 		s32 player_num = server_gs.gameState.teams[ AttackingTeam() ].player_indices[ i ] - 1;
 		edict_t * ent = PLAYERENT( player_num );
-		if( all_bots || ( ent->s.svflags & SVF_FAKECLIENT ) == 0 ) {
+		if( all_bots || (( ent->s.svflags & SVF_FAKECLIENT ) == 0 && ent->s.type != ET_GHOST) ) {
 			if( seen == carrier ) {
 				BombSetCarrier( player_num, true );
 				break;

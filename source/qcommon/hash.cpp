@@ -1,7 +1,6 @@
-#include <ctype.h>
-
 #include "qcommon/base.h"
 #include "qcommon/hash.h"
+#include "gameshared/q_shared.h"
 
 u32 Hash32( const void * data, size_t n, u32 hash ) {
 	return Hash32_CT( ( const char * ) data, n, hash );
@@ -29,7 +28,7 @@ u64 Hash64( u64 x ) {
 u64 CaseHash64( Span< const char > str ) {
 	u64 hash = Hash64( "" );
 	for( char c : str ) {
-		c = tolower( c );
+		c = ToLowerASCII( c );
 		hash = Hash64( &c, 1, hash );
 	}
 	return hash;

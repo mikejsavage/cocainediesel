@@ -1,5 +1,3 @@
-#include <atomic>
-
 #include "server/server.h"
 #include "qcommon/application.h"
 #include "qcommon/fs.h"
@@ -12,6 +10,8 @@
 #include "picohttpparser/picohttpparser.h"
 
 #include "tracy/Tracy.hpp"
+
+#include <atomic>
 
 static constexpr Time REQUEST_TIMEOUT = Seconds( 10 );
 static constexpr Time RESPONSE_INACTIVITY_TIMEOUT = Seconds( 15 );
@@ -404,7 +404,7 @@ void InitWebServer() {
 	web_server_running = true;
 
 	constexpr size_t web_server_arena_size = 128 * 1024; // 128KB
-	void * web_server_arena_memory = ALLOC_SIZE( sys_allocator, web_server_arena_size, 16 );
+	void * web_server_arena_memory = sys_allocator->allocate( web_server_arena_size, 16 );
 	web_server_arena = ArenaAllocator( web_server_arena_memory, web_server_arena_size );
 
 	web_server_socket = NewTCPServer( sv_port->integer, NonBlocking_Yes );
@@ -415,5 +415,5 @@ void ShutdownWebServer() {
 	web_server_running = false;
 	JoinThread( web_server_thread );
 	CloseSocket( web_server_socket );
-	FREE( sys_allocator, web_server_arena.get_memory() );
+	Free( sys_allocator, web_server_arena.get_memory() );
 }

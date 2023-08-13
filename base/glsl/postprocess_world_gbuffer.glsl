@@ -8,15 +8,15 @@ layout( std140 ) uniform u_Outline {
 
 #if MSAA
 uniform sampler2DMS u_DepthTexture;
-uniform usampler2DMS u_MaskTexture;
+uniform usampler2DMS u_CurvedSurfaceMask;
 #else
 uniform sampler2D u_DepthTexture;
-uniform usampler2D u_MaskTexture;
+uniform usampler2D u_CurvedSurfaceMask;
 #endif
 
 #if VERTEX_SHADER
 
-in vec4 a_Position;
+layout( location = VertexAttribute_Position ) in vec4 a_Position;
 
 void main() {
 	gl_Position = a_Position;
@@ -24,7 +24,7 @@ void main() {
 
 #else
 
-out vec4 f_Albedo;
+layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
 
 float edgeDetect( float center, float up, float down_left, float down_right, float epsilon ) {
 	float delta = 4.0 * center - 2.0 * up - down_left - down_right;
@@ -44,12 +44,12 @@ void main() {
 	const int i = 0;
 #endif
 	{
-		float depth =            texelFetch( u_DepthTexture, p, i ).r;
-		float depth_up =         texelFetch( u_DepthTexture, p + pixel.xz, i ).r;
-		float depth_down_left =  texelFetch( u_DepthTexture, p + pixel.yy, i ).r;
-		float depth_down_right = texelFetch( u_DepthTexture, p + pixel.zy, i ).r;
+		float depth =            ClampedTexelFetch( u_DepthTexture, p, i ).r;
+		float depth_up =         ClampedTexelFetch( u_DepthTexture, p + pixel.xz, i ).r;
+		float depth_down_left =  ClampedTexelFetch( u_DepthTexture, p + pixel.yy, i ).r;
+		float depth_down_right = ClampedTexelFetch( u_DepthTexture, p + pixel.zy, i ).r;
 
-		uint mask = texelFetch( u_MaskTexture, p, i ).r;
+		uint mask = texelFetch( u_CurvedSurfaceMask, p, i ).r;
 		float epsilon = ( mask & MASK_CURVED ) == MASK_CURVED ? 0.005 : 0.00001;
 		edgeness += edgeDetect( depth, depth_up, depth_down_left, depth_down_right, epsilon );
 		avg_depth += depth + depth_up + depth_down_left + depth_down_right;

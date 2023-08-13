@@ -7,6 +7,8 @@
 #include "client/demo_browser.h"
 #include "gameshared/demo.h"
 
+#include "nanosort/nanosort.hpp"
+
 static NonRAIIDynamicArray< DemoBrowserEntry > demos;
 static size_t metadata_load_cursor;
 
@@ -17,7 +19,7 @@ void InitDemoBrowser() {
 
 static void ClearDemos() {
 	for( DemoBrowserEntry & demo : demos ) {
-		FREE( sys_allocator, demo.path );
+		Free( sys_allocator, demo.path );
 	}
 	demos.clear();
 	metadata_load_cursor = 0;
@@ -37,8 +39,9 @@ static Span< u8 > ReadFirst1kBytes( TempAllocator * temp, const char * path ) {
 	FILE * f = OpenFile( temp, path, OpenFile_Read );
 	if( f == NULL )
 		return Span< u8 >();
+	defer { fclose( f ); };
 
-	u8 * buf = ALLOC_MANY( temp, u8, 1024 );
+	u8 * buf = AllocMany< u8 >( temp, 1024 );
 	size_t n;
 	if( !ReadPartialFile( f, buf, 1024, &n ) ) {
 		return Span< u8 >();
@@ -102,4 +105,8 @@ void RefreshDemoBrowser() {
 	TempAllocator temp = cls.frame_arena.temp();
 	DynamicString base( &temp, "{}/demos", HomeDirPath() );
 	FindDemosRecursive( &temp, &base, base.length() + 1 );
+
+	nanosort( demos.begin(), demos.end(), []( const DemoBrowserEntry & a, const DemoBrowserEntry & b ) {
+		return !SortCStringsComparator( a.path, b.path );
+	} );
 }

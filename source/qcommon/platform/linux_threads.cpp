@@ -15,7 +15,7 @@ Semaphore * NewSemaphore() {
 		FatalErrno( "sem_init" );
 	}
 
-	Semaphore * sem = ALLOC( sys_allocator, Semaphore );
+	Semaphore * sem = Alloc< Semaphore >( sys_allocator );
 	sem->sem = s;
 	return sem;
 }
@@ -24,7 +24,7 @@ void DeleteSemaphore( Semaphore * sem ) {
 	if( sem_destroy( &sem->sem ) != 0 ) {
 		FatalErrno( "sem_destroy" );
 	}
-	FREE( sys_allocator, sem );
+	Free( sys_allocator, sem );
 }
 
 void Signal( Semaphore * sem, int n ) {

@@ -19,8 +19,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include <ctype.h>
-
 #include "qcommon/base.h"
 #include "qcommon/fpe.h"
 #include "qcommon/time.h"
@@ -244,9 +242,9 @@ static const char * RandomPrefix( RNG * rng, float p ) {
 }
 
 static char * Uppercase( Allocator * a, const char * str ) {
-	char * upper = ALLOC_MANY( a, char, strlen( str ) + 1 );
+	char * upper = AllocMany< char >( a, strlen( str ) + 1 );
 	for( size_t i = 0; i < strlen( str ); i++ ) {
-		upper[ i ] = toupper( str[ i ] );
+		upper[ i ] = ToUpperASCII( str[ i ] );
 	}
 	upper[ strlen( str ) ] = '\0';
 	return upper;
@@ -1291,7 +1289,7 @@ static YGNodeRef LuauYogaNodeRecursive( ArenaAllocator * temp, lua_State * L ) {
 	}
 
 	YGNodeRef node = NewYogaNode( yoga_config );
-	OurYogaNodeStuff * ours = ALLOC( temp, OurYogaNodeStuff );
+	OurYogaNodeStuff * ours = Alloc< OurYogaNodeStuff >( temp );
 	*ours = OurYogaNodeStuffDefaults();
 	YGNodeSetContext( node, ours );
 
@@ -1640,7 +1638,7 @@ void CG_InitHUD() {
 	YGConfigSetUseWebDefaults( yoga_config, true );
 	YGConfigSetLogger( yoga_config, YogaLog );
 
-	yoga_arena_memory = ALLOC_SIZE( sys_allocator, yoga_arena_size, 16 );
+	yoga_arena_memory = sys_allocator->allocate( yoga_arena_size, 16 );
 	yoga_arena = ArenaAllocator( yoga_arena_memory, yoga_arena_size );
 }
 
@@ -1650,7 +1648,7 @@ void CG_ShutdownHUD() {
 	}
 
 	YGConfigFree( yoga_config );
-	FREE( sys_allocator, yoga_arena_memory );
+	Free( sys_allocator, yoga_arena_memory );
 
 	RemoveCommand( "toggleuiinspector" );
 }
@@ -1852,7 +1850,10 @@ void CG_DrawHUD() {
 	}
 
 	inspecting = { };
-	CallWithStackTrace( hud_L, 1, 0 );
+	{
+		TracyZoneScopedN( "Luau" );
+		CallWithStackTrace( hud_L, 1, 0 );
+	}
 
 	if( inspecting.hovered ) {
 		Draw2DBox( inspecting.x, inspecting.y, inspecting.w, inspecting.h, cls.white_material, Vec4( 0.0f, 1.0f, 1.0f, 0.25f ) );

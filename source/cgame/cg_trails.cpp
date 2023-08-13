@@ -146,10 +146,10 @@ static void DrawActualTrail( Trail & trail ) {
 	}
 
 	TempAllocator temp = cls.frame_arena.temp();
-	Span< Vec3 > positions = ALLOC_SPAN( &temp, Vec3, trail.points.n * 2 );
-	Span< Vec2 > uvs = ALLOC_SPAN( &temp, Vec2, trail.points.n * 2 );
-	Span< RGBA8 > colors = ALLOC_SPAN( &temp, RGBA8, trail.points.n * 2 );
-	Span< u16 > indices = ALLOC_SPAN( &temp, u16, ( trail.points.n - 1 ) * 6 );
+	Span< Vec3 > positions = AllocSpan< Vec3 >( &temp, trail.points.n * 2 );
+	Span< Vec2 > uvs = AllocSpan< Vec2 >( &temp, trail.points.n * 2 );
+	Span< RGBA8 > colors = AllocSpan< RGBA8 >( &temp, trail.points.n * 2 );
+	Span< u16 > indices = AllocSpan< u16 >( &temp, ( trail.points.n - 1 ) * 6 );
 
 	const Material * material = FindMaterial( trail.material );
 	float texture_aspect_ratio = float( material->texture->width ) / float( material->texture->height );

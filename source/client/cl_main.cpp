@@ -207,7 +207,6 @@ static void CL_Connect_f() {
 	CL_Connect( address );
 }
 
-
 void CL_ClearState() {
 	TracyZoneScoped;
 
@@ -279,10 +278,10 @@ void CL_Disconnect( const char *message ) {
 		CL_Disconnect_SendCommand(); // send a disconnect message to the server
 	}
 
-	FREE( sys_allocator, cls.server_name );
+	Free( sys_allocator, cls.server_name );
 	cls.server_name = NULL;
 
-	FREE( sys_allocator, cls.download_url );
+	Free( sys_allocator, cls.download_url );
 	cls.download_url = NULL;
 
 	StopAllSounds( false );
@@ -579,7 +578,7 @@ static bool AddDownloadedMap( const char * filename, Span< const u8 > compressed
 		return false;
 
 	Span< u8 > data;
-	defer { FREE( sys_allocator, data.ptr ); };
+	defer { Free( sys_allocator, data.ptr ); };
 
 	if( !Decompress( filename, sys_allocator, compressed, &data ) ) {
 		Com_Printf( "Downloaded map is corrupt.\n" );
@@ -1123,7 +1122,7 @@ void CL_Init() {
 	InitLivePP();
 
 	constexpr size_t frame_arena_size = 1024 * 1024; // 1MB
-	void * frame_arena_memory = ALLOC_SIZE( sys_allocator, frame_arena_size, 16 );
+	void * frame_arena_memory = sys_allocator->allocate( frame_arena_size, 16 );
 	cls.frame_arena = ArenaAllocator( frame_arena_memory, frame_arena_size );
 
 	u64 entropy[ 2 ];
@@ -1218,5 +1217,5 @@ void CL_Shutdown() {
 	cls.state = CA_UNINITIALIZED;
 	cl_initialized = false;
 
-	FREE( sys_allocator, cls.frame_arena.get_memory() );
+	Free( sys_allocator, cls.frame_arena.get_memory() );
 }

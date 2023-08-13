@@ -4,8 +4,6 @@
 
 #include <string.h>
 
-#define ALLOC_SPAN2D( a, T, w, h ) Span2D< T >( ALLOC_MANY( a, T, w * h ), w, h )
-
 template< typename T >
 struct Span2D {
 	T * ptr;
@@ -51,6 +49,11 @@ struct Span2D {
 		return Span< T >( ptr, w * h );
 	}
 };
+
+template< typename T >
+Span2D< T > AllocSpan2D( Allocator * a, size_t w, size_t h ) {
+	return Span2D< T >( AllocMany< T >( a, w * h ), w, h );
+}
 
 template< typename T >
 void CopySpan2D( Span2D< T > dst, Span2D< const T > src ) {

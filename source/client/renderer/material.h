@@ -58,6 +58,7 @@ struct Material {
 	bool shaded = false;
 	float specular = 0.0f;
 	float shininess = 64.0f;
+	SamplerType sampler = Sampler_Standard;
 
 	TCMod tcmod = { };
 };
@@ -76,7 +77,9 @@ const Material * FindMaterial( StringHash name, const Material * def = NULL );
 const Material * FindMaterial( const char * name, const Material * def = NULL );
 bool TryFindMaterial( StringHash name, const Material ** material );
 
+Sampler GetSampler( SamplerType sampler );
+
 bool TryFindDecal( StringHash name, Vec4 * uvwh );
-TextureArray DecalAtlasTextureArray();
+const Texture * DecalAtlasTextureArray();
 
 Vec2 HalfPixelSize( const Material * material );

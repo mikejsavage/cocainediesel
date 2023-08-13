@@ -1,5 +1,3 @@
-#include <ctype.h>
-
 #include "client/client.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/string.h"
@@ -127,7 +125,7 @@ static void PrintCompletions( Span< const char * > completions, const char * col
 static size_t CommonPrefixLength( const char * a, Span< const char > b ) {
 	size_t n = Min2( strlen( a ), b.n );
 	for( size_t i = 0; i < n; i++ ) {
-		if( tolower( a[ i ] ) != tolower( b[ i ] ) ) {
+		if( ToLowerASCII( a[ i ] ) != ToLowerASCII( b[ i ] ) ) {
 			return i;
 		}
 	}
@@ -282,6 +280,8 @@ const char * NextChunkEnd( const char * str ) {
 }
 
 void Con_Draw() {
+	TracyZoneScoped;
+
 	u32 bg = IM_COL32( 27, 27, 27, 224 );
 
 	ImGui::PushFont( cls.console_font );

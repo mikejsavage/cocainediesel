@@ -340,17 +340,17 @@ static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, const cshaderre
 		return;
 	}
 
-	Vec3 * points = ALLOC_MANY( sys_allocator, Vec3, size[ 0 ] * size[ 1 ] );
+	Vec3 * points = AllocMany< Vec3 >( sys_allocator, size[ 0 ] * size[ 1 ] );
 	Patch_Evaluate( 1, &verts[0], patch_cp, step, points, 0 );
 	Patch_RemoveLinearColumnsRows( points, 1, &size[0], &size[1], 0, NULL, NULL );
 
-	cbrush_t * facets = ALLOC_MANY( sys_allocator, cbrush_t, ( size[0] - 1 ) * ( size[1] - 1 ) * 2 );
-	Plane * brushplanes = ALLOC_MANY( sys_allocator, Plane, ( size[0] - 1 ) * ( size[1] - 1 ) * 2 * MAX_FACET_PLANES );
+	cbrush_t * facets = AllocMany< cbrush_t >( sys_allocator, ( size[0] - 1 ) * ( size[1] - 1 ) * 2 );
+	Plane * brushplanes = AllocMany< Plane >( sys_allocator, ( size[0] - 1 ) * ( size[1] - 1 ) * 2 * MAX_FACET_PLANES );
 
 	defer {
-		FREE( sys_allocator, points );
-		FREE( sys_allocator, facets );
-		FREE( sys_allocator, brushplanes );
+		Free( sys_allocator, points );
+		Free( sys_allocator, facets );
+		Free( sys_allocator, brushplanes );
 	};
 
 	int totalsides = 0;
@@ -396,7 +396,7 @@ static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, const cshaderre
 	}
 
 	if( patch->numfacets ) {
-		u8 * fdata = ( u8 * ) ALLOC_SIZE( sys_allocator, patch->numfacets * sizeof( cbrush_t ) + totalsides * ( sizeof( cbrushside_t ) + sizeof( Plane ) ), 16 );
+		u8 * fdata = ( u8 * ) sys_allocator->allocate( patch->numfacets * sizeof( cbrush_t ) + totalsides * ( sizeof( cbrushside_t ) + sizeof( Plane ) ), 16 );
 
 		patch->facets = align_cast< cbrush_t >( fdata );
 		fdata += patch->numfacets * sizeof( cbrush_t );
@@ -443,7 +443,7 @@ static void CMod_LoadSurfaces( CollisionModel *cms, lump_t *l ) {
 		Fatal( "CMod_LoadSurfaces: map with no shaders" );
 	}
 
-	out = cms->map_shaderrefs = ALLOC_MANY( sys_allocator, cshaderref_t, count );
+	out = cms->map_shaderrefs = AllocMany< cshaderref_t >( sys_allocator, count );
 	cms->numshaderrefs = count;
 
 	buffer = NULL;
@@ -454,9 +454,9 @@ static void CMod_LoadSurfaces( CollisionModel *cms, lump_t *l ) {
 		if( bufLen + len >= bufSize ) {
 			bufSize = bufLen + len + 128;
 			if( buffer ) {
-				buffer = ( char * ) REALLOC( sys_allocator, buffer, 0, bufSize, 16 );
+				buffer = ( char * ) sys_allocator->reallocate( buffer, 0, bufSize, 16 );
 			} else {
-				buffer = ( char * ) ALLOC_SIZE( sys_allocator, bufSize, 16 );
+				buffer = ( char * ) sys_allocator->allocate( bufSize, 16 );
 			}
 		}
 
@@ -489,7 +489,7 @@ static void CMod_LoadVertexes( CollisionModel *cms, lump_t *l ) {
 		Fatal( "Map with no vertexes" );
 	}
 
-	out = cms->map_verts = ALLOC_MANY( sys_allocator, Vec3, count );
+	out = cms->map_verts = AllocMany< Vec3 >( sys_allocator, count );
 	cms->numvertexes = count;
 
 	for( i = 0; i < count; i++, in++ ) {
@@ -516,7 +516,7 @@ static void CMod_LoadVertexes_RBSP( CollisionModel *cms, lump_t *l ) {
 		Fatal( "Map with no vertexes" );
 	}
 
-	out = cms->map_verts = ALLOC_MANY( sys_allocator, Vec3, count );
+	out = cms->map_verts = AllocMany< Vec3 >( sys_allocator, count );
 	cms->numvertexes = count;
 
 	for( i = 0; i < count; i++, in++ ) {
@@ -569,7 +569,7 @@ static void CMod_LoadFaces( CollisionModel *cms, lump_t *l ) {
 		Fatal( "Map with no faces" );
 	}
 
-	out = cms->map_faces = ALLOC_MANY( sys_allocator, cface_t, count );
+	out = cms->map_faces = AllocMany< cface_t >( sys_allocator, count );
 	cms->numfaces = count;
 
 	for( i = 0; i < count; i++, in++, out++ ) {
@@ -599,7 +599,7 @@ static void CMod_LoadFaces_RBSP( CollisionModel *cms, lump_t *l ) {
 		Fatal( "Map with no faces" );
 	}
 
-	out = cms->map_faces = ALLOC_MANY( sys_allocator, cface_t, count );
+	out = cms->map_faces = AllocMany< cface_t >( sys_allocator, count );
 	cms->numfaces = count;
 
 	for( i = 0; i < count; i++, in++, out++ ) {
@@ -636,11 +636,11 @@ static void CMod_LoadSubmodels( CModelServerOrClient soc, CollisionModel *cms, l
 		model->hash = hash;
 		model->faces = cms->map_faces;
 		model->nummarkfaces = LittleLong( in->numfaces );
-		model->markfaces = ALLOC_MANY( sys_allocator, int, model->nummarkfaces );
+		model->markfaces = AllocMany< int >( sys_allocator, model->nummarkfaces );
 
 		model->brushes = cms->map_brushes;
 		model->nummarkbrushes = LittleLong( in->numbrushes );
-		model->markbrushes = ALLOC_MANY( sys_allocator, int, model->nummarkbrushes );
+		model->markbrushes = AllocMany< int >( sys_allocator, model->nummarkbrushes );
 
 		if( model->nummarkfaces ) {
 			int firstface = LittleLong( in->firstface );
@@ -680,7 +680,7 @@ static void CMod_LoadNodes( CollisionModel *cms, lump_t *l ) {
 		Fatal( "Map has no nodes" );
 	}
 
-	out = cms->map_nodes = ALLOC_MANY( sys_allocator, cnode_t, count );
+	out = cms->map_nodes = AllocMany< cnode_t >( sys_allocator, count );
 	cms->numnodes = count;
 
 	for( i = 0; i < 3; i++ ) {
@@ -712,7 +712,7 @@ static void CMod_LoadMarkFaces( CollisionModel *cms, lump_t *l ) {
 	// 	Fatal( "Map with no leaffaces" );
 	// }
 
-	out = cms->map_markfaces = ALLOC_MANY( sys_allocator, int, count );
+	out = cms->map_markfaces = AllocMany< int >( sys_allocator, count );
 	cms->nummarkfaces = count;
 
 	for( i = 0; i < count; i++ ) {
@@ -741,7 +741,7 @@ static void CMod_LoadLeafs( CollisionModel *cms, lump_t *l ) {
 		Fatal( "Map with no leafs" );
 	}
 
-	out = cms->map_leafs = ALLOC_MANY( sys_allocator, cleaf_t, count );
+	out = cms->map_leafs = AllocMany< cleaf_t >( sys_allocator, count );
 	cms->numleafs = count;
 
 	for( i = 0; i < count; i++, in++, out++ ) {
@@ -795,7 +795,7 @@ static void CMod_LoadPlanes( CollisionModel *cms, lump_t *l ) {
 		Fatal( "Map with no planes" );
 	}
 
-	Plane * out = cms->map_planes = ALLOC_MANY( sys_allocator, Plane, count );
+	Plane * out = cms->map_planes = AllocMany< Plane >( sys_allocator, count );
 	cms->numplanes = count;
 
 	for( int i = 0; i < count; i++, in++, out++ ) {
@@ -824,7 +824,7 @@ static void CMod_LoadMarkBrushes( CollisionModel *cms, lump_t *l ) {
 		Fatal( "Map with no leafbrushes" );
 	}
 
-	out = cms->map_markbrushes = ALLOC_MANY( sys_allocator, int, count );
+	out = cms->map_markbrushes = AllocMany< int >( sys_allocator, count );
 	cms->nummarkbrushes = count;
 
 	for( i = 0; i < count; i++, in++ )
@@ -843,7 +843,7 @@ static void CMod_LoadBrushSides( CollisionModel *cms, lump_t *l ) {
 		Fatal( "Map with no brushsides" );
 	}
 
-	cbrushside_t * out = cms->map_brushsides = ALLOC_MANY( sys_allocator, cbrushside_t, count );
+	cbrushside_t * out = cms->map_brushsides = AllocMany< cbrushside_t >( sys_allocator, count );
 	cms->numbrushsides = count;
 
 	for( int i = 0; i < count; i++, in++, out++ ) {
@@ -874,7 +874,7 @@ static void CMod_LoadBrushSides_RBSP( CollisionModel *cms, lump_t *l ) {
 		Fatal( "Map with no brushsides" );
 	}
 
-	out = cms->map_brushsides = ALLOC_MANY( sys_allocator, cbrushside_t, count );
+	out = cms->map_brushsides = AllocMany< cbrushside_t >( sys_allocator, count );
 	cms->numbrushsides = count;
 
 	for( i = 0; i < count; i++, in++, out++ ) {
@@ -913,7 +913,7 @@ static void CMod_LoadBrushes( CollisionModel *cms, lump_t *l ) {
 		Fatal( "Map with no brushes" );
 	}
 
-	out = cms->map_brushes = ALLOC_MANY( sys_allocator, cbrush_t, count );
+	out = cms->map_brushes = AllocMany< cbrush_t >( sys_allocator, count );
 	cms->numbrushes = count;
 
 	for( i = 0; i < count; i++, out++, in++ ) {
@@ -934,7 +934,7 @@ static void CMod_LoadVisibility( CollisionModel *cms, lump_t *l ) {
 		return;
 	}
 
-	cms->map_pvs = ( dvis_t * ) ALLOC_SIZE( sys_allocator, cms->map_visdatasize, 16 );
+	cms->map_pvs = ( dvis_t * ) sys_allocator->allocate( cms->map_visdatasize, 16 );
 	memcpy( cms->map_pvs, cms->cmod_base + l->fileofs, cms->map_visdatasize );
 
 	cms->map_pvs->numclusters = LittleLong( cms->map_pvs->numclusters );
@@ -949,7 +949,7 @@ static void CMod_LoadEntityString( CollisionModel *cms, lump_t *l ) {
 		return;
 	}
 
-	cms->map_entitystring = ALLOC_MANY( sys_allocator, char, cms->numentitychars );
+	cms->map_entitystring = AllocMany< char >( sys_allocator, cms->numentitychars );
 	memcpy( cms->map_entitystring, cms->cmod_base + l->fileofs, l->filelen );
 }
 
@@ -994,6 +994,6 @@ void CM_LoadQ3BrushModel( CModelServerOrClient soc, CollisionModel * cms, Span< 
 	CMod_LoadEntityString( cms, &header.lumps[LUMP_ENTITIES] );
 
 	if( cms->numvertexes ) {
-		FREE( sys_allocator, cms->map_verts );
+		Free( sys_allocator, cms->map_verts );
 	}
 }

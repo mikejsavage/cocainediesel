@@ -86,7 +86,7 @@ void StartDownload( const char * url, CurlDoneCallback done_callback, const char
 		Fatal( "curl_easy_init" );
 	}
 
-	CurlRequestContext * context = ALLOC( sys_allocator, CurlRequestContext );
+	CurlRequestContext * context = Alloc< CurlRequestContext >( sys_allocator );
 	context->data.init( sys_allocator );
 	context->done_callback = done_callback;
 	context->headers = NULL;
@@ -126,7 +126,7 @@ void CancelDownload() {
 
 	curl_slist_free_all( context->headers );
 	context->data.shutdown();
-	FREE( sys_allocator, context );
+	Free( sys_allocator, context );
 }
 
 void PumpDownloads() {

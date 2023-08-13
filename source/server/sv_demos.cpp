@@ -18,9 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include <algorithm>
-
-#include <ctype.h>
 #include <time.h>
 
 #include "server/server.h"
@@ -29,6 +26,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/string.h"
 #include "qcommon/version.h"
 #include "gameshared/demo.h"
+
+#include "nanosort/nanosort.hpp"
 
 static RecordDemoContext record_demo_context = { };
 static client_t demo_client;
@@ -198,7 +197,7 @@ static Span< char * > GetServerDemos( TempAllocator * temp ) {
 		demos.add( CopyString( sys_allocator, name ) );
 	}
 
-	std::sort( demos.begin(), demos.end(), SortCStringsComparator );
+	nanosort( demos.begin(), demos.end(), SortCStringsComparator );
 
 	return demos.span();
 }
@@ -216,7 +215,7 @@ void SV_Demo_Purge_f() {
 	Span< char * > demos = GetServerDemos( &temp );
 	defer {
 		for( char * demo : demos ) {
-			FREE( sys_allocator, demo );
+			Free( sys_allocator, demo );
 		}
 	};
 
@@ -251,7 +250,7 @@ void SV_DemoList_f( edict_t * ent ) {
 	Span< char * > demos = GetServerDemos( &temp );
 	defer {
 		for( char * demo : demos ) {
-			FREE( sys_allocator, demo );
+			Free( sys_allocator, demo );
 		}
 	};
 
@@ -279,7 +278,7 @@ void SV_DemoGetUrl_f( edict_t * ent, msg_t args ) {
 	Span< char * > demos = GetServerDemos( &temp );
 	defer {
 		for( char * demo : demos ) {
-			FREE( sys_allocator, demo );
+			Free( sys_allocator, demo );
 		}
 	};
 

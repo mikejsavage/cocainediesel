@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <setjmp.h>
 
 static bool quitting;
+static Time disable_tracy_start_time;
 
 static jmp_buf abortframe;     // an ERR_DROP occured, exit the entire frame
 
@@ -93,6 +94,60 @@ static void Com_ReopenConsoleLog() {
 	}
 }
 
+static RGB8 Get256Color( u8 c ) {
+	if( c >= 232 ) {
+		u8 greyscale = 8 + 10 * ( c - 6 * 6 * 6 - 16 );
+		return RGB8( greyscale, greyscale, greyscale );
+	}
+
+	u8 ri = ( ( c - 16 ) / 36 ) % 6;
+	u8 gi = ( ( c - 16 ) /  6 ) % 6;
+	u8 bi = ( ( c - 16 )      ) % 6;
+
+	return RGB8( 55 + ri * 40, 55 + gi * 40, 55 + bi * 40 );
+}
+
+static float ColorDistance( RGB8 a, RGB8 b ) {
+	float dr = float( a.r ) - float( b.r );
+	float dg = float( a.g ) - float( b.g );
+	float db = float( a.b ) - float( b.b );
+	return dr * dr + dg * dg + db * db;
+}
+
+static int Nearest256Color( RGB8 c ) {
+	u8 cube = 16 +
+		36 * ( ( u32( c.r ) + 25 ) / 51 ) +
+		6 * ( ( u32( c.g ) + 25 ) / 51 ) +
+		( ( u32( c.b ) + 25 ) / 51 );
+
+	float average = ( float( c.r ) + float( c.g ) + float( c.b ) ) / 3.0f;
+	u8 greyscale = 232 + 24 * Unlerp01( 8.0f, average, 238.0f );
+
+	if( ColorDistance( Get256Color( cube ), c ) < ColorDistance( Get256Color( greyscale ), c ) )
+		return cube;
+	return greyscale;
+}
+
+static void PrintStdout( const char * str ) {
+	const char * end = str + strlen( str );
+
+	const char * p = str;
+	const char * print_from = str;
+	while( p < end ) {
+		if( p[ 0 ] == '\033' && p[ 1 ] && p[ 2 ] && p[ 3 ] && p[ 4 ] ) {
+			const u8 * u = ( const u8 * ) p;
+			printf( "\033[38;5;%dm", Nearest256Color( RGB8( u[ 1 ], u[ 2 ], u[ 3 ] ) ) );
+			fwrite( print_from, 1, p - print_from, stdout );
+			p += 5;
+			print_from = p;
+			continue;
+		}
+		p++;
+	}
+
+	printf( "%s\033[0m", print_from );
+}
+
 /*
 * Com_Printf
 *
@@ -110,7 +165,7 @@ void Com_Printf( const char *format, ... ) {
 	Lock( com_print_mutex );
 	defer { Unlock( com_print_mutex ); };
 
-	Sys_ConsoleOutput( msg );
+	PrintStdout( msg );
 
 	Con_Print( msg );
 
@@ -186,6 +241,10 @@ void Qcommon_Init( int argc, char ** argv ) {
 	com_print_mutex = NewMutex();
 
 	InitTime();
+
+	// Now() doesn't start from zero in debug builds so make our own zero
+	disable_tracy_start_time = Now();
+
 	InitFS();
 	Cmd_Init();
 	Cvar_Init();
@@ -225,6 +284,15 @@ void Qcommon_Init( int argc, char ** argv ) {
 }
 
 bool Qcommon_Frame( unsigned int realMsec ) {
+	if( IFDEF( TRACY_ENABLE ) ) {
+		if( Now() - disable_tracy_start_time > Minutes( 10 ) ) {
+			if( tracy_is_active ) {
+				Com_Printf( "Disabled Tracy to conserve memory\n" );
+			}
+			tracy_is_active = false;
+		}
+	}
+
 	TracyZoneScoped;
 
 	static unsigned int gameMsec;

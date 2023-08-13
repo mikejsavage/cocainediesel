@@ -61,7 +61,7 @@ void Serialize( SerializationBuffer * buf, Span< T > & v ) {
 	Serialize( buf, v.n );
 
 	if( !buf->serializing ) {
-		v = ALLOC_SPAN( buf->a, T, v.n );
+		v = AllocSpan< T >( buf->a, v.n );
 	}
 
 	for( size_t i = 0; i < v.n; i++ ) {

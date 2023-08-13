@@ -472,19 +472,11 @@ Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t, u8 ani
 
 	Span< TRS > local_poses = AllocSpan< TRS >( a, model->num_nodes );
 
-	if( model->num_animations == 0 ) {
-		// TODO: this might not be the right place for this
-		for( u8 i = 0; i < model->num_nodes; i++ ) {
-			local_poses[ i ] = model->nodes[ i ].local_transform;
-		}
-	}
-	else {
-		for( u8 i = 0; i < model->num_nodes; i++ ) {
-			const Model::Node * node = &model->nodes[ i ];
-			local_poses[ i ].rotation = SampleAnimationChannel( node->animations[ animation ].rotations, t, node->local_transform.rotation, NLerp );
-			local_poses[ i ].translation = SampleAnimationChannel( node->animations[ animation ].translations, t, node->local_transform.translation, LerpVec3 );
-			local_poses[ i ].scale = SampleAnimationChannel( node->animations[ animation ].scales, t, node->local_transform.scale, LerpFloat );
-		}
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		const Model::Node * node = &model->nodes[ i ];
+		local_poses[ i ].rotation = SampleAnimationChannel( node->animations[ animation ].rotations, t, node->local_transform.rotation, NLerp );
+		local_poses[ i ].translation = SampleAnimationChannel( node->animations[ animation ].translations, t, node->local_transform.translation, LerpVec3 );
+		local_poses[ i ].scale = SampleAnimationChannel( node->animations[ animation ].scales, t, node->local_transform.scale, LerpFloat );
 	}
 
 	return local_poses;

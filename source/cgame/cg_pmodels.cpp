@@ -695,7 +695,11 @@ static Quaternion EulerAnglesToQuaternion( EulerDegrees3 angles ) {
 }
 
 static Mat4 TransformTag( const Model * model, const Mat4 & transform, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
-	return transform * model->transform * pose.node_transforms[ tag.node_idx ] * tag.transform;
+	if( pose.node_transforms.ptr != NULL ) {
+		return transform * model->transform * pose.node_transforms[ tag.node_idx ] * tag.transform;
+	}
+
+	return transform * model->transform * model->nodes[ tag.node_idx ].global_transform * tag.transform;
 }
 
 void CG_DrawPlayer( centity_t * cent ) {
@@ -772,10 +776,6 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 		pose = ComputeMatrixPalettes( &temp, meta->model, lower );
 	}
-	else {
-		Span< TRS > sample = SampleAnimation( &temp, meta->model, 0.0f );
-		pose = ComputeMatrixPalettes( &temp, meta->model, sample );
-	}
 
 	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->interpolated.scale );
 
@@ -823,7 +823,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			}
 
 			if( model != NULL ) {
-				Mat4 tag_transform = TransformTag( model, transform, pose, gadget ? meta->tag_gadget : meta->tag_weapon ) * inverse_scale;
+				Mat4 tag_transform = TransformTag( meta->model, transform, pose, gadget ? meta->tag_gadget : meta->tag_weapon ) * inverse_scale;
 
 				DrawModelConfig config = { };
 				config.draw_model.enabled = draw_model;

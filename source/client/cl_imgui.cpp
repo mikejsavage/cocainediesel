@@ -158,6 +158,8 @@ static void SubmitDrawCalls() {
 		return;
 	draw_data->ScaleClipRects( io.DisplayFramebufferScale );
 
+	UniformBlock lodbias_uniforms = UploadMaterialStaticUniforms( 0.0f, 0.0f, -1.0f );
+
 	u32 pass = 0;
 
 	ImVec2 pos = draw_data->DisplayPos;
@@ -214,14 +216,14 @@ static void SubmitDrawCalls() {
 
 					pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
 					pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
-					pipeline.bind_uniform( "u_MaterialStatic", frame_static.identity_material_static_uniforms );
+					pipeline.bind_uniform( "u_MaterialStatic", lodbias_uniforms );
 					pipeline.bind_uniform( "u_MaterialDynamic", frame_static.identity_material_dynamic_uniforms );
 
 					if( pcmd->TextureId.uniform_name != EMPTY_HASH ) {
 						pipeline.bind_uniform( pcmd->TextureId.uniform_name, pcmd->TextureId.uniform_block );
 					}
 
-					pipeline.bind_texture_and_sampler( "u_BaseTexture", pcmd->TextureId.material->texture, Sampler_LodBiasMinusOne );
+					pipeline.bind_texture_and_sampler( "u_BaseTexture", pcmd->TextureId.material->texture, Sampler_Standard );
 
 					DrawMesh( mesh, pipeline, pcmd->ElemCount, pcmd->IdxOffset );
 				}

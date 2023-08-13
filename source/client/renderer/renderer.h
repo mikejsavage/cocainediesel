@@ -124,7 +124,7 @@ void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bott
 void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh );
 
 UniformBlock UploadModelUniforms( const Mat4 & M );
-UniformBlock UploadMaterialStaticUniforms( const Vec2 & texture_size, float specular, float shininess );
+UniformBlock UploadMaterialStaticUniforms( float specular, float shininess, float lod_bias = 0.0f );
 UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0 = Vec3( 1, 0, 0 ), Vec3 tcmod_row1 = Vec3( 0, 1, 0 ) );
 
 const char * ShadowQualityToString( ShadowQuality mode );

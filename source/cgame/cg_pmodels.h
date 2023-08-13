@@ -193,14 +193,6 @@ extern pmodel_t cg_entPModels[MAX_EDICTS];      //a pmodel handle for each cg_en
 // cg_pmodels.c
 //
 
-//utils
-void CG_MoveToTag( Vec3 * move_origin,
-				   mat3_t move_axis,
-				   Vec3 space_origin,
-				   const mat3_t space_axis,
-				   Vec3 tag_origin,
-				   const mat3_t tag_axis );
-
 void InitPlayerModels();
 const PlayerModelMetadata * GetPlayerModelMetadata( int ent_num );
 

@@ -216,33 +216,6 @@ void CG_ResetPModels() {
 	memset( &cg.weapon, 0, sizeof( cg.weapon ) );
 }
 
-/*
-* CG_MoveToTag
-* "move" tag must have an axis and origin set up. Use vec3_origin and axis_identity for "nothing"
-*/
-void CG_MoveToTag( Vec3 * move_origin,
-				   mat3_t move_axis,
-				   Vec3 space_origin,
-				   const mat3_t space_axis,
-				   Vec3 tag_origin,
-				   const mat3_t tag_axis ) {
-	mat3_t tmpAxis;
-
-	*move_origin = space_origin;
-
-	for( int i = 0; i < 3; i++ ) {
-		Vec3 axis(
-			space_axis[i * 3],
-			space_axis[i * 3 + 1],
-			space_axis[i * 3 + 2]
-		);
-		*move_origin += axis * tag_origin[i];
-	}
-
-	Matrix3_Multiply( move_axis, tag_axis, tmpAxis );
-	Matrix3_Multiply( tmpAxis, space_axis, move_axis );
-}
-
 static float CG_OutlineScaleForDist( const InterpolatedEntity * e, float maxdist, float scale ) {
 	Vec3 dir = e->origin - cg.view.origin;
 	float dist = Length( dir ) * cg.view.fracDistFOV;

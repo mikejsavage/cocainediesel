@@ -97,7 +97,6 @@ enum SamplerType : u8 {
 	Sampler_Standard,
 	Sampler_Clamp,
 	Sampler_Unfiltered,
-	Sampler_LodBiasMinusOne,
 	Sampler_Shadowmap,
 
 	Sampler_Count

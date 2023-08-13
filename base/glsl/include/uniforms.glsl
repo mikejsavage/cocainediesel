@@ -17,9 +17,9 @@ layout( std140 ) uniform u_Model {
 #endif
 
 layout( std140 ) uniform u_MaterialStatic {
-	vec2 u_TextureSize;
 	float u_Specular;
 	float u_Shininess;
+	float u_LodBias;
 };
 
 #ifndef INSTANCED

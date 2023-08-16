@@ -203,15 +203,8 @@ MISC
 ==============================================================
 */
 
-#define MAX_PRINTMSG    3072
-
-#ifndef _MSC_VER
-void Com_Printf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-void Com_Error( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-#else
-void Com_Printf( _Printf_format_string_ const char *format, ... );
-void Com_Error( _Printf_format_string_ const char *format, ... );
-#endif
+[[gnu::format( printf, 1, 2 )]] void Com_Printf( const char *format, ... );
+[[gnu::format( printf, 1, 2 )]] void Com_Error( const char *format, ... );
 
 template< typename... Rest >
 void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {

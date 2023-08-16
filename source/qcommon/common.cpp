@@ -49,6 +49,8 @@ static FILE * log_file = NULL;
 static server_state_t server_state = ss_dead;
 static connstate_t client_state = CA_UNINITIALIZED;
 
+static constexpr size_t MAX_PRINTMSG = 3072;
+
 static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 	if( shutdown ) {
 		lock = true;

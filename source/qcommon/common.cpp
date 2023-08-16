@@ -82,7 +82,7 @@ static void Com_ReopenConsoleLog() {
 	Com_CloseConsoleLog( false, false );
 
 	if( logconsole && logconsole->value && logconsole->value[0] ) {
-		OpenFileMode mode = logconsole_append && logconsole_append->integer ? OpenFile_AppendOverwrite : OpenFile_WriteOverwrite;
+		OpenFileMode mode = logconsole_append && logconsole_append->integer ? OpenFile_AppendExisting : OpenFile_WriteOverwrite;
 		log_file = OpenFile( sys_allocator, logconsole->value, mode );
 		if( log_file == NULL ) {
 			snprintf( errmsg, sizeof( errmsg ), "Couldn't open log file: %s (%s)\n", logconsole->value, strerror( errno ) );

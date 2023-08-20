@@ -1017,7 +1017,8 @@ void RenderBackendSubmitFrame() {
 	in_frame = false;
 
 	size_t num_draw_calls_this_frame = 0;
-	for( RenderPass & pass : render_passes ) {
+	for( u8 i = 0; i < num_render_passes; i++ ) {
+		RenderPass & pass = render_passes[ i ];
 		SetupRenderPass( pass.config );
 
 		if( pass.config.sorted ) {

@@ -9,7 +9,7 @@
 
 #include "picohttpparser/picohttpparser.h"
 
-#include "tracy/Tracy.hpp"
+#include "tracy/tracy/Tracy.hpp"
 
 #include <atomic>
 

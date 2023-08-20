@@ -17,7 +17,7 @@
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
 
-#include "tracy/Tracy.hpp"
+#include "tracy/tracy/Tracy.hpp"
 
 FrameStatic frame_static;
 static u64 frame_counter;

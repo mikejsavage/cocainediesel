@@ -87,7 +87,9 @@ struct PipelineState {
 		u32 x, y, w, h;
 	};
 
+#if !PLATFORM_MACOS
 	UniformBinding uniforms[ ARRAY_COUNT( &Shader::uniforms ) ];
+#endif
 	TextureBinding textures[ ARRAY_COUNT( &Shader::textures ) ];
 	BufferBinding buffers[ ARRAY_COUNT( &Shader::buffers ) ];
 	size_t num_uniforms = 0;

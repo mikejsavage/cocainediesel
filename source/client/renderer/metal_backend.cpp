@@ -382,6 +382,120 @@ void DeleteRenderTargetAndTextures( RenderTarget rt ) {
 	DeleteTexture( rt.depth_attachment );
 }
 
+static Shader NewShader( MTL::Device * gpu, const ShaderConfig & config ) {
+	MTL::Library * library;
+	{
+		NS::Error * error = NULL;
+		library = gpu->newLibrary( NS::String::string( config.shader_src, NS::UTF8StringEncoding ), NULL, &error );
+		if( library == NULL ) {
+			printf( "%s", error->localizedDescription()->utf8String() );
+			abort();
+		}
+	}
+
+	MTL::Function * vertex_main = library->newFunction( NS::String::string( config.vertex_main, NS::UTF8StringEncoding ) );
+	MTL::Function * fragment_main = library->newFunction( NS::String::string( config.fragment_main, NS::UTF8StringEncoding ) );
+
+	if( vertex_main == NULL || fragment_main == NULL ) {
+		printf( "missing mains\n" );
+		abort();
+	}
+
+	Shader shader = { };
+	shader.name = config.name;
+
+	for( size_t i = 0; i < config.mesh_variants.n; i++ ) {
+		const VertexDescriptor & mesh_variant = config.mesh_variants[ i ];
+
+		MTL::RenderPipelineDescriptor * pipeline = MTL::RenderPipelineDescriptor::alloc()->init();
+		pipeline->setVertexFunction( vertex_main );
+		pipeline->setFragmentFunction( fragment_main );
+
+		for( size_t color_output_index = 0; color_output_index < ARRAY_COUNT( config.output_format.colors ); color_output_index++ ) {
+			if( config.output_format.colors[ color_output_index ] == MTL::PixelFormatInvalid )
+				break;
+			pipeline->colorAttachments()->object( color_output_index )->setPixelFormat( config.output_format.colors[ color_output_index ] );
+		}
+
+		if( config.output_format.has_depth ) {
+			pipeline->setDepthAttachmentPixelFormat( MTL::PixelFormat::PixelFormatDepth32Float );
+		}
+
+		MTL::VertexDescriptor * vertex_descriptor = MTL::VertexDescriptor::alloc()->init();
+
+		size_t max_buffer_index = 0;
+		for( size_t j = 0; j < ARRAY_COUNT( mesh_variant.attributes ); j++ ) {
+			if( !mesh_variant.attributes[ j ].exists )
+				continue;
+
+			const VertexAttribute & attr = mesh_variant.attributes[ j ].value;
+
+			MTL::VertexAttributeDescriptor * metal = vertex_descriptor->attributes()->object( j );
+			metal->setFormat( attr.format );
+			metal->setOffset( attr.offset );
+			metal->setBufferIndex( attr.buffer + ARRAY_COUNT( &Shader::buffers ) );
+
+			max_buffer_index = Max2( max_buffer_index, attr.buffer );
+		}
+
+		for( size_t j = 0; j < ARRAY_COUNT( mesh_variant.buffer_strides ); j++ ) {
+			if( mesh_variant.buffer_strides[ j ].exists ) {
+				vertex_descriptor->layouts()->object( j + ARRAY_COUNT( &Shader::buffers ) )->setStride( mesh_variant.buffer_strides[ j ].value );
+			}
+		}
+
+		pipeline->setVertexDescriptor( vertex_descriptor );
+
+		NS::Error * error = NULL;
+		MTL::AutoreleasedRenderPipelineReflection reflection = NULL;
+		MTL::RenderPipelineState * pso = gpu->newRenderPipelineState( pipeline, MTL::PipelineOptionBufferTypeInfo, &reflection, &error );
+		if( pso == NULL ) {
+			printf( "%s", error->localizedDescription()->utf8String() );
+			abort();
+		}
+
+		if( shader.num_variants == 0 ) {
+			const NS::Array * vertex_args = reflection->vertexArguments();
+			for( size_t i = 0; i < vertex_args->count(); i++ ) {
+				const MTL::Argument * arg = vertex_args->object< const MTL::Argument >( i );
+				if( arg->type() == MTL::ArgumentTypeBuffer ) {
+					shader.buffers[ arg->index() ] = Hash64( arg->name()->utf8String() );
+				}
+			}
+
+			const NS::Array * fragment_args = reflection->fragmentArguments();
+			for( size_t i = 0; i < fragment_args->count(); i++ ) {
+				const MTL::Argument * arg = fragment_args->object< const MTL::Argument >( i );
+				if( arg->type() == MTL::ArgumentTypeBuffer ) {
+					shader.buffers[ arg->index() ] = Hash64( arg->name()->utf8String() );
+				}
+				if( arg->type() == MTL::ArgumentTypeTexture ) {
+					shader.textures[ arg->index() ] = Hash64( arg->name()->utf8String() );
+				}
+			}
+
+			PrintArguments( reflection->vertexArguments() );
+			PrintArguments( reflection->fragmentArguments() );
+		}
+
+		assert( shader.num_variants < ARRAY_COUNT( shader.variants ) );
+		shader.variants[ shader.num_variants ] = {
+			mesh_variant,
+			pso
+		};
+		shader.num_variants++;
+
+		vertex_descriptor->release();
+		pipeline->release();
+	}
+
+	vertex_main->release();
+	fragment_main->release();
+	library->release();
+
+	return shader;
+}
+
 // TODO: dedupe this
 Mesh NewMesh( const MeshConfig & config ) {
 	Mesh mesh = { };
@@ -407,6 +521,27 @@ void DeleteMesh( const Mesh & mesh ) {
 
 void DeferDeleteMesh( const Mesh & mesh ) {
 	deferred_mesh_deletes.add( mesh );
+}
+
+u8 AddRenderPass( const RenderPassConfig & config ) {
+	
+}
+
+// TODO: dedupe
+u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, Optional< Vec4 > clear_color, Optional< float > clear_depth ) {
+	RenderPassConfig pass;
+	pass.target = target;
+	for( Optional< Vec4 > & color : pass.clear_color ) {
+		color = clear_color;
+	}
+	pass.clear_depth = clear_depth;
+	pass.tracy = tracy;
+	return AddRenderPass( pass );
+}
+
+u8 AddRenderPass( const tracy::SourceLocationData * tracy, Optional< Vec4 > clear_color, Optional< float > clear_depth ) {
+	RenderTarget target = { };
+	return AddRenderPass( tracy, target, clear_color, clear_depth );
 }
 
 void DownloadFramebuffer( void * buf ) {

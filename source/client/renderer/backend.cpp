@@ -877,7 +877,7 @@ static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 static void SubmitFramebufferBlit( const RenderPassConfig & pass ) {
 	RenderTarget src = pass.blit_source;
 	RenderTarget target = pass.target;
-	glBlitNamedFramebuffer( src.fbo, target.fbo, 0, 0, src.width, src.height, 0, 0, target.width, target.height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
+	glBlitNamedFramebuffer( src.fbo, target.fbo, 0, 0, src.width, src.height, 0, 0, target.width, target.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST );
 }
 
 #if !TRACY_ENABLE
@@ -1017,7 +1017,8 @@ void RenderBackendSubmitFrame() {
 	in_frame = false;
 
 	size_t num_draw_calls_this_frame = 0;
-	for( RenderPass & pass : render_passes ) {
+	for( u8 i = 0; i < num_render_passes; i++ ) {
+		RenderPass & pass = render_passes[ i ];
 		SetupRenderPass( pass.config );
 
 		if( pass.config.sorted ) {

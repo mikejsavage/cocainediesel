@@ -1,4 +1,6 @@
-#define M_PI 3.14159265358979323846
+const float PI = 3.14159265358979323846;
+
+const uint MASK_CURVED = 1u;
 
 float sRGBToLinear( float srgb ) {
 	if( srgb <= 0.04045 )

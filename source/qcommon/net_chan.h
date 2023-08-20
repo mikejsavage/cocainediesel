@@ -38,8 +38,4 @@ bool Netchan_TransmitNextFragment( Socket socket, netchan_t * chan );
 void Netchan_CompressMessage( msg_t * msg );
 bool Netchan_DecompressMessage( msg_t * msg );
 
-#ifndef _MSC_VER
-void Netchan_OutOfBandPrint( Socket socket, const NetAddress & address, const char * format, ... ) __attribute__( ( format( printf, 3, 4 ) ) );
-#else
-void Netchan_OutOfBandPrint( Socket socket, const NetAddress & address, _Printf_format_string_ const char * format, ... );
-#endif
+[[gnu::format( printf, 3, 4 )]] void Netchan_OutOfBandPrint( Socket socket, const NetAddress & address, const char * format, ... );

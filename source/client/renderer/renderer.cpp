@@ -193,8 +193,8 @@ static void DeleteRenderTargets() {
 	DeleteRenderTarget( frame_static.render_targets.msaa_onlycolor );
 
 	DeleteTexture( frame_static.render_targets.shadowmaps[ 0 ].depth_attachment );
-	for( u32 i = 0; i < 4; i++ ) {
-		DeleteRenderTarget( frame_static.render_targets.shadowmaps[ i ] );
+	for( RenderTarget & rt : frame_static.render_targets.shadowmaps ) {
+		DeleteRenderTarget( rt );
 	}
 
 	frame_static.render_targets = { };
@@ -363,38 +363,39 @@ static void CreateRenderTargets() {
 	DeleteRenderTargets();
 
 	{
-		TextureConfig albedo_desc;
-		albedo_desc.format = TextureFormat_RGBA_U8_sRGB;
-		albedo_desc.width = frame_static.viewport_width;
-		albedo_desc.height = frame_static.viewport_height;
-
 		RenderTargetConfig rt;
-		rt.color_attachments[ FragmentShaderOutput_Albedo ] = { NewTexture( albedo_desc ) };
+		rt.color_attachments[ FragmentShaderOutput_Albedo ] = {
+			NewTexture( TextureConfig {
+				.format = TextureFormat_RGBA_U8_sRGB,
+				.width = frame_static.viewport_width,
+				.height = frame_static.viewport_height,
+			} ),
+		};
 
 		frame_static.render_targets.silhouette_mask = NewRenderTarget( rt );
 	}
 
 	if( frame_static.msaa_samples > 1 ) {
-		TextureConfig albedo_desc;
-		albedo_desc.format = TextureFormat_RGBA_U8_sRGB;
-		albedo_desc.width = frame_static.viewport_width;
-		albedo_desc.height = frame_static.viewport_height;
-		albedo_desc.msaa_samples = frame_static.msaa_samples;
-		Texture albedo = NewTexture( albedo_desc );
+		Texture albedo = NewTexture( TextureConfig {
+			.format = TextureFormat_RGBA_U8_sRGB,
+			.width = frame_static.viewport_width,
+			.height = frame_static.viewport_height,
+			.msaa_samples = frame_static.msaa_samples,
+		} );
 
-		TextureConfig curved_surface_mask_desc;
-		curved_surface_mask_desc.format = TextureFormat_R_UI8;
-		curved_surface_mask_desc.width = frame_static.viewport_width;
-		curved_surface_mask_desc.height = frame_static.viewport_height;
-		curved_surface_mask_desc.msaa_samples = frame_static.msaa_samples;
-		Texture curved_surface_mask = NewTexture( curved_surface_mask_desc );
+		Texture curved_surface_mask = NewTexture( TextureConfig {
+			.format = TextureFormat_R_UI8,
+			.width = frame_static.viewport_width,
+			.height = frame_static.viewport_height,
+			.msaa_samples = frame_static.msaa_samples,
+		} );
 
-		TextureConfig depth_desc;
-		depth_desc.format = TextureFormat_Depth;
-		depth_desc.width = frame_static.viewport_width;
-		depth_desc.height = frame_static.viewport_height;
-		depth_desc.msaa_samples = frame_static.msaa_samples;
-		Texture depth = NewTexture( depth_desc );
+		Texture depth = NewTexture( TextureConfig {
+			.format = TextureFormat_Depth,
+			.width = frame_static.viewport_width,
+			.height = frame_static.viewport_height,
+			.msaa_samples = frame_static.msaa_samples,
+		} );
 
 		{
 			RenderTargetConfig rt;
@@ -419,23 +420,23 @@ static void CreateRenderTargets() {
 	}
 
 	{
-		TextureConfig albedo_desc;
-		albedo_desc.format = TextureFormat_RGBA_U8_sRGB;
-		albedo_desc.width = frame_static.viewport_width;
-		albedo_desc.height = frame_static.viewport_height;
-		Texture albedo = NewTexture( albedo_desc );
+		Texture albedo = NewTexture( TextureConfig {
+			.format = TextureFormat_RGBA_U8_sRGB,
+			.width = frame_static.viewport_width,
+			.height = frame_static.viewport_height,
+		} );
 
-		TextureConfig curved_surface_mask_desc;
-		curved_surface_mask_desc.format = TextureFormat_R_UI8;
-		curved_surface_mask_desc.width = frame_static.viewport_width;
-		curved_surface_mask_desc.height = frame_static.viewport_height;
-		Texture curved_surface_mask = NewTexture( curved_surface_mask_desc );
+		Texture curved_surface_mask = NewTexture( TextureConfig {
+			.format = TextureFormat_R_UI8,
+			.width = frame_static.viewport_width,
+			.height = frame_static.viewport_height,
+		} );
 
-		TextureConfig depth_desc;
-		depth_desc.format = TextureFormat_Depth;
-		depth_desc.width = frame_static.viewport_width;
-		depth_desc.height = frame_static.viewport_height;
-		Texture depth = NewTexture( depth_desc );
+		Texture depth = NewTexture( TextureConfig {
+			.format = TextureFormat_Depth,
+			.width = frame_static.viewport_width,
+			.height = frame_static.viewport_height,
+		} );
 
 		{
 			RenderTargetConfig rt;
@@ -822,8 +823,8 @@ UniformBlock UploadModelUniforms( const Mat4 & M ) {
 	return UploadUniformBlock( M );
 }
 
-UniformBlock UploadMaterialStaticUniforms( float specular, float shininess ) {
-	return UploadUniformBlock( specular, shininess );
+UniformBlock UploadMaterialStaticUniforms( float specular, float shininess, float lod_bias ) {
+	return UploadUniformBlock( specular, shininess, lod_bias );
 }
 
 UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0, Vec3 tcmod_row1 ) {

@@ -923,7 +923,9 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_FLASH_WINDOW:
-			FlashWindow();
+			if( !ISREALSPECTATOR() ) {
+				FlashWindow();
+			}
 			break;
 
 		case EV_SUICIDE_BOMB_EXPLODE:

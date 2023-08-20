@@ -354,9 +354,6 @@ static void CreateSamplers() {
 	samplers[ Sampler_Unfiltered ] = NewSampler( SamplerConfig {
 		.filter = false,
 	} );
-	samplers[ Sampler_LodBiasMinusOne ] = NewSampler( SamplerConfig {
-		.lod_bias = -1.0f,
-	} );
 	samplers[ Sampler_Shadowmap ] = NewSampler( SamplerConfig {
 		.shadowmap_sampler = true,
 	} );
@@ -1036,7 +1033,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );
 		pipeline.bind_texture_and_sampler( "u_ShadowmapTextureArray", &frame_static.render_targets.shadowmaps[ 0 ].depth_attachment, Sampler_Shadowmap );
 		pipeline.bind_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
-		pipeline.bind_texture_and_sampler( "u_DecalAtlases", DecalAtlasTextureArray(), Sampler_LodBiasMinusOne );
+		pipeline.bind_texture_and_sampler( "u_DecalAtlases", DecalAtlasTextureArray(), Sampler_Standard );
 		AddDynamicsToPipeline( &pipeline );
 		return pipeline;
 	}

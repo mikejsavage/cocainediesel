@@ -80,8 +80,6 @@ void main() {
 layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
 layout( location = FragmentShaderOutput_CurvedSurfaceMask ) out uint f_CurvedSurfaceMask;
 
-const uint MASK_CURVED = 1u;
-
 uniform sampler2D u_BaseTexture;
 
 #if APPLY_SOFT_PARTICLE
@@ -132,7 +130,7 @@ void main() {
 	color *= v_Color;
 #endif
 
-	vec4 diffuse = texture( u_BaseTexture, v_TexCoord ) * color;
+	vec4 diffuse = texture( u_BaseTexture, v_TexCoord, u_LodBias ) * color;
 #endif
 
 #if ALPHA_TEST

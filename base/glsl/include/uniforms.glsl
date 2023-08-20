@@ -19,6 +19,7 @@ layout( std140 ) uniform u_Model {
 layout( std140 ) uniform u_MaterialStatic {
 	float u_Specular;
 	float u_Shininess;
+	float u_LodBias;
 };
 
 #ifndef INSTANCED

@@ -31,8 +31,6 @@ float edgeDetect( float center, float up, float down_left, float down_right, flo
 	return smoothstep( 0.0, epsilon, abs( delta ) );
 }
 
-const uint MASK_CURVED = 1u;
-
 void main() {
 	ivec2 p = ivec2( gl_FragCoord.xy );
 	ivec3 pixel = ivec3( 0, 1, -1 );

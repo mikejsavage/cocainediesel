@@ -23,10 +23,7 @@ public:
     {
         assert( m_id != std::numeric_limits<uint32_t>::max() );
 
-        Magic magic;
-        auto token = GetToken();
-        auto& tail = token->get_tail_index();
-        auto item = token->enqueue_begin( magic );
+        auto item = Profiler::QueueSerial();
         MemWrite( &item->hdr.type, QueueType::LockAnnounce );
         MemWrite( &item->lockAnnounce.id, m_id );
         MemWrite( &item->lockAnnounce.time, Profiler::GetTime() );
@@ -35,7 +32,7 @@ public:
 #ifdef TRACY_ON_DEMAND
         GetProfiler().DeferItem( *item );
 #endif
-        tail.store( magic + 1, std::memory_order_release );
+        Profiler::QueueSerialFinish();
     }
 
     LockableCtx( const LockableCtx& ) = delete;
@@ -43,18 +40,14 @@ public:
 
     tracy_force_inline ~LockableCtx()
     {
-        Magic magic;
-        auto token = GetToken();
-        auto& tail = token->get_tail_index();
-        auto item = token->enqueue_begin( magic );
+        auto item = Profiler::QueueSerial();
         MemWrite( &item->hdr.type, QueueType::LockTerminate );
         MemWrite( &item->lockTerminate.id, m_id );
         MemWrite( &item->lockTerminate.time, Profiler::GetTime() );
-        MemWrite( &item->lockTerminate.type, LockType::Lockable );
 #ifdef TRACY_ON_DEMAND
         GetProfiler().DeferItem( *item );
 #endif
-        tail.store( magic + 1, std::memory_order_release );
+        Profiler::QueueSerialFinish();
     }
 
     tracy_force_inline bool BeforeLock()
@@ -77,7 +70,6 @@ public:
         MemWrite( &item->lockWait.thread, GetThreadHandle() );
         MemWrite( &item->lockWait.id, m_id );
         MemWrite( &item->lockWait.time, Profiler::GetTime() );
-        MemWrite( &item->lockWait.type, LockType::Lockable );
         Profiler::QueueSerialFinish();
         return true;
     }
@@ -106,7 +98,6 @@ public:
 
         auto item = Profiler::QueueSerial();
         MemWrite( &item->hdr.type, QueueType::LockRelease );
-        MemWrite( &item->lockRelease.thread, GetThreadHandle() );
         MemWrite( &item->lockRelease.id, m_id );
         MemWrite( &item->lockRelease.time, Profiler::GetTime() );
         Profiler::QueueSerialFinish();
@@ -161,6 +152,22 @@ public:
         Profiler::QueueSerialFinish();
     }
 
+    tracy_force_inline void CustomName( const char* name, size_t size )
+    {
+        assert( size < std::numeric_limits<uint16_t>::max() );
+        auto ptr = (char*)tracy_malloc( size );
+        memcpy( ptr, name, size );
+        auto item = Profiler::QueueSerial();
+        MemWrite( &item->hdr.type, QueueType::LockName );
+        MemWrite( &item->lockNameFat.id, m_id );
+        MemWrite( &item->lockNameFat.name, (uint64_t)ptr );
+        MemWrite( &item->lockNameFat.size, (uint16_t)size );
+#ifdef TRACY_ON_DEMAND
+        GetProfiler().DeferItem( *item );
+#endif
+        Profiler::QueueSerialFinish();
+    }
+
 private:
     uint32_t m_id;
 
@@ -207,6 +214,11 @@ public:
         m_ctx.Mark( srcloc );
     }
 
+    tracy_force_inline void CustomName( const char* name, size_t size )
+    {
+        m_ctx.CustomName( name, size );
+    }
+
 private:
     T m_lockable;
     LockableCtx m_ctx;
@@ -225,21 +237,16 @@ public:
     {
         assert( m_id != std::numeric_limits<uint32_t>::max() );
 
-        Magic magic;
-        auto token = GetToken();
-        auto& tail = token->get_tail_index();
-        auto item = token->enqueue_begin( magic );
+        auto item = Profiler::QueueSerial();
         MemWrite( &item->hdr.type, QueueType::LockAnnounce );
         MemWrite( &item->lockAnnounce.id, m_id );
         MemWrite( &item->lockAnnounce.time, Profiler::GetTime() );
         MemWrite( &item->lockAnnounce.lckloc, (uint64_t)srcloc );
         MemWrite( &item->lockAnnounce.type, LockType::SharedLockable );
-
 #ifdef TRACY_ON_DEMAND
         GetProfiler().DeferItem( *item );
 #endif
-
-        tail.store( magic + 1, std::memory_order_release );
+        Profiler::QueueSerialFinish();
     }
 
     SharedLockableCtx( const SharedLockableCtx& ) = delete;
@@ -247,20 +254,14 @@ public:
 
     tracy_force_inline ~SharedLockableCtx()
     {
-        Magic magic;
-        auto token = GetToken();
-        auto& tail = token->get_tail_index();
-        auto item = token->enqueue_begin( magic );
+        auto item = Profiler::QueueSerial();
         MemWrite( &item->hdr.type, QueueType::LockTerminate );
         MemWrite( &item->lockTerminate.id, m_id );
         MemWrite( &item->lockTerminate.time, Profiler::GetTime() );
-        MemWrite( &item->lockTerminate.type, LockType::SharedLockable );
-
 #ifdef TRACY_ON_DEMAND
         GetProfiler().DeferItem( *item );
 #endif
-
-        tail.store( magic + 1, std::memory_order_release );
+        Profiler::QueueSerialFinish();
     }
 
     tracy_force_inline bool BeforeLock()
@@ -283,7 +284,6 @@ public:
         MemWrite( &item->lockWait.thread, GetThreadHandle() );
         MemWrite( &item->lockWait.id, m_id );
         MemWrite( &item->lockWait.time, Profiler::GetTime() );
-        MemWrite( &item->lockWait.type, LockType::SharedLockable );
         Profiler::QueueSerialFinish();
         return true;
     }
@@ -312,7 +312,6 @@ public:
 
         auto item = Profiler::QueueSerial();
         MemWrite( &item->hdr.type, QueueType::LockRelease );
-        MemWrite( &item->lockRelease.thread, GetThreadHandle() );
         MemWrite( &item->lockRelease.id, m_id );
         MemWrite( &item->lockRelease.time, Profiler::GetTime() );
         Profiler::QueueSerialFinish();
@@ -366,7 +365,6 @@ public:
         MemWrite( &item->lockWait.thread, GetThreadHandle() );
         MemWrite( &item->lockWait.id, m_id );
         MemWrite( &item->lockWait.time, Profiler::GetTime() );
-        MemWrite( &item->lockWait.type, LockType::SharedLockable );
         Profiler::QueueSerialFinish();
         return true;
     }
@@ -395,9 +393,9 @@ public:
 
         auto item = Profiler::QueueSerial();
         MemWrite( &item->hdr.type, QueueType::LockSharedRelease );
-        MemWrite( &item->lockRelease.thread, GetThreadHandle() );
-        MemWrite( &item->lockRelease.id, m_id );
-        MemWrite( &item->lockRelease.time, Profiler::GetTime() );
+        MemWrite( &item->lockReleaseShared.thread, GetThreadHandle() );
+        MemWrite( &item->lockReleaseShared.id, m_id );
+        MemWrite( &item->lockReleaseShared.time, Profiler::GetTime() );
         Profiler::QueueSerialFinish();
     }
 
@@ -447,6 +445,22 @@ public:
         MemWrite( &item->lockMark.thread, GetThreadHandle() );
         MemWrite( &item->lockMark.id, m_id );
         MemWrite( &item->lockMark.srcloc, (uint64_t)srcloc );
+        Profiler::QueueSerialFinish();
+    }
+
+    tracy_force_inline void CustomName( const char* name, size_t size )
+    {
+        assert( size < std::numeric_limits<uint16_t>::max() );
+        auto ptr = (char*)tracy_malloc( size );
+        memcpy( ptr, name, size );
+        auto item = Profiler::QueueSerial();
+        MemWrite( &item->hdr.type, QueueType::LockName );
+        MemWrite( &item->lockNameFat.id, m_id );
+        MemWrite( &item->lockNameFat.name, (uint64_t)ptr );
+        MemWrite( &item->lockNameFat.size, (uint16_t)size );
+#ifdef TRACY_ON_DEMAND
+        GetProfiler().DeferItem( *item );
+#endif
         Profiler::QueueSerialFinish();
     }
 
@@ -516,12 +530,17 @@ public:
         m_ctx.Mark( srcloc );
     }
 
+    tracy_force_inline void CustomName( const char* name, size_t size )
+    {
+        m_ctx.CustomName( name, size );
+    }
+
 private:
     T m_lockable;
     SharedLockableCtx m_ctx;
 };
 
 
-};
+}
 
 #endif

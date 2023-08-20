@@ -14,8 +14,8 @@
 
 #include "nanosort/nanosort.hpp"
 
-#include "tracy/Tracy.hpp"
-#include "tracy/TracyOpenGL.hpp"
+#include "tracy/tracy/Tracy.hpp"
+#include "tracy/tracy/TracyOpenGL.hpp"
 
 #include <new>
 
@@ -896,7 +896,7 @@ static void SetupRenderPass( const RenderPassConfig & pass ) {
 	TracyZoneScoped;
 	TracyZoneText( pass.tracy->name, strlen( pass.tracy->name ) );
 #if TRACY_ENABLE
-	renderpass_zone = new (renderpass_zone_memory) tracy::GpuCtxScope( pass.tracy );
+	renderpass_zone = new (renderpass_zone_memory) tracy::GpuCtxScope( pass.tracy, true );
 #endif
 
 	glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.tracy->name );

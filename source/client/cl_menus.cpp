@@ -280,6 +280,10 @@ static const char * SelectablePlayerList() {
 		}
 	}
 
+	if( players.size() == 0 ) {
+		return "";
+	}
+
 	static size_t selected_player = 0;
 
 	ImGui::PushItemWidth( 200 );
@@ -294,7 +298,7 @@ static const char * SelectablePlayerList() {
 	}
 	ImGui::PopItemWidth();
 
-	return ( selected_player < players.size() ? players[ selected_player ] : "" );
+	return selected_player < players.size() ? players[ selected_player ] : "";
 }
 
 static void MasksList() {

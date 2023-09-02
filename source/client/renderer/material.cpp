@@ -936,7 +936,7 @@ void HotloadMaterials() {
 	}
 
 	for( const char * path : ModifiedAssetPaths() ) {
-		if( FileExtension( path ) == ".shader" && FileName( path ) != "editor.shader" ) {
+		if( FileExtension( path ) == ".cdmaterial" ) {
 			LoadMaterialFile( path );
 			changes = true;
 		}

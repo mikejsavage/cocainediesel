@@ -9,7 +9,7 @@ skin
 glass
 {
 	shaded
-	rgbgen entity
+	rgbgen entity 
 	specular 5
 	shininess 60
 	alphagen const 0.5
@@ -21,7 +21,7 @@ metal
 	shaded
 	specular 60
 	shininess 4
-	rgbgen entity 0.1
+	rgbgen entity 0.2
 }
 
 eyes
@@ -29,5 +29,5 @@ eyes
 	shaded
 	specular 60
 	shininess 4
-	rgbgen entity 3
+	rgbgen entity 0
 }

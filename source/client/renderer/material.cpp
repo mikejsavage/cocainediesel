@@ -195,17 +195,6 @@ static void ParseShininess( Material * material, Span< const char > name, Span< 
 	material->shininess = ParseMaterialFloat( data );
 }
 
-static const MaterialSpecKey shaderkeys[] = {
-	{ "cull", ParseCull },
-	{ "decal", ParseDecal },
-	{ "maskoutlines", ParseMaskOutlines },
-	{ "shaded", ParseShaded },
-	{ "specular", ParseSpecular },
-	{ "shininess", ParseShininess },
-
-	{ }
-};
-
 static void ParseBlendFunc( Material * material, Span< const char > name, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "blend" ) {
@@ -215,14 +204,6 @@ static void ParseBlendFunc( Material * material, Span< const char > name, Span< 
 		material->blend_func = BlendFunc_Add;
 	}
 	SkipToEndOfLine( data );
-}
-
-static void ParseMap( Material * material, Span< const char > name, Span< const char > * data ) {
-	Span< const char > token = ParseMaterialToken( data );
-	u64 idx;
-	if( textures_hashtable.get( StringHash( token ).hash, &idx ) ) {
-		material->texture = &textures[ idx ];
-	}
 }
 
 static Vec3 NormalizeColor( Vec3 color ) {
@@ -305,49 +286,53 @@ static void ParseTCMod( Material * material, Span< const char > name, Span< cons
 	}
 }
 
-static const MaterialSpecKey shaderpasskeys[] = {
+static Texture * FindTexture( Span< const char > name ) {
+	u64 idx;
+	return textures_hashtable.get( StringHash( name ).hash, &idx ) ? &textures[ idx ] : NULL;
+}
+
+static void ParseTexture( Material * material, Span< const char > name, Span< const char > * data ) {
+	Span< const char > token = ParseMaterialToken( data );
+	material->texture = FindTexture( token );
+}
+
+static void SkipComment( Material * material, Span< const char > name, Span< const char > * data ) {
+	SkipToEndOfLine( data );
+}
+
+static const MaterialSpecKey shaderkeys[] = {
 	{ "alphagen", ParseAlphaGen },
 	{ "blendfunc", ParseBlendFunc },
-	{ "map", ParseMap },
+	{ "cull", ParseCull },
+	{ "decal", ParseDecal },
+	{ "maskoutlines", ParseMaskOutlines },
 	{ "rgbgen", ParseRGBGen },
+	{ "shaded", ParseShaded },
+	{ "shininess", ParseShininess },
+	{ "specular", ParseSpecular },
 	{ "tcmod", ParseTCMod },
-
-	{ }
+	{ "texture", ParseTexture },
+	{ "//", SkipComment },
 };
 
-static void ParseMaterialKey( Material * material, Span< const char > name, const MaterialSpecKey * keys, Span< const char > token, Span< const char > * data ) {
-	for( const MaterialSpecKey * key = keys; key->keyword != NULL; key++ ) {
-		if( StrCaseEqual( token, key->keyword ) ) {
-			key->func( material, name, data );
+static void ParseMaterialKey( Material * material, Span< const char > name, Span< const char > token, Span< const char > * data ) {
+	for( MaterialSpecKey key : shaderkeys ) {
+		if( StrCaseEqual( token, key.keyword ) ) {
+			key.func( material, name, data );
 			return;
 		}
 	}
 
+	Com_GGPrint( S_COLOR_YELLOW "Unrecognised material key ({}): {}", name, token );
+
 	SkipToEndOfLine( data );
-}
-
-static void ParseMaterialPass( Material * material, Span< const char > name, Span< const char > * data ) {
-	material->rgbgen.type = ColorGenType_Constant;
-	material->rgbgen.args[ 0 ] = 1.0f;
-	material->rgbgen.args[ 1 ] = 1.0f;
-	material->rgbgen.args[ 2 ] = 1.0f;
-
-	material->alphagen.type = ColorGenType_Constant;
-	material->rgbgen.args[ 0 ] = 1.0f;
-
-	while( true ) {
-		Span< const char > token = ParseToken( data, Parse_DontStopOnNewLine );
-		if( token == "" || token == "}" )
-			break;
-
-		ParseMaterialKey( material, name, shaderpasskeys, token, data );
-	}
 }
 
 static bool ParseMaterial( Material * material, Span< const char > name, Span< const char > * data ) {
 	TracyZoneScoped;
 
-	bool seen_pass = false;
+	material->texture = FindTexture( MakeSpan( "$whiteimage" ) );
+
 	while( true ) {
 		Span< const char > token = ParseToken( data, Parse_DontStopOnNewLine );
 		if( token == "" ) {
@@ -358,18 +343,8 @@ static bool ParseMaterial( Material * material, Span< const char > name, Span< c
 		if( token == "}" ) {
 			break;
 		}
-		else if( token == "{" ) {
-			if( !seen_pass ) {
-				ParseMaterialPass( material, name, data );
-				seen_pass = true;
-			}
-			else {
-				Com_GGPrint( S_COLOR_YELLOW "WARNING: material {} has multiple passes", name );
-				return false;
-			}
-		}
 		else {
-			ParseMaterialKey( material, name, shaderkeys, token, data );
+			ParseMaterialKey( material, name, token, data );
 		}
 	}
 
@@ -917,10 +892,7 @@ void InitMaterials() {
 		TracyZoneScopedN( "Load materials" );
 
 		for( const char * path : AssetPaths() ) {
-			// game crashes if we load materials with no texture,
-			// skip editor.shader until we convert asset pointers
-			// to asset hashes
-			if( FileExtension( path ) == ".shader" && FileName( path ) != "editor.shader" ) {
+			if( FileExtension( path ) == ".cdmaterial" ) {
 				LoadMaterialFile( path );
 			}
 		}
@@ -964,7 +936,7 @@ void HotloadMaterials() {
 	}
 
 	for( const char * path : ModifiedAssetPaths() ) {
-		if( FileExtension( path ) == ".shader" && FileName( path ) != "editor.shader" ) {
+		if( FileExtension( path ) == ".cdmaterial" ) {
 			LoadMaterialFile( path );
 			changes = true;
 		}

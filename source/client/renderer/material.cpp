@@ -224,6 +224,11 @@ static void ParseRGBGen( Material * material, Span< const char > name, Span< con
 	}
 	else if( token == "entity" ) {
 		material->rgbgen.type = ColorGenType_Entity;
+
+		Span< const char > scale = ParseMaterialToken( data );
+		if( scale != "" ) {
+			material->rgbgen.args[ 0 ] = SpanToFloat( scale, 0.0f );
+		}
 	}
 	else if( token == "entitycolorwave" ) {
 		material->rgbgen.type = ColorGenType_EntityWave;
@@ -1046,23 +1051,24 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 
 	// evaluate rgbgen/alphagen
-	if( material->rgbgen.type == ColorGenType_Constant ) {
-		color.x = material->rgbgen.args[ 0 ];
-		color.y = material->rgbgen.args[ 1 ];
-		color.z = material->rgbgen.args[ 2 ];
-	}
-	else if( material->rgbgen.type == ColorGenType_Wave || material->rgbgen.type == ColorGenType_EntityWave ) {
-		float wave = EvaluateWaveFunc( material->rgbgen.wave );
-		if( material->rgbgen.type == ColorGenType_EntityWave ) {
-			color.x += wave;
-			color.y += wave;
-			color.z += wave;
-		}
-		else {
-			color.x = wave;
-			color.y = wave;
-			color.z = wave;
-		}
+	switch( material->rgbgen.type ) {
+		case ColorGenType_Constant:
+			color.x = material->rgbgen.args[ 0 ];
+			color.y = material->rgbgen.args[ 1 ];
+			color.z = material->rgbgen.args[ 2 ];
+			break;
+
+		case ColorGenType_Entity:
+			color = Vec4( color.xyz() * material->rgbgen.args[ 0 ], color.w );
+			break;
+
+		case ColorGenType_Wave:
+			color = Vec4( Vec3( EvaluateWaveFunc( material->rgbgen.wave ) ), color.w );
+			break;
+
+		case ColorGenType_EntityWave:
+			color = Vec4( color.xyz() + EvaluateWaveFunc( material->rgbgen.wave ), color.w );
+			break;
 	}
 
 	if( material->alphagen.type == ColorGenType_Constant ) {

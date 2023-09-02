@@ -1,0 +1,33 @@
+skin
+{
+	shaded
+	specular 10
+	shininess 8
+	rgbgen entity
+}
+
+glass
+{
+	shaded
+	rgbgen entity
+	specular 5
+	shininess 60
+	alphagen const 0.5
+	blendfunc blend
+}
+
+metal
+{
+	shaded
+	specular 60
+	shininess 4
+	rgbgen entity 0.1
+}
+
+eyes
+{
+	shaded
+	specular 60
+	shininess 4
+	rgbgen entity 3
+}

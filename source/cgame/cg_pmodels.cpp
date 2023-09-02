@@ -148,6 +148,29 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 	return true;
 }
 
+static bool FindTag( const Model * model, PlayerModelMetadata::Tag * tag, const char * node_name, const char * model_name ) {
+	u8 idx;
+	if( !FindNodeByName( model, Hash32( node_name ), &idx ) ) {
+		Com_Printf( S_COLOR_YELLOW "Can't find node %s in %s\n", node_name, model_name );
+		return false;
+	}
+
+	tag->node_idx = idx;
+	tag->transform = Mat4::Identity();
+
+	return true;
+}
+
+static bool LoadPlayerModelMetadata( PlayerModelMetadata * meta, const char * model_name ) {
+	bool ok = true;
+	ok = ok && FindTag( meta->model, &meta->tag_bomb, "bomb", model_name );
+	ok = ok && FindTag( meta->model, &meta->tag_hat, "hat", model_name );
+	ok = ok && FindTag( meta->model, &meta->tag_mask, "mask", model_name );
+	ok = ok && FindTag( meta->model, &meta->tag_weapon, "weapon", model_name );
+	ok = ok && FindTag( meta->model, &meta->tag_gadget, "gadget", model_name );
+	return ok;
+}
+
 static constexpr const char * PLAYER_SOUND_NAMES[] = {
 	"death",
 	"void_death",
@@ -183,12 +206,19 @@ void InitPlayerModels() {
 			u64 hash = Hash64( StripExtension( path ) );
 
 			PlayerModelMetadata * meta = &player_model_metadatas[ num_player_models ];
+			*meta = { };
 			meta->model = FindModel( StringHash( hash ) );
 
 			TempAllocator temp = cls.frame_arena.temp();
 			const char * config_path = temp( "{}/model.cfg", dir );
-			if( !ParsePlayerModelConfig( meta, config_path ) )
+			if( AssetString( config_path ).ptr == NULL ) {
+				if( !LoadPlayerModelMetadata( meta, path ) ) {
+					continue;
+				}
+			}
+			else if( !ParsePlayerModelConfig( meta, config_path ) ) {
 				continue;
+			}
 
 			FindPlayerSounds( meta, dir );
 
@@ -659,7 +689,11 @@ static Quaternion EulerAnglesToQuaternion( EulerDegrees3 angles ) {
 }
 
 static Mat4 TransformTag( const Model * model, const Mat4 & transform, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
-	return transform * model->transform * pose.node_transforms[ tag.node_idx ] * tag.transform;
+	if( pose.node_transforms.ptr != NULL ) {
+		return transform * model->transform * pose.node_transforms[ tag.node_idx ] * tag.transform;
+	}
+
+	return transform * model->transform * model->nodes[ tag.node_idx ].global_transform * tag.transform;
 }
 
 void CG_DrawPlayer( centity_t * cent ) {
@@ -691,47 +725,50 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	float lower_time, upper_time;
-	CG_GetAnimationTimes( meta, pmodel, cl.serverTime, &lower_time, &upper_time );
-	Span< TRS > lower = SampleAnimation( &temp, meta->model, lower_time );
-	Span< TRS > upper = SampleAnimation( &temp, meta->model, upper_time );
-	MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_node );
-
-	// add skeleton effects (pose is unmounted yet)
 	bool corpse = cent->current.type == ET_CORPSE;
-	if( !corpse ) {
-		Vec3 tmpangles;
-		// if it's our client use the predicted angles
-		if( cg.view.playerPrediction && ISVIEWERENTITY( cent->current.number ) ) {
-			tmpangles.y = cg.predictedPlayerState.viewangles.y;
-			tmpangles.x = 0;
-			tmpangles.z = 0;
-		}
-		else {
-			// apply interpolated LOWER angles to entity
-			tmpangles = LerpAngles( pmodel->oldangles[LOWER], cg.lerpfrac, pmodel->angles[LOWER] );
+	MatrixPalettes pose = { };
+
+	if( meta->model->num_animations > 0 ) {
+		float lower_time, upper_time;
+		CG_GetAnimationTimes( meta, pmodel, cl.serverTime, &lower_time, &upper_time );
+		Span< TRS > lower = SampleAnimation( &temp, meta->model, lower_time );
+		Span< TRS > upper = SampleAnimation( &temp, meta->model, upper_time );
+		MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_node );
+
+		if( !corpse ) {
+			Vec3 tmpangles;
+			// if it's our client use the predicted angles
+			if( cg.view.playerPrediction && ISVIEWERENTITY( cent->current.number ) ) {
+				tmpangles.y = cg.predictedPlayerState.viewangles.y;
+				tmpangles.x = 0;
+				tmpangles.z = 0;
+			}
+			else {
+				// apply interpolated LOWER angles to entity
+				tmpangles = LerpAngles( pmodel->oldangles[LOWER], cg.lerpfrac, pmodel->angles[LOWER] );
+			}
+
+			AnglesToAxis( tmpangles, cent->interpolated.axis );
+
+			// apply UPPER and HEAD angles to rotator nodes
+			// also add rotations from velocity leaning
+			{
+				EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ UPPER ], cg.lerpfrac, pmodel->angles[ UPPER ] ) * 0.5f );
+				Swap2( &angles.pitch, &angles.yaw ); // hack for rigg model
+
+				Quaternion q = EulerAnglesToQuaternion( angles );
+				lower[ meta->upper_rotator_nodes[ 0 ] ].rotation *= q;
+				lower[ meta->upper_rotator_nodes[ 1 ] ].rotation *= q;
+			}
+
+			{
+				EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ HEAD ], cg.lerpfrac, pmodel->angles[ HEAD ] ) );
+				lower[ meta->head_rotator_node ].rotation *= EulerAnglesToQuaternion( angles );
+			}
 		}
 
-		AnglesToAxis( tmpangles, cent->interpolated.axis );
-
-		// apply UPPER and HEAD angles to rotator nodes
-		// also add rotations from velocity leaning
-		{
-			EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ UPPER ], cg.lerpfrac, pmodel->angles[ UPPER ] ) * 0.5f );
-			Swap2( &angles.pitch, &angles.yaw ); // hack for rigg model
-
-			Quaternion q = EulerAnglesToQuaternion( angles );
-			lower[ meta->upper_rotator_nodes[ 0 ] ].rotation *= q;
-			lower[ meta->upper_rotator_nodes[ 1 ] ].rotation *= q;
-		}
-
-		{
-			EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ HEAD ], cg.lerpfrac, pmodel->angles[ HEAD ] ) );
-			lower[ meta->head_rotator_node ].rotation *= EulerAnglesToQuaternion( angles );
-		}
+		pose = ComputeMatrixPalettes( &temp, meta->model, lower );
 	}
-
-	MatrixPalettes pose = ComputeMatrixPalettes( &temp, meta->model, lower );
 
 	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->interpolated.scale );
 
@@ -779,7 +816,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			}
 
 			if( model != NULL ) {
-				Mat4 tag_transform = TransformTag( model, transform, pose, gadget ? meta->tag_gadget : meta->tag_weapon ) * inverse_scale;
+				Mat4 tag_transform = TransformTag( meta->model, transform, pose, gadget ? meta->tag_gadget : meta->tag_weapon ) * inverse_scale;
 
 				DrawModelConfig config = { };
 				config.draw_model.enabled = draw_model;

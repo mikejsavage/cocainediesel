@@ -236,7 +236,13 @@ static const PlayerModelMetadata * GetPlayerModelMetadata( StringHash name ) {
 }
 
 const PlayerModelMetadata * GetPlayerModelMetadata( int ent_num ) {
-	return GetPlayerModelMetadata( "players/rigg/model" );
+	const SyncEntityState * ent = &cg_entities[ ent_num ].current;
+	switch( ent->perk ) {
+		case Perk_Jetpack:
+			return GetPlayerModelMetadata( "players/jetpack/model" );
+		default:
+			return GetPlayerModelMetadata( "players/rigg/model" );
+	}
 }
 
 void CG_ResetPModels() {
@@ -790,10 +796,10 @@ void CG_DrawPlayer( centity_t * cent ) {
 			config.draw_silhouette.silhouette_color = color;
 		}
 
-		if( draw_model ) {
-			config.draw_outlines.enabled = true;
+		if( draw_model && cent->current.perk != Perk_Jetpack ) {
 			float outline_height = CG_OutlineScaleForDist( &cent->interpolated );
-			if( outline_height != 0.0f ) {
+			if( outline_height > 0.0f ) {
+				config.draw_outlines.enabled = true;
 				config.draw_outlines.outline_height = outline_height;
 				config.draw_outlines.outline_color = color * 0.5f;
 			}

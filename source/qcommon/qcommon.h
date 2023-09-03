@@ -188,8 +188,6 @@ NET
 
 // wsw: Medar: doubled the MSGLEN as a temporary solution for multiview on bigger servers
 #define FRAGMENT_SIZE           ( MAX_PACKETLEN - 96 )
-#define FRAGMENT_LAST       (    1 << 14 )
-#define FRAGMENT_BIT            ( 1 << 31 )
 
 /*
 ==============================================================

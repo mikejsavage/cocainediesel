@@ -77,6 +77,9 @@ then a packet only needs to be delivered if there is something in the
 unacknowledged reliable
 */
 
+#define FRAGMENT_LAST ( 1 << 14 )
+#define FRAGMENT_BIT ( 1 << 31 )
+
 static Cvar * showpackets;
 static Cvar * showdrop;
 static Cvar * net_showfragments;

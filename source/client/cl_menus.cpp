@@ -419,7 +419,7 @@ static void SettingsControls() {
 			KeyBindButton( "Vote no", "vote_no" );
 			KeyBindButton( "Join team", "join" );
 			KeyBindButton( "Ready", "toggleready" );
-			KeyBindButton( "Spectate", "chase" );
+			KeyBindButton( "Spectate", "spectate" );
 			KeyBindButton( "Screenshot", "screenshot" );
 
 			ImGui::EndTabItem();

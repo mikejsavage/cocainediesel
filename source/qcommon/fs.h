@@ -11,8 +11,7 @@ enum OpenFileMode {
 	OpenFile_WriteOverwrite,
 	OpenFile_ReadWriteNew,
 	OpenFile_ReadWriteOverwrite,
-	OpenFile_AppendNew,
-	OpenFile_AppendOverwrite,
+	OpenFile_AppendExisting,
 };
 
 enum MoveFileReplace {

@@ -145,8 +145,7 @@ const char * OpenFileModeToString( OpenFileMode mode ) {
 		case OpenFile_WriteOverwrite: return "wb";
 		case OpenFile_ReadWriteNew: return "w+bx";
 		case OpenFile_ReadWriteOverwrite: return "w+b";
-		case OpenFile_AppendNew: return "abx";
-		case OpenFile_AppendOverwrite: return "ab";
+		case OpenFile_AppendExisting: return "ab";
 	}
 
 	Assert( false );

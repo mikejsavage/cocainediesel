@@ -1,0 +1,7 @@
+simpletrail
+{
+	blendfunc add
+	texture vfx/trails/widebeam
+	rgbgen entity
+	alphagen entity
+}

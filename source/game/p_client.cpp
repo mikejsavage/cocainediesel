@@ -73,6 +73,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	body->mass = ent->mass;
 	body->r.owner = ent->r.owner;
 	body->s.team = ent->s.team;
+	body->s.perk = ent->s.perk;
 	body->s.scale = ent->s.scale;
 	body->s.svflags = SVF_CORPSE | SVF_BROADCAST;
 	body->s.mask = ent->s.mask;
@@ -881,6 +882,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 
 	UpdateWeapons( &server_gs, &client->ps, *ucmd, client->timeDelta );
 	client->ps.flashed -= Min2( client->ps.flashed, u16( ucmd->msec * 0.001f * U16_MAX / 3.0f ) );
+	ent->s.perk = client->ps.perk;
 	ent->s.weapon = client->ps.weapon;
 	ent->s.gadget = client->ps.using_gadget ? client->ps.gadget : Gadget_None;
 

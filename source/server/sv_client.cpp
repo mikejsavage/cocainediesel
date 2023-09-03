@@ -367,28 +367,25 @@ void SV_ExecuteClientThinks( int clientNum ) {
 }
 
 static void SV_ParseMoveCommand( client_t *client, msg_t *msg ) {
-	unsigned int i, ucmdHead, ucmdFirst, ucmdCount;
-	UserCommand nullcmd;
-	int lastframe;
-
-	lastframe = MSG_ReadInt32( msg );
+	int lastframe = MSG_ReadInt32( msg );
 
 	// read the id of the first ucmd we will receive
-	ucmdHead = (unsigned int)MSG_ReadInt32( msg );
+	u32 ucmdHead = u32( MSG_ReadInt32( msg ) );
 	// read the number of ucmds we will receive
-	ucmdCount = (unsigned int)MSG_ReadUint8( msg );
+	u32 ucmdCount = u32( MSG_ReadUint8( msg ) );
 
-	if( ucmdCount >= CMD_BACKUP ) {
+	if( ucmdCount >= ARRAY_COUNT( client->ucmds ) ) {
 		SV_DropClient( client, "%s", "Error: Ucmd overflow" );
 		return;
 	}
 
-	ucmdFirst = ucmdHead > ucmdCount ? ucmdHead - ucmdCount : 0;
+	u32 ucmdFirst = ucmdHead > ucmdCount ? ucmdHead - ucmdCount : 0;
 	client->UcmdReceived = ucmdHead < 1 ? 0 : ucmdHead - 1;
 
 	// read the user commands
-	for( i = ucmdFirst; i < ucmdHead; i++ ) {
+	for( u32 i = ucmdFirst; i < ucmdHead; i++ ) {
 		if( i == ucmdFirst ) { // first one isn't delta compressed
+			UserCommand nullcmd;
 			memset( &nullcmd, 0, sizeof( nullcmd ) );
 			// jalfixme: check for too old overflood
 			MSG_ReadDeltaUsercmd( msg, &nullcmd, &client->ucmds[ i % ARRAY_COUNT( client->ucmds ) ] );

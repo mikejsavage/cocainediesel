@@ -336,11 +336,7 @@ extern Cvar *cg_showServerDebugPrints;
 void CG_Init( unsigned int playerNum, int max_clients, bool demoplaying, const char *demoName, unsigned snapFrameTime );
 void CG_Shutdown();
 
-#ifndef _MSC_VER
-void CG_LocalPrint( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-#else
-void CG_LocalPrint( _Printf_format_string_ const char *format, ... );
-#endif
+[[gnu::format( printf, 1, 2 )]] void CG_LocalPrint( const char *format, ... );
 
 void CG_Reset();
 void CG_Precache();

@@ -3,7 +3,7 @@
 #include "client/client.h"
 #include "client/threadpool.h"
 
-#include "tracy/Tracy.hpp"
+#include "tracy/tracy/Tracy.hpp"
 
 struct Job {
 	JobCallback callback;

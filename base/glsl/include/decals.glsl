@@ -61,7 +61,7 @@ void ApplyDecals( uint count, int tile_index, inout vec4 diffuse, inout vec3 nor
 		vec3 origin = floor( decal.origin_normal );
 		float radius = floor( decal.radius_angle );
 		vec3 decal_normal = ( fract( decal.origin_normal ) - 0.5 ) / 0.49;
-		float angle = fract( decal.radius_angle ) * M_PI * 2.0;
+		float angle = fract( decal.radius_angle ) * PI * 2.0;
 		vec4 decal_color = vec4( fract( floor( decal.color_uvwh_height.yzw ) / 256.0 ), 1.0 );
 		float decal_height = floor( decal.color_uvwh_height.y / 256.0 );
 		vec4 uvwh = vec4( decal.color_uvwh_height.x, fract( decal.color_uvwh_height.yzw ) );

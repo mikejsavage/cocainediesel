@@ -48,6 +48,8 @@ static FILE * log_file = NULL;
 static server_state_t server_state = ss_dead;
 static connstate_t client_state = CA_UNINITIALIZED;
 
+static constexpr size_t MAX_PRINTMSG = 3072;
+
 static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 	if( shutdown ) {
 		lock = true;
@@ -79,7 +81,7 @@ static void Com_ReopenConsoleLog() {
 	Com_CloseConsoleLog( false, false );
 
 	if( logconsole && logconsole->value && logconsole->value[0] ) {
-		OpenFileMode mode = logconsole_append && logconsole_append->integer ? OpenFile_AppendOverwrite : OpenFile_WriteOverwrite;
+		OpenFileMode mode = logconsole_append && logconsole_append->integer ? OpenFile_AppendExisting : OpenFile_WriteOverwrite;
 		log_file = OpenFile( sys_allocator, logconsole->value, mode );
 		if( log_file == NULL ) {
 			snprintf( errmsg, sizeof( errmsg ), "Couldn't open log file: %s (%s)\n", logconsole->value, strerror( errno ) );

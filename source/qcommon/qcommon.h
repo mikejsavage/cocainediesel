@@ -199,8 +199,6 @@ MISC
 ==============================================================
 */
 
-#define MAX_PRINTMSG    3072
-
 void Com_DeferQuit();
 
 connstate_t Com_ClientState();

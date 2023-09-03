@@ -9,7 +9,7 @@
 
 #include "nanosort/nanosort.hpp"
 
-#include "tracy/Tracy.hpp"
+#include "tracy/tracy/Tracy.hpp"
 
 struct MasterServer {
 	NetAddress address;

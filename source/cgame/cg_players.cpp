@@ -23,13 +23,9 @@ void CG_PlayerSound( int entnum, PlayerSound ps, bool stop_current ) {
 		pitch = CG_PlayerPitch( entnum );
 	}
 
-	PlaySFXConfig config = PlaySFXConfigGlobal();
+	PlaySFXConfig config = ISVIEWERENTITY( entnum ) ? PlaySFXConfigGlobal() : PlaySFXConfigEntity( entnum );
 	config.pitch = pitch;
-	if( !ISVIEWERENTITY( entnum ) ) {
-		config.spatialisation = SpatialisationMethod_Entity;
-		config.ent_num = entnum;
-	}
-
+	
 	PlayingSFXHandle handle = PlaySFX( sfx, config );
 
 	if( stop_current ) {

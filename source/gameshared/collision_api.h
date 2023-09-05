@@ -2,6 +2,10 @@
 
 enum SolidBits : u8 {
 	Solid_NotSolid = 0,
+
+	// useful to stop the bomb etc falling through the floor without also blocking movement/shots
+	Solid_World = ( 1 << 1 ),
+
 	Solid_Player = ( 1 << 1 ),
 	Solid_Weapon = ( 1 << 2 ),
 	Solid_Wallbangable = ( 1 << 3 ),

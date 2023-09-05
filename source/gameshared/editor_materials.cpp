@@ -2,7 +2,7 @@
 
 constexpr const EditorMaterial editor_materials[] = {
 	{ "editor/discard", "discard", false, SolidMask_AnySolid },
-	{ "editor/ladder", "ladder", false, SolidBits( Solid_World | Solid_Ladder | Solid_PlayerClip ) },
+	{ "editor/ladder", "ladder", false, SolidBits( Solid_Ladder | Solid_PlayerClip ) },
 	{ "editor/clip", "clip", false, SolidMask_AnySolid },
 	{ "editor/playerclip", "playerclip", false, Solid_PlayerClip },
 	{ "editor/weaponclip", "weaponclip", false, Solid_WeaponClip },

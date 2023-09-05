@@ -30,7 +30,6 @@ const WeaponDef weapon_defs[] = {
 		.range = 90,
 		.firing_mode = FiringMode_Auto,
 
-
 		.damage = 10,
 		.spread = 30,
 	},

@@ -145,7 +145,7 @@ static bool DoField( const char * name, StringHash * x, Span< const char > key, 
 	return true;
 }
 
-static void ED_ParseField( Span< const char > key, Span< const char > value, StringHash map_base_hash, edict_t * ent, spawn_temp_t * st ) {
+static void ParseEntityKeyValue( Span< const char > key, Span< const char > value, StringHash map_base_hash, edict_t * ent, spawn_temp_t * st ) {
 	bool used = false;
 
 	used = used || DoField( "classname", &ent->classname, key, value );
@@ -243,7 +243,7 @@ static void SpawnMapEntities() {
 			Span< const char > key = map->entity_data.slice( kv->offset, kv->offset + kv->key_size );
 			Span< const char > value = map->entity_data.slice( kv->offset + kv->key_size, kv->offset + kv->key_size + kv->value_size );
 
-			ED_ParseField( key, value, server_gs.gameState.map, ent, &st );
+			ParseEntityKeyValue( key, value, server_gs.gameState.map, ent, &st );
 
 			if( key == "classname" ) {
 				st.classname = value;

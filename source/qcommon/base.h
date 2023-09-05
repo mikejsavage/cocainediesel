@@ -35,8 +35,13 @@ To bit_cast( const From & from ) {
 void FatalErrnoImpl( const char * msg, const char * file, int line );
 
 template< typename T >
-constexpr bool HasBit( T bits, T bit ) {
-	return ( bits & bit ) != 0;
+constexpr bool HasAnyBit( T haystack, T needle ) {
+	return ( haystack & needle ) != 0;
+}
+
+template< typename T >
+constexpr bool HasAllBits( T haystack, T needle ) {
+	return ( haystack & needle ) == needle;
 }
 
 /*

@@ -27,77 +27,60 @@ static SpatialHashBounds GetSpatialHashBounds( MinMax3 bounds ) {
 	return sbounds;
 }
 
+template< bool Union >
+static size_t TraverseSpatialHashGridGeneric( const SpatialHashGrid * a, const SpatialHashGrid * b, MinMax3 bounds, int * touchlist, SolidBits solid_mask ) {
+	TracyZoneScoped;
+
+	size_t num = 0;
+	touchlist[ num++ ] = 0;
+	SpatialHashBounds sbounds = GetSpatialHashBounds( bounds );
+	SpatialHashCell result = { 0 };
+
+	for( s32 x = sbounds.x1; x <= sbounds.x2; x++ ) {
+		for( s32 y = sbounds.y1; y <= sbounds.y2; y++ ) {
+			for( s32 z = sbounds.z1; z <= sbounds.z2; z++ ) {
+				u64 hash = GetCellHash( x, y, z );
+				u64 cell_idx = hash % SHG_GRID_SIZE;
+				for( size_t i = 0; i < ARRAY_COUNT( &SpatialHashCell::active ); i++ ) {
+					result.active[ i ] |= a->cells[ cell_idx ].active[ i ];
+					if constexpr( Union ) {
+						result.active[ i ] |= b->cells[ cell_idx ].active[ i ];
+					}
+				}
+			}
+		}
+	}
+
+	for( size_t i = 0; i < ARRAY_COUNT( &SpatialHashCell::active ); i++ ) {
+		if( result.active[ i ] == 0 ) {
+			continue;
+		}
+		for( size_t j = 0; j < 64; j++ ) {
+			if( ( result.active[ i ] & ( 1ULL << j ) ) != 0 ) {
+				size_t entity_id = i * 64 + j;
+				bool touching = HasAnyBit( a->primitives[ entity_id ].solidity, solid_mask );
+				if constexpr( Union ) {
+					touching = touching || HasAnyBit( b->primitives[ entity_id ].solidity, solid_mask );
+				}
+				if( touching ) {
+					touchlist[ num++ ] = entity_id;
+				}
+			}
+		}
+	}
+
+	return num;
+}
+
+size_t TraverseSpatialHashGrid( const SpatialHashGrid * a, const SpatialHashGrid * b, MinMax3 bounds, int * touchlist, SolidBits solid_mask ) {
+	return TraverseSpatialHashGridGeneric< true >( a, b, bounds, touchlist, solid_mask );
+}
+
 size_t TraverseSpatialHashGrid( const SpatialHashGrid * grid, const MinMax3 bounds, int * touchlist, const SolidBits solid_mask ) {
-	TracyZoneScoped;
-
-	size_t num = 0;
-	touchlist[ num++ ] = 0;
-	SpatialHashBounds sbounds = GetSpatialHashBounds( bounds );
-	SpatialHashCell result = { 0 };
-
-	for( s32 x = sbounds.x1; x <= sbounds.x2; x++ ) {
-		for( s32 y = sbounds.y1; y <= sbounds.y2; y++ ) {
-			for( s32 z = sbounds.z1; z <= sbounds.z2; z++ ) {
-				u64 hash = GetCellHash( x, y, z );
-				u64 cell_idx = hash % SHG_GRID_SIZE;
-				for( size_t i = 0; i < ARRAY_COUNT( &SpatialHashCell::active ); i++ ) {
-					result.active[ i ] |= grid->cells[ cell_idx ].active[ i ];
-				}
-			}
-		}
-	}
-
-	for( size_t i = 0; i < ARRAY_COUNT( &SpatialHashCell::active ); i++ ) {
-		if( result.active[ i ] == 0 ) {
-			continue;
-		}
-		for( size_t j = 0; j < 64; j++ ) {
-			if( ( result.active[ i ] & ( 1ULL << j ) ) != 0 ) {
-				size_t entity_id = i * 64 + j;
-				if( ( grid->primitives[ entity_id ].solidity & solid_mask ) != 0 )
-					touchlist[ num++ ] = entity_id;
-			}
-		}
-	}
-	return num;
+	return TraverseSpatialHashGridGeneric< false >( grid, NULL, bounds, touchlist, solid_mask );
 }
 
-size_t TraverseSpatialHashGrid( const SpatialHashGrid * a, const SpatialHashGrid * b, const MinMax3 bounds, int * touchlist, const SolidBits solid_mask ) {
-	TracyZoneScoped;
-
-	size_t num = 0;
-	touchlist[ num++ ] = 0;
-	SpatialHashBounds sbounds = GetSpatialHashBounds( bounds );
-	SpatialHashCell result = { 0 };
-
-	for( s32 x = sbounds.x1; x <= sbounds.x2; x++ ) {
-		for( s32 y = sbounds.y1; y <= sbounds.y2; y++ ) {
-			for( s32 z = sbounds.z1; z <= sbounds.z2; z++ ) {
-				u64 hash = GetCellHash( x, y, z );
-				u64 cell_idx = hash % SHG_GRID_SIZE;
-				for( size_t i = 0; i < ARRAY_COUNT( &SpatialHashCell::active ); i++ ) {
-					result.active[ i ] |= a->cells[ cell_idx ].active[ i ] | b->cells[ cell_idx ].active[ i ];
-				}
-			}
-		}
-	}
-
-	for( size_t i = 0; i < ARRAY_COUNT( &SpatialHashCell::active ); i++ ) {
-		if( result.active[ i ] == 0 ) {
-			continue;
-		}
-		for( size_t j = 0; j < 64; j++ ) {
-			if( ( result.active[ i ] & ( 1ULL << j ) ) != 0 ) {
-				size_t entity_id = i * 64 + j;
-				if( ( a->primitives[ entity_id ].solidity & solid_mask ) != 0 || ( b->primitives[ entity_id ].solidity & solid_mask ) != 0 )
-					touchlist[ num++ ] = entity_id;
-			}
-		}
-	}
-	return num;
-}
-
-void UnlinkEntity( SpatialHashGrid * grid, const u64 entity_id ) {
+void UnlinkEntity( SpatialHashGrid * grid, u64 entity_id ) {
 	TracyZoneScoped;
 
 	SpatialHashPrimitive primitive = grid->primitives[ entity_id ];
@@ -115,8 +98,7 @@ void UnlinkEntity( SpatialHashGrid * grid, const u64 entity_id ) {
 	}
 }
 
-
-void LinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, const SyncEntityState * ent, const u64 entity_id ) {
+void LinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, const SyncEntityState * ent, u64 entity_id ) {
 	TracyZoneScoped;
 
 	UnlinkEntity( grid, entity_id );

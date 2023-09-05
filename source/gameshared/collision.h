@@ -99,8 +99,8 @@ struct SpatialHashGrid {
 	SpatialHashPrimitive primitives[ MAX_PRIMITIVES ];
 };
 
-void LinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, const SyncEntityState * ent, const u64 entity_id );
-void UnlinkEntity( SpatialHashGrid * grid, const u64 entity_id );
-size_t TraverseSpatialHashGrid( const SpatialHashGrid * grid, const MinMax3 bounds, int * arr, const SolidBits solid_mask );
-size_t TraverseSpatialHashGrid( const SpatialHashGrid * a, const SpatialHashGrid * b, const MinMax3 bounds, int * touchlist, const SolidBits solid_mask );
+void LinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, const SyncEntityState * ent, u64 entity_id );
+void UnlinkEntity( SpatialHashGrid * grid, u64 entity_id );
+size_t TraverseSpatialHashGrid( const SpatialHashGrid * grid, MinMax3 bounds, int * arr, SolidBits solid_mask );
+size_t TraverseSpatialHashGrid( const SpatialHashGrid * a, const SpatialHashGrid * b, MinMax3 bounds, int * touchlist, SolidBits solid_mask );
 void ClearSpatialHashGrid( SpatialHashGrid * grid );

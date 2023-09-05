@@ -246,7 +246,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 	float take = damage;
 	if( attacker == targ ) {
 		if( level.gametype.selfDamage && damage_category == DamageCategory_Weapon ) {
-			take = damage * GS_GetWeaponDef( weapon )->selfdamage;
+			take = damage * GS_GetWeaponDef( weapon )->self_damage_scale;
 		}
 		else {
 			take = 0;

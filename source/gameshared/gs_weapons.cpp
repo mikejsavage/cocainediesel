@@ -340,14 +340,14 @@ static constexpr ItemState generic_gun_states[] = {
 		}
 
 		if( ps->weapon_state_time < def->reload_time ) {
-			if( def->staged_reload_time == 0 ) {
+			if( !def->staged_reload ) {
 				slot->ammo = 0;
 			}
 			return AllowWeaponSwitch( gs, ps, state );
 		}
 
-		if( def->staged_reload_time != 0 ) {
-			ps->weapon_state_time = def->staged_reload_time;
+		if( def->staged_reload ) {
+			ps->weapon_state_time = def->reload_time;
 			return NoReset( WeaponState_StagedReloading );
 		}
 
@@ -368,7 +368,7 @@ static constexpr ItemState generic_gun_states[] = {
 			return WeaponState_Idle;
 		}
 
-		if( ps->weapon_state_time < def->staged_reload_time ) {
+		if( ps->weapon_state_time < def->reload_time ) {
 			return AllowWeaponSwitch( gs, ps, state );
 		}
 

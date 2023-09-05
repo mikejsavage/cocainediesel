@@ -156,7 +156,7 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 static bool FindTag( const GLTFRenderData * model, PlayerModelMetadata::Tag * tag, StringHash node_name, const char * model_name ) {
 	u8 idx;
 	if( !FindNodeByName( model, node_name, &idx ) ) {
-		Com_Printf( S_COLOR_YELLOW "Can't find node %s in %s\n", node_name, model_name );
+		Com_GGPrint( S_COLOR_YELLOW "Can't find node {} in {}", node_name, model_name );
 		return false;
 	}
 

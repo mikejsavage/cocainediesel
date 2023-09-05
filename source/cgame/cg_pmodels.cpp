@@ -377,8 +377,7 @@ static PlayerModelAnimationSet CG_GetBaseAnims( const SyncEntityState * state, V
 	constexpr float WALKEPSILON = 5.0f;
 	constexpr float RUNEPSILON = 220.0f;
 
-	uint32_t moveflags = 0;
-	trace_t trace;
+	u32 moveflags = 0;
 
 	if( state->type == ET_CORPSE ) {
 		PlayerModelAnimationSet a;
@@ -395,7 +394,7 @@ static PlayerModelAnimationSet CG_GetBaseAnims( const SyncEntityState * state, V
 	// the tracing size here to include small steps
 	Vec3 point = state->origin;
 	point.z -= 1.6f * STEPSIZE;
-	client_gs.api.Trace( &trace, state->origin, bounds, point, state->number, Solid_PlayerClip, 0 );
+	trace_t trace = client_gs.api.Trace( state->origin, bounds, point, state->number, Solid_PlayerClip, 0 );
 	if( trace.HitNothing() || ( trace.HitSomething() && !ISWALKABLEPLANE( trace.normal ) ) ) {
 		moveflags |= ANIMMOVE_AIR;
 	}

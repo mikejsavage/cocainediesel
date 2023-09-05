@@ -271,7 +271,7 @@ void CG_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead )
 void CG_PredictMovement();
 void CG_CheckPredictionError();
 void CG_BuildSolidList();
-void CG_Trace( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask );
+trace_t CG_Trace( Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask );
 void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin );
 
 //

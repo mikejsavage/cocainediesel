@@ -648,21 +648,12 @@ static void G_Laser_Think( edict_t * ent ) {
 	ent->nextThink = level.time + 1;
 }
 
-struct LaserBeamTraceData {
-	float damage;
-	int knockback;
-	int attacker;
-};
-
-static void LaserImpact( const trace_t * trace, Vec3 dir, void * data ) {
-	LaserBeamTraceData * beam = ( LaserBeamTraceData * )data;
-
-	if( trace->ent == beam->attacker ) {
+static void LaserImpact( const trace_t & trace, Vec3 dir, int damage, int knockback, edict_t * attacker ) {
+	if( trace.ent == ENTNUM( attacker ) ) {
 		return; // should not be possible theoretically but happened at least once in practice
 	}
 
-	edict_t * attacker = &game.edicts[ beam->attacker ];
-	G_Damage( &game.edicts[ trace->ent ], attacker, attacker, dir, dir, trace->endpos, beam->damage, beam->knockback, DAMAGE_KNOCKBACK_SOFT, Weapon_Laser );
+	G_Damage( &game.edicts[ trace.ent ], attacker, attacker, dir, dir, trace.endpos, damage, knockback, DAMAGE_KNOCKBACK_SOFT, Weapon_Laser );
 }
 
 static edict_t * FindOrSpawnLaser( edict_t * owner ) {
@@ -693,19 +684,17 @@ static void W_Fire_Lasergun( edict_t * self, Vec3 start, Vec3 angles, int timeDe
 
 	edict_t * laser = FindOrSpawnLaser( self );
 
-	LaserBeamTraceData data;
-	data.damage = def->damage;
-	data.knockback = def->knockback;
-	data.attacker = ENTNUM( self );
+	Vec3 dir;
+	AngleVectors( angles, &dir, NULL, NULL );
 
-	trace_t tr;
-	GS_TraceLaserBeam( &server_gs, &tr, start, angles, def->range, ENTNUM( self ), timeDelta, LaserImpact, &data );
+	trace_t trace = GS_TraceLaserBeam( &server_gs, start, angles, def->range, ENTNUM( self ), timeDelta );
+	if( trace.HitSomething() ) {
+		LaserImpact( trace, dir, def->damage, def->knockback, self );
+	}
 
 	laser->s.svflags |= SVF_FORCEOWNER;
 
-	Vec3 dir;
 	laser->s.origin = start;
-	AngleVectors( angles, &dir, NULL, NULL );
 	laser->s.origin2 = laser->s.origin + dir * def->range;
 
 	laser->think = G_Laser_Think;

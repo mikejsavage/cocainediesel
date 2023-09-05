@@ -39,10 +39,9 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 	// don't walljump if our height is smaller than a step
 	// unless jump is pressed or the player is moving faster than dash speed and upwards
 	constexpr float floor_distance = STEPSIZE * 0.5f;
-	trace_t trace;
 	Vec3 point = pml->origin;
 	point.z -= floor_distance;
-	pmove_gs->api.Trace( &trace, pml->origin, pm->bounds, point, ps->POVnum, pm->solid_mask, 0 );
+	trace_t trace = pmove_gs->api.Trace( pml->origin, pm->bounds, point, ps->POVnum, pm->solid_mask, 0 );
 
 	float hspeed = Length( Vec3( pml->velocity.x, pml->velocity.y, 0 ) );
 	if( ( hspeed > pm_dashspeed && pml->velocity.z > 8 ) || trace.HitNothing() || !ISWALKABLEPLANE( trace.normal ) ) {

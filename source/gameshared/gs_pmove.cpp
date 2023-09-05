@@ -100,8 +100,7 @@ static int PM_SlideMove() {
 	for( int moves = 0; moves < maxmoves; moves++ ) {
 		Vec3 end = pml.origin + pml.velocity * remainingTime;
 
-		trace_t trace;
-		pmove_gs->api.Trace( &trace, pml.origin, pm->bounds, end, pm->playerState->POVnum, pm->solid_mask, 0 );
+		trace_t trace = pmove_gs->api.Trace( pml.origin, pm->bounds, end, pm->playerState->POVnum, pm->solid_mask, 0 );
 		if( trace.GotNowhere() ) { // trapped into a solid
 			pml.origin = last_valid_origin;
 			return SLIDEMOVEFLAG_TRAPPED;
@@ -214,8 +213,6 @@ static int PM_SlideMove() {
 static void PM_StepSlideMove() {
 	TracyZoneScoped;
 
-	trace_t trace;
-
 	Vec3 start_o = pml.origin;
 	Vec3 start_v = pml.velocity;
 
@@ -226,7 +223,7 @@ static void PM_StepSlideMove() {
 
 	Vec3 up = start_o + Vec3( 0.0f, 0.0f, STEPSIZE );
 
-	pmove_gs->api.Trace( &trace, up, pm->bounds, up, pm->playerState->POVnum, pm->solid_mask, 0 );
+	trace_t trace = pmove_gs->api.Trace( up, pm->bounds, up, pm->playerState->POVnum, pm->solid_mask, 0 );
 	if( trace.GotNowhere() ) // can't step up
 		return;
 
@@ -238,7 +235,7 @@ static void PM_StepSlideMove() {
 
 	// push down the final amount
 	Vec3 down = pml.origin - Vec3( 0.0f, 0.0f, STEPSIZE );
-	pmove_gs->api.Trace( &trace, pml.origin, pm->bounds, down, pm->playerState->POVnum, pm->solid_mask, 0 );
+	trace = pmove_gs->api.Trace( pml.origin, pm->bounds, down, pm->playerState->POVnum, pm->solid_mask, 0 );
 	if( trace.GotSomewhere() )
 		pml.origin = trace.endpos;
 
@@ -465,17 +462,12 @@ static void PM_Move() {
 *
 * If the player hull point one-quarter unit down is solid, the player is on ground
 */
-static void PM_GroundTrace( trace_t *trace ) {
+static trace_t PM_GroundTrace() {
 	Vec3 point = pml.origin - Vec3( 0.0f, 0.0f, 0.25f );
-	pmove_gs->api.Trace( trace, pml.origin, pm->bounds, point, pm->playerState->POVnum, pm->solid_mask, 0 );
+	return pmove_gs->api.Trace( pml.origin, pm->bounds, point, pm->playerState->POVnum, pm->solid_mask, 0 );
 }
 
-static bool PM_GoodPosition( Vec3 origin, trace_t *trace ) {
-	pmove_gs->api.Trace( trace, origin, pm->bounds, origin, pm->playerState->POVnum, pm->solid_mask, 0 );
-	return trace->GotSomewhere();
-}
-
-static void PM_UnstickPosition( trace_t *trace ) {
+static trace_t PM_UnstickPosition() {
 	TracyZoneScoped;
 
 	Vec3 origin = pml.origin;
@@ -488,10 +480,10 @@ static void PM_UnstickPosition( trace_t *trace ) {
 		origin.y += ( j & 2 ) ? -1.0f : 1.0f;
 		origin.z += ( j & 4 ) ? -1.0f : 1.0f;
 
-		if( PM_GoodPosition( origin, trace ) ) {
+		trace_t inside_solid_trace = pmove_gs->api.Trace( origin, pm->bounds, origin, pm->playerState->POVnum, pm->solid_mask, 0 );
+		if( inside_solid_trace.GotSomewhere() ) {
 			pml.origin = origin;
-			PM_GroundTrace( trace );
-			return;
+			return PM_GroundTrace();
 		}
 	}
 
@@ -507,14 +499,12 @@ static void PM_CategorizePosition() {
 		pm->groundentity = -1;
 	}
 	else {
-		trace_t trace;
-
 		// see if standing on something solid
-		PM_GroundTrace( &trace );
+		trace_t trace = PM_GroundTrace();
 
 		if( trace.GotNowhere() ) {
 			// try to unstick position
-			PM_UnstickPosition( &trace );
+			trace = PM_UnstickPosition();
 		}
 
 		pml.groundplane = trace.normal;
@@ -543,8 +533,7 @@ static void PM_CheckSpecialMovement() {
 
 	// check for ladder
 	Vec3 spot = pml.origin + pml.forward;
-	trace_t trace;
-	pmove_gs->api.Trace( &trace, pml.origin, pm->bounds, spot, pm->playerState->POVnum, pm->solid_mask, 0 );
+	trace_t trace = pmove_gs->api.Trace( pml.origin, pm->bounds, spot, pm->playerState->POVnum, pm->solid_mask, 0 );
 	if( trace.HitSomething() && ( trace.solidity & Solid_Ladder ) ) {
 		pml.ladder = Ladder_On;
 	}

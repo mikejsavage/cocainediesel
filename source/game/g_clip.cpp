@@ -175,7 +175,7 @@ static bool CollisionEntity4D( int entity_id, int time_delta, edict_t * ent ) {
 	return false; // time_delta too big, can't find
 }
 
-void G_Trace4D( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask, int time_delta ) {
+trace_t G_Trace4D( Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask, int time_delta ) {
 	TracyZoneScoped;
 
 	Ray ray = MakeRayStartEnd( start, end );
@@ -196,7 +196,7 @@ void G_Trace4D( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_
 	MinMax3 ray_bounds = Union( Union( MinMax3::Empty(), ray.origin ), ray.origin + ray.direction * ray.length );
 	MinMax3 broadphase_bounds = MinkowskiSum( ray_bounds, shape );
 
-	*tr = MakeMissedTrace( ray );
+	trace_t result = MakeMissedTrace( ray );
 
 	const CollisionFrame * a;
 	const CollisionFrame * b;
@@ -218,14 +218,24 @@ void G_Trace4D( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_
 			continue;
 
 		trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, &touch.s, solid_mask );
-		if( trace.fraction <= tr->fraction ) {
-			*tr = trace;
+		if( trace.fraction <= result.fraction ) {
+			result = trace;
 		}
 	}
+
+	return result;
+}
+
+trace_t G_Trace( Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask ) {
+	return G_Trace4D( start, bounds, end, passedict, solid_mask, 0 );
+}
+
+void G_Trace4D( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask, int timeDelta ) {
+	*tr = G_Trace4D( start, bounds, end, passedict, solid_mask, timeDelta );
 }
 
 void G_Trace( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask ) {
-	G_Trace4D( tr, start, bounds, end, passedict, solid_mask, 0 );
+	*tr = G_Trace( start, bounds, end, passedict, solid_mask );
 }
 
 int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int time_delta ) {

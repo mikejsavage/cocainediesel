@@ -69,8 +69,7 @@ static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin )
 
 	Vec4 color = CG_TeamColorVec4( owner->current.team );
 
-	trace_t trace;
-	CG_Trace( &trace, origin, MinMax3( 0.0f ), end, cg.view.POVent, SolidMask_WallbangShot );
+	trace_t trace = CG_Trace( origin, MinMax3( 0.0f ), end, cg.view.POVent, SolidMask_WallbangShot );
 	if( trace.HitSomething() ) {
 		RailgunImpact( trace.endpos, trace.normal, color );
 	}
@@ -85,7 +84,6 @@ static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin )
 }
 
 void CG_LaserBeamEffect( centity_t * cent ) {
-	trace_t trace;
 	Vec3 laserOrigin, laserAngles, laserPoint;
 
 	if( cent->localEffects[ LOCALEFFECT_LASERBEAM ] <= cl.serverTime ) {
@@ -124,15 +122,13 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 
 	// trace the beam: for tracing we use the real beam origin
 	float range = GS_GetWeaponDef( Weapon_Laser )->range;
-	GS_TraceLaserBeam( &client_gs, &trace, laserOrigin, laserAngles, range, cent->current.number, 0, []( const trace_t * trace, Vec3 dir, void * data ) {
-		centity_t * cent = ( centity_t * ) data;
+	trace_t trace = GS_TraceLaserBeam( &client_gs, laserOrigin, laserAngles, range, cent->current.number, 0 );
+	if( trace.HitSomething() ) {
+		DrawDynamicLight( trace.endpos, color.xyz(), 10000.0f );
+		DoVisualEffect( "weapons/lg/tip_hit", trace.endpos, trace.normal, 1.0f, color );
 
-		Vec4 color = CG_TeamColorVec4( cent->current.team );
-		DrawDynamicLight( trace->endpos, color.xyz(), 10000.0f );
-		DoVisualEffect( "weapons/lg/tip_hit", trace->endpos, trace->normal, 1.0f, color );
-
-		cent->lg_tip_sound = PlayImmediateSFX( "weapons/lg/tip_hit", cent->lg_tip_sound, PlaySFXConfigPosition( trace->endpos ) );
-	}, cent );
+		cent->lg_tip_sound = PlayImmediateSFX( "weapons/lg/tip_hit", cent->lg_tip_sound, PlaySFXConfigPosition( trace.endpos ) );
+	}
 
 	Mat4 muzzle_transform = GetMuzzleTransform( cent->current.number );
 
@@ -293,8 +289,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 	// spawn a single sound at the impact
 	Vec3 end = origin + dir * def->range;
 
-	trace_t trace;
-	CG_Trace( &trace, origin, MinMax3( 0.0f ), end, owner, SolidMask_Shot );
+	trace_t trace = CG_Trace( origin, MinMax3( 0.0f ), end, owner, SolidMask_Shot );
 
 	if( trace.HitSomething() ) {
 		PlaySFX( "weapons/rg/hit", PlaySFXConfigPosition( trace.endpos ) );
@@ -853,8 +848,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				Vec3 random_dir = Normalize( dir + tangent * RandomFloat11( &cls.rng ) * 0.1f + bitangent * RandomFloat11( &cls.rng ) * 0.1f );
 				Vec3 end = ent->origin + random_dir * 256.0f;
 
-				trace_t trace;
-				CG_Trace( &trace, ent->origin, MinMax3( 4.0f ), end, 0, SolidMask_AnySolid );
+				trace_t trace = CG_Trace( ent->origin, MinMax3( 4.0f ), end, 0, SolidMask_AnySolid );
 
 				if( trace.HitSomething() ) {
 					constexpr StringHash decals[] = {

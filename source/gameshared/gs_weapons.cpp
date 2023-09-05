@@ -27,10 +27,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, Vec3 start, Vec3 dir, Vec3 right, Vec3 up, Vec2 spread, int range, int ignore, int timeDelta ) {
 	Vec3 end = start + dir * range + right * spread.x + up * spread.y;
 
-	gs->api.Trace( trace, start, MinMax3( 0.0f ), end, ignore, SolidMask_WallbangShot, timeDelta );
+	*trace = gs->api.Trace( start, MinMax3( 0.0f ), end, ignore, SolidMask_WallbangShot, timeDelta );
 
 	if( wallbang_trace != NULL ) {
-		gs->api.Trace( wallbang_trace, start, MinMax3( 0.0f ), trace->endpos, ignore, Solid_Wallbangable, timeDelta );
+		*wallbang_trace = gs->api.Trace( start, MinMax3( 0.0f ), trace->endpos, ignore, Solid_Wallbangable, timeDelta );
 	}
 }
 
@@ -49,17 +49,11 @@ Vec2 FixedSpreadPattern( int i, float spread ) {
 	return Vec2( cosf( x ), sinf( x ) ) * spread * sqrtf( x );
 }
 
-void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * trace, Vec3 dir, void * data ), void * data ) {
+trace_t GS_TraceLaserBeam( const gs_state_t * gs, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta ) {
 	Vec3 dir;
 	AngleVectors( angles, &dir, NULL, NULL );
 	Vec3 end = origin + dir * range;
-
-	trace->ent = 0;
-
-	gs->api.Trace( trace, origin, MinMax3( 0.5f ), end, ignore, SolidMask_Shot, timeDelta );
-	if( trace->HitSomething() && impact != NULL ) {
-		impact( trace, dir, data );
-	}
+	return gs->api.Trace( origin, MinMax3( 0.5f ), end, ignore, SolidMask_Shot, timeDelta );
 }
 
 WeaponSlot * FindWeapon( SyncPlayerState * player, WeaponType weapon ) {

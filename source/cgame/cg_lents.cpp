@@ -102,8 +102,7 @@ void DrawGibs() {
 		float size = 0.5f * gib->scale;
 		MinMax3 bounds = model->bounds * size;
 
-		trace_t trace;
-		CG_Trace( &trace, gib->origin, bounds, next_origin, 0, SolidMask_AnySolid );
+		trace_t trace = CG_Trace( gib->origin, bounds, next_origin, 0, SolidMask_AnySolid );
 
 		if( trace.GotNowhere() ) {
 			gib->lifetime = 0;

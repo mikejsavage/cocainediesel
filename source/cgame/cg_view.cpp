@@ -113,14 +113,12 @@ static void CG_CalcViewBob() {
 			bobScale = 0.0f;
 		}
 		else {
-			trace_t trace;
-
 			const centity_t * cent = &cg_entities[cg.view.POVent];
 			MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), &cent->current );
 			Vec3 maxs = bounds.mins;
 			Vec3 mins = maxs - Vec3( 0.0f, 0.0f, 1.6f * STEPSIZE );
 
-			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, bounds, cg.predictedPlayerState.pmove.origin, cg.view.POVent, SolidMask_Opaque );
+			trace_t trace = CG_Trace( cg.predictedPlayerState.pmove.origin, bounds, cg.predictedPlayerState.pmove.origin, cg.view.POVent, SolidMask_Opaque );
 			if( trace.GotNowhere() ) {
 				bobScale = 2.5f;
 			}
@@ -196,7 +194,6 @@ static void CG_InterpolatePlayerState( SyncPlayerState * playerState ) {
 
 static void CG_ThirdPersonOffsetView( cg_viewdef_t *view, bool hold_angle ) {
 	float dist, f, r;
-	trace_t trace;
 
 	// calc exact destination
 	Vec3 chase_dest = view->origin;
@@ -210,7 +207,7 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view, bool hold_angle ) {
 
 	// find the spot the player is looking at
 	Vec3 dest = view->origin + FromQFAxis( view->axis, AXIS_FORWARD ) * 512.0f;
-	CG_Trace( &trace, view->origin, MinMax3( 4.0f ), dest, view->POVent, SolidMask_AnySolid );
+	trace_t trace = CG_Trace( view->origin, MinMax3( 4.0f ), dest, view->POVent, SolidMask_AnySolid );
 
 	// calculate pitch to look at the same spot from camera
 	Vec3 stop = trace.endpos - view->origin;
@@ -223,12 +220,12 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view, bool hold_angle ) {
 	Matrix3_FromAngles( view->angles, view->axis );
 
 	// move towards destination
-	CG_Trace( &trace, view->origin, MinMax3( 4.0f ), chase_dest, view->POVent, SolidMask_AnySolid );
+	trace = CG_Trace( view->origin, MinMax3( 4.0f ), chase_dest, view->POVent, SolidMask_AnySolid );
 
 	if( trace.HitSomething() ) {
 		stop = trace.endpos;
 		stop.z += ( 1.0f - trace.fraction ) * 32;
-		CG_Trace( &trace, view->origin, MinMax3( 4.0f ), stop, view->POVent, SolidMask_AnySolid );
+		trace = CG_Trace( view->origin, MinMax3( 4.0f ), stop, view->POVent, SolidMask_AnySolid );
 		chase_dest = trace.endpos;
 	}
 

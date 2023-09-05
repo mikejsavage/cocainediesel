@@ -424,10 +424,9 @@ void CG_DrawScope() {
 		DrawFullscreenMesh( pipeline );
 
 		if( cg.predictedPlayerState.weapon == Weapon_Sniper ) {
-			trace_t trace;
 			Vec3 forward = -frame_static.V.row2().xyz();
 			Vec3 end = cg.view.origin + forward * 10000.0f;
-			CG_Trace( &trace, cg.view.origin, MinMax3( 0.0f ), end, cg.predictedPlayerState.POVnum, SolidMask_Shot );
+			trace_t trace = CG_Trace( cg.view.origin, MinMax3( 0.0f ), end, cg.predictedPlayerState.POVnum, SolidMask_Shot );
 
 			TempAllocator temp = cls.frame_arena.temp();
 			float offset = Min2( frame_static.viewport_width, frame_static.viewport_height ) * 0.1f;

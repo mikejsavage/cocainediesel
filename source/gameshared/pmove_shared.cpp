@@ -34,8 +34,7 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, fl
 		);
 		Vec3 end = pml->origin + dir;
 
-		trace_t trace;
-		pmove_gs->api.Trace( &trace, pml->origin, bounds, end, pm->playerState->POVnum, pm->solid_mask, 0 );
+		trace_t trace = pmove_gs->api.Trace( pml->origin, bounds, end, pm->playerState->POVnum, pm->solid_mask, 0 );
 
 		if( trace.HitNothing() )
 			continue; // no wall in this direction

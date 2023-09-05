@@ -180,9 +180,8 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		trace_t trace;
 		Vec3 headpos = Vec3( 0.0f, 0.0f, 34.0f * cent->interpolated.scale.z );
-		CG_Trace( &trace, cg.view.origin, MinMax3( 0.0f ), cent->interpolated.origin + headpos, cg.predictedPlayerState.POVnum, SolidMask_Opaque );
+		trace_t trace = CG_Trace( cg.view.origin, MinMax3( 0.0f ), cent->interpolated.origin + headpos, cg.predictedPlayerState.POVnum, SolidMask_Opaque );
 		if( trace.HitSomething() && trace.ent != cent->current.number ) {
 			continue;
 		}

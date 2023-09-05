@@ -186,14 +186,13 @@ void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	// }
 }
 
-void CG_Trace( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask ) {
+trace_t CG_Trace( Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask ) {
 	TracyZoneScoped;
 
 	Ray ray = MakeRayStartEnd( start, end );
 
 	if( solid_mask == Solid_NotSolid ) {
-		*tr = MakeMissedTrace( ray );
-		return;
+		return MakeMissedTrace( ray );
 	}
 
 	Shape shape;
@@ -209,7 +208,7 @@ void CG_Trace( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, int ignore, S
 	MinMax3 ray_bounds = Union( Union( MinMax3::Empty(), ray.origin ), ray.origin + ray.direction * ray.length );
 	MinMax3 broadphase_bounds = MinkowskiSum( ray_bounds, shape );
 
-	*tr = MakeMissedTrace( ray );
+	trace_t result = MakeMissedTrace( ray );
 
 	int touchlist[ 1024 ];
 	size_t num = TraverseSpatialHashGrid( &cg_grid, broadphase_bounds, touchlist, SolidMask_AnySolid );
@@ -219,14 +218,16 @@ void CG_Trace( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, int ignore, S
 
 		if( touch->number == ignore )
 			continue;
-		if( touch->type == ET_PLAYER && touch->team == cg_entities[ ignore ].current.team )
+		if( touch->type == ET_PLAYER && touch->team == cg_entities[ ignore ].current.team ) // NOMERGE please do this properly
 			continue;
 
 		trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, touch, solid_mask );
-		if( trace.fraction < tr->fraction ) {
-			*tr = trace;
+		if( trace.fraction < result.fraction ) {
+			result = trace;
 		}
 	}
+
+	return result;
 }
 
 static float predictedSteps[CMD_BACKUP]; // for step smoothing

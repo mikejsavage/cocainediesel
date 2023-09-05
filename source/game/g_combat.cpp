@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 
-bool G_IsTeamDamage( SyncEntityState * target, SyncEntityState * attacker ) {
+bool G_IsTeamDamage( const SyncEntityState * target, const SyncEntityState * attacker ) {
 	return target->number != attacker->number && target->team == attacker->team;
 }
 
@@ -141,7 +141,7 @@ static int G_FindTopAssistor( edict_t* victim, edict_t* attacker ) {
 	return top != NULL && top->entno != attacker->s.number && top->cumDamage > 9 ? top->entno : -1;
 }
 
-static void G_KnockBackPush( edict_t *targ, edict_t *attacker, Vec3 basedir, int knockback, int dflags ) {
+static void G_KnockBackPush( edict_t * targ, const edict_t * attacker, Vec3 basedir, int knockback, int dflags ) {
 	if( knockback < 1 ) {
 		return;
 	}
@@ -197,7 +197,7 @@ void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage
 	}
 }
 
-void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, DamageType damage_type ) {
+void G_Damage( edict_t * targ, edict_t * inflictor, edict_t * attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, DamageType damage_type ) {
 	gclient_t *client;
 
 	if( !targ || !targ->takedamage ) {

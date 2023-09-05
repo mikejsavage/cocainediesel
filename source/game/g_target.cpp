@@ -47,11 +47,11 @@ static void target_laser_think( edict_t *self ) {
 		}
 	}
 
-	edict_t *ignore = self;
+	const edict_t * ignore = self;
 	Vec3 start = self->s.origin;
 	Vec3 end = start + self->moveinfo.movedir * 2048.0f;
 	while( true ) {
-		G_Trace( &tr, start, MinMax3( 0.0f ), end, ignore, SolidMask_Shot );
+		tr = G_Trace( start, MinMax3( 0.0f ), end, ignore, SolidMask_Shot );
 		if( tr.HitNothing() ) {
 			break;
 		}

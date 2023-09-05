@@ -7,17 +7,16 @@ void DropSpawnToFloor( edict_t * ent ) {
 	Vec3 start = ent->s.origin + Vec3( 0.0f, 0.0f, 16.0f );
 	Vec3 end = ent->s.origin - Vec3( 0.0f, 0.0f, 1024.0f );
 
-	trace_t tr;
-	G_Trace( &tr, start, playerbox_stand, end, ent, Solid_World );
+	trace_t trace = G_Trace( start, playerbox_stand, end, ent, Solid_World );
 
-	if( tr.GotNowhere() ) {
-		Com_GGPrint( "Spawn at {} is inside entity {}, removing...", ent->s.origin, tr.ent );
+	if( trace.GotNowhere() ) {
+		Com_GGPrint( "Spawn at {} is inside entity {}, removing...", ent->s.origin, trace.ent );
 		G_FreeEdict( ent );
 		return;
 	}
 
 	// move it 1 unit away from the plane
-	ent->s.origin = tr.endpos + tr.normal;
+	ent->s.origin = trace.endpos + trace.normal;
 }
 
 void SelectSpawnPoint( const edict_t * ent, const edict_t ** spawnpoint, Vec3 * origin, Vec3 * angles ) {

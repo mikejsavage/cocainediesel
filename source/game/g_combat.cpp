@@ -27,14 +27,12 @@ bool G_IsTeamDamage( const SyncEntityState * target, const SyncEntityState * att
 static bool G_CanSplashDamage( const edict_t *targ, const edict_t *inflictor, Optional< Vec3 > normal, Vec3 pos, int timeDelta ) {
 	constexpr float SPLASH_DAMAGE_TRACE_FRAC_EPSILON = 1.0f / 32.0f;
 
-	trace_t trace;
-
 	// bmodels need special checking because their origin is 0,0,0
 	if( targ->movetype == MOVETYPE_PUSH ) {
 		// NOT FOR PLAYERS only for entities that can push the players
 		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &targ->s );
 		Vec3 dest = targ->s.origin + Center( bounds );
-		G_Trace4D( &trace, pos, MinMax3( 0.0f ), dest, inflictor, SolidMask_AnySolid, timeDelta );
+		trace_t trace = G_Trace4D( pos, MinMax3( 0.0f ), dest, inflictor, SolidMask_AnySolid, timeDelta );
 		if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 			return true;
 		}
@@ -54,7 +52,7 @@ static bool G_CanSplashDamage( const edict_t *targ, const edict_t *inflictor, Op
 	};
 
 	for( Vec3 offset : offsets ) {
-		G_Trace4D( &trace, origin, MinMax3( 0.0f ), targ->s.origin + offset, inflictor, SolidMask_AnySolid, timeDelta );
+		trace_t trace = G_Trace4D( origin, MinMax3( 0.0f ), targ->s.origin + offset, inflictor, SolidMask_AnySolid, timeDelta );
 		if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 			return true;
 		}

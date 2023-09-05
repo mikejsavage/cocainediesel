@@ -230,14 +230,6 @@ trace_t G_Trace( Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict
 	return G_Trace4D( start, bounds, end, passedict, solid_mask, 0 );
 }
 
-void G_Trace4D( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask, int timeDelta ) {
-	*tr = G_Trace4D( start, bounds, end, passedict, solid_mask, timeDelta );
-}
-
-void G_Trace( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask ) {
-	*tr = G_Trace( start, bounds, end, passedict, solid_mask );
-}
-
 int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int time_delta ) {
 	MinMax3 bounds = MinMax3( org - rad, org + rad );
 

@@ -120,9 +120,8 @@ static void Hide( edict_t * ent ) {
 static bool EntCanSee( edict_t * ent, Vec3 point ) {
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
 	Vec3 center = ent->s.origin + Center( bounds );
-	trace_t tr;
-	G_Trace( &tr, center, MinMax3( 0.0f ), point, ent, SolidMask_AnySolid );
-	return tr.HitNothing();
+	trace_t trace = G_Trace( center, MinMax3( 0.0f ), point, ent, SolidMask_AnySolid );
+	return trace.HitNothing();
 }
 
 static s32 FirstNearbyTeammate( Vec3 origin, Team team ) {
@@ -388,12 +387,11 @@ static void DropBomb( BombDropReason reason ) {
 		} break;
 	}
 
-	trace_t tr;
-	G_Trace( &tr, start, bomb_bounds, end, carrier_ent, SolidMask_AnySolid );
+	trace_t trace = G_Trace( start, bomb_bounds, end, carrier_ent, SolidMask_AnySolid );
 
 	bomb_state.bomb.model->movetype = MOVETYPE_TOSS;
 	bomb_state.bomb.model->r.owner = carrier_ent;
-	bomb_state.bomb.model->s.origin = tr.endpos;
+	bomb_state.bomb.model->s.origin = trace.endpos;
 	bomb_state.bomb.model->velocity = velocity;
 	bomb_state.bomb.model->s.solidity = SolidBits( Solid_World | Solid_Trigger );
 	Show( bomb_state.bomb.model );
@@ -412,16 +410,15 @@ static void BombStartPlanting( edict_t * carrier_ent, u32 site ) {
 	Vec3 end = start;
 	end.z -= 512.0f;
 
-	trace_t tr;
-	G_Trace( &tr, start, bomb_bounds, end, carrier_ent, SolidMask_AnySolid );
+	trace_t trace = G_Trace( start, bomb_bounds, end, carrier_ent, SolidMask_AnySolid );
 
 	Vec3 angles( 0.0f, RandomUniformFloat( &svs.rng, 0.0f, 360.0f ), 0.0f );
 
-	bomb_state.bomb.model->s.origin = tr.endpos;
+	bomb_state.bomb.model->s.origin = trace.endpos;
 	bomb_state.bomb.model->s.angles = angles;
 	Show( bomb_state.bomb.model );
 
-	bomb_state.bomb.hud->s.origin = tr.endpos + Vec3( 0.0f, 0.0f, bomb_hud_offset );
+	bomb_state.bomb.hud->s.origin = trace.endpos + Vec3( 0.0f, 0.0f, bomb_hud_offset );
 	bomb_state.bomb.hud->s.angles = angles;
 	bomb_state.bomb.hud->s.svflags |= SVF_ONLYTEAM;
 	bomb_state.bomb.hud->s.radius = BombDown_Planting;
@@ -605,10 +602,9 @@ static bool BombCanPlant() {
 	end.z -= bomb_max_plant_height;
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &carrier_ent->s );
 
-	trace_t tr;
-	G_Trace( &tr, start, bounds, end, carrier_ent, SolidMask_AnySolid );
+	trace_t trace = G_Trace( start, bounds, end, carrier_ent, SolidMask_AnySolid );
 
-	return ISWALKABLEPLANE( tr.normal );
+	return ISWALKABLEPLANE( trace.normal );
 }
 
 static void BombGiveToRandom() {

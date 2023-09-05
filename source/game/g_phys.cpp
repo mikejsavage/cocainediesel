@@ -40,8 +40,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static bool EntityOverlapsAnything( edict_t *ent ) {
 	SolidBits mask = EntitySolidity( ServerCollisionModelStorage(), &ent->s );
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
-	trace_t trace;
-	G_Trace4D( &trace, ent->s.origin, bounds, ent->s.origin, ent, mask, ent->timeDelta );
+	trace_t trace = G_Trace4D( ent->s.origin, bounds, ent->s.origin, ent, mask, ent->timeDelta );
 	return trace.GotNowhere();
 }
 
@@ -120,7 +119,7 @@ retry:
 	}
 
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
-	G_Trace4D( &trace, start, bounds, end, ent, mask, ent->timeDelta );
+	trace = G_Trace4D( start, bounds, end, ent, mask, ent->timeDelta );
 	ent->s.origin = trace.endpos;
 
 	GClip_LinkEntity( ent );
@@ -466,9 +465,6 @@ static void SV_Physics_Toss( edict_t *ent ) {
 static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	TracyZoneScoped;
 
-	Vec3 start, end;
-	trace_t trace;
-
 	SolidBits mask = EntitySolidity( ServerCollisionModelStorage(), &ent->s );
 	if( mask == Solid_NotSolid )
 		mask = SolidMask_AnySolid;
@@ -477,11 +473,11 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	float endFlyTime = float( svs.gametime - ent->s.linearMovementTimeStamp ) * 0.001f;
 	float startFlyTime = float( Max2( s64( 0 ), game.prevServerTime - ent->s.linearMovementTimeStamp ) ) * 0.001f;
 
-	start = ent->s.linearMovementBegin + ent->s.linearMovementVelocity * startFlyTime;
-	end = ent->s.linearMovementBegin + ent->s.linearMovementVelocity * endFlyTime;
+	Vec3 start = ent->s.linearMovementBegin + ent->s.linearMovementVelocity * startFlyTime;
+	Vec3 end = ent->s.linearMovementBegin + ent->s.linearMovementVelocity * endFlyTime;
 
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
-	G_Trace4D( &trace, start, bounds, end, ent, mask, ent->timeDelta );
+	trace_t trace = G_Trace4D( start, bounds, end, ent, mask, ent->timeDelta );
 	ent->s.origin = trace.endpos;
 	GClip_LinkEntity( ent );
 	SV_Impact( ent, &trace );

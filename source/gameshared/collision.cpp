@@ -58,19 +58,6 @@ static bool IsConvex( GLTFCollisionData data, GLTFCollisionBrush brush ) {
 	return true;
 }
 
-template< typename T >
-Span< T > DedupeSorted( Allocator * a, Span< T > sorted ) {
-	NonRAIIDynamicArray< T > deduped( a );
-
-	for( size_t i = 1; i < sorted.n; i++ ) {
-		if( sorted[ i ] != sorted[ i - 1 ] ) {
-			deduped.add( sorted );
-		}
-	}
-
-	return deduped.span();
-}
-
 static Span< const u8 > AccessorToSpan( const cgltf_accessor * accessor ) {
 	cgltf_size offset = accessor->offset + accessor->buffer_view->offset;
 	return Span< const u8 >( ( const u8 * ) accessor->buffer_view->buffer->data + offset, accessor->count * accessor->stride );
@@ -118,7 +105,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 		brush.first_plane = planes.size();
 		brush.first_vertex = vertices.size();
 		brush.solidity = material->solidity;
-		
+
 		DynamicArray< Vec3 > brush_vertices( sys_allocator );
 		DynamicArray< Plane > brush_planes( sys_allocator );
 
@@ -378,7 +365,7 @@ SolidBits EntitySolidity( const CollisionModelStorage * storage, const SyncEntit
 		const GLTFCollisionData * gltf = FindGLTFSharedCollisionData( storage, model.gltf_model );
 		return gltf == NULL ? Solid_NotSolid : gltf->solidity;
 	}
-	
+
 	return Solid_NotSolid;
 }
 
@@ -416,7 +403,7 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 	trace_t trace = MakeMissedTrace( ray );
 
 	CollisionModel collision_model = EntityCollisionModel( storage, ent );
-	
+
 	SolidBits solidity = EntitySolidity( storage, ent );
 	if( collision_model.type != CollisionModelType_MapModel && ( solidity & solid_mask ) == 0 )
 		return trace;
@@ -447,7 +434,7 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 			return trace;
 
 		Mat4 transform = Mat4Translation( ent->origin ) * Mat4Rotation( EulerDegrees3( ent->angles ) ) * Mat4Scale( ent->scale );
-		
+
 		Intersection intersection;
 		if( SweptShapeVsGLTF( gltf, transform, ray, shape, solid_mask, &intersection ) ) {
 			trace = FUCKING_HELL( ray, shape, intersection, ent );
@@ -541,7 +528,7 @@ bool EntityOverlap( const CollisionModelStorage * storage, const SyncEntityState
 			return false;
 
 		Mat4 transform = Mat4Translation( ent_b->origin ) * Mat4Rotation( EulerDegrees3( ent_b->angles ) ) * Mat4Scale( ent_b->scale );
-		
+
 		Intersection intersection;
 		return SweptShapeVsGLTF( gltf, transform, ray, shape, solid_mask, &intersection );
 	}

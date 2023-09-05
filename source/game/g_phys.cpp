@@ -118,7 +118,7 @@ retry:
 	if( mask == Solid_NotSolid ) {
 		mask = SolidMask_AnySolid;
 	}
-	
+
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
 	G_Trace4D( &trace, start, bounds, end, ent, mask, ent->timeDelta );
 	ent->s.origin = trace.endpos;

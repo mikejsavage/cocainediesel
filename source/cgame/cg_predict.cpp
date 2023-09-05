@@ -216,7 +216,7 @@ void CG_Trace( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, int ignore, S
 
 	for( size_t i = 0; i < num; i++ ) {
 		SyncEntityState * touch = &cg.frame.parsedEntities[ touchlist[ i ] ];
-		
+
 		if( touch->number == ignore )
 			continue;
 		if( touch->type == ET_PLAYER && touch->team == cg_entities[ ignore ].current.team )
@@ -231,7 +231,6 @@ void CG_Trace( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, int ignore, S
 
 static float predictedSteps[CMD_BACKUP]; // for step smoothing
 static void CG_PredictAddStep( int virtualtime, int predictiontime, float stepSize ) {
-
 	float oldStep;
 	int delta;
 

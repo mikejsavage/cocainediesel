@@ -749,7 +749,7 @@ void DrawEntities() {
 			case ET_SPEAKER:
 				DrawEntityModel( cent );
 				break;
-			
+
 			case ET_MAPMODEL:
 				DrawEntityModel( cent );
 				break;

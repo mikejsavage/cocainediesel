@@ -398,6 +398,8 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 }
 
 static void DrawEntityModel( centity_t * cent ) {
+	TracyZoneScoped;
+
 	Vec3 scale = cent->interpolated.scale;
 	if( scale.x == 0.0f || scale.y == 0.0f || scale.z == 0.0f ) {
 		return;

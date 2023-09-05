@@ -614,6 +614,7 @@ void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const GLT
 }
 
 static void DrawVfxNode( DrawModelConfig::DrawModel config, const GLTFRenderData::Node * node, Mat4 & transform, const Vec4 & color ) {
+	TracyZoneScoped;
 	if( !config.enabled || node->vfx_type == ModelVfxType_None )
 		return;
 
@@ -655,6 +656,7 @@ static void AddInstanceToCollection( ModelInstanceCollection< T > & collection, 
 }
 
 static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh, bool skinned, PipelineState pipeline, Mat4 & transform, GPUMaterial gpu_material ) {
+	TracyZoneScoped;
 	if( !config.enabled )
 		return;
 
@@ -678,6 +680,7 @@ static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh,
 }
 
 static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Mesh & mesh, bool skinned, PipelineState pipeline, Mat4 & transform ) {
+	TracyZoneScoped;
 	if( !config.enabled )
 		return;
 
@@ -705,6 +708,7 @@ static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Mesh & m
 }
 
 static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Mesh & mesh, bool skinned, PipelineState pipeline, UniformBlock outline_uniforms, Mat4 & transform ) {
+	TracyZoneScoped;
 	if( !config.enabled )
 		return;
 
@@ -728,6 +732,7 @@ static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Mesh &
 }
 
 static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Mesh & mesh, bool skinned, PipelineState pipeline, UniformBlock silhouette_uniforms, Mat4 & transform ) {
+	TracyZoneScoped;
 	if( !config.enabled )
 		return;
 
@@ -750,6 +755,7 @@ static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Me
 }
 
 void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * render_data, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
+	TracyZoneScoped;
 	if( render_data == NULL )
 		return;
 
@@ -772,6 +778,8 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 	}
 
 	for( u8 i = 0; i < render_data->nodes.n; i++ ) {
+		TracyZoneScopedN( "Render node" );
+
 		const GLTFRenderData::Node * node = &render_data->nodes[ i ];
 		if( node->mesh.num_vertices == 0 && node->vfx_type == ModelVfxType_None )
 			continue;

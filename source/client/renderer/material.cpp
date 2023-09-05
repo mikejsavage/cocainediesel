@@ -1025,6 +1025,8 @@ static float EvaluateWaveFunc( Wave wave ) {
 }
 
 PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned, bool map_model, GPUMaterial * gpu_material ) {
+	TracyZoneScoped;
+
 	if( material == &world_material || material == &wallbang_material ) {
 		PipelineState pipeline;
 		pipeline.shader = &shaders.world;

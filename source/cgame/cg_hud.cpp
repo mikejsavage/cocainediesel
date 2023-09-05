@@ -875,9 +875,7 @@ static int LuauGetPerkIcon( lua_State * L ) {
 static int LuauGetWeaponReloadTime( lua_State * L ) {
 	u8 w = luaL_checknumber( L, 1 );
 	lua_newtable( L );
-	lua_pushnumber( L, cg.predictedPlayerState.weapon_state == WeaponState_StagedReloading ?
-						GS_GetWeaponDef( WeaponType( w ) )->staged_reload_time :
-						GS_GetWeaponDef( WeaponType( w ) )->reload_time );
+	lua_pushnumber( L, GS_GetWeaponDef( WeaponType( w ) )->reload_time );
 	return 1;
 }
 

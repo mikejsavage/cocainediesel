@@ -163,7 +163,7 @@ struct ProjectileStats {
 	int min_knockback;
 	int max_knockback;
 	int speed;
-	int timeout;
+	s64 timeout;
 	float gravity_scale;
 	int splash_radius;
 	DamageType damage_type;
@@ -172,35 +172,33 @@ struct ProjectileStats {
 static ProjectileStats WeaponProjectileStats( WeaponType weapon ) {
 	const WeaponDef * def = GS_GetWeaponDef( weapon );
 
-	ProjectileStats stats;
-	stats.min_damage = def->min_damage;
-	stats.max_damage = def->damage;
-	stats.min_knockback = def->min_knockback;
-	stats.max_knockback = def->knockback;
-	stats.speed = def->speed;
-	stats.timeout = def->range;
-	stats.gravity_scale = def->gravity_scale;
-	stats.splash_radius = def->splash_radius;
-	stats.damage_type = weapon;
-
-	return stats;
+	return ProjectileStats {
+		.min_damage = def->min_damage,
+		.max_damage = def->damage,
+		.min_knockback = def->min_knockback,
+		.max_knockback = def->knockback,
+		.speed = def->speed,
+		.timeout = def->range,
+		.gravity_scale = def->gravity_scale,
+		.splash_radius = def->splash_radius,
+		.damage_type = weapon,
+	};
 }
 
 static ProjectileStats GadgetProjectileStats( GadgetType gadget ) {
 	const GadgetDef * def = GetGadgetDef( gadget );
 
-	ProjectileStats stats;
-	stats.min_damage = def->min_damage;
-	stats.max_damage = def->damage;
-	stats.min_knockback = def->min_knockback;
-	stats.max_knockback = def->knockback;
-	stats.speed = def->speed;
-	stats.timeout = def->timeout;
-	stats.gravity_scale = def->gravity_scale;
-	stats.splash_radius = def->splash_radius;
-	stats.damage_type = gadget;
-
-	return stats;
+	return ProjectileStats {
+		.min_damage = def->min_damage,
+		.max_damage = def->damage,
+		.min_knockback = def->min_knockback,
+		.max_knockback = def->knockback,
+		.speed = def->speed,
+		.timeout = def->timeout,
+		.gravity_scale = def->gravity_scale,
+		.splash_radius = def->splash_radius,
+		.damage_type = gadget,
+	};
 }
 
 static edict_t * GenEntity( edict_t * owner, Vec3 pos, Vec3 angles, int timeout ) {
@@ -364,7 +362,7 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 
 		if( wallbang.HitSomething() ) {
 			dmgflags |= DAMAGE_WALLBANG;
-			damage *= def->wallbangdamage;
+			damage *= def->wallbang_damage_scale;
 		}
 
 		G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, damage, def->knockback, dmgflags, weapon );
@@ -391,7 +389,7 @@ static void W_Fire_Shotgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 
 			if( trace.endpos != wallbang.endpos ) {
 				dmgflags |= DAMAGE_WALLBANG;
-				damage *= def->wallbangdamage;
+				damage *= def->wallbang_damage_scale;
 			}
 
 			G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, damage, def->knockback, dmgflags, weapon );

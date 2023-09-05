@@ -1055,7 +1055,7 @@ static void Perks( Vec2 icon_size ) {
 	InitCategory( "CLASS", icon_size.y * 0.5 );
 
 	for( PerkType i = PerkType( Perk_None + 1 ); i < Perk_Count; i++ ) {
-		if( !GetPerkDef( i )->enabled )
+		if( GetPerkDef( i )->disabled )
 			continue;
 
 		const Material * icon = FindMaterial( cgs.media.shaderPerkIcon[ i ] );

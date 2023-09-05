@@ -512,10 +512,9 @@ static void CG_Event_Jetpack( const SyncEntityState * ent, u64 parm ) {
 }
 
 static PlayingSFXHandle PlayEntityOrFirstPersonSFX( StringHash sfx, int ent_num, float volume = 1.0f ) {
-	if( ISVIEWERENTITY( ent_num ) ) {
-		return PlaySFX( sfx, PlaySFXConfigGlobal( volume ) );
-	}
-	return PlaySFX( sfx, PlaySFXConfigEntity( ent_num, volume ) );
+	return PlaySFX( sfx, ISVIEWERENTITY( ent_num ) ?
+						PlaySFXConfigGlobal( volume ) :
+						PlaySFXConfigEntity( ent_num, volume ) );
 }
 
 void CG_JetpackEffect( centity_t * cent ) {

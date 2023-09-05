@@ -5,6 +5,8 @@
 
 #include "qcommon/hashtable.h"
 
+static constexpr size_t SHG_CELL_DIMENSIONS[] = { 64, 64, 1024 };
+
 static inline u64 GetCellHash( s32 x, s32 y, s32 z ) {
 	u64 hash;
 	hash = Hash64( &x, sizeof( x ) );

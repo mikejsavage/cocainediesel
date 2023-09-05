@@ -388,35 +388,34 @@ static bool SNAP_SnapCullEntity( const edict_t * ent, const edict_t * clent, con
 		return false;
 	}
 
-	bool snd_cull_only = false;
-	bool snd_culled = true;
+	bool is_a_sound = false;
 
 	// sound entities culling
 	if( ent->s.svflags & SVF_SOUNDCULL ) {
-		snd_cull_only = true;
+		is_a_sound = true;
 	}
 
 	// if not a sound entity but the entity is only a sound
 	else if( ent->s.model == EMPTY_HASH && !ent->s.events[0].type && !ent->s.effects && ent->s.sound != EMPTY_HASH ) {
-		snd_cull_only = true;
+		is_a_sound = true;
 	}
 
-	if( snd_cull_only || ent->s.events[0].type || ent->s.sound != EMPTY_HASH ) {
-		snd_culled = SNAP_SnapCullSoundEntity( ent, vieworg );
+	if( is_a_sound ) {
+		return SNAP_SnapCullSoundEntity( ent, vieworg );
 	}
 
-	return snd_culled;
+	return false;
 }
 
 static void SNAP_AddEntitiesVisibleAtOrigin( const ginfo_t * gi, const edict_t * clent, Vec3 vieworg, const client_snapshot_t * frame, snapshotEntityNumbers_t * entList ) {
 	// add the entities to the list
 	for( int entNum = 0; entNum < gi->num_edicts; entNum++ ) {
-		edict_t * ent = EDICT_NUM( entNum );
+		const edict_t * ent = EDICT_NUM( entNum );
+		Assert( ent->s.number == entNum );
 
-		// fix number if broken
-		if( ent->s.number != entNum ) {
-			Com_Printf( "FIXING ENT->S.NUMBER: %i %i!!!\n", ent->s.number, entNum );
-			ent->s.number = entNum;
+		// always add the client entity, even if SVF_NOCLIENT
+		if( ent != clent && SNAP_SnapCullEntity( ent, clent, frame, vieworg ) ) {
+			continue;
 		}
 
 		// add it
@@ -425,13 +424,8 @@ static void SNAP_AddEntitiesVisibleAtOrigin( const ginfo_t * gi, const edict_t *
 		}
 
 		if( ent->s.svflags & SVF_FORCEOWNER ) {
-			// make sure owner number is valid too
-			if( ent->s.ownerNum > 0 && ent->s.ownerNum < gi->num_edicts ) {
-				SNAP_AddEntNumToSnapList( ent->s.ownerNum, entList );
-			} else {
-				Com_Printf( "FIXING ENT->S.OWNERNUM: %i %i!!!\n", ent->s.type, ent->s.ownerNum );
-				ent->s.ownerNum = 0;
-			}
+			Assert( ent->s.ownerNum > 0 && ent->s.ownerNum < gi->num_edicts );
+			SNAP_AddEntNumToSnapList( ent->s.ownerNum, entList );
 		}
 	}
 }

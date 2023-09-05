@@ -10,7 +10,7 @@ static constexpr int WEAPONUP_TIME_VERY_SLOW = 1000;
 static constexpr int HITSCAN_RANGE = 9001;
 
 const WeaponDef weapon_defs[] = {
-	//  Weapon_None
+	// Weapon_None
 	WeaponDef {
 		.name = "",
 		.short_name = "",

@@ -106,7 +106,7 @@ static void Netchan_OutOfBand( Socket socket, const NetAddress & address, const 
 */
 void Netchan_OutOfBandPrint( Socket socket, const NetAddress & address, const char * format, ... ) {
 	va_list argptr;
-	static char string[MAX_PACKETLEN - 4];
+	char string[MAX_PACKETLEN - 4];
 
 	va_start( argptr, format );
 	vsnprintf( string, sizeof( string ), format, argptr );

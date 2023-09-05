@@ -245,7 +245,9 @@ static CandidatePlanes BuildCandidatePlanes( Span< const u32 > brush_ids, Span< 
 
 	CandidatePlanes planes;
 
-	const char * zone_labels[ 3 ] = { "X", "Y", "Z" };
+#if TRACY_ENABLE
+	constexpr const char * zone_labels[ 3 ] = { "X", "Y", "Z" };
+#endif
 
 	for( int i = 0; i < 3; i++ ) {
 		TracyZoneScopedN( zone_labels[ i ] );
@@ -894,8 +896,6 @@ int main( int argc, char ** argv ) {
 		TracyZoneScopedN( "Flatten render/collision geometry" );
 
 		for( CompiledEntity & entity : compiled_entities ) {
-			size_t base_mesh = flat_meshes.size();
-
 			u32 first_mesh = checked_cast< u32 >( flat_meshes.size() );
 
 			for( const CompiledMesh & mesh : entity.render_geometry ) {

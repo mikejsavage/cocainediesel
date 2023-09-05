@@ -86,7 +86,6 @@ static int PM_SlideMove() {
 	float remainingTime = pml.frametime;
 	int blockedmask = 0;
 
-	Vec3 old_velocity = pml.velocity;
 	Vec3 last_valid_origin = pml.origin;
 
 	if( pm->groundentity != -1 ) { // clip velocity to ground, no need to wait
@@ -671,8 +670,6 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 
 	// clear all pmove local vars
 	PM_BeginMove();
-
-	pml_t old_pml = pml;
 
 	float fallvelocity = Max2( 0.0f, -pml.velocity.z );
 

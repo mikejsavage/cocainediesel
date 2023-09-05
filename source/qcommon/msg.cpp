@@ -266,7 +266,7 @@ void DeltaEnum( DeltaBuffer * buf, Optional< E > & x, Optional< E > baseline, E 
 	using T = typename std::underlying_type< E >::type;
 	const T & baseline_to_delta_against = baseline.exists ? baseline.value : null_baseline;
 	if( x.exists ) {
-		Delta( buf, ( T & ) x.value, ( const T & ) baseline.value );
+		Delta( buf, ( T & ) x.value, baseline_to_delta_against );
 		if( x.value < 0 || x.value >= count ) {
 			buf->error = true;
 		}
@@ -291,7 +291,7 @@ void DeltaBitfieldEnum( DeltaBuffer * buf, Optional< E > & x, Optional< E > base
 	using T = typename std::underlying_type< E >::type;
 	const T & baseline_to_delta_against = baseline.exists ? baseline.value : null_baseline;
 	if( x.exists ) {
-		Delta( buf, ( T & ) x.value, ( const T & ) baseline.value );
+		Delta( buf, ( T & ) x.value, baseline_to_delta_against );
 		if( ( x.value & ~mask ) != 0 ) {
 			buf->error = true;
 		}

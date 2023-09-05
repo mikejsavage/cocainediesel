@@ -37,10 +37,9 @@ enum pmtype_t {
 
 // pmove->pm_flags
 #define PMF_ON_GROUND       ( 1 << 0 )
-#define PMF_TIME_TELEPORT   ( 1 << 1 )  // pm_time is non-moving time
-#define PMF_NO_PREDICTION   ( 1 << 2 )  // temporarily disables prediction (used for grappling hook)
-#define PMF_ABILITY1_HELD   ( 1 << 3 )  // Special held flag
-#define PMF_ABILITY2_HELD   ( 1 << 4 )  // Jump held flag
+#define PMF_NO_PREDICTION   ( 1 << 1 )  // temporarily disables prediction (used for grappling hook)
+#define PMF_ABILITY1_HELD   ( 1 << 2 )  // Special held flag
+#define PMF_ABILITY2_HELD   ( 1 << 3 )  // Jump held flag
 
 // note that Q_rint was causing problems here
 // (spawn looking straight up\down at delta_angles wrapping)

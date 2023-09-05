@@ -101,31 +101,31 @@ static bool LoadBinaryBuffers( cgltf_data * data ) {
 	return true;
 }
 
-
 static bool AddGLTFModel( Span< const u8 > data, Span< const char > path ) {
 	cgltf_options options = { };
 	options.type = cgltf_file_type_glb;
 
 	cgltf_data * gltf;
 	if( cgltf_parse( &options, data.ptr, data.num_bytes(), &gltf ) != cgltf_result_success ) {
-		Com_Printf( S_COLOR_YELLOW "%s isn't a GLTF file\n", path );
+		Com_GGPrint( S_COLOR_YELLOW "{} isn't a GLTF file", path );
 		return false;
 	}
 
 	defer { cgltf_free( gltf ); };
 
 	if( !LoadBinaryBuffers( gltf ) ) {
-		Com_Printf( S_COLOR_YELLOW "Couldn't load buffers in %s\n", path );
+		Com_GGPrint( S_COLOR_YELLOW "Couldn't load buffers in {}", path );
 		return false;
 	}
 
 	if( cgltf_validate( gltf ) != cgltf_result_success ) {
-		Com_Printf( S_COLOR_YELLOW "%s is invalid GLTF\n", path );
+		Com_GGPrint( S_COLOR_YELLOW "{} is invalid GLTF", path );
 		return false;
 	}
 
-  StringHash name = StringHash( path );
-  LoadGLTFCollisionData( &collision_models, gltf, path, name );
+	StringHash name = StringHash( path );
+	LoadGLTFCollisionData( &collision_models, gltf, path, name );
+
 	return true;
 }
 

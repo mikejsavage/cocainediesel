@@ -36,7 +36,7 @@ static size_t TraverseSpatialHashGridGeneric( const SpatialHashGrid * a, const S
 	size_t num = 0;
 	touchlist[ num++ ] = 0;
 	SpatialHashBounds sbounds = GetSpatialHashBounds( bounds );
-	SpatialHashCell result = { 0 };
+	SpatialHashCell result = { };
 
 	for( s32 x = sbounds.x1; x <= sbounds.x2; x++ ) {
 		for( s32 y = sbounds.y1; y <= sbounds.y2; y++ ) {
@@ -86,7 +86,7 @@ void UnlinkEntity( SpatialHashGrid * grid, u64 entity_id ) {
 	TracyZoneScoped;
 
 	SpatialHashPrimitive primitive = grid->primitives[ entity_id ];
-	grid->primitives[ entity_id ] = { 0 };
+	grid->primitives[ entity_id ] = { };
 
 	for( s32 x = primitive.sbounds.x1; x <= primitive.sbounds.x2; x++ ) {
 		for( s32 y = primitive.sbounds.y1; y <= primitive.sbounds.y2; y++ ) {

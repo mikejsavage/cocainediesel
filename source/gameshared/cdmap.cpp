@@ -6,7 +6,7 @@
 
 template< typename T >
 static bool DecodeMapSection( Span< T > * span, Span< const u8 > data, MapSectionType type ) {
-	const MapHeader * header = ( const MapHeader * ) data.ptr;
+	const MapHeader * header = align_cast< const MapHeader >( data.ptr );
 	MapSection section = header->sections[ type ];
 
 	if( section.offset + section.size > data.n )

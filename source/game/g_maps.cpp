@@ -42,34 +42,34 @@ static bool AddGLTFModel( Span< const u8 > data, Span< const char > path ) {
 
 	cgltf_data * gltf;
 	if( cgltf_parse( &options, data.ptr, data.num_bytes(), &gltf ) != cgltf_result_success ) {
-		Com_Printf( S_COLOR_YELLOW "%s isn't a GLTF file\n", path );
+		Com_GGPrint( S_COLOR_YELLOW "{} isn't a GLTF file", path );
 		return false;
 	}
 
 	defer { cgltf_free( gltf ); };
 
 	if( !LoadBinaryBuffers( gltf ) ) {
-		Com_Printf( S_COLOR_YELLOW "Couldn't load buffers in %s\n", path );
+		Com_GGPrint( S_COLOR_YELLOW "Couldn't load buffers in {}", path );
 		return false;
 	}
 
 	if( cgltf_validate( gltf ) != cgltf_result_success ) {
-		Com_Printf( S_COLOR_YELLOW "%s is invalid GLTF\n", path );
+		Com_GGPrint( S_COLOR_YELLOW "{} is invalid GLTF", path );
 		return false;
 	}
 
-  StringHash name = StringHash( path );
-  LoadGLTFCollisionData( &collision_models, gltf, path, name );
+	StringHash name = StringHash( path );
+	LoadGLTFCollisionData( &collision_models, gltf, path, name );
 
 	return true;
 }
 
 static void LoadModelsRecursive( TempAllocator * temp, DynamicString * path, size_t skip ) {
-  ListDirHandle scan = BeginListDir( temp, path->c_str() );
+	ListDirHandle scan = BeginListDir( temp, path->c_str() );
 
-  const char * name;
-  bool dir;
-  while( ListDirNext( &scan, &name, &dir ) ) {
+	const char * name;
+	bool dir;
+	while( ListDirNext( &scan, &name, &dir ) ) {
 		// skip ., .., .git, etc
 		if( name[ 0 ] == '.' )
 			continue;
@@ -84,7 +84,7 @@ static void LoadModelsRecursive( TempAllocator * temp, DynamicString * path, siz
 			AddGLTFModel( data, StripExtension( path->c_str() + skip ) );
 		}
 		path->truncate( old_len );
-  }
+	}
 }
 
 void InitServerCollisionModels() {

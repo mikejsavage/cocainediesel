@@ -8,10 +8,10 @@ void DropSpawnToFloor( edict_t * ent ) {
 	Vec3 end = ent->s.origin - Vec3( 0.0f, 0.0f, 1024.0f );
 
 	trace_t tr;
-	G_Trace( &tr, start, playerbox_stand, end, ent, SolidMask_AnySolid );
+	G_Trace( &tr, start, playerbox_stand, end, ent, Solid_World );
 
 	if( tr.GotNowhere() ) {
-		Com_GGPrint( "Spawn starts inside solid, removing..." );
+		Com_GGPrint( "Spawn at {} is inside entity {}, removing...", ent->s.origin, tr.ent );
 		G_FreeEdict( ent );
 		return;
 	}

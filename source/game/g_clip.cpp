@@ -210,12 +210,9 @@ void G_Trace4D( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_
 			continue;
 		if( touch.s.number == passent )
 			continue;
-		if( touch.r.owner && ( touch.r.owner->s.number == passent ) )
+		if( touch.r.owner != NULL && touch.r.owner->s.number == passent )
 			continue;
-		if( game.edicts[passent].r.owner && ( game.edicts[passent].r.owner->s.number == touch.s.number ) )
-			continue;
-		// wsw : jal : never clipmove against SVF_PROJECTILE entities
-		if( touch.s.svflags & SVF_PROJECTILE )
+		if( game.edicts[ passent ].r.owner != NULL && game.edicts[ passent ].r.owner->s.number == touch.s.number )
 			continue;
 		if( touch.r.client != NULL && touch.s.team == game.edicts[ passent ].s.team )
 			continue;

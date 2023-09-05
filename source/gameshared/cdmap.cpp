@@ -23,7 +23,7 @@ DecodeMapResult DecodeMap( MapData * map, Span< const u8 > data ) {
 	if( data.n < sizeof( MapHeader ) )
 		return DecodeMapResult_NotAMap;
 
-	const MapHeader * header = ( const MapHeader * ) data.ptr;
+	const MapHeader * header = align_cast< const MapHeader >( data.ptr );
 	if( memcmp( header->magic, CDMAP_MAGIC, sizeof( header->magic ) ) != 0 )
 		return DecodeMapResult_NotAMap;
 

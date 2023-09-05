@@ -352,24 +352,6 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 
 	Vec2 spread = RandomSpreadPattern( self->r.client->ucmd.entropy, spreadness );
 
-
-	// {
-	// 	Ray ray;
-	// 	ray.origin = start;
-	// 	ray.direction = dir;
-	// 	ray.t_max = def->range;
-	// 	Intersection enter, leave;
-	// 	bool hit = Trace( &svs.map, &svs.map.models[ 0 ], ray, enter, leave );
-	// 	if( hit ) {
-	// 		Vec3 pos = start + dir * enter.t;
-	// 		Com_GGPrint( "hit {} {}", pos, enter.normal );
-	// 	}
-	// 	else {
-	// 		Com_GGPrint( "not hit" );
-	// 	}
-	// }
-
-
 	trace_t trace, wallbang;
 	GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, spread, def->range, ENTNUM( self ), timeDelta );
 	if( trace.HitSomething() && game.edicts[ trace.ent ].takedamage ) {
@@ -380,7 +362,7 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 			dmgflags |= DAMAGE_HEADSHOT;
 		}
 
-		if( trace.endpos != wallbang.endpos ) {
+		if( wallbang.HitSomething() ) {
 			dmgflags |= DAMAGE_WALLBANG;
 			damage *= def->wallbangdamage;
 		}

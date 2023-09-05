@@ -30,7 +30,7 @@ void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_
 	gs->api.Trace( trace, start, MinMax3( 0.0f ), end, ignore, SolidMask_WallbangShot, timeDelta );
 
 	if( wallbang_trace != NULL ) {
-		gs->api.Trace( wallbang_trace, start, MinMax3( 0.0f ), trace->endpos, ignore, SolidMask_Shot, timeDelta );
+		gs->api.Trace( wallbang_trace, start, MinMax3( 0.0f ), trace->endpos, ignore, Solid_Wallbangable, timeDelta );
 	}
 }
 

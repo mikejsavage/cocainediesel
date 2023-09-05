@@ -609,29 +609,27 @@ static bool BombCanPlant() {
 }
 
 static void BombGiveToRandom() {
+	const int total_num_players = server_gs.gameState.teams[ AttackingTeam() ].num_players;
 	int num_bots = 0;
-	int num_players = server_gs.gameState.teams[ AttackingTeam() ].num_players;
-	for( int i = 0; i < num_players; i++ ) {
+	int num_players = total_num_players;
+	for( int i = 0; i < total_num_players; i++ ) {
 		s32 player_num = server_gs.gameState.teams[ AttackingTeam() ].player_indices[ i ] - 1;
 		edict_t * ent = PLAYERENT( player_num );
 		if( ent->s.type == ET_GHOST ) {
 			num_players--;
-		}
-
-		if( ( ent->s.svflags & SVF_FAKECLIENT ) != 0 ) {
+		} else if( ( ent->s.svflags & SVF_FAKECLIENT ) != 0 ) {
 			num_bots++;
 		}
 	}
 
 	bool all_bots = num_bots == num_players;
-	int n = all_bots ? num_players : num_players - num_bots;
-	s32 carrier = RandomUniform( &svs.rng, 0, n );
+	s32 carrier = RandomUniform( &svs.rng, 0, all_bots ? num_players : num_players - num_bots );
 	s32 seen = 0;
 
-	for( int i = 0; i < num_players; i++ ) {
+	for( int i = 0; i < total_num_players; i++ ) {
 		s32 player_num = server_gs.gameState.teams[ AttackingTeam() ].player_indices[ i ] - 1;
 		edict_t * ent = PLAYERENT( player_num );
-		if( all_bots || (( ent->s.svflags & SVF_FAKECLIENT ) == 0 && ent->s.type != ET_GHOST) ) {
+		if( ent->s.type != ET_GHOST && (all_bots || ( ent->s.svflags & SVF_FAKECLIENT ) == 0) ) {
 			if( seen == carrier ) {
 				BombSetCarrier( player_num, true );
 				break;

@@ -273,15 +273,9 @@ void G_CallStop( edict_t *self );
 void G_CallPain( edict_t * ent, edict_t *attacker, float kick, float damage );
 void G_CallDie( edict_t * ent, edict_t *inflictor, edict_t *attacker, int assistorNo, DamageType damage_type, int damage );
 
-#ifndef _MSC_VER
-void G_PrintMsg( edict_t * ent, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
-void G_ChatMsg( edict_t * ent, edict_t *who, bool teamonly, const char *format, ... ) __attribute__( ( format( printf, 4, 5 ) ) );
-void G_CenterPrintMsg( edict_t * ent, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
-#else
-void G_PrintMsg( edict_t * ent, _Printf_format_string_ const char *format, ... );
-void G_ChatMsg( edict_t * ent, edict_t *who, bool teamonly, _Printf_format_string_ const char *format, ... );
-void G_CenterPrintMsg( edict_t * ent, _Printf_format_string_ const char *format, ... );
-#endif
+[[gnu::format( printf, 2, 3 )]] void G_PrintMsg( edict_t * ent, const char *format, ... );
+[[gnu::format( printf, 4, 5 )]] void G_ChatMsg( edict_t * ent, edict_t *who, bool teamonly, const char *format, ... );
+[[gnu::format( printf, 2, 3 )]] void G_CenterPrintMsg( edict_t * ent, const char *format, ... );
 void G_ClearCenterPrint( edict_t * ent );
 
 void G_DebugPrint( const char * format, ... );

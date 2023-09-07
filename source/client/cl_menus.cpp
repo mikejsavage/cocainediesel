@@ -280,6 +280,10 @@ static const char * SelectablePlayerList() {
 		}
 	}
 
+	if( players.size() == 0 ) {
+		return "";
+	}
+
 	static size_t selected_player = 0;
 
 	ImGui::PushItemWidth( 200 );
@@ -294,7 +298,7 @@ static const char * SelectablePlayerList() {
 	}
 	ImGui::PopItemWidth();
 
-	return ( selected_player < players.size() ? players[ selected_player ] : "" );
+	return selected_player < players.size() ? players[ selected_player ] : "";
 }
 
 static void MasksList() {
@@ -415,7 +419,7 @@ static void SettingsControls() {
 			KeyBindButton( "Vote no", "vote_no" );
 			KeyBindButton( "Join team", "join" );
 			KeyBindButton( "Ready", "toggleready" );
-			KeyBindButton( "Spectate", "chase" );
+			KeyBindButton( "Spectate", "spectate" );
 			KeyBindButton( "Screenshot", "screenshot" );
 
 			ImGui::EndTabItem();
@@ -1051,7 +1055,7 @@ static void Perks( Vec2 icon_size ) {
 	InitCategory( "CLASS", icon_size.y * 0.5 );
 
 	for( PerkType i = PerkType( Perk_None + 1 ); i < Perk_Count; i++ ) {
-		if( !GetPerkDef( i )->enabled )
+		if( GetPerkDef( i )->disabled )
 			continue;
 
 		const Material * icon = FindMaterial( cgs.media.shaderPerkIcon[ i ] );

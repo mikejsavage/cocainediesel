@@ -73,11 +73,11 @@ Span< u8 > ReadFileBinary( Allocator * a, const char * path ) {
 	FILE * file = OpenFile( a, path, OpenFile_Read );
 	if( file == NULL )
 		return Span< u8 >();
+	defer { fclose( file ); };
 
 	size_t size = FileSize( file );
 	u8 * contents = ( u8 * ) a->allocate( size, 16 );
 	size_t r = fread( contents, 1, size, file );
-	fclose( file );
 	if( r != size ) {
 		Free( a, contents );
 		return Span< u8 >();
@@ -144,8 +144,7 @@ const char * OpenFileModeToString( OpenFileMode mode ) {
 		case OpenFile_WriteOverwrite: return "wb";
 		case OpenFile_ReadWriteNew: return "w+bx";
 		case OpenFile_ReadWriteOverwrite: return "w+b";
-		case OpenFile_AppendNew: return "abx";
-		case OpenFile_AppendOverwrite: return "ab";
+		case OpenFile_AppendExisting: return "ab";
 	}
 
 	Assert( false );

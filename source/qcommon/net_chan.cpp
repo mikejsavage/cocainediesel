@@ -77,6 +77,9 @@ then a packet only needs to be delivered if there is something in the
 unacknowledged reliable
 */
 
+#define FRAGMENT_LAST ( 1 << 14 )
+#define FRAGMENT_BIT ( 1 << 31 )
+
 static Cvar * showpackets;
 static Cvar * showdrop;
 static Cvar * net_showfragments;
@@ -103,7 +106,7 @@ static void Netchan_OutOfBand( Socket socket, const NetAddress & address, const 
 */
 void Netchan_OutOfBandPrint( Socket socket, const NetAddress & address, const char * format, ... ) {
 	va_list argptr;
-	static char string[MAX_PACKETLEN - 4];
+	char string[MAX_PACKETLEN - 4];
 
 	va_start( argptr, format );
 	vsnprintf( string, sizeof( string ), format, argptr );

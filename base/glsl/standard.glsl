@@ -122,7 +122,7 @@ void main() {
 	color *= v_Color;
 #endif
 
-	vec4 diffuse = texture( u_BaseTexture, v_TexCoord ) * color;
+	vec4 diffuse = texture( u_BaseTexture, v_TexCoord, u_LodBias ) * color;
 #endif
 
 #if ALPHA_TEST

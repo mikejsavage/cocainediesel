@@ -192,8 +192,6 @@ NET
 
 // wsw: Medar: doubled the MSGLEN as a temporary solution for multiview on bigger servers
 #define FRAGMENT_SIZE           ( MAX_PACKETLEN - 96 )
-#define FRAGMENT_LAST       (    1 << 14 )
-#define FRAGMENT_BIT            ( 1 << 31 )
 
 /*
 ==============================================================
@@ -203,15 +201,8 @@ MISC
 ==============================================================
 */
 
-#define MAX_PRINTMSG    3072
-
-#ifndef _MSC_VER
-void Com_Printf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-void Com_Error( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-#else
-void Com_Printf( _Printf_format_string_ const char *format, ... );
-void Com_Error( _Printf_format_string_ const char *format, ... );
-#endif
+[[gnu::format( printf, 1, 2 )]] void Com_Printf( const char *format, ... );
+[[gnu::format( printf, 1, 2 )]] void Com_Error( const char *format, ... );
 
 template< typename... Rest >
 void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {
@@ -261,7 +252,6 @@ int64_t Sys_Milliseconds();
 void Sys_Sleep( unsigned int millis );
 
 const char * Sys_ConsoleInput();
-void Sys_ConsoleOutput( const char * string );
 
 bool Sys_OpenInWebBrowser( const char * url );
 

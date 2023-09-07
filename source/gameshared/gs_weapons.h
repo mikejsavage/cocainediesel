@@ -13,10 +13,10 @@ struct WeaponDef {
 
 	WeaponCategory category;
 
-	int projectile_count;
+	int projectile_count = 1;
 	int clip_size;
 	u16 reload_time;
-	u16 staged_reload_time;
+	bool staged_reload;
 
 	u16 switch_in_time;
 	u16 switch_out_time;
@@ -25,7 +25,7 @@ struct WeaponDef {
 
 	EulerDegrees2 recoil_max;
 	EulerDegrees2 recoil_min;
-	float recoil_recover;
+	float recoil_recovery = 500.0f;
 
 	FiringMode firing_mode;
 
@@ -33,15 +33,15 @@ struct WeaponDef {
 	float zoom_spread;
 
 	int damage;
-	float selfdamage;
-	float wallbangdamage;
-	float knockback;
-	float splash_radius;
-	float min_damage;
-	float min_knockback;
+	float self_damage_scale = 1.0f;
+	float wallbang_damage_scale = 1.0f;
+	int knockback;
+	int splash_radius;
+	int min_damage;
+	int min_knockback;
 
 	int speed;
-	float gravity_scale;
+	float gravity_scale = 1.0f;
 	float spread;
 	bool has_altfire;
 };
@@ -68,7 +68,7 @@ struct GadgetDef {
 };
 
 struct PerkDef {
-	bool enabled;
+	bool disabled;
 	const char * name;
 	const char * short_name;
 	float health;

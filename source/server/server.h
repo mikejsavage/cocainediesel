@@ -244,11 +244,7 @@ void SV_ResetClientFrameCounters();
 
 void SV_SendClientMessages();
 
-#ifndef _MSC_VER
-void SV_BroadcastCommand( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-#else
-void SV_BroadcastCommand( _Printf_format_string_ const char *format, ... );
-#endif
+[[gnu::format( printf, 1, 2 )]] void SV_BroadcastCommand( const char *format, ... );
 
 //
 // sv_client.c
@@ -257,11 +253,7 @@ void SV_ParseClientMessage( client_t *client, msg_t *msg );
 bool SV_ClientConnect( const NetAddress & address, client_t * client, char * userinfo,
 	u64 session_id, int challenge, bool fakeClient );
 
-#ifndef _MSC_VER
-void SV_DropClient( client_t *drop, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
-#else
-void SV_DropClient( client_t *drop, _Printf_format_string_ const char *format, ... );
-#endif
+[[gnu::format( printf, 2, 3 )]] void SV_DropClient( client_t *drop, const char *format, ... );
 
 void SV_ExecuteClientThinks( int clientNum );
 void SV_ClientResetCommandBuffers( client_t *client );

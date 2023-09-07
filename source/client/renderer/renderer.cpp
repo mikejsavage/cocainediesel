@@ -17,7 +17,7 @@
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
 
-#include "tracy/Tracy.hpp"
+#include "tracy/tracy/Tracy.hpp"
 
 FrameStatic frame_static;
 static u64 frame_counter;
@@ -193,8 +193,8 @@ static void DeleteRenderTargets() {
 	DeleteRenderTarget( frame_static.render_targets.msaa_onlycolor );
 
 	DeleteTexture( frame_static.render_targets.shadowmaps[ 0 ].depth_attachment );
-	for( u32 i = 0; i < 4; i++ ) {
-		DeleteRenderTarget( frame_static.render_targets.shadowmaps[ i ] );
+	for( RenderTarget & rt : frame_static.render_targets.shadowmaps ) {
+		DeleteRenderTarget( rt );
 	}
 
 	frame_static.render_targets = { };
@@ -363,38 +363,39 @@ static void CreateRenderTargets() {
 	DeleteRenderTargets();
 
 	{
-		TextureConfig albedo_desc;
-		albedo_desc.format = TextureFormat_RGBA_U8_sRGB;
-		albedo_desc.width = frame_static.viewport_width;
-		albedo_desc.height = frame_static.viewport_height;
-
 		RenderTargetConfig rt;
-		rt.color_attachments[ FragmentShaderOutput_Albedo ] = { NewTexture( albedo_desc ) };
+		rt.color_attachments[ FragmentShaderOutput_Albedo ] = {
+			NewTexture( TextureConfig {
+				.format = TextureFormat_RGBA_U8_sRGB,
+				.width = frame_static.viewport_width,
+				.height = frame_static.viewport_height,
+			} ),
+		};
 
 		frame_static.render_targets.silhouette_mask = NewRenderTarget( rt );
 	}
 
 	if( frame_static.msaa_samples > 1 ) {
-		TextureConfig albedo_desc;
-		albedo_desc.format = TextureFormat_RGBA_U8_sRGB;
-		albedo_desc.width = frame_static.viewport_width;
-		albedo_desc.height = frame_static.viewport_height;
-		albedo_desc.msaa_samples = frame_static.msaa_samples;
-		Texture albedo = NewTexture( albedo_desc );
+		Texture albedo = NewTexture( TextureConfig {
+			.format = TextureFormat_RGBA_U8_sRGB,
+			.width = frame_static.viewport_width,
+			.height = frame_static.viewport_height,
+			.msaa_samples = frame_static.msaa_samples,
+		} );
 
-		TextureConfig curved_surface_mask_desc;
-		curved_surface_mask_desc.format = TextureFormat_R_UI8;
-		curved_surface_mask_desc.width = frame_static.viewport_width;
-		curved_surface_mask_desc.height = frame_static.viewport_height;
-		curved_surface_mask_desc.msaa_samples = frame_static.msaa_samples;
-		Texture curved_surface_mask = NewTexture( curved_surface_mask_desc );
+		Texture curved_surface_mask = NewTexture( TextureConfig {
+			.format = TextureFormat_R_UI8,
+			.width = frame_static.viewport_width,
+			.height = frame_static.viewport_height,
+			.msaa_samples = frame_static.msaa_samples,
+		} );
 
-		TextureConfig depth_desc;
-		depth_desc.format = TextureFormat_Depth;
-		depth_desc.width = frame_static.viewport_width;
-		depth_desc.height = frame_static.viewport_height;
-		depth_desc.msaa_samples = frame_static.msaa_samples;
-		Texture depth = NewTexture( depth_desc );
+		Texture depth = NewTexture( TextureConfig {
+			.format = TextureFormat_Depth,
+			.width = frame_static.viewport_width,
+			.height = frame_static.viewport_height,
+			.msaa_samples = frame_static.msaa_samples,
+		} );
 
 		{
 			RenderTargetConfig rt;
@@ -419,23 +420,23 @@ static void CreateRenderTargets() {
 	}
 
 	{
-		TextureConfig albedo_desc;
-		albedo_desc.format = TextureFormat_RGBA_U8_sRGB;
-		albedo_desc.width = frame_static.viewport_width;
-		albedo_desc.height = frame_static.viewport_height;
-		Texture albedo = NewTexture( albedo_desc );
+		Texture albedo = NewTexture( TextureConfig {
+			.format = TextureFormat_RGBA_U8_sRGB,
+			.width = frame_static.viewport_width,
+			.height = frame_static.viewport_height,
+		} );
 
-		TextureConfig curved_surface_mask_desc;
-		curved_surface_mask_desc.format = TextureFormat_R_UI8;
-		curved_surface_mask_desc.width = frame_static.viewport_width;
-		curved_surface_mask_desc.height = frame_static.viewport_height;
-		Texture curved_surface_mask = NewTexture( curved_surface_mask_desc );
+		Texture curved_surface_mask = NewTexture( TextureConfig {
+			.format = TextureFormat_R_UI8,
+			.width = frame_static.viewport_width,
+			.height = frame_static.viewport_height,
+		} );
 
-		TextureConfig depth_desc;
-		depth_desc.format = TextureFormat_Depth;
-		depth_desc.width = frame_static.viewport_width;
-		depth_desc.height = frame_static.viewport_height;
-		Texture depth = NewTexture( depth_desc );
+		Texture depth = NewTexture( TextureConfig {
+			.format = TextureFormat_Depth,
+			.width = frame_static.viewport_width,
+			.height = frame_static.viewport_height,
+		} );
 
 		{
 			RenderTargetConfig rt;
@@ -531,7 +532,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples, Vec3() );
 	frame_static.identity_model_uniforms = UploadModelUniforms( Mat4::Identity() );
-	frame_static.identity_material_static_uniforms = UploadMaterialStaticUniforms( Vec2( 0 ), 0.0f, 64.0f );
+	frame_static.identity_material_static_uniforms = UploadMaterialStaticUniforms( 0.0f, 64.0f );
 	frame_static.identity_material_dynamic_uniforms = UploadMaterialDynamicUniforms( vec4_white );
 
 #define TRACY_HACK( name ) { name, __FUNCTION__, __FILE__, uint32_t( __LINE__ ), 0 }
@@ -556,6 +557,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	frame_static.particle_update_pass = AddRenderPass( &particle_update_tracy );
 	frame_static.particle_setup_indirect_pass = AddRenderPass( RenderPassConfig {
+		.barrier = true,
 		.tracy = &particle_setup_indirect_tracy,
 	} );
 	frame_static.tile_culling_pass = AddRenderPass( &tile_culling_tracy );
@@ -572,6 +574,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.msaa, clear_color, clear_depth );
 		frame_static.world_opaque_pass = AddRenderPass( RenderPassConfig {
 			.target = frame_static.render_targets.msaa_masked,
+			.barrier = true,
 			.tracy = &world_opaque_tracy,
 		} );
 		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.render_targets.msaa );
@@ -580,6 +583,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.postprocess, clear_color, clear_depth );
 		frame_static.world_opaque_pass = AddRenderPass( RenderPassConfig {
 			.target = frame_static.render_targets.postprocess_masked,
+			.barrier = true,
 			.tracy = &world_opaque_tracy,
 		} );
 		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.render_targets.postprocess );
@@ -595,6 +599,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 			.type = RenderPass_Blit,
 			.target = frame_static.render_targets.postprocess,
 			.blit_source = frame_static.render_targets.msaa,
+			.tracy = &msaa_tracy,
 		} );
 	}
 	else {
@@ -818,8 +823,8 @@ UniformBlock UploadModelUniforms( const Mat4 & M ) {
 	return UploadUniformBlock( M );
 }
 
-UniformBlock UploadMaterialStaticUniforms( const Vec2 & texture_size, float specular, float shininess ) {
-	return UploadUniformBlock( texture_size, specular, shininess );
+UniformBlock UploadMaterialStaticUniforms( float specular, float shininess, float lod_bias ) {
+	return UploadUniformBlock( specular, shininess, lod_bias );
 }
 
 UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0, Vec3 tcmod_row1 ) {

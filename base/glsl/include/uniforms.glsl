@@ -19,9 +19,9 @@ layout( std140, set = DescriptorSet_DrawCall ) uniform u_Model {
 #endif
 
 layout( std140, set = DescriptorSet_Material ) uniform u_MaterialStatic {
-	vec2 u_TextureSize;
 	float u_Specular;
 	float u_Shininess;
+	float u_LodBias;
 };
 
 #ifndef INSTANCED

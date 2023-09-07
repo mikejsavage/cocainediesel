@@ -38,7 +38,7 @@ static Optional< u32 > GetSPVInputHash( TempAllocator & temp, const char * path 
 }
 
 static void WriteSPVInputHash( TempAllocator & temp, const char * path, u32 hash ) {
-	FILE * f = OpenFile( &temp, path, OpenFile_AppendOverwrite );
+	FILE * f = OpenFile( &temp, path, OpenFile_AppendExisting );
 	if( f == NULL ) {
 		Fatal( "Can't open %s", path );
 	}

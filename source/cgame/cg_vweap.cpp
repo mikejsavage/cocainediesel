@@ -79,8 +79,7 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * view
 			}
 
 			if( !found ) {
-				float t = ps->weapon_state == WeaponState_Reloading ? def->reload_time : def->staged_reload_time;
-				float frac = float( ps->weapon_state_time ) / t;
+				float frac = float( ps->weapon_state_time ) / float( def->reload_time );
 				angles->z += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
 			}
 		}
@@ -246,7 +245,7 @@ void CG_Recoil( WeaponType weapon ) {
 	recovery_delta = AngleDelta( cg.recoil_initial_angles, viewangles );
 
 	constexpr float recenter_speed_scale = 1.0f / 16.0f;
-	float recenter_accel = GS_GetWeaponDef( weapon )->recoil_recover;
+	float recenter_accel = GS_GetWeaponDef( weapon )->recoil_recovery;
 
 	// pitch
 	{

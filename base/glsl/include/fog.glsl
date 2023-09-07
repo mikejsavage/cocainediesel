@@ -1,4 +1,4 @@
-layout( std140 ) uniform u_Fog {
+layout( std140, set = DescriptorSet_RenderPass ) uniform u_Fog {
 	float u_FogStrength;
 };
 

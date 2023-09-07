@@ -12,8 +12,8 @@
   #define shaderenumdef( t, body ) body
   #define shaderenumval( name, value ) const uint name = value;
 
-  #define gl_VertexIndex gl_VertexID
-  #define gl_InstanceIndex gl_InstanceID
+  // #define gl_VertexIndex gl_VertexID
+  // #define gl_InstanceIndex gl_InstanceID
 #endif
 
 // mirror this in BuildShaderSrcs

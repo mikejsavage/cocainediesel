@@ -77,7 +77,7 @@ layout( location = FragmentShaderOutput_CurvedSurfaceMask ) out uint f_CurvedSur
 
 const uint MASK_CURVED = 1u;
 
-/*layout( set = DescriptorSet_Material )*/ uniform sampler2D u_BaseTexture;
+layout( set = DescriptorSet_Material ) uniform sampler2D u_BaseTexture;
 
 #if APPLY_DECALS || APPLY_DLIGHTS
 struct DynamicTile {
@@ -85,7 +85,7 @@ struct DynamicTile {
 	uint num_dlights;
 };
 
-layout( std430/*, set = DescriptorSet_RenderPass*/ ) readonly buffer b_DynamicTiles {
+layout( std430, set = DescriptorSet_RenderPass ) readonly buffer b_DynamicTiles {
 	DynamicTile dynamic_tiles[];
 };
 #endif

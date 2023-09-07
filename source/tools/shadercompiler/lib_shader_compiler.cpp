@@ -67,14 +67,16 @@ static bool CompileGraphicsShader( TempAllocator & temp, const char * file, Span
 
 	DynamicString features_glslc( &temp );
 	for( const char * feature : features ) {
-		features_filename.append( " -D{}=1", feature );
+		features_glslc.append( " -D{}=1", feature );
 	}
+
+	constexpr const char * target = IFDEF( PLATFORM_MACOS ) ? "vulkan1.3" : "opengl4.5";
 
 	DynamicArray< const char * > commands( &temp );
 	DynamicArray< const char * > files_to_remove( &temp );
 
-	commands.add( temp( "glslc{} -std=450core --target-env=opengl4.5 -fshader-stage=vertex -DVERTEX_SHADER=1 -Dv2f=out {} -fauto-map-locations -fauto-bind-uniforms {} -o {}.vert.spv", EXE_SUFFIX, features_glslc, src_path, out_path ) );
-	commands.add( temp( "glslc{} -std=450core --target-env=opengl4.5 -fshader-stage=fragment -DFRAGMENT_SHADER=1 -Dv2f=in {} -fauto-map-locations -fauto-bind-uniforms {} -o {}.frag.spv", EXE_SUFFIX, features_glslc, src_path, out_path ) );
+	commands.add( temp( "glslc{} -std=450core --target-env={} -fshader-stage=vertex -DVERTEX_SHADER=1 -Dv2f=out {} -fauto-map-locations -fauto-bind-uniforms {} -o {}.vert.spv", EXE_SUFFIX, target, features_glslc, src_path, out_path ) );
+	commands.add( temp( "glslc{} -std=450core --target-env={} -fshader-stage=fragment -DFRAGMENT_SHADER=1 -Dv2f=in {} -fauto-map-locations -fauto-bind-uniforms {} -o {}.frag.spv", EXE_SUFFIX, target, features_glslc, src_path, out_path ) );
 
 	if( settings->optimize ) {
 		commands.add( temp( "spirv-opt{} -O {}.vert.spv -o {}.vert.spv", EXE_SUFFIX, out_path, out_path ) );
@@ -82,8 +84,8 @@ static bool CompileGraphicsShader( TempAllocator & temp, const char * file, Span
 	}
 
 	if( IFDEF( PLATFORM_MACOS ) ) {
-		commands.add( temp( "spirv-cross --msl --rename-entry-point main vertex_main vert --output {}.vert.metal {}.vert.spv", out_path, out_path ) );
-		commands.add( temp( "spirv-cross --msl --rename-entry-point main fragment_main frag --output {}.frag.metal {}.frag.spv", out_path, out_path ) );
+		commands.add( temp( "spirv-cross --msl --msl-version 20000 --msl-argument-buffers --rename-entry-point main vertex_main vert --output {}.vert.metal {}.vert.spv", out_path, out_path ) );
+		commands.add( temp( "spirv-cross --msl --msl-version 20000 --msl-argument-buffers --rename-entry-point main fragment_main frag --output {}.frag.metal {}.frag.spv", out_path, out_path ) );
 
 		commands.add( temp( "xcrun -sdk macosx metal -c {}.vert.metal -o {}.vert.air", out_path, out_path ) );
 		commands.add( temp( "xcrun -sdk macosx metal -c {}.frag.metal -o {}.frag.air", out_path, out_path ) );
@@ -91,8 +93,8 @@ static bool CompileGraphicsShader( TempAllocator & temp, const char * file, Span
 
 		files_to_remove.add( temp( "{}.vert.spv", out_path ) );
 		files_to_remove.add( temp( "{}.frag.spv", out_path ) );
-		files_to_remove.add( temp( "{}.vert.metal", out_path ) );
-		files_to_remove.add( temp( "{}.frag.metal", out_path ) );
+		// files_to_remove.add( temp( "{}.vert.metal", out_path ) );
+		// files_to_remove.add( temp( "{}.frag.metal", out_path ) );
 		files_to_remove.add( temp( "{}.vert.air", out_path ) );
 		files_to_remove.add( temp( "{}.frag.air", out_path ) );
 	}
@@ -120,7 +122,9 @@ static bool CompileComputeShader( TempAllocator & temp, const char * file, const
 	DynamicArray< const char * > commands( &temp );
 	DynamicArray< const char * > files_to_remove( &temp );
 
-	commands.add( temp( "glslc{} -std=450core --target-env=opengl4.5 -fshader-stage=compute -fauto-map-locations -fauto-bind-uniforms {} -o {}.spv", EXE_SUFFIX, src_path, out_path ) );
+	constexpr const char * target = IFDEF( PLATFORM_MACOS ) ? "vulkan1.3" : "opengl4.5";
+
+	commands.add( temp( "glslc{} -std=450core --target-env={} -fshader-stage=compute -fauto-map-locations -fauto-bind-uniforms {} -o {}.spv", EXE_SUFFIX, target, src_path, out_path ) );
 
 	if( settings->optimize ) {
 		commands.add( temp( "spirv-opt{} -O {}.spv -o {}.spv", EXE_SUFFIX, out_path, out_path ) );

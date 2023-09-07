@@ -13,7 +13,7 @@ struct Shader {
     const char * name;
 
     struct Variant {
-        VertexDescriptor mesh_format;
+        // VertexDescriptor mesh_format;
         MTL::RenderPipelineState * pso;
     };
 

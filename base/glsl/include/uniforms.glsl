@@ -1,6 +1,6 @@
 #include "../../../source/client/renderer/shader_shared.h"
 
-layout( std140/*, set = DescriptorSet_RenderPass*/ ) uniform u_View {
+layout( std140, set = DescriptorSet_RenderPass ) uniform u_View {
 	mat4 u_V;
 	mat4 u_InverseV;
 	mat4 u_P;
@@ -13,25 +13,25 @@ layout( std140/*, set = DescriptorSet_RenderPass*/ ) uniform u_View {
 };
 
 #ifndef INSTANCED
-layout( std140/*, set = DescriptorSet_DrawCall*/ ) uniform u_Model {
+layout( std140, set = DescriptorSet_DrawCall ) uniform u_Model {
 	mat4 u_M;
 };
 #endif
 
-layout( std140/*, set = DescriptorSet_Material*/ ) uniform u_MaterialStatic {
+layout( std140, set = DescriptorSet_Material ) uniform u_MaterialStatic {
 	vec2 u_TextureSize;
 	float u_Specular;
 	float u_Shininess;
 };
 
 #ifndef INSTANCED
-layout( std140/*, set = DescriptorSet_DrawCall*/ ) uniform u_MaterialDynamic {
+layout( std140, set = DescriptorSet_DrawCall ) uniform u_MaterialDynamic {
 	vec4 u_MaterialColor;
 	vec3 u_TextureMatrix[ 2 ];
 };
 #endif
 
-layout( std140/*, set = DescriptorSet_RenderPass*/ ) uniform u_ShadowMaps {
+layout( std140, set = DescriptorSet_RenderPass ) uniform u_ShadowMaps {
 	int u_ShadowCascades;
 	mat4 u_ShadowMatrix;
 

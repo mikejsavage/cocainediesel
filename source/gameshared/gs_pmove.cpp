@@ -467,7 +467,7 @@ static trace_t PM_GroundTrace() {
 	return pmove_gs->api.Trace( pml.origin, pm->bounds, point, pm->playerState->POVnum, pm->solid_mask, 0 );
 }
 
-static trace_t PM_UnstickPosition() {
+static Optional< trace_t > PM_UnstickPosition() {
 	TracyZoneScoped;
 
 	Vec3 origin = pml.origin;
@@ -489,6 +489,7 @@ static trace_t PM_UnstickPosition() {
 
 	// go back to the last position
 	pml.origin = pml.previous_origin;
+	return NONE;
 }
 
 static void PM_CategorizePosition() {
@@ -504,7 +505,7 @@ static void PM_CategorizePosition() {
 
 		if( trace.GotNowhere() ) {
 			// try to unstick position
-			trace = PM_UnstickPosition();
+			trace = Default( PM_UnstickPosition(), trace );
 		}
 
 		pml.groundplane = trace.normal;

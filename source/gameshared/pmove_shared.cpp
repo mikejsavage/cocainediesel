@@ -19,7 +19,7 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, fl
 
 	constexpr int candidate_dirs = 12;
 
-	SolidBits ignoreFlags = SolidBits( extraIgnoreFlags | Solid_Player );
+	SolidBits ignoreFlags = SolidBits( extraIgnoreFlags | SolidMask_Player );
 	float dist = 1.0f;
 
 	MinMax3 bounds( Vec3( pm->bounds.mins.xy(), 0.0f ), Vec3( pm->bounds.maxs.xy(), 0.0f ) );
@@ -34,7 +34,7 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, fl
 		);
 		Vec3 end = pml->origin + dir;
 
-		trace_t trace = pmove_gs->api.Trace( pml->origin, bounds, end, pm->playerState->POVnum, pm->solid_mask, 0 );
+		trace_t trace = pmove_gs->api.Trace( pml->origin, bounds, end, pm->playerState->POVnum, Solid_PlayerClip, 0 );
 
 		if( trace.HitNothing() )
 			continue; // no wall in this direction

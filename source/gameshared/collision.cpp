@@ -486,7 +486,7 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 	return trace;
 }
 
-bool EntityOverlap( const CollisionModelStorage * storage, const SyncEntityState * ent_a, const SyncEntityState * ent_b, SolidBits solid_mask  ) {
+bool EntityOverlap( const CollisionModelStorage * storage, const SyncEntityState * ent_a, const SyncEntityState * ent_b, SolidBits solid_mask ) {
 	CollisionModel collision_model_a = EntityCollisionModel( storage, ent_a );
 	CollisionModel collision_model_b = EntityCollisionModel( storage, ent_b );
 

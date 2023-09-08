@@ -214,8 +214,6 @@ trace_t G_Trace4D( Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedi
 			continue;
 		if( game.edicts[ passent ].r.owner != NULL && game.edicts[ passent ].r.owner->s.number == touch.s.number )
 			continue;
-		if( touch.r.client != NULL && touch.s.team == game.edicts[ passent ].s.team )
-			continue;
 
 		trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, &touch.s, solid_mask );
 		if( trace.fraction <= result.fraction ) {
@@ -303,7 +301,7 @@ void GClip_TouchTriggers( edict_t * ent ) {
 	}
 }
 
-void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
+void G_PMoveTouchTriggers( pmove_t * pm, Vec3 previous_origin ) {
 	if( pm->playerState->POVnum <= 0 || (int)pm->playerState->POVnum > MAX_CLIENTS )
 		return;
 
@@ -319,7 +317,6 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 		ent->groundentity = NULL;
 	} else {
 		ent->groundentity = &game.edicts[ pm->groundentity ];
-		// ent->groundentity_linkcount = ent->groundentity->linkcount;
 	}
 
 	GClip_LinkEntity( ent );
@@ -373,6 +370,7 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 int GClip_FindInRadius( Vec3 org, float rad, int *list, int maxcount ) {
 	return GClip_FindInRadius4D( org, rad, list, maxcount, 0 );
 }
+
 bool IsHeadshot( int entNum, Vec3 hit, int timeDelta ) {
 	return false;
 }

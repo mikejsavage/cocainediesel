@@ -688,7 +688,6 @@ void G_CheckGround( edict_t *ent ) {
 
 	if( ent->velocity.z > up_speed_limit || !ISWALKABLEPLANE( trace.normal ) ) {
 		ent->groundentity = NULL;
-		ent->groundentity_linkcount = 0;
 		return;
 	}
 

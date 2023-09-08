@@ -686,7 +686,6 @@ struct edict_t {
 	edict_t *oldenemy;
 	edict_t *activator;
 	edict_t *groundentity;
-	int groundentity_linkcount;
 	StringHash sound;
 
 	// timing variables

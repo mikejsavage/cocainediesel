@@ -23,13 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static SpatialHashGrid cg_grid;
 
-// static int cg_numSolids;
-// static SyncEntityState *cg_solidList[MAX_PARSE_ENTITIES];
-
-// static int cg_numTriggers;
-// static SyncEntityState *cg_triggersList[MAX_PARSE_ENTITIES];
-// static bool cg_triggersListTriggered[MAX_PARSE_ENTITIES];
-
 static bool ucmdReady = false;
 
 /*
@@ -99,13 +92,13 @@ void CG_CheckPredictionError() {
 	}
 }
 
-void CG_BuildSolidList() {
+void CG_BuildSolidList( const snapshot_t * frame ) {
 	// TODO: idk, this is ugly
 
 	ClearSpatialHashGrid( &cg_grid );
 
-	for( int i = 0; i < cg.frame.numEntities; i++ ) {
-		const SyncEntityState * ent = &cg.frame.parsedEntities[ i ];
+	for( int i = 0; i < frame->numEntities; i++ ) {
+		const SyncEntityState * ent = &frame->parsedEntities[ i ];
 
 		if( ent->number == 0 )
 			continue;
@@ -214,11 +207,8 @@ trace_t CG_Trace( Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits so
 	size_t num = TraverseSpatialHashGrid( &cg_grid, broadphase_bounds, touchlist, SolidMask_AnySolid );
 
 	for( size_t i = 0; i < num; i++ ) {
-		SyncEntityState * touch = &cg.frame.parsedEntities[ touchlist[ i ] ];
-
+		const SyncEntityState * touch = &cg.frame.parsedEntities[ touchlist[ i ] ];
 		if( touch->number == ignore )
-			continue;
-		if( touch->type == ET_PLAYER && touch->team == cg_entities[ ignore ].current.team ) // NOMERGE please do this properly
 			continue;
 
 		trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, touch, solid_mask );
@@ -316,10 +306,8 @@ void CG_PredictMovement() {
 	// copy current state to pmove
 	pmove_t pm = { };
 	pm.playerState = &cg.predictedPlayerState;
-	pm.scale = cg_entities[cg.frame.playerState.POVnum].interpolated.scale;
-
-	// clear the triggered toggles for this prediction round
-	// memset( &cg_triggersListTriggered, 0, sizeof( cg_triggersListTriggered ) );
+	pm.scale = cg_entities[ cg.frame.playerState.POVnum ].interpolated.scale;
+	pm.team = cg.predictedPlayerState.team;
 
 	// run frames
 	while( ++ucmdExecuted <= ucmdHead ) {

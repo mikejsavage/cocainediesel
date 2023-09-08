@@ -295,7 +295,7 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	}
 
 	// a new server frame begins now
-	CG_BuildSolidList();
+	CG_BuildSolidList( frame );
 	ResetAnnouncerSpeakers();
 	CG_UpdateEntities();
 	CG_CheckPredictionError();

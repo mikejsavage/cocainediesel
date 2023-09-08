@@ -622,16 +622,16 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 		adelta = Clamp( -35.0f, adelta, 35.0f );
 
 		// smooth a velocity vector between the last snaps
-		cent->lastVelocities[cg.frame.serverFrame & 3] = Vec4( cent->velocity.xy(), 0.0f, adelta );
-		cent->lastVelocitiesFrames[cg.frame.serverFrame & 3] = cg.frame.serverFrame;
+		cent->lastVelocities[cg.frame.serverFrame % ARRAY_COUNT( cent->lastVelocities )] = Vec4( cent->velocity.xy(), 0.0f, adelta );
+		cent->lastVelocitiesFrames[cg.frame.serverFrame % ARRAY_COUNT( cent->lastVelocitiesFrames )] = cg.frame.serverFrame;
 
 		int count = 0;
 		cent->animVelocity = Vec3( 0.0f );
 		cent->yawVelocity = 0;
-		for( int i = cg.frame.serverFrame; ( i >= 0 ) && ( count < 3 ) && ( i == cent->lastVelocitiesFrames[i & 3] ); i-- ) {
+		for( int i = cg.frame.serverFrame; ( i >= 0 ) && ( count < 3 ) && ( i == cent->lastVelocitiesFrames[i % ARRAY_COUNT( cent->lastVelocitiesFrames )] ); i-- ) {
 			count++;
-			cent->animVelocity += cent->lastVelocities[i & 3].xyz();
-			cent->yawVelocity += cent->lastVelocities[i & 3].w;
+			cent->animVelocity += cent->lastVelocities[i % ARRAY_COUNT( cent->lastVelocities )].xyz();
+			cent->yawVelocity += cent->lastVelocities[i % ARRAY_COUNT( cent->lastVelocities )].w;
 		}
 
 		// safety/static code analysis check

@@ -300,7 +300,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->viewheight = playerbox_stand_viewheight;
 	self->r.inuse = true;
 	self->mass = PLAYER_MASS;
-	self->s.solidity = SolidMask_AnySolid;
+	// self->s.solidity = SolidMask_AnySolid;
 	self->s.svflags &= ~SVF_CORPSE;
 	self->enemy = NULL;
 	self->r.owner = NULL;
@@ -334,7 +334,8 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 			self->s.mask = StringHash( mask_name );
 		}
 		self->s.svflags |= SVF_FORCETEAM;
-		self->s.solidity = SolidMask_Everything; // NOMERGE: SET THIS UP PROPERLY
+		SolidBits team_solidity = SolidBits( Solid_PlayerTeamOne << ( self->s.team - Team_One ) );
+		self->s.solidity = SolidBits( team_solidity );
 		self->movetype = MOVETYPE_PLAYER;
 		client->ps.pmove.features = PMFEAT_ALL;
 	}
@@ -833,6 +834,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	pm.playerState = &client->ps;
 	pm.cmd = *ucmd;
 	pm.scale = ent->s.scale;
+	pm.team = ent->s.team;
 
 	// perform a pmove
 	Pmove( &server_gs, &pm );

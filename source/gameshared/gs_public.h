@@ -53,11 +53,12 @@ enum {
 
 struct pmove_t {
 	// state (in / out)
-	SyncPlayerState *playerState;
+	SyncPlayerState * playerState;
 
 	// command (in)
 	UserCommand cmd;
 	Vec3 scale;
+	Team team;
 
 	// results (out)
 	int numtouch;

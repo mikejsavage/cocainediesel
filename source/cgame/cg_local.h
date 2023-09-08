@@ -270,7 +270,7 @@ void CG_PredictedAltFireWeapon( int entNum, u64 parm );
 void CG_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead );
 void CG_PredictMovement();
 void CG_CheckPredictionError();
-void CG_BuildSolidList();
+void CG_BuildSolidList( const snapshot_t * frame );
 trace_t CG_Trace( Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask );
 void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin );
 

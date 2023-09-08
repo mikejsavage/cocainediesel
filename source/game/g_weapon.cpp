@@ -78,7 +78,7 @@ static void W_ARBullet_Backtrace( edict_t * ent, Vec3 start ) {
 	// workaround to stop this hanging when you shoot a teammate
 	int iter = 0;
 	do {
-		tr = G_Trace4D( ent->s.origin, MinMax3( 2.0f ), oldorigin, ent, Solid_Player, ent->timeDelta );
+		tr = G_Trace4D( ent->s.origin, MinMax3( 2.0f ), oldorigin, ent, SolidMask_Player, ent->timeDelta );
 
 		ent->s.origin = tr.endpos;
 

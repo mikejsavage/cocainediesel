@@ -9,17 +9,14 @@ float Normalize2D( Vec3 * v ) {
 	return length;
 }
 
-
-// Walljump wall availability check
-// nbTestDir is the number of directions to test around the player
-// maxZnormal is the max Z value of the normal of a poly to consider it a wall
-// normal becomes a pointer to the normal of the most appropriate wall
-void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, float maxZnormal, Vec3 * normal, bool z, SolidBits ignoreFlags ) {
+Optional< Vec3 > PlayerTouchWall( const pmove_t * pm, const pml_t * pml, const gs_state_t * pmove_gs, bool z, SolidBits ignoreFlags ) {
 	TracyZoneScoped;
 
 	constexpr int candidate_dirs = 12;
+	constexpr float max_z_normal = 0.3f;
 
-	float dist = 1.0f;
+	Optional< Vec3 > best_normal = NONE;
+	float best_fraction = 1.0f;
 
 	MinMax3 bounds( Vec3( pm->bounds.mins.xy(), 0.0f ), Vec3( pm->bounds.maxs.xy(), 0.0f ) );
 
@@ -39,16 +36,18 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, fl
 			continue; // no wall in this direction
 
 		if( trace.normal == Vec3( 0.0f ) )
-			return;
+			break;
 
 		if( trace.solidity & ignoreFlags )
 			continue;
 
-		if( dist > trace.fraction && Abs( trace.normal.z ) < maxZnormal ) {
-			dist = trace.fraction;
-			*normal = trace.normal;
+		if( trace.fraction < best_fraction && Abs( trace.normal.z ) < max_z_normal ) {
+			best_fraction = trace.fraction;
+			best_normal = trace.normal;
 		}
 	}
+
+	return best_normal;
 }
 
 bool StaminaAvailable( SyncPlayerState * ps, pml_t * pml, float need ) {

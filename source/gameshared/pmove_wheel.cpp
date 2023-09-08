@@ -72,9 +72,8 @@ static void PM_WheelJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 	if( pm->groundentity == -1 && ps->pmove.stamina_state == Stamina_UsedAbility &&
 		!ISWALKABLEPLANE( trace.normal ) && !pml->ladder && trace.GotSomewhere() )
 	{
-		Vec3 normal( 0.0f );
-		PlayerTouchWall( pm, pml, pmove_gs, 0.3f, &normal, true, Solid_Ladder );
-		if( normal == Vec3( 0.0f ) )
+		Optional< Vec3 > normal = PlayerTouchWall( pm, pml, pmove_gs, true, Solid_Ladder );
+		if( !normal.exists )
 			return;
 
 		//don't want to bounce everywhere while falling imo
@@ -84,9 +83,9 @@ static void PM_WheelJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 		}
 
 		float speed = Length( velocity2 );
-		pml->velocity = GS_ClipVelocity( pml->velocity, normal, 1.0005f );
+		pml->velocity = GS_ClipVelocity( pml->velocity, normal.value, 1.0005f );
 		if( speed > min_bounce_speed ) {
-			pml->velocity = pml->velocity + normal * speed * bounce_factor;
+			pml->velocity = pml->velocity + normal.value * speed * bounce_factor;
 		}
 	}
 }

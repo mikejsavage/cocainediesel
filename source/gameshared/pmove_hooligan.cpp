@@ -45,9 +45,8 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 
 	float hspeed = Length( Vec3( pml->velocity.x, pml->velocity.y, 0 ) );
 	if( ( hspeed > pm_dashspeed && pml->velocity.z > 8 ) || trace.HitNothing() || !ISWALKABLEPLANE( trace.normal ) ) {
-		Vec3 normal( 0.0f );
-		PlayerTouchWall( pm, pml, pmove_gs, 0.3f, &normal, false, Solid_NotSolid );
-		if( !Length( normal ) )
+		Optional< Vec3 > normal = PlayerTouchWall( pm, pml, pmove_gs, false, Solid_NotSolid );
+		if( !normal.exists )
 			return;
 
 		float oldupvelocity = pml->velocity.z;
@@ -55,8 +54,8 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 
 		hspeed = Normalize2D( &pml->velocity );
 
-		pml->velocity = GS_ClipVelocity( pml->velocity, normal, 1.0005f );
-		pml->velocity = pml->velocity + normal * pm_wjbouncefactor;
+		pml->velocity = GS_ClipVelocity( pml->velocity, normal.value, 1.0005f );
+		pml->velocity = pml->velocity + normal.value * pm_wjbouncefactor;
 
 		hspeed = Max2( hspeed, pml->maxSpeed );
 
@@ -71,7 +70,7 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 		StaminaUseImmediate( ps, stamina_usewj );
 
 		// Create the event
-		pmove_gs->api.PredictedEvent( ps->POVnum, EV_WALLJUMP, DirToU64( normal ) );
+		pmove_gs->api.PredictedEvent( ps->POVnum, EV_WALLJUMP, DirToU64( normal.value ) );
 	}
 }
 

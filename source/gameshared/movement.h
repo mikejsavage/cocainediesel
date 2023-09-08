@@ -45,7 +45,7 @@ constexpr float SLIDEMOVE_PLANEINTERACT_EPSILON = 0.05f;
 
 // shared
 float Normalize2D( Vec3 * v );
-void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, float maxZnormal, Vec3 * normal, bool z, SolidBits ignoreFlags );
+Optional< Vec3 > PlayerTouchWall( const pmove_t * pm, const pml_t * pml, const gs_state_t * pmove_gs, bool z, SolidBits ignoreFlags );
 
 bool StaminaAvailable( SyncPlayerState * ps, pml_t * pml, float need );
 bool StaminaAvailableImmediate( SyncPlayerState * ps, float need );

@@ -14,12 +14,11 @@ float Normalize2D( Vec3 * v ) {
 // nbTestDir is the number of directions to test around the player
 // maxZnormal is the max Z value of the normal of a poly to consider it a wall
 // normal becomes a pointer to the normal of the most appropriate wall
-void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, float maxZnormal, Vec3 * normal, bool z, SolidBits extraIgnoreFlags ) {
+void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, float maxZnormal, Vec3 * normal, bool z, SolidBits ignoreFlags ) {
 	TracyZoneScoped;
 
 	constexpr int candidate_dirs = 12;
 
-	SolidBits ignoreFlags = SolidBits( extraIgnoreFlags | SolidMask_Player );
 	float dist = 1.0f;
 
 	MinMax3 bounds( Vec3( pm->bounds.mins.xy(), 0.0f ), Vec3( pm->bounds.maxs.xy(), 0.0f ) );

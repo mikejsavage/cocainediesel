@@ -43,8 +43,7 @@ constexpr float SLIDEMOVE_PLANEINTERACT_EPSILON = 0.05f;
 #define SLIDEMOVEFLAG_TRAPPED       	( 1 << 1 )
 #define SLIDEMOVEFLAG_WALL_BLOCKED  	( 1 << 2 )
 
-
-//shared
+// shared
 float Normalize2D( Vec3 * v );
 void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, float maxZnormal, Vec3 * normal, bool z, SolidBits ignoreFlags );
 
@@ -61,7 +60,7 @@ void PM_InitPerk( pmove_t * pm, pml_t * pml, PerkType perk,
 void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed, bool addvel );
 void Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir, float dash_speed, float dash_upspeed );
 
-//pmove_ files
+// pmove_ files
 void PM_NinjaInit( pmove_t * pm, pml_t * pml );
 void PM_HooliganInit( pmove_t * pm, pml_t * pml );
 void PM_MidgetInit( pmove_t * pm, pml_t * pml );

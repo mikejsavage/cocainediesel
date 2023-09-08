@@ -94,7 +94,6 @@ void PM_InitPerk( pmove_t * pm, pml_t * pml, PerkType perk,
 	pml->ability2Callback = ability2Callback;
 }
 
-
 void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed, bool addvel ) {
 	if( pml->ladder ) {
 		return;
@@ -110,7 +109,6 @@ void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerSta
 	pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, JumpType_Normal );
 	pml->velocity.z = (addvel ? Max2( 0.0f, pml->velocity.z ) : 0.0f) + jumpspeed;
 }
-
 
 void Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir, float dash_speed, float dash_upspeed ) {
 	pm->groundentity = -1;

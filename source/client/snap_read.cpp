@@ -253,12 +253,12 @@ static snapshot_t *SNAP_ParseFrameHeader( msg_t *msg, snapshot_t *newframe, snap
 }
 
 snapshot_t *SNAP_ParseFrame( msg_t *msg, const snapshot_t *lastFrame, snapshot_t *backup, SyncEntityState *baselines, int showNet ) {
-	snapshot_t  *deltaframe;
+	snapshot_t *deltaframe;
 	int numplayers;
 	char *text;
 	int framediff;
 	gcommand_t *gcmd;
-	snapshot_t  *newframe;
+	snapshot_t *newframe;
 
 	// read header
 	newframe = SNAP_ParseFrameHeader( msg, NULL, backup );

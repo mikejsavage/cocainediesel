@@ -28,7 +28,10 @@ configs[ "windows" ] = {
 }
 
 configs[ "windows-debug" ] = {
+	-- /Z7 puts debug info in the .obj
+	-- /FC (Full path of source code file in diagnostics)
 	cxxflags = "/MTd /Z7 /FC",
+	-- /FUNCTIONPADMIN /OPT:NOREF /OPT:NOICF are required for Live++
 	ldflags = "/NOLOGO /DEBUG:FULL /FUNCTIONPADMIN /OPT:NOREF /OPT:NOICF",
 }
 configs[ "windows-release" ] = {
@@ -38,8 +41,8 @@ configs[ "windows-release" ] = {
 }
 configs[ "windows-bench" ] = {
 	bin_suffix = "-bench.exe",
-	cxxflags = configs[ "windows-release" ].cxxflags,
-	ldflags = configs[ "windows-release" ].ldflags,
+	cxxflags = configs[ "windows-release" ].cxxflags .. " /Z7",
+	ldflags = configs[ "windows-release" ].ldflags .. " /DEBUG:FULL",
 	prebuilt_lib_dir = "windows-release",
 }
 

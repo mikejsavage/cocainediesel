@@ -75,8 +75,6 @@ void main() {
 layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
 layout( location = FragmentShaderOutput_CurvedSurfaceMask ) out uint f_CurvedSurfaceMask;
 
-const uint MASK_CURVED = 1u;
-
 layout( set = DescriptorSet_Material ) uniform sampler2D u_BaseTexture;
 
 #if APPLY_DECALS || APPLY_DLIGHTS

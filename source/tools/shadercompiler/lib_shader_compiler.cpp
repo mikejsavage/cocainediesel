@@ -7,6 +7,7 @@
 #include "qcommon/threadpool.h"
 #include "gameshared/q_shared.h"
 
+#include "client/renderer/shader_shared.h"
 #include "client/renderer/shader_variants.h"
 #include "client/renderer/spirv.h"
 
@@ -84,8 +85,8 @@ static bool CompileGraphicsShader( TempAllocator & temp, const char * file, Span
 	}
 
 	if( IFDEF( PLATFORM_MACOS ) ) {
-		commands.add( temp( "spirv-cross --msl --msl-version 20000 --msl-argument-buffers --rename-entry-point main vertex_main vert --output {}.vert.metal {}.vert.spv", out_path, out_path ) );
-		commands.add( temp( "spirv-cross --msl --msl-version 20000 --msl-argument-buffers --rename-entry-point main fragment_main frag --output {}.frag.metal {}.frag.spv", out_path, out_path ) );
+		commands.add( temp( "spirv-cross --msl --msl-version 20000 --msl-argument-buffers --msl-discrete-descriptor-set {} --msl-force-active-argument-buffer-resources --rename-entry-point main vertex_main vert --output {}.vert.metal {}.vert.spv", DescriptorSet_DrawCall, out_path, out_path ) );
+		commands.add( temp( "spirv-cross --msl --msl-version 20000 --msl-argument-buffers --msl-discrete-descriptor-set {} --msl-force-active-argument-buffer-resources --rename-entry-point main fragment_main frag --output {}.frag.metal {}.frag.spv", DescriptorSet_DrawCall, out_path, out_path ) );
 
 		commands.add( temp( "xcrun -sdk macosx metal -c {}.vert.metal -o {}.vert.air", out_path, out_path ) );
 		commands.add( temp( "xcrun -sdk macosx metal -c {}.frag.metal -o {}.frag.air", out_path, out_path ) );

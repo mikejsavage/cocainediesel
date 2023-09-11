@@ -16,10 +16,10 @@ void main() {
 
 #else
 
-layout( std140 ) uniform u_Time {
+layout( std140, set = DescriptorSet_DrawCall ) uniform u_Time {
 	float u_T;
 };
-uniform sampler2D u_Noise;
+layout( set = DescriptorSet_DrawCall ) uniform sampler2D u_Noise;
 
 layout( location = FragmentShaderOutput_Albedo ) out vec3 f_Albedo;
 

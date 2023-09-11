@@ -1,8 +1,8 @@
 #include "include/uniforms.glsl"
 
-uniform sampler2D u_BaseTexture;
+layout( set = DescriptorSet_Material ) uniform sampler2D u_BaseTexture;
 
-layout( std140 ) uniform u_Text {
+layout( std140, set = DescriptorSet_DrawCall ) uniform u_Text {
 	vec4 u_TextColor;
 	vec4 u_BorderColor;
 	vec2 u_AtlasSize;

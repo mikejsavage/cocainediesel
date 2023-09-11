@@ -122,10 +122,7 @@ static void DrawText( const Font * font, float pixel_size, Span< const char > st
 	sam.shader = &shaders.text;
 	sam.material = &font->material;
 	sam.uniform_name = "u_Text";
-	sam.uniform_block = UploadUniformBlock(
-		color, border_color,
-		Vec2( font->atlas.width, font->atlas.height ),
-		font->dSDF_dTexel, border ? 1 : 0 );
+	sam.uniform_block = UploadUniformBlock( color, border_color, font->dSDF_dTexel, border ? 1 : 0 );
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();
 	bg->PushTextureID( sam );

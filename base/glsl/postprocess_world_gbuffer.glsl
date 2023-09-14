@@ -35,10 +35,10 @@ void main() {
 	ivec2 p = ivec2( gl_FragCoord.xy );
 	ivec3 pixel = ivec3( 0, 1, -1 );
 
-	float depth =            texelFetch( u_DepthTexture, p, gl_SampleID ).r;
-	float depth_up =         texelFetch( u_DepthTexture, p + pixel.xz, gl_SampleID ).r;
-	float depth_down_left =  texelFetch( u_DepthTexture, p + pixel.yy, gl_SampleID ).r;
-	float depth_down_right = texelFetch( u_DepthTexture, p + pixel.zy, gl_SampleID ).r;
+	float depth =            ClampedTexelFetch( u_DepthTexture, p, gl_SampleID ).r;
+	float depth_up =         ClampedTexelFetch( u_DepthTexture, p + pixel.xz, gl_SampleID ).r;
+	float depth_down_left =  ClampedTexelFetch( u_DepthTexture, p + pixel.yy, gl_SampleID ).r;
+	float depth_down_right = ClampedTexelFetch( u_DepthTexture, p + pixel.zy, gl_SampleID ).r;
 
 	uint mask = texelFetch( u_CurvedSurfaceMask, p, gl_SampleID ).r;
 	float epsilon = ( mask & MASK_CURVED ) == MASK_CURVED ? 0.005 : 0.00001;

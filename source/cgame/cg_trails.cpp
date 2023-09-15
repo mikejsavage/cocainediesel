@@ -170,7 +170,7 @@ static void DrawActualTrail( Trail & trail ) {
 
 		float len = Length( dir );
 		dir /= len;
-		Vec3 forward = Normalize( a.p - frame_static.position );
+		Vec3 forward = SafeNormalize( a.p - frame_static.position );
 		Vec3 bitangent = SafeNormalize( Cross( -forward, dir ) );
 
 		positions[ i * 2 + 0 ] = a.p + bitangent * trail.width * 0.5f * fract;
@@ -221,8 +221,10 @@ void DrawTrails() {
 	for( u32 i = 0; i < num_trails; i++ ) {
 		if( !UpdateTrail( trails[ i ] ) ) {
 			trails_hashtable.remove( trails[ i ].unique_id );
-			Swap2( &trails[ i ], &trails[ num_trails - 1 ] );
-			trails_hashtable.update( trails[ i ].unique_id, i );
+			if( num_trails > 1 ) {
+				Swap2( &trails[ i ], &trails[ num_trails - 1 ] );
+				trails_hashtable.update( trails[ i ].unique_id, i );
+			}
 			i--;
 			num_trails--;
 			continue;

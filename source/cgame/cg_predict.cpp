@@ -101,7 +101,6 @@ void CG_BuildSolidList( const snapshot_t * frame ) {
 		if( ent->number == 0 )
 			continue;
 
-		// TODO: looks sus
 		if( ISEVENTENTITY( ent ) )
 			continue;
 

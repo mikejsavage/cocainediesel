@@ -266,7 +266,6 @@ void G_FreeEdict( edict_t *e );
 
 void G_AddEvent( edict_t * ent, int event, u64 parm, bool highPriority );
 edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin );
-void G_MorphEntityIntoEvent( edict_t * ent, int event, u64 parm );
 
 void G_CallThink( edict_t * ent );
 void G_CallTouch( edict_t * self, edict_t * other, Vec3 normal, SolidBits solid_mask );

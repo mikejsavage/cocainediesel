@@ -75,7 +75,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	body->s.team = ent->s.team;
 	body->s.perk = ent->s.perk;
 	body->s.scale = ent->s.scale;
-	body->s.svflags = SVF_CORPSE | SVF_BROADCAST;
+	body->s.svflags = SVF_BROADCAST;
 	body->s.mask = ent->s.mask;
 	body->activator = ent;
 	body->enemy = attacker;
@@ -301,7 +301,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->r.inuse = true;
 	self->mass = PLAYER_MASS;
 	// self->s.solidity = SolidMask_AnySolid;
-	self->s.svflags &= ~SVF_CORPSE;
 	self->enemy = NULL;
 	self->r.owner = NULL;
 	self->max_health = 100;

@@ -312,16 +312,6 @@ edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin ) {
 	return ent;
 }
 
-void G_MorphEntityIntoEvent( edict_t *ent, int event, u64 parm ) {
-	ent->s.type = ET_EVENT;
-	ent->s.solidity = Solid_NotSolid;
-	ent->s.svflags &= ~SVF_PROJECTILE; // FIXME: Medar: should be remove all or remove this one elsewhere?
-	ent->s.linearMovement = false;
-	G_AddEvent( ent, event, parm, true );
-
-	GClip_LinkEntity( ent );
-}
-
 void G_InitMover( edict_t *ent ) {
 	// ent->r.solid = SOLID_YES;
 	ent->movetype = MOVETYPE_PUSH;

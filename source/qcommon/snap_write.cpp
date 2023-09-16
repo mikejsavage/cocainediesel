@@ -388,19 +388,8 @@ static bool SNAP_SnapCullEntity( const edict_t * ent, const edict_t * clent, con
 		return false;
 	}
 
-	bool is_a_sound = false;
-
 	// sound entities culling
 	if( ent->s.svflags & SVF_SOUNDCULL ) {
-		is_a_sound = true;
-	}
-
-	// if not a sound entity but the entity is only a sound
-	else if( ent->s.model == EMPTY_HASH && !ent->s.events[0].type && !ent->s.effects && ent->s.sound != EMPTY_HASH ) {
-		is_a_sound = true;
-	}
-
-	if( is_a_sound ) {
 		return SNAP_SnapCullSoundEntity( ent, vieworg );
 	}
 

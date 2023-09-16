@@ -243,7 +243,6 @@ static edict_t * FireProjectile(
 
 	projectile->s.override_collision_model = CollisionModelAABB( MinMax3( Vec3( 0.0f ), Vec3( 0.0f ) ) );
 	projectile->s.solidity = SolidMask_Shot;
-	projectile->s.svflags = SVF_PROJECTILE;
 	projectile->gravity_scale = stats.gravity_scale;
 
 	projectile->timeDelta = timeDelta;

@@ -833,23 +833,23 @@ UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0,
 }
 
 ModelRenderData FindModelRenderData( StringHash name ) {
-	ModelRenderData render_data = { };
-
 	const GLTFRenderData * gltf = FindGLTFRenderData( name );
 	if( gltf != NULL ) {
-		render_data.type = ModelType_GLTF;
-		render_data.gltf = gltf;
-		return render_data;
+		return ModelRenderData {
+			.type = ModelType_GLTF,
+			.gltf = gltf,
+		};
 	}
 
 	const MapSubModelRenderData * map = FindMapSubModelRenderData( name );
 	if( map != NULL ) {
-		render_data.type = ModelType_Map;
-		render_data.map = map;
-		return render_data;
+		return ModelRenderData {
+			.type = ModelType_Map,
+			.map = map,
+		};
 	}
 
-	return render_data;
+	return { };
 }
 
 ModelRenderData FindModelRenderData( const char * name ) {

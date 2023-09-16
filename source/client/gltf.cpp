@@ -8,6 +8,7 @@
 #include "client/renderer/model.h"
 #include "client/renderer/gltf.h"
 #include "gameshared/q_shared.h"
+#include "gameshared/collision.h"
 
 #include "cgltf/cgltf.h"
 
@@ -17,23 +18,7 @@ static GLTFRenderData gltf_models[ MAX_MODELS ];
 static u32 num_gltf_models;
 static Hashtable< MAX_MODELS * 2 > gltf_models_hashtable;
 
-// like cgltf_load_buffers, but doesn't try to load URIs
-static bool LoadBinaryBuffers( cgltf_data * data ) {
-	if( data->buffers_count && data->buffers[0].data == NULL && data->buffers[0].uri == NULL && data->bin ) {
-		if( data->bin_size < data->buffers[0].size )
-			return false;
-		data->buffers[0].data = const_cast< void * >( data->bin );
-	}
-
-	for( cgltf_size i = 0; i < data->buffers_count; i++ ) {
-		if( data->buffers[i].data == NULL )
-			return false;
-	}
-
-	return true;
-}
-
-static bool LoadGLTF( GLTFRenderData * render_data, const char * path ) {
+static bool LoadGLTFRenderData( GLTFRenderData * render_data, const char * path ) {
 	TracyZoneScoped;
 	TracyZoneText( path, strlen( path ) );
 
@@ -50,7 +35,7 @@ static bool LoadGLTF( GLTFRenderData * render_data, const char * path ) {
 
 	defer { cgltf_free( gltf ); };
 
-	if( !LoadBinaryBuffers( gltf ) ) {
+	if( !LoadGLBBuffers( gltf ) ) {
 		Com_Printf( S_COLOR_YELLOW "Couldn't load buffers in %s\n", path );
 		return false;
 	}
@@ -82,7 +67,7 @@ static bool LoadGLTF( GLTFRenderData * render_data, const char * path ) {
 
 static void LoadGLTF( const char * path ) {
 	GLTFRenderData render_data;
-	if( !LoadGLTF( &render_data, path ) )
+	if( !LoadGLTFRenderData( &render_data, path ) )
 		return;
 
 	u64 hash = Hash64( StripExtension( path ) );

@@ -19,23 +19,6 @@ struct ServerMapData {
 static ServerMapData maps[ CollisionModelStorage::MAX_MAPS ];
 static size_t num_maps;
 
-// like cgltf_load_buffers, but doesn't try to load URIs
-static bool LoadBinaryBuffers( cgltf_data * data ) {
-	if( data->buffers_count && data->buffers[0].data == NULL && data->buffers[0].uri == NULL && data->bin ) {
-		if( data->bin_size < data->buffers[0].size )
-			return false;
-		data->buffers[0].data = const_cast< void * >( data->bin );
-	}
-
-	for( cgltf_size i = 0; i < data->buffers_count; i++ ) {
-		if( data->buffers[i].data == NULL )
-			return false;
-	}
-
-	return true;
-}
-
-
 static bool AddGLTFModel( Span< const u8 > data, Span< const char > path ) {
 	cgltf_options options = { };
 	options.type = cgltf_file_type_glb;
@@ -48,7 +31,7 @@ static bool AddGLTFModel( Span< const u8 > data, Span< const char > path ) {
 
 	defer { cgltf_free( gltf ); };
 
-	if( !LoadBinaryBuffers( gltf ) ) {
+	if( !LoadGLBBuffers( gltf ) ) {
 		Com_GGPrint( S_COLOR_YELLOW "Couldn't load buffers in {}", path );
 		return false;
 	}

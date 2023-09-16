@@ -77,6 +77,22 @@ static bool PlaneFrom3Points( Plane * plane, Vec3 a, Vec3 b, Vec3 c ) {
 	return true;
 }
 
+// like cgltf_load_buffers, but doesn't try to load URIs
+bool LoadGLBBuffers( cgltf_data * data ) {
+	if( data->buffers_count && data->buffers[0].data == NULL && data->buffers[0].uri == NULL && data->bin ) {
+		if( data->bin_size < data->buffers[0].size )
+			return false;
+		data->buffers[0].data = const_cast< void * >( data->bin );
+	}
+
+	for( cgltf_size i = 0; i < data->buffers_count; i++ ) {
+		if( data->buffers[i].data == NULL )
+			return false;
+	}
+
+	return true;
+}
+
 bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * gltf, Span< const char > path, StringHash name ) {
 	NonRAIIDynamicArray< Vec3 > vertices( sys_allocator );
 	NonRAIIDynamicArray< Plane > planes( sys_allocator );

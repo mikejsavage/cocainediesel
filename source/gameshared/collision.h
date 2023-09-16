@@ -57,6 +57,7 @@ void InitCollisionModelStorage( CollisionModelStorage * storage );
 void ShutdownCollisionModelStorage( CollisionModelStorage * storage );
 
 struct cgltf_data;
+bool LoadGLBBuffers( cgltf_data * data );
 bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * gltf, Span< const char > path, StringHash name );
 
 const GLTFCollisionData * FindGLTFSharedCollisionData( const CollisionModelStorage * storage, StringHash name );

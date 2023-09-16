@@ -155,7 +155,7 @@ static void CG_InterpolatePlayerState( SyncPlayerState * playerState ) {
 
 	*playerState = *ops;
 
-	bool teleported = false; // TODO: syncentitystate::teleported!
+	bool teleported = false; // TODO NOMERGE: syncentitystate::teleported!
 
 	if( Abs( ops->pmove.origin.x - ps->pmove.origin.x ) > 256
 		|| Abs( ops->pmove.origin.y - ps->pmove.origin.y ) > 256

@@ -93,8 +93,6 @@ void CG_CheckPredictionError() {
 }
 
 void CG_BuildSolidList( const snapshot_t * frame ) {
-	// TODO: idk, this is ugly
-
 	ClearSpatialHashGrid( &cg_grid );
 
 	for( int i = 0; i < frame->numEntities; i++ ) {
@@ -103,6 +101,7 @@ void CG_BuildSolidList( const snapshot_t * frame ) {
 		if( ent->number == 0 )
 			continue;
 
+		// TODO: looks sus
 		if( ISEVENTENTITY( ent ) )
 			continue;
 

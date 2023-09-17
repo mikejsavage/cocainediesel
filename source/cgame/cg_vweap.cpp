@@ -70,10 +70,12 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * view
 		else if( ps->weapon_state == WeaponState_Reloading || ps->weapon_state == WeaponState_StagedReloading ) {
 			// TODO: temporary for non-animated models
 			const GLTFRenderData * model = FindGLTFRenderData( GetWeaponModelMetadata( ps->weapon )->model );
-			u8 animation;
-			if( !FindAnimationByName( model, viewweapon->eventAnim, &animation ) ) {
-				float frac = float( ps->weapon_state_time ) / def->reload_time;
-				angles->z += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
+			if( model != NULL ) {
+				u8 animation;
+				if( !FindAnimationByName( model, viewweapon->eventAnim, &animation ) ) {
+					float frac = float( ps->weapon_state_time ) / def->reload_time;
+					angles->z += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
+				}
 			}
 		}
 		else if( ps->weapon_state == WeaponState_SwitchingIn || ps->weapon_state == WeaponState_SwitchingOut ) {

@@ -322,8 +322,6 @@ void SP_func_door( edict_t * ent, const spawn_temp_t * st ) {
 
 	GClip_LinkEntity( ent );
 
-	ent->style = -1;
-
 	if( ent->name == EMPTY_HASH ) {
 		ent->nextThink = level.time + 1;
 		ent->think = Think_SpawnDoorTrigger;

@@ -163,7 +163,6 @@ static void ParseEntityKeyValue( Span< const char > key, Span< const char > valu
 	used = used || DoField( "deadcam", &ent->deadcam, key, value );
 	used = used || DoField( "wait", &ent->wait, key, value );
 	used = used || DoField( "delay", &ent->delay, key, value );
-	used = used || DoField( "style", &ent->style, key, value );
 	used = used || DoField( "count", &ent->count, key, value );
 	used = used || DoField( "health", &ent->health, key, value );
 	used = used || DoField( "dmg", &ent->dmg, key, value );

@@ -61,7 +61,7 @@ static bool G_CanSplashDamage( const edict_t * targ, const edict_t * inflictor, 
 	return false;
 }
 
-void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int assistorNo, DamageType damage_type, int damage ) {
+void G_Killed( edict_t * targ, edict_t * inflictor, edict_t * attacker, int assistorNo, DamageType damage_type, int damage ) {
 	if( targ->health < -999 ) {
 		targ->health = -999;
 	}
@@ -93,15 +93,15 @@ void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int assisto
 	G_CallDie( targ, inflictor, attacker, assistorNo, damage_type, damage );
 }
 
-static void G_AddAssistDamage( edict_t* targ, edict_t* attacker, int amount ) {
+static void G_AddAssistDamage( edict_t * targ, edict_t * attacker, int amount ) {
 	if( attacker == world || attacker == targ ) {
 		return;
 	}
 
 	int attacker_entno = attacker->s.number;
-	assistinfo_t *assist = NULL;
+	assistinfo_t * assist = NULL;
 
-	for ( int i = 0; i < MAX_ASSIST_INFO; ++i ) {
+	for( size_t i = 0; i < ARRAY_COUNT( targ->recent_attackers ); i++ ) {
 		// check for recent attacker or free slot first
 		if( targ->recent_attackers[i].entno == attacker_entno || !targ->recent_attackers[i].entno) {
 			assist = &targ->recent_attackers[i];
@@ -111,7 +111,7 @@ static void G_AddAssistDamage( edict_t* targ, edict_t* attacker, int amount ) {
 
 	if( assist == NULL ) {
 		// no free slots, replace oldest attacker seeya pal
-		for ( int i = 0; i < MAX_ASSIST_INFO; ++i ) {
+		for( size_t i = 0; i < ARRAY_COUNT( targ->recent_attackers ); i++ ) {
 			if( assist == NULL || targ->recent_attackers[i].lastTime < assist->lastTime ) {
 				assist = &targ->recent_attackers[i];
 			}
@@ -125,11 +125,11 @@ static void G_AddAssistDamage( edict_t* targ, edict_t* attacker, int amount ) {
 	assist->cumDamage += amount;
 }
 
-static int G_FindTopAssistor( edict_t* victim, edict_t* attacker ) {
-	assistinfo_t *top = NULL;
+static int G_FindTopAssistor( edict_t * victim, edict_t * attacker ) {
+	const assistinfo_t * top = NULL;
 
 	// TODO: could weigh damage by most recent timestamp as well
-	for (int i = 0; i < MAX_ASSIST_INFO; ++i) {
+	for( size_t i = 0; i < ARRAY_COUNT( victim->recent_attackers ); i++ ) {
 		if(victim->recent_attackers[i].entno && (top == NULL || victim->recent_attackers[i].cumDamage > top->cumDamage)) {
 			top = &victim->recent_attackers[i];
 		}
@@ -308,7 +308,7 @@ void G_Damage( edict_t * targ, edict_t * inflictor, edict_t * attacker, Vec3 pus
 	}
 }
 
-void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 point, float maxradius, Vec3 * pushdir, float *frac, bool selfdamage ) {
+void G_SplashFrac( const SyncEntityState * s, const entity_shared_t * r, Vec3 point, float maxradius, Vec3 * pushdir, float * frac, bool selfdamage ) {
 	const Vec3 & origin = s->origin;
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), s );
 
@@ -354,7 +354,7 @@ void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 poin
 	*pushdir = SafeNormalize( center_of_mass - point );
 }
 
-void G_RadiusKnockback( float maxknockback, float minknockback, float radius, edict_t *attacker, Vec3 pos, Optional< Vec3 > normal, int timeDelta ) {
+void G_RadiusKnockback( float maxknockback, float minknockback, float radius, edict_t * attacker, Vec3 pos, Optional< Vec3 > normal, int timeDelta ) {
 	Assert( radius >= 0.0f );
 	Assert( minknockback >= 0.0f && maxknockback >= 0.0f );
 
@@ -379,7 +379,7 @@ void G_RadiusKnockback( float maxknockback, float minknockback, float radius, ed
 	}
 }
 
-void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Optional< Vec3 > normal, edict_t *ignore, DamageType damage_type ) {
+void G_RadiusDamage( edict_t * inflictor, edict_t * attacker, Optional< Vec3 > normal, edict_t * ignore, DamageType damage_type ) {
 	Assert( inflictor );
 
 	float maxdamage = inflictor->projectileInfo.maxDamage;

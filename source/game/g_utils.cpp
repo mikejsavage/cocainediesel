@@ -95,7 +95,7 @@ edict_t * G_PickTarget( StringHash name ) {
 	return candidates[ RandomUniform( &svs.rng, 0, num_candidates ) ];
 }
 
-static void Think_Delay( edict_t *ent ) {
+static void Think_Delay( edict_t * ent ) {
 	G_UseTargets( ent, ent->activator );
 	G_FreeEdict( ent );
 }
@@ -114,15 +114,13 @@ static void Think_Delay( edict_t *ent ) {
 * match (string)self.target and call their .use function
 *
 */
-void G_UseTargets( edict_t *ent, edict_t *activator ) {
-	edict_t *t;
-
+void G_UseTargets( edict_t * ent, edict_t * activator ) {
 	//
 	// check for a delay
 	//
 	if( ent->delay ) {
 		// create a temp object to fire at a later time
-		t = G_Spawn();
+		edict_t * t = G_Spawn();
 		t->classname = "delayed_use";
 		t->nextThink = level.time + ent->delay;
 		t->think = Think_Delay;
@@ -151,7 +149,7 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 	// kill killtargets
 	//
 	if( ent->killtarget != EMPTY_HASH ) {
-		t = NULL;
+		edict_t * t = NULL;
 		while( ( t = G_Find( t, &edict_t::name, ent->killtarget ) ) ) {
 			G_FreeEdict( t );
 			if( !ent->r.inuse ) {
@@ -167,7 +165,7 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 	// fire targets
 	//
 	if( ent->target != EMPTY_HASH ) {
-		t = NULL;
+		edict_t * t = NULL;
 		while( ( t = G_Find( t, &edict_t::name, ent->target ) ) ) {
 			if( t == ent ) {
 				Com_Printf( "WARNING: Entity used itself.\n" );
@@ -187,7 +185,7 @@ void G_SetMovedir( Vec3 * angles, Vec3 * movedir ) {
 	*angles = Vec3( 0.0f );
 }
 
-void G_FreeEdict( edict_t *ed ) {
+void G_FreeEdict( edict_t * ed ) {
 	if( ed == NULL || !ed->r.inuse )
 		return;
 
@@ -205,7 +203,7 @@ void G_FreeEdict( edict_t *ed ) {
 	}
 }
 
-void G_InitEdict( edict_t *e ) {
+void G_InitEdict( edict_t * e ) {
 	// if( e->r.inuse ) {
 	// 	bool ok = entity_id_hashtable.remove( e->id.id );
 	// 	Assert( ok );
@@ -235,7 +233,7 @@ void G_InitEdict( edict_t *e ) {
 * instead of being removed and recreated, which can cause interpolated
 * angles and bad trails.
 */
-edict_t *G_Spawn() {
+edict_t * G_Spawn() {
 	if( !level.canSpawnEntities ) {
 		Com_Printf( "WARNING: Spawning entity before map entities have been spawned\n" );
 	}
@@ -279,7 +277,7 @@ edict_t *G_Spawn() {
 	return e;
 }
 
-void G_AddEvent( edict_t *ent, int event, u64 parm, bool highPriority ) {
+void G_AddEvent( edict_t * ent, int event, u64 parm, bool highPriority ) {
 	if( !ent || ent == world || !ent->r.inuse || !event ) {
 		return;
 	}
@@ -297,7 +295,7 @@ void G_AddEvent( edict_t *ent, int event, u64 parm, bool highPriority ) {
 	ent->eventPriority[eventNum] = highPriority;
 }
 
-edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin ) {
+edict_t * G_SpawnEvent( int event, u64 parm, const Vec3 * origin ) {
 	edict_t * ent = G_Spawn();
 	ent->s.type = ET_EVENT;
 	ent->s.solidity = Solid_NotSolid;
@@ -312,13 +310,13 @@ edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin ) {
 	return ent;
 }
 
-void G_InitMover( edict_t *ent ) {
+void G_InitMover( edict_t * ent ) {
 	// ent->r.solid = SOLID_YES;
 	ent->movetype = MOVETYPE_PUSH;
 	ent->s.svflags &= ~SVF_NOCLIENT;
 }
 
-void G_CallThink( edict_t *ent ) {
+void G_CallThink( edict_t * ent ) {
 	if( ent->think ) {
 		ent->think( ent );
 	}
@@ -334,25 +332,25 @@ void G_CallTouch( edict_t * self, edict_t * other, Vec3 normal, SolidBits solid_
 	}
 }
 
-void G_CallUse( edict_t *self, edict_t *other, edict_t *activator ) {
+void G_CallUse( edict_t * self, edict_t * other, edict_t * activator ) {
 	if( self->use ) {
 		self->use( self, other, activator );
 	}
 }
 
-void G_CallStop( edict_t *self ) {
+void G_CallStop( edict_t * self ) {
 	if( self->stop ) {
 		self->stop( self );
 	}
 }
 
-void G_CallPain( edict_t *ent, edict_t *attacker, float kick, float damage ) {
+void G_CallPain( edict_t * ent, edict_t * attacker, float kick, float damage ) {
 	if( ent->pain ) {
 		ent->pain( ent, attacker, kick, damage );
 	}
 }
 
-void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int assistorNo, DamageType damage_type, int damage ) {
+void G_CallDie( edict_t * ent, edict_t * inflictor, edict_t * attacker, int assistorNo, DamageType damage_type, int damage ) {
 	if( ent->die ) {
 		ent->die( ent, inflictor, attacker, assistorNo, damage_type, damage );
 	}
@@ -363,7 +361,7 @@ void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int assisto
 *
 * NULL sends to all the message to all clients
 */
-void G_PrintMsg( edict_t *ent, const char *format, ... ) {
+void G_PrintMsg( edict_t * ent, const char * format, ... ) {
 	char msg[MAX_STRING_CHARS];
 	va_list argptr;
 
@@ -399,7 +397,7 @@ void G_PrintMsg( edict_t *ent, const char *format, ... ) {
 *
 * NULL sends the message to all clients
 */
-void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, ... ) {
+void G_ChatMsg( edict_t * ent, const edict_t * who, bool teamonly, const char *format, ... ) {
 	char msg[MAX_STRING_CHARS];
 	va_list argptr;
 
@@ -457,19 +455,17 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 *
 * NULL sends to all the message to all clients
 */
-void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
+void G_CenterPrintMsg( edict_t * ent, const char * format, ... ) {
 	char msg[1024];
 	char cmd[MAX_STRING_CHARS];
 	va_list argptr;
-	char *p;
-	edict_t *other;
 
 	va_start( argptr, format );
 	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	// double quotes are bad
-	p = msg;
+	char * p = msg;
 	while( ( p = strchr( p, '\"' ) ) != NULL )
 		*p = '\'';
 
@@ -478,7 +474,7 @@ void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
 
 	if( ent != NULL ) {
 		// add it to every player who's chasing this player
-		for( other = game.edicts + 1; PLAYERNUM( other ) < server_gs.maxclients; other++ ) {
+		for( edict_t * other = game.edicts + 1; PLAYERNUM( other ) < server_gs.maxclients; other++ ) {
 			if( !other->r.client || !other->r.inuse || !other->r.client->resp.chase.active ) {
 				continue;
 			}
@@ -490,7 +486,7 @@ void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
 	}
 }
 
-void G_ClearCenterPrint( edict_t *ent ) {
+void G_ClearCenterPrint( edict_t * ent ) {
 	G_CenterPrintMsg( ent, "%s", "" );
 }
 
@@ -596,7 +592,7 @@ void G_LocalSound( edict_t * owner, StringHash sound ) {
 * Kills all entities that would touch the proposed new positioning
 * of ent.  Ent should be unlinked before calling this!
 */
-void KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback ) {
+void KillBox( edict_t * ent, DamageType damage_type, Vec3 knockback ) {
 	while( true ) {
 		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
 		trace_t trace = G_Trace( ent->s.origin, bounds, ent->s.origin, world, SolidMask_AnySolid );
@@ -618,7 +614,7 @@ void KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback ) {
 	}
 }
 
-float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker ) {
+float LookAtKillerYAW( edict_t * self, edict_t * inflictor, edict_t * attacker ) {
 	Vec3 dir;
 
 	if( attacker && attacker != world && attacker != self ) {
@@ -661,15 +657,15 @@ static void G_SpawnTeleportEffect( edict_t * ent, bool respawn, bool in ) {
 	event->s.ownerNum = ENTNUM( ent );
 }
 
-void G_TeleportEffect( edict_t *ent, bool in ) {
+void G_TeleportEffect( edict_t * ent, bool in ) {
 	G_SpawnTeleportEffect( ent, false, in );
 }
 
-void G_RespawnEffect( edict_t *ent ) {
+void G_RespawnEffect( edict_t * ent ) {
 	G_SpawnTeleportEffect( ent, true, false );
 }
 
-void G_CheckGround( edict_t *ent ) {
+void G_CheckGround( edict_t * ent ) {
 	float up_speed_limit = ent->r.client == NULL ? 1.0f : 180.0f;
 
 	Vec3 ground_point = ent->s.origin - Vec3( 0.0f, 0.0f, 0.25f );
@@ -687,7 +683,7 @@ void G_CheckGround( edict_t *ent ) {
 	}
 }
 
-void G_ReleaseClientPSEvent( gclient_t *client ) {
+void G_ReleaseClientPSEvent( gclient_t * client ) {
 	for( int i = 0; i < 2; i++ ) {
 		if( client->resp.eventsCurrent < client->resp.eventsHead ) {
 			client->ps.events[ i ] = client->resp.events[ client->resp.eventsCurrent % ARRAY_COUNT( client->resp.events ) ];
@@ -702,7 +698,7 @@ void G_ReleaseClientPSEvent( gclient_t *client ) {
 * G_AddPlayerStateEvent
 * This event is only sent to this client inside its SyncPlayerState.
 */
-void G_AddPlayerStateEvent( gclient_t *client, int ev, u64 parm ) {
+void G_AddPlayerStateEvent( gclient_t * client, int ev, u64 parm ) {
 	Assert( ev >= 0 && ev < PSEV_MAX_EVENTS );
 	if( client == NULL )
 		return;
@@ -724,7 +720,7 @@ void G_ClearPlayerStateEvents( gclient_t *client ) {
 * G_PlayerForText
 * Returns player matching given text. It can be either number of the player or player's name.
 */
-edict_t *G_PlayerForText( const char *text ) {
+edict_t * G_PlayerForText( const char * text ) {
 	if( !text || !text[0] ) {
 		return NULL;
 	}
@@ -744,7 +740,7 @@ edict_t *G_PlayerForText( const char *text ) {
 	return NULL;
 }
 
-void G_AnnouncerSound( edict_t *targ, StringHash sound, Team team, bool queued, edict_t *ignore ) {
+void G_AnnouncerSound( edict_t * targ, StringHash sound, Team team, bool queued, edict_t * ignore ) {
 	int psev = queued ? PSEV_ANNOUNCER_QUEUED : PSEV_ANNOUNCER;
 	Team playerTeam;
 
@@ -759,9 +755,7 @@ void G_AnnouncerSound( edict_t *targ, StringHash sound, Team team, bool queued, 
 
 		G_AddPlayerStateEvent( targ->r.client, psev, sound.hash );
 	} else {   // add it to all players
-		edict_t *ent;
-
-		for( ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
+		for( edict_t * ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
 			if( !ent->r.inuse || PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 				continue;
 			}

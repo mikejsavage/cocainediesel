@@ -92,7 +92,7 @@ struct level_locals_t {
 
 	bool ready[MAX_CLIENTS];
 
-	edict_t *current_entity;    // entity running from G_RunFrame
+	edict_t * current_entity;    // entity running from G_RunFrame
 
 	timeout_t timeout;
 };
@@ -252,31 +252,31 @@ void ResetEntityIDSequence();
 edict_t * GetEntity( EntityID id );
 
 void KillBox( edict_t * ent, DamageType damage_type, Vec3 knockback );
-float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker );
+float LookAtKillerYAW( edict_t * self, edict_t * inflictor, edict_t * attacker );
 edict_t * G_Find( edict_t * cursor, StringHash edict_t::* field, StringHash value );
 edict_t * G_PickRandomEnt( StringHash edict_t::* field, StringHash value );
 edict_t * G_PickTarget( StringHash name );
-void G_UseTargets( edict_t * ent, edict_t *activator );
+void G_UseTargets( edict_t * ent, edict_t * activator );
 void G_SetMovedir( Vec3 * angles, Vec3 * movedir );
 void G_InitMover( edict_t * ent );
 
-void G_InitEdict( edict_t *e );
-edict_t *G_Spawn();
-void G_FreeEdict( edict_t *e );
+void G_InitEdict( edict_t * e );
+edict_t * G_Spawn();
+void G_FreeEdict( edict_t * e );
 
 void G_AddEvent( edict_t * ent, int event, u64 parm, bool highPriority );
-edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin );
+edict_t * G_SpawnEvent( int event, u64 parm, const Vec3 * origin );
 
 void G_CallThink( edict_t * ent );
 void G_CallTouch( edict_t * self, edict_t * other, Vec3 normal, SolidBits solid_mask );
-void G_CallUse( edict_t *self, edict_t *other, edict_t *activator );
-void G_CallStop( edict_t *self );
-void G_CallPain( edict_t * ent, edict_t *attacker, float kick, float damage );
-void G_CallDie( edict_t * ent, edict_t *inflictor, edict_t *attacker, int assistorNo, DamageType damage_type, int damage );
+void G_CallUse( edict_t * self, edict_t * other, edict_t * activator );
+void G_CallStop( edict_t * self );
+void G_CallPain( edict_t * ent, edict_t * attacker, float kick, float damage );
+void G_CallDie( edict_t * ent, edict_t * inflictor, edict_t * attacker, int assistorNo, DamageType damage_type, int damage );
 
-[[gnu::format( printf, 2, 3 )]] void G_PrintMsg( edict_t * ent, const char *format, ... );
-[[gnu::format( printf, 4, 5 )]] void G_ChatMsg( edict_t * ent, edict_t *who, bool teamonly, const char *format, ... );
-[[gnu::format( printf, 2, 3 )]] void G_CenterPrintMsg( edict_t * ent, const char *format, ... );
+[[gnu::format( printf, 2, 3 )]] void G_PrintMsg( edict_t * ent, const char * format, ... );
+[[gnu::format( printf, 4, 5 )]] void G_ChatMsg( edict_t * ent, const edict_t * who, bool teamonly, const char * format, ... );
+[[gnu::format( printf, 2, 3 )]] void G_CenterPrintMsg( edict_t * ent, const char * format, ... );
 void G_ClearCenterPrint( edict_t * ent );
 
 void G_DebugPrint( const char * format, ... );
@@ -294,8 +294,8 @@ void G_AddPlayerStateEvent( gclient_t *client, int event, u64 parm );
 void G_ClearPlayerStateEvents( gclient_t *client );
 
 // announcer events
-void G_AnnouncerSound( edict_t *targ, StringHash sound, Team team, bool queued, edict_t *ignore );
-edict_t *G_PlayerForText( const char *text );
+void G_AnnouncerSound( edict_t * targ, StringHash sound, Team team, bool queued, edict_t * ignore );
+edict_t * G_PlayerForText( const char *text );
 
 void G_SunCycle( u64 time );
 
@@ -343,12 +343,12 @@ bool IsHeadshot( int entNum, Vec3 hit, int timeDelta );
 // g_combat.c
 //
 bool G_IsTeamDamage( const SyncEntityState * targ, const SyncEntityState * attacker );
-void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int topAssistorNo, DamageType damage_type, int damage );
+void G_Killed( edict_t * targ, edict_t * inflictor, edict_t * attacker, int topAssistorNo, DamageType damage_type, int damage );
 void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 point, float maxradius, Vec3 * pushdir, float *frac, bool selfdamage );
-void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, DamageType damage_type );
+void G_Damage( edict_t * targ, edict_t * inflictor, edict_t * attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, DamageType damage_type );
 void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage, bool headshot, Vec3 pos, Vec3 dir, bool showNumbers );
-void G_RadiusKnockback( float maxknockback, float minknockback, float radius, edict_t *attacker, Vec3 pos, Optional< Vec3 > normal, int timeDelta );
-void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Optional< Vec3 > normal, edict_t *ignore, DamageType damage_type );
+void G_RadiusKnockback( float maxknockback, float minknockback, float radius, edict_t * attacker, Vec3 pos, Optional< Vec3 > normal, int timeDelta );
+void G_RadiusDamage( edict_t * inflictor, edict_t * attacker, Optional< Vec3 > normal, edict_t * ignore, DamageType damage_type );
 
 // damage flags
 #define DAMAGE_RADIUS         ( 1 << 0 )  // damage was indirect
@@ -387,7 +387,7 @@ void G_EndServerFrames_UpdateChaseCam();
 void ClientUserinfoChanged( edict_t * ent, const char * userinfo );
 void G_Client_UpdateActivity( gclient_t *client );
 void G_Client_InactivityRemove( gclient_t *client );
-void G_ClientRespawn( edict_t *self, bool ghost );
+void G_ClientRespawn( edict_t * self, bool ghost );
 score_stats_t * G_ClientGetStats( edict_t * ent );
 void G_ClientClearStats( edict_t * ent );
 void ClientThink( edict_t * ent, UserCommand *cmd, int timeDelta );
@@ -404,15 +404,15 @@ void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead );
 void G_SelectWeapon( edict_t * ent, int index );
 void G_GiveWeapon( edict_t * ent, WeaponType weapon );
 void G_GivePerk( edict_t * ent, PerkType perk );
-void G_TeleportPlayer( edict_t *player, edict_t *dest );
-bool G_PlayerCanTeleport( edict_t *player );
+void G_TeleportPlayer( edict_t * player, edict_t * dest );
+bool G_PlayerCanTeleport( edict_t * player );
 
 //
 // g_player.c
 //
-void player_pain( edict_t *self, edict_t *other, float kick, int damage );
-void player_die( edict_t *self, edict_t *inflictor, edict_t *attacker, int topAssistorEntNo, DamageType damage_type, int damage );
-void player_think( edict_t *self );
+void player_pain( edict_t * self, edict_t * other, float kick, int damage );
+void player_die( edict_t * self, edict_t * inflictor, edict_t * attacker, int topAssistorEntNo, DamageType damage_type, int damage );
+void player_think( edict_t * self );
 
 //
 // g_target.c
@@ -437,7 +437,7 @@ void G_ClientDamageFeedback( edict_t * ent );
 //
 // g_phys.c
 //
-void SV_Impact( edict_t *e1, trace_t *trace );
+void SV_Impact( edict_t * e1, trace_t *trace );
 void G_RunEntity( edict_t * ent );
 
 //
@@ -485,7 +485,6 @@ struct chasecam_t {
 	int64_t timeout;           //delay after loosing target
 };
 
-#define MAX_ASSIST_INFO 4
 struct assistinfo_t {
 	int entno;
 	int cumDamage;
@@ -514,7 +513,7 @@ struct moveinfo_t {
 	int state;
 
 	void ( *endfunc )( edict_t * );
-	void ( *blocked )( edict_t *self, edict_t *other );
+	void ( *blocked )( edict_t * self, edict_t * other );
 
 	Vec3 dest;
 	Vec3 destangles;
@@ -633,19 +632,19 @@ struct edict_t {
 
 	int64_t nextThink;
 
-	void ( *think )( edict_t *self );
+	void ( *think )( edict_t * self );
 	EdictTouchCallback touch;
-	void ( *use )( edict_t *self, edict_t *other, edict_t *activator );
-	void ( *pain )( edict_t *self, edict_t *other, float kick, int damage );
-	void ( *die )( edict_t *self, edict_t *inflictor, edict_t *attacker, int assistorNo, DamageType damage_type, int damage );
-	void ( *stop )( edict_t *self );
+	void ( *use )( edict_t * self, edict_t * other, edict_t * activator );
+	void ( *pain )( edict_t * self, edict_t * other, float kick, int damage );
+	void ( *die )( edict_t * self, edict_t * inflictor, edict_t * attacker, int assistorNo, DamageType damage_type, int damage );
+	void ( *stop )( edict_t * self );
 
 	StringHash name;
 	StringHash target;
 	StringHash killtarget;
 	StringHash pathtarget;
 	StringHash deadcam;
-	edict_t *target_ent;
+	edict_t * target_ent;
 
 	Vec3 velocity;
 	Vec3 avelocity;
@@ -660,12 +659,12 @@ struct edict_t {
 
 	int dmg;
 
-	const char *message;
+	const char * message;
 
 	int mass;
 	float gravity_scale;
 
-	edict_t *movetarget;
+	edict_t * movetarget;
 
 	int64_t pain_debounce_time;
 
@@ -680,11 +679,9 @@ struct edict_t {
 
 	int64_t timeout;			// for SW and fat PG
 
-	edict_t *chain;
-	edict_t *enemy;
-	edict_t *oldenemy;
-	edict_t *activator;
-	edict_t *groundentity;
+	edict_t * enemy;
+	edict_t * activator;
+	edict_t * groundentity;
 	StringHash sound;
 
 	// timing variables
@@ -692,19 +689,12 @@ struct edict_t {
 	s64 delay;                // before firing targets
 	s64 wait_randomness;
 
-	int style;
-
 	// common data blocks
 	moveinfo_t moveinfo;        // func movers movement
 
 	snap_edict_t snap; // information that is cleared each frame snap
 
-	edict_t *trigger_entity;
-	int64_t trigger_timeout;
-
-	bool linked;
-
-	assistinfo_t recent_attackers[MAX_ASSIST_INFO];
+	assistinfo_t recent_attackers[ 4 ];
 	u32 num_bounces;
 };
 
@@ -730,12 +720,12 @@ extern game_locals_t game;
 
 constexpr edict_t * world = &game.edicts[ 0 ];
 
-static inline int ENTNUM( const edict_t *x ) { return x - game.edicts; }
+static inline int ENTNUM( const edict_t * x ) { return x - game.edicts; }
 static inline int ENTNUM( const gclient_t *x ) { return x - game.clients + 1; }
 
-static inline int PLAYERNUM( const edict_t *x ) { return x - game.edicts - 1; }
+static inline int PLAYERNUM( const edict_t * x ) { return x - game.edicts - 1; }
 static inline int PLAYERNUM( const gclient_t *x ) { return x - game.clients; }
 
-static inline edict_t *PLAYERENT( int x ) { return game.edicts + x + 1; }
+static inline edict_t * PLAYERENT( int x ) { return game.edicts + x + 1; }
 
 static inline bool G_ISGHOSTING( const edict_t * ent ) { return EntitySolidity( ServerCollisionModelStorage(), &ent->s ) == Solid_NotSolid; }

@@ -106,8 +106,8 @@ s64 MSG_ReadInt64( msg_t * msg );
 u64 MSG_ReadUint64( msg_t * msg );
 uint64_t MSG_ReadUintBase128( msg_t * msg );
 int64_t MSG_ReadIntBase128( msg_t * msg );
-char *MSG_ReadString( msg_t * msg );
-char *MSG_ReadStringLine( msg_t * msg );
+const char * MSG_ReadString( msg_t * msg );
+const char * MSG_ReadStringLine( msg_t * msg );
 void MSG_ReadDeltaUsercmd( msg_t * msg, const UserCommand * baseline, UserCommand * cmd );
 int MSG_ReadEntityNumber( msg_t * msg, bool * remove );
 void MSG_ReadDeltaEntity( msg_t * msg, const SyncEntityState * baseline, SyncEntityState * ent );
@@ -135,7 +135,7 @@ constexpr s64 UPDATE_BACKUP = 32;  // copies of SyncEntityState to keep buffered
 // the svc_strings[] array in snap_read should mirror this
 //==================
 extern const char * const svc_strings[256];
-void _SHOWNET( msg_t *msg, const char *s, int shownet );
+void _SHOWNET( msg_t * msg, const char * s, int shownet );
 
 //
 // server to client

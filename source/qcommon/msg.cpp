@@ -40,12 +40,12 @@ msg_t NewMSGReader( u8 * data, size_t n, size_t data_size ) {
 	return msg;
 }
 
-void MSG_Clear( msg_t *msg ) {
+void MSG_Clear( msg_t * msg ) {
 	msg->cursize = 0;
 	msg->compressed = false;
 }
 
-void *MSG_GetSpace( msg_t *msg, size_t length ) {
+void *MSG_GetSpace( msg_t * msg, size_t length ) {
 	void *ptr;
 
 	Assert( msg->cursize + length <= msg->maxsize );
@@ -402,7 +402,7 @@ void MSG_WriteUint32( msg_t * msg, u32 x ) { MSG_WriteFundamental( msg, x ); }
 void MSG_WriteInt64( msg_t * msg, s64 x ) { MSG_WriteFundamental( msg, x ); }
 void MSG_WriteUint64( msg_t * msg, u64 x ) { MSG_WriteFundamental( msg, x ); }
 
-void MSG_WriteUintBase128( msg_t *msg, uint64_t c ) {
+void MSG_WriteUintBase128( msg_t * msg, uint64_t c ) {
 	uint8_t buf[10];
 	size_t len = 0;
 
@@ -417,13 +417,13 @@ void MSG_WriteUintBase128( msg_t *msg, uint64_t c ) {
 	MSG_Write( msg, buf, len );
 }
 
-void MSG_WriteIntBase128( msg_t *msg, int64_t c ) {
+void MSG_WriteIntBase128( msg_t * msg, int64_t c ) {
 	// use Zig-zag encoding for signed integers for more efficient storage
 	uint64_t cc = (uint64_t)(c << 1) ^ (uint64_t)(c >> 63);
 	MSG_WriteUintBase128( msg, cc );
 }
 
-void MSG_WriteString( msg_t *msg, const char *s ) {
+void MSG_WriteString( msg_t * msg, const char *s ) {
 	if( !s ) {
 		MSG_Write( msg, "", 1 );
 	} else {
@@ -446,7 +446,7 @@ void MSG_WriteMsg( msg_t * msg, msg_t other ) {
 // READ FUNCTIONS
 //==================================================
 
-void MSG_BeginReading( msg_t *msg ) {
+void MSG_BeginReading( msg_t * msg ) {
 	msg->readcount = 0;
 }
 
@@ -472,7 +472,7 @@ u32 MSG_ReadUint32( msg_t * msg ) { return MSG_ReadFundamental< u32 >( msg, 0 );
 s64 MSG_ReadInt64( msg_t * msg ) { return MSG_ReadFundamental< s64 >( msg, -1 ); }
 u64 MSG_ReadUint64( msg_t * msg ) { return MSG_ReadFundamental< u64 >( msg, 0 ); }
 
-uint64_t MSG_ReadUintBase128( msg_t *msg ) {
+uint64_t MSG_ReadUintBase128( msg_t * msg ) {
 	size_t len = 0;
 	uint64_t i = 0;
 
@@ -488,19 +488,19 @@ uint64_t MSG_ReadUintBase128( msg_t *msg ) {
 	return i;
 }
 
-int64_t MSG_ReadIntBase128( msg_t *msg ) {
+int64_t MSG_ReadIntBase128( msg_t * msg ) {
 	// un-Zig-Zag our value back to a signed integer
 	uint64_t c = MSG_ReadUintBase128( msg );
 	return (int64_t)(c >> 1) ^ (-(int64_t)(c & 1));
 }
 
-void MSG_ReadData( msg_t *msg, void *data, size_t length ) {
+void MSG_ReadData( msg_t * msg, void *data, size_t length ) {
 	for( size_t i = 0; i < length; i++ ) {
 		( (uint8_t *)data )[i] = MSG_ReadUint8( msg );
 	}
 }
 
-int MSG_SkipData( msg_t *msg, size_t length ) {
+int MSG_SkipData( msg_t * msg, size_t length ) {
 	if( msg->readcount + length <= msg->cursize ) {
 		msg->readcount += length;
 		return 1;
@@ -508,7 +508,7 @@ int MSG_SkipData( msg_t *msg, size_t length ) {
 	return 0;
 }
 
-static char *MSG_ReadString2( msg_t *msg, bool linebreak ) {
+static const char * MSG_ReadString2( msg_t * msg, bool linebreak ) {
 	int l, c;
 	static char string[MAX_MSG_STRING_CHARS];
 
@@ -528,11 +528,11 @@ static char *MSG_ReadString2( msg_t *msg, bool linebreak ) {
 	return string;
 }
 
-char *MSG_ReadString( msg_t *msg ) {
+const char * MSG_ReadString( msg_t * msg ) {
 	return MSG_ReadString2( msg, false );
 }
 
-char *MSG_ReadStringLine( msg_t *msg ) {
+const char * MSG_ReadStringLine( msg_t * msg ) {
 	return MSG_ReadString2( msg, true );
 }
 
@@ -603,7 +603,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.id.id, baseline.id.id );
 }
 
-void MSG_WriteEntityNumber( msg_t *msg, int number, bool remove ) {
+void MSG_WriteEntityNumber( msg_t * msg, int number, bool remove ) {
 	MSG_WriteIntBase128( msg, (remove ? 1 : 0) | number << 1 );
 }
 
@@ -612,7 +612,7 @@ void MSG_WriteEntityNumber( msg_t *msg, int number, bool remove ) {
 *
 * Returns the entity number and the remove bit
 */
-int MSG_ReadEntityNumber( msg_t *msg, bool *remove ) {
+int MSG_ReadEntityNumber( msg_t * msg, bool *remove ) {
 	int number = (int)MSG_ReadIntBase128( msg );
 	*remove = ( number & 1 ) != 0;
 	return number >> 1;

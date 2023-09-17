@@ -199,21 +199,17 @@ static svcmd_t svcmds[] = {
 };
 
 static void CL_ParseServerCommand( msg_t *msg ) {
-	const char *s;
-	char *text;
-	svcmd_t *cmd;
-
-	text = MSG_ReadString( msg );
+	const char * text = MSG_ReadString( msg );
 
 	Cmd_TokenizeString( text );
-	s = Cmd_Argv( 0 );
+	const char * s = Cmd_Argv( 0 );
 
 	if( cl_debug_serverCmd->integer && ( cls.state < CA_ACTIVE || CL_DemoPlaying() ) ) {
 		Com_Printf( "CL_ParseServerCommand: \"%s\"\n", text );
 	}
 
 	// filter out these server commands to be called from the client
-	for( cmd = svcmds; cmd->name; cmd++ ) {
+	for( const svcmd_t * cmd = svcmds; cmd->name; cmd++ ) {
 		if( StrEqual( s, cmd->name ) ) {
 			cmd->func();
 			return;

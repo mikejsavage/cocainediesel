@@ -308,9 +308,9 @@ static void LoadNode( GLTFRenderData * model, cgltf_data * gltf, cgltf_node * gl
 	}
 }
 
-static InterpolationMode InterpolationModeFromGLTF( cgltf_interpolation_type interpolation ) {
+static GLTFInterpolationMode InterpolationModeFromGLTF( cgltf_interpolation_type interpolation ) {
 	// TODO: cubic
-	return interpolation == cgltf_interpolation_type_step ? InterpolationMode_Step : InterpolationMode_Linear;
+	return interpolation == cgltf_interpolation_type_step ? GLTFInterpolationMode_Step : GLTFInterpolationMode_Linear;
 }
 
 template< typename T >
@@ -491,7 +491,7 @@ static T SampleAnimationChannel( const GLTFRenderData::AnimationChannel< T > & c
 	}
 
 	// TODO: cubic
-	if( channel.interpolation == InterpolationMode_Step ) {
+	if( channel.interpolation == GLTFInterpolationMode_Step ) {
 		return channel.samples[ sample ].value;
 	}
 

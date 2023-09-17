@@ -3,10 +3,10 @@
 #include "qcommon/types.h"
 #include "client/renderer/types.h"
 
-enum InterpolationMode {
-	InterpolationMode_Step,
-	InterpolationMode_Linear,
-	// InterpolationMode_CubicSpline,
+enum GLTFInterpolationMode {
+	GLTFInterpolationMode_Step,
+	GLTFInterpolationMode_Linear,
+	// GLTFInterpolationMode_CubicSpline,
 };
 
 enum ModelVfxType {
@@ -26,7 +26,7 @@ struct GLTFRenderData {
 	template< typename T >
 	struct AnimationChannel {
 		Span< AnimationSample< T > > samples;
-		InterpolationMode interpolation;
+		GLTFInterpolationMode interpolation;
 	};
 
 	struct Animation {

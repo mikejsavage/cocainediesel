@@ -431,7 +431,7 @@ void G_RemoveCommands();
 //
 void G_ClientSetStats( edict_t * ent );
 void G_ClientEndSnapFrame( edict_t * ent );
-void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, Vec3 dir );
+void G_ClientAddDamageIndicatorImpact( gclient_t * client, int damage, Vec3 dir );
 void G_ClientDamageFeedback( edict_t * ent );
 
 //
@@ -463,7 +463,7 @@ void G_SnapFrame();
 //
 void G_RespawnLevel();
 void G_ResetLevel();
-void G_InitLevel( const char *mapname, int64_t levelTime );
+void G_InitLevel( const char * mapname, int64_t levelTime );
 
 //============================================================================
 
@@ -720,12 +720,12 @@ extern game_locals_t game;
 
 constexpr edict_t * world = &game.edicts[ 0 ];
 
-static inline int ENTNUM( const edict_t * x ) { return x - game.edicts; }
-static inline int ENTNUM( const gclient_t *x ) { return x - game.clients + 1; }
+constexpr int ENTNUM( const edict_t * x ) { return x - game.edicts; }
+constexpr int ENTNUM( const gclient_t * x ) { return x - game.clients + 1; }
 
-static inline int PLAYERNUM( const edict_t * x ) { return x - game.edicts - 1; }
-static inline int PLAYERNUM( const gclient_t *x ) { return x - game.clients; }
+constexpr int PLAYERNUM( const edict_t * x ) { return x - game.edicts - 1; }
+constexpr int PLAYERNUM( const gclient_t * x ) { return x - game.clients; }
 
-static inline edict_t * PLAYERENT( int x ) { return game.edicts + x + 1; }
+constexpr edict_t * PLAYERENT( int x ) { return game.edicts + x + 1; }
 
 static inline bool G_ISGHOSTING( const edict_t * ent ) { return EntitySolidity( ServerCollisionModelStorage(), &ent->s ) == Solid_NotSolid; }

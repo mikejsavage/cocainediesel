@@ -194,32 +194,14 @@ EulerDegrees2 AngleDelta( EulerDegrees2 a, EulerDegrees2 b ) {
 	return EulerDegrees2( AngleDelta( a.pitch, b.pitch ), AngleDelta( a.yaw, b.yaw ) );
 }
 
-void ClearBounds( Vec3 * mins, Vec3 * maxs ) {
-	*mins = Vec3( 999999.0f );
-	*maxs = Vec3( -999999.0f );
-}
-
-bool BoundsOverlap( const Vec3 & mins1, const Vec3 & maxs1, const Vec3 & mins2, const Vec3 & maxs2 ) {
-	return mins1.x <= maxs2.x && mins1.y <= maxs2.y && mins1.z <= maxs2.z &&
-		maxs1.x >= mins2.x && maxs1.y >= mins2.y && maxs1.z >= mins2.z;
-}
-
-void AddPointToBounds( Vec3 v, Vec3 * mins, Vec3 * maxs ) {
+bool BoundsOverlap( const MinMax3 & a, const MinMax3 & b ) {
 	for( int i = 0; i < 3; i++ ) {
-		float x = v[ i ];
-		mins->ptr()[ i ] = Min2( x, mins->ptr()[ i ] );
-		maxs->ptr()[ i ] = Max2( x, maxs->ptr()[ i ] );
-	}
-}
-
-float RadiusFromBounds( MinMax3 bounds ) {
-	Vec3 corner;
-
-	for( int i = 0; i < 3; i++ ) {
-		corner[ i ] = Max2( Abs( bounds.mins[ i ] ), Abs( bounds.maxs[ i ] ) );
+		if( a.maxs[ i ] < b.mins[ i ] || a.mins[ i ] > b.maxs[ i ] ) {
+			return false;
+		}
 	}
 
-	return Length( corner );
+	return true;
 }
 
 CenterExtents3 ToCenterExtents( const MinMax3 & bounds ) {
@@ -401,14 +383,14 @@ Mat4 Mat4Rotation( EulerDegrees3 angles ) {
 	return ry * rp * rr;
 }
 
-MinMax3 Union( MinMax3 bounds, Vec3 p ) {
+MinMax3 Union( const MinMax3 & bounds, Vec3 p ) {
 	return MinMax3(
 		Vec3( Min2( bounds.mins.x, p.x ), Min2( bounds.mins.y, p.y ), Min2( bounds.mins.z, p.z ) ),
 		Vec3( Max2( bounds.maxs.x, p.x ), Max2( bounds.maxs.y, p.y ), Max2( bounds.maxs.z, p.z ) )
 	);
 }
 
-MinMax3 Union( MinMax3 a, MinMax3 b ) {
+MinMax3 Union( const MinMax3 & a, const MinMax3 & b ) {
 	return MinMax3(
 		Vec3( Min2( a.mins.x, b.mins.x ), Min2( a.mins.y, b.mins.y ), Min2( a.mins.z, b.mins.z ) ),
 		Vec3( Max2( a.maxs.x, b.maxs.x ), Max2( a.maxs.y, b.maxs.y ), Max2( a.maxs.z, b.maxs.z ) )

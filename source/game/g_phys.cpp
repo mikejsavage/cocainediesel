@@ -212,7 +212,7 @@ static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
 			// see if the ent needs to be tested
 			MinMax3 check_bounds = EntityBounds( ServerCollisionModelStorage(), &check->s );
 			check_bounds += check->s.origin;
-			if( !BoundsOverlap( check_bounds.mins, check_bounds.maxs, bounds.mins, bounds.maxs ) ) {
+			if( !BoundsOverlap( check_bounds, bounds ) ) {
 				continue;
 			}
 

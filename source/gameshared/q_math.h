@@ -44,10 +44,7 @@ typedef float mat3_t[9];
 
 constexpr mat3_t axis_identity = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 
-void ClearBounds( Vec3 * mins, Vec3 * maxs );
-void AddPointToBounds( Vec3 v, Vec3 * mins, Vec3 * maxs );
-float RadiusFromBounds( MinMax3 bounds );
-bool BoundsOverlap( const Vec3 & mins1, const Vec3 & maxs1, const Vec3 & mins2, const Vec3 & maxs2 );
+bool BoundsOverlap( const MinMax3 & a, const MinMax3 & b );
 
 CenterExtents3 ToCenterExtents( const MinMax3 & bounds );
 MinMax3 ToMinMax( const CenterExtents3 & aabb );
@@ -92,8 +89,8 @@ Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p );
 Mat4 TransformKToDir( Vec3 dir );
 Mat4 Mat4Rotation( EulerDegrees3 angles );
 
-MinMax3 Union( MinMax3 bounds, Vec3 p );
-MinMax3 Union( MinMax3 a, MinMax3 b );
+MinMax3 Union( const MinMax3 & bounds, Vec3 p );
+MinMax3 Union( const MinMax3 & a, const MinMax3 & b );
 
 MinMax1 Union( MinMax1 bounds, float x );
 MinMax1 Union( MinMax1 a, MinMax1 b );

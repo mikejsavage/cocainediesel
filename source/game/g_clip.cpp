@@ -340,7 +340,7 @@ void G_PMoveTouchTriggers( pmove_t * pm, Vec3 previous_origin ) {
 			continue;
 		if( hit->touch == NULL )
 			continue;
-		if( !BoundsOverlap( bounds.mins, bounds.maxs, hit_bounds.mins, hit_bounds.maxs ) )
+		if( !BoundsOverlap( bounds, hit_bounds ) )
 			continue;
 
 		{

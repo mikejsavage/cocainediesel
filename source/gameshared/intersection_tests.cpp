@@ -387,16 +387,6 @@ bool SweptShapeVsMapModel( const MapData * map, const MapModel * model, Ray ray,
 	return best.exists;
 }
 
-static bool Intersecting( const MinMax3 & a, const MinMax3 & b ) {
-	for( int i = 0; i < 3; i++ ) {
-		if( a.maxs[ i ] < b.mins[ i ] || a.mins[ i ] > b.maxs[ i ] ) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
 static Vec3 MakeNormal( int axis, bool positive ) {
 	Vec3 n = Vec3( 0.0f );
 	n[ axis ] = positive ? 1.0f : -1.0f;
@@ -406,7 +396,7 @@ static Vec3 MakeNormal( int axis, bool positive ) {
 // see RTCD
 bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, Intersection * intersection ) {
 	// Com_GGPrint( "aabb vs aabb {} {} vs {} {}\n", a.mins, a.maxs, b.mins, b.maxs );
-	if( Intersecting( a, b ) ) {
+	if( BoundsOverlap( a, b ) ) {
 		*intersection = { };
 		return true;
 	}

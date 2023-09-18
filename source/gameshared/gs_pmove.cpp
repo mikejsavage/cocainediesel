@@ -46,9 +46,11 @@ constexpr float pm_specspeed = 450.0f;
 constexpr float pm_aircontrol = 4440.0f; // aircontrol multiplier (intertia velocity to forward velocity conversion)
 constexpr float pm_wishspeed = 30;
 
-//
-//  walking up a step should kill some velocity
-//
+constexpr float SLIDEMOVE_PLANEINTERACT_EPSILON = 0.05f;
+
+#define SLIDEMOVEFLAG_BLOCKED       	( 1 << 0 )   // it was blocked at some point, doesn't mean it didn't slide along the blocking object
+#define SLIDEMOVEFLAG_TRAPPED       	( 1 << 1 )
+#define SLIDEMOVEFLAG_WALL_BLOCKED  	( 1 << 2 )
 
 /*
 * PM_SlideMove

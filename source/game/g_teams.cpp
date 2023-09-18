@@ -352,8 +352,8 @@ void SpawnTeams( RespawnQueues * queues ) {
 		u8 num_to_spawn = Cvar_Bool( "g_force_even_teams" ) ? even_n : team->num_players;
 
 		for( u8 j = 0; j < num_to_spawn; j++ ) {
-			Optional< int > player = DequeueRespawn( queues, Team( Team_One + i ) );
-			edict_t * ent = PLAYERENT( player.value );
+			int player = DequeueRespawn( queues, Team( Team_One + i ) );
+			edict_t * ent = PLAYERENT( player );
 			G_ClientRespawn( ent, false );
 		}
 

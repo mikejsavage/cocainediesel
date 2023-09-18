@@ -394,7 +394,7 @@ trace_t MakeMissedTrace( const Ray & ray ) {
 	return trace;
 }
 
-static trace_t FUCKING_HELL( const Ray & ray, const Shape & shape, const Intersection & intersection, const SyncEntityState * ent ) {
+static trace_t MakeTrace( const Ray & ray, const Shape & shape, const Intersection & intersection, const SyncEntityState * ent ) {
 	trace_t trace = { };
 	trace.fraction = ray.length == 0.0f ? 0.0f : intersection.t / ray.length;
 	trace.normal = intersection.normal;
@@ -441,7 +441,7 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 
 		Intersection intersection;
 		if( SweptShapeVsMapModel( &map->data, &map->data.models[ map_model->sub_model ], object_space_ray, shape, solid_mask, &intersection ) ) {
-			trace = FUCKING_HELL( ray, shape, intersection, ent );
+			trace = MakeTrace( ray, shape, intersection, ent );
 		}
 	}
 	else if( collision_model.type == CollisionModelType_GLTF ) {
@@ -453,7 +453,7 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 
 		Intersection intersection;
 		if( SweptShapeVsGLTF( gltf, transform, ray, shape, solid_mask, &intersection ) ) {
-			trace = FUCKING_HELL( ray, shape, intersection, ent );
+			trace = MakeTrace( ray, shape, intersection, ent );
 		}
 	}
 	else if( shape.type == ShapeType_AABB ) {
@@ -465,7 +465,7 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 		Intersection intersection;
 		if( SweptAABBVsAABB( object_space_aabb, ray.direction * ray.length, collision_model.aabb, Vec3( 0.0f ), &intersection ) ) {
 			intersection.t *= ray.length; // TODO: make this consistent with the rest...
-			trace = FUCKING_HELL( ray, shape, intersection, ent );
+			trace = MakeTrace( ray, shape, intersection, ent );
 		}
 	}
 	else {
@@ -479,21 +479,21 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 				Intersection enter, leave;
 				if( RayVsAABB( object_space_ray, collision_model.aabb, &enter, &leave ) ) {
 					enter.solidity = solidity;
-					trace = FUCKING_HELL( ray, shape, enter, ent );
+					trace = MakeTrace( ray, shape, enter, ent );
 				}
 			} break;
 
 			case CollisionModelType_Sphere: {
 				float t;
 				if( RayVsSphere( object_space_ray, collision_model.sphere, &t ) ) {
-					trace = FUCKING_HELL( ray, shape, { t }, ent );
+					trace = MakeTrace( ray, shape, { t }, ent );
 				}
 			} break;
 
 			case CollisionModelType_Capsule: {
 				float t;
 				if( RayVsCapsule( object_space_ray, collision_model.capsule, &t ) ) {
-					trace = FUCKING_HELL( ray, shape, { t }, ent );
+					trace = MakeTrace( ray, shape, { t }, ent );
 				}
 			} break;
 		}

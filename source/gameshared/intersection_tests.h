@@ -49,4 +49,3 @@ bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, In
 
 struct GLTFCollisionData;
 bool SweptShapeVsGLTF( const GLTFCollisionData * gltf, Mat4 transform, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection );
-bool Intersecting( const MinMax3 & a, const MinMax3 & b );

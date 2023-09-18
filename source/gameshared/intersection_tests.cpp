@@ -387,7 +387,7 @@ bool SweptShapeVsMapModel( const MapData * map, const MapModel * model, Ray ray,
 	return best.exists;
 }
 
-bool Intersecting( const MinMax3 & a, const MinMax3 & b ) {
+static bool Intersecting( const MinMax3 & a, const MinMax3 & b ) {
 	for( int i = 0; i < 3; i++ ) {
 		if( a.maxs[ i ] < b.mins[ i ] || a.mins[ i ] > b.maxs[ i ] ) {
 			return false;

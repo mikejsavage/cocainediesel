@@ -97,7 +97,7 @@ struct gs_state_t {
 
 //==================================================================
 
-#define ISWALKABLEPLANE( x ) ( ( x ).z >= 0.7f )
+constexpr bool ISWALKABLEPLANE( Vec3 normal ) { return normal.z >= 0.7f; }
 
 Vec3 GS_ClipVelocity( Vec3 in, Vec3 normal, float overbounce );
 

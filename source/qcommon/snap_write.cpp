@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 *
 * Writes a delta update of an SyncEntityState list to the message.
 */
-static void SNAP_EmitPacketEntities( ginfo_t *gi, client_snapshot_t *from, client_snapshot_t *to, msg_t *msg, const SyncEntityState *baselines, const SyncEntityState *client_entities, int num_client_entities ) {
+static void SNAP_EmitPacketEntities( const ginfo_t * gi, client_snapshot_t * from, client_snapshot_t * to, msg_t * msg, const SyncEntityState * baselines, const SyncEntityState * client_entities, int num_client_entities ) {
 	MSG_WriteUint8( msg, svc_packetentities );
 
 	int from_num_entities = from == NULL ? 0 : from->num_entities;
@@ -86,17 +86,17 @@ static void SNAP_EmitPacketEntities( ginfo_t *gi, client_snapshot_t *from, clien
 	MSG_WriteEntityNumber( msg, MAX_EDICTS, false ); // end of packetentities
 }
 
-static void SNAP_WriteDeltaGameStateToClient( const client_snapshot_t *from, client_snapshot_t *to, msg_t *msg ) {
+static void SNAP_WriteDeltaGameStateToClient( const client_snapshot_t * from, client_snapshot_t * to, msg_t * msg ) {
 	MSG_WriteUint8( msg, svc_match );
 	MSG_WriteDeltaGameState( msg, from ? &from->gameState : NULL, &to->gameState );
 }
 
-static void SNAP_WritePlayerstateToClient( msg_t *msg, const SyncPlayerState *ops, SyncPlayerState *ps ) {
+static void SNAP_WritePlayerstateToClient( msg_t * msg, const SyncPlayerState * ops, const SyncPlayerState * ps ) {
 	MSG_WriteUint8( msg, svc_playerinfo );
 	MSG_WriteDeltaPlayerState( msg, ops, ps );
 }
 
-static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, const client_t *client, msg_t *msg, int64_t frameNum ) {
+static void SNAP_WriteMultiPOVCommands( const ginfo_t * gi, const client_t * client, msg_t * msg, int64_t frameNum ) {
 	int positions[MAX_CLIENTS];
 
 	// find the first command to send from every client
@@ -196,8 +196,8 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, const client_t *client, msg
 	}
 }
 
-void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
-								  const SyncEntityState *baselines, const client_entities_t *client_entities ) {
+void SNAP_WriteFrameSnapToClient( const ginfo_t * gi, client_t * client, msg_t * msg, int64_t frameNum, int64_t gameTime,
+								  const SyncEntityState * baselines, const client_entities_t * client_entities ) {
 	// this is the frame we are creating
 	client_snapshot_t * frame = &client->snapShots[ frameNum % ARRAY_COUNT( client->snapShots ) ];
 

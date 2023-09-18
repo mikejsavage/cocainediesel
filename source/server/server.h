@@ -29,8 +29,8 @@
 
 struct client_t;
 struct ginfo_t {
-	edict_t *edicts;
-	client_t *clients;
+	edict_t * edicts;
+	client_t * clients;
 
 	int num_edicts;         // current number, <= max_edicts
 	int max_edicts;
@@ -106,7 +106,7 @@ struct client_t {
 
 	int frame_latency[LATENCY_COUNTS];
 	int ping;
-	edict_t *edict;                 // EDICT_NUM(clientnum+1)
+	edict_t * edict;                 // EDICT_NUM(clientnum+1)
 
 	client_snapshot_t snapShots[UPDATE_BACKUP]; // updates can be delta'd from here
 
@@ -181,29 +181,29 @@ extern server_constant_t svc;              // constant server info (trully persi
 extern server_static_t svs;                // persistant server info
 extern server_t sv;                 // local server
 
-extern Cvar *sv_port;
+extern Cvar * sv_port;
 
-extern Cvar *sv_downloadurl;
+extern Cvar * sv_downloadurl;
 
-extern Cvar *sv_hostname;
-extern Cvar *sv_maxclients;
+extern Cvar * sv_hostname;
+extern Cvar * sv_maxclients;
 
-extern Cvar *sv_showChallenge;
-extern Cvar *sv_showInfoQueries;
+extern Cvar * sv_showChallenge;
+extern Cvar * sv_showInfoQueries;
 
-extern Cvar *sv_public;         // should heartbeats be sent
+extern Cvar * sv_public;         // should heartbeats be sent
 
 // wsw : debug netcode
-extern Cvar *sv_debug_serverCmd;
+extern Cvar * sv_debug_serverCmd;
 
-extern Cvar *sv_demodir;
+extern Cvar * sv_demodir;
 
 //===========================================================
 
 //
 // sv_main.c
 //
-void SV_WriteClientdataToMessage( client_t *client, msg_t *msg );
+void SV_WriteClientdataToMessage( client_t * client, msg_t * msg );
 
 void SV_InitOperatorCommands();
 void SV_ShutdownOperatorCommands();
@@ -222,19 +222,19 @@ void SV_UpdateMaster();
 //
 // sv_init.c
 //
-void SV_Map( const char *level, bool devmap );
+void SV_Map( const char * level, bool devmap );
 
 //
 // sv_send.c
 //
-bool SV_Netchan_Transmit( netchan_t *netchan, msg_t *msg );
-void SV_AddServerCommand( client_t *client, const char *cmd );
-void SV_SendServerCommand( client_t *cl, const char *format, ... );
-void SV_AddGameCommand( client_t *client, const char *cmd );
-void SV_AddReliableCommandsToMessage( client_t *client, msg_t *msg );
+bool SV_Netchan_Transmit( netchan_t * netchan, msg_t * msg );
+void SV_AddServerCommand( client_t * client, const char *cmd );
+void SV_SendServerCommand( client_t * cl, const char * format, ... );
+void SV_AddGameCommand( client_t * client, const char * cmd );
+void SV_AddReliableCommandsToMessage( client_t * client, msg_t * msg );
 bool SV_SendClientsFragments();
-void SV_InitClientMessage( client_t *client, msg_t *msg, uint8_t *data, size_t size );
-bool SV_SendMessageToClient( client_t *client, msg_t *msg );
+void SV_InitClientMessage( client_t * client, msg_t * msg, uint8_t *data, size_t size );
+bool SV_SendMessageToClient( client_t * client, msg_t * msg );
 void SV_ResetClientFrameCounters();
 
 void SV_SendClientMessages();
@@ -244,15 +244,15 @@ void SV_SendClientMessages();
 //
 // sv_client.c
 //
-void SV_ParseClientMessage( client_t *client, msg_t *msg );
+void SV_ParseClientMessage( client_t * client, msg_t * msg );
 bool SV_ClientConnect( const NetAddress & address, client_t * client, char * userinfo,
 	u64 session_id, int challenge, bool fakeClient );
 
-[[gnu::format( printf, 2, 3 )]] void SV_DropClient( client_t *drop, const char *format, ... );
+[[gnu::format( printf, 2, 3 )]] void SV_DropClient( client_t * drop, const char * format, ... );
 
 void SV_ExecuteClientThinks( int clientNum );
-void SV_ClientResetCommandBuffers( client_t *client );
-void SV_ClientCloseDownload( client_t *client );
+void SV_ClientResetCommandBuffers( client_t * client );
+void SV_ClientCloseDownload( client_t * client );
 
 //
 // sv_ccmds.c
@@ -262,16 +262,16 @@ void SV_Status_f();
 //
 // sv_ents.c
 //
-void SV_WriteFrameSnapToClient( client_t *client, msg_t *msg );
-void SV_BuildClientFrameSnap( client_t *client );
+void SV_WriteFrameSnapToClient( client_t * client, msg_t * msg );
+void SV_BuildClientFrameSnap( client_t * client );
 
 //
 // sv_game.c
 //
-void PF_DropClient( edict_t *ent, const char *message );
+void PF_DropClient( edict_t * ent, const char * message );
 int PF_GetClientState( int numClient );
-void PF_GameCmd( edict_t *ent, const char *cmd );
-void SV_LocateEntities( edict_t *edicts, int num_edicts, int max_edicts );
+void PF_GameCmd( edict_t * ent, const char * cmd );
+void SV_LocateEntities( edict_t * edicts, int num_edicts, int max_edicts );
 
 //
 // sv_demos.c
@@ -295,9 +295,9 @@ void ShutdownWebServer();
 //
 // snap_write
 //
-void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
-	const SyncEntityState *baselines, const client_entities_t *client_entities );
+void SNAP_WriteFrameSnapToClient( const ginfo_t * gi, client_t * client, msg_t * msg, int64_t frameNum, int64_t gameTime,
+	const SyncEntityState * baselines, const client_entities_t * client_entities );
 
-void SNAP_BuildClientFrameSnap( const ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
-	client_t *client,
-	const SyncGameState *gameState, client_entities_t *client_entities );
+void SNAP_BuildClientFrameSnap( const ginfo_t * gi, int64_t frameNum, int64_t timeStamp,
+	client_t * client,
+	const SyncGameState * gameState, client_entities_t * client_entities );

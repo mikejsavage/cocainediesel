@@ -299,7 +299,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->viewheight = playerbox_stand_viewheight;
 	self->r.inuse = true;
 	self->mass = PLAYER_MASS;
-	// self->s.solidity = SolidMask_AnySolid;
 	self->enemy = NULL;
 	self->r.owner = NULL;
 	self->max_health = 100;

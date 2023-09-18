@@ -478,11 +478,6 @@ static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & 
 		}
 	}
 
-	// TODO
-	// for( const ParsedPatch & patch : entity.patches ) {
-	// 	face_meshes.push_back( PatchToCompiledMesh( patch ) );
-	// }
-
 	nanosort( face_meshes.begin(), face_meshes.end(), []( const CompiledMesh & a, const CompiledMesh & b ) {
 		return a.material < b.material;
 	} );

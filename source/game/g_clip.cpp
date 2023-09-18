@@ -372,5 +372,9 @@ int GClip_FindInRadius( Vec3 org, float rad, int * list, size_t maxcount ) {
 }
 
 bool IsHeadshot( int entNum, Vec3 hit, int timeDelta ) {
-	return false;
+	edict_t ent4d;
+	if( !CollisionEntity4D( entNum, timeDelta, &ent4d ) )
+		return false;
+	float top = ent4d.s.origin.z + EntityBounds( ServerCollisionModelStorage(), &ent4d.s ).maxs.z;
+	return top - hit.z <= 16.0f;
 }

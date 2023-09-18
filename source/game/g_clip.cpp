@@ -228,7 +228,7 @@ trace_t G_Trace( Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict
 	return G_Trace4D( start, bounds, end, passedict, solid_mask, 0 );
 }
 
-int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int time_delta ) {
+int GClip_FindInRadius4D( Vec3 org, float rad, int * list, size_t maxcount, int time_delta ) {
 	MinMax3 bounds = MinMax3( org - rad, org + rad );
 
 	const CollisionFrame * a;
@@ -367,7 +367,7 @@ void G_PMoveTouchTriggers( pmove_t * pm, Vec3 previous_origin ) {
 	}
 }
 
-int GClip_FindInRadius( Vec3 org, float rad, int *list, int maxcount ) {
+int GClip_FindInRadius( Vec3 org, float rad, int * list, size_t maxcount ) {
 	return GClip_FindInRadius4D( org, rad, list, maxcount, 0 );
 }
 

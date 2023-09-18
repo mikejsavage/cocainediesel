@@ -328,14 +328,14 @@ bool G_TriggerWait( edict_t * ent );
 trace_t G_Trace( Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask );
 trace_t G_Trace4D( Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask, int timeDelta );
 void GClip_BackUpCollisionFrame();
-int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int timeDelta );
+int GClip_FindInRadius4D( Vec3 org, float rad, int * list, size_t maxcount, int timeDelta );
 void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage );
 void GClip_ClearWorld();
 void GClip_LinkEntity( edict_t * ent );
 void GClip_UnlinkEntity( edict_t * ent );
 void GClip_TouchTriggers( edict_t * ent );
 void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin );
-int GClip_FindInRadius( Vec3 org, float rad, int *list, int maxcount );
+int GClip_FindInRadius( Vec3 org, float rad, int * list, size_t maxcount );
 
 bool IsHeadshot( int entNum, Vec3 hit, int timeDelta );
 

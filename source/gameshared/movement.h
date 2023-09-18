@@ -1,12 +1,10 @@
 #include "qcommon/qcommon.h"
-#include "gameshared/gs_weapons.h"
 
 enum LadderMovement : u8 {
 	Ladder_Off,
 	Ladder_On,
 	Ladder_Fake,
 };
-
 
 struct pml_t {
 	Vec3 origin;          // full float precision

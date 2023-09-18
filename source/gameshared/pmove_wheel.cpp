@@ -1,5 +1,4 @@
 #include "gameshared/movement.h"
-#include "qcommon/qfiles.h"
 
 //f(speed) = base_speed + speed * speed_factor
 static constexpr float dash_base_speed = 350.0f;

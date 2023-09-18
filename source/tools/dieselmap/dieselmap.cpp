@@ -4,7 +4,6 @@
 #include "qcommon/base.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
-#include "qcommon/qfiles.h"
 #include "qcommon/string.h"
 #include "qcommon/hash.h"
 #include "gameshared/cdmap.h"

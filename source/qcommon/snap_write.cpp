@@ -331,8 +331,7 @@ static void SNAP_SortSnapList( snapshotEntityNumbers_t *entsList ) {
 }
 
 static float SNAP_GainForAttenuation( float dist ) {
-	dist = Max2( dist, S_DEFAULT_ATTENUATION_REFDISTANCE );
-	dist = Min2( dist, S_DEFAULT_ATTENUATION_MAXDISTANCE );
+	dist = Clamp( S_DEFAULT_ATTENUATION_REFDISTANCE, dist, S_DEFAULT_ATTENUATION_MAXDISTANCE );
 	return S_DEFAULT_ATTENUATION_REFDISTANCE / ( S_DEFAULT_ATTENUATION_REFDISTANCE + ATTN_DISTANT * ( dist - S_DEFAULT_ATTENUATION_REFDISTANCE ) );
 }
 

@@ -210,7 +210,7 @@ static void SpawnBombSite( edict_t * ent ) {
 	site->hud->s.type = ET_BOMB_SITE;
 	site->hud->s.solidity = Solid_NotSolid;
 	site->hud->s.origin = bomb_state.sites[ i ].indicator->s.origin;
-	site->hud->s.svflags = SVF_BROADCAST;
+	site->hud->s.svflags = 0;
 	site->hud->s.site_letter = letter;
 	GClip_LinkEntity( site->hud );
 
@@ -317,7 +317,6 @@ static void SpawnBombHUD() {
 	bomb_state.bomb.hud->s.type = ET_BOMB;
 	bomb_state.bomb.hud->s.team = AttackingTeam();
 	bomb_state.bomb.hud->s.solidity = Solid_NotSolid;
-	bomb_state.bomb.hud->s.svflags |= SVF_BROADCAST;
 }
 
 static void BombPickup() {

@@ -59,7 +59,7 @@ constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "excalibur
 #define SVF_NOCLIENT         ( 1 << 0 )      // don't send entity to clients, even if it has effects
 #define SVF_SOUNDCULL        ( 1 << 1 )      // distance culling
 #define SVF_FAKECLIENT       ( 1 << 2 )      // do not try to send anything to this client
-#define SVF_BROADCAST        ( 1 << 3 )      // always transmit
+#define SVF_BROADCAST        ( 1 << 3 )      // global sound
 #define SVF_ONLYTEAM         ( 1 << 4 )      // this entity is only transmited to clients with the same ent->s.team value
 #define SVF_FORCEOWNER       ( 1 << 5 )      // this entity forces the entity at s.ownerNum to be included in the snapshot
 #define SVF_ONLYOWNER        ( 1 << 6 )      // this entity is only transmitted to its owner

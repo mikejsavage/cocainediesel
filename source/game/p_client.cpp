@@ -75,7 +75,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	body->s.team = ent->s.team;
 	body->s.perk = ent->s.perk;
 	body->s.scale = ent->s.scale;
-	body->s.svflags = SVF_BROADCAST;
+	body->s.svflags = 0;
 	body->s.mask = ent->s.mask;
 	body->activator = ent;
 	body->enemy = attacker;
@@ -117,7 +117,6 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	}
 
 	edict_t * event = G_SpawnEvent( EV_DIE, parm, NULL );
-	event->s.svflags |= SVF_BROADCAST;
 	event->s.ownerNum = body->s.number;
 
 	ent->s.ownerNum = body->s.number;
@@ -359,7 +358,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		KillBox( self, WorldDamage_Telefrag, Vec3( 0.0f ) );
 
 		edict_t * ev = G_SpawnEvent( EV_RESPAWN, 0, NULL );
-		ev->s.svflags |= SVF_ONLYOWNER | SVF_BROADCAST;
+		ev->s.svflags |= SVF_ONLYOWNER;
 		ev->s.ownerNum = ENTNUM( self );
 
 	}

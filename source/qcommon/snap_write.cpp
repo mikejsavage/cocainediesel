@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 *
 * Writes a delta update of an SyncEntityState list to the message.
 */
-static void SNAP_EmitPacketEntities( const ginfo_t * gi, client_snapshot_t * from, client_snapshot_t * to, msg_t * msg, const SyncEntityState * baselines, const SyncEntityState * client_entities, int num_client_entities ) {
+static void SNAP_EmitPacketEntities( const ginfo_t * gi, const client_snapshot_t * from, const client_snapshot_t * to, msg_t * msg, const SyncEntityState * baselines, const SyncEntityState * client_entities, int num_client_entities ) {
 	MSG_WriteUint8( msg, svc_packetentities );
 
 	int from_num_entities = from == NULL ? 0 : from->num_entities;
@@ -82,7 +82,7 @@ static void SNAP_EmitPacketEntities( const ginfo_t * gi, client_snapshot_t * fro
 	MSG_WriteEntityNumber( msg, MAX_EDICTS, false ); // end of packetentities
 }
 
-static void SNAP_WriteDeltaGameStateToClient( const client_snapshot_t * from, client_snapshot_t * to, msg_t * msg ) {
+static void SNAP_WriteDeltaGameStateToClient( const client_snapshot_t * from, const client_snapshot_t * to, msg_t * msg ) {
 	MSG_WriteUint8( msg, svc_match );
 	MSG_WriteDeltaGameState( msg, from ? &from->gameState : NULL, &to->gameState );
 }

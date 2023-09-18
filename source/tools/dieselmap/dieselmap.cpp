@@ -570,8 +570,8 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 
 			const EditorMaterial * plane_material = FindEditorMaterial( StringHash( face.material_hash ) );
 			if( editor_material != NULL && editor_material != plane_material ) {
-				// LogDebugInstructions();
-				// Fatal( "[entity %zu brush %zu/line %zu] Has inconsistent materials", brush.entity_id, brush.id, brush.line_number );
+				LogDebugInstructions();
+				printf( "[entity %zu brush %zu/line %zu] Has inconsistent materials\n", brush.entity_id, brush.id, brush.line_number );
 			}
 			editor_material = plane_material;
 

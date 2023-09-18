@@ -45,7 +45,6 @@ struct FrameStatic {
 	UniformBlock identity_model_uniforms;
 	UniformBlock identity_material_static_uniforms;
 	UniformBlock identity_material_dynamic_uniforms;
-	UniformBlock fog_uniforms;
 
 	Mat4 V, inverse_V;
 	Mat4 P, inverse_P;

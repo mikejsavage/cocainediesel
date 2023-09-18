@@ -912,7 +912,6 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	pipeline.cull_face = CullFace_Disabled;
 	pipeline.write_depth = false;
 	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
 	pipeline.bind_texture_and_sampler( "u_DecalAtlases", DecalAtlasTextureArray(), Sampler_Standard );
 	pipeline.bind_buffer( "b_Particles", ps->gpu_particles2 );
 	DrawMeshIndirect( ps->mesh, pipeline, ps->draw_indirect );
@@ -1152,7 +1151,6 @@ void DrawParticleMenuEffect() {
 	Vec2 pos = Clamp( Vec2( 0.0f ), Vec2( mouse_pos.x, mouse_pos.y ), frame_static.viewport ) - frame_static.viewport * 0.5f;
 	pos *= 0.05f;
 	RendererSetView( Vec3( -400, pos.x, pos.y ), EulerDegrees3( 0, 0, 0 ), 90 );
-	frame_static.fog_uniforms = UploadUniformBlock( 0.0f );
 	DoVisualEffect( "vfx/menu", Vec3( 0.0f ) );
 	DrawParticles();
 }

@@ -11,8 +11,6 @@ struct MapSubModelRenderData {
 struct MapSharedRenderData {
 	Mesh mesh;
 
-	float fog_strength;
-
 	GPUBuffer nodes;
 	GPUBuffer leaves;
 	GPUBuffer brushes;

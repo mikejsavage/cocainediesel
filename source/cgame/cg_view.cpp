@@ -443,7 +443,6 @@ static void DrawOutlines() {
 	const RenderTarget & rt = msaa ? frame_static.render_targets.msaa_masked : frame_static.render_targets.postprocess_masked;
 	pipeline.bind_texture_and_sampler( "u_DepthTexture", &rt.depth_attachment, Sampler_Standard );
 	pipeline.bind_texture_and_sampler( "u_CurvedSurfaceMask", &rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ], Sampler_Unfiltered );
-	pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
 	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.bind_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );
 	DrawFullscreenMesh( pipeline );
@@ -531,7 +530,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	CG_SetupViewDef( &cg.view, view_type, &cmd );
 
 	RendererSetView( cg.view.origin, EulerDegrees3( cg.view.angles ), cg.view.fov_y );
-	frame_static.fog_uniforms = UploadUniformBlock( cl.map->render_data.fog_strength );
 
 	CG_LerpEntities();
 

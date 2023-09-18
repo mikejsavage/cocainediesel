@@ -16,7 +16,6 @@ MapSharedRenderData NewMapRenderData( const MapData & map, const char * name ) {
 
 	MapSharedRenderData shared = { };
 	shared.mesh = NewMesh( mesh_config );
-	shared.fog_strength = 0.0007f;
 
 	return shared;
 }

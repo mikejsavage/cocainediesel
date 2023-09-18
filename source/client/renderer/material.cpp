@@ -1031,7 +1031,6 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		PipelineState pipeline;
 		pipeline.shader = &shaders.world;
 		pipeline.pass = frame_static.world_opaque_pass;
-		pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
 		pipeline.bind_texture_and_sampler( "u_BlueNoiseTexture", BlueNoiseTexture(), Sampler_Standard );
 		color.x = material->rgbgen.args[ 0 ];
 		color.y = material->rgbgen.args[ 1 ];
@@ -1155,7 +1154,6 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	if( map_model ) {
 		// TODO: heavy duplication between here and MaterialToPipelineState
 		pipeline.shader = &shaders.world_instanced;
-		pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
 		pipeline.bind_texture_and_sampler( "u_BlueNoiseTexture", BlueNoiseTexture(), Sampler_Standard );
 		// pipeline.bind_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( Vec2( 0.0f ), material->specular, material->shininess ) );
 		// pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );

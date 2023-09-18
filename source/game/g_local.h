@@ -572,12 +572,8 @@ struct client_teamreset_t {
 };
 
 struct gclient_t {
-	// known to server
-	SyncPlayerState ps;          // communicated by server to clients
-	client_shared_t r;
-
-	// DO NOT MODIFY ANYTHING ABOVE THIS, THE SERVER
-	// EXPECTS THE FIELDS IN THAT ORDER!
+	SyncPlayerState ps;
+	int frags;
 
 	client_respawnreset_t resp;
 	client_levelreset_t level;

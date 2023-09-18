@@ -76,7 +76,7 @@ void SV_Status_f() {
 			continue;
 		}
 		Com_Printf( "%3i ", i );
-		Com_Printf( "%5i ", cl->edict->r.client->r.frags );
+		Com_Printf( "%5i ", cl->edict->r.client->frags );
 
 		if( cl->state == CS_CONNECTED ) {
 			Com_Printf( "CNCT " );

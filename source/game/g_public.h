@@ -23,17 +23,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 struct edict_t;
 struct gclient_t;
 
-struct client_shared_t {
-	int health;
-	int frags;
-};
-
 struct entity_shared_t {
-	gclient_t *client;
+	gclient_t * client;
 	bool inuse;
 
 	//================================
 
-	// TODO: delete
-	edict_t *owner;
+	edict_t * owner;
 };

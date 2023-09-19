@@ -112,22 +112,22 @@ void CG_BuildSolidList( const snapshot_t * frame ) {
 	}
 }
 
-static bool CG_ClipEntityContact( Vec3 origin, MinMax3 bounds, int entNum ) {
-	const centity_t * cent = &cg_entities[ entNum ];
-
-	Ray ray = MakeRayStartEnd( origin, origin );
-
-	Shape shape = { };
-	shape.type = ShapeType_AABB;
-	shape.aabb = ToCenterExtents( bounds );
-
-	SyncEntityState interpolated = cent->prev;
-	interpolated.origin = cent->interpolated.origin;
-	interpolated.scale = cent->interpolated.scale;
-
-	trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, &interpolated, SolidMask_Everything );
-	return trace.GotNowhere();
-}
+// static bool CG_ClipEntityContact( Vec3 origin, MinMax3 bounds, int entNum ) {
+// 	const centity_t * cent = &cg_entities[ entNum ];
+//
+// 	Ray ray = MakeRayStartEnd( origin, origin );
+//
+// 	Shape shape = { };
+// 	shape.type = ShapeType_AABB;
+// 	shape.aabb = ToCenterExtents( bounds );
+//
+// 	SyncEntityState interpolated = cent->prev;
+// 	interpolated.origin = cent->interpolated.origin;
+// 	interpolated.scale = cent->interpolated.scale;
+//
+// 	trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, &interpolated, SolidMask_Everything );
+// 	return trace.GotNowhere();
+// }
 
 void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	// fixme: more accurate check for being able to touch or not

@@ -403,6 +403,7 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 			}
 			else if( key == "collision" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
+				( void ) value;
 				// if( value == "point" ) {
 				// 	emitter->flags = ParticleFlags( emitter->flags | ParticleFlag_CollisionPoint );
 				// }

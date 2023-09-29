@@ -60,11 +60,9 @@ static void SV_RunThink( edict_t *ent ) {
 *
 * Two entities have touched, so run their touch functions
 */
-void SV_Impact( edict_t *e1, trace_t *trace ) {
-	edict_t *e2;
-
+void SV_Impact( edict_t * e1, trace_t * trace ) {
 	if( trace->HitSomething() ) {
-		e2 = &game.edicts[ trace->ent ];
+		edict_t * e2 = &game.edicts[ trace->ent ];
 
 		if( EntitySolidity( ServerCollisionModelStorage(), &e1->s ) != Solid_NotSolid ) {
 			G_CallTouch( e1, e2, trace->normal, trace->solidity );

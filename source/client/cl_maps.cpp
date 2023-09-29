@@ -126,10 +126,12 @@ void InitMaps() {
 
 	for( const char * path : AssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
-		if( ext == ".cdmap" )
+		if( ext == ".cdmap" ) {
 			AddMap( AssetBinary( path ), path );
-		else if( ext == ".glb" )
+		}
+		else if( ext == ".glb" ) {
 			AddGLTFModel( AssetBinary( path ), StripExtension( path ) );
+		}
 	}
 }
 

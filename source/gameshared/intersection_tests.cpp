@@ -536,7 +536,7 @@ static bool SweptShapeVsGLTFBrush( const GLTFCollisionData * gltf, GLTFCollision
 		}
 	}
 
-	for( int i = 0; i < ARRAY_COUNT( bevel_axes ); i++ ) {
+	for( size_t i = 0; i < ARRAY_COUNT( bevel_axes ); i++ ) {
 		Plane pos = { bevel_axes[ i ], bevel_bounds[ i ].hi };
 		Plane neg = { -bevel_axes[ i ], -bevel_bounds[ i ].lo };
 

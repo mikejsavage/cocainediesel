@@ -60,12 +60,12 @@ static void SV_RunThink( edict_t *ent ) {
 *
 * Two entities have touched, so run their touch functions
 */
-void SV_Impact( edict_t * e1, trace_t * trace ) {
-	if( trace->HitSomething() ) {
-		edict_t * e2 = &game.edicts[ trace->ent ];
+void SV_Impact( edict_t * e1, const trace_t & trace ) {
+	if( trace.HitSomething() ) {
+		edict_t * e2 = &game.edicts[ trace.ent ];
 
 		if( EntitySolidity( ServerCollisionModelStorage(), &e1->s ) != Solid_NotSolid ) {
-			G_CallTouch( e1, e2, trace->normal, trace->solidity );
+			G_CallTouch( e1, e2, trace.normal, trace.solidity );
 		}
 
 		if( EntitySolidity( ServerCollisionModelStorage(), &e2->s ) != Solid_NotSolid ) {
@@ -106,7 +106,7 @@ retry:
 	GClip_LinkEntity( ent );
 
 	if( trace.HitSomething() ) {
-		SV_Impact( ent, &trace );
+		SV_Impact( ent, trace );
 
 		// if the pushed entity went away and the pusher is still there
 		if( !game.edicts[trace.ent].r.inuse && ent->movetype == MOVETYPE_PUSH && ent->r.inuse ) {
@@ -461,7 +461,7 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	trace_t trace = G_Trace4D( start, bounds, end, ent, mask, ent->timeDelta );
 	ent->s.origin = trace.endpos;
 	GClip_LinkEntity( ent );
-	SV_Impact( ent, &trace );
+	SV_Impact( ent, trace );
 
 	GClip_TouchTriggers( ent );
 	ent->groundentity = NULL; // projectiles never have ground entity

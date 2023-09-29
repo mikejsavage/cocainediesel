@@ -142,7 +142,7 @@ static void G_ProjectileDistancePrestep( edict_t * projectile, float distance ) 
 	projectile->olds.origin = trace.endpos;
 
 	GClip_LinkEntity( projectile );
-	SV_Impact( projectile, &trace );
+	SV_Impact( projectile, trace );
 
 	if( !projectile->r.inuse ) {
 		return;

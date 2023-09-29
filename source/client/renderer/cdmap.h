@@ -11,10 +11,10 @@ struct MapSubModelRenderData {
 struct MapSharedRenderData {
 	Mesh mesh;
 
-	GPUBuffer nodes;
-	GPUBuffer leaves;
-	GPUBuffer brushes;
-	GPUBuffer planes;
+	// GPUBuffer nodes;
+	// GPUBuffer leaves;
+	// GPUBuffer brushes;
+	// GPUBuffer planes;
 };
 
 struct MapData;

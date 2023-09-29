@@ -22,10 +22,10 @@ MapSharedRenderData NewMapRenderData( const MapData & map, const char * name ) {
 
 void DeleteMapRenderData( const MapSharedRenderData & render_data ) {
 	DeleteMesh( render_data.mesh );
-	DeleteGPUBuffer( render_data.nodes );
-	DeleteGPUBuffer( render_data.leaves );
-	DeleteGPUBuffer( render_data.brushes );
-	DeleteGPUBuffer( render_data.planes );
+	// DeleteGPUBuffer( render_data.nodes );
+	// DeleteGPUBuffer( render_data.leaves );
+	// DeleteGPUBuffer( render_data.brushes );
+	// DeleteGPUBuffer( render_data.planes );
 }
 
 void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData * render_data, const Mat4 & transform, const Vec4 & color ) {

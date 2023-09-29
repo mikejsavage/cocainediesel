@@ -696,17 +696,6 @@ static void W_Fire_Lasergun( edict_t * self, Vec3 start, Vec3 angles, int timeDe
 
 	laser->think = G_Laser_Think;
 	laser->nextThink = level.time + 1;
-
-	MinMax3 bounds = MinMax3::Empty();
-	constexpr Vec3 size = Vec3( 8.0f );
-	bounds = Union( bounds, laser->s.origin - size );
-	bounds = Union( bounds, laser->s.origin + size );
-	bounds = Union( bounds, laser->s.origin2 - size );
-	bounds = Union( bounds, laser->s.origin2 + size );
-
-	laser->s.override_collision_model = CollisionModelAABB( bounds );
-
-	GClip_LinkEntity( laser );
 }
 
 static void W_Touch_RifleBullet( edict_t * ent, edict_t * other, Vec3 normal, SolidBits solid_mask ) {

@@ -37,7 +37,7 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 	if( model == NULL )
 		return;
 
-	float gib_radius = model->bounds.maxs.x;
+	float gib_radius = Max2( Max2( model->bounds.maxs.x, model->bounds.maxs.y ), model->bounds.maxs.z );
 
 	constexpr float epsilon = 0.1f;
 	float radius = player_radius - gib_radius - epsilon;

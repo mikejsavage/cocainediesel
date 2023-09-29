@@ -437,7 +437,7 @@ void G_ClientDamageFeedback( edict_t * ent );
 //
 // g_phys.c
 //
-void SV_Impact( edict_t * e1, trace_t *trace );
+void SV_Impact( edict_t * e1, trace_t * trace );
 void G_RunEntity( edict_t * ent );
 
 //

@@ -291,6 +291,8 @@ static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 	Vec3 end = start + forward * range;
 
 	trace_t trace = G_Trace( start, MinMax3( 0.0f ), end, ent, SolidMask_Opaque );
+	if( trace.ent == -1 )
+		return;
 
 	const edict_t * target = &game.edicts[ trace.ent ];
 	if( target->s.type != ET_MAPMODEL && target != world )

@@ -622,7 +622,7 @@ void CL_Precache_f() {
 
 	if( cl.map == NULL ) {
 		TempAllocator temp = cls.frame_arena.temp();
-		CL_DownloadFile( temp( "base/maps/{}.bsp.zst", Cmd_Argv( 2 ) ), []( const char * filename, Span< const u8 > data ) {
+		CL_DownloadFile( temp( "base/maps/{}.cdmap.zst", Cmd_Argv( 2 ) ), []( const char * filename, Span< const u8 > data ) {
 			if( AddDownloadedMap( filename, data ) ) {
 				CL_FinishConnect();
 			}

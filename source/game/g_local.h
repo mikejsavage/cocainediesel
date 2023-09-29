@@ -502,7 +502,7 @@ struct moveinfo_t {
 	StringHash sound_middle;
 	StringHash sound_end;
 
-	Vec3 movedir;  // direction defined in the bsp
+	Vec3 movedir;  // direction defined in the map
 
 	float speed;
 	float distance;    // used by binary movers

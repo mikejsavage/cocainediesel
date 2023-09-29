@@ -115,7 +115,7 @@ static HTTPResponseCode RouteRequest( HTTPConnection * con, Span< const char > m
 		return HTTPResponseCode_Forbidden;
 	}
 
-	if( !EndsWith( path, ".bsp.zst" ) && !EndsWith( path, APP_DEMO_EXTENSION_STR ) ) {
+	if( !EndsWith( path, ".cdmap.zst" ) && !EndsWith( path, APP_DEMO_EXTENSION_STR ) ) {
 		return HTTPResponseCode_Forbidden;
 	}
 

@@ -58,12 +58,13 @@ static void PickRandomArena() {
 		if( name[ 0 ] == '.' || dir )
 			continue;
 
-		if( FileExtension( name ) != ".bsp" && FileExtension( StripExtension( name ) ) != ".bsp" )
+		if( FileExtension( name ) != ".cdmap" && FileExtension( StripExtension( name ) ) != ".cdmap" )
 			continue;
 
 		maps.add( temp( "gladiator/{}", StripExtension( StripExtension( name ) ) ) );
 	}
 
+	// TODO: need to reimplement this
 	// G_LoadMap( RandomElement( &svs.rng, maps.begin(), maps.size() ) );
 }
 

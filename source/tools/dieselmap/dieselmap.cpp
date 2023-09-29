@@ -1001,9 +1001,6 @@ int main( int argc, char ** argv ) {
 	// - figure out what postprocessing we need e.g. welding
 	// - extend void render geometry
 	// - extend void brushes
-	//
-	// TODO: new map format
-	// - flip CW to CCW winding. q3 bsp was CW lol
 
 	Free( sys_allocator, arena.get_memory() );
 

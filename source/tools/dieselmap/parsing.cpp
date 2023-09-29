@@ -326,6 +326,10 @@ static Span< const char > ParsePatch( ParsedPatch * patch, Span< const char > st
 
 	str = SkipToken( str, "(" );
 
+	if( patch->w * patch->h > ARRAY_COUNT( patch->control_points ) ) {
+		Fatal( "Too many patch control points" );
+	}
+
 	Span2D< ParsedControlPoint > control_points( patch->control_points, patch->w, patch->h );
 
 	for( int x = 0; x < patch->w; x++ ) {

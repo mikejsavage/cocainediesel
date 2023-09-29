@@ -371,6 +371,7 @@ static void Gladiator_Init() {
 
 static void Gladiator_Shutdown() {
 	if( gladiator_state.randomize_arena ) {
+		// TODO: go back to the dispatcher map so the gt randomizes after reloading
 	}
 }
 

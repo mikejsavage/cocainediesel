@@ -1,3 +1,4 @@
+// TODO: everything in here is wrong post-kdtree
 struct BSPNodeLinks {
 	int children[ 2 ];
 };

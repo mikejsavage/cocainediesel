@@ -877,14 +877,15 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		pipeline.bind_buffer( "b_ParticlesOut", ps->gpu_particles2 );
 		pipeline.bind_buffer( "b_ComputeCountIn", ps->compute_count1 );
 		pipeline.bind_buffer( "b_ComputeCountOut", ps->compute_count2 );
-		u32 collision = cl.map == NULL ? 0 : 1;
+		// u32 collision = cl.map == NULL ? 0 : 1;
+		u32 collision = 0;
 		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, ps->radius, dt, u32( ps->new_particles ) ) );
-		if( collision ) {
-			pipeline.bind_buffer( "b_BSPNodeLinks", cl.map->render_data.nodes );
-			pipeline.bind_buffer( "b_BSPLeaves", cl.map->render_data.leaves );
-			pipeline.bind_buffer( "b_BSPBrushes", cl.map->render_data.brushes );
-			pipeline.bind_buffer( "b_BSPPlanes", cl.map->render_data.planes );
-		}
+		// if( collision ) {
+		// 	pipeline.bind_buffer( "b_BSPNodeLinks", cl.map->render_data.nodes );
+		// 	pipeline.bind_buffer( "b_BSPLeaves", cl.map->render_data.leaves );
+		// 	pipeline.bind_buffer( "b_BSPBrushes", cl.map->render_data.brushes );
+		// 	pipeline.bind_buffer( "b_BSPPlanes", cl.map->render_data.planes );
+		// }
 		DispatchComputeIndirect( pipeline, ps->compute_indirect );
 	}
 

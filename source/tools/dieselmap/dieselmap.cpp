@@ -642,6 +642,8 @@ static void WriteFileOrComplain( ArenaAllocator * arena, const char * path, cons
 }
 
 static constexpr const char * section_names[] = {
+	"Source",
+
 	"Entities",
 	"EntityData",
 	"EntityKeyValues",
@@ -677,7 +679,7 @@ void Pack( DynamicArray< u8 > & packed, MapHeader * header, MapSectionType secti
 	ggprint( "{-20} {.2}MB {}\n", section_names[ section ], data.num_bytes() / 1000.0f / 1000.0f, data.n );
 }
 
-static void WriteCDMap( ArenaAllocator * arena, const char * path, const MapData * map, bool compress ) {
+static void WriteCDMap( ArenaAllocator * arena, const char * path, Span< const char > src, const MapData * map, bool compress ) {
 	TracyZoneScoped;
 
 	DynamicArray< u8 > packed( arena );
@@ -701,6 +703,7 @@ static void WriteCDMap( ArenaAllocator * arena, const char * path, const MapData
 	Pack( packed, &header, MapSection_VertexIndices, map->vertex_indices, &last_alignment );
 	Pack( packed, &header, MapSection_BrushIndices, map->brush_indices, &last_alignment );
 	Pack( packed, &header, MapSection_Brushes, map->brushes, &last_alignment );
+	Pack( packed, &header, MapSection_Source, src, &last_alignment );
 	Pack( packed, &header, MapSection_EntityData, map->entity_data, &last_alignment );
 
 	memcpy( packed.ptr(), &header, sizeof( header ) );
@@ -804,21 +807,24 @@ int main( int argc, char ** argv ) {
 		src_path = argv[ argc - 1 ];
 	}
 
-	size_t src_len;
-	char * src = ReadFileString( sys_allocator, src_path, &src_len );
-	if( src == NULL ) {
+	Span< char > src = ReadFileBinary( sys_allocator, src_path ).cast< char >();
+	if( src.ptr == NULL ) {
 		char * msg = ( *sys_allocator )( "Can't read {}", src_path );
 		perror( msg );
 		Free( sys_allocator, msg );
 		return 1;
 	}
-	defer { Free( sys_allocator, src ); };
+	defer { Free( sys_allocator, src.ptr ); };
+
+	// we strip comments from src so make a copy that we can save into MapSection_Source
+	Span< char > immutable_src_copy = CloneSpan( sys_allocator, src );
+	defer { Free( sys_allocator, immutable_src_copy.ptr ); };
 
 	constexpr size_t arena_size = 1024 * 1024 * 1024; // 1GB
 	ArenaAllocator arena( sys_allocator->allocate( arena_size, 16 ), arena_size );
 
 	// parse the .map
-	std::vector< ParsedEntity > entities = ParseEntities( Span< char >( src, src_len ) );
+	std::vector< ParsedEntity > entities = ParseEntities( src );
 
 	// flatten func_groups into entity 0
 	{
@@ -990,7 +996,7 @@ int main( int argc, char ** argv ) {
 	flattened.vertex_indices = flat_vertex_indices.span();
 
 	const char * cdmap_path = arena( "{}.cdmap", StripExtension( src_path ) );
-	WriteCDMap( &arena, cdmap_path, &flattened, compress );
+	WriteCDMap( &arena, cdmap_path, immutable_src_copy, &flattened, compress );
 
 	if( write_obj ) {
 		const char * obj_path = arena( "{}.obj", StripExtension( src_path ) );

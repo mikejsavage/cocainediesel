@@ -4,6 +4,8 @@
 #include "gameshared/editor_materials.h"
 
 enum MapSectionType {
+	MapSection_Source,
+
 	MapSection_Entities,
 	MapSection_EntityData,
 	MapSection_EntityKeyValues,
@@ -22,6 +24,8 @@ enum MapSectionType {
 
 	MapSection_Count
 };
+
+STATIC_ASSERT( MapSection_Source == 0 ); // tools need to be forward compatible so we can recompile maps
 
 struct MapSection {
 	u32 offset, size;

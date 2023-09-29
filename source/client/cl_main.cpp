@@ -850,13 +850,10 @@ int CL_SmoothTimeDeltas() {
 static void CL_UpdateSnapshot() {
 	TracyZoneScoped;
 
-	snapshot_t *snap;
-	int i;
-
 	// see if there is any pending snap to be fired
 	if( !cl.pendingSnapNum && ( cl.currentSnapNum != cl.receivedSnapNum ) ) {
-		snap = NULL;
-		for( i = cl.currentSnapNum + 1; i <= cl.receivedSnapNum; i++ ) {
+		snapshot_t * snap = NULL;
+		for( int i = cl.currentSnapNum + 1; i <= cl.receivedSnapNum; i++ ) {
 			if( cl.snapShots[ i % ARRAY_COUNT( cl.snapShots ) ].valid && ( cl.snapShots[ i % ARRAY_COUNT( cl.snapShots ) ].serverFrame > cl.currentSnapNum ) ) {
 				snap = &cl.snapShots[ i % ARRAY_COUNT( cl.snapShots ) ];
 				//torbenh: this break was the source of the lag bug at cl_fps < sv_pps

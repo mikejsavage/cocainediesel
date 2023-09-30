@@ -73,8 +73,8 @@ void G_Killed( edict_t * targ, edict_t * inflictor, edict_t * attacker, int assi
 	targ->deadflag = DEAD_DEAD;
 	targ->enemy = attacker;
 
-	if( targ->r.client && attacker && targ != attacker ) {
-		attacker->snap.kill = true;
+	if( targ->r.client && attacker && attacker->r.client && targ != attacker ) {
+		attacker->r.client->snap.kill = true;
 	}
 
 	// count stats
@@ -286,8 +286,8 @@ void G_Damage( edict_t * targ, edict_t * inflictor, edict_t * attacker, Vec3 pus
 	int clamped_takedmg = HEALTH_TO_INT( take );
 
 	// accumulate given damage for hit sounds
-	if( targ != attacker && client && !targ->deadflag && attacker ) {
-		attacker->snap.damage_given += take;
+	if( targ != attacker && client && !targ->deadflag && attacker && attacker->r.client ) {
+		attacker->r.client->snap.damage_given += take;
 	}
 
 	if( G_IsDead( targ ) ) {

@@ -76,7 +76,6 @@ struct timeout_t {
 // this structure is cleared as each map is entered
 //
 struct level_locals_t {
-	int64_t framenum;
 	int64_t time; // time in milliseconds
 	int64_t spawnedTimeStamp; // time when map was restarted
 	int64_t finalMatchDuration;
@@ -528,10 +527,11 @@ struct client_snapreset_t {
 	uint8_t plrkeys; // used for displaying key icons
 	int damageTaken;
 	Vec3 damageTakenDir;
+	bool kill;
+	float damage_given;
 };
 
 struct client_respawnreset_t {
-	client_snapreset_t snap;
 	chasecam_t chase;
 
 	int64_t timeStamp; // last time it was reset
@@ -575,6 +575,7 @@ struct gclient_t {
 	SyncPlayerState ps;
 	int frags;
 
+	client_snapreset_t snap;
 	client_respawnreset_t resp;
 	client_levelreset_t level;
 	client_teamreset_t teamstate;
@@ -592,11 +593,6 @@ struct gclient_t {
 	int timeDeltasHead;
 
 	pmove_state_t old_pmove;    // for detecting out-of-pmove changes
-};
-
-struct snap_edict_t {
-	bool kill;
-	float damage_given;
 };
 
 using EdictTouchCallback = void ( * )( edict_t * self, edict_t * other, Vec3 normal, SolidBits solid_mask );
@@ -687,8 +683,6 @@ struct edict_t {
 
 	// common data blocks
 	moveinfo_t moveinfo;        // func movers movement
-
-	snap_edict_t snap; // information that is cleared each frame snap
 
 	assistinfo_t recent_attackers[ 4 ];
 	u32 num_bounces;

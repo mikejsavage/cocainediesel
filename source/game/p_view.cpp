@@ -115,9 +115,9 @@ void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, const Vec3
 
 	Vec3 dir = SafeNormalize( basedir );
 
-	float frac = (float)damage / ( damage + client->resp.snap.damageTaken );
-	client->resp.snap.damageTakenDir = Lerp( client->resp.snap.damageTakenDir, frac, dir );
-	client->resp.snap.damageTaken += damage;
+	float frac = (float)damage / ( damage + client->snap.damageTaken );
+	client->snap.damageTakenDir = Lerp( client->snap.damageTakenDir, frac, dir );
+	client->snap.damageTaken += damage;
 }
 
 /*
@@ -126,9 +126,9 @@ void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, const Vec3
 * Adds color blends, hitsounds, etc
 */
 void G_ClientDamageFeedback( edict_t *ent ) {
-	if( ent->r.client->resp.snap.damageTaken ) {
-		int damage = ent->r.client->resp.snap.damageTaken;
-		u64 parm = DirToU64( ent->r.client->resp.snap.damageTakenDir );
+	if( ent->r.client->snap.damageTaken ) {
+		int damage = ent->r.client->snap.damageTaken;
+		u64 parm = DirToU64( ent->r.client->snap.damageTakenDir );
 
 		if( damage <= 10 ) {
 			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_10, parm );
@@ -142,15 +142,15 @@ void G_ClientDamageFeedback( edict_t *ent ) {
 	}
 
 	// add hitsounds from given damage
-	if( ent->snap.kill ) { //kill
+	if( ent->r.client->snap.kill ) { //kill
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 4 );
-	} else if( ent->snap.damage_given >= 35 ) {
+	} else if( ent->r.client->snap.damage_given >= 35 ) {
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 0 );
-	} else if( ent->snap.damage_given >= 20 ) {
+	} else if( ent->r.client->snap.damage_given >= 20 ) {
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 1 );
-	} else if( ent->snap.damage_given >= 10 ) {
+	} else if( ent->r.client->snap.damage_given >= 10 ) {
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 2 );
-	} else if( ent->snap.damage_given ) {
+	} else if( ent->r.client->snap.damage_given ) {
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 3 );
 	}
 }

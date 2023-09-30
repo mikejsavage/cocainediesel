@@ -155,15 +155,7 @@ static void CG_InterpolatePlayerState( SyncPlayerState * playerState ) {
 
 	*playerState = *ops;
 
-	bool teleported = false; // TODO NOMERGE: syncentitystate::teleported!
-
-	if( Abs( ops->pmove.origin.x - ps->pmove.origin.x ) > 256
-		|| Abs( ops->pmove.origin.y - ps->pmove.origin.y ) > 256
-		|| Abs( ops->pmove.origin.z - ps->pmove.origin.z ) > 256 ) {
-		teleported = true;
-	}
-
-	// if the player entity was teleported this frame use the final position
+	bool teleported = cg_entities[ playerState->POVnum ].current.teleported || Length( ps->pmove.origin - ops->pmove.origin ) > 256.0f;
 	if( !teleported ) {
 		playerState->pmove.origin = Lerp( ops->pmove.origin, cg.lerpfrac, ps->pmove.origin );
 		playerState->pmove.velocity = Lerp( ops->pmove.velocity, cg.lerpfrac, ps->pmove.velocity );

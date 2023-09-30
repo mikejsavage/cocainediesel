@@ -144,8 +144,7 @@ static void G_GhostClient( edict_t *ent ) {
 	ent->movetype = MOVETYPE_NONE;
 	ent->s.solidity = Solid_NotSolid;
 
-	memset( &ent->snap, 0, sizeof( ent->snap ) );
-	memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
+	memset( &ent->r.client->snap, 0, sizeof( ent->r.client->snap ) );
 	memset( &ent->r.client->resp.chase, 0, sizeof( ent->r.client->resp.chase ) );
 
 	ent->s.type = ET_GHOST;
@@ -160,8 +159,7 @@ static void G_GhostClient( edict_t *ent ) {
 }
 
 void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAssistorEntNo, DamageType damage_type, int damage ) {
-	snap_edict_t snap_backup = ent->snap;
-	client_snapreset_t resp_snap_backup = ent->r.client->resp.snap;
+	client_snapreset_t snap_backup = ent->r.client->snap;
 
 	DropHeldItem( ent );
 
@@ -189,9 +187,8 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAss
 
 	ent->velocity = Vec3( 0.0f );
 	ent->avelocity = Vec3( 0.0f );
-	ent->snap = snap_backup;
-	ent->r.client->resp.snap = resp_snap_backup;
-	ent->r.client->resp.snap.buttons = 0;
+	ent->r.client->snap = snap_backup;
+	ent->r.client->snap.buttons = 0;
 	GClip_LinkEntity( ent );
 }
 
@@ -885,7 +882,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	ent->s.weapon = client->ps.weapon;
 	ent->s.gadget = client->ps.using_gadget ? client->ps.gadget : Gadget_None;
 
-	client->resp.snap.buttons |= ucmd->buttons;
+	client->snap.buttons |= ucmd->buttons;
 }
 
 void G_ClientThink( edict_t *ent ) {
@@ -916,7 +913,7 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 		constexpr int min_delay = 600;
 		constexpr int max_delay = 6000;
 
-		bool clicked = level.time > ent->deathTimeStamp + min_delay && ( ent->r.client->resp.snap.buttons & Button_Attack1 );
+		bool clicked = level.time > ent->deathTimeStamp + min_delay && ( ent->r.client->snap.buttons & Button_Attack1 );
 		bool timeout = level.time > ent->deathTimeStamp + max_delay;
 		if( clicked || timeout ) {
 			G_ClientRespawn( ent, false );

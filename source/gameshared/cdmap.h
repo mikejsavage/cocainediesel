@@ -1,7 +1,7 @@
 #pragma once
 
 #include "qcommon/types.h"
-#include "gameshared/editor_materials.h"
+#include "gameshared/q_collision.h"
 
 enum MapSectionType {
 	MapSection_Source,

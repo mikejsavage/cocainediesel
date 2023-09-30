@@ -170,6 +170,14 @@ bool TrySpanToS64( Span< const char > str, s64 * x ) {
 	return true;
 }
 
+bool TrySpanToU32( Span< const char > str, u32 * x ) {
+	u64 x64;
+	if( !TrySpanToU64( str, &x64 ) || x64 > U32_MAX )
+		return false;
+	*x = u32( x64 );
+	return true;
+}
+
 bool TrySpanToInt( Span< const char > str, int * x ) {
 	s64 x64;
 	if( !TrySpanToS64( str, &x64 ) )

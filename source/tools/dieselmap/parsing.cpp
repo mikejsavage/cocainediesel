@@ -167,7 +167,7 @@ static Span< const char > ParseNOrMoreDigits( size_t n, Span< const char > str )
 	} );
 }
 
-static Span< const char > Capture( int * capture, Span< const char > str ) {
+static Span< const char > Capture( u32 * capture, Span< const char > str ) {
 	Span< const char > capture_str;
 	Span< const char > res = Capture( &capture_str, str, []( Span< const char > str ) {
 		return ParseNOrMoreDigits( 1, str );
@@ -176,7 +176,7 @@ static Span< const char > Capture( int * capture, Span< const char > str ) {
 	if( res.ptr == NULL )
 		return NullSpan;
 
-	if( !TrySpanToInt( capture_str, capture ) )
+	if( !TrySpanToU32( capture_str, capture ) )
 		return NullSpan;
 
 	return res;
@@ -332,9 +332,9 @@ static Span< const char > ParsePatch( ParsedPatch * patch, Span< const char > st
 
 	Span2D< ParsedControlPoint > control_points( patch->control_points, patch->w, patch->h );
 
-	for( int x = 0; x < patch->w; x++ ) {
+	for( u32 x = 0; x < patch->w; x++ ) {
 		str = SkipToken( str, "(" );
-		for( int y = 0; y < patch->h; y++ ) {
+		for( u32 y = 0; y < patch->h; y++ ) {
 			str = SkipToken( str, "(" );
 
 			ParsedControlPoint cp;

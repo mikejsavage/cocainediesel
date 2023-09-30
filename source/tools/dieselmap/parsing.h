@@ -63,7 +63,7 @@ struct ParsedPatch {
 
 	Span< const char > material;
 	u64 material_hash;
-	int w, h;
+	u32 w, h;
 	ParsedControlPoint control_points[ 1024 ];
 };
 

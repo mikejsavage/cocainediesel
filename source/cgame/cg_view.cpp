@@ -115,8 +115,10 @@ static void CG_CalcViewBob() {
 		else {
 			const centity_t * cent = &cg_entities[cg.view.POVent];
 			MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), &cent->current );
+			Vec3 maxs = bounds.mins;
+			Vec3 mins = maxs - Vec3( 0.0f, 0.0f, 1.6f * STEPSIZE );
 
-			trace_t trace = CG_Trace( cg.predictedPlayerState.pmove.origin, bounds, cg.predictedPlayerState.pmove.origin, cg.view.POVent, SolidMask_Opaque );
+			trace_t trace = CG_Trace( cg.predictedPlayerState.pmove.origin, MinMax3( mins, maxs ), cg.predictedPlayerState.pmove.origin, cg.view.POVent, SolidMask_Opaque );
 			if( trace.GotNowhere() ) {
 				bobScale = 2.5f;
 			}

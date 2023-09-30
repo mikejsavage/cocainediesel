@@ -27,7 +27,6 @@ struct DrawModelConfig {
 };
 
 enum ModelType {
-	ModelType_None,
 	ModelType_GLTF,
 	ModelType_Map,
 };
@@ -42,8 +41,8 @@ struct ModelRenderData {
 	};
 };
 
-ModelRenderData FindModelRenderData( StringHash name );
-ModelRenderData FindModelRenderData( const char * name );
+Optional< ModelRenderData > FindModelRenderData( StringHash name );
+Optional< ModelRenderData > FindModelRenderData( const char * name );
 
 void InitModels();
 void HotloadModels();

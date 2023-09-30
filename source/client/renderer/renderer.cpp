@@ -832,7 +832,7 @@ UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0,
 	return UploadUniformBlock( color, tcmod_row0, tcmod_row1 );
 }
 
-ModelRenderData FindModelRenderData( StringHash name ) {
+Optional< ModelRenderData > FindModelRenderData( StringHash name ) {
 	const GLTFRenderData * gltf = FindGLTFRenderData( name );
 	if( gltf != NULL ) {
 		return ModelRenderData {
@@ -849,16 +849,15 @@ ModelRenderData FindModelRenderData( StringHash name ) {
 		};
 	}
 
-	return { };
+	return NONE;
 }
 
-ModelRenderData FindModelRenderData( const char * name ) {
+Optional< ModelRenderData > FindModelRenderData( const char * name ) {
 	return FindModelRenderData( StringHash( name ) );
 }
 
 void DrawModel( DrawModelConfig config, ModelRenderData render_data, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
 	switch( render_data.type ) {
-		case ModelType_None: break;
 		case ModelType_GLTF: DrawGLTFModel( config, render_data.gltf, transform, color, palettes ); break;
 		case ModelType_Map: DrawMapModel( config, render_data.map, transform, color ); break;
 	}

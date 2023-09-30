@@ -405,10 +405,12 @@ static void DrawEntityModel( centity_t * cent ) {
 		return;
 	}
 
-	ModelRenderData model = FindModelRenderData( cent->prev.model );
-	if( model.type == ModelType_None ) {
+	Optional< ModelRenderData > maybe_model = FindModelRenderData( cent->prev.model );
+	if( !maybe_model.exists ) {
 		return;
 	}
+
+	ModelRenderData model = maybe_model.value;
 
 	TempAllocator temp = cls.frame_arena.temp();
 

@@ -27,16 +27,16 @@ constexpr size_t NUM_COLLISION_FRAMES = 64;
 static CollisionFrame g_collision_frames[ NUM_COLLISION_FRAMES ];
 static size_t g_current_collision_frame = 0;
 
-static CollisionEntity GetCollisionEntity( edict_t * ent ) {
-	CollisionEntity cent;
-	cent.id = ent->s.id;
-	cent.origin = ent->s.origin;
-	cent.scale = ent->s.scale;
-	cent.angles = ent->s.angles;
-	cent.override_collision_model = ent->s.override_collision_model;
-	cent.model = ent->s.model;
-	cent.view_height = ent->viewheight;
-	return cent;
+static CollisionEntity GetCollisionEntity( const edict_t * ent ) {
+	return CollisionEntity {
+		.id = ent->s.id,
+		.origin = ent->s.origin,
+		.scale = ent->s.scale,
+		.angles = ent->s.angles,
+		.override_collision_model = ent->s.override_collision_model,
+		.model = ent->s.model,
+		.view_height = ent->viewheight,
+	};
 }
 
 static void ApplyCollisionEntity( CollisionEntity cent, edict_t * ent ) {
@@ -261,13 +261,13 @@ void GClip_ClearWorld() {
 	ClearSpatialHashGrid( &frame->grid );
 }
 
-void GClip_LinkEntity( edict_t * ent ) {
+void GClip_LinkEntity( const edict_t * ent ) {
 	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
 	frame->entities[ ENTNUM( ent ) ] = GetCollisionEntity( ent );
 	LinkEntity( &frame->grid, ServerCollisionModelStorage(), &ent->s, ENTNUM( ent ) );
 }
 
-void GClip_UnlinkEntity( edict_t * ent ) {
+void GClip_UnlinkEntity( const edict_t * ent ) {
 	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
 	UnlinkEntity( &frame->grid, ENTNUM( ent ) );
 }

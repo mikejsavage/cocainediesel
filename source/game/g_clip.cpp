@@ -86,7 +86,7 @@ static void GetCollisionFrames4D( const CollisionFrame ** older, const Collision
 	return;
 }
 
-static CollisionEntity LerpCollisionEntity4D( CollisionEntity * older, float t, CollisionEntity * newer ) {
+static CollisionEntity LerpCollisionEntity4D( const CollisionEntity * older, float t, const CollisionEntity * newer ) {
 	CollisionEntity ent = *newer;
 
 	ent.origin = Lerp( older->origin, t, newer->origin );

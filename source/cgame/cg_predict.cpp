@@ -120,7 +120,7 @@ void CG_BuildSolidList( const snapshot_t * frame ) {
 // 	return trace.GotNowhere();
 // }
 
-void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
+void CG_Predict_TouchTriggers( const pmove_t * pm, Vec3 previous_origin ) {
 	// fixme: more accurate check for being able to touch or not
 	if( pm->playerState->pmove.pm_type != PM_NORMAL ) {
 		return;

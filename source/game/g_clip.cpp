@@ -23,8 +23,7 @@ struct CollisionFrame {
 	size_t num_entities;
 };
 
-constexpr size_t NUM_COLLISION_FRAMES = 64;
-static CollisionFrame g_collision_frames[ NUM_COLLISION_FRAMES ];
+static CollisionFrame g_collision_frames[ 64 ];
 static size_t g_current_collision_frame = 0;
 
 static CollisionEntity GetCollisionEntity( const edict_t * ent ) {
@@ -50,39 +49,39 @@ static void ApplyCollisionEntity( CollisionEntity cent, edict_t * ent ) {
 }
 
 void GClip_BackUpCollisionFrame() {
-	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % ARRAY_COUNT( g_collision_frames ) ];
 	frame->timestamp = svs.gametime;
 	frame->num_entities = game.numentities;
 	g_current_collision_frame++;
 
-	CollisionFrame * newframe = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+	CollisionFrame * newframe = &g_collision_frames[ g_current_collision_frame % ARRAY_COUNT( g_collision_frames ) ];
 	newframe->grid = frame->grid;
 	memcpy( newframe->entities, frame->entities, frame->num_entities * sizeof( CollisionEntity ) );
 }
 
 static void GetCollisionFrames4D( const CollisionFrame ** older, const CollisionFrame ** newer, int time_delta ) {
 	if( time_delta == 0 ) {
-		*older = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
-		*newer = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+		*older = &g_collision_frames[ g_current_collision_frame % ARRAY_COUNT( g_collision_frames ) ];
+		*newer = &g_collision_frames[ g_current_collision_frame % ARRAY_COUNT( g_collision_frames ) ];
 		return;
 	}
 
 	s64 time = svs.gametime + time_delta;
-	for( size_t i = 1; i < NUM_COLLISION_FRAMES; i++ ) {
-		s64 index = ( g_current_collision_frame - i ) % NUM_COLLISION_FRAMES;
+	for( size_t i = 1; i < ARRAY_COUNT( g_collision_frames ); i++ ) {
+		s64 index = ( g_current_collision_frame - i ) % ARRAY_COUNT( g_collision_frames );
 		if( index < 0 ) {
 			break;
 		}
 		if( g_collision_frames[ index ].timestamp < time ) {
 			*older = &g_collision_frames[ index ];
-			*newer = &g_collision_frames[ ( index + 1 ) % NUM_COLLISION_FRAMES ];
+			*newer = &g_collision_frames[ ( index + 1 ) % ARRAY_COUNT( g_collision_frames ) ];
 			return;
 		}
 	}
 
 	// timedelta too big, idk return current?
-	*older = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
-	*newer = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+	*older = &g_collision_frames[ g_current_collision_frame % ARRAY_COUNT( g_collision_frames ) ];
+	*newer = &g_collision_frames[ g_current_collision_frame % ARRAY_COUNT( g_collision_frames ) ];
 	return;
 }
 
@@ -123,7 +122,7 @@ static CollisionEntity LerpCollisionEntity4D( const CollisionEntity * older, flo
 	return ent;
 }
 
-static bool CheckSimilarCollisionEntities( CollisionEntity * older, CollisionEntity * newer ) {
+static bool CheckSimilarCollisionEntities( const CollisionEntity * older, const CollisionEntity * newer ) {
 	if( older->id.id != newer->id.id )
 		return false;
 
@@ -147,11 +146,11 @@ static bool CollisionEntity4D( int entity_id, int time_delta, edict_t * ent ) {
 	if( time_delta == 0 || entity_id == 0 ) // special case world...
 		return true;
 
-	CollisionEntity * newer = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ].entities[ entity_id ];
+	CollisionEntity * newer = &g_collision_frames[ g_current_collision_frame % ARRAY_COUNT( g_collision_frames ) ].entities[ entity_id ];
 	s64 newer_time = svs.gametime;
 	s64 target_time = svs.gametime + time_delta;
-	for( size_t i = 1; i < NUM_COLLISION_FRAMES; i++ ) {
-		s64 index = ( g_current_collision_frame - i ) % NUM_COLLISION_FRAMES;
+	for( size_t i = 1; i < ARRAY_COUNT( g_collision_frames ); i++ ) {
+		s64 index = ( g_current_collision_frame - i ) % ARRAY_COUNT( g_collision_frames );
 		CollisionEntity * older = &g_collision_frames[ index ].entities[ entity_id ];
 		if( !CheckSimilarCollisionEntities( older, newer ) ) {
 			// entity changed before this point, use most recent version
@@ -249,7 +248,7 @@ int GClip_FindInRadius4D( Vec3 org, float rad, int * list, size_t maxcount, int 
 	return num;
 }
 
-void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int time_delta, bool selfdamage ) {
+void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float * frac, int time_delta, bool selfdamage ) {
 	edict_t ent4d;
 	if( !CollisionEntity4D( ENTNUM( ent ), time_delta, &ent4d ) )
 		return;
@@ -257,18 +256,18 @@ void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 *
 }
 
 void GClip_ClearWorld() {
-	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % ARRAY_COUNT( g_collision_frames ) ];
 	ClearSpatialHashGrid( &frame->grid );
 }
 
 void GClip_LinkEntity( const edict_t * ent ) {
-	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % ARRAY_COUNT( g_collision_frames ) ];
 	frame->entities[ ENTNUM( ent ) ] = GetCollisionEntity( ent );
 	LinkEntity( &frame->grid, ServerCollisionModelStorage(), &ent->s, ENTNUM( ent ) );
 }
 
 void GClip_UnlinkEntity( const edict_t * ent ) {
-	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % ARRAY_COUNT( g_collision_frames ) ];
 	UnlinkEntity( &frame->grid, ENTNUM( ent ) );
 }
 
@@ -282,7 +281,7 @@ void GClip_TouchTriggers( edict_t * ent ) {
 	bounds.maxs += ent->s.origin;
 
 	int touchlist[ MAX_EDICTS ];
-	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % ARRAY_COUNT( g_collision_frames ) ];
 	size_t touchnum = TraverseSpatialHashGrid( &frame->grid, bounds, touchlist, Solid_Trigger );
 
 	for( size_t i = 0; i < touchnum; i++ ) {
@@ -301,7 +300,7 @@ void GClip_TouchTriggers( edict_t * ent ) {
 	}
 }
 
-void G_PMoveTouchTriggers( pmove_t * pm, Vec3 previous_origin ) {
+void G_PMoveTouchTriggers( const pmove_t * pm, Vec3 previous_origin ) {
 	if( pm->playerState->POVnum <= 0 || (int)pm->playerState->POVnum > MAX_CLIENTS )
 		return;
 
@@ -325,7 +324,7 @@ void G_PMoveTouchTriggers( pmove_t * pm, Vec3 previous_origin ) {
 	bounds = Union( bounds, pm->bounds + previous_origin );
 
 	int touchlist[ MAX_EDICTS ];
-	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % ARRAY_COUNT( g_collision_frames ) ];
 	size_t num = TraverseSpatialHashGrid( &frame->grid, bounds, touchlist, Solid_Trigger );
 
 	for( size_t i = 0; i < num; i++ ) {

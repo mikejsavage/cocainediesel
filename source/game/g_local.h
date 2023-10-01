@@ -333,7 +333,7 @@ void GClip_ClearWorld();
 void GClip_LinkEntity( const edict_t * ent );
 void GClip_UnlinkEntity( const edict_t * ent );
 void GClip_TouchTriggers( edict_t * ent );
-void G_PMoveTouchTriggers( pmove_t * pm, Vec3 previous_origin );
+void G_PMoveTouchTriggers( const pmove_t * pm, Vec3 previous_origin );
 int GClip_FindInRadius( Vec3 org, float rad, int * list, size_t maxcount );
 
 bool IsHeadshot( int entNum, Vec3 hit, int timeDelta );

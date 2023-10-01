@@ -117,7 +117,7 @@ static CollisionEntity LerpCollisionEntity4D( const CollisionEntity * older, flo
 
 		default: {
 			// Assert( false );
-		}
+		} break;
 	}
 
 	return ent;

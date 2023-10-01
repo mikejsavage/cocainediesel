@@ -97,17 +97,8 @@ void CG_BuildSolidList( const snapshot_t * frame ) {
 
 	for( int i = 0; i < frame->numEntities; i++ ) {
 		const SyncEntityState * ent = &frame->parsedEntities[ i ];
-
 		if( ent->number == 0 )
 			continue;
-
-		if( ISEVENTENTITY( ent ) )
-			continue;
-
-		MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), ent );
-		if( bounds == MinMax3::Empty() )
-			continue;
-
 		LinkEntity( &cg_grid, ClientCollisionModelStorage(), ent, i );
 	}
 }

@@ -359,15 +359,11 @@ inline Quaternion NLerp( Quaternion from, float t, Quaternion to ) {
  * MinMax3
  */
 
-constexpr MinMax3 operator*( const MinMax3 & bounds, float scale ) {
-	return MinMax3( bounds.mins * scale, bounds.maxs * scale );
-}
-constexpr MinMax3 operator*( const MinMax3 & bounds, Vec3 scale ) {
-	return MinMax3( bounds.mins * scale, bounds.maxs * scale );
-}
-
 constexpr MinMax3 operator+( const MinMax3 & bounds, Vec3 offset ) { return MinMax3( bounds.mins + offset, bounds.maxs + offset ); }
 constexpr MinMax3 operator-( const MinMax3 & bounds, Vec3 offset ) { return MinMax3( bounds.mins - offset, bounds.maxs - offset ); }
+constexpr MinMax3 operator*( const MinMax3 & bounds, float scale ) { return MinMax3( bounds.mins * scale, bounds.maxs * scale ); }
+constexpr MinMax3 operator*( const MinMax3 & bounds, Vec3 scale ) { return MinMax3( bounds.mins * scale, bounds.maxs * scale ); }
+
 constexpr void operator+=( MinMax3 & bounds, Vec3 offset ) { bounds = bounds + offset; }
 constexpr void operator-=( MinMax3 & bounds, Vec3 offset ) { bounds = bounds - offset; }
 

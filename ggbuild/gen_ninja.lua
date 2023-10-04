@@ -89,7 +89,7 @@ configs[ "linux-bench" ] = {
 configs[ "macos" ] = copy( configs[ "linux" ], {
 	cxx = "clang++",
 	-- -march=haswell on x86
-	cxxflags = configs[ "linux" ].cxxflags .. " -arch arm64 -mmacosx-version-min=10.13",
+	cxxflags = configs[ "linux" ].cxxflags .. " -arch arm64 -mmacosx-version-min=10.15",
 	ldflags = "-arch arm64",
 } )
 configs[ "macos-debug" ] = {

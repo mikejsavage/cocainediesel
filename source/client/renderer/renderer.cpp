@@ -20,8 +20,6 @@
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
 
-#include "tracy/tracy/Tracy.hpp"
-
 FrameStatic frame_static;
 static u64 frame_counter;
 
@@ -477,7 +475,6 @@ static void CreateRenderTargets() {
 	}
 }
 
-#if !TRACY_ENABLE
 namespace tracy {
 struct SourceLocationData {
 	const char * name;
@@ -487,7 +484,6 @@ struct SourceLocationData {
 	uint32_t color;
 };
 }
-#endif
 
 void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadShaders();

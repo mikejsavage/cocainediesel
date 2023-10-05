@@ -3,8 +3,6 @@
 #include "client/client.h"
 #include "client/threadpool.h"
 
-#include "tracy/tracy/Tracy.hpp"
-
 struct Job {
 	JobCallback callback;
 	void * data;
@@ -28,10 +26,7 @@ static Worker workers[ 32 ];
 static u32 num_workers;
 
 static void ThreadPoolWorker( void * data ) {
-#if TRACY_ENABLE
-	// NOTE(mike): need to ifdef this out because it breaks linux release builds
-	tracy::SetThreadName( "Thread pool worker" );
-#endif
+	TracyCSetThreadName( "Thread pool worker" );
 
 	ArenaAllocator * arena = ( ArenaAllocator * ) data;
 

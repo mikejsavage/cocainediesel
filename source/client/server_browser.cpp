@@ -9,8 +9,6 @@
 
 #include "nanosort/nanosort.hpp"
 
-#include "tracy/tracy/Tracy.hpp"
-
 struct MasterServer {
 	NetAddress address;
 	Thread * resolver_thread;
@@ -46,9 +44,7 @@ Span< const ServerBrowserEntry > GetServerBrowserEntries() {
 }
 
 static void GetMasterServerAddress( void * data ) {
-#if TRACY_ENABLE
-	tracy::SetThreadName( "Master server resolver" );
-#endif
+	TracyCSetThreadName( "Master server resolver" );
 
 	size_t idx = size_t( uintptr_t( data ) );
 

@@ -9,8 +9,6 @@
 
 #include "picohttpparser/picohttpparser.h"
 
-#include "tracy/tracy/Tracy.hpp"
-
 #include <atomic>
 
 static constexpr Time REQUEST_TIMEOUT = Seconds( 10 );
@@ -377,9 +375,7 @@ static void WebServerFrame() {
 }
 
 static void WebServerThread( void * param ) {
-#if TRACY_ENABLE
-	tracy::SetThreadName( "Web server thread" );
-#endif
+	TracyCSetThreadName( "Web server thread" );
 
 	while( web_server_running ) {
 		WebServerFrame();

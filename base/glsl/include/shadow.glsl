@@ -1,10 +1,9 @@
 uniform sampler2DArrayShadow u_ShadowmapTextureArray;
 
-const float blend_threshold = 0.5;
-
 float SampleShadowMap( vec2 base_uv, float u, float v, vec2 inv_shadowmap_size, int cascadeIdx, float depth, vec2 receiverPlaneDepthBias ) {
 	vec2 uv = base_uv + vec2( u, v ) * inv_shadowmap_size;
-	return texture( u_ShadowmapTextureArray, vec4( uv, cascadeIdx, depth ) );
+	float z = depth + dot( vec2( u, v ) * inv_shadowmap_size, receiverPlaneDepthBias );
+	return texture( u_ShadowmapTextureArray, vec4( uv, cascadeIdx, z ) );
 }
 
 vec2 ComputeReceiverPlaneDepthBias( vec3 texCoordDX, vec3 texCoordDY ) {
@@ -15,11 +14,12 @@ vec2 ComputeReceiverPlaneDepthBias( vec3 texCoordDX, vec3 texCoordDY ) {
 	return biasUV;
 }
 
-vec3 GetShadowPosOffset( int cascadeIdx, float nDotL, vec3 normal ) {
+vec3 GetShadowPosOffset( float nDotL, vec3 normal ) {
+	const float offset_scale = 1.0;
 	vec2 inv_shadowmap_size = 1.0 / textureSize( u_ShadowmapTextureArray, 0 ).xy;
 	float texelSize = 2.0 * inv_shadowmap_size.x;
 	float nmlOffsetScale = clamp( 1.0 - nDotL, 0.0, 1.0 );
-	return texelSize * 1.0 * nmlOffsetScale * normal;
+	return texelSize * offset_scale * nmlOffsetScale * normal;
 }
 
 float SampleShadowMapOptimizedPCF( vec3 shadowPos, vec3 shadowPosDX, vec3 shadowPosDY, int cascadeIdx ) {
@@ -28,8 +28,16 @@ float SampleShadowMapOptimizedPCF( vec3 shadowPos, vec3 shadowPosDX, vec3 shadow
 
 	float lightDepth = shadowPos.z;
 
+#if 0
+	vec2 receiverPlaneDepthBias = ComputeReceiverPlaneDepthBias( shadowPosDX, shadowPosDY );
+
+        float fractionalSamplingError = 2.0 * dot( inv_shadowmap_size, abs( receiverPlaneDepthBias ) );
+        lightDepth -= min( fractionalSamplingError, 0.01 );
+
+#else
 	vec2 receiverPlaneDepthBias = vec2( 0.0 );
 	lightDepth -= 0.001;
+#endif
 
 	vec2 uv = shadowPos.xy * shadowmap_size;
 	vec2 base_uv = floor( uv + 0.5 );
@@ -110,12 +118,11 @@ float ShadowCascade( vec3 position, vec3 normal, int cascadeIdx ) {
 	vec3 cascadeOffset, cascadeScale;
 	GetCascadeOffsetScale( cascadeIdx, cascadeOffset, cascadeScale );
 
-	vec3 offset = GetShadowPosOffset( cascadeIdx, dot( normal, u_LightDir ), normal ) / abs( cascadeScale.z );
+	vec3 offset = GetShadowPosOffset( dot( normal, u_LightDir ), normal ) / abs( cascadeScale.z );
 	vec3 shadowPos = ( u_ShadowMatrix * vec4( position + offset, 1.0 ) ).xyz;
 	vec3 shadowPosDX = dFdx( shadowPos ) * cascadeScale;
 	vec3 shadowPosDY = dFdy( shadowPos ) * cascadeScale;
-	shadowPos += cascadeOffset;
-	shadowPos *= cascadeScale;
+	shadowPos = ( shadowPos + cascadeOffset ) * cascadeScale;
 	shadowPos.z = shadowPos.z * 0.5 + 0.5;
 
 	return SampleShadowMapOptimizedPCF( shadowPos, shadowPosDX, shadowPosDY, cascadeIdx );
@@ -127,6 +134,8 @@ float GetLight( vec3 normal ) {
 	for( int i = 0; i < u_ShadowCascades; i++ ) {
 		float plane = GetCascadePlane( i );
 		if( view_distance <= plane ) {
+			const float blend_threshold = 0.5;
+
 			float light = ShadowCascade( v_Position, normal, i );
 			float fade_factor = ( plane - view_distance ) / plane;
 			if( fade_factor < blend_threshold ) {

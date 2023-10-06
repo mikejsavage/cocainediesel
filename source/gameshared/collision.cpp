@@ -13,17 +13,10 @@
 #include "cgltf/cgltf.h"
 
 CollisionModel CollisionModelAABB( const MinMax3 & aabb ) {
-	CollisionModel model = { };
-	model.type = CollisionModelType_AABB;
-	model.aabb = aabb;
-	return model;
-}
-
-CollisionModel CollisionModelGLTF( StringHash name ) {
-	CollisionModel model = { };
-	model.type = CollisionModelType_GLTF;
-	model.gltf_model = name;
-	return model;
+	return CollisionModel {
+		.type = CollisionModelType_AABB,
+		.aabb = aabb,
+	};
 }
 
 static void DeleteGLTFCollisionData( GLTFCollisionData data ) {

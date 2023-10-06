@@ -51,7 +51,6 @@ struct CollisionModelStorage {
 };
 
 CollisionModel CollisionModelAABB( const MinMax3 & aabb );
-CollisionModel CollisionModelGLTF( StringHash name );
 
 void InitCollisionModelStorage( CollisionModelStorage * storage );
 void ShutdownCollisionModelStorage( CollisionModelStorage * storage );

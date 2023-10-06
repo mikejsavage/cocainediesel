@@ -90,6 +90,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 	NonRAIIDynamicArray< Vec3 > vertices( sys_allocator );
 	NonRAIIDynamicArray< Plane > planes( sys_allocator );
 	NonRAIIDynamicArray< GLTFCollisionBrush > brushes( sys_allocator );
+	DynamicArray< size_t > brush_to_node_idx( sys_allocator );
 	GLTFCollisionData data = { };
 
 	for( size_t i = 0; i < gltf->nodes_count; i++ ) {
@@ -195,6 +196,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 		brush.num_vertices = vertices.size() - brush.first_vertex;
 
 		brushes.add( brush );
+		brush_to_node_idx.add( i );
 	}
 
 	if( brushes.size() == 0 ) {
@@ -205,10 +207,15 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 	data.planes = planes.span();
 	data.brushes = brushes.span();
 
-	for( GLTFCollisionBrush brush : data.brushes ) {
+	for( size_t i = 0; i < data.brushes.n; i++ ) {
+		const GLTFCollisionBrush & brush = data.brushes[ i ];
+		bool ok = true;
 		if( !IsConvex( data, brush ) ) {
-			// Fatal( "failed convexity check" );
-			Com_GGPrint( "failed convexity check on {}", path );
+			Com_GGPrint( S_COLOR_YELLOW "{} has a concave collision brush: {}", path, gltf->nodes[ brush_to_node_idx[ i ] ].name );
+			ok = false;
+		}
+
+		if( !ok ) {
 			DeleteGLTFCollisionData( data );
 			return false;
 		}

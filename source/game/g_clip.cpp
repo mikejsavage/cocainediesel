@@ -4,8 +4,6 @@
 #include "gameshared/collision.h"
 #include "gameshared/intersection_tests.h"
 
-#include <algorithm>
-
 struct CollisionEntity {
 	EntityID id;
 	Vec3 origin;

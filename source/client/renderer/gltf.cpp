@@ -4,7 +4,6 @@
 #include "client/client.h"
 #include "client/renderer/renderer.h"
 #include "client/assets.h"
-#include "cgame/ref.h"
 #include "cgame/cg_particles.h"
 #include "cgame/cg_dynamics.h"
 
@@ -168,20 +167,20 @@ static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf
 	render_data->nodes[ node_idx ].mesh = NewMesh( mesh_config );
 }
 
-constexpr u32 MAX_EXTRAS = 16;
-struct GltfExtras {
+static constexpr u32 MAX_EXTRAS = 16;
+struct GLTFExtras {
 	Span< const char > keys[ MAX_EXTRAS ];
 	Span< const char > values[ MAX_EXTRAS ];
 	u32 num_extras = 0;
 };
 
-static GltfExtras LoadExtras( cgltf_data * gltf, cgltf_node * gltf_node ) {
+static GLTFExtras LoadExtras( cgltf_data * gltf, cgltf_node * gltf_node ) {
 	char json_data[ 1024 ];
 	size_t json_size = 1024;
 	cgltf_copy_extras_json( gltf, &gltf_node->extras, json_data, &json_size );
 	Span< const char > json( json_data, json_size );
 
-	GltfExtras extras = { };
+	GLTFExtras extras = { };
 
 	jsmn_parser p;
 	constexpr u32 max_tokens = MAX_EXTRAS * 2 + 1;
@@ -206,13 +205,13 @@ static GltfExtras LoadExtras( cgltf_data * gltf, cgltf_node * gltf_node ) {
 	return extras;
 }
 
-static Span< const char > GetExtrasKey( const char * key, GltfExtras * extras ) {
+static Span< const char > GetExtrasKey( const char * key, GLTFExtras * extras ) {
 	for( u32 i = 0; i < extras->num_extras; i++ ) {
 		if( StrEqual( extras->keys[ i ], key ) ) {
 			return extras->values[ i ];
 		}
 	}
-	return MakeSpan( "" );
+	return Span< const char >();
 }
 
 static void LoadNode( GLTFRenderData * model, cgltf_data * gltf, cgltf_node * gltf_node, u8 * node_idx ) {
@@ -255,7 +254,7 @@ static void LoadNode( GLTFRenderData * model, cgltf_data * gltf, cgltf_node * gl
 	}
 
 	{
-		GltfExtras extras = LoadExtras( gltf, gltf_node );
+		GLTFExtras extras = LoadExtras( gltf, gltf_node );
 		Span< const char > type = GetExtrasKey( "type", &extras );
 		Span< const char > color_value = GetExtrasKey( "color", &extras );
 		Vec4 color;

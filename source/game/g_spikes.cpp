@@ -20,7 +20,7 @@ static void SpikesDeploy( edict_t * self ) {
 	}
 }
 
-static void SpikesTouched( edict_t * self, edict_t * other, const Plane * plane, int surfFlags ) {
+static void SpikesTouched( edict_t * self, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
 	if( other->s.type != ET_PLAYER )
 		return;
 
@@ -37,8 +37,7 @@ static void SpikesTouched( edict_t * self, edict_t * other, const Plane * plane,
 }
 
 void SP_spike( edict_t * spike, const spawn_temp_t * st ) {
-	spike->s.svflags &= ~SVF_NOCLIENT | SVF_PROJECTILE;
-	spike->r.solid = SOLID_TRIGGER;
+	spike->s.svflags &= ~SVF_NOCLIENT;
 	spike->s.radius = spike->spawnflags & 1;
 
 	Vec3 forward, right, up;
@@ -47,8 +46,9 @@ void SP_spike( edict_t * spike, const spawn_temp_t * st ) {
 	MinMax3 bounds = MinMax3::Empty();
 	bounds = Union( bounds, -( forward + right ) * 8.0f + up * 48.0f );
 	bounds = Union( bounds, ( forward + right ) * 8.0f );
-	spike->r.mins = bounds.mins;
-	spike->r.maxs = bounds.maxs;
+
+	spike->s.override_collision_model = CollisionModelAABB( bounds );
+	spike->s.solidity = Solid_Trigger;
 
 	spike->s.model = "models/spikes/spike";
 	spike->s.type = ET_SPIKES;
@@ -59,8 +59,6 @@ void SP_spike( edict_t * spike, const spawn_temp_t * st ) {
 
 	edict_t * base = G_Spawn();
 	base->s.svflags &= ~SVF_NOCLIENT;
-	base->r.mins = bounds.mins;
-	base->r.maxs = bounds.maxs;
 	base->s.origin = spike->s.origin;
 	base->s.angles = spike->s.angles;
 	base->s.model = "models/spikes/spike_base";
@@ -68,8 +66,7 @@ void SP_spike( edict_t * spike, const spawn_temp_t * st ) {
 }
 
 void SP_spikes( edict_t * spikes, const spawn_temp_t * st ) {
-	spikes->s.svflags &= ~SVF_NOCLIENT | SVF_PROJECTILE;
-	spikes->r.solid = SOLID_TRIGGER;
+	spikes->s.svflags &= ~SVF_NOCLIENT;
 	spikes->s.radius = spikes->spawnflags & 1;
 
 	Vec3 forward, right, up;
@@ -78,11 +75,12 @@ void SP_spikes( edict_t * spikes, const spawn_temp_t * st ) {
 	MinMax3 bounds = MinMax3::Empty();
 	bounds = Union( bounds, -( forward + right ) * 64.0f + up * 48.0f );
 	bounds = Union( bounds, ( forward + right ) * 64.0f );
-	spikes->r.mins = bounds.mins;
-	spikes->r.maxs = bounds.maxs;
 
 	spikes->s.model = "models/spikes/spikes";
 	spikes->s.type = ET_SPIKES;
+
+	spikes->s.override_collision_model = CollisionModelAABB( bounds );
+	spikes->s.solidity = Solid_Trigger;
 
 	spikes->touch = SpikesTouched;
 
@@ -90,8 +88,6 @@ void SP_spikes( edict_t * spikes, const spawn_temp_t * st ) {
 
 	edict_t * base = G_Spawn();
 	base->s.svflags &= ~SVF_NOCLIENT;
-	base->r.mins = bounds.mins;
-	base->r.maxs = bounds.maxs;
 	base->s.origin = spikes->s.origin;
 	base->s.angles = spikes->s.angles;
 	base->s.model = "models/spikes/spikes_base";

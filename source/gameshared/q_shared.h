@@ -35,6 +35,7 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 
 bool TrySpanToU64( Span< const char > str, u64 * x );
 bool TrySpanToS64( Span< const char > str, s64 * x );
+bool TrySpanToU32( Span< const char > str, u32 * x );
 bool TrySpanToInt( Span< const char > str, int * x );
 bool TrySpanToFloat( Span< const char > str, float * x );
 

@@ -20,9 +20,8 @@ static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Sy
 	spots[ 1 ] = pml->origin + pml->forward + pml->right * 2;
 
 	for( Vec3 spot : spots ) {
-		trace_t trace;
-		pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->contentmask, 0 );
-		if( trace.fraction < 1 && !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) {
+		trace_t trace = pmove_gs->api.Trace( pml->origin, pm->bounds, spot, pm->playerState->POVnum, pm->solid_mask, 0 );
+		if( trace.HitSomething() && !ISWALKABLEPLANE( trace.normal ) && trace.GotSomewhere() ) {
 			return true;
 		}
 	}

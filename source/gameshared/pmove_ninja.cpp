@@ -4,7 +4,7 @@
 static constexpr float pm_wallclimbspeed = 200.0f;
 
 static constexpr float pm_dashspeed = 550.0f;
-static constexpr float pm_dashupspeed = ( 180.0f * GRAVITY_COMPENSATE );
+static constexpr float pm_dashupspeed = 191.25f;
 
 static constexpr float stamina_use = 0.2f;
 static constexpr float stamina_use_moving = 0.3f;
@@ -17,9 +17,8 @@ static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Sy
 	}
 
 	Vec3 spot = pml->origin + pml->forward;
-	trace_t trace;
-	pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->contentmask, 0 );
-	return trace.fraction < 1;
+	trace_t trace = pmove_gs->api.Trace( pml->origin, pm->bounds, spot, pm->playerState->POVnum, pm->solid_mask, 0 );
+	return trace.HitSomething();
 }
 
 

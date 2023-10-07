@@ -27,10 +27,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, Vec3 start, Vec3 dir, Vec3 right, Vec3 up, Vec2 spread, int range, int ignore, int timeDelta ) {
 	Vec3 end = start + dir * range + right * spread.x + up * spread.y;
 
-	gs->api.Trace( trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ignore, MASK_WALLBANG, timeDelta );
+	*trace = gs->api.Trace( start, MinMax3( 0.0f ), end, ignore, SolidMask_WallbangShot, timeDelta );
 
 	if( wallbang_trace != NULL ) {
-		gs->api.Trace( wallbang_trace, start, Vec3( 0.0f ), Vec3( 0.0f ), trace->endpos, ignore, MASK_SHOT, timeDelta );
+		*wallbang_trace = gs->api.Trace( start, MinMax3( 0.0f ), trace->endpos, ignore, Solid_Wallbangable, timeDelta );
 	}
 }
 
@@ -49,19 +49,11 @@ Vec2 FixedSpreadPattern( int i, float spread ) {
 	return Vec2( cosf( x ), sinf( x ) ) * spread * sqrtf( x );
 }
 
-void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * trace, Vec3 dir, void * data ), void * data ) {
-	Vec3 maxs = Vec3( 0.5f, 0.5f, 0.5f );
-
+trace_t GS_TraceLaserBeam( const gs_state_t * gs, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta ) {
 	Vec3 dir;
 	AngleVectors( angles, &dir, NULL, NULL );
 	Vec3 end = origin + dir * range;
-
-	trace->ent = 0;
-
-	gs->api.Trace( trace, origin, -maxs, maxs, end, ignore, MASK_SHOT, timeDelta );
-	if( trace->ent != -1 && impact != NULL ) {
-		impact( trace, dir, data );
-	}
+	return gs->api.Trace( origin, MinMax3( 0.5f ), end, ignore, SolidMask_Shot, timeDelta );
 }
 
 WeaponSlot * FindWeapon( SyncPlayerState * player, WeaponType weapon ) {
@@ -142,7 +134,7 @@ static void HandleZoom( const gs_state_t * gs, SyncPlayerState * ps, const UserC
 	s16 last_zoom_time = ps->zoom_time;
 	bool can_zoom = ( ps->weapon_state == WeaponState_Idle || ( ps->weapon_state == WeaponState_Firing && HasAmmo( def, slot ) ) ) && ( ps->pmove.features & PMFEAT_SCOPE );
 
-	if( can_zoom && def->zoom_fov != 0 && HasBit( cmd->buttons, Button_Attack2 ) ) {
+	if( can_zoom && def->zoom_fov != 0 && HasAllBits( cmd->buttons, Button_Attack2 ) ) {
 		ps->zoom_time = Min2( ps->zoom_time + cmd->msec, ZOOMTIME );
 		if( last_zoom_time == 0 ) {
 			gs->api.PredictedEvent( ps->POVnum, EV_ZOOM_IN, ps->weapon );
@@ -258,9 +250,9 @@ static constexpr ItemState generic_gun_states[] = {
 		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
-		if( HasBit( cmd->buttons, WeaponAttackBits( def ) ) ) {
+		if( HasAnyBit( cmd->buttons, WeaponAttackBits( def ) ) ) {
 			if( HasAmmo( def, slot ) ) {
-				FireWeapon( gs, ps, cmd, false, def->has_altfire && HasBit( cmd->buttons, Button_Attack2 ) );
+				FireWeapon( gs, ps, cmd, false, def->has_altfire && HasAllBits( cmd->buttons, Button_Attack2 ) );
 
 				switch( def->firing_mode ) {
 					case FiringMode_Auto: return WeaponState_Firing;
@@ -271,7 +263,7 @@ static constexpr ItemState generic_gun_states[] = {
 			}
 		}
 
-		bool wants_reload = HasBit( cmd->buttons, Button_Reload ) && def->clip_size != 0 && slot->ammo < def->clip_size;
+		bool wants_reload = HasAllBits( cmd->buttons, Button_Reload ) && def->clip_size != 0 && slot->ammo < def->clip_size;
 		if( wants_reload || !HasAmmo( def, slot ) ) {
 			return WeaponState_Reloading;
 		}
@@ -280,7 +272,7 @@ static constexpr ItemState generic_gun_states[] = {
 	} ),
 
 	ItemState( WeaponState_FiringSemiAuto, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
-		if( HasBit( cmd->buttons, Button_Attack1 ) ) {
+		if( HasAllBits( cmd->buttons, Button_Attack1 ) ) {
 			const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 			ps->weapon_state_time = Min2( def->refire_time, ps->weapon_state_time );
 
@@ -302,7 +294,7 @@ static constexpr ItemState generic_gun_states[] = {
 
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
-		if( !HasBit( cmd->buttons, Button_Attack1 ) || slot->ammo == 0 ) {
+		if( !HasAllBits( cmd->buttons, Button_Attack1 ) || slot->ammo == 0 ) {
 			return WeaponState_Idle;
 		}
 
@@ -335,7 +327,7 @@ static constexpr ItemState generic_gun_states[] = {
 		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
-		if( HasBit( cmd->buttons, WeaponAttackBits( def ) ) ) {
+		if( HasAnyBit( cmd->buttons, WeaponAttackBits( def ) ) ) {
 			gs->api.PredictedEvent( ps->POVnum, EV_NOAMMOCLICK, ps->weapon_state_time );
 		}
 
@@ -364,7 +356,7 @@ static constexpr ItemState generic_gun_states[] = {
 		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
-		if( HasBit( cmd->buttons, WeaponAttackBits( def ) ) && HasAmmo( def, slot ) ) {
+		if( HasAnyBit( cmd->buttons, WeaponAttackBits( def ) ) && HasAmmo( def, slot ) ) {
 			return WeaponState_Idle;
 		}
 
@@ -384,12 +376,12 @@ static constexpr ItemState railgun_states[] = {
 	generic_gun_refire_state,
 
 	ItemState( WeaponState_Idle, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
-		if( HasBit( cmd->buttons, Button_Attack1 ) ) {
+		if( HasAllBits( cmd->buttons, Button_Attack1 ) ) {
 			gs->api.PredictedFireWeapon( ps->POVnum, Weapon_Railgun );
 			return WeaponState_Firing;
 		}
 
-		if( HasBit( cmd->buttons, Button_Attack2 ) ) {
+		if( HasAllBits( cmd->buttons, Button_Attack2 ) ) {
 			gs->api.PredictedAltFireWeapon( ps->POVnum, Weapon_Railgun );
 			return WeaponState_Firing;
 		}
@@ -404,7 +396,7 @@ static constexpr ItemState bat_states[] = {
 	generic_gun_refire_state,
 
 	ItemState( WeaponState_Idle, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
-		if( HasBit( cmd->buttons, Button_Attack1 ) ) {
+		if( HasAllBits( cmd->buttons, Button_Attack1 ) ) {
 			return WeaponState_Cooking;
 		}
 
@@ -414,7 +406,7 @@ static constexpr ItemState bat_states[] = {
 	ItemState( WeaponState_Cooking, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 
-		if( !HasBit( cmd->buttons, Button_Attack1 ) ) {
+		if( !HasAllBits( cmd->buttons, Button_Attack1 ) ) {
 			gs->api.PredictedFireWeapon( ps->POVnum, ps->weapon );
 			return WeaponState_Firing;
 		}
@@ -434,7 +426,7 @@ static constexpr ItemState generic_throwable_states[] = {
 	ItemState( WeaponState_Cooking, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		const GadgetDef * def = GetGadgetDef( ps->gadget );
 
-		if( !HasBit( cmd->buttons, Button_Gadget ) || def->cook_time == 0 ) {
+		if( !HasAllBits( cmd->buttons, Button_Gadget ) || def->cook_time == 0 ) {
 			gs->api.PredictedUseGadget( ps->POVnum, ps->gadget, ps->weapon_state_time, false );
 			ps->gadget_ammo--;
 			return WeaponState_Throwing;
@@ -595,7 +587,7 @@ void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd
 		cmd.buttons = UserCommandButton( cmd.buttons & ~Button_Gadget );
 	}
 
-	if( HasBit( cmd.buttons, Button_Gadget ) != 0 && ( cmd.down_edges & Button_Gadget ) != 0 ) {
+	if( HasAllBits( cmd.buttons, Button_Gadget ) != 0 && ( cmd.down_edges & Button_Gadget ) != 0 ) {
 		ps->pending_gadget = true;
 	}
 

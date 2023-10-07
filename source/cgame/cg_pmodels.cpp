@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
+#include "gameshared/collision.h"
 
 constexpr u32 MAX_PLAYER_MODELS = 128;
 
@@ -61,6 +62,10 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 		return false;
 	}
 
+	const GLTFRenderData * model = FindGLTFRenderData( meta->model );
+	if( model == NULL )
+		return false;
+
 	while( true ) {
 		Span< const char > cmd = ParseToken( &cursor, Parse_DontStopOnNewLine );
 		if( cmd == "" )
@@ -68,23 +73,23 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 
 		if( cmd == "upper_rotator_joints" ) {
 			Span< const char > node_name0 = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindNodeByName( meta->model, Hash32( node_name0 ), &meta->upper_rotator_nodes[ 0 ] );
+			FindNodeByName( model, StringHash( node_name0 ), &meta->upper_rotator_nodes[ 0 ] );
 
 			Span< const char > node_name1 = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindNodeByName( meta->model, Hash32( node_name1 ), &meta->upper_rotator_nodes[ 1 ] );
+			FindNodeByName( model, StringHash( node_name1 ), &meta->upper_rotator_nodes[ 1 ] );
 		}
 		else if( cmd == "head_rotator_joint" ) {
 			Span< const char > node_name = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindNodeByName( meta->model, Hash32( node_name ), &meta->head_rotator_node );
+			FindNodeByName( model, StringHash( node_name ), &meta->head_rotator_node );
 		}
 		else if( cmd == "upper_root_joint" ) {
 			Span< const char > node_name = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindNodeByName( meta->model, Hash32( node_name ), &meta->upper_root_node );
+			FindNodeByName( model, StringHash( node_name ), &meta->upper_root_node );
 		}
 		else if( cmd == "tag" ) {
 			Span< const char > node_name = ParseToken( &cursor, Parse_StopOnNewLine );
 			u8 node_idx;
-			if( FindNodeByName( meta->model, Hash32( node_name ), &node_idx ) ) {
+			if( FindNodeByName( model, StringHash( node_name ), &node_idx ) ) {
 				Span< const char > tag_name = ParseToken( &cursor, Parse_StopOnNewLine );
 				PlayerModelMetadata::Tag * tag = &meta->tag_bomb;
 				if( tag_name == "tag_hat" )
@@ -148,10 +153,10 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 	return true;
 }
 
-static bool FindTag( const Model * model, PlayerModelMetadata::Tag * tag, const char * node_name, const char * model_name ) {
+static bool FindTag( const GLTFRenderData * model, PlayerModelMetadata::Tag * tag, StringHash node_name, const char * model_name ) {
 	u8 idx;
-	if( !FindNodeByName( model, Hash32( node_name ), &idx ) ) {
-		Com_Printf( S_COLOR_YELLOW "Can't find node %s in %s\n", node_name, model_name );
+	if( !FindNodeByName( model, node_name, &idx ) ) {
+		Com_GGPrint( S_COLOR_YELLOW "Can't find node {} in {}", node_name, model_name );
 		return false;
 	}
 
@@ -162,12 +167,16 @@ static bool FindTag( const Model * model, PlayerModelMetadata::Tag * tag, const 
 }
 
 static bool LoadPlayerModelMetadata( PlayerModelMetadata * meta, const char * model_name ) {
+	const GLTFRenderData * model = FindGLTFRenderData( meta->model );
+	if( model == NULL )
+		return false;
+
 	bool ok = true;
-	ok = ok && FindTag( meta->model, &meta->tag_bomb, "bomb", model_name );
-	ok = ok && FindTag( meta->model, &meta->tag_hat, "hat", model_name );
-	ok = ok && FindTag( meta->model, &meta->tag_mask, "mask", model_name );
-	ok = ok && FindTag( meta->model, &meta->tag_weapon, "weapon", model_name );
-	ok = ok && FindTag( meta->model, &meta->tag_gadget, "gadget", model_name );
+	ok = ok && FindTag( model, &meta->tag_bomb, "bomb", model_name );
+	ok = ok && FindTag( model, &meta->tag_hat, "hat", model_name );
+	ok = ok && FindTag( model, &meta->tag_mask, "mask", model_name );
+	ok = ok && FindTag( model, &meta->tag_weapon, "weapon", model_name );
+	ok = ok && FindTag( model, &meta->tag_gadget, "gadget", model_name );
 	return ok;
 }
 
@@ -207,7 +216,7 @@ void InitPlayerModels() {
 
 			PlayerModelMetadata * meta = &player_model_metadatas[ num_player_models ];
 			*meta = { };
-			meta->model = FindModel( StringHash( hash ) );
+			meta->model = StringHash( hash );
 
 			TempAllocator temp = cls.frame_arena.temp();
 			const char * config_path = temp( "{}/model.cfg", dir );
@@ -363,13 +372,12 @@ static int CG_MoveFlagsToLowerAnimation( uint32_t moveflags ) {
 	return LEGS_STAND_IDLE;
 }
 
-static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, Vec3 velocity ) {
+static PlayerModelAnimationSet CG_GetBaseAnims( const SyncEntityState * state, Vec3 velocity ) {
 	constexpr float MOVEDIREPSILON = 0.3f;
 	constexpr float WALKEPSILON = 5.0f;
 	constexpr float RUNEPSILON = 220.0f;
 
-	uint32_t moveflags = 0;
-	trace_t trace;
+	u32 moveflags = 0;
 
 	if( state->type == ET_CORPSE ) {
 		PlayerModelAnimationSet a;
@@ -379,16 +387,15 @@ static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, Vec3 vel
 		return a;
 	}
 
-	Vec3 mins = state->bounds.mins;
-	Vec3 maxs = state->bounds.maxs;
+	MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), state );
 
 	// determine if player is at ground, for walking or falling
 	// this is not like having groundEntity, we are more generous with
 	// the tracing size here to include small steps
 	Vec3 point = state->origin;
 	point.z -= 1.6f * STEPSIZE;
-	client_gs.api.Trace( &trace, state->origin, mins, maxs, point, state->number, MASK_PLAYERSOLID, 0 );
-	if( trace.ent == -1 || ( trace.fraction < 1.0f && !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
+	trace_t trace = client_gs.api.Trace( state->origin, bounds, point, state->number, Solid_PlayerClip, 0 );
+	if( trace.HitNothing() || ( trace.HitSomething() && !ISWALKABLEPLANE( trace.normal ) ) ) {
 		moveflags |= ANIMMOVE_AIR;
 	}
 
@@ -615,16 +622,16 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 		adelta = Clamp( -35.0f, adelta, 35.0f );
 
 		// smooth a velocity vector between the last snaps
-		cent->lastVelocities[cg.frame.serverFrame & 3] = Vec4( cent->velocity.xy(), 0.0f, adelta );
-		cent->lastVelocitiesFrames[cg.frame.serverFrame & 3] = cg.frame.serverFrame;
+		cent->lastVelocities[cg.frame.serverFrame % ARRAY_COUNT( cent->lastVelocities )] = Vec4( cent->velocity.xy(), 0.0f, adelta );
+		cent->lastVelocitiesFrames[cg.frame.serverFrame % ARRAY_COUNT( cent->lastVelocitiesFrames )] = cg.frame.serverFrame;
 
 		int count = 0;
 		cent->animVelocity = Vec3( 0.0f );
 		cent->yawVelocity = 0;
-		for( int i = cg.frame.serverFrame; ( i >= 0 ) && ( count < 3 ) && ( i == cent->lastVelocitiesFrames[i & 3] ); i-- ) {
+		for( int i = cg.frame.serverFrame; ( i >= 0 ) && ( count < 3 ) && ( i == cent->lastVelocitiesFrames[i % ARRAY_COUNT( cent->lastVelocitiesFrames )] ); i-- ) {
 			count++;
-			cent->animVelocity += cent->lastVelocities[i & 3].xyz();
-			cent->yawVelocity += cent->lastVelocities[i & 3].w;
+			cent->animVelocity += cent->lastVelocities[i % ARRAY_COUNT( cent->lastVelocities )].xyz();
+			cent->yawVelocity += cent->lastVelocities[i % ARRAY_COUNT( cent->lastVelocities )].w;
 		}
 
 		// safety/static code analysis check
@@ -694,7 +701,7 @@ static Quaternion EulerAnglesToQuaternion( EulerDegrees3 angles ) {
 	);
 }
 
-static Mat4 TransformTag( const Model * model, const Mat4 & transform, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
+static Mat4 TransformTag( const GLTFRenderData * model, const Mat4 & transform, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
 	if( pose.node_transforms.ptr != NULL ) {
 		return transform * model->transform * pose.node_transforms[ tag.node_idx ] * tag.transform;
 	}
@@ -731,15 +738,16 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 	TempAllocator temp = cls.frame_arena.temp();
 
+	const GLTFRenderData * model = FindGLTFRenderData( meta->model );
 	bool corpse = cent->current.type == ET_CORPSE;
 	MatrixPalettes pose = { };
 
-	if( meta->model->num_animations > 0 ) {
+	if( model->animations.n > 0 ) {
 		float lower_time, upper_time;
 		CG_GetAnimationTimes( meta, pmodel, cl.serverTime, &lower_time, &upper_time );
-		Span< TRS > lower = SampleAnimation( &temp, meta->model, lower_time );
-		Span< TRS > upper = SampleAnimation( &temp, meta->model, upper_time );
-		MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_node );
+		Span< TRS > lower = SampleAnimation( &temp, model, lower_time );
+		Span< TRS > upper = SampleAnimation( &temp, model, upper_time );
+		MergeLowerUpperPoses( lower, upper, model, meta->upper_root_node );
 
 		if( !corpse ) {
 			Vec3 tmpangles;
@@ -773,7 +781,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			}
 		}
 
-		pose = ComputeMatrixPalettes( &temp, meta->model, lower );
+		pose = ComputeMatrixPalettes( &temp, model, lower );
 	}
 
 	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->interpolated.scale );
@@ -805,56 +813,48 @@ void CG_DrawPlayer( centity_t * cent ) {
 			}
 		}
 
-		DrawModel( config, meta->model, transform, color, pose );
+		DrawGLTFModel( config, model, transform, color, pose );
 	}
 
 	Mat4 inverse_scale = Mat4Scale( 1.0f / cent->interpolated.scale );
 
 	// add weapon model
 	{
-		if( cent->current.weapon != Weapon_None || cent->current.gadget != Gadget_None ) {
-			const Model * model;
-			bool gadget = cent->current.gadget != Gadget_None;
-			if( gadget ) {
-				model = GetGadgetModelMetadata( cent->current.gadget )->model;
-			} else {
-				model = GetWeaponModelMetadata( cent->current.weapon )->model;
+		const GLTFRenderData * weapon_model = GetEquippedItemRenderData( &cent->current );
+		if( weapon_model != NULL ) {
+			PlayerModelMetadata::Tag tag = cent->current.gadget == Gadget_None ? meta->tag_weapon : meta->tag_gadget;
+			Mat4 tag_transform = TransformTag( weapon_model, transform, pose, tag ) * inverse_scale;
+
+			DrawModelConfig config = { };
+			config.draw_model.enabled = draw_model;
+			config.draw_shadows.enabled = true;
+
+			if( draw_silhouette ) {
+				config.draw_silhouette.enabled = true;
+				config.draw_silhouette.silhouette_color = color;
 			}
 
-			if( model != NULL ) {
-				Mat4 tag_transform = TransformTag( meta->model, transform, pose, gadget ? meta->tag_gadget : meta->tag_weapon ) * inverse_scale;
+			DrawGLTFModel( config, weapon_model, tag_transform, color );
 
-				DrawModelConfig config = { };
-				config.draw_model.enabled = draw_model;
-				config.draw_shadows.enabled = true;
-
-				if( draw_silhouette ) {
-					config.draw_silhouette.enabled = true;
-					config.draw_silhouette.silhouette_color = color;
-				}
-
-				DrawModel( config, model, tag_transform, color );
-
-				u8 muzzle;
-				if( FindNodeByName( model, Hash32( "muzzle" ), &muzzle ) ) {
-					pmodel->muzzle_transform = tag_transform * model->transform * model->nodes[ muzzle ].global_transform;
-				}
-				else {
-					pmodel->muzzle_transform = tag_transform;
-				}
+			u8 muzzle;
+			if( FindNodeByName( weapon_model, "muzzle", &muzzle ) ) {
+				pmodel->muzzle_transform = tag_transform * weapon_model->transform * weapon_model->nodes[ muzzle ].global_transform;
+			}
+			else {
+				pmodel->muzzle_transform = tag_transform;
 			}
 		}
 	}
 
 	// add bomb/hat
 	{
-		const Model * hat_model = FindModel( cent->current.model2 );
-		if( hat_model != NULL ) {
+		const GLTFRenderData * attached_model = FindGLTFRenderData( cent->current.model2 );
+		if( attached_model != NULL ) {
 			PlayerModelMetadata::Tag tag = meta->tag_bomb;
 			if( cent->current.effects & EF_HAT )
 				tag = meta->tag_hat;
 
-			Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag ) * inverse_scale;
+			Mat4 tag_transform = TransformTag( attached_model, transform, pose, tag ) * inverse_scale;
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -862,14 +862,17 @@ void CG_DrawPlayer( centity_t * cent ) {
 			config.draw_silhouette.enabled = draw_silhouette;
 			config.draw_silhouette.silhouette_color = color;
 
-			DrawModel( config, hat_model, tag_transform, vec4_white );
+			DrawGLTFModel( config, attached_model, tag_transform, vec4_white );
 		}
+	}
 
-		const Model * mask_model = FindModel( cent->current.mask );
+	// add mask
+	{
+		const GLTFRenderData * mask_model = FindGLTFRenderData( cent->current.mask );
 		if( mask_model != NULL ) {
 			PlayerModelMetadata::Tag tag = meta->tag_mask;
 
-			Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag );
+			Mat4 tag_transform = TransformTag( mask_model, transform, pose, tag ) * inverse_scale;
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -877,7 +880,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			config.draw_silhouette.enabled = draw_silhouette;
 			config.draw_silhouette.silhouette_color = color;
 
-			DrawModel( config, mask_model, tag_transform, vec4_white );
+			DrawGLTFModel( config, mask_model, tag_transform, vec4_white );
 		}
 	}
 }

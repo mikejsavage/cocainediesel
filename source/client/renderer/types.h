@@ -156,7 +156,8 @@ struct MatrixPalettes {
 
 struct Font;
 struct Material;
-struct Model;
+struct ModelRenderData;
+struct DrawModelConfig;
 struct PipelineState;
 
 struct GPUMaterial {

@@ -461,6 +461,11 @@ struct Quaternion {
 	}
 };
 
+struct Plane {
+	Vec3 normal;
+	float distance;
+};
+
 struct MinMax1 {
 	float lo, hi;
 
@@ -488,10 +493,26 @@ struct MinMax3 {
 
 	MinMax3() = default;
 	constexpr MinMax3( Vec3 mins_, Vec3 maxs_ ) : mins( mins_ ), maxs( maxs_ ) { }
+	constexpr MinMax3( Vec3 half_size ) : mins( Vec3( -half_size.x, -half_size.y, -half_size.z ) ), maxs( half_size ) { }
+	constexpr MinMax3( float half_size ) : mins( Vec3( -half_size ) ), maxs( Vec3( half_size ) ) { }
 
 	static constexpr MinMax3 Empty() {
 		return MinMax3( Vec3( FLT_MAX ), Vec3( -FLT_MAX ) );
 	}
+};
+
+struct CenterExtents3 {
+	Vec3 center, extents;
+};
+
+struct Sphere {
+	Vec3 center;
+	float radius;
+};
+
+struct Capsule {
+	Vec3 a, b;
+	float radius;
 };
 
 struct RGB8 {

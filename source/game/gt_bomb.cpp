@@ -2,6 +2,7 @@
 #include "qcommon/array.h"
 
 #include "game/g_local.h"
+#include "gameshared/collision.h"
 
 enum BombState {
 	BombState_Carried,
@@ -117,10 +118,10 @@ static void Hide( edict_t * ent ) {
 }
 
 static bool EntCanSee( edict_t * ent, Vec3 point ) {
-	Vec3 center = ent->s.origin + 0.5f * ( ent->r.mins + ent->r.maxs );
-	trace_t tr;
-	G_Trace( &tr, center, Vec3( 0.0f ), Vec3( 0.0f ), point, ent, MASK_SOLID );
-	return tr.startsolid || tr.allsolid || tr.ent == -1;
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
+	Vec3 center = ent->s.origin + Center( bounds );
+	trace_t trace = G_Trace( center, MinMax3( 0.0f ), point, ent, SolidMask_AnySolid );
+	return trace.HitNothing();
 }
 
 static s32 FirstNearbyTeammate( Vec3 origin, Team team ) {
@@ -207,9 +208,9 @@ static void SpawnBombSite( edict_t * ent ) {
 	site->hud = G_Spawn();
 	site->hud->classname = "hud_bomb_site";
 	site->hud->s.type = ET_BOMB_SITE;
-	site->hud->r.solid = SOLID_NOT;
+	site->hud->s.solidity = Solid_NotSolid;
 	site->hud->s.origin = bomb_state.sites[ i ].indicator->s.origin;
-	site->hud->s.svflags = SVF_BROADCAST;
+	site->hud->s.svflags = 0;
 	site->hud->s.site_letter = letter;
 	GClip_LinkEntity( site->hud );
 
@@ -228,7 +229,7 @@ static void PlantAreaThink( edict_t * ent ) {
 	G_FreeEdict( ent );
 }
 
-static void PlantAreaTouch( edict_t * self, edict_t * other, const Plane * plane, int surfFlags ) {
+static void PlantAreaTouch( edict_t * self, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
 	if( other->r.client == NULL ) {
 		return;
 	}
@@ -247,16 +248,15 @@ static void PlantAreaTouch( edict_t * self, edict_t * other, const Plane * plane
 static void SpawnPlantArea( edict_t * ent ) {
 	ent->think = PlantAreaThink;
 	ent->touch = PlantAreaTouch;
-	GClip_SetBrushModel( ent );
-	ent->r.solid = SOLID_TRIGGER;
+	ent->s.solidity = Solid_Trigger;
 	GClip_LinkEntity( ent );
 
-	ent->nextThink = level.time + 1000; // think this can just be + 1
+	ent->nextThink = level.time + 1;
 }
 
 // bomb.as
 
-static void BombTouch( edict_t * self, edict_t * other, const Plane * plane, int surfFlags ) {
+static void BombTouch( edict_t * self, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
 	if( server_gs.gameState.match_state != MatchState_Playing ) {
 		return;
 	}
@@ -298,9 +298,10 @@ static void SpawnBomb() {
 	bomb_state.bomb.model->classname = "bomb";
 	bomb_state.bomb.model->s.type = ET_GENERIC;
 	bomb_state.bomb.model->s.team = AttackingTeam();
-	bomb_state.bomb.model->r.mins = bomb_bounds.mins;
-	bomb_state.bomb.model->r.maxs = bomb_bounds.maxs;
-	bomb_state.bomb.model->r.solid = SOLID_TRIGGER;
+
+	bomb_state.bomb.model->s.override_collision_model = CollisionModelAABB( bomb_bounds );
+
+	bomb_state.bomb.model->s.solidity = SolidBits( Solid_World | Solid_Trigger );
 	bomb_state.bomb.model->s.model = model_bomb;
 	bomb_state.bomb.model->s.effects |= EF_TEAM_SILHOUETTE;
 	bomb_state.bomb.model->s.silhouetteColor = RGBA8( 255, 255, 255, 255 );
@@ -315,8 +316,7 @@ static void SpawnBombHUD() {
 	bomb_state.bomb.hud->classname = "hud_bomb";
 	bomb_state.bomb.hud->s.type = ET_BOMB;
 	bomb_state.bomb.hud->s.team = AttackingTeam();
-	bomb_state.bomb.hud->r.solid = SOLID_NOT;
-	bomb_state.bomb.hud->s.svflags |= SVF_BROADCAST;
+	bomb_state.bomb.hud->s.solidity = Solid_NotSolid;
 }
 
 static void BombPickup() {
@@ -327,6 +327,7 @@ static void BombPickup() {
 	Hide( bomb_state.bomb.hud );
 
 	bomb_state.bomb.model->movetype = MOVETYPE_NONE;
+	bomb_state.bomb.model->s.solidity = Solid_NotSolid;
 	bomb_state.bomb.state = BombState_Carried;
 }
 
@@ -385,13 +386,13 @@ static void DropBomb( BombDropReason reason ) {
 		} break;
 	}
 
-	trace_t tr;
-	G_Trace( &tr, start, bomb_bounds.mins, bomb_bounds.maxs, end, carrier_ent, MASK_SOLID );
+	trace_t trace = G_Trace( start, bomb_bounds, end, carrier_ent, SolidMask_AnySolid );
 
 	bomb_state.bomb.model->movetype = MOVETYPE_TOSS;
 	bomb_state.bomb.model->r.owner = carrier_ent;
-	bomb_state.bomb.model->s.origin = tr.endpos;
+	bomb_state.bomb.model->s.origin = trace.endpos;
 	bomb_state.bomb.model->velocity = velocity;
+	bomb_state.bomb.model->s.solidity = SolidBits( Solid_World | Solid_Trigger );
 	Show( bomb_state.bomb.model );
 	RemoveCarrier();
 	bomb_state.bomb.state = BombState_Dropped;
@@ -408,16 +409,15 @@ static void BombStartPlanting( edict_t * carrier_ent, u32 site ) {
 	Vec3 end = start;
 	end.z -= 512.0f;
 
-	trace_t tr;
-	G_Trace( &tr, start, bomb_bounds.mins, bomb_bounds.maxs, end, carrier_ent, MASK_SOLID );
+	trace_t trace = G_Trace( start, bomb_bounds, end, carrier_ent, SolidMask_AnySolid );
 
 	Vec3 angles( 0.0f, RandomUniformFloat( &svs.rng, 0.0f, 360.0f ), 0.0f );
 
-	bomb_state.bomb.model->s.origin = tr.endpos;
+	bomb_state.bomb.model->s.origin = trace.endpos;
 	bomb_state.bomb.model->s.angles = angles;
 	Show( bomb_state.bomb.model );
 
-	bomb_state.bomb.hud->s.origin = tr.endpos + Vec3( 0.0f, 0.0f, bomb_hud_offset );
+	bomb_state.bomb.hud->s.origin = trace.endpos + Vec3( 0.0f, 0.0f, bomb_hud_offset );
 	bomb_state.bomb.hud->s.angles = angles;
 	bomb_state.bomb.hud->s.svflags |= SVF_ONLYTEAM;
 	bomb_state.bomb.hud->s.radius = BombDown_Planting;
@@ -579,7 +579,7 @@ static void BombThink() {
 				bomb_state.bomb.model->projectileInfo.radius = 9999;
 
 				// apply a 1 damage explosion just for the kb
-				G_RadiusDamage( bomb_state.bomb.model, NULL, NULL, bomb_state.bomb.model, WorldDamage_Explosion );
+				G_RadiusDamage( bomb_state.bomb.model, NULL, Vec3( 0.0f, 0.0f, 1.0f ), bomb_state.bomb.model, WorldDamage_Explosion );
 
 				for( int i = 0; i < server_gs.maxclients; i++ ) {
 					G_Damage( PLAYERENT( i ), world, world, Vec3( 0.0f ), Vec3( 0.0f ), bomb_state.bomb.model->s.origin, 100.0f, 0.0f, 0, WorldDamage_Explosion );
@@ -599,13 +599,11 @@ static bool BombCanPlant() {
 	Vec3 start = carrier_ent->s.origin;
 	Vec3 end = start;
 	end.z -= bomb_max_plant_height;
-	Vec3 mins = carrier_ent->r.mins;
-	Vec3 maxs = carrier_ent->r.maxs;
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &carrier_ent->s );
 
-	trace_t tr;
-	G_Trace( &tr, start, mins, maxs, end, carrier_ent, MASK_SOLID );
+	trace_t trace = G_Trace( start, bounds, end, carrier_ent, SolidMask_AnySolid );
 
-	return !tr.startsolid && tr.plane.normal.z >= cosf( Radians( 30 ) );
+	return ISWALKABLEPLANE( trace.normal );
 }
 
 static void BombGiveToRandom() {

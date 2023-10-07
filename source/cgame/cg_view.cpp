@@ -23,6 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/skybox.h"
 #include "qcommon/time.h"
 
+#include "gameshared/collision.h"
+#include "gameshared/intersection_tests.h"
+
 ChasecamState chaseCam;
 
 int CG_LostMultiviewPOV();
@@ -110,14 +113,13 @@ static void CG_CalcViewBob() {
 			bobScale = 0.0f;
 		}
 		else {
-			trace_t trace;
-
 			const centity_t * cent = &cg_entities[cg.view.POVent];
-			Vec3 maxs = cent->current.bounds.mins;
+			MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), &cent->current );
+			Vec3 maxs = bounds.mins;
 			Vec3 mins = maxs - Vec3( 0.0f, 0.0f, 1.6f * STEPSIZE );
 
-			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, mins, maxs, cg.predictedPlayerState.pmove.origin, cg.view.POVent, MASK_PLAYERSOLID );
-			if( trace.startsolid || trace.allsolid ) {
+			trace_t trace = CG_Trace( cg.predictedPlayerState.pmove.origin, MinMax3( mins, maxs ), cg.predictedPlayerState.pmove.origin, cg.view.POVent, SolidMask_Opaque );
+			if( trace.GotNowhere() ) {
 				bobScale = 2.5f;
 			}
 		}
@@ -147,21 +149,13 @@ void CG_StartFallKickEffect( int bounceTime ) {
 
 //============================================================================
 
-static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
+static void CG_InterpolatePlayerState( SyncPlayerState * playerState ) {
 	const SyncPlayerState * ps = &cg.frame.playerState;
 	const SyncPlayerState * ops = &cg.oldFrame.playerState;
 
 	*playerState = *ops;
 
-	bool teleported = ( ps->pmove.pm_flags & PMF_TIME_TELEPORT ) != 0;
-
-	if( Abs( ops->pmove.origin.x - ps->pmove.origin.x ) > 256
-		|| Abs( ops->pmove.origin.y - ps->pmove.origin.y ) > 256
-		|| Abs( ops->pmove.origin.z - ps->pmove.origin.z ) > 256 ) {
-		teleported = true;
-	}
-
-	// if the player entity was teleported this frame use the final position
+	bool teleported = cg_entities[ playerState->POVnum ].current.teleported || Length( ps->pmove.origin - ops->pmove.origin ) > 256.0f;
 	if( !teleported ) {
 		playerState->pmove.origin = Lerp( ops->pmove.origin, cg.lerpfrac, ps->pmove.origin );
 		playerState->pmove.velocity = Lerp( ops->pmove.velocity, cg.lerpfrac, ps->pmove.velocity );
@@ -192,9 +186,6 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 
 static void CG_ThirdPersonOffsetView( cg_viewdef_t *view, bool hold_angle ) {
 	float dist, f, r;
-	trace_t trace;
-	Vec3 mins( -4.0f );
-	Vec3 maxs( 4.0f );
 
 	// calc exact destination
 	Vec3 chase_dest = view->origin;
@@ -208,7 +199,7 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view, bool hold_angle ) {
 
 	// find the spot the player is looking at
 	Vec3 dest = view->origin + FromQFAxis( view->axis, AXIS_FORWARD ) * 512.0f;
-	CG_Trace( &trace, view->origin, mins, maxs, dest, view->POVent, MASK_SOLID );
+	trace_t trace = CG_Trace( view->origin, MinMax3( 4.0f ), dest, view->POVent, SolidMask_AnySolid );
 
 	// calculate pitch to look at the same spot from camera
 	Vec3 stop = trace.endpos - view->origin;
@@ -221,12 +212,12 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view, bool hold_angle ) {
 	Matrix3_FromAngles( view->angles, view->axis );
 
 	// move towards destination
-	CG_Trace( &trace, view->origin, mins, maxs, chase_dest, view->POVent, MASK_SOLID );
+	trace = CG_Trace( view->origin, MinMax3( 4.0f ), chase_dest, view->POVent, SolidMask_AnySolid );
 
-	if( trace.fraction != 1.0f ) {
+	if( trace.HitSomething() ) {
 		stop = trace.endpos;
 		stop.z += ( 1.0f - trace.fraction ) * 32;
-		CG_Trace( &trace, view->origin, mins, maxs, stop, view->POVent, MASK_SOLID );
+		trace = CG_Trace( view->origin, MinMax3( 4.0f ), stop, view->POVent, SolidMask_AnySolid );
 		chase_dest = trace.endpos;
 	}
 
@@ -413,50 +404,6 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type, UserCommand * cmd ) {
 	}
 }
 
-static void DrawWorld() {
-	TracyZoneScoped;
-
-	const char * suffix = "*0";
-	u64 hash = Hash64( suffix, strlen( suffix ), cl.map->base_hash );
-	const Model * model = FindModel( StringHash( hash ) );
-
-	for( u32 i = 0; i < model->num_primitives; i++ ) {
-		if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
-			for( u32 j = 0; j < frame_static.shadow_parameters.num_cascades; j++ ) {
-				PipelineState pipeline;
-				pipeline.pass = frame_static.shadowmap_pass[ j ];
-				pipeline.shader = &shaders.depth_only;
-				pipeline.clamp_depth = true;
-				// pipeline.cull_face = CullFace_Disabled;
-				pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
-				pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
-
-				DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
-			}
-		}
-
-		{
-			PipelineState pipeline;
-			pipeline.pass = frame_static.world_opaque_prepass_pass;
-			pipeline.shader = &shaders.depth_only;
-			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-			pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
-
-			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
-		}
-
-		{
-			PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
-			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-			pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
-			pipeline.write_depth = false;
-			pipeline.depth_func = DepthFunc_Equal;
-
-			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
-		}
-	}
-}
-
 static void DrawSilhouettes() {
 	TracyZoneScoped;
 
@@ -488,7 +435,6 @@ static void DrawOutlines() {
 	const RenderTarget & rt = msaa ? frame_static.render_targets.msaa_masked : frame_static.render_targets.postprocess_masked;
 	pipeline.bind_texture_and_sampler( "u_DepthTexture", &rt.depth_attachment, Sampler_Standard );
 	pipeline.bind_texture_and_sampler( "u_CurvedSurfaceMask", &rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ], Sampler_Unfiltered );
-	pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
 	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.bind_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );
 	DrawFullscreenMesh( pipeline );
@@ -576,7 +522,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	CG_SetupViewDef( &cg.view, view_type, &cmd );
 
 	RendererSetView( cg.view.origin, EulerDegrees3( cg.view.angles ), cg.view.fov_y );
-	frame_static.fog_uniforms = UploadUniformBlock( cl.map->fog_strength );
 
 	CG_LerpEntities();
 
@@ -588,10 +533,9 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	DoVisualEffect( "vfx/rain", cg.view.origin );
 
-	DrawWorld();
+	DrawEntities();
 	DrawOutlines();
 	DrawSilhouettes();
-	DrawEntities();
 	CG_AddViewWeapon( &cg.weapon );
 	DrawGibs();
 	DrawParticles();

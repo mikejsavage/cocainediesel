@@ -12,12 +12,14 @@ bin( "dieselmap", {
 
 		"source/gameshared/q_math.cpp",
 		"source/gameshared/q_shared.cpp",
+		"source/gameshared/editor_materials.cpp",
 		"source/qcommon/rng.cpp",
 	},
 
 	libs = {
 		"ggformat",
 		"tracy",
+		"meshoptimizer",
 		"zstd",
 	},
 

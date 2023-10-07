@@ -37,10 +37,9 @@ enum pmtype_t {
 
 // pmove->pm_flags
 #define PMF_ON_GROUND       ( 1 << 0 )
-#define PMF_TIME_TELEPORT   ( 1 << 1 )  // pm_time is non-moving time
-#define PMF_NO_PREDICTION   ( 1 << 2 )  // temporarily disables prediction (used for grappling hook)
-#define PMF_ABILITY1_HELD   ( 1 << 3 )  // Special held flag
-#define PMF_ABILITY2_HELD   ( 1 << 4 )  // Jump held flag
+#define PMF_NO_PREDICTION   ( 1 << 1 )  // temporarily disables prediction (used for grappling hook)
+#define PMF_ABILITY1_HELD   ( 1 << 2 )  // Special held flag
+#define PMF_ABILITY2_HELD   ( 1 << 3 )  // Jump held flag
 
 // note that Q_rint was causing problems here
 // (spawn looking straight up\down at delta_angles wrapping)
@@ -60,22 +59,13 @@ constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "excalibur
 #define SVF_NOCLIENT         ( 1 << 0 )      // don't send entity to clients, even if it has effects
 #define SVF_SOUNDCULL        ( 1 << 1 )      // distance culling
 #define SVF_FAKECLIENT       ( 1 << 2 )      // do not try to send anything to this client
-#define SVF_BROADCAST        ( 1 << 3 )      // always transmit
-#define SVF_CORPSE           ( 1 << 4 )      // treat as CONTENTS_CORPSE for collision
-#define SVF_PROJECTILE       ( 1 << 5 )      // sets s.solid to SOLID_NOT for prediction
-#define SVF_ONLYTEAM         ( 1 << 6 )      // this entity is only transmited to clients with the same ent->s.team value
-#define SVF_FORCEOWNER       ( 1 << 7 )      // this entity forces the entity at s.ownerNum to be included in the snapshot
-#define SVF_ONLYOWNER        ( 1 << 8 )      // this entity is only transmitted to its owner
-#define SVF_OWNERANDCHASERS  ( 1 << 9 )      // this entity is only transmitted to its owner and people spectating them
-#define SVF_FORCETEAM        ( 1 << 10 )      // this entity is always transmitted to clients with the same ent->s.team value
-#define SVF_NEVEROWNER       ( 1 << 11 )      // this entity is tramitted to everyone but its owner
-
-// edict->solid values
-enum solid_t {
-	SOLID_NOT,              // no interaction with other objects
-	SOLID_TRIGGER,          // only touch when inside, after moving
-	SOLID_YES               // touch on edge
-};
+#define SVF_BROADCAST        ( 1 << 3 )      // global sound
+#define SVF_ONLYTEAM         ( 1 << 4 )      // this entity is only transmited to clients with the same ent->s.team value
+#define SVF_FORCEOWNER       ( 1 << 5 )      // this entity forces the entity at s.ownerNum to be included in the snapshot
+#define SVF_ONLYOWNER        ( 1 << 6 )      // this entity is only transmitted to its owner
+#define SVF_OWNERANDCHASERS  ( 1 << 7 )      // this entity is only transmitted to its owner and people spectating them
+#define SVF_FORCETEAM        ( 1 << 8 )      // this entity is always transmitted to clients with the same ent->s.team value
+#define SVF_NEVEROWNER       ( 1 << 9 )      // this entity is tramitted to everyone but its owner
 
 // SyncEntityState->event values
 // entity events are for effects that take place relative

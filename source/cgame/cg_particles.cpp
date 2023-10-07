@@ -403,12 +403,13 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 			}
 			else if( key == "collision" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				if( value == "point" ) {
-					emitter->flags = ParticleFlags( emitter->flags | ParticleFlag_CollisionPoint );
-				}
-				else if( value == "sphere" ) {
-					emitter->flags = ParticleFlags( emitter->flags | ParticleFlag_CollisionSphere );
-				}
+				( void ) value;
+				// if( value == "point" ) {
+				// 	emitter->flags = ParticleFlags( emitter->flags | ParticleFlag_CollisionPoint );
+				// }
+				// else if( value == "sphere" ) {
+				// 	emitter->flags = ParticleFlags( emitter->flags | ParticleFlag_CollisionSphere );
+				// }
 			}
 			else if( key == "stretch" ) {
 				emitter->flags = ParticleFlags( emitter->flags | ParticleFlag_Stretch );
@@ -876,14 +877,15 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		pipeline.bind_buffer( "b_ParticlesOut", ps->gpu_particles2 );
 		pipeline.bind_buffer( "b_ComputeCountIn", ps->compute_count1 );
 		pipeline.bind_buffer( "b_ComputeCountOut", ps->compute_count2 );
-		u32 collision = cl.map == NULL ? 0 : 1;
+		// u32 collision = cl.map == NULL ? 0 : 1;
+		u32 collision = 0;
 		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, ps->radius, dt, u32( ps->new_particles ) ) );
-		if( collision ) {
-			pipeline.bind_buffer( "b_BSPNodeLinks", cl.map->nodeBuffer );
-			pipeline.bind_buffer( "b_BSPLeaves", cl.map->leafBuffer );
-			pipeline.bind_buffer( "b_BSPBrushes", cl.map->brushBuffer );
-			pipeline.bind_buffer( "b_BSPPlanes", cl.map->planeBuffer );
-		}
+		// if( collision ) {
+		// 	pipeline.bind_buffer( "b_BSPNodeLinks", cl.map->render_data.nodes );
+		// 	pipeline.bind_buffer( "b_BSPLeaves", cl.map->render_data.leaves );
+		// 	pipeline.bind_buffer( "b_BSPBrushes", cl.map->render_data.brushes );
+		// 	pipeline.bind_buffer( "b_BSPPlanes", cl.map->render_data.planes );
+		// }
 		DispatchComputeIndirect( pipeline, ps->compute_indirect );
 	}
 
@@ -912,7 +914,6 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	pipeline.cull_face = CullFace_Disabled;
 	pipeline.write_depth = false;
 	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
 	pipeline.bind_texture_and_sampler( "u_DecalAtlases", DecalAtlasTextureArray(), Sampler_Standard );
 	pipeline.bind_buffer( "b_Particles", ps->gpu_particles2 );
 	DrawMeshIndirect( ps->mesh, pipeline, ps->draw_indirect );
@@ -1152,7 +1153,6 @@ void DrawParticleMenuEffect() {
 	Vec2 pos = Clamp( Vec2( 0.0f ), Vec2( mouse_pos.x, mouse_pos.y ), frame_static.viewport ) - frame_static.viewport * 0.5f;
 	pos *= 0.05f;
 	RendererSetView( Vec3( -400, pos.x, pos.y ), EulerDegrees3( 0, 0, 0 ), 90 );
-	frame_static.fog_uniforms = UploadUniformBlock( 0.0f );
 	DoVisualEffect( "vfx/menu", Vec3( 0.0f ) );
 	DrawParticles();
 }

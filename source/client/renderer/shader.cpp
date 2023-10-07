@@ -142,6 +142,15 @@ static void LoadShaders() {
 		"#define APPLY_SHADOWS 1\n"
 		"#define SHADED 1\n";
 	LoadShader( &shaders.world, "glsl/standard.glsl", world_defines );
+	constexpr const char * world_instanced_defines =
+		"#define APPLY_DRAWFLAT 1\n"
+		"#define APPLY_FOG 1\n"
+		"#define APPLY_DECALS 1\n"
+		"#define APPLY_DLIGHTS 1\n"
+		"#define APPLY_SHADOWS 1\n"
+		"#define SHADED 1\n"
+		"#define INSTANCED 1\n";
+	LoadShader( &shaders.world_instanced, "glsl/standard.glsl", world_instanced_defines );
 
 	LoadShader( &shaders.depth_only, "glsl/depth_only.glsl" );
 	LoadShader( &shaders.depth_only_instanced, "glsl/depth_only.glsl", "#define INSTANCED 1\n" );

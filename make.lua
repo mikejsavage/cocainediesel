@@ -110,6 +110,7 @@ do
 		},
 
 		libs = {
+			"cgltf",
 			"ggentropy",
 			"ggformat",
 			"ggtime",

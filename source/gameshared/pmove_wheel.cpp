@@ -1,5 +1,4 @@
 #include "gameshared/movement.h"
-#include "qcommon/qfiles.h"
 
 //f(speed) = base_speed + speed * speed_factor
 static constexpr float dash_base_speed = 350.0f;
@@ -64,19 +63,16 @@ static void PM_WheelJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 	ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
 
 	//bounce
-	trace_t trace;
 	Vec3 point = pml->origin;
 	point.z -= floor_distance;
 
-	pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, point, ps->POVnum, pm->contentmask, 0 );
+	trace_t trace = pmove_gs->api.Trace( pml->origin, pm->bounds, point, ps->POVnum, pm->solid_mask, 0 );
 
 	if( pm->groundentity == -1 && ps->pmove.stamina_state == Stamina_UsedAbility &&
-		!ISWALKABLEPLANE( &trace.plane ) && !pml->ladder &&
-		(trace.fraction == 1 || !trace.startsolid) )
+		!ISWALKABLEPLANE( trace.normal ) && !pml->ladder && trace.GotSomewhere() )
 	{
-		Vec3 normal( 0.0f );
-		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal, true, SURF_LADDER );
-		if( normal == Vec3( 0.0f ) )
+		Optional< Vec3 > normal = PlayerTouchWall( pm, pml, pmove_gs, true, Solid_Ladder );
+		if( !normal.exists )
 			return;
 
 		//don't want to bounce everywhere while falling imo
@@ -86,9 +82,9 @@ static void PM_WheelJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 		}
 
 		float speed = Length( velocity2 );
-		pml->velocity = GS_ClipVelocity( pml->velocity, normal, 1.0005f );
+		pml->velocity = GS_ClipVelocity( pml->velocity, normal.value, 1.0005f );
 		if( speed > min_bounce_speed ) {
-			pml->velocity = pml->velocity + normal * speed * bounce_factor;
+			pml->velocity = pml->velocity + normal.value * speed * bounce_factor;
 		}
 	}
 }

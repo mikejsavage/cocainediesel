@@ -4,8 +4,11 @@
 #include "qcommon/string.h"
 #include "qcommon/time.h"
 #include "client/client.h"
+#include "client/gltf.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/blue_noise.h"
+#include "client/renderer/cdmap.h"
+#include "client/renderer/gltf.h"
 #include "client/renderer/skybox.h"
 #include "client/renderer/text.h"
 
@@ -177,7 +180,6 @@ void InitRenderer() {
 	InitMaterials();
 	InitText();
 	InitSkybox();
-	InitModels();
 	InitVisualEffects();
 }
 
@@ -204,7 +206,6 @@ void ShutdownRenderer() {
 	FlushRenderBackend();
 
 	ShutdownVisualEffects();
-	ShutdownModels();
 	ShutdownSkybox();
 	ShutdownText();
 	ShutdownMaterials();
@@ -487,7 +488,7 @@ struct SourceLocationData {
 void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadShaders();
 	HotloadMaterials();
-	HotloadModels();
+	HotloadGLTFModels();
 	HotloadMaps();
 	HotloadVisualEffects();
 
@@ -825,4 +826,35 @@ UniformBlock UploadMaterialStaticUniforms( float specular, float shininess, floa
 
 UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0, Vec3 tcmod_row1 ) {
 	return UploadUniformBlock( color, tcmod_row0, tcmod_row1 );
+}
+
+Optional< ModelRenderData > FindModelRenderData( StringHash name ) {
+	const GLTFRenderData * gltf = FindGLTFRenderData( name );
+	if( gltf != NULL ) {
+		return ModelRenderData {
+			.type = ModelType_GLTF,
+			.gltf = gltf,
+		};
+	}
+
+	const MapSubModelRenderData * map = FindMapSubModelRenderData( name );
+	if( map != NULL ) {
+		return ModelRenderData {
+			.type = ModelType_Map,
+			.map = map,
+		};
+	}
+
+	return NONE;
+}
+
+Optional< ModelRenderData > FindModelRenderData( const char * name ) {
+	return FindModelRenderData( StringHash( name ) );
+}
+
+void DrawModel( DrawModelConfig config, ModelRenderData render_data, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
+	switch( render_data.type ) {
+		case ModelType_GLTF: DrawGLTFModel( config, render_data.gltf, transform, color, palettes ); break;
+		case ModelType_Map: DrawMapModel( config, render_data.map, transform, color ); break;
+	}
 }

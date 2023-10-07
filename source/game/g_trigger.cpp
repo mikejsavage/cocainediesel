@@ -37,9 +37,8 @@ bool G_TriggerWait( edict_t * ent ) {
 }
 
 void InitTrigger( edict_t * ent ) {
-	ent->r.solid = SOLID_TRIGGER;
+	ent->s.solidity = Solid_Trigger;
 	ent->movetype = MOVETYPE_NONE;
-	GClip_SetBrushModel( ent );
 	ent->s.svflags = SVF_NOCLIENT;
 }
 
@@ -54,14 +53,15 @@ static void G_JumpPadSound( edict_t *ent ) {
 		return;
 	}
 
-	Vec3 org = ent->s.origin + 0.5f * ( ent->r.mins + ent->r.maxs );
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
+	Vec3 org = ent->s.origin + Center( bounds );
 
 	G_PositionedSound( org, ent->moveinfo.sound_start );
 }
 
 #define MIN_TRIGGER_PUSH_REBOUNCE_TIME 100
 
-static void trigger_push_touch( edict_t *self, edict_t *other, const Plane *plane, int surfFlags ) {
+static void trigger_push_touch( edict_t *self, edict_t *other, Vec3 normal, SolidBits solid_mask ) {
 	if( self->s.team && self->s.team != other->s.team ) {
 		return;
 	}
@@ -94,7 +94,8 @@ static void trigger_push_setup( edict_t *self ) {
 		return;
 	}
 
-	Vec3 origin = ( self->r.absmin + self->r.absmax ) * 0.5f;
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &self->s );
+	Vec3 origin = Center( bounds );
 	Vec3 velocity = target->s.origin - origin;
 
 	float height = target->s.origin.z - origin.z;
@@ -140,10 +141,10 @@ void SP_trigger_push( edict_t * self, const spawn_temp_t * st ) {
 //==============================================================================
 
 static void hurt_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	if( self->r.solid == SOLID_NOT ) {
-		self->r.solid = SOLID_TRIGGER;
+	if( EntitySolidity( ServerCollisionModelStorage(), &self->s ) == Solid_NotSolid ) {
+		self->s.solidity = Solid_Trigger;
 	} else {
-		self->r.solid = SOLID_NOT;
+		self->s.solidity = Solid_NotSolid;
 	}
 	GClip_LinkEntity( self );
 
@@ -152,7 +153,7 @@ static void hurt_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	}
 }
 
-static void hurt_touch( edict_t *self, edict_t *other, const Plane *plane, int surfFlags ) {
+static void hurt_touch( edict_t *self, edict_t *other, Vec3 normal, SolidBits solid_mask ) {
 	if( !other->takedamage || G_IsDead( other ) ) {
 		return;
 	}
@@ -197,9 +198,9 @@ void SP_trigger_hurt( edict_t * self, const spawn_temp_t * st ) {
 	}
 
 	if( self->spawnflags & 1 ) {
-		self->r.solid = SOLID_NOT;
+		self->s.solidity = Solid_NotSolid;
 	} else {
-		self->r.solid = SOLID_TRIGGER;
+		self->s.solidity = Solid_Trigger;
 	}
 
 	if( self->spawnflags & 2 ) {
@@ -207,7 +208,7 @@ void SP_trigger_hurt( edict_t * self, const spawn_temp_t * st ) {
 	}
 }
 
-static void TeleporterTouch( edict_t *self, edict_t *other, const Plane *plane, int surfFlags ) {
+static void TeleporterTouch( edict_t *self, edict_t *other, Vec3 normal, SolidBits solid_mask ) {
 	edict_t *dest;
 
 	if( !G_PlayerCanTeleport( other ) ) {
@@ -239,7 +240,8 @@ static void TeleporterTouch( edict_t *self, edict_t *other, const Plane *plane, 
 		Vec3 org;
 
 		if( self->s.model != EMPTY_HASH ) {
-			org = self->s.origin + 0.5f * ( self->r.mins + self->r.maxs );
+			MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &self->s );
+			org = self->s.origin + Center( bounds );
 		} else {
 			org = self->s.origin;
 		}

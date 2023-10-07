@@ -100,7 +100,7 @@ char * SplitIntoHostnameAndPort( Allocator * a, const char * str, u16 * port ) {
 	if( str[ 0 ] != '[' ) {
 		const char * first_colon = strchr( str, ':' );
 		if( first_colon != NULL ) {
-			const char *  second_colon = strchr( first_colon + 1, ':' );
+			const char * second_colon = strchr( first_colon + 1, ':' );
 			is_portless_ipv6 = second_colon != NULL;
 		}
 	}

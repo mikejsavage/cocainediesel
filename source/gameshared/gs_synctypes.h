@@ -2,6 +2,8 @@
 
 #include "qcommon/types.h"
 #include "qcommon/hash.h"
+#include "gameshared/q_collision.h"
+#include "gameshared/q_shared.h"
 
 constexpr int MAX_CLIENTS = 16;
 constexpr int MAX_EDICTS = 1024; // must change protocol to increase more
@@ -58,6 +60,7 @@ enum EntityType : u8 {
 	ET_LASER,
 	ET_SPIKES,
 	ET_SPEAKER,
+	ET_MAPMODEL,
 
 	// eventual entities: types below this will get event treatment
 	ET_EVENT = EVENT_ENTITIES_START,
@@ -300,7 +303,6 @@ struct SyncGameState {
 	SyncScoreboardPlayer players[ MAX_CLIENTS ];
 
 	StringHash map;
-	u32 map_checksum;
 
 	SyncBombGameState bomb;
 	bool exploding;
@@ -315,6 +317,29 @@ struct SyncGameState {
 struct SyncEvent {
 	u64 parm;
 	s8 type;
+};
+
+enum CollisionModelType : u8 {
+	CollisionModelType_Point,
+	CollisionModelType_AABB,
+	CollisionModelType_Sphere,
+	CollisionModelType_Capsule,
+	CollisionModelType_MapModel,
+	CollisionModelType_GLTF,
+
+	CollisionModelType_Count
+};
+
+struct CollisionModel {
+	CollisionModelType type;
+
+	union {
+		MinMax3 aabb;
+		Sphere sphere;
+		Capsule capsule;
+		StringHash map_model;
+		StringHash gltf_model;
+	};
 };
 
 struct EntityID {
@@ -332,11 +357,13 @@ struct SyncEntityState {
 	Vec3 origin;
 	Vec3 angles;
 	Vec3 origin2; // velocity for players/corpses. often used for endpoints, e.g. ET_BEAM and some events
-	MinMax3 bounds;
 
 	StringHash model;
 	StringHash model2;
 	StringHash mask;
+
+	Optional< CollisionModel > override_collision_model;
+	Optional< SolidBits > solidity;
 
 	bool animating;
 	float animation_time;
@@ -387,7 +414,6 @@ struct pmove_state_t {
 	                            // changed by spawns, rotating objects, and teleporters
 
 	int pm_flags;               // ducked, jump_held, etc
-	int pm_time;
 
 	u16 features;
 

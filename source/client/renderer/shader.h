@@ -18,6 +18,7 @@ struct Shaders {
 	Shader depth_only_skinned;
 
 	Shader world;
+	Shader world_instanced;
 	Shader postprocess_world_gbuffer;
 	Shader postprocess_world_gbuffer_msaa;
 

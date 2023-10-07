@@ -95,7 +95,7 @@ void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_
 Vec2 RandomSpreadPattern( u16 entropy, float spread );
 float ZoomSpreadness( s16 zoom_time, const WeaponDef * def );
 Vec2 FixedSpreadPattern( int i, float spread );
-void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * trace, Vec3 dir, void * data ), void * data );
+trace_t GS_TraceLaserBeam( const gs_state_t * gs, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta );
 
 bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon );
 

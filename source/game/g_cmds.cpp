@@ -32,10 +32,9 @@ static bool G_Teleport( edict_t * ent, Vec3 origin, Vec3 angles ) {
 	}
 
 	if( ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
-		trace_t tr;
-
-		G_Trace( &tr, origin, ent->r.mins, ent->r.maxs, origin, ent, MASK_PLAYERSOLID );
-		if( ( tr.fraction != 1.0f || tr.startsolid ) && game.edicts[ tr.ent ].s.team != ent->s.team ) {
+		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
+		trace_t trace = G_Trace( origin, bounds, origin, ent, SolidMask_AnySolid );
+		if( trace.HitSomething() && game.edicts[ trace.ent ].s.team != ent->s.team ) {
 			return false;
 		}
 
@@ -47,8 +46,6 @@ static bool G_Teleport( edict_t * ent, Vec3 origin, Vec3 angles ) {
 	ent->s.teleported = true;
 
 	ent->velocity = Vec3( 0.0f );
-	ent->r.client->ps.pmove.pm_time = 1;
-	ent->r.client->ps.pmove.pm_flags |= PMF_TIME_TELEPORT;
 
 	if( ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
 		G_TeleportEffect( ent, true );
@@ -88,7 +85,7 @@ static void Cmd_Noclip_f( edict_t * ent, msg_t args ) {
 }
 
 static void Cmd_Suicide_f( edict_t * ent, msg_t args ) {
-	if( ent->r.solid == SOLID_NOT ) {
+	if( G_ISGHOSTING( ent ) ) {
 		return;
 	}
 
@@ -293,10 +290,12 @@ static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 	Vec3 start = ent->s.origin + Vec3( 0.0f, 0.0f, ent->r.client->ps.viewheight );
 	Vec3 end = start + forward * range;
 
-	trace_t trace;
-	G_Trace( &trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ent, MASK_OPAQUE );
+	trace_t trace = G_Trace( start, MinMax3( 0.0f ), end, ent, SolidMask_Opaque );
+	if( trace.ent == -1 )
+		return;
 
-	if( trace.ent != 0 )
+	const edict_t * target = &game.edicts[ trace.ent ];
+	if( target->s.type != ET_MAPMODEL && target != world )
 		return;
 
 	ent->r.client->level.last_spray = svs.realtime;
@@ -304,7 +303,7 @@ static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 	edict_t * event = G_SpawnEvent( EV_SPRAY, Random64( &svs.rng ), &trace.endpos );
 	event->s.angles = ent->r.client->ps.viewangles;
 	event->s.scale = ent->s.scale;
-	event->s.origin2 = trace.plane.normal;
+	event->s.origin2 = trace.normal;
 }
 
 struct g_vsays_t {
@@ -350,7 +349,6 @@ static void G_vsay_f( edict_t * ent, msg_t args ) {
 		u64 parm = u64( vsay.id ) | ( entropy << 16 );
 
 		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NULL );
-		event->s.svflags |= SVF_BROADCAST; // force sending even when not in PVS
 		event->s.ownerNum = ent->s.number;
 
 		return;

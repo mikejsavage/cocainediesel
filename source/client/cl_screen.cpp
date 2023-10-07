@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/client.h"
 #include "client/renderer/renderer.h"
 #include "cgame/cg_local.h"
-#include "qcommon/cmodel.h"
 #include "qcommon/time.h"
 
 static Cvar *scr_netgraph;
@@ -120,11 +119,6 @@ void SCR_InitScreen() {
 
 static void SCR_RenderView() {
 	if( cl.map != NULL ) {
-		if( cl.map->cms->checksum != client_gs.gameState.map_checksum && Com_ServerState() == ss_dead ) {
-			// disable this check on local servers because server/client hotloads don't happen in sync
-			Com_Error( "Local map version differs from server" );
-		}
-
 		CL_GameModule_RenderView();
 	}
 }

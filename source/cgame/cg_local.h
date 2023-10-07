@@ -235,9 +235,6 @@ extern centity_t cg_entities[MAX_EDICTS];
 //
 bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe );
 
-struct cmodel_t;
-const cmodel_t *CG_CModelForEntity( int entNum );
-
 void CG_SoundEntityNewState( centity_t *cent );
 void DrawEntities();
 void CG_LerpEntities();
@@ -273,9 +270,9 @@ void CG_PredictedAltFireWeapon( int entNum, u64 parm );
 void CG_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead );
 void CG_PredictMovement();
 void CG_CheckPredictionError();
-void CG_BuildSolidList();
-void CG_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask );
-void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin );
+void CG_BuildSolidList( const snapshot_t * frame );
+trace_t CG_Trace( Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask );
+void CG_Predict_TouchTriggers( const pmove_t * pm, Vec3 previous_origin );
 
 //
 // cg_screen.c

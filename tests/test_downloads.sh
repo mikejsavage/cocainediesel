@@ -10,15 +10,15 @@ cd test_downloads_workdir
 
 cp ../../release/server .
 mkdir -p base/maps
-cp ../../base/maps/carfentanil.bsp.zst base/maps
+cp ../../base/maps/carfentanil.cdmap.zst base/maps
 
 ./server &
 sleep 5s
 
-curl localhost:44400/base/maps/carfentanil.bsp.zst --silent --show-error --output carfentanil.bsp.zst
-cmp carfentanil.bsp.zst base/maps/carfentanil.bsp.zst
+curl localhost:44400/base/maps/carfentanil.cdmap.zst --silent --show-error --output carfentanil.cdmap.zst
+cmp carfentanil.cdmap.zst base/maps/carfentanil.cdmap.zst
 
-! curl --fail localhost:44400/base/maps/bad.bsp.zst
+! curl --fail localhost:44400/base/maps/bad.cdmap.zst
 
 kill %1
 

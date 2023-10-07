@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "game/g_local.h"
 #include "qcommon/base.h"
 #include "qcommon/utf8.h"
+#include "gameshared/collision.h"
 
 static void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, DamageType mod, bool wallbang ) {
 	TempAllocator temp = svs.frame_arena.temp();
@@ -74,7 +75,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	body->s.team = ent->s.team;
 	body->s.perk = ent->s.perk;
 	body->s.scale = ent->s.scale;
-	body->s.svflags = SVF_CORPSE | SVF_BROADCAST;
+	body->s.svflags = 0;
 	body->s.mask = ent->s.mask;
 	body->activator = ent;
 	body->enemy = attacker;
@@ -85,15 +86,10 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	//copy player position and box size
 	body->s.origin = ent->s.origin;
 	body->olds.origin = ent->s.origin;
-	body->r.mins = ent->r.mins;
-	body->r.maxs = ent->r.maxs;
-	body->r.absmin = ent->r.absmin;
-	body->r.absmax = ent->r.absmax;
-	body->r.size = ent->r.size;
 	body->velocity = ent->velocity;
-	body->r.maxs.z = body->r.mins.z + 8;
 
-	body->r.solid = SOLID_NOT;
+	body->s.override_collision_model = ent->s.override_collision_model;
+	body->s.solidity = Solid_NotSolid;
 	body->takedamage = DAMAGE_NO;
 	body->movetype = MOVETYPE_TOSS;
 
@@ -121,7 +117,6 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	}
 
 	edict_t * event = G_SpawnEvent( EV_DIE, parm, NULL );
-	event->s.svflags |= SVF_BROADCAST;
 	event->s.ownerNum = body->s.number;
 
 	ent->s.ownerNum = body->s.number;
@@ -147,10 +142,9 @@ static void DropHeldItem( edict_t * ent ) {
 
 static void G_GhostClient( edict_t *ent ) {
 	ent->movetype = MOVETYPE_NONE;
-	ent->r.solid = SOLID_NOT;
+	ent->s.solidity = Solid_NotSolid;
 
-	memset( &ent->snap, 0, sizeof( ent->snap ) );
-	memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
+	memset( &ent->r.client->snap, 0, sizeof( ent->r.client->snap ) );
 	memset( &ent->r.client->resp.chase, 0, sizeof( ent->r.client->resp.chase ) );
 
 	ent->s.type = ET_GHOST;
@@ -165,8 +159,7 @@ static void G_GhostClient( edict_t *ent ) {
 }
 
 void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAssistorEntNo, DamageType damage_type, int damage ) {
-	snap_edict_t snap_backup = ent->snap;
-	client_snapreset_t resp_snap_backup = ent->r.client->resp.snap;
+	client_snapreset_t snap_backup = ent->r.client->snap;
 
 	DropHeldItem( ent );
 
@@ -176,7 +169,7 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAss
 	ent->s.angles.z = 0;
 	ent->s.sound = EMPTY_HASH;
 
-	ent->r.solid = SOLID_NOT;
+	ent->s.solidity = Solid_NotSolid;
 
 	// player death
 	ClientObituary( ent, inflictor, attacker, topAssistorEntNo, damage_type );
@@ -194,9 +187,8 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAss
 
 	ent->velocity = Vec3( 0.0f );
 	ent->avelocity = Vec3( 0.0f );
-	ent->snap = snap_backup;
-	ent->r.client->resp.snap = resp_snap_backup;
-	ent->r.client->resp.snap.buttons = 0;
+	ent->r.client->snap = snap_backup;
+	ent->r.client->snap.buttons = 0;
 	GClip_LinkEntity( ent );
 }
 
@@ -304,8 +296,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->viewheight = playerbox_stand_viewheight;
 	self->r.inuse = true;
 	self->mass = PLAYER_MASS;
-	self->r.clipmask = MASK_PLAYERSOLID;
-	self->s.svflags &= ~SVF_CORPSE;
 	self->enemy = NULL;
 	self->r.owner = NULL;
 	self->max_health = 100;
@@ -317,8 +307,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		self->classname = "player";
 	}
 
-	self->r.mins = playerbox_stand_mins;
-	self->r.maxs = playerbox_stand_maxs;
+	self->s.override_collision_model = CollisionModelAABB( playerbox_stand );
 	self->velocity = Vec3( 0.0f );
 	self->avelocity = Vec3( 0.0f );
 
@@ -339,7 +328,8 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 			self->s.mask = StringHash( mask_name );
 		}
 		self->s.svflags |= SVF_FORCETEAM;
-		self->r.solid = SOLID_YES;
+		SolidBits team_solidity = SolidBits( Solid_PlayerTeamOne << ( self->s.team - Team_One ) );
+		self->s.solidity = SolidBits( team_solidity );
 		self->movetype = MOVETYPE_PLAYER;
 		client->ps.pmove.features = PMFEAT_ALL;
 	}
@@ -364,7 +354,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		KillBox( self, WorldDamage_Telefrag, Vec3( 0.0f ) );
 
 		edict_t * ev = G_SpawnEvent( EV_RESPAWN, 0, NULL );
-		ev->s.svflags |= SVF_ONLYOWNER | SVF_BROADCAST;
+		ev->s.svflags |= SVF_ONLYOWNER;
 		ev->s.ownerNum = ENTNUM( self );
 
 	}
@@ -435,8 +425,6 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 	client->ps.pmove.delta_angles[ 1 ] = ANGLE2SHORT( client->ps.viewangles.y ) - client->ucmd.angles[ 1 ];
 	client->ps.pmove.delta_angles[ 2 ] = ANGLE2SHORT( client->ps.viewangles.z ) - client->ucmd.angles[ 2 ];
 
-	client->ps.pmove.pm_flags |= PMF_TIME_TELEPORT;
-	client->ps.pmove.pm_time = 1; // force the minimum no control delay
 	player->s.teleported = true;
 
 	// update the entity from the pmove
@@ -519,11 +507,6 @@ static Optional< Span< const char > > ValidateAndTrimName( const char * name ) {
 	}
 
 	return state == 0 && num_non_spaces > 0 ? MakeOptional( trimmed ) : NONE;
-}
-
-template< typename T >
-T Default( const Optional< T > & opt, const T & def ) {
-	return opt.exists ? opt.value : def;
 }
 
 static void G_SetName( edict_t * ent, const char * name ) {
@@ -613,7 +596,7 @@ bool ClientConnect( edict_t *ent, char *userinfo, const NetAddress & address, bo
 	// they can connect
 
 	G_InitEdict( ent );
-	ent->r.solid = SOLID_NOT;
+	ent->s.solidity = Solid_NotSolid;
 	ent->r.client = game.clients + PLAYERNUM( ent );
 	ent->s.svflags = ( SVF_NOCLIENT | ( fakeClient ? SVF_FAKECLIENT : 0 ) );
 	memset( ent->r.client, 0, sizeof( gclient_t ) );
@@ -693,7 +676,7 @@ void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 			ent->projectileInfo.minKnockback = 75;
 			ent->projectileInfo.radius = 150;
 
-			G_RadiusDamage( ent, ent, NULL, ent, Gadget_SuicideBomb );
+			G_RadiusDamage( ent, ent, Vec3( 0.0f ), ent, Gadget_SuicideBomb );
 
 			G_Killed( ent, ent, ent, -1, Gadget_SuicideBomb, 10000 );
 			G_AddEvent( ent, ev, parm, true );
@@ -774,7 +757,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 
 	gclient_t *client;
 	int i, j;
-	static pmove_t pm;
+	pmove_t pm;
 	int delta, count;
 
 	client = ent->r.client;
@@ -845,6 +828,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	pm.playerState = &client->ps;
 	pm.cmd = *ucmd;
 	pm.scale = ent->s.scale;
+	pm.team = ent->s.team;
 
 	// perform a pmove
 	Pmove( &server_gs, &pm );
@@ -857,14 +841,11 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	ent->velocity = client->ps.pmove.velocity;
 	ent->s.angles = client->ps.viewangles;
 	ent->viewheight = client->ps.viewheight;
-	ent->r.mins = pm.mins;
-	ent->r.maxs = pm.maxs;
 
 	if( pm.groundentity == -1 ) {
 		ent->groundentity = NULL;
 	} else {
 		ent->groundentity = &game.edicts[pm.groundentity];
-		ent->groundentity_linkcount = ent->groundentity->linkcount;
 	}
 
 	GClip_LinkEntity( ent );
@@ -885,7 +866,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 				continue; // duplicated
 			}
 			// player can't touch projectiles, only projectiles can touch the player
-			G_CallTouch( other, ent, NULL, 0 );
+			G_CallTouch( other, ent, Vec3( 0.0f ), Solid_NotSolid );
 		}
 	}
 
@@ -901,7 +882,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	ent->s.weapon = client->ps.weapon;
 	ent->s.gadget = client->ps.using_gadget ? client->ps.gadget : Gadget_None;
 
-	client->resp.snap.buttons |= ucmd->buttons;
+	client->snap.buttons |= ucmd->buttons;
 }
 
 void G_ClientThink( edict_t *ent ) {
@@ -932,7 +913,7 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 		constexpr int min_delay = 600;
 		constexpr int max_delay = 6000;
 
-		bool clicked = level.time > ent->deathTimeStamp + min_delay && ( ent->r.client->resp.snap.buttons & Button_Attack1 );
+		bool clicked = level.time > ent->deathTimeStamp + min_delay && ( ent->r.client->snap.buttons & Button_Attack1 );
 		bool timeout = level.time > ent->deathTimeStamp + max_delay;
 		if( clicked || timeout ) {
 			G_ClientRespawn( ent, false );

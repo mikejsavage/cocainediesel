@@ -19,14 +19,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
-#include "qcommon/cmodel.h"
+#include "gameshared/collision.h"
 
-static int cg_numSolids;
-static SyncEntityState *cg_solidList[MAX_PARSE_ENTITIES];
-
-static int cg_numTriggers;
-static SyncEntityState *cg_triggersList[MAX_PARSE_ENTITIES];
-static bool cg_triggersListTriggered[MAX_PARSE_ENTITIES];
+static SpatialHashGrid cg_grid;
 
 static bool ucmdReady = false;
 
@@ -57,8 +52,6 @@ void CG_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead )
 }
 
 void CG_CheckPredictionError() {
-	int delta[3];
-
 	if( !cg.view.playerPrediction ) {
 		return;
 	}
@@ -70,9 +63,8 @@ void CG_CheckPredictionError() {
 	Vec3 origin = cg.predictedOrigins[frame];
 
 	if( cg.predictedGroundEntity != -1 ) {
-		SyncEntityState *ent = &cg_entities[cg.predictedGroundEntity].current;
-		const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, ent->model );
-		if( cmodel != NULL && ent->linearMovement ) {
+		const SyncEntityState * ent = &cg_entities[ cg.predictedGroundEntity ].current;
+		if( ent->linearMovement ) {
 			Vec3 move;
 			GS_LinearMovementDelta( ent, cg.oldFrame.serverTime, cg.frame.serverTime, &move );
 			origin = cg.predictedOrigins[frame] + move;
@@ -80,6 +72,7 @@ void CG_CheckPredictionError() {
 	}
 
 	Vec3 delta_vec = cg.frame.playerState.pmove.origin - origin;
+	int delta[ 3 ];
 	delta[ 0 ] = delta_vec.x;
 	delta[ 1 ] = delta_vec.y;
 	delta[ 2 ] = delta_vec.z;
@@ -99,176 +92,99 @@ void CG_CheckPredictionError() {
 	}
 }
 
-void CG_BuildSolidList() {
-	cg_numSolids = 0;
-	cg_numTriggers = 0;
+void CG_BuildSolidList( const snapshot_t * frame ) {
+	ClearSpatialHashGrid( &cg_grid );
 
-	for( int i = 0; i < cg.frame.numEntities; i++ ) {
-		const SyncEntityState * ent = &cg.frame.parsedEntities[ i ];
-
-		if( ISEVENTENTITY( ent ) )
+	for( int i = 0; i < frame->numEntities; i++ ) {
+		const SyncEntityState * ent = &frame->parsedEntities[ i ];
+		if( ent->number == 0 )
 			continue;
-
-		if( ent->bounds.mins == MinMax3::Empty().mins && ent->bounds.maxs == MinMax3::Empty().maxs )
-			continue;
-
-		switch( ent->type ) {
-			// the following entities can never be solid
-			case ET_GHOST:
-			case ET_ROCKET:
-			case ET_GRENADE:
-			case ET_ARBULLET:
-			case ET_BUBBLE:
-			case ET_LASERBEAM:
-			case ET_BOMB:
-			case ET_BOMB_SITE:
-			case ET_LASER:
-			case ET_SPIKES:
-			case ET_STAKE:
-			case ET_BLAST:
-				break;
-
-			case ET_JUMPPAD:
-			case ET_PAINKILLER_JUMPPAD:
-				cg_triggersList[cg_numTriggers++] = &cg_entities[ ent->number ].current;
-				break;
-
-			default:
-				cg_solidList[cg_numSolids++] = &cg_entities[ ent->number ].current;
-				break;
-		}
+		LinkEntity( &cg_grid, ClientCollisionModelStorage(), ent, i );
 	}
 }
 
-static bool CG_ClipEntityContact( Vec3 origin, Vec3 mins, Vec3 maxs, int entNum ) {
-	Vec3 entorigin, entangles;
-	int64_t serverTime = cg.frame.serverTime;
+// static bool CG_ClipEntityContact( Vec3 origin, MinMax3 bounds, int entNum ) {
+// 	const centity_t * cent = &cg_entities[ entNum ];
+//
+// 	Ray ray = MakeRayStartEnd( origin, origin );
+//
+// 	Shape shape = { };
+// 	shape.type = ShapeType_AABB;
+// 	shape.aabb = ToCenterExtents( bounds );
+//
+// 	SyncEntityState interpolated = cent->prev;
+// 	interpolated.origin = cent->interpolated.origin;
+// 	interpolated.scale = cent->interpolated.scale;
+//
+// 	trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, &interpolated, SolidMask_Everything );
+// 	return trace.GotNowhere();
+// }
 
-	// find the cmodel
-	const cmodel_t * cmodel = CG_CModelForEntity( entNum );
-	if( !cmodel ) {
-		return false;
-	}
-
-	const centity_t * cent = &cg_entities[entNum];
-
-	// find the origin
-	if( !cmodel->builtin ) { // special value for bmodel
-		if( cent->current.linearMovement ) {
-			GS_LinearMovement( &cent->current, serverTime, &entorigin );
-		} else {
-			entorigin = cent->current.origin;
-		}
-		entangles = cent->current.angles;
-	} else {
-		entorigin = cent->current.origin;
-		entangles = Vec3( 0.0f ); // boxes don't rotate
-	}
-
-	Vec3 absmins = origin + mins;
-	Vec3 absmaxs = origin + maxs;
-	trace_t tr;
-	CM_TransformedBoxTrace( CM_Client, cl.map->cms, &tr, Vec3( 0.0f ), Vec3( 0.0f ), absmins, absmaxs, cmodel, MASK_ALL, entorigin, entangles );
-	return tr.startsolid == true || tr.allsolid == true;
-}
-
-void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
+void CG_Predict_TouchTriggers( const pmove_t * pm, Vec3 previous_origin ) {
 	// fixme: more accurate check for being able to touch or not
 	if( pm->playerState->pmove.pm_type != PM_NORMAL ) {
 		return;
 	}
 
-	for( int i = 0; i < cg_numTriggers; i++ ) {
-		const SyncEntityState * state = cg_triggersList[i];
+	// TODO: triggers
 
-		if( state->type == ET_JUMPPAD || state->type == ET_PAINKILLER_JUMPPAD ) {
-			if( !cg_triggersListTriggered[i] ) {
-				if( CG_ClipEntityContact( pm->playerState->pmove.origin, pm->mins, pm->maxs, state->number ) ) {
-					GS_TouchPushTrigger( &client_gs, pm->playerState, state );
-					cg_triggersListTriggered[i] = true;
-				}
-			}
-		}
-	}
+	// for( int i = 0; i < cg_numTriggers; i++ ) {
+	// 	const SyncEntityState * state = cg_triggersList[i];
+
+	// 	if( state->type == ET_JUMPPAD || state->type == ET_PAINKILLER_JUMPPAD ) {
+	// 		if( !cg_triggersListTriggered[i] ) {
+	// 			if( CG_ClipEntityContact( pm->playerState->pmove.origin, pm->mins, pm->maxs, state->number ) ) {
+	// 				GS_TouchPushTrigger( &client_gs, pm->playerState, state );
+	// 				cg_triggersListTriggered[i] = true;
+	// 			}
+	// 		}
+	// 	}
+	// }
 }
 
-static void CG_ClipMoveToEntities( Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, trace_t *tr ) {
-	int64_t serverTime = cg.frame.serverTime;
-
-	for( int i = 0; i < cg_numSolids; i++ ) {
-		const SyncEntityState * ent = cg_solidList[i];
-
-		if( ent->number == ignore ) {
-			continue;
-		}
-
-		if( !( contentmask & CONTENTS_CORPSE ) && ent->type == ET_CORPSE ) {
-			continue;
-		}
-
-		if( ent->type == ET_PLAYER ) {
-			int teammask = contentmask & ( CONTENTS_TEAM_ONE | CONTENTS_TEAM_TWO | CONTENTS_TEAM_THREE | CONTENTS_TEAM_FOUR );
-			if( teammask != 0 ) {
-				Team clip_team = Team_None;
-				for( int team = Team_One; team < Team_Count; team++ ) {
-					if( teammask == CONTENTS_TEAM_ONE << ( team - Team_One ) ) {
-						clip_team = Team( team );
-						break;
-					}
-				}
-				Assert( clip_team != Team_None );
-
-				if( ent->team == clip_team )
-					continue;
-			}
-		}
-
-		const cmodel_t * cmodel = CG_CModelForEntity( ent->number );
-		Vec3 origin, angles;
-		if( !cmodel->builtin ) { // special value for bmodel
-			if( ent->linearMovement ) {
-				GS_LinearMovement( ent, serverTime, &origin );
-			} else {
-				origin = ent->origin;
-			}
-			angles = ent->angles;
-		} else {
-			origin = ent->origin;
-			angles = Vec3( 0.0f ); // boxes don't rotate
-		}
-
-		trace_t trace;
-		CM_TransformedBoxTrace( CM_Client, cl.map->cms, &trace, start, end, mins, maxs, cmodel, contentmask, origin, angles );
-		if( trace.allsolid || trace.fraction < tr->fraction ) {
-			trace.ent = ent->number;
-			*tr = trace;
-		} else if( trace.startsolid ) {
-			tr->startsolid = true;
-		}
-
-		if( tr->allsolid ) {
-			return;
-		}
-	}
-}
-
-void CG_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask ) {
+trace_t CG_Trace( Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask ) {
 	TracyZoneScoped;
 
-	// check against world
-	CM_TransformedBoxTrace( CM_Client, cl.map->cms, t, start, end, mins, maxs, NULL, contentmask, Vec3( 0.0f ), Vec3( 0.0f ) );
-	t->ent = t->fraction < 1.0f ? 0 : -1; // world entity is 0
-	if( t->fraction == 0 ) {
-		return; // blocked by the world
+	Ray ray = MakeRayStartEnd( start, end );
+
+	if( solid_mask == Solid_NotSolid ) {
+		return MakeMissedTrace( ray );
 	}
 
-	// check all other solid models
-	CG_ClipMoveToEntities( start, mins, maxs, end, ignore, contentmask, t );
+	Shape shape;
+	if( bounds.mins == bounds.maxs ) {
+		Assert( bounds.mins == Vec3( 0.0f ) );
+		shape.type = ShapeType_Ray;
+	}
+	else {
+		shape.type = ShapeType_AABB;
+		shape.aabb = ToCenterExtents( bounds );
+	}
+
+	MinMax3 ray_bounds = Union( Union( MinMax3::Empty(), ray.origin ), ray.origin + ray.direction * ray.length );
+	MinMax3 broadphase_bounds = MinkowskiSum( ray_bounds, shape );
+
+	trace_t result = MakeMissedTrace( ray );
+
+	int touchlist[ 1024 ];
+	size_t num = TraverseSpatialHashGrid( &cg_grid, broadphase_bounds, touchlist, SolidMask_AnySolid );
+
+	for( size_t i = 0; i < num; i++ ) {
+		const SyncEntityState * touch = &cg.frame.parsedEntities[ touchlist[ i ] ];
+		if( touch->number == ignore )
+			continue;
+
+		trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, touch, solid_mask );
+		if( trace.fraction < result.fraction ) {
+			result = trace;
+		}
+	}
+
+	return result;
 }
 
 static float predictedSteps[CMD_BACKUP]; // for step smoothing
 static void CG_PredictAddStep( int virtualtime, int predictiontime, float stepSize ) {
-
 	float oldStep;
 	int delta;
 
@@ -322,12 +238,9 @@ static void CG_PredictSmoothSteps() {
 void CG_PredictMovement() {
 	TracyZoneScoped;
 
-	int64_t ucmdExecuted, ucmdHead;
-	int64_t frame;
-	pmove_t pm;
-
+	int64_t ucmdHead;
 	CL_GetCurrentState( NULL, &ucmdHead, NULL );
-	ucmdExecuted = cg.frame.ucmdExecuted;
+	int64_t ucmdExecuted = cg.frame.ucmdExecuted;
 
 	if( ucmdHead - cg.predictFrom >= CMD_BACKUP ) {
 		cg.predictFrom = 0;
@@ -354,16 +267,14 @@ void CG_PredictMovement() {
 	}
 
 	// copy current state to pmove
-	memset( &pm, 0, sizeof( pm ) );
+	pmove_t pm = { };
 	pm.playerState = &cg.predictedPlayerState;
-	pm.scale = cg_entities[cg.frame.playerState.POVnum].interpolated.scale;
-
-	// clear the triggered toggles for this prediction round
-	memset( &cg_triggersListTriggered, false, sizeof( cg_triggersListTriggered ) );
+	pm.scale = cg_entities[ cg.frame.playerState.POVnum ].interpolated.scale;
+	pm.team = cg.predictedPlayerState.team;
 
 	// run frames
 	while( ++ucmdExecuted <= ucmdHead ) {
-		frame = ucmdExecuted % ARRAY_COUNT( predictedSteps );
+		int64_t frame = ucmdExecuted % ARRAY_COUNT( predictedSteps );
 		CL_GetUserCmd( frame, &pm.cmd );
 
 		ucmdReady = ( pm.cmd.serverTimeStamp != 0 );
@@ -398,8 +309,7 @@ void CG_PredictMovement() {
 	// compensate for ground entity movement
 	if( pm.groundentity != -1 ) {
 		const SyncEntityState * ent = &cg_entities[pm.groundentity].current;
-		const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, ent->model );
-		if( cmodel != NULL && ent->linearMovement ) {
+		if( ent->linearMovement ) {
 			Vec3 move;
 			s64 serverTime = client_gs.gameState.paused ? cg.frame.serverTime : cl.serverTime + cgs.extrapolationTime;
 			GS_LinearMovementDelta( ent, cg.frame.serverTime, serverTime, &move );

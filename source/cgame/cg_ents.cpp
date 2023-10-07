@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
-#include "qcommon/cmodel.h"
+#include "qcommon/time.h"
 #include "client/renderer/renderer.h"
 
 static void CG_UpdateEntities();
@@ -41,20 +41,21 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 		serverTime = cl.serverTime + cgs.extrapolationTime;
 	}
 
-	const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, state->model );
-	if( cmodel == NULL ) {
-		// add a time offset to counter antilag visualization
-		if( !cgs.demoPlaying && cg_projectileAntilagOffset->number > 0.0f &&
-			!ISVIEWERENTITY( state->ownerNum ) && ( cgs.playerNum + 1 != cg.predictedPlayerState.POVnum ) ) {
-			serverTime += state->linearMovementTimeDelta * cg_projectileAntilagOffset->number;
-		}
-	}
+	// TODO: see if commenting this out fixes non-lerped rockets while spectating
+	// const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, state->model );
+	// if( cmodel == NULL ) {
+	// 	// add a time offset to counter antilag visualization
+	// 	if( !cgs.demoPlaying && cg_projectileAntilagOffset->number > 0.0f &&
+	// 		!ISVIEWERENTITY( state->ownerNum ) && ( cgs.playerNum + 1 != cg.predictedPlayerState.POVnum ) ) {
+	// 		serverTime += state->linearMovementTimeDelta * cg_projectileAntilagOffset->number;
+	// 	}
+	// }
 
 	Vec3 origin;
 	int moveTime = GS_LinearMovement( state, serverTime, &origin );
 	state->origin = origin;
 
-	if( moveTime < 0 && cmodel == NULL ) {
+	if( moveTime < 0 ) {
 		// when flyTime is negative don't offset it backwards more than PROJECTILE_PRESTEP value
 		// FIXME: is this still valid?
 		float maxBackOffset;
@@ -168,10 +169,6 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 			  || cent->current.type == ET_GRENADE
 			  || cent->current.type == ET_CORPSE || cent->current.type == ET_STUNGRENADE ) ) {
 			cent->canExtrapolate = true;
-		}
-
-		if( CM_IsBrushModel( CM_Client, cent->current.model ) ) { // disable extrapolation on movers
-			cent->canExtrapolate = false;
 		}
 	}
 }
@@ -298,7 +295,7 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	}
 
 	// a new server frame begins now
-	CG_BuildSolidList();
+	CG_BuildSolidList( frame );
 	ResetAnnouncerSpeakers();
 	CG_UpdateEntities();
 	CG_CheckPredictionError();
@@ -316,31 +313,6 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	CG_FireEvents( true );
 
 	return true;
-}
-
-/*
-* CG_CModelForEntity
-*  get the collision model for the given entity, no matter if box or brush-model.
-*/
-const cmodel_t *CG_CModelForEntity( int entNum ) {
-	if( entNum < 0 || entNum >= MAX_EDICTS ) {
-		return NULL;
-	}
-
-	const centity_t * cent = &cg_entities[entNum];
-	if( cent->serverFrame != cg.frame.serverFrame ) { // not present in current frame
-		return NULL;
-	}
-
-	const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, cent->current.model );
-	if( cmodel != NULL )
-		return cmodel;
-
-	if( cent->type == ET_PLAYER || cent->type == ET_CORPSE ) {
-		return CM_OctagonModelForBBox( cl.map->cms, cent->current.bounds.mins, cent->current.bounds.maxs );
-	}
-
-	return CM_ModelForBBox( cl.map->cms, cent->current.bounds.mins, cent->current.bounds.maxs );
 }
 
 void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
@@ -426,15 +398,19 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 }
 
 static void DrawEntityModel( centity_t * cent ) {
+	TracyZoneScoped;
+
 	Vec3 scale = cent->interpolated.scale;
 	if( scale.x == 0.0f || scale.y == 0.0f || scale.z == 0.0f ) {
 		return;
 	}
 
-	const Model * model = FindModel( cent->prev.model );
-	if( model == NULL ) {
+	Optional< ModelRenderData > maybe_model = FindModelRenderData( cent->prev.model );
+	if( !maybe_model.exists ) {
 		return;
 	}
+
+	ModelRenderData model = maybe_model.value;
 
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -443,13 +419,19 @@ static void DrawEntityModel( centity_t * cent ) {
 	Vec4 color = sRGBToLinear( cent->interpolated.color );
 
 	MatrixPalettes palettes = { };
-	if( cent->interpolated.animating && model->num_animations > 0 ) { // TODO: this is fragile and we should do something better
-		Span< TRS > pose = SampleAnimation( &temp, model, cent->interpolated.animation_time );
-		palettes = ComputeMatrixPalettes( &temp, model, pose );
+	if( cent->interpolated.animating && model.type == ModelType_GLTF && model.gltf->animations.n > 0 ) { // TODO: this is fragile and we should do something better
+		Span< TRS > pose = SampleAnimation( &temp, model.gltf, cent->interpolated.animation_time );
+		palettes = ComputeMatrixPalettes( &temp, model.gltf, pose );
+	}
+	else if( cent->current.type == ET_MAPMODEL && model.type == ModelType_GLTF && model.gltf->animations.n > 0 ) {
+		float t = PositiveMod( ToSeconds( cls.monotonicTime ), model.gltf->animations[ 0 ].duration );
+		Span< TRS > pose = SampleAnimation( &temp, model.gltf, t );
+		palettes = ComputeMatrixPalettes( &temp, model.gltf, pose );
 	}
 
 	DrawModelConfig config = { };
 	config.draw_model.enabled = true;
+	config.draw_model.map_model = cent->current.type == ET_MAPMODEL;
 	config.draw_shadows.enabled = true;
 
 	if( cent->current.silhouetteColor.a > 0 ) {
@@ -460,32 +442,6 @@ static void DrawEntityModel( centity_t * cent ) {
 	}
 
 	DrawModel( config, model, transform, color, palettes );
-
-	if( cent->effects & EF_WORLD_MODEL ) {
-		UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
-		for( u32 i = 0; i < model->num_primitives; i++ ) {
-			if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
-				{
-					PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
-					pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-					pipeline.bind_uniform( "u_Model", model_uniforms );
-
-					DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
-				}
-				for( u32 j = 0; j < frame_static.shadow_parameters.num_cascades; j++ ) {
-					PipelineState pipeline;
-					pipeline.pass = frame_static.shadowmap_pass[ j ];
-					pipeline.shader = &shaders.depth_only;
-					pipeline.clamp_depth = true;
-					// pipeline.cull_face = CullFace_Disabled;
-					pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
-					pipeline.bind_uniform( "u_Model", model_uniforms );
-
-					DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
-				}
-			}
-		}
-	}
 }
 
 static void CG_AddPlayerEnt( centity_t *cent ) {
@@ -798,6 +754,10 @@ void DrawEntities() {
 				DrawEntityModel( cent );
 				break;
 
+			case ET_MAPMODEL:
+				DrawEntityModel( cent );
+				break;
+
 			default:
 				Com_Error( "DrawEntities: unknown entity type" );
 				break;
@@ -841,6 +801,7 @@ void CG_LerpEntities() {
 			case ET_GHOST:
 			case ET_SPEAKER:
 			case ET_BOMB:
+			case ET_MAPMODEL:
 				if( state->linearMovement ) {
 					CG_ExtrapolateLinearProjectile( cent );
 				} else {
@@ -914,6 +875,7 @@ void CG_UpdateEntities() {
 			case ET_RAILALT:
 			case ET_THROWING_AXE:
 			case ET_SHURIKEN:
+			case ET_MAPMODEL:
 				break;
 
 			case ET_PLAYER:

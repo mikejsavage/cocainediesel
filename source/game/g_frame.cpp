@@ -172,15 +172,13 @@ static StringHash entity_sound_backup[MAX_EDICTS];
 * it's now time to clean up snap specific data to start the next snap from clean.
 */
 void G_ClearSnap() {
-	edict_t *ent;
-
 	svs.realtime = Sys_Milliseconds(); // level.time etc. might not be real time
 
 	// clear gametype's clock override
 	server_gs.gameState.clock_override = 0;
 
 	// clear all events in the snap
-	for( ent = &game.edicts[0]; ENTNUM( ent ) < game.numentities; ent++ ) {
+	for( edict_t * ent = &game.edicts[0]; ENTNUM( ent ) < game.numentities; ent++ ) {
 		if( ISEVENTENTITY( &ent->s ) ) { // events do not persist after a snapshot
 			G_FreeEdict( ent );
 			continue;
@@ -191,23 +189,23 @@ void G_ClearSnap() {
 		ent->numEvents = 0;
 		ent->eventPriority[0] = ent->eventPriority[1] = false;
 		ent->s.teleported = false; // remove teleported bit.
+
+		if( server_gs.gameState.paused ) {
+			ent->s.sound = entity_sound_backup[ENTNUM( ent )];
+		}
 	}
 
 	// recover some info, let players respawn and finally clear the snap structures
-	for( ent = &game.edicts[0]; ENTNUM( ent ) < game.numentities; ent++ ) {
+	for( size_t i = 1; i <= MAX_CLIENTS; i++ ) {
+		edict_t * ent = &game.edicts[ i ];
 		if( !server_gs.gameState.paused ) {
 			// copy origin to old origin ( this old_origin is for snaps )
 			G_CheckClientRespawnClick( ent );
 		}
 
-		if( server_gs.gameState.paused ) {
-			ent->s.sound = entity_sound_backup[ENTNUM( ent )];
-		}
-
 		// clear the snap temp info
-		memset( &ent->snap, 0, sizeof( ent->snap ) );
 		if( ent->r.client && PF_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
-			memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
+			memset( &ent->r.client->snap, 0, sizeof( ent->r.client->snap ) );
 		}
 	}
 }
@@ -276,7 +274,7 @@ static void G_RunEntities() {
 
 		// if the ground entity moved, make sure we are still on it
 		if( !ent->r.client ) {
-			if( ( ent->groundentity ) && ( ent->groundentity->linkcount != ent->groundentity_linkcount ) ) {
+			if( ent->groundentity ) {
 				G_CheckGround( ent );
 			}
 		}
@@ -327,7 +325,6 @@ void G_RunFrame( unsigned int msec ) {
 		server_gs.gameState.match_state_start_time = svs.gametime;
 	}
 
-	level.framenum++;
 	level.time += msec;
 
 	// run the world

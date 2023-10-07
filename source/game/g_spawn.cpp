@@ -20,73 +20,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/base.h"
 #include "qcommon/compression.h"
-#include "qcommon/cmodel.h"
 #include "qcommon/fs.h"
 #include "qcommon/srgb.h"
 #include "game/g_local.h"
-
-enum EntityFieldType {
-	EntityField_Int,
-	EntityField_Float,
-	EntityField_StringHash,
-	EntityField_Asset,
-	EntityField_Vec3,
-	EntityField_Angle,
-	EntityField_Scale,
-	EntityField_RGBA,
-};
-
-struct EntityField {
-	StringHash name;
-	size_t ofs;
-	EntityFieldType type;
-	bool temp;
-};
-
-#define FOFS( x ) offsetof( edict_t, x )
-#define STOFS( x ) offsetof( spawn_temp_t, x )
-
-static constexpr EntityField entity_keys[] = {
-	{ "classname", FOFS( classname ), EntityField_StringHash },
-	{ "origin", FOFS( s.origin ), EntityField_Vec3 },
-	{ "model", FOFS( s.model ), EntityField_Asset },
-	{ "model2", FOFS( s.model2 ), EntityField_Asset },
-	{ "material", FOFS( s.material ), EntityField_Asset },
-	{ "color", FOFS( s.color ), EntityField_RGBA },
-	{ "spawnflags", FOFS( spawnflags ), EntityField_Int },
-	{ "speed", FOFS( speed ), EntityField_Float },
-	{ "target", FOFS( target ), EntityField_StringHash },
-	{ "targetname", FOFS( name ), EntityField_StringHash },
-	{ "pathtarget", FOFS( pathtarget ), EntityField_StringHash },
-	{ "killtarget", FOFS( killtarget ), EntityField_StringHash },
-	{ "deadcam", FOFS( deadcam ), EntityField_StringHash },
-	{ "wait", FOFS( wait ), EntityField_Int },
-	{ "delay", FOFS( delay ), EntityField_Int },
-	{ "style", FOFS( style ), EntityField_Int },
-	{ "count", FOFS( count ), EntityField_Int },
-	{ "health", FOFS( health ), EntityField_Float },
-	{ "dmg", FOFS( dmg ), EntityField_Int },
-	{ "angles", FOFS( s.angles ), EntityField_Vec3 },
-	{ "angle", FOFS( s.angles ), EntityField_Angle },
-	{ "modelscale_vec", FOFS( s.scale ), EntityField_Vec3 },
-	{ "modelscale", FOFS( s.scale ), EntityField_Scale },
-	{ "mass", FOFS( mass ), EntityField_Int },
-	{ "random", FOFS( wait_randomness ), EntityField_Int },
-
-	// temp spawn vars -- only valid when the spawn function is called
-	{ "lip", STOFS( lip ), EntityField_Int, true },
-	{ "distance", STOFS( distance ), EntityField_Int, true },
-	{ "height", STOFS( height ), EntityField_Int, true },
-	{ "noise", STOFS( noise ), EntityField_StringHash, true },
-	{ "noise_start", STOFS( noise_start ), EntityField_StringHash, true },
-	{ "noise_stop", STOFS( noise_stop ), EntityField_StringHash, true },
-	{ "pausetime", STOFS( pausetime ), EntityField_Float, true },
-	{ "gameteam", STOFS( gameteam ), EntityField_Int, true },
-	{ "size", STOFS( size ), EntityField_Int, true },
-	{ "spawn_probability", STOFS( spawn_probability ), EntityField_Float, true },
-	{ "power", STOFS( power ), EntityField_Float, true },
-	{ "weapon", STOFS( weapon ), EntityField_StringHash, true },
-};
+#include "game/g_maps.h"
+#include "gameshared/cdmap.h"
 
 static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st );
 
@@ -144,92 +82,122 @@ static bool SpawnEntity( edict_t * ent, const spawn_temp_t * st ) {
 	return false;
 }
 
-static void ED_ParseField( Span< const char > key, Span< const char > value, edict_t * ent, spawn_temp_t * st ) {
-	StringHash key_hash = StringHash( key );
-
-	for( EntityField f : entity_keys ) {
-		if( f.name != key_hash )
-			continue;
-
-		uint8_t *b;
-		if( f.temp ) {
-			b = (uint8_t *)st;
-		} else {
-			b = (uint8_t *)ent;
-		}
-
-		switch( f.type ) {
-			case EntityField_StringHash:
-				*align_cast< StringHash >( b + f.ofs ) = StringHash( value );
-				break;
-			case EntityField_Asset:
-				if( value[ 0 ] == '*' ) {
-					*align_cast< StringHash >( b + f.ofs ) = StringHash( Hash64( value.ptr, value.n, svs.cms->base_hash ) );
-				}
-				else {
-					*align_cast< StringHash >( b + f.ofs ) = StringHash( value );
-				}
-				break;
-			case EntityField_Int:
-				*align_cast< int >( b + f.ofs ) = SpanToInt( value, 0 );
-				break;
-			case EntityField_Float:
-				*align_cast< float >( b + f.ofs ) = SpanToFloat( value, 0.0f );
-				break;
-			case EntityField_Angle:
-				*align_cast< Vec3 >( b + f.ofs ) = Vec3( 0.0f, SpanToFloat( value, 0.0f ), 0.0f );
-				break;
-			case EntityField_Scale:
-				*align_cast< Vec3 >( b + f.ofs ) = Vec3( SpanToFloat( value, 1.0f ) );
-				break;
-
-			case EntityField_Vec3: {
-				Vec3 vec;
-				vec.x = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
-				vec.y = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
-				vec.z = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
-				*align_cast< Vec3 >( b + f.ofs ) = vec;
-			} break;
-
-			case EntityField_RGBA: {
-				Vec4 rgba;
-				rgba.x = ParseFloat( &value, 1.0f, Parse_StopOnNewLine );
-				rgba.y = ParseFloat( &value, 1.0f, Parse_StopOnNewLine );
-				rgba.z = ParseFloat( &value, 1.0f, Parse_StopOnNewLine );
-				rgba.w = ParseFloat( &value, 1.0f, Parse_StopOnNewLine );
-				*(RGBA8 *)( b + f.ofs ) = LinearTosRGB( rgba );
-			} break;
-		}
-		return;
-	}
-
-	if( key.n > 0 && key[ 0 ] != '_' ) {
-		Com_GGPrint( "{} is not a field", key );
-	}
+static bool DoField( const char * name, int * x, Span< const char > key, Span< const char > value ) {
+	if( !StrEqual( name, key ) )
+		return false;
+	*x = SpanToInt( value, 0 );
+	return true;
 }
 
-static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent, spawn_temp_t * st ) {
-	while( true ) {
-		Span< const char > key = ParseToken( cursor, Parse_DontStopOnNewLine );
-		if( key == "}" )
-			break;
-		if( key.ptr == NULL ) {
-			Com_Error( "ED_ParseEntity: EOF without closing brace" );
-		}
+static bool DoField( const char * name, s64 * x, Span< const char > key, Span< const char > value ) {
+	if( !StrEqual( name, key ) )
+		return false;
+	*x = SpanToU64( value, 0 ); // TODO: wrong type
+	return true;
+}
 
-		Span< const char > value = ParseToken( cursor, Parse_StopOnNewLine );
-		if( value.ptr == NULL ) {
-			Com_Error( "ED_ParseEntity: EOF without closing brace" );
-		}
-		if( value == "}" ) {
-			Com_Error( "ED_ParseEntity: closing brace without data" );
-		}
+static bool DoField( const char * name, float * x, Span< const char > key, Span< const char > value ) {
+	if( !StrEqual( name, key ) )
+		return false;
+	*x = SpanToFloat( value, 0.0f );
+	return true;
+}
 
-		ED_ParseField( key, value, ent, st );
+static bool DoField( const char * name, Vec3 * x, Span< const char > key, Span< const char > value ) {
+	if( !StrEqual( name, key ) )
+		return false;
+	for( int i = 0; i < 3; i++ ) {
+		( *x )[ i ] = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+	}
+	return true;
+}
 
-		if( StrCaseEqual( key, "classname" ) ) {
-			st->classname = value;
-		}
+static bool DoField( const char * name, RGBA8 * x, Span< const char > key, Span< const char > value ) {
+	if( !StrEqual( name, key ) )
+		return false;
+	// TODO: accept hex colors etc
+	Vec4 vec4;
+	for( int i = 0; i < 4; i++ ) {
+		vec4[ i ] = ParseFloat( &value, 1.0f, Parse_StopOnNewLine );
+	}
+	*x = LinearTosRGB( vec4 );
+	return true;
+}
+
+static bool DoField( const char * name, StringHash * x, Span< const char > key, Span< const char > value ) {
+	if( !StrEqual( name, key ) )
+		return false;
+	*x = StringHash( value );
+	return true;
+}
+
+static bool DoField( const char * name, StringHash * x, Span< const char > key, Span< const char > value, StringHash map_base_hash ) {
+	if( !StrEqual( name, key ) )
+		return false;
+
+	if( value.n > 0 && value[ 0 ] == '*' ) {
+		*x = StringHash( Hash64( value.ptr, value.n, map_base_hash.hash ) );
+	}
+	else {
+		*x = StringHash( value );
+	}
+
+	return true;
+}
+
+static void ParseEntityKeyValue( Span< const char > key, Span< const char > value, StringHash map_base_hash, edict_t * ent, spawn_temp_t * st ) {
+	bool used = false;
+
+	used = used || DoField( "classname", &ent->classname, key, value );
+	used = used || DoField( "origin", &ent->s.origin, key, value );
+	used = used || DoField( "model", &ent->s.model, key, value, map_base_hash );
+	used = used || DoField( "model2", &ent->s.model2, key, value, map_base_hash );
+	used = used || DoField( "material", &ent->s.material, key, value );
+	used = used || DoField( "color", &ent->s.color, key, value );
+	used = used || DoField( "spawnflags", &ent->spawnflags, key, value );
+	used = used || DoField( "speed", &ent->speed, key, value );
+	used = used || DoField( "target", &ent->target, key, value );
+	used = used || DoField( "targetname", &ent->name, key, value );
+	used = used || DoField( "pathtarget", &ent->pathtarget, key, value );
+	used = used || DoField( "killtarget", &ent->killtarget, key, value );
+	used = used || DoField( "deadcam", &ent->deadcam, key, value );
+	used = used || DoField( "wait", &ent->wait, key, value );
+	used = used || DoField( "delay", &ent->delay, key, value );
+	used = used || DoField( "count", &ent->count, key, value );
+	used = used || DoField( "health", &ent->health, key, value );
+	used = used || DoField( "dmg", &ent->dmg, key, value );
+	used = used || DoField( "angles", &ent->s.angles, key, value );
+	used = used || DoField( "modelscale", &ent->s.scale, key, value );
+	used = used || DoField( "modelscale_vec", &ent->s.scale, key, value );
+	used = used || DoField( "mass", &ent->mass, key, value );
+	used = used || DoField( "random", &ent->wait_randomness, key, value );
+
+	// yaw
+	if( key == "angle" ) {
+		ent->s.angles = Vec3( 0.0f, SpanToFloat( value, 0.0f ), 0.0f );
+		used = true;
+	}
+
+	// 1d scale
+	if( key == "modelscale" ) {
+		ent->s.scale = Vec3( SpanToFloat( value, 1.0f ) );
+		used = true;
+	}
+
+	used = used || DoField( "lip", &st->lip, key, value );
+	used = used || DoField( "distance", &st->distance, key, value );
+	used = used || DoField( "height", &st->height, key, value );
+	used = used || DoField( "noise", &st->noise, key, value );
+	used = used || DoField( "noise_start", &st->noise_start, key, value );
+	used = used || DoField( "noise_stop", &st->noise_stop, key, value );
+	used = used || DoField( "pausetime", &st->pausetime, key, value );
+	used = used || DoField( "gameteam", &st->gameteam, key, value );
+	used = used || DoField( "size", &st->size, key, value );
+	used = used || DoField( "spawn_probability", &st->spawn_probability, key, value );
+	used = used || DoField( "power", &st->power, key, value );
+
+	if( !used && key.n > 0 && key[ 0 ] != '_' ) {
+		Com_GGPrint( "{} is not a valid entity key", key );
 	}
 }
 
@@ -253,21 +221,13 @@ static void SpawnMapEntities() {
 	level.spawnedTimeStamp = svs.gametime;
 	level.canSpawnEntities = true;
 
-	Span< const char > cursor = MakeSpan( CM_EntityString( svs.cms ) );
-	edict_t * ent = NULL;
-
-	while( true ) {
-		// parse the opening brace
-		Span< const char > brace = ParseToken( &cursor, Parse_DontStopOnNewLine );
-		if( brace == "" )
-			break;
-		if( brace != "{" ) {
-			Com_Error( "SpawnMapEntities: entity string doesn't begin with {" );
-		}
-
-		if( ent == NULL ) {
+	const MapData * map = FindServerMap( server_gs.gameState.map );
+	for( size_t i = 0; i < map->entities.n; i++ ) {
+		const MapEntity * map_entity = &map->entities[ i ];
+		edict_t * ent;
+		if( i == 0 ) {
 			ent = world;
-			G_InitEdict( world );
+			G_InitEdict( ent );
 		}
 		else {
 			ent = G_Spawn();
@@ -276,7 +236,18 @@ static void SpawnMapEntities() {
 		spawn_temp_t st = { };
 		st.spawn_probability = 1.0f;
 
-		ED_ParseEntity( &cursor, ent, &st );
+		for( u32 j = 0; j < map_entity->num_key_values; j++ ) {
+			const MapEntityKeyValue * kv = &map->entity_kvs[ map_entity->first_key_value + j ];
+
+			Span< const char > key = map->entity_data.slice( kv->offset, kv->offset + kv->key_size );
+			Span< const char > value = map->entity_data.slice( kv->offset + kv->key_size, kv->offset + kv->key_size + kv->value_size );
+
+			ParseEntityKeyValue( key, value, server_gs.gameState.map, ent, &st );
+
+			if( key == "classname" ) {
+				st.classname = value;
+			}
+		}
 
 		bool ok = true;
 		bool rng = Probability( &svs.rng, st.spawn_probability );
@@ -302,15 +273,16 @@ static void SpawnMapEntities() {
 void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	ResetEntityIDSequence();
 
-	GClip_ClearWorld(); // clear areas links
+	ShutdownServerCollisionModels();
+	InitServerCollisionModels();
 
 	memset( &level, 0, sizeof( level_locals_t ) );
 	level.time = levelTime;
 
 	memset( &server_gs.gameState, 0, sizeof( server_gs.gameState ) );
-
 	server_gs.gameState.map = StringHash( mapname );
-	server_gs.gameState.map_checksum = svs.cms->checksum;
+	LoadServerMap( mapname );// TODO: errors???
+	GClip_ClearWorld(); // clear areas links
 
 	G_SunCycle( 0 );
 
@@ -372,46 +344,10 @@ void G_RespawnLevel() {
 	}
 }
 
-void G_LoadMap( const char * name ) {
-	TempAllocator temp = svs.frame_arena.temp();
-
-	if( svs.cms != NULL ) {
-		CM_Free( CM_Server, svs.cms );
-	}
-
-	SafeStrCpy( sv.mapname, name, sizeof( sv.mapname ) );
-
-	Span< u8 > data;
-	defer { Free( sys_allocator, data.ptr ); };
-
-	const char * bsp_path = temp( "{}/base/maps/{}.bsp", RootDirPath(), name );
-	data = ReadFileBinary( sys_allocator, bsp_path );
-
-	if( data.ptr == NULL ) {
-		const char * zst_path = temp( "{}.zst", bsp_path );
-		Span< u8 > compressed = ReadFileBinary( sys_allocator, zst_path );
-		defer { Free( sys_allocator, compressed.ptr ); };
-		if( compressed.ptr == NULL ) {
-			Fatal( "Couldn't find map %s", name );
-		}
-
-		bool ok = Decompress( zst_path, sys_allocator, compressed, &data );
-		if( !ok ) {
-			Fatal( "Couldn't decompress %s", zst_path );
-		}
-	}
-
-	u64 hash = Hash64( name );
-	svs.cms = CM_LoadMap( CM_Server, data, hash );
-
-	server_gs.gameState.map = StringHash( hash );
-	server_gs.gameState.map_checksum = svs.cms->checksum;
-}
-
 void G_HotloadMap() {
+	// TODO: come back to this
 	char map[ ARRAY_COUNT( sv.mapname ) ];
 	SafeStrCpy( map, sv.mapname, sizeof( map ) );
-	G_LoadMap( map );
 	G_ResetLevel();
 
 	if( level.gametype.MapHotloaded != NULL ) {
@@ -419,26 +355,7 @@ void G_HotloadMap() {
 	}
 }
 
-// TODO: game module init is a mess and I'm not sure how to clean this up
-void G_Aasdf() {
-	GClip_ClearWorld(); // clear areas links
-	G_ResetLevel();
-	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
-		edict_t * ent = &game.edicts[ i ];
-		if( ent->r.inuse ) {
-			ent->s.teleported = true;
-		}
-	}
-}
-
 static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st ) {
+	ent->s.svflags &= ~SVF_NOCLIENT;
 	ent->movetype = MOVETYPE_PUSH;
-	ent->r.solid = SOLID_YES;
-	ent->r.inuse = true; // since the world doesn't use G_Spawn()
-	ent->s.origin = Vec3( 0.0f );
-	ent->s.angles = Vec3( 0.0f );
-
-	const char * model_name = "*0";
-	ent->s.model = StringHash( Hash64( model_name, strlen( model_name ), svs.cms->base_hash ) );
-	GClip_SetBrushModel( ent );
 }

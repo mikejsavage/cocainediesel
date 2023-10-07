@@ -40,12 +40,12 @@ msg_t NewMSGReader( u8 * data, size_t n, size_t data_size ) {
 	return msg;
 }
 
-void MSG_Clear( msg_t *msg ) {
+void MSG_Clear( msg_t * msg ) {
 	msg->cursize = 0;
 	msg->compressed = false;
 }
 
-void *MSG_GetSpace( msg_t *msg, size_t length ) {
+void *MSG_GetSpace( msg_t * msg, size_t length ) {
 	void *ptr;
 
 	Assert( msg->cursize + length <= msg->maxsize );
@@ -196,6 +196,18 @@ static void Delta( DeltaBuffer * buf, bool & b, bool baseline ) {
 	}
 }
 
+template< typename T >
+void Delta( DeltaBuffer * buf, Optional< T > & x, const Optional< T > & baseline ) {
+	constexpr T null_baseline = T();
+
+	Delta( buf, x.exists, baseline.exists );
+
+	const T & baseline_to_delta_against = baseline.exists ? baseline.value : null_baseline;
+	if( x.exists ) {
+		Delta( buf, x.value, baseline_to_delta_against );
+	}
+}
+
 static void Delta( DeltaBuffer * buf, StringHash & hash, StringHash baseline ) {
 	DeltaFundamental( buf, hash.hash, baseline.hash );
 }
@@ -223,6 +235,100 @@ static void Delta( DeltaBuffer * buf, RGBA8 & rgba, const RGBA8 & baseline ) {
 	Delta( buf, rgba.g, baseline.b );
 	Delta( buf, rgba.b, baseline.g );
 	Delta( buf, rgba.a, baseline.a );
+}
+
+static void Delta( DeltaBuffer * buf, Sphere & s, const Sphere & baseline ) {
+	Delta( buf, s.center, baseline.center );
+	Delta( buf, s.radius, baseline.radius );
+}
+
+static void Delta( DeltaBuffer * buf, Capsule & c, const Capsule & baseline ) {
+	Delta( buf, c.a, baseline.a );
+	Delta( buf, c.b, baseline.b );
+	Delta( buf, c.radius, baseline.radius );
+}
+
+template< typename E >
+void DeltaEnum( DeltaBuffer * buf, E & x, E baseline, E count ) {
+	using T = typename std::underlying_type< E >::type;
+	Delta( buf, ( T & ) x, ( const T & ) baseline );
+	if( x < 0 || x >= count ) {
+		buf->error = true;
+	}
+}
+
+template< typename E >
+void DeltaEnum( DeltaBuffer * buf, Optional< E > & x, Optional< E > baseline, E count ) {
+	constexpr E null_baseline = E();
+
+	Delta( buf, x.exists, baseline.exists );
+
+	using T = typename std::underlying_type< E >::type;
+	const T & baseline_to_delta_against = baseline.exists ? baseline.value : null_baseline;
+	if( x.exists ) {
+		Delta( buf, ( T & ) x.value, baseline_to_delta_against );
+		if( x.value < 0 || x.value >= count ) {
+			buf->error = true;
+		}
+	}
+}
+
+template< typename E >
+void DeltaBitfieldEnum( DeltaBuffer * buf, E & x, E baseline, E mask ) {
+	using T = typename std::underlying_type< E >::type;
+	Delta( buf, ( T & ) x, ( const T & ) baseline );
+	if( ( x & ~mask ) != 0 ) {
+		buf->error = true;
+	}
+}
+
+template< typename E >
+void DeltaBitfieldEnum( DeltaBuffer * buf, Optional< E > & x, Optional< E > baseline, E mask ) {
+	constexpr E null_baseline = E();
+
+	Delta( buf, x.exists, baseline.exists );
+
+	using T = typename std::underlying_type< E >::type;
+	const T & baseline_to_delta_against = baseline.exists ? baseline.value : null_baseline;
+	if( x.exists ) {
+		Delta( buf, ( T & ) x.value, baseline_to_delta_against );
+		if( ( x.value & ~mask ) != 0 ) {
+			buf->error = true;
+		}
+	}
+}
+
+static void Delta( DeltaBuffer * buf, CollisionModel & cm, const CollisionModel & baseline ) {
+	constexpr CollisionModel null_baseline = { };
+
+	DeltaEnum( buf, cm.type, baseline.type, CollisionModelType_Count );
+
+	const CollisionModel * baseline_to_delta_against = cm.type == baseline.type ? &baseline : &null_baseline;
+
+	switch( cm.type ) {
+		case CollisionModelType_Point:
+			break;
+
+		case CollisionModelType_AABB:
+			Delta( buf, cm.aabb, baseline_to_delta_against->aabb );
+			break;
+
+		case CollisionModelType_Sphere:
+			Delta( buf, cm.sphere, baseline_to_delta_against->sphere );
+			break;
+
+		case CollisionModelType_Capsule:
+			Delta( buf, cm.capsule, baseline_to_delta_against->capsule );
+			break;
+
+		case CollisionModelType_MapModel:
+			Delta( buf, cm.map_model, baseline_to_delta_against->map_model );
+			break;
+
+		case CollisionModelType_GLTF:
+			Delta( buf, cm.gltf_model, baseline_to_delta_against->gltf_model );
+			break;
+	}
 }
 
 template< size_t N >
@@ -254,15 +360,6 @@ static void DeltaString( DeltaBuffer * buf, char ( &str )[ N ], const char ( &ba
 		else {
 			SafeStrCpy( str, baseline, N );
 		}
-	}
-}
-
-template< typename E >
-void DeltaEnum( DeltaBuffer * buf, E & x, E baseline, E count ) {
-	using T = typename std::underlying_type< E >::type;
-	Delta( buf, ( T & ) x, ( const T & ) baseline );
-	if( x < 0 || x >= count ) {
-		buf->error = true;
 	}
 }
 
@@ -305,7 +402,7 @@ void MSG_WriteUint32( msg_t * msg, u32 x ) { MSG_WriteFundamental( msg, x ); }
 void MSG_WriteInt64( msg_t * msg, s64 x ) { MSG_WriteFundamental( msg, x ); }
 void MSG_WriteUint64( msg_t * msg, u64 x ) { MSG_WriteFundamental( msg, x ); }
 
-void MSG_WriteUintBase128( msg_t *msg, uint64_t c ) {
+void MSG_WriteUintBase128( msg_t * msg, uint64_t c ) {
 	uint8_t buf[10];
 	size_t len = 0;
 
@@ -320,13 +417,13 @@ void MSG_WriteUintBase128( msg_t *msg, uint64_t c ) {
 	MSG_Write( msg, buf, len );
 }
 
-void MSG_WriteIntBase128( msg_t *msg, int64_t c ) {
+void MSG_WriteIntBase128( msg_t * msg, int64_t c ) {
 	// use Zig-zag encoding for signed integers for more efficient storage
 	uint64_t cc = (uint64_t)(c << 1) ^ (uint64_t)(c >> 63);
 	MSG_WriteUintBase128( msg, cc );
 }
 
-void MSG_WriteString( msg_t *msg, const char *s ) {
+void MSG_WriteString( msg_t * msg, const char *s ) {
 	if( !s ) {
 		MSG_Write( msg, "", 1 );
 	} else {
@@ -349,7 +446,7 @@ void MSG_WriteMsg( msg_t * msg, msg_t other ) {
 // READ FUNCTIONS
 //==================================================
 
-void MSG_BeginReading( msg_t *msg ) {
+void MSG_BeginReading( msg_t * msg ) {
 	msg->readcount = 0;
 }
 
@@ -375,7 +472,7 @@ u32 MSG_ReadUint32( msg_t * msg ) { return MSG_ReadFundamental< u32 >( msg, 0 );
 s64 MSG_ReadInt64( msg_t * msg ) { return MSG_ReadFundamental< s64 >( msg, -1 ); }
 u64 MSG_ReadUint64( msg_t * msg ) { return MSG_ReadFundamental< u64 >( msg, 0 ); }
 
-uint64_t MSG_ReadUintBase128( msg_t *msg ) {
+uint64_t MSG_ReadUintBase128( msg_t * msg ) {
 	size_t len = 0;
 	uint64_t i = 0;
 
@@ -391,19 +488,19 @@ uint64_t MSG_ReadUintBase128( msg_t *msg ) {
 	return i;
 }
 
-int64_t MSG_ReadIntBase128( msg_t *msg ) {
+int64_t MSG_ReadIntBase128( msg_t * msg ) {
 	// un-Zig-Zag our value back to a signed integer
 	uint64_t c = MSG_ReadUintBase128( msg );
 	return (int64_t)(c >> 1) ^ (-(int64_t)(c & 1));
 }
 
-void MSG_ReadData( msg_t *msg, void *data, size_t length ) {
+void MSG_ReadData( msg_t * msg, void *data, size_t length ) {
 	for( size_t i = 0; i < length; i++ ) {
 		( (uint8_t *)data )[i] = MSG_ReadUint8( msg );
 	}
 }
 
-int MSG_SkipData( msg_t *msg, size_t length ) {
+int MSG_SkipData( msg_t * msg, size_t length ) {
 	if( msg->readcount + length <= msg->cursize ) {
 		msg->readcount += length;
 		return 1;
@@ -411,7 +508,7 @@ int MSG_SkipData( msg_t *msg, size_t length ) {
 	return 0;
 }
 
-static char *MSG_ReadString2( msg_t *msg, bool linebreak ) {
+static const char * MSG_ReadString2( msg_t * msg, bool linebreak ) {
 	int l, c;
 	static char string[MAX_MSG_STRING_CHARS];
 
@@ -431,11 +528,11 @@ static char *MSG_ReadString2( msg_t *msg, bool linebreak ) {
 	return string;
 }
 
-char *MSG_ReadString( msg_t *msg ) {
+const char * MSG_ReadString( msg_t * msg ) {
 	return MSG_ReadString2( msg, false );
 }
 
-char *MSG_ReadStringLine( msg_t *msg ) {
+const char * MSG_ReadStringLine( msg_t * msg ) {
 	return MSG_ReadString2( msg, true );
 }
 
@@ -465,7 +562,8 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.origin, baseline.origin );
 	DeltaAngle( buf, ent.angles, baseline.angles );
 
-	Delta( buf, ent.bounds, baseline.bounds );
+	Delta( buf, ent.override_collision_model, baseline.override_collision_model );
+	DeltaBitfieldEnum( buf, ent.solidity, baseline.solidity, SolidMask_Everything );
 
 	Delta( buf, ent.teleported, baseline.teleported );
 
@@ -505,7 +603,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.id.id, baseline.id.id );
 }
 
-void MSG_WriteEntityNumber( msg_t *msg, int number, bool remove ) {
+void MSG_WriteEntityNumber( msg_t * msg, int number, bool remove ) {
 	MSG_WriteIntBase128( msg, (remove ? 1 : 0) | number << 1 );
 }
 
@@ -514,7 +612,7 @@ void MSG_WriteEntityNumber( msg_t *msg, int number, bool remove ) {
 *
 * Returns the entity number and the remove bit
 */
-int MSG_ReadEntityNumber( msg_t *msg, bool *remove ) {
+int MSG_ReadEntityNumber( msg_t * msg, bool *remove ) {
 	int number = (int)MSG_ReadIntBase128( msg );
 	*remove = ( number & 1 ) != 0;
 	return number >> 1;
@@ -590,7 +688,6 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 	Delta( buf, pmove.velocity, baseline.velocity );
 	Delta( buf, pmove.delta_angles, baseline.delta_angles );
 
-	Delta( buf, pmove.pm_time, baseline.pm_time );
 	Delta( buf, pmove.pm_flags, baseline.pm_flags );
 
 	Delta( buf, pmove.features, baseline.features );
@@ -728,7 +825,6 @@ static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState
 	Delta( buf, state.players, baseline.players );
 
 	Delta( buf, state.map, baseline.map );
-	Delta( buf, state.map_checksum, baseline.map_checksum );
 
 	Delta( buf, state.bomb, baseline.bomb );
 	Delta( buf, state.exploding, baseline.exploding );

@@ -35,8 +35,13 @@ To bit_cast( const From & from ) {
 void FatalErrnoImpl( const char * msg, const char * file, int line );
 
 template< typename T >
-constexpr bool HasBit( T bits, T bit ) {
-	return ( bits & bit ) != 0;
+constexpr bool HasAnyBit( T haystack, T needle ) {
+	return ( haystack & needle ) != 0;
+}
+
+template< typename T >
+constexpr bool HasAllBits( T haystack, T needle ) {
+	return ( haystack & needle ) == needle;
 }
 
 /*
@@ -80,6 +85,11 @@ Optional< T > MakeOptional( const T & x ) {
 }
 
 template< typename T >
+T Default( const Optional< T > & opt, const T & def ) {
+	return opt.exists ? opt.value : def;
+}
+
+template< typename T >
 bool operator==( const Optional< T > & opt, const T & x ) {
 	return opt.exists && opt.value == x;
 }
@@ -107,3 +117,26 @@ extern bool break1;
 extern bool break2;
 extern bool break3;
 extern bool break4;
+
+/*
+ * Com_Print
+ */
+
+[[gnu::format( printf, 1, 2 )]] void Com_Printf( const char *format, ... );
+[[gnu::format( printf, 1, 2 )]] void Com_Error( const char *format, ... );
+
+template< typename... Rest >
+void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {
+	char buf[ 4096 ];
+	ggformat( buf, sizeof( buf ), fmt, rest... );
+	Com_Printf( "%s", buf );
+}
+
+#define Com_GGPrint( fmt, ... ) Com_GGPrintNL( fmt "\n", ##__VA_ARGS__ )
+
+template< typename... Rest >
+void Com_GGError( const char * fmt, const Rest & ... rest ) {
+	char buf[ 4096 ];
+	ggformat( buf, sizeof( buf ), fmt, rest... );
+	Com_Error( "%s", buf );
+}

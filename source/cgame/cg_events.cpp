@@ -19,23 +19,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "gameshared/collision.h"
 
-static void RailgunImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 color ) {
+static void RailgunImpact( Vec3 pos, Vec3 dir, Vec4 color ) {
 	DoVisualEffect( "weapons/eb/hit", pos, dir, 1.0f, color );
 	PlaySFX( "weapons/eb/hit", PlaySFXConfigPosition( pos ) );
 }
 
 static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_lifetime_scale = 1.0f ) {
 	// decal_lifetime_scale is a shitty hack to help reduce decal spam with shotgun
-	DoVisualEffect( "vfx/bullet_impact", trace->endpos, trace->plane.normal, num_particles, color, decal_lifetime_scale );
+	DoVisualEffect( "vfx/bullet_impact", trace->endpos, trace->normal, num_particles, color, decal_lifetime_scale );
 }
 
 static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_lifetime_scale = 1.0f ) {
-	// TODO: should draw on entry/exit of all wallbanged surfaces
-	if( ( trace->contents & CONTENTS_WALLBANGABLE ) == 0 )
+	if( ( trace->solidity & Solid_Wallbangable ) == 0 )
 		return;
 
-	DoVisualEffect( "vfx/wallbang_impact", trace->endpos, trace->plane.normal, num_particles, color, decal_lifetime_scale );
+	DoVisualEffect( "vfx/wallbang_impact", trace->endpos, trace->normal, num_particles, color, decal_lifetime_scale );
 }
 
 static Mat4 GetMuzzleTransform( int ent ) {
@@ -69,10 +69,9 @@ static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin )
 
 	Vec4 color = CG_TeamColorVec4( owner->current.team );
 
-	trace_t trace;
-	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, cg.view.POVent, MASK_WALLBANG );
-	if( trace.ent != -1 ) {
-		RailgunImpact( trace.endpos, trace.plane.normal, trace.surfFlags, color );
+	trace_t trace = CG_Trace( origin, MinMax3( 0.0f ), end, cg.view.POVent, SolidMask_WallbangShot );
+	if( trace.HitSomething() ) {
+		RailgunImpact( trace.endpos, trace.normal, color );
 	}
 
 	if( from_origin ) {
@@ -85,7 +84,6 @@ static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin )
 }
 
 void CG_LaserBeamEffect( centity_t * cent ) {
-	trace_t trace;
 	Vec3 laserOrigin, laserAngles, laserPoint;
 
 	if( cent->localEffects[ LOCALEFFECT_LASERBEAM ] <= cl.serverTime ) {
@@ -124,15 +122,13 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 
 	// trace the beam: for tracing we use the real beam origin
 	float range = GS_GetWeaponDef( Weapon_Laser )->range;
-	GS_TraceLaserBeam( &client_gs, &trace, laserOrigin, laserAngles, range, cent->current.number, 0, []( const trace_t * trace, Vec3 dir, void * data ) {
-		centity_t * cent = ( centity_t * ) data;
+	trace_t trace = GS_TraceLaserBeam( &client_gs, laserOrigin, laserAngles, range, cent->current.number, 0 );
+	if( trace.HitSomething() ) {
+		DrawDynamicLight( trace.endpos, color.xyz(), 10000.0f );
+		DoVisualEffect( "weapons/lg/tip_hit", trace.endpos, trace.normal, 1.0f, color );
 
-		Vec4 color = CG_TeamColorVec4( cent->current.team );
-		DrawDynamicLight( trace->endpos, color.xyz(), 10000.0f );
-		DoVisualEffect( "weapons/lg/tip_hit", trace->endpos, trace->plane.normal, 1.0f, color );
-
-		cent->lg_tip_sound = PlayImmediateSFX( "weapons/lg/tip_hit", cent->lg_tip_sound, PlaySFXConfigPosition( trace->endpos ) );
-	}, cent );
+		cent->lg_tip_sound = PlayImmediateSFX( "weapons/lg/tip_hit", cent->lg_tip_sound, PlaySFXConfigPosition( trace.endpos ) );
+	}
 
 	Mat4 muzzle_transform = GetMuzzleTransform( cent->current.number );
 
@@ -149,8 +145,8 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 		cent->lg_beam_sound = PlayImmediateSFX( "weapons/lg/beam", cent->lg_beam_sound, PlaySFXConfigLineSegment( start, end ) );
 	}
 
-	if( trace.fraction == 1.0f ) {
-		DoVisualEffect( "weapons/lg/tip_miss", end, Vec3( 0.0f, 0.0f, 1.0f ), 1, color );
+	if( trace.HitNothing() ) {
+		DoVisualEffect( "weapons/lg/tip_miss", end, Vec3( 0.0f ), 1, color );
 		cent->lg_tip_sound = PlayImmediateSFX( "weapons/lg/tip_miss", cent->lg_tip_sound, PlaySFXConfigPosition( end ) );
 	}
 }
@@ -239,7 +235,7 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 	trace_t trace, wallbang;
 	GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, spread, range, owner, 0 );
 
-	if( trace.ent != -1 ) {
+	if( trace.HitSomething() ) {
 		if( trace.ent > 0 && cg_entities[ trace.ent ].current.type == ET_PLAYER ) {
 			// flesh impact sound
 		}
@@ -251,7 +247,8 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 				PlaySFX( "weapons/bullet_whizz", PlaySFXConfigLineSegment( origin, trace.endpos ) );
 			}
 		}
-
+	}
+	if( wallbang.HitSomething() ) {
 		WallbangImpact( &wallbang, team_color, 12 );
 	}
 
@@ -279,7 +276,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 		float distance = Length( trace.endpos - origin );
 		float decal_p = Lerp( 0.25f, Unlerp( 0.0f, distance, 256.0f ), 0.5f );
 		if( Probability( &cls.rng, decal_p ) ) {
-			if( trace.ent != -1 ) {
+			if( trace.HitSomething() ) {
 				BulletImpact( &trace, team_color, 4, 0.5f );
 			}
 
@@ -292,10 +289,9 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 	// spawn a single sound at the impact
 	Vec3 end = origin + dir * def->range;
 
-	trace_t trace;
-	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, owner, MASK_SHOT );
+	trace_t trace = CG_Trace( origin, MinMax3( 0.0f ), end, owner, SolidMask_Shot );
 
-	if( trace.ent != -1 ) {
+	if( trace.HitSomething() ) {
 		PlaySFX( "weapons/rg/hit", PlaySFXConfigPosition( trace.endpos ) );
 	}
 }
@@ -415,8 +411,10 @@ static void CG_Event_Fall( const SyncEntityState * state, u64 parm, bool viewer 
 		CG_StartFallKickEffect( ( parm + 5 ) * 10 );
 	}
 
+	MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), state );
+
 	Vec3 ground_position = state->origin;
-	ground_position.z += state->bounds.mins.z;
+	ground_position.z += bounds.mins.z;
 
 	if( parm < 40 )
 		return;
@@ -804,7 +802,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_BOLT_EXPLOSION: {
 			Vec3 normal = U64ToDir( parm );
-			RailgunImpact( ent->origin, normal, 0, team_color );
+			RailgunImpact( ent->origin, normal, team_color );
 		} break;
 
 		case EV_STICKY_EXPLOSION: {
@@ -850,10 +848,9 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				Vec3 random_dir = Normalize( dir + tangent * RandomFloat11( &cls.rng ) * 0.1f + bitangent * RandomFloat11( &cls.rng ) * 0.1f );
 				Vec3 end = ent->origin + random_dir * 256.0f;
 
-				trace_t trace;
-				CG_Trace( &trace, ent->origin, Vec3( -4.0f ), Vec3( 4.0f ), end, 0, MASK_SOLID );
+				trace_t trace = CG_Trace( ent->origin, MinMax3( 4.0f ), end, 0, SolidMask_AnySolid );
 
-				if( trace.fraction < 1.0f ) {
+				if( trace.HitSomething() ) {
 					constexpr StringHash decals[] = {
 						"textures/blood_decals/blood1",
 						"textures/blood_decals/blood2",
@@ -872,7 +869,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 					float min_size = Lerp( 20.0f, Unlerp01( 5, damage, 50 ), 64.0f );
 					float size = min_size * RandomUniformFloat( &cls.rng, 0.75f, 1.5f );
 
-					AddPersistentDecal( trace.endpos, trace.plane.normal, size, angle, RandomElement( &cls.rng, decals ), team_color, 30000, 10.0f );
+					AddPersistentDecal( trace.endpos, trace.normal, size, angle, RandomElement( &cls.rng, decals ), team_color, 30000, 10.0f );
 				}
 
 				p -= 1.0f;
@@ -901,7 +898,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_BUTTON_FIRE:
 		case EV_TRAIN_STOP:
 		case EV_TRAIN_START: {
-			Vec3 origin = ent->origin + ( ent->bounds.mins + ent->bounds.maxs ) * 0.5f;
+			MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), ent );
+			Vec3 origin = ent->origin + Center( bounds );
 			PlaySFX( StringHash( parm ), PlaySFXConfigPosition( origin ) );
 		} break;
 

@@ -149,26 +149,6 @@ void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent ) {
 	*bitangent = Vec3( b, s + v.y * v.y * a, -v.y );
 }
 
-void BuildBoxPoints( Vec3 p[8], Vec3 org, Vec3 mins, Vec3 maxs ) {
-	p[0] = org + mins;
-	p[1] = org + maxs;
-	p[2] = Vec3( p[0].x, p[0].y, p[1].z );
-	p[3] = Vec3( p[0].x, p[1].y, p[0].z );
-	p[4] = Vec3( p[0].x, p[1].y, p[1].z );
-	p[5] = Vec3( p[1].x, p[1].y, p[0].z );
-	p[6] = Vec3( p[1].x, p[0].y, p[1].z );
-	p[7] = Vec3( p[1].x, p[0].y, p[0].z );
-}
-
-/*
-* ProjectPointOntoVector
-*/
-void ProjectPointOntoVector( Vec3 point, Vec3 vStart, Vec3 vDir, Vec3 * vProj ) {
-	Vec3 pVec = point - vStart;
-	// project onto the directional vector for this segment
-	*vProj = vStart + vDir * Dot( pVec, vDir );
-}
-
 //============================================================================
 
 static float LerpAngle( float a, float t, float b ) {
@@ -214,109 +194,38 @@ EulerDegrees2 AngleDelta( EulerDegrees2 a, EulerDegrees2 b ) {
 	return EulerDegrees2( AngleDelta( a.pitch, b.pitch ), AngleDelta( a.yaw, b.yaw ) );
 }
 
-/*
-* PlaneFromPoints
-*/
-bool PlaneFromPoints( Vec3 verts[3], Plane *plane ) {
-	if( verts[ 0 ] == verts[ 1 ] || verts[ 0 ] == verts[ 2 ] || verts[ 1 ] == verts[ 2 ] )
-		return false;
-
-	Vec3 v1 = verts[1] - verts[0];
-	Vec3 v2 = verts[2] - verts[0];
-	plane->normal = Normalize( Cross( v2, v1 ) );
-	plane->distance = Dot( verts[0], plane->normal );
+bool BoundsOverlap( const MinMax3 & a, const MinMax3 & b ) {
+	for( int i = 0; i < 3; i++ ) {
+		if( a.maxs[ i ] < b.mins[ i ] || a.mins[ i ] > b.maxs[ i ] ) {
+			return false;
+		}
+	}
 
 	return true;
 }
 
-#define PLANE_NORMAL_EPSILON    0.00001f
-#define PLANE_DIST_EPSILON  0.01f
-
-/*
-* ComparePlanes
-*/
-bool ComparePlanes( Vec3 p1normal, float p1dist, Vec3 p2normal, float p2dist ) {
-	if( Abs( p1normal.x - p2normal.x ) < PLANE_NORMAL_EPSILON
-		&& Abs( p1normal.y - p2normal.y ) < PLANE_NORMAL_EPSILON
-		&& Abs( p1normal.z - p2normal.z ) < PLANE_NORMAL_EPSILON
-		&& Abs( p1dist - p2dist ) < PLANE_DIST_EPSILON ) {
-		return true;
-	}
-
-	return false;
+CenterExtents3 ToCenterExtents( const MinMax3 & bounds ) {
+	CenterExtents3 aabb;
+	aabb.center = ( bounds.maxs + bounds.mins ) * 0.5f;
+	aabb.extents = ( bounds.maxs - bounds.mins ) * 0.5f;
+	return aabb;
 }
 
-/*
-* SnapVector
-*/
-void SnapVector( Vec3 * normal ) {
-	for( int i = 0; i < 3; i++ ) {
-		if( Abs( normal->ptr()[i] - 1 ) < PLANE_NORMAL_EPSILON ) {
-			*normal = Vec3( 0.0f );
-			normal->ptr()[i] = 1;
-			break;
-		}
-		if( Abs( normal->ptr()[i] - -1 ) < PLANE_NORMAL_EPSILON ) {
-			*normal = Vec3( 0.0f );
-			normal->ptr()[i] = -1;
-			break;
-		}
-	}
+MinMax3 ToMinMax( const CenterExtents3 & aabb ) {
+	return MinMax3( aabb.center - aabb.extents, aabb.center + aabb.extents );
 }
 
-/*
-* SnapPlane
-*/
-void SnapPlane( Vec3 * normal, float *dist ) {
-	SnapVector( normal );
+Capsule MakePlayerCapsule( const MinMax3 & bounds ) {
+	Vec3 center = ( bounds.maxs + bounds.mins ) * 0.5f;
+	Vec3 dim = bounds.maxs - bounds.mins;
+	Assert( dim.z >= dim.x && dim.x == dim.y );
 
-#define Q_rint( x ) ( ( x ) < 0 ? ( (int)( ( x ) - 0.5f ) ) : ( (int)( ( x ) + 0.5f ) ) )
+	Capsule capsule;
+	capsule.radius = bounds.maxs.x;
+	capsule.a = Vec3( center.xy(), bounds.mins.z + capsule.radius );
+	capsule.b = Vec3( center.xy(), bounds.maxs.z - capsule.radius );
 
-	if( Abs( *dist - Q_rint( *dist ) ) < PLANE_DIST_EPSILON ) {
-		*dist = Q_rint( *dist );
-	}
-
-#undef Q_rint
-}
-
-void ClearBounds( Vec3 * mins, Vec3 * maxs ) {
-	*mins = Vec3( 999999.0f );
-	*maxs = Vec3( -999999.0f );
-}
-
-bool BoundsOverlap( const Vec3 & mins1, const Vec3 & maxs1, const Vec3 & mins2, const Vec3 & maxs2 ) {
-	return mins1.x <= maxs2.x && mins1.y <= maxs2.y && mins1.z <= maxs2.z &&
-		maxs1.x >= mins2.x && maxs1.y >= mins2.y && maxs1.z >= mins2.z;
-}
-
-bool BoundsOverlapSphere( Vec3 mins, Vec3 maxs, Vec3 centre, float radius ) {
-	float dist_squared = 0;
-
-	for( int i = 0; i < 3; i++ ) {
-		float x = Clamp( mins[ i ], centre[ i ], maxs[ i ] );
-		float d = centre[ i ] - x;
-		dist_squared += d * d;
-	}
-
-	return dist_squared <= radius * radius;
-}
-
-void AddPointToBounds( Vec3 v, Vec3 * mins, Vec3 * maxs ) {
-	for( int i = 0; i < 3; i++ ) {
-		float x = v[ i ];
-		mins->ptr()[ i ] = Min2( x, mins->ptr()[ i ] );
-		maxs->ptr()[ i ] = Max2( x, maxs->ptr()[ i ] );
-	}
-}
-
-float RadiusFromBounds( Vec3 mins, Vec3 maxs ) {
-	Vec3 corner;
-
-	for( int i = 0; i < 3; i++ ) {
-		corner[ i ] = Max2( Abs( mins[ i ] ), Abs( maxs[ i ] ) );
-	}
-
-	return Length( corner );
+	return capsule;
 }
 
 //============================================================================
@@ -398,10 +307,6 @@ Vec3 Project( Vec3 a, Vec3 b ) {
 	return Dot( a, b ) / LengthSquared( b ) * b;
 }
 
-Vec3 ClosestPointOnLine( Vec3 p0, Vec3 p1, Vec3 p ) {
-	return p0 + Project( p - p0, p1 - p0 );
-}
-
 Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p ) {
 	Vec3 seg = end - start;
 	float t = Dot( p - start, seg ) / Dot( seg, seg );
@@ -446,48 +351,58 @@ Mat4 TransformKToDir( Vec3 dir ) {
 	return rotation;
 }
 
-MinMax3 Union( MinMax3 bounds, Vec3 p ) {
+Mat4 Mat4Rotation( EulerDegrees3 angles ) {
+	float pitch = Radians( angles.pitch );
+	float sp = sinf( pitch );
+	float cp = cosf( pitch );
+	Mat4 rp(
+		cp, 0, sp, 0,
+		0, 1, 0, 0,
+		-sp, 0, cp, 0,
+		0, 0, 0, 1
+	);
+	float yaw = Radians( angles.yaw );
+	float sy = sinf( yaw );
+	float cy = cosf( yaw );
+	Mat4 ry(
+		cy, -sy, 0, 0,
+		sy, cy, 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1
+	);
+	float roll = Radians( angles.roll );
+	float sr = sinf( roll );
+	float cr = cosf( roll );
+	Mat4 rr(
+		1, 0, 0, 0,
+		0, cr, -sr, 0,
+		0, sr, cr, 0,
+		0, 0, 0, 1
+	);
+
+	return ry * rp * rr;
+}
+
+MinMax3 Union( const MinMax3 & bounds, Vec3 p ) {
 	return MinMax3(
 		Vec3( Min2( bounds.mins.x, p.x ), Min2( bounds.mins.y, p.y ), Min2( bounds.mins.z, p.z ) ),
 		Vec3( Max2( bounds.maxs.x, p.x ), Max2( bounds.maxs.y, p.y ), Max2( bounds.maxs.z, p.z ) )
 	);
 }
 
-MinMax3 Union( MinMax3 a, MinMax3 b ) {
+MinMax3 Union( const MinMax3 & a, const MinMax3 & b ) {
 	return MinMax3(
 		Vec3( Min2( a.mins.x, b.mins.x ), Min2( a.mins.y, b.mins.y ), Min2( a.mins.z, b.mins.z ) ),
 		Vec3( Max2( a.maxs.x, b.maxs.x ), Max2( a.maxs.y, b.maxs.y ), Max2( a.maxs.z, b.maxs.z ) )
 	);
 }
 
-bool PlaneFrom3Points( Plane * plane, Vec3 a, Vec3 b, Vec3 c ) {
-	Vec3 ab = b - a;
-	Vec3 ac = c - a;
-
-	Vec3 normal = SafeNormalize( Cross( ac, ab ) );
-	if( normal == Vec3( 0.0f ) )
-		return false;
-
-	plane->normal = normal;
-	plane->distance = Dot( a, normal );
-
-	return true;
+MinMax1 Union( MinMax1 a, float x ) {
+	return MinMax1( Min2( a.lo, x ), Max2( a.hi, x ) );
 }
 
-bool Intersect3PlanesPoint( Vec3 * p, Plane plane1, Plane plane2, Plane plane3 ) {
-	constexpr float epsilon = 0.001f;
-
-	Vec3 n2xn3 = Cross( plane2.normal, plane3.normal );
-	float n1_n2xn3 = Dot( plane1.normal, n2xn3 );
-
-	if( Abs( n1_n2xn3 ) < epsilon )
-		return false;
-
-	Vec3 n3xn1 = Cross( plane3.normal, plane1.normal );
-	Vec3 n1xn2 = Cross( plane1.normal, plane2.normal );
-
-	*p = ( plane1.distance * n2xn3 + plane2.distance * n3xn1 + plane3.distance * n1xn2 ) / n1_n2xn3;
-	return true;
+MinMax1 Union( MinMax1 a, MinMax1 b ) {
+	return MinMax1( Min2( a.lo, b.lo ), Max2( a.hi, b.hi ) );
 }
 
 u32 Log2( u64 x ) {

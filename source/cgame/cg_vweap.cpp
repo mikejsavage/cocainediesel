@@ -69,18 +69,13 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * view
 		}
 		else if( ps->weapon_state == WeaponState_Reloading || ps->weapon_state == WeaponState_StagedReloading ) {
 			// TODO: temporary for non-animated models
-			const Model * model = GetWeaponModelMetadata( ps->weapon )->model;
-			bool found = false;
-			for( u8 i = 0; i < model->num_animations; i++ ) {
-				if( model->animations[ i ].name == viewweapon->eventAnim ) {
-					found = true;
-					break;
+			const GLTFRenderData * model = FindGLTFRenderData( GetWeaponModelMetadata( ps->weapon )->model );
+			if( model != NULL ) {
+				u8 animation;
+				if( !FindAnimationByName( model, viewweapon->eventAnim, &animation ) ) {
+					float frac = float( ps->weapon_state_time ) / def->reload_time;
+					angles->z += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
 				}
-			}
-
-			if( !found ) {
-				float frac = float( ps->weapon_state_time ) / float( def->reload_time );
-				angles->z += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
 			}
 		}
 		else if( ps->weapon_state == WeaponState_SwitchingIn || ps->weapon_state == WeaponState_SwitchingOut ) {
@@ -123,13 +118,12 @@ void CG_ViewWeapon_AddAnimation( int ent_num, StringHash anim ) {
 
 void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	const Model * model = GetEquippedModelMetadata( ps );
-
+	const GLTFRenderData * model = GetEquippedItemRenderData( ps );
 	if( model == NULL )
 		return;
 
 	Vec3 gunAngles, gunOffset;
-	if( model->camera == U8_MAX ) {
+	if( !model->camera_node.exists ) {
 		if( ps->using_gadget ) {
 			Com_Printf( S_COLOR_YELLOW "Gadget models must have a camera!\n" );
 			return;
@@ -152,7 +146,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 			0.0f, 0.0f, 0.0f, 1.0f
 		);
 
-		gunOffset = ( y_up_to_camera_space * Vec4( -model->nodes[ model->camera ].global_transform.col3.xyz(), 1.0f ) ).xyz();
+		gunOffset = ( y_up_to_camera_space * Vec4( -model->nodes[ model->camera_node.value ].global_transform.col3.xyz(), 1.0f ) ).xyz();
 		gunAngles = Vec3( 0.0f );
 	}
 
@@ -171,7 +165,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 
 	Mat4 gun_transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
 	u8 muzzle;
-	if( FindNodeByName( model, Hash32( "muzzle" ), &muzzle ) ) {
+	if( FindNodeByName( model, "muzzle", &muzzle ) ) {
 		viewweapon->muzzle_transform = gun_transform * model->transform * model->nodes[ muzzle ].global_transform;
 	}
 	else {
@@ -185,7 +179,7 @@ void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
 		return;
 
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	const Model * model = GetEquippedModelMetadata( ps );
+	const GLTFRenderData * model = GetEquippedItemRenderData( ps );
 
 	if( model == NULL ) {
 		return;
@@ -197,20 +191,16 @@ void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
 	config.draw_model.enabled = true;
 	config.draw_model.view_weapon = true;
 
-	bool found = false;
-	for( u8 i = 0; i < model->num_animations; i++ ) {
-		if( model->animations[ i ].name == viewweapon->eventAnim ) {
-			found = true;
-			float t = float( cl.serverTime - viewweapon->eventAnimStartTime ) * 0.001f;
-			TempAllocator temp = cls.frame_arena.temp();
-			Span< TRS > pose = SampleAnimation( &temp, model, t, i );
-			MatrixPalettes palettes = ComputeMatrixPalettes( &temp, model, pose );
-			DrawModel( config, model, transform, CG_TeamColorVec4( ps->team ), palettes );
-			break;
-		}
+	u8 animation;
+	if( FindAnimationByName( model, viewweapon->eventAnim, &animation ) ) {
+		float t = float( cl.serverTime - viewweapon->eventAnimStartTime ) * 0.001f;
+		TempAllocator temp = cls.frame_arena.temp();
+		Span< TRS > pose = SampleAnimation( &temp, model, t, animation );
+		MatrixPalettes palettes = ComputeMatrixPalettes( &temp, model, pose );
+		DrawGLTFModel( config, model, transform, CG_TeamColorVec4( ps->team ), palettes );
 	}
-	if( !found ) {
-		DrawModel( config, model, transform, CG_TeamColorVec4( ps->team ) );
+	else {
+		DrawGLTFModel( config, model, transform, CG_TeamColorVec4( ps->team ) );
 	}
 }
 

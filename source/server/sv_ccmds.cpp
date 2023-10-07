@@ -39,10 +39,10 @@ static void SV_Map_f() {
 	TempAllocator temp = svs.frame_arena.temp();
 
 	const char * map = Cmd_Argv( 1 );
-	const char * bsp_path = temp( "{}/base/maps/{}.bsp", RootDirPath(), map );
-	const char * zst_path = temp( "{}.zst", bsp_path );
+	const char * cdmap_path = temp( "{}/base/maps/{}.cdmap", RootDirPath(), map );
+	const char * zst_path = temp( "{}.zst", cdmap_path );
 
-	if( !FileExists( &temp, bsp_path ) && !FileExists( &temp, zst_path ) ) {
+	if( !FileExists( &temp, cdmap_path ) && !FileExists( &temp, zst_path ) ) {
 		Com_Printf( "Couldn't find map: %s\n", map );
 		return;
 	}
@@ -76,7 +76,7 @@ void SV_Status_f() {
 			continue;
 		}
 		Com_Printf( "%3i ", i );
-		Com_Printf( "%5i ", cl->edict->r.client->r.frags );
+		Com_Printf( "%5i ", cl->edict->r.client->frags );
 
 		if( cl->state == CS_CONNECTED ) {
 			Com_Printf( "CNCT " );

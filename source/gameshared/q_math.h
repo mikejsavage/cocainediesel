@@ -42,20 +42,13 @@ enum {
 
 typedef float mat3_t[9];
 
-struct Plane {
-	Vec3 normal;
-	float distance;
-};
-
 constexpr mat3_t axis_identity = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 
-#define PlaneDiff( point, plane ) ( Dot( ( point ), ( plane )->normal ) - ( plane )->distance )
+bool BoundsOverlap( const MinMax3 & a, const MinMax3 & b );
 
-void ClearBounds( Vec3 * mins, Vec3 * maxs );
-void AddPointToBounds( Vec3 v, Vec3 * mins, Vec3 * maxs );
-float RadiusFromBounds( Vec3 mins, Vec3 maxs );
-bool BoundsOverlap( const Vec3 & mins1, const Vec3 & maxs1, const Vec3 & mins2, const Vec3 & maxs2 );
-bool BoundsOverlapSphere( Vec3 mins, Vec3 maxs, Vec3 centre, float radius );
+CenterExtents3 ToCenterExtents( const MinMax3 & bounds );
+MinMax3 ToMinMax( const CenterExtents3 & aabb );
+Capsule MakePlayerCapsule( const MinMax3 & bounds );
 
 u64 DirToU64( Vec3 dir );
 Vec3 U64ToDir( u64 v );
@@ -73,15 +66,6 @@ EulerDegrees2 AngleDelta( EulerDegrees2 a, EulerDegrees2 b );
 Vec3 VecToAngles( Vec3 vec );
 void AnglesToAxis( Vec3 angles, mat3_t axis );
 void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent );
-void BuildBoxPoints( Vec3 p[8], Vec3 org, Vec3 mins, Vec3 maxs );
-
-bool PlaneFromPoints( Vec3 verts[3], Plane *plane );
-
-bool ComparePlanes( Vec3 p1normal, float p1dist, Vec3 p2normal, float p2dist );
-void SnapVector( Vec3 * normal );
-void SnapPlane( Vec3 * normal, float *dist );
-
-void ProjectPointOntoVector( Vec3 point, Vec3 vStart, Vec3 vDir, Vec3 * vProj );
 
 void Matrix3_Copy( const mat3_t m1, mat3_t m2 );
 void Matrix3_TransformVector( const mat3_t m, Vec3 v, Vec3 * out );
@@ -100,16 +84,16 @@ Vec2 UniformSampleInsideCircle( RNG * rng );
 float SampleNormalDistribution( RNG * rng );
 
 Vec3 Project( Vec3 a, Vec3 b );
-Vec3 ClosestPointOnLine( Vec3 p0, Vec3 p1, Vec3 p );
 Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p );
 
 Mat4 TransformKToDir( Vec3 dir );
+Mat4 Mat4Rotation( EulerDegrees3 angles );
 
-MinMax3 Union( MinMax3 bounds, Vec3 p );
-MinMax3 Union( MinMax3 a, MinMax3 b );
+MinMax3 Union( const MinMax3 & bounds, Vec3 p );
+MinMax3 Union( const MinMax3 & a, const MinMax3 & b );
 
-bool PlaneFrom3Points( Plane * plane, Vec3 a, Vec3 b, Vec3 c );
-bool Intersect3PlanesPoint( Vec3 * p, Plane plane1, Plane plane2, Plane plane3 );
+MinMax1 Union( MinMax1 bounds, float x );
+MinMax1 Union( MinMax1 a, MinMax1 b );
 
 u32 Log2( u64 x );
 

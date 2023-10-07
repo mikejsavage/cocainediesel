@@ -29,17 +29,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //===============================================================
 //		WARSOW player AAboxes sizes
 
-constexpr Vec3 playerbox_stand_mins = Vec3( -16, -16, -24 );
-constexpr Vec3 playerbox_stand_maxs = Vec3( 16, 16, 40 );
+constexpr MinMax3 playerbox_stand = MinMax3( Vec3( -16, -16, -24 ), Vec3( 16, 16, 40 ) );
 constexpr int playerbox_stand_viewheight = 30;
 
-constexpr Vec3 playerbox_gib_mins = Vec3( -16, -16, 0 );
-constexpr Vec3 playerbox_gib_maxs = Vec3( 16, 16, 16 );
+constexpr MinMax3 playerbox_gib = MinMax3( Vec3( -16, -16, 0 ), Vec3( 16, 16, 16 ) );
 constexpr int playerbox_gib_viewheight = 8;
 
-#define BASEGRAVITY 800
-#define GRAVITY 850
-#define GRAVITY_COMPENSATE ( (float)GRAVITY / (float)BASEGRAVITY )
+constexpr float GRAVITY = 850.0f;
 
 constexpr int PLAYER_MASS = 200;
 
@@ -57,30 +53,31 @@ enum {
 
 struct pmove_t {
 	// state (in / out)
-	SyncPlayerState *playerState;
+	SyncPlayerState * playerState;
 
 	// command (in)
 	UserCommand cmd;
 	Vec3 scale;
+	Team team;
 
 	// results (out)
 	int numtouch;
 	int touchents[MAXTOUCH];
 	float step;                 // used for smoothing the player view
 
-	Vec3 mins, maxs;          // bounding box size
+	MinMax3 bounds;
 
 	int groundentity;
-	int contentmask;
+	SolidBits solid_mask;
 };
 
 struct gs_module_api_t {
-	void ( *Trace )( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, int timeDelta );
+	trace_t ( *Trace )( Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask, int timeDelta );
 	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
 	void ( *PredictedFireWeapon )( int entNum, u64 parm );
 	void ( *PredictedAltFireWeapon )( int entNum, u64 parm );
 	void ( *PredictedUseGadget )( int entNum, GadgetType gadget, u64 parm, bool dead );
-	void ( *PMoveTouchTriggers )( pmove_t *pm, Vec3 previous_origin );
+	void ( *PMoveTouchTriggers )( const pmove_t * pm, Vec3 previous_origin );
 };
 
 struct gs_state_t {
@@ -100,7 +97,7 @@ struct gs_state_t {
 
 //==================================================================
 
-#define ISWALKABLEPLANE( x ) ( ( (Plane *)x )->normal.z >= 0.7f )
+constexpr bool ISWALKABLEPLANE( Vec3 normal ) { return normal.z >= 0.7f; }
 
 Vec3 GS_ClipVelocity( Vec3 in, Vec3 normal, float overbounce );
 
@@ -282,4 +279,3 @@ enum playerstate_event_t {
 #define EF_CARRIER                  ( 1 << 0 )
 #define EF_HAT                      ( 1 << 1 )
 #define EF_TEAM_SILHOUETTE          ( 1 << 2 )
-#define EF_WORLD_MODEL              ( 1 << 3 )

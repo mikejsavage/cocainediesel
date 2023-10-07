@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/fs.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/string.h"
-#include "qcommon/cmodel.h"
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 

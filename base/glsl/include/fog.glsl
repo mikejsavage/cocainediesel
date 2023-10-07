@@ -1,21 +1,19 @@
-layout( std140 ) uniform u_Fog {
-	float u_FogStrength;
-};
+const float FOG_STRENGTH = 0.0007;
 
 vec3 Fog( vec3 color, float dist ) {
 	vec3 fog_color = vec3( 0.0 );
-	float fog_amount = 1.0 - exp( -u_FogStrength * dist );
+	float fog_amount = 1.0 - exp( -FOG_STRENGTH * dist );
 	return mix( color, fog_color, fog_amount );
 }
 
 float FogAlpha( float color, float dist ) {
 	float fog_color = 0.0;
-	float fog_amount = 1.0 - exp( -u_FogStrength * dist );
+	float fog_amount = 1.0 - exp( -FOG_STRENGTH * dist );
 	return mix( color, fog_color, fog_amount );
 }
 
-#define VOID_FADE_START -600.0
-#define VOID_FADE_END -1300.0
+const float VOID_FADE_START = -600.0;
+const float VOID_FADE_END = -1300.0;
 
 vec3 VoidFog( vec3 color, float height ) {
 	vec3 void_color = vec3( 0.01 );

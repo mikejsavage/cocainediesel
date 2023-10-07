@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/assets.h"
 #include "client/discord.h"
 #include "client/downloads.h"
+#include "client/gltf.h"
 #include "client/threadpool.h"
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
@@ -621,7 +622,7 @@ void CL_Precache_f() {
 
 	if( cl.map == NULL ) {
 		TempAllocator temp = cls.frame_arena.temp();
-		CL_DownloadFile( temp( "base/maps/{}.bsp.zst", Cmd_Argv( 2 ) ), []( const char * filename, Span< const u8 > data ) {
+		CL_DownloadFile( temp( "base/maps/{}.cdmap.zst", Cmd_Argv( 2 ) ), []( const char * filename, Span< const u8 > data ) {
 			if( AddDownloadedMap( filename, data ) ) {
 				CL_FinishConnect();
 			}
@@ -849,13 +850,10 @@ int CL_SmoothTimeDeltas() {
 static void CL_UpdateSnapshot() {
 	TracyZoneScoped;
 
-	snapshot_t  *snap;
-	int i;
-
 	// see if there is any pending snap to be fired
 	if( !cl.pendingSnapNum && ( cl.currentSnapNum != cl.receivedSnapNum ) ) {
-		snap = NULL;
-		for( i = cl.currentSnapNum + 1; i <= cl.receivedSnapNum; i++ ) {
+		snapshot_t * snap = NULL;
+		for( int i = cl.currentSnapNum + 1; i <= cl.receivedSnapNum; i++ ) {
 			if( cl.snapShots[ i % ARRAY_COUNT( cl.snapShots ) ].valid && ( cl.snapShots[ i % ARRAY_COUNT( cl.snapShots ) ].serverFrame > cl.currentSnapNum ) ) {
 				snap = &cl.snapShots[ i % ARRAY_COUNT( cl.snapShots ) ];
 				//torbenh: this break was the source of the lag bug at cl_fps < sv_pps
@@ -1149,6 +1147,7 @@ void CL_Init() {
 	ThreadPoolFinish();
 
 	InitRenderer();
+	InitGLTFModels();
 	InitMaps();
 
 	cls.white_material = FindMaterial( "$whiteimage" );
@@ -1199,6 +1198,7 @@ void CL_Shutdown() {
 	CL_GameModule_Shutdown();
 	ShutdownSound();
 	ShutdownMaps();
+	ShutdownGLTFModels();
 	ShutdownRenderer();
 	DestroyWindow();
 

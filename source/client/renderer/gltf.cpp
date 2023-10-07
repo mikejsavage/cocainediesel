@@ -1,31 +1,60 @@
 #include "qcommon/base.h"
-#include "qcommon/qcommon.h"
 #include "qcommon/hash.h"
+#include "qcommon/hashtable.h"
 #include "client/client.h"
 #include "client/renderer/renderer.h"
 #include "client/assets.h"
-#include "cgame/ref.h"
+#include "cgame/cg_particles.h"
+#include "cgame/cg_dynamics.h"
 
 #include "cgltf/cgltf.h"
 
 #define JSMN_HEADER
 #include "jsmn/jsmn.h"
 
-// like cgltf_load_buffers, but doesn't try to load URIs
-static bool LoadBinaryBuffers( cgltf_data * data ) {
-	if( data->buffers_count && data->buffers[0].data == NULL && data->buffers[0].uri == NULL && data->bin ) {
-		if( data->bin_size < data->buffers[0].size )
-			return false;
-		data->buffers[0].data = const_cast< void * >( data->bin );
-	}
+constexpr u32 MAX_INSTANCES = 1024;
+constexpr u32 MAX_INSTANCE_GROUPS = 512;
 
-	for( cgltf_size i = 0; i < data->buffers_count; i++ ) {
-		if( data->buffers[i].data == NULL )
-			return false;
-	}
+template< typename T >
+struct ModelInstanceGroup {
+	T instances[ MAX_INSTANCES ];
+	u32 num_instances;
+	PipelineState pipeline;
+	GPUBuffer instance_data;
+	Mesh mesh;
+};
 
-	return true;
-}
+template< typename T >
+struct ModelInstanceCollection {
+	ModelInstanceGroup< T > groups[ MAX_INSTANCE_GROUPS ];
+	Hashtable< MAX_INSTANCE_GROUPS * 2 > groups_hashtable;
+	u32 num_groups;
+};
+
+struct GPUModelInstance {
+	Mat3x4 transform;
+	GPUMaterial material;
+};
+
+struct GPUModelShadowsInstance {
+	Mat3x4 transform;
+};
+
+struct GPUModelOutlinesInstance {
+	Mat3x4 transform;
+	Vec4 color;
+	float height;
+};
+
+struct GPUModelSilhouetteInstance {
+	Mat3x4 transform;
+	Vec4 color;
+};
+
+static ModelInstanceCollection< GPUModelInstance > model_instance_collection;
+static ModelInstanceCollection< GPUModelShadowsInstance > model_shadows_instance_collection;
+static ModelInstanceCollection< GPUModelOutlinesInstance > model_outlines_instance_collection;
+static ModelInstanceCollection< GPUModelSilhouetteInstance > model_silhouette_instance_collection;
 
 static u8 GetNodeIdx( const cgltf_node * node ) {
 	return u8( uintptr_t( node->light ) - 1 );
@@ -41,6 +70,7 @@ static Span< const u8 > AccessorToSpan( const cgltf_accessor * accessor ) {
 }
 
 static VertexFormat VertexFormatFromGLTF( cgltf_type dim, cgltf_component_type component, bool normalized ) {
+	// TODO: support signed types
 	if( dim == cgltf_type_vec2 ) {
 		if( component == cgltf_component_type_r_8u )
 			return normalized ? VertexFormat_U8x2_Norm : VertexFormat_U8x2;
@@ -68,16 +98,19 @@ static VertexFormat VertexFormatFromGLTF( cgltf_type dim, cgltf_component_type c
 			return VertexFormat_Floatx4;
 	}
 
-	return VertexFormat_Floatx4; // TODO: actual error handling
+	Assert( false );
+	return VertexFormat_Floatx4;
 }
 
-static void LoadGeometry( const char * filename, Model * model, const cgltf_node * node, const Mat4 & transform ) {
+static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf_node * node, const Mat4 & transform ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	const cgltf_primitive & prim = node->mesh->primitives[ 0 ];
+	if( prim.material && StartsWith( prim.material->name, "editor/" ) )
+		return;
 
 	MeshConfig mesh_config = { };
-	mesh_config.name = temp( "{} nodes[{}]", filename, node->name );
+	mesh_config.name = temp( "{} nodes[{}]", render_data->name, node->name );
 
 	for( size_t i = 0; i < prim.attributes_count; i++ ) {
 		const cgltf_attribute & attr = prim.attributes[ i ];
@@ -92,8 +125,8 @@ static void LoadGeometry( const char * filename, Model * model, const cgltf_node
 				max[ j ] = attr.data->max[ j ];
 			}
 
-			model->bounds = Union( model->bounds, ( transform * Vec4( min, 1.0f ) ).xyz() );
-			model->bounds = Union( model->bounds, ( transform * Vec4( max, 1.0f ) ).xyz() );
+			render_data->bounds = Union( render_data->bounds, ( transform * Vec4( min, 1.0f ) ).xyz() );
+			render_data->bounds = Union( render_data->bounds, ( transform * Vec4( max, 1.0f ) ).xyz() );
 		}
 
 		if( attr.type == cgltf_attribute_type_normal ) {
@@ -102,7 +135,7 @@ static void LoadGeometry( const char * filename, Model * model, const cgltf_node
 
 		if( attr.type == cgltf_attribute_type_texcoord ) {
 			if( mesh_config.vertex_descriptor.attributes[ VertexAttribute_TexCoord ].exists ) {
-				Com_Printf( S_COLOR_YELLOW "%s has multiple sets of uvs\n", filename );
+				Com_Printf( S_COLOR_YELLOW "%s has multiple sets of uvs\n", render_data->name );
 			}
 			else {
 				VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
@@ -130,31 +163,24 @@ static void LoadGeometry( const char * filename, Model * model, const cgltf_node
 	mesh_config.index_format = prim.indices->component_type == cgltf_component_type_r_16u ? IndexFormat_U16 : IndexFormat_U32;
 	mesh_config.num_vertices = prim.indices->count;
 
-	Model::Primitive * primitive = &model->primitives[ model->num_primitives ];
-	model->num_primitives++;
-
-	primitive->mesh = NewMesh( mesh_config );
-	primitive->first_index = 0;
-	primitive->num_vertices = 0;
-
-	const char * material_name = prim.material != NULL ? prim.material->name : "";
-	primitive->material = FindMaterial( material_name );
+	render_data->nodes[ node_idx ].material = prim.material == NULL ? EMPTY_HASH : StringHash( prim.material->name );
+	render_data->nodes[ node_idx ].mesh = NewMesh( mesh_config );
 }
 
-constexpr u32 MAX_EXTRAS = 16;
-struct GltfExtras {
+static constexpr u32 MAX_EXTRAS = 16;
+struct GLTFExtras {
 	Span< const char > keys[ MAX_EXTRAS ];
 	Span< const char > values[ MAX_EXTRAS ];
 	u32 num_extras = 0;
 };
 
-static GltfExtras LoadExtras( cgltf_data * gltf, cgltf_node * gltf_node ) {
+static GLTFExtras LoadExtras( cgltf_data * gltf, cgltf_node * gltf_node ) {
 	char json_data[ 1024 ];
 	size_t json_size = 1024;
 	cgltf_copy_extras_json( gltf, &gltf_node->extras, json_data, &json_size );
 	Span< const char > json( json_data, json_size );
 
-	GltfExtras extras = {};
+	GLTFExtras extras = { };
 
 	jsmn_parser p;
 	constexpr u32 max_tokens = MAX_EXTRAS * 2 + 1;
@@ -179,24 +205,23 @@ static GltfExtras LoadExtras( cgltf_data * gltf, cgltf_node * gltf_node ) {
 	return extras;
 }
 
-static Span< const char > GetExtrasKey( const char * key, GltfExtras * extras ) {
+static Span< const char > GetExtrasKey( const char * key, GLTFExtras * extras ) {
 	for( u32 i = 0; i < extras->num_extras; i++ ) {
 		if( StrEqual( extras->keys[ i ], key ) ) {
 			return extras->values[ i ];
 		}
 	}
-	return MakeSpan( "" );
+	return Span< const char >();
 }
 
-static void LoadNode( const char * filename, Model * model, cgltf_data * gltf, cgltf_node * gltf_node, u8 * node_idx ) {
+static void LoadNode( GLTFRenderData * model, cgltf_data * gltf, cgltf_node * gltf_node, u8 * node_idx ) {
 	u8 idx = *node_idx;
 	*node_idx += 1;
 	SetNodeIdx( gltf_node, idx );
 
-	Model::Node * node = &model->nodes[ idx ];
+	GLTFRenderData::Node * node = &model->nodes[ idx ];
 	node->parent = gltf_node->parent != NULL ? GetNodeIdx( gltf_node->parent ) : U8_MAX;
-	node->primitive = U8_MAX;
-	node->name = gltf_node->name == NULL ? 0 : Hash32( gltf_node->name );
+	node->name = gltf_node->name == NULL ? EMPTY_HASH : StringHash( gltf_node->name );
 
 	cgltf_node_transform_world( gltf_node, node->global_transform.ptr() );
 
@@ -229,7 +254,7 @@ static void LoadNode( const char * filename, Model * model, cgltf_data * gltf, c
 	}
 
 	{
-		GltfExtras extras = LoadExtras( gltf, gltf_node );
+		GLTFExtras extras = LoadExtras( gltf, gltf_node );
 		Span< const char > type = GetExtrasKey( "type", &extras );
 		Span< const char > color_value = GetExtrasKey( "color", &extras );
 		Vec4 color;
@@ -260,14 +285,12 @@ static void LoadNode( const char * filename, Model * model, cgltf_data * gltf, c
 
 	node->skinned = gltf_node->skin != NULL;
 
-	// TODO: this will break if multiple nodes share a mesh
 	if( gltf_node->mesh != NULL ) {
-		node->primitive = model->num_primitives;
-		LoadGeometry( filename, model, gltf_node, node->global_transform );
+		LoadGeometry( model, idx, gltf_node, node->global_transform );
 	}
 
 	for( size_t i = 0; i < gltf_node->children_count; i++ ) {
-		LoadNode( filename, model, gltf, gltf_node->children[ i ], node_idx );
+		LoadNode( model, gltf, gltf_node->children[ i ], node_idx );
 	}
 
 	if( gltf_node->children_count == 0 ) {
@@ -284,25 +307,22 @@ static void LoadNode( const char * filename, Model * model, cgltf_data * gltf, c
 	}
 }
 
-static InterpolationMode InterpolationModeFromGLTF( cgltf_interpolation_type interpolation ) {
+static GLTFInterpolationMode InterpolationModeFromGLTF( cgltf_interpolation_type interpolation ) {
 	// TODO: cubic
-	return interpolation == cgltf_interpolation_type_step ? InterpolationMode_Step : InterpolationMode_Linear;
+	return interpolation == cgltf_interpolation_type_step ? GLTFInterpolationMode_Step : GLTFInterpolationMode_Linear;
 }
 
 template< typename T >
-static float LoadChannel( const cgltf_animation_channel * chan, Model::AnimationChannel< T > * out_channel ) {
+static float LoadChannel( const cgltf_animation_channel * chan, GLTFRenderData::AnimationChannel< T > * out_channel ) {
 	constexpr size_t lanes = sizeof( T ) / sizeof( float );
 	size_t n = chan->sampler->input->count;
 
-	float * memory = AllocMany< float >( sys_allocator, n * ( lanes + 1 ) );
-	out_channel->times = memory;
-	out_channel->samples = ( T * ) ( memory + n );
-	out_channel->num_samples = n;
+	out_channel->samples = AllocSpan< GLTFRenderData::AnimationSample< T > >( sys_allocator, n );
 	out_channel->interpolation = InterpolationModeFromGLTF( chan->sampler->interpolation );
 
 	for( size_t i = 0; i < n; i++ ) {
-		cgltf_bool ok = cgltf_accessor_read_float( chan->sampler->input, i, &out_channel->times[ i ], 1 );
-		ok = ok && cgltf_accessor_read_float( chan->sampler->output, i, out_channel->samples[ i ].ptr(), lanes );
+		cgltf_bool ok = cgltf_accessor_read_float( chan->sampler->input, i, &out_channel->samples[ i ].time, 1 );
+		ok = ok && cgltf_accessor_read_float( chan->sampler->output, i, out_channel->samples[ i ].value.ptr(), lanes );
 		Assert( ok != 0 );
 	}
 
@@ -310,17 +330,14 @@ static float LoadChannel( const cgltf_animation_channel * chan, Model::Animation
 	return duration;
 }
 
-static float LoadScaleChannel( const cgltf_animation_channel * chan, Model::AnimationChannel< float > * out_channel ) {
+static float LoadScaleChannel( const cgltf_animation_channel * chan, GLTFRenderData::AnimationChannel< float > * out_channel ) {
 	size_t n = chan->sampler->input->count;
 
-	float * memory = AllocMany< float >( sys_allocator, n * 2 );
-	out_channel->times = memory;
-	out_channel->samples = memory + n;
-	out_channel->num_samples = n;
+	out_channel->samples = AllocSpan< GLTFRenderData::AnimationSample< float > >( sys_allocator, n );
 	out_channel->interpolation = InterpolationModeFromGLTF( chan->sampler->interpolation );
 
 	for( size_t i = 0; i < n; i++ ) {
-		cgltf_accessor_read_float( chan->sampler->input, i, &out_channel->times[ i ], 1 );
+		cgltf_accessor_read_float( chan->sampler->input, i, &out_channel->samples[ i ].time, 1 );
 
 		float scale[ 3 ];
 		cgltf_accessor_read_float( chan->sampler->output, i, scale, 3 );
@@ -328,7 +345,7 @@ static float LoadScaleChannel( const cgltf_animation_channel * chan, Model::Anim
 		Assert( Abs( scale[ 0 ] - scale[ 1 ] ) < 0.001f );
 		Assert( Abs( scale[ 0 ] - scale[ 2 ] ) < 0.001f );
 
-		out_channel->samples[ i ] = scale[ 0 ];
+		out_channel->samples[ i ].value = scale[ 0 ];
 	}
 
 	float duration = chan->sampler->input->max[ 0 ] - chan->sampler->input->min[ 0 ];
@@ -336,19 +353,12 @@ static float LoadScaleChannel( const cgltf_animation_channel * chan, Model::Anim
 }
 
 template< typename T >
-static void CreateSingleSampleChannel( Model::AnimationChannel< T > * out_channel, T sample ) {
-	constexpr size_t lanes = sizeof( T ) / sizeof( float );
-
-	float * memory = AllocMany< float >( sys_allocator, lanes + 1 );
-	out_channel->times = memory;
-	out_channel->samples = ( T * ) ( memory + 1 );
-	out_channel->num_samples = 1;
-
-	out_channel->times[ 0 ] = 0.0f;
-	out_channel->samples[ 0 ] = sample;
+static void CreateSingleSampleChannel( GLTFRenderData::AnimationChannel< T > * out_channel, T value ) {
+	out_channel->samples = AllocSpan< T >( sys_allocator, 1 );
+	out_channel->samples[ 0 ] = value;
 }
 
-static void LoadAnimation( Model * model, const cgltf_animation * animation, u8 index = 0 ) {
+static void LoadAnimation( GLTFRenderData * model, const cgltf_animation * animation, u8 index = 0 ) {
 	float duration = 0.0f;
 	for( size_t i = 0; i < animation->channels_count; i++ ) {
 		const cgltf_animation_channel * chan = &animation->channels[ i ];
@@ -372,12 +382,11 @@ static void LoadAnimation( Model * model, const cgltf_animation * animation, u8 
 	model->animations[ index ].duration = duration;
 }
 
-static void LoadSkin( Model * model, const cgltf_skin * skin ) {
-	model->skin = AllocMany< Model::Joint >( sys_allocator, skin->joints_count );
-	model->num_joints = skin->joints_count;
+static void LoadSkin( GLTFRenderData * model, const cgltf_skin * skin ) {
+	model->skin = AllocSpan< GLTFRenderData::Joint >( sys_allocator, skin->joints_count );
 
 	for( size_t i = 0; i < skin->joints_count; i++ ) {
-		Model::Joint * joint = &model->skin[ i ];
+		GLTFRenderData::Joint * joint = &model->skin[ i ];
 		joint->node_idx = GetNodeIdx( skin->joints[ i ] );
 
 		cgltf_bool ok = cgltf_accessor_read_float( skin->inverse_bind_matrices, i, joint->joint_to_bind.ptr(), 16 );
@@ -385,52 +394,21 @@ static void LoadSkin( Model * model, const cgltf_skin * skin ) {
 	}
 }
 
-bool LoadGLTFModel( Model * model, const char * path ) {
+bool NewGLTFRenderData( GLTFRenderData * render_data, cgltf_data * gltf, const char * path ) {
 	TracyZoneScoped;
-	TracyZoneText( path, strlen( path ) );
 
-	Span< const u8 > data = AssetBinary( path );
+	// TODO: check nodes fit into u8 etc
 
-	cgltf_options options = { };
-	options.type = cgltf_file_type_glb;
+	*render_data = { };
+	render_data->name = CopyString( sys_allocator, path );
+	render_data->bounds = MinMax3::Empty();
 
-	cgltf_data * gltf;
-	if( cgltf_parse( &options, data.ptr, data.num_bytes(), &gltf ) != cgltf_result_success ) {
-		Com_Printf( S_COLOR_YELLOW "%s isn't a GLTF file\n", path );
-		return false;
-	}
-
-	defer { cgltf_free( gltf ); };
-
-	if( !LoadBinaryBuffers( gltf ) ) {
-		Com_Printf( S_COLOR_YELLOW "Couldn't load buffers in %s\n", path );
-		return false;
-	}
-
-	if( cgltf_validate( gltf ) != cgltf_result_success ) {
-		Com_Printf( S_COLOR_YELLOW "%s is invalid GLTF\n", path );
-		return false;
-	}
-
-	if( gltf->scenes_count != 1 || gltf->skins_count > 1 || gltf->cameras_count > 1 ) {
-		Com_Printf( S_COLOR_YELLOW "Trivial models only please (%s)\n", path );
-		return false;
-	}
-
-	if( gltf->lights_count != 0 ) {
-		Com_Printf( S_COLOR_YELLOW "We can't load models that have lights in them (%s)\n", path );
-		return false;
-	}
-
-	for( size_t i = 0; i < gltf->meshes_count; i++ ) {
-		if( gltf->meshes[ i ].primitives_count != 1 ) {
-			Com_Printf( S_COLOR_YELLOW "Meshes with multiple primitives are unsupported (%s)\n", path );
-			return false;
+	bool ok = false;
+	defer {
+		if( !ok ) {
+			DeleteGLTFRenderData( render_data );
 		}
-	}
-
-	*model = { };
-	model->bounds = MinMax3::Empty();
+	};
 
 	constexpr Mat4 y_up_to_z_up(
 		1, 0, 0, 0,
@@ -438,42 +416,453 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 		0, 1, 0, 0,
 		0, 0, 0, 1
 	);
-	model->transform = y_up_to_z_up;
+	render_data->transform = y_up_to_z_up;
 
-	model->primitives = AllocMany< Model::Primitive >( sys_allocator, gltf->meshes_count );
-
-	model->nodes = AllocMany< Model::Node >( sys_allocator, gltf->nodes_count );
-	memset( model->nodes, 0, sizeof( Model::Node ) * gltf->nodes_count );
-	model->num_nodes = gltf->nodes_count;
+	render_data->nodes = AllocSpan< GLTFRenderData::Node >( sys_allocator, gltf->nodes_count );
+	memset( render_data->nodes.ptr, 0, render_data->nodes.num_bytes() );
 
 	u8 node_idx = 0;
 	for( size_t i = 0; i < gltf->scene->nodes_count; i++ ) {
-		LoadNode( path, model, gltf, gltf->scene->nodes[ i ], &node_idx );
-		model->nodes[ GetNodeIdx( gltf->scene->nodes[ i ] ) ].sibling = U8_MAX;
+		LoadNode( render_data, gltf, gltf->scene->nodes[ i ], &node_idx );
+		render_data->nodes[ GetNodeIdx( gltf->scene->nodes[ i ] ) ].sibling = U8_MAX;
 	}
 
 	if( gltf->animations_count > 0 ) {
-		model->num_animations = gltf->animations_count;
 		if( gltf->skins_count > 0 ) {
-			LoadSkin( model, &gltf->skins[ 0 ] );
+			LoadSkin( render_data, &gltf->skins[ 0 ] );
 		}
 
-		model->animations = AllocMany< Model::Animation >( sys_allocator, gltf->animations_count );
-		for( size_t i = 0; i < model->num_nodes; i++ ) {
-			model->nodes[ i ].animations = AllocSpan< Model::NodeAnimation >( sys_allocator, gltf->animations_count );
-			memset( model->nodes[ i ].animations.ptr, 0, sizeof( Model::NodeAnimation ) * gltf->animations_count );
+		render_data->animations = AllocSpan< GLTFRenderData::Animation >( sys_allocator, gltf->animations_count );
+
+		for( size_t i = 0; i < render_data->nodes.n; i++ ) {
+			render_data->nodes[ i ].animations = AllocSpan< GLTFRenderData::NodeAnimation >( sys_allocator, gltf->animations_count );
+			memset( render_data->nodes[ i ].animations.ptr, 0, render_data->nodes[ i ].animations.num_bytes() );
 		}
-		for( size_t i = 0; i < gltf->animations_count; i++ ) {
-			LoadAnimation( model, &gltf->animations[ i ], i );
+
+		for( size_t i = 0; i < render_data->animations.n; i++ ) {
+			LoadAnimation( render_data, &gltf->animations[ i ], i );
 		}
 	}
 
-	model->camera = U8_MAX;
 	for( size_t i = 0; i < gltf->nodes_count; i++ ) {
 		if( gltf->nodes[ i ].camera != NULL ) {
-			model->camera = GetNodeIdx( &gltf->nodes[ i ] );
+			render_data->camera_node = GetNodeIdx( &gltf->nodes[ i ] );
 		}
 	}
 
+	ok = true;
+
 	return true;
+}
+
+void DeleteGLTFRenderData( GLTFRenderData * render_data ) {
+	for( GLTFRenderData::Node node : render_data->nodes ) {
+		for( GLTFRenderData::NodeAnimation animation : node.animations ) {
+			Free( sys_allocator, animation.rotations.samples.ptr );
+			Free( sys_allocator, animation.translations.samples.ptr );
+			Free( sys_allocator, animation.scales.samples.ptr );
+		}
+		DeleteMesh( node.mesh );
+		Free( sys_allocator, node.animations.ptr );
+	}
+
+	Free( sys_allocator, render_data->name );
+	Free( sys_allocator, render_data->nodes.ptr );
+	Free( sys_allocator, render_data->skin.ptr );
+	Free( sys_allocator, render_data->animations.ptr );
+}
+
+template< typename T, typename F >
+static T SampleAnimationChannel( const GLTFRenderData::AnimationChannel< T > & channel, float t, T def, F lerp ) {
+	if( channel.samples.ptr == NULL )
+		return def;
+	if( channel.samples.n == 1 )
+		return channel.samples[ 0 ].value;
+
+	t = Clamp( channel.samples[ 0 ].time, t, channel.samples[ channel.samples.n - 1 ].time );
+
+	u32 sample = 0;
+	for( u32 i = 1; i < channel.samples.n; i++ ) {
+		if( channel.samples[ i ].time >= t ) {
+			sample = i - 1;
+			break;
+		}
+	}
+
+	// TODO: cubic
+	if( channel.interpolation == GLTFInterpolationMode_Step ) {
+		return channel.samples[ sample ].value;
+	}
+
+	float lerp_frac = Unlerp( channel.samples[ sample ].time, t, channel.samples[ sample + 1 ].time );
+	return lerp( channel.samples[ sample ].value, lerp_frac, channel.samples[ sample + 1 ].value );
+}
+
+// can't use overloaded function as a template parameter
+static Vec3 LerpVec3( Vec3 a, float t, Vec3 b ) { return Lerp( a, t, b ); }
+static float LerpFloat( float a, float t, float b ) { return Lerp( a, t, b ); }
+
+Span< TRS > SampleAnimation( Allocator * a, const GLTFRenderData * render_data, float t, u8 animation ) {
+	TracyZoneScoped;
+
+	Span< TRS > local_poses = AllocSpan< TRS >( a, render_data->nodes.n );
+
+	for( u8 i = 0; i < render_data->nodes.n; i++ ) {
+		const GLTFRenderData::Node * node = &render_data->nodes[ i ];
+		local_poses[ i ].rotation = SampleAnimationChannel( node->animations[ animation ].rotations, t, node->local_transform.rotation, NLerp );
+		local_poses[ i ].translation = SampleAnimationChannel( node->animations[ animation ].translations, t, node->local_transform.translation, LerpVec3 );
+		local_poses[ i ].scale = SampleAnimationChannel( node->animations[ animation ].scales, t, node->local_transform.scale, LerpFloat );
+	}
+
+	return local_poses;
+}
+
+static Mat4 TRSToMat4( const TRS & trs ) {
+	Quaternion q = trs.rotation;
+	Vec3 t = trs.translation;
+	float s = trs.scale;
+
+	// return t * q * s;
+	return Mat4(
+		( 1.0f - 2 * q.y * q.y - 2.0f * q.z * q.z ) * s,
+		( 2.0f * q.x * q.y - 2.0f * q.z * q.w ) * s,
+		( 2.0f * q.x * q.z + 2.0f * q.y * q.w ) * s,
+		t.x,
+
+		( 2.0f * q.x * q.y + 2.0f * q.z * q.w ) * s,
+		( 1.0f - 2.0f * q.x * q.x - 2.0f * q.z * q.z ) * s,
+		( 2.0f * q.y * q.z - 2.0f * q.x * q.w ) * s,
+		t.y,
+
+		( 2.0f * q.x * q.z - 2.0f * q.y * q.w ) * s,
+		( 2.0f * q.y * q.z + 2.0f * q.x * q.w ) * s,
+		( 1.0f - 2.0f * q.x * q.x - 2.0f * q.y * q.y ) * s,
+		t.z,
+
+		0.0f, 0.0f, 0.0f, 1.0f
+	);
+}
+
+MatrixPalettes ComputeMatrixPalettes( Allocator * a, const GLTFRenderData * render_data, Span< const TRS > local_poses ) {
+	TracyZoneScoped;
+
+	Assert( local_poses.n == render_data->nodes.n );
+
+	MatrixPalettes palettes = { };
+	palettes.node_transforms = AllocSpan< Mat4 >( a, render_data->nodes.n );
+	if( render_data->skin.n != 0 ) {
+		palettes.skinning_matrices = AllocSpan< Mat4 >( a, render_data->skin.n );
+	}
+
+	for( u8 i = 0; i < render_data->nodes.n; i++ ) {
+		u8 parent = render_data->nodes[ i ].parent;
+		if( parent == U8_MAX ) {
+			palettes.node_transforms[ i ] = TRSToMat4( local_poses[ i ] );
+		}
+		else {
+			palettes.node_transforms[ i ] = palettes.node_transforms[ parent ] * TRSToMat4( local_poses[ i ] );
+		}
+	}
+
+	for( u8 i = 0; i < render_data->skin.n; i++ ) {
+		u8 node_idx = render_data->skin[ i ].node_idx;
+		palettes.skinning_matrices[ i ] = palettes.node_transforms[ node_idx ] * render_data->skin[ i ].joint_to_bind;
+	}
+
+	return palettes;
+}
+
+bool FindNodeByName( const GLTFRenderData * render_data, StringHash name, u8 * idx ) {
+	for( u8 i = 0; i < render_data->nodes.n; i++ ) {
+		if( render_data->nodes[ i ].name == name ) {
+			*idx = i;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool FindAnimationByName( const GLTFRenderData * render_data, StringHash name, u8 * idx ) {
+	for( u8 i = 0; i < render_data->animations.n; i++ ) {
+		if( render_data->animations[ i ].name == name ) {
+			*idx = i;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static void MergePosesRecursive( Span< TRS > lower, Span< const TRS > upper, const GLTFRenderData * render_data, u8 i ) {
+	lower[ i ] = upper[ i ];
+
+	const GLTFRenderData::Node * node = &render_data->nodes[ i ];
+	if( node->sibling != U8_MAX )
+		MergePosesRecursive( lower, upper, render_data, node->sibling );
+	if( node->first_child != U8_MAX )
+		MergePosesRecursive( lower, upper, render_data, node->first_child );
+}
+
+void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const GLTFRenderData * render_data, u8 upper_root_node ) {
+	lower[ upper_root_node ] = upper[ upper_root_node ];
+
+	const GLTFRenderData::Node * node = &render_data->nodes[ upper_root_node ];
+	if( node->first_child != U8_MAX )
+		MergePosesRecursive( lower, upper, render_data, node->first_child );
+}
+
+static void DrawVfxNode( DrawModelConfig::DrawModel config, const GLTFRenderData::Node * node, Mat4 & transform, const Vec4 & color ) {
+	TracyZoneScoped;
+	if( !config.enabled || node->vfx_type == ModelVfxType_None )
+		return;
+
+	// TODO: idk about this cheers
+	Vec3 scale = Vec3( Length( transform.col0.xyz() ), Length( transform.col1.xyz() ), Length( transform.col2.xyz() ) );
+	float size = Min2( Min2( Abs( scale.x ), Abs( scale.y ) ), Abs( scale.z ) );
+
+	if( size <= 0.01f )
+		return;
+
+	Vec3 origin = transform.col3.xyz();
+	Vec3 normal = SafeNormalize( transform.col1.xyz() );
+	switch( node->vfx_type ) {
+		case ModelVfxType_Vfx:
+			DoVisualEffect( node->vfx_node.name, origin, normal, size, node->vfx_node.color * color );
+			break;
+		case ModelVfxType_DynamicLight:
+			DrawDynamicLight( origin, node->dlight_node.color, node->dlight_node.intensity * size );
+			break;
+		case ModelVfxType_Decal:
+			DrawDecal( origin, normal, node->decal_node.radius * size, node->decal_node.angle, node->decal_node.name, node->decal_node.color );
+			break;
+	}
+}
+
+template< typename T >
+static void AddInstanceToCollection( ModelInstanceCollection< T > & collection, const Mesh & mesh, const PipelineState & pipeline, T & instance, u64 hash ) {
+	u64 idx = collection.num_groups;
+	if( !collection.groups_hashtable.get( hash, &idx ) ) {
+		Assert( collection.num_groups < ARRAY_COUNT( collection.groups ) );
+		collection.groups_hashtable.add( hash, collection.num_groups );
+		collection.groups[ idx ].pipeline = pipeline;
+		collection.groups[ idx ].mesh = mesh;
+		collection.num_groups++;
+	}
+
+	Assert( collection.groups[ idx ].num_instances < ARRAY_COUNT( collection.groups[ idx ].instances ) );
+	collection.groups[ idx ].instances[ collection.groups[ idx ].num_instances++ ] = instance;
+}
+
+static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh, bool skinned, PipelineState pipeline, Mat4 & transform, GPUMaterial gpu_material ) {
+	TracyZoneScoped;
+	if( !config.enabled )
+		return;
+
+	if( config.view_weapon ) {
+		pipeline.view_weapon_depth_hack = true;
+	}
+
+	if( skinned ) {
+		DrawMesh( mesh, pipeline );
+		return;
+	}
+
+	u64 hash = Hash64( &config.view_weapon, sizeof( config.view_weapon ), Hash64( mesh.vertex_buffers->buffer ) );
+	hash = Hash64( &config.map_model, sizeof( config.map_model ), hash );
+
+	GPUModelInstance instance = { };
+	instance.material = gpu_material;
+	instance.transform = Mat3x4( transform );
+
+	AddInstanceToCollection( model_instance_collection, mesh, pipeline, instance, hash );
+}
+
+static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Mesh & mesh, bool skinned, PipelineState pipeline, Mat4 & transform ) {
+	TracyZoneScoped;
+	if( !config.enabled )
+		return;
+
+	pipeline.shader = skinned ? &shaders.depth_only_skinned : &shaders.depth_only_instanced;
+	pipeline.clamp_depth = true;
+	// pipeline.cull_face = CullFace_Disabled;
+	pipeline.write_depth = true;
+
+	for( u32 i = 0; i < frame_static.shadow_parameters.entity_cascades; i++ ) {
+		pipeline.pass = frame_static.shadowmap_pass[ i ];
+		pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ i ] );
+
+		if( skinned ) {
+			DrawMesh( mesh, pipeline );
+			continue;
+		}
+
+		u64 hash = Hash64( &i, sizeof( i ), Hash64( mesh.vertex_buffers->buffer ) );
+
+		GPUModelShadowsInstance instance = { };
+		instance.transform = Mat3x4( transform );
+
+		AddInstanceToCollection( model_shadows_instance_collection, mesh, pipeline, instance, hash );
+	}
+}
+
+static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Mesh & mesh, bool skinned, PipelineState pipeline, UniformBlock outline_uniforms, Mat4 & transform ) {
+	TracyZoneScoped;
+	if( !config.enabled )
+		return;
+
+	pipeline.shader = skinned ? &shaders.outline_skinned : &shaders.outline_instanced;
+	pipeline.pass = frame_static.nonworld_opaque_pass;
+	pipeline.cull_face = CullFace_Front;
+
+	if( skinned ) {
+		pipeline.bind_uniform( "u_Outline", outline_uniforms );
+		DrawMesh( mesh, pipeline );
+		return;
+	}
+
+	GPUModelOutlinesInstance instance = { };
+	instance.color = config.outline_color;
+	instance.height = config.outline_height;
+	instance.transform = Mat3x4( transform );
+
+	u64 hash = Hash64( mesh.vertex_buffers->buffer );
+	AddInstanceToCollection( model_outlines_instance_collection, mesh, pipeline, instance, hash );
+}
+
+static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Mesh & mesh, bool skinned, PipelineState pipeline, UniformBlock silhouette_uniforms, Mat4 & transform ) {
+	TracyZoneScoped;
+	if( !config.enabled )
+		return;
+
+	pipeline.shader = skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer_instanced;
+	pipeline.pass = frame_static.write_silhouette_gbuffer_pass;
+	pipeline.write_depth = false;
+
+	if( skinned ) {
+		pipeline.bind_uniform( "u_Silhouette", silhouette_uniforms );
+		DrawMesh( mesh, pipeline );
+		return;
+	}
+
+	GPUModelSilhouetteInstance instance = { };
+	instance.color = config.silhouette_color;
+	instance.transform = Mat3x4( transform );
+
+	u64 hash = Hash64( mesh.vertex_buffers->buffer );
+	AddInstanceToCollection( model_silhouette_instance_collection, mesh, pipeline, instance, hash );
+}
+
+void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * render_data, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
+	TracyZoneScoped;
+	if( render_data == NULL )
+		return;
+
+	bool animated = palettes.node_transforms.ptr != NULL;
+	bool any_skinned = render_data->skin.n > 0;
+
+	UniformBlock pose_uniforms = { };
+	if( any_skinned && animated ) {
+		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
+	}
+
+	UniformBlock outline_uniforms = { };
+	if( any_skinned && config.draw_outlines.enabled ) {
+		outline_uniforms = UploadUniformBlock( config.draw_outlines.outline_color, config.draw_outlines.outline_height );
+	}
+
+	UniformBlock silhouette_uniforms = { };
+	if( any_skinned && config.draw_silhouette.enabled ) {
+		silhouette_uniforms = UploadUniformBlock( config.draw_silhouette.silhouette_color );
+	}
+
+	for( u8 i = 0; i < render_data->nodes.n; i++ ) {
+		TracyZoneScopedN( "Render node" );
+
+		const GLTFRenderData::Node * node = &render_data->nodes[ i ];
+		if( node->mesh.num_vertices == 0 && node->vfx_type == ModelVfxType_None )
+			continue;
+
+		bool skinned = animated && node->skinned;
+
+		Mat4 node_transform;
+		if( skinned ) {
+			node_transform = Mat4::Identity();
+		}
+		else if( animated ) {
+			node_transform = palettes.node_transforms[ i ];
+		}
+		else {
+			node_transform = node->global_transform;
+		}
+		node_transform = transform * render_data->transform * node_transform;
+
+		DrawVfxNode( config.draw_model, node, node_transform, color );
+
+		if( node->mesh.num_vertices == 0 )
+			continue;
+
+		GPUMaterial gpu_material;
+		PipelineState pipeline = MaterialToPipelineState( FindMaterial( node->material ), color, skinned, config.draw_model.map_model, &gpu_material );
+		pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+
+		// skinned models can't be instanced
+		if( skinned ) {
+			pipeline.bind_uniform( "u_Model", UploadModelUniforms( node_transform ) );
+			pipeline.bind_uniform( "u_Pose", pose_uniforms );
+		}
+
+		DrawModelNode( config.draw_model, node->mesh, skinned, pipeline, node_transform, gpu_material );
+		DrawShadowsNode( config.draw_shadows, node->mesh, skinned, pipeline, node_transform );
+		DrawOutlinesNode( config.draw_outlines, node->mesh, skinned, pipeline, outline_uniforms, node_transform );
+		DrawSilhouetteNode( config.draw_silhouette, node->mesh, skinned, pipeline, silhouette_uniforms, node_transform );
+	}
+}
+
+void InitGLTFInstancing() {
+	TracyZoneScoped;
+	for( u32 i = 0; i < MAX_INSTANCE_GROUPS; i++ ) {
+		model_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelInstance ) * MAX_INSTANCES );
+		model_instance_collection.num_groups = 0;
+
+		model_shadows_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelShadowsInstance ) * MAX_INSTANCES );
+		model_shadows_instance_collection.num_groups = 0;
+
+		model_outlines_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelOutlinesInstance ) * MAX_INSTANCES );
+		model_outlines_instance_collection.num_groups = 0;
+
+		model_silhouette_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelSilhouetteInstance ) * MAX_INSTANCES );
+		model_silhouette_instance_collection.num_groups = 0;
+	}
+}
+
+void ShutdownGLTFInstancing() {
+	for( u32 i = 0; i < MAX_INSTANCE_GROUPS; i++ ) {
+		DeleteGPUBuffer( model_instance_collection.groups[ i ].instance_data );
+		DeleteGPUBuffer( model_shadows_instance_collection.groups[ i ].instance_data );
+		DeleteGPUBuffer( model_outlines_instance_collection.groups[ i ].instance_data );
+		DeleteGPUBuffer( model_silhouette_instance_collection.groups[ i ].instance_data );
+	}
+}
+
+template< typename T >
+static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collection ) {
+	for( u32 i = 0; i < collection.num_groups; i++ ) {
+		ModelInstanceGroup< T > & group = collection.groups[ i ];
+		WriteGPUBuffer( group.instance_data, group.instances, sizeof( T ) * group.num_instances );
+		group.pipeline.bind_buffer( "b_Instances", group.instance_data );
+		DrawInstancedMesh( group.mesh, group.pipeline, group.num_instances );
+		group.num_instances = 0;
+	}
+	collection.num_groups = 0;
+	collection.groups_hashtable.clear();
+}
+
+void DrawModelInstances() {
+	TracyZoneScoped;
+
+	DrawModelInstanceCollection( model_instance_collection );
+	DrawModelInstanceCollection( model_shadows_instance_collection );
+	DrawModelInstanceCollection( model_outlines_instance_collection );
+	DrawModelInstanceCollection( model_silhouette_instance_collection );
 }

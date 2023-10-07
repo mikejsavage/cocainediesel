@@ -360,8 +360,9 @@ bool SweptShapeVsMapModel( const MapData * map, const MapModel * model, Ray ray,
 					next = { far_child, Max2( current.t_min, t_at_far ), current.t_max };
 				}
 			}
-			if( num_todo == ARRAY_COUNT( todo ) )
+			if( num_todo == ARRAY_COUNT( todo ) ) {
 				Fatal( "Trace hit max tree depth" );
+			}
 			current = next;
 		}
 		else {
@@ -395,7 +396,6 @@ static Vec3 MakeNormal( int axis, bool positive ) {
 
 // see RTCD
 bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, Intersection * intersection ) {
-	// Com_GGPrint( "aabb vs aabb {} {} vs {} {}\n", a.mins, a.maxs, b.mins, b.maxs );
 	if( BoundsOverlap( a, b ) ) {
 		*intersection = { };
 		return true;

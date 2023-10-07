@@ -34,7 +34,7 @@ const char * GS_TeamName( Team team ) {
 }
 
 Team GS_TeamFromName( const char * name ) {
-	for( int i = 0; i < int( ARRAY_COUNT( gs_teamNames ) ); i++ ) {
+	for( size_t i = 0; i < ARRAY_COUNT( gs_teamNames ); i++ ) {
 		if( StrCaseEqual( gs_teamNames[ i ], name ) ) {
 			return Team( i );
 		}

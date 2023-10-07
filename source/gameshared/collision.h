@@ -18,7 +18,7 @@ struct GLTFCollisionBrush {
 
 struct GLTFCollisionData {
 	MinMax3 bounds;
-	SolidBits solidity;
+	SolidBits broadphase_solidity;
 	Span< Vec3 > vertices;
 	Span< Plane > planes;
 	Span< GLTFCollisionBrush > brushes;

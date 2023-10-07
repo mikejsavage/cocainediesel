@@ -106,7 +106,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 		if( material == NULL )
 			continue;
 
-		data.solidity = SolidBits( data.solidity | material->solidity );
+		data.broadphase_solidity = SolidBits( data.broadphase_solidity | material->solidity );
 
 		Mat4 transform;
 		cgltf_node_transform_world( node, transform.ptr() );
@@ -379,7 +379,7 @@ SolidBits EntitySolidity( const CollisionModelStorage * storage, const SyncEntit
 	}
 	else if( model.type == CollisionModelType_GLTF ) {
 		const GLTFCollisionData * gltf = FindGLTFSharedCollisionData( storage, model.gltf_model );
-		return gltf == NULL ? Solid_NotSolid : gltf->solidity;
+		return gltf == NULL ? Solid_NotSolid : gltf->broadphase_solidity;
 	}
 
 	return Solid_NotSolid;

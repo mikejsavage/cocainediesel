@@ -23,6 +23,24 @@ layout( std430 ) readonly buffer b_Instances {
 v2f flat int v_Instance;
 #endif
 
+#ifdef MULTIDRAW
+struct Instance {
+	AffineTransform denormalize;
+	AffineTransform transform;
+	float specular;
+	float shininess;
+	float lod_bias;
+	vec4 color;
+	vec3 texture_matrix[ 2 ];
+};
+
+layout( std430 ) readonly buffer b_Instances {
+	Instance instances[];
+};
+
+v2f flat int v_DrawID;
+#endif
+
 
 #if VERTEX_COLORS
 v2f vec4 v_Color;
@@ -42,6 +60,8 @@ layout( location = VertexAttribute_TexCoord ) in vec2 a_TexCoord;
 vec2 ApplyTCMod( vec2 uv ) {
 #if INSTANCED
 	mat3x2 m = transpose( mat2x3( instances[ gl_InstanceID ].texture_matrix[ 0 ], instances[ gl_InstanceID ].texture_matrix[ 1 ] ) );
+#elif MULTIDRAW
+	mat3x2 m = transpose( mat2x3( instances[ gl_DrawID ].texture_matrix[ 0 ], instances[ gl_DrawID ].texture_matrix[ 1 ] ) );
 #else
 	mat3x2 m = transpose( mat2x3( u_TextureMatrix[ 0 ], u_TextureMatrix[ 1 ] ) );
 #endif
@@ -49,13 +69,18 @@ vec2 ApplyTCMod( vec2 uv ) {
 }
 
 void main() {
-#if INSTANCED
-	mat4 u_M = AffineToMat4( instances[ gl_InstanceID ].transform );
-	v_Instance = gl_InstanceID;
-#endif
 	vec4 Position = a_Position;
 	vec3 Normal = a_Normal;
 	vec2 TexCoord = a_TexCoord;
+
+#if INSTANCED
+	mat4 u_M = AffineToMat4( instances[ gl_InstanceID ].transform );
+	v_Instance = gl_InstanceID;
+#elif MULTIDRAW
+	mat4 u_M = AffineToMat4( instances[ gl_DrawID ].transform );
+	Position = AffineToMat4( instances[ gl_DrawID ].denormalize ) * Position;
+	v_DrawID = gl_DrawID;
+#endif
 
 #if SKINNED
 	Skin( Position, Normal );
@@ -122,6 +147,11 @@ void main() {
 #else
 #if INSTANCED
 	vec4 color = instances[ v_Instance ].color;
+#elif MULTIDRAW
+	vec4 color = instances[ v_DrawID ].color;
+	float u_Specular = instances[ v_DrawID ].specular;
+	float u_Shininess = instances[ v_DrawID ].shininess;
+	float u_LodBias = instances[ v_DrawID ].lod_bias;
 #else
 	vec4 color = u_MaterialColor;
 #endif
@@ -167,7 +197,7 @@ void main() {
 	shadowlight = shadowlight * 0.5 + 0.5;
 
 #if APPLY_DLIGHTS
-	applyDynamicLights( dynamic_tile.num_dlights, tile_index, v_Position, normal, viewDir, lambertlight, specularlight );
+	applyDynamicLights( dynamic_tile.num_dlights, tile_index, v_Position, normal, viewDir, u_Shininess, u_Specular, lambertlight, specularlight );
 #endif
 	lambertlight = lambertlight * 0.5 + 0.5;
 

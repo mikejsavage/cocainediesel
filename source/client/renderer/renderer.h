@@ -43,8 +43,7 @@ struct FrameStatic {
 	UniformBlock shadowmap_view_uniforms[ 4 ];
 	UniformBlock shadow_uniforms;
 	UniformBlock identity_model_uniforms;
-	UniformBlock identity_material_static_uniforms;
-	UniformBlock identity_material_dynamic_uniforms;
+	UniformBlock identity_material_uniforms;
 
 	Mat4 V, inverse_V;
 	Mat4 P, inverse_P;
@@ -114,7 +113,8 @@ const Texture * BlueNoiseTexture();
 
 void DrawFullscreenMesh( const PipelineState & pipeline );
 
-PipelineState MaterialToPipelineState( const Material * material, Vec4 color = vec4_white, bool skinned = false, bool map_model = false, GPUMaterial * gpu_material = NULL );
+GPUMaterial GetGPUMaterial( const Material * material, Vec4 color = vec4_white );
+PipelineState MaterialToPipelineState( const Material * material, GPUMaterial gpu_material, Vec4 color = vec4_white, bool skinned = false, bool map_model = false );
 
 void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color = vec4_white );
 void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color );
@@ -123,10 +123,17 @@ void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bott
 void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh );
 
 UniformBlock UploadModelUniforms( const Mat4 & M );
-UniformBlock UploadMaterialStaticUniforms( float specular, float shininess, float lod_bias = 0.0f );
-UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0 = Vec3( 1, 0, 0 ), Vec3 tcmod_row1 = Vec3( 0, 1, 0 ) );
+UniformBlock UploadMaterialUniforms( float specular, float shininess, float lod_bias = 0.0f, const Vec4 & color = vec4_white, Vec3 tcmod_row0 = Vec3( 1, 0, 0 ), Vec3 tcmod_row1 = Vec3( 0, 1, 0 ) );
+UniformBlock UploadMaterialUniforms( GPUMaterial gpu_material );
 
 const char * ShadowQualityToString( ShadowQuality mode );
 
-void DrawModelInstances();
-void ClearMaterialStaticUniforms();
+void InitGeometry();
+void ShutdownGeometry();
+void UploadGeometry();
+void DrawGeometry();
+GPUSkinningInstance UploadSkinningMatrices( MatrixPalettes palettes );
+StaticMesh NewStaticMesh( const StaticMeshConfig & config );
+
+template< typename T > void DrawStaticMesh( StaticMesh mesh, T instance );
+template< typename T > void DrawStaticMesh( StaticMesh mesh, T instance, GPUSkinningInstance skinning_instance );

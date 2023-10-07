@@ -12,50 +12,6 @@
 #define JSMN_HEADER
 #include "jsmn/jsmn.h"
 
-constexpr u32 MAX_INSTANCES = 1024;
-constexpr u32 MAX_INSTANCE_GROUPS = 512;
-
-template< typename T >
-struct ModelInstanceGroup {
-	T instances[ MAX_INSTANCES ];
-	u32 num_instances;
-	PipelineState pipeline;
-	GPUBuffer instance_data;
-	Mesh mesh;
-};
-
-template< typename T >
-struct ModelInstanceCollection {
-	ModelInstanceGroup< T > groups[ MAX_INSTANCE_GROUPS ];
-	Hashtable< MAX_INSTANCE_GROUPS * 2 > groups_hashtable;
-	u32 num_groups;
-};
-
-struct GPUModelInstance {
-	Mat3x4 transform;
-	GPUMaterial material;
-};
-
-struct GPUModelShadowsInstance {
-	Mat3x4 transform;
-};
-
-struct GPUModelOutlinesInstance {
-	Mat3x4 transform;
-	Vec4 color;
-	float height;
-};
-
-struct GPUModelSilhouetteInstance {
-	Mat3x4 transform;
-	Vec4 color;
-};
-
-static ModelInstanceCollection< GPUModelInstance > model_instance_collection;
-static ModelInstanceCollection< GPUModelShadowsInstance > model_shadows_instance_collection;
-static ModelInstanceCollection< GPUModelOutlinesInstance > model_outlines_instance_collection;
-static ModelInstanceCollection< GPUModelSilhouetteInstance > model_silhouette_instance_collection;
-
 static u8 GetNodeIdx( const cgltf_node * node ) {
 	return u8( uintptr_t( node->light ) - 1 );
 }
@@ -109,15 +65,16 @@ static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf
 	if( prim.material && StartsWith( prim.material->name, "editor/" ) )
 		return;
 
-	MeshConfig mesh_config = { };
+	StaticMeshConfig mesh_config = { };
 	mesh_config.name = temp( "{} nodes[{}]", render_data->name, node->name );
 
 	for( size_t i = 0; i < prim.attributes_count; i++ ) {
 		const cgltf_attribute & attr = prim.attributes[ i ];
+		VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 
 		if( attr.type == cgltf_attribute_type_position ) {
 			mesh_config.num_vertices = attr.data->count;
-			mesh_config.set_attribute( VertexAttribute_Position, NewGPUBuffer( AccessorToSpan( attr.data ) ) );
+			mesh_config.set_attribute( VertexAttribute_Position, AccessorToSpan( attr.data ), format );
 
 			Vec3 min, max;
 			for( int j = 0; j < 3; j++ ) {
@@ -127,44 +84,48 @@ static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf
 
 			render_data->bounds = Union( render_data->bounds, ( transform * Vec4( min, 1.0f ) ).xyz() );
 			render_data->bounds = Union( render_data->bounds, ( transform * Vec4( max, 1.0f ) ).xyz() );
+
+			for( size_t j = 0; j < 3; j++ ) {
+				if( min[ j ] == max[ j ] ) {
+					min[ j ] -= 0.5f;
+					max[ j ] += 0.5f;
+				}
+			}
+			mesh_config.bounds = MinMax3( min, max );
 		}
 
 		if( attr.type == cgltf_attribute_type_normal ) {
-			mesh_config.set_attribute( VertexAttribute_Normal, NewGPUBuffer( AccessorToSpan( attr.data ) ) );
+			mesh_config.set_attribute( VertexAttribute_Normal, AccessorToSpan( attr.data ), format );
 		}
 
 		if( attr.type == cgltf_attribute_type_texcoord ) {
-			if( mesh_config.vertex_descriptor.attributes[ VertexAttribute_TexCoord ].exists ) {
+			if( mesh_config.vertex_data[ VertexAttribute_TexCoord ].n != 0 ) {
 				Com_Printf( S_COLOR_YELLOW "%s has multiple sets of uvs\n", render_data->name );
 			}
 			else {
-				VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
-				mesh_config.set_attribute( VertexAttribute_TexCoord, NewGPUBuffer( AccessorToSpan( attr.data ) ), format );
+				mesh_config.set_attribute( VertexAttribute_TexCoord, AccessorToSpan( attr.data ), format );
 			}
 		}
 
 		if( attr.type == cgltf_attribute_type_color ) {
-			VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
-			mesh_config.set_attribute( VertexAttribute_Color, NewGPUBuffer( AccessorToSpan( attr.data ) ), format );
+			mesh_config.set_attribute( VertexAttribute_Color, AccessorToSpan( attr.data ), format );
 		}
 
 		if( attr.type == cgltf_attribute_type_joints ) {
-			VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
-			mesh_config.set_attribute( VertexAttribute_JointIndices, NewGPUBuffer( AccessorToSpan( attr.data ) ), format );
+			mesh_config.set_attribute( VertexAttribute_JointIndices, AccessorToSpan( attr.data ), format );
 		}
 
 		if( attr.type == cgltf_attribute_type_weights ) {
-			VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
-			mesh_config.set_attribute( VertexAttribute_JointWeights, NewGPUBuffer( AccessorToSpan( attr.data ) ), format );
+			mesh_config.set_attribute( VertexAttribute_JointWeights, AccessorToSpan( attr.data ), format );
 		}
 	}
 
-	mesh_config.index_buffer = NewGPUBuffer( AccessorToSpan( prim.indices ) );
+	mesh_config.index_data = AccessorToSpan( prim.indices );
 	mesh_config.index_format = prim.indices->component_type == cgltf_component_type_r_16u ? IndexFormat_U16 : IndexFormat_U32;
-	mesh_config.num_vertices = prim.indices->count;
+	mesh_config.num_indices = prim.indices->count;
 
 	render_data->nodes[ node_idx ].material = prim.material == NULL ? EMPTY_HASH : StringHash( prim.material->name );
-	render_data->nodes[ node_idx ].mesh = NewMesh( mesh_config );
+	render_data->nodes[ node_idx ].static_mesh = NewStaticMesh( mesh_config );
 }
 
 static constexpr u32 MAX_EXTRAS = 16;
@@ -639,118 +600,72 @@ static void DrawVfxNode( DrawModelConfig::DrawModel config, const GLTFRenderData
 	}
 }
 
-template< typename T >
-static void AddInstanceToCollection( ModelInstanceCollection< T > & collection, const Mesh & mesh, const PipelineState & pipeline, T & instance, u64 hash ) {
-	u64 idx = collection.num_groups;
-	if( !collection.groups_hashtable.get( hash, &idx ) ) {
-		Assert( collection.num_groups < ARRAY_COUNT( collection.groups ) );
-		collection.groups_hashtable.add( hash, collection.num_groups );
-		collection.groups[ idx ].pipeline = pipeline;
-		collection.groups[ idx ].mesh = mesh;
-		collection.num_groups++;
-	}
-
-	Assert( collection.groups[ idx ].num_instances < ARRAY_COUNT( collection.groups[ idx ].instances ) );
-	collection.groups[ idx ].instances[ collection.groups[ idx ].num_instances++ ] = instance;
-}
-
-static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh, bool skinned, PipelineState pipeline, Mat4 & transform, GPUMaterial gpu_material ) {
+static void DrawModelNode( DrawModelConfig::DrawModel config, const StaticMesh mesh, Mat4 & transform, GPUMaterial gpu_material, GPUSkinningInstance skinning_instance, bool skinned ) {
 	TracyZoneScoped;
 	if( !config.enabled )
 		return;
-
-	if( config.view_weapon ) {
-		pipeline.view_weapon_depth_hack = true;
-	}
-
-	if( skinned ) {
-		DrawMesh( mesh, pipeline );
-		return;
-	}
-
-	u64 hash = Hash64( &config.view_weapon, sizeof( config.view_weapon ), Hash64( mesh.vertex_buffers->buffer ) );
-	hash = Hash64( &config.map_model, sizeof( config.map_model ), hash );
 
 	GPUModelInstance instance = { };
-	instance.material = gpu_material;
 	instance.transform = Mat3x4( transform );
-
-	AddInstanceToCollection( model_instance_collection, mesh, pipeline, instance, hash );
-}
-
-static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Mesh & mesh, bool skinned, PipelineState pipeline, Mat4 & transform ) {
-	TracyZoneScoped;
-	if( !config.enabled )
-		return;
-
-	pipeline.shader = skinned ? &shaders.depth_only_skinned : &shaders.depth_only_instanced;
-	pipeline.clamp_depth = true;
-	// pipeline.cull_face = CullFace_Disabled;
-	pipeline.write_depth = true;
-
-	for( u32 i = 0; i < frame_static.shadow_parameters.entity_cascades; i++ ) {
-		pipeline.pass = frame_static.shadowmap_pass[ i ];
-		pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ i ] );
-
-		if( skinned ) {
-			DrawMesh( mesh, pipeline );
-			continue;
-		}
-
-		u64 hash = Hash64( &i, sizeof( i ), Hash64( mesh.vertex_buffers->buffer ) );
-
-		GPUModelShadowsInstance instance = { };
-		instance.transform = Mat3x4( transform );
-
-		AddInstanceToCollection( model_shadows_instance_collection, mesh, pipeline, instance, hash );
-	}
-}
-
-static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Mesh & mesh, bool skinned, PipelineState pipeline, UniformBlock outline_uniforms, Mat4 & transform ) {
-	TracyZoneScoped;
-	if( !config.enabled )
-		return;
-
-	pipeline.shader = skinned ? &shaders.outline_skinned : &shaders.outline_instanced;
-	pipeline.pass = frame_static.nonworld_opaque_pass;
-	pipeline.cull_face = CullFace_Front;
+	instance.material = gpu_material;
 
 	if( skinned ) {
-		pipeline.bind_uniform( "u_Outline", outline_uniforms );
-		DrawMesh( mesh, pipeline );
-		return;
+		DrawStaticMesh( mesh, instance, skinning_instance );
 	}
+	else {
+		DrawStaticMesh( mesh, instance );
+	}
+}
+
+static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const StaticMesh mesh, Mat4 & transform, GPUMaterial gpu_material, GPUSkinningInstance skinning_instance, bool skinned ) {
+	TracyZoneScoped;
+	if( !config.enabled )
+		return;
+
+	GPUModelShadowsInstance instance = { };
+	instance.transform = Mat3x4( transform );
+
+	if( skinned ) {
+		DrawStaticMesh( mesh, instance, skinning_instance );
+	}
+	else {
+		DrawStaticMesh( mesh, instance );
+	}
+}
+
+static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const StaticMesh mesh, Mat4 & transform, GPUMaterial gpu_material, GPUSkinningInstance skinning_instance, bool skinned ) {
+	TracyZoneScoped;
+	if( !config.enabled )
+		return;
 
 	GPUModelOutlinesInstance instance = { };
 	instance.color = config.outline_color;
 	instance.height = config.outline_height;
 	instance.transform = Mat3x4( transform );
 
-	u64 hash = Hash64( mesh.vertex_buffers->buffer );
-	AddInstanceToCollection( model_outlines_instance_collection, mesh, pipeline, instance, hash );
+	if( skinned ) {
+		DrawStaticMesh( mesh, instance, skinning_instance );
+	}
+	else {
+		DrawStaticMesh( mesh, instance );
+	}
 }
 
-static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Mesh & mesh, bool skinned, PipelineState pipeline, UniformBlock silhouette_uniforms, Mat4 & transform ) {
+static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const StaticMesh mesh, Mat4 & transform, GPUMaterial gpu_material, GPUSkinningInstance skinning_instance, bool skinned ) {
 	TracyZoneScoped;
 	if( !config.enabled )
 		return;
-
-	pipeline.shader = skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer_instanced;
-	pipeline.pass = frame_static.write_silhouette_gbuffer_pass;
-	pipeline.write_depth = false;
-
-	if( skinned ) {
-		pipeline.bind_uniform( "u_Silhouette", silhouette_uniforms );
-		DrawMesh( mesh, pipeline );
-		return;
-	}
 
 	GPUModelSilhouetteInstance instance = { };
 	instance.color = config.silhouette_color;
 	instance.transform = Mat3x4( transform );
 
-	u64 hash = Hash64( mesh.vertex_buffers->buffer );
-	AddInstanceToCollection( model_silhouette_instance_collection, mesh, pipeline, instance, hash );
+	if( skinned ) {
+		DrawStaticMesh( mesh, instance, skinning_instance );
+	}
+	else {
+		DrawStaticMesh( mesh, instance );
+	}
 }
 
 void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * render_data, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
@@ -761,26 +676,16 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 	bool animated = palettes.node_transforms.ptr != NULL;
 	bool any_skinned = render_data->skin.n > 0;
 
-	UniformBlock pose_uniforms = { };
-	if( any_skinned && animated ) {
-		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
-	}
-
-	UniformBlock outline_uniforms = { };
-	if( any_skinned && config.draw_outlines.enabled ) {
-		outline_uniforms = UploadUniformBlock( config.draw_outlines.outline_color, config.draw_outlines.outline_height );
-	}
-
-	UniformBlock silhouette_uniforms = { };
-	if( any_skinned && config.draw_silhouette.enabled ) {
-		silhouette_uniforms = UploadUniformBlock( config.draw_silhouette.silhouette_color );
+	GPUSkinningInstance skinning_instance = { };
+	if( any_skinned ) {
+		skinning_instance = UploadSkinningMatrices( palettes );
 	}
 
 	for( u8 i = 0; i < render_data->nodes.n; i++ ) {
 		TracyZoneScopedN( "Render node" );
 
 		const GLTFRenderData::Node * node = &render_data->nodes[ i ];
-		if( node->mesh.num_vertices == 0 && node->vfx_type == ModelVfxType_None )
+		if( node->static_mesh.num_indices == 0 && node->vfx_type == ModelVfxType_None )
 			continue;
 
 		bool skinned = animated && node->skinned;
@@ -799,70 +704,18 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 
 		DrawVfxNode( config.draw_model, node, node_transform, color );
 
-		if( node->mesh.num_vertices == 0 )
+		if( node->static_mesh.num_indices == 0 )
 			continue;
+		// if( node->mesh.num_vertices == 0 )
+		// 	continue;
 
-		GPUMaterial gpu_material;
-		PipelineState pipeline = MaterialToPipelineState( FindMaterial( node->material ), color, skinned, config.draw_model.map_model, &gpu_material );
-		pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+		GPUMaterial gpu_material = GetGPUMaterial( FindMaterial( node->material ), color );
 
-		// skinned models can't be instanced
-		if( skinned ) {
-			pipeline.bind_uniform( "u_Model", UploadModelUniforms( node_transform ) );
-			pipeline.bind_uniform( "u_Pose", pose_uniforms );
-		}
+		StaticMesh mesh = node->static_mesh;
 
-		DrawModelNode( config.draw_model, node->mesh, skinned, pipeline, node_transform, gpu_material );
-		DrawShadowsNode( config.draw_shadows, node->mesh, skinned, pipeline, node_transform );
-		DrawOutlinesNode( config.draw_outlines, node->mesh, skinned, pipeline, outline_uniforms, node_transform );
-		DrawSilhouetteNode( config.draw_silhouette, node->mesh, skinned, pipeline, silhouette_uniforms, node_transform );
+		DrawModelNode( config.draw_model, mesh, node_transform, gpu_material, skinning_instance, skinned );
+		DrawShadowsNode( config.draw_shadows, mesh, node_transform, gpu_material, skinning_instance, skinned );
+		DrawOutlinesNode( config.draw_outlines, mesh, node_transform, gpu_material, skinning_instance, skinned );
+		DrawSilhouetteNode( config.draw_silhouette, mesh, node_transform, gpu_material, skinning_instance, skinned );
 	}
-}
-
-void InitGLTFInstancing() {
-	TracyZoneScoped;
-	for( u32 i = 0; i < MAX_INSTANCE_GROUPS; i++ ) {
-		model_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelInstance ) * MAX_INSTANCES );
-		model_instance_collection.num_groups = 0;
-
-		model_shadows_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelShadowsInstance ) * MAX_INSTANCES );
-		model_shadows_instance_collection.num_groups = 0;
-
-		model_outlines_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelOutlinesInstance ) * MAX_INSTANCES );
-		model_outlines_instance_collection.num_groups = 0;
-
-		model_silhouette_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelSilhouetteInstance ) * MAX_INSTANCES );
-		model_silhouette_instance_collection.num_groups = 0;
-	}
-}
-
-void ShutdownGLTFInstancing() {
-	for( u32 i = 0; i < MAX_INSTANCE_GROUPS; i++ ) {
-		DeleteGPUBuffer( model_instance_collection.groups[ i ].instance_data );
-		DeleteGPUBuffer( model_shadows_instance_collection.groups[ i ].instance_data );
-		DeleteGPUBuffer( model_outlines_instance_collection.groups[ i ].instance_data );
-		DeleteGPUBuffer( model_silhouette_instance_collection.groups[ i ].instance_data );
-	}
-}
-
-template< typename T >
-static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collection ) {
-	for( u32 i = 0; i < collection.num_groups; i++ ) {
-		ModelInstanceGroup< T > & group = collection.groups[ i ];
-		WriteGPUBuffer( group.instance_data, group.instances, sizeof( T ) * group.num_instances );
-		group.pipeline.bind_buffer( "b_Instances", group.instance_data );
-		DrawInstancedMesh( group.mesh, group.pipeline, group.num_instances );
-		group.num_instances = 0;
-	}
-	collection.num_groups = 0;
-	collection.groups_hashtable.clear();
-}
-
-void DrawModelInstances() {
-	TracyZoneScoped;
-
-	DrawModelInstanceCollection( model_instance_collection );
-	DrawModelInstanceCollection( model_shadows_instance_collection );
-	DrawModelInstanceCollection( model_outlines_instance_collection );
-	DrawModelInstanceCollection( model_silhouette_instance_collection );
 }

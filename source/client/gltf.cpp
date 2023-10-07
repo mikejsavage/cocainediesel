@@ -89,6 +89,8 @@ void InitGLTFModels() {
 
 	num_gltf_models = 0;
 
+	InitGeometry();
+
 	for( const char * path : AssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
 		if( ext != ".glb" )
@@ -96,7 +98,7 @@ void InitGLTFModels() {
 		LoadGLTF( path );
 	}
 
-	InitGLTFInstancing();
+	UploadGeometry();
 }
 
 void ShutdownGLTFModels() {
@@ -104,7 +106,7 @@ void ShutdownGLTFModels() {
 		DeleteGLTFRenderData( &gltf_models[ i ] );
 	}
 
-	ShutdownGLTFInstancing();
+	ShutdownGeometry();
 }
 
 void HotloadGLTFModels() {

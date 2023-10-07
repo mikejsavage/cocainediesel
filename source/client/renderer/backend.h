@@ -102,10 +102,11 @@ struct MeshConfig {
 		VertexFormat_Floatx4,
 	};
 
-	void set_attribute( VertexAttributeType type, GPUBuffer buffer, Optional< VertexFormat > format = NONE ) {
+	void set_attribute( VertexAttributeType type, GPUBuffer buffer, Optional< VertexFormat > format = NONE, size_t offset = 0 ) {
 		VertexAttribute attribute = { };
 		attribute.format = format.exists ? format.value : default_attribute_formats[ type ];
 		attribute.buffer = type;
+		attribute.offset = offset;
 		vertex_descriptor.attributes[ type ] = attribute;
 		vertex_buffers[ type ] = buffer;
 	}
@@ -116,6 +117,27 @@ struct MeshConfig {
 		attribute.buffer = buffer;
 		attribute.offset = offset;
 		vertex_descriptor.attributes[ type ] = attribute;
+	}
+};
+
+struct StaticMeshConfig {
+	const char * name;
+
+	Span< const u8 > vertex_data[ VertexAttribute_Count ];
+	VertexFormat vertex_formats[ VertexAttribute_Count ];
+	u32 num_vertices;
+
+	Span< const u8 > index_data;
+	IndexFormat index_format;
+	u32 num_indices;
+
+	bool cw_winding;
+
+	MinMax3 bounds;
+
+	void set_attribute( VertexAttributeType type, Span< const u8 > data, VertexFormat format ) {
+		vertex_data[ type ] = data;
+		vertex_formats[ type ] = format;
 	}
 };
 
@@ -233,6 +255,7 @@ void DeferDeleteMesh( const Mesh & mesh );
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0, u32 base_vertex = 0 );
 void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_instances, u32 num_vertices_override = 0, u32 first_index = 0, u32 base_vertex = 0 );
 void DrawMeshIndirect( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer indirect );
+void DrawMultiIndirect( const Mesh & mesh, const PipelineState & pipeline, StreamingBuffer indirect, u32 num_instances );
 void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z );
 void DispatchComputeIndirect( const PipelineState & pipeline, GPUBuffer indirect );
 

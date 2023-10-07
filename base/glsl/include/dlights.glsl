@@ -15,7 +15,7 @@ layout( std430 ) readonly buffer b_DynamicLights {
 	DynamicLight dlights[];
 };
 
-void applyDynamicLights( uint count, int tile_index, vec3 position, vec3 normal, vec3 viewDir, inout vec3 lambertlight, inout vec3 specularlight ) {
+void applyDynamicLights( uint count, int tile_index, vec3 position, vec3 normal, vec3 viewDir, float shininess, float specular, inout vec3 lambertlight, inout vec3 specularlight ) {
 	for( uint i = 0; i < count; i++ ) {
 		DynamicLight dlight = dlights[ dlight_tiles[ tile_index ].indices[ i ] ];
 
@@ -30,6 +30,6 @@ void applyDynamicLights( uint count, int tile_index, vec3 position, vec3 normal,
 		float dlight_intensity = max( 0.0, intensity / ( dist * dist ) - DLIGHT_CUTOFF );
 
 		lambertlight += dlight_color * dlight_intensity * max( 0.0, LambertLight( normal, -lightdir ) );
-		specularlight += dlight_color * max( 0.0, 1.0 - dist / radius ) * SpecularLight( normal, lightdir, viewDir, u_Shininess ) * u_Specular;
+		specularlight += dlight_color * max( 0.0, 1.0 - dist / radius ) * SpecularLight( normal, lightdir, viewDir, shininess ) * specular;
 	}
 }

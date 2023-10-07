@@ -546,7 +546,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	DrawSkybox( cls.shadertoy_time );
 	DrawSprays();
 
-	DrawModelInstances();
+	DrawGeometry();
 
 	CG_ReleaseAnnouncerEvents();
 

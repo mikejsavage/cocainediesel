@@ -200,7 +200,8 @@ static void DrawActualTrail( Trail & trail ) {
 		}
 	}
 
-	PipelineState pipeline = MaterialToPipelineState( material, trail.color );
+	GPUMaterial gpu_material = GetGPUMaterial( material, trail.color );
+	PipelineState pipeline = MaterialToPipelineState( material, gpu_material, trail.color );
 	pipeline.shader = &shaders.standard_vertexcolors;
 	pipeline.blend_func = BlendFunc_Add;
 	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );

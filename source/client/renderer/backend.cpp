@@ -31,6 +31,7 @@ static const u32 UNIFORM_BUFFER_SIZE = 64 * 1024;
 enum DrawCallType {
 	DrawCallType_Normal,
 	DrawCallType_Indirect,
+	DrawCallType_MultiIndirect,
 	DrawCallType_Compute,
 	DrawCallType_IndirectCompute,
 };
@@ -46,6 +47,7 @@ struct DrawCall {
 
 	u32 dispatch_size[ 3 ];
 	GPUBuffer indirect;
+	StreamingBuffer multi_indirect;
 };
 
 struct RenderPass {
@@ -207,6 +209,13 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 			*num_components = 4;
 			*integral = true;
 			*normalized = format == VertexFormat_U8x4_Norm;
+			break;
+
+		case VertexFormat_U10x3_U2x1_Norm:
+			*type = GL_INT_2_10_10_10_REV;
+			*num_components = 4;
+			*integral = true;
+			*normalized = true;
 			break;
 
 		case VertexFormat_U16x2:
@@ -995,6 +1004,12 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 			}
 			glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0 );
 		}
+		else if( dc.type == DrawCallType_MultiIndirect ) {
+			glBindBuffer( GL_DRAW_INDIRECT_BUFFER, dc.multi_indirect.buffer.buffer );
+			u64 offset = dc.multi_indirect.size * FrameSlot();
+			glMultiDrawElementsIndirect( GL_TRIANGLES, gl_index_format, ( void * ) offset, dc.num_instances, 0 );
+			glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0 );
+		}
 	}
 
 	{
@@ -1371,7 +1386,7 @@ void DeleteRenderTargetAndTextures( RenderTarget rt ) {
 static GLuint CompileShader( GLenum type, const char * body, const char * name ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	DynamicString src( &temp, "#version 450 core\n" );
+	DynamicString src( &temp, "#version 460 core\n" );
 	if( type == GL_VERTEX_SHADER || type == GL_FRAGMENT_SHADER ) {
 		constexpr const char * vertex_shader_prelude =
 			"#define VERTEX_SHADER 1\n"
@@ -1614,6 +1629,16 @@ void DrawMeshIndirect( const Mesh & mesh, const PipelineState & pipeline, GPUBuf
 	dc.pipeline = pipeline;
 	dc.mesh = mesh;
 	dc.indirect = indirect;
+	render_passes[ pipeline.pass ].draws.add( dc );
+}
+
+void DrawMultiIndirect( const Mesh & mesh, const PipelineState & pipeline, StreamingBuffer indirect, u32 num_instances ) {
+	DrawCall dc = { };
+	dc.type = DrawCallType_MultiIndirect;
+	dc.pipeline = pipeline;
+	dc.mesh = mesh;
+	dc.multi_indirect = indirect;
+	dc.num_instances = num_instances;
 	render_passes[ pipeline.pass ].draws.add( dc );
 }
 

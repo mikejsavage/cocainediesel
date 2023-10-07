@@ -65,6 +65,7 @@ struct GLTFRenderData {
 
 		StringHash material;
 		Mesh mesh;
+		StaticMesh static_mesh;
 
 		u8 parent;
 		u8 first_child;
@@ -111,6 +112,3 @@ bool FindAnimationByName( const GLTFRenderData * model, StringHash name, u8 * id
 Span< TRS > SampleAnimation( Allocator * a, const GLTFRenderData * model, float t, u8 animation = 0 );
 void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const GLTFRenderData * model, u8 upper_root_joint );
 MatrixPalettes ComputeMatrixPalettes( Allocator * a, const GLTFRenderData * model, Span< const TRS > local_poses );
-
-void InitGLTFInstancing();
-void ShutdownGLTFInstancing();

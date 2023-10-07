@@ -129,6 +129,10 @@ static void LoadShaders() {
 	LoadShader( &shaders.standard_shaded, "glsl/standard.glsl", "#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
 	LoadShader( &shaders.standard_skinned_shaded, "glsl/standard.glsl", "#define SKINNED 1\n#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
 
+	// standard multidraw
+	LoadShader( &shaders.standard_multidraw, "glsl/standard.glsl", "#define MULTIDRAW 1\n#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
+	LoadShader( &shaders.standard_skinned_multidraw, "glsl/standard.glsl", "#define MULTIDRAW 1\n#define SKINNED 1\n#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
+
 	// standard instanced
 	LoadShader( &shaders.standard_instanced, "glsl/standard.glsl", "#define INSTANCED 1\n" );
 	LoadShader( &shaders.standard_shaded_instanced, "glsl/standard.glsl", "#define INSTANCED 1\n#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
@@ -155,6 +159,8 @@ static void LoadShaders() {
 	LoadShader( &shaders.depth_only, "glsl/depth_only.glsl" );
 	LoadShader( &shaders.depth_only_instanced, "glsl/depth_only.glsl", "#define INSTANCED 1\n" );
 	LoadShader( &shaders.depth_only_skinned, "glsl/depth_only.glsl", "#define SKINNED 1\n" );
+	LoadShader( &shaders.depth_only_multidraw, "glsl/depth_only.glsl", "#define MULTIDRAW 1\n" );
+	LoadShader( &shaders.depth_only_skinned_multidraw, "glsl/depth_only.glsl", "#define MULTIDRAW 1\n#define SKINNED 1\n" );
 
 	LoadShader( &shaders.postprocess_world_gbuffer, "glsl/postprocess_world_gbuffer.glsl" );
 	LoadShader( &shaders.postprocess_world_gbuffer_msaa, "glsl/postprocess_world_gbuffer.glsl", "#define MSAA 1\n" );
@@ -162,11 +168,15 @@ static void LoadShaders() {
 	LoadShader( &shaders.write_silhouette_gbuffer, "glsl/write_silhouette_gbuffer.glsl" );
 	LoadShader( &shaders.write_silhouette_gbuffer_instanced, "glsl/write_silhouette_gbuffer.glsl", "#define INSTANCED 1\n" );
 	LoadShader( &shaders.write_silhouette_gbuffer_skinned, "glsl/write_silhouette_gbuffer.glsl", "#define SKINNED 1\n" );
+	LoadShader( &shaders.write_silhouette_gbuffer_multidraw, "glsl/write_silhouette_gbuffer.glsl", "#define MULTIDRAW 1\n" );
+	LoadShader( &shaders.write_silhouette_gbuffer_skinned_multidraw, "glsl/write_silhouette_gbuffer.glsl", "#define MULTIDRAW 1\n#define SKINNED 1\n" );
 	LoadShader( &shaders.postprocess_silhouette_gbuffer, "glsl/postprocess_silhouette_gbuffer.glsl" );
 
 	LoadShader( &shaders.outline, "glsl/outline.glsl" );
 	LoadShader( &shaders.outline_instanced, "glsl/outline.glsl", "#define INSTANCED 1\n" );
 	LoadShader( &shaders.outline_skinned, "glsl/outline.glsl", "#define SKINNED 1\n" );
+	LoadShader( &shaders.outline_multidraw, "glsl/outline.glsl", "#define MULTIDRAW 1\n" );
+	LoadShader( &shaders.outline_skinned_multidraw, "glsl/outline.glsl", "#define MULTIDRAW 1\n#define SKINNED 1\n" );
 
 	LoadShader( &shaders.scope, "glsl/scope.glsl" );
 	LoadShader( &shaders.skybox, "glsl/skybox.glsl" );

@@ -10,20 +10,17 @@ layout( std140 ) uniform u_View {
 	vec3 u_LightDir;
 };
 
+#ifndef MULTIDRAW
 #ifndef INSTANCED
 layout( std140 ) uniform u_Model {
 	mat4 u_M;
 };
-#endif
 
-layout( std140 ) uniform u_MaterialStatic {
+#endif
+layout( std140 ) uniform u_Material {
 	float u_Specular;
 	float u_Shininess;
 	float u_LodBias;
-};
-
-#ifndef INSTANCED
-layout( std140 ) uniform u_MaterialDynamic {
 	vec4 u_MaterialColor;
 	vec3 u_TextureMatrix[ 2 ];
 };

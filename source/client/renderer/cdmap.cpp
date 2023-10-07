@@ -49,8 +49,11 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 			DrawMesh( map->render_data.mesh, pipeline, mesh.num_vertices, mesh.first_vertex_index );
 		}
 
+		const Material * material = FindMaterial( StringHash( mesh.material ), &world_material );
+		GPUMaterial gpu_material = GetGPUMaterial( material );
+
 		{
-			PipelineState pipeline = MaterialToPipelineState( FindMaterial( StringHash( mesh.material ) ) );
+			PipelineState pipeline = MaterialToPipelineState( material, gpu_material );
 			pipeline.pass = frame_static.world_opaque_prepass_pass;
 			pipeline.shader = &shaders.depth_only;
 			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
@@ -60,7 +63,7 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 		}
 
 		{
-			PipelineState pipeline = MaterialToPipelineState( FindMaterial( StringHash( mesh.material ), &world_material ) );
+			PipelineState pipeline = MaterialToPipelineState( material, gpu_material );
 			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 			pipeline.write_depth = false;

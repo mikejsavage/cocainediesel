@@ -51,15 +51,6 @@ static u32 num_decals;
 static Hashtable< MAX_DECALS * 2 > decals_hashtable;
 static Texture decals_atlases;
 
-static UniformBlock material_static_uniforms[ MAX_MATERIALS ];
-static Hashtable< MAX_MATERIALS * 2 > material_static_uniforms_hashtable;
-static u32 num_material_static_uniforms;
-
-void ClearMaterialStaticUniforms() {
-	material_static_uniforms_hashtable.clear();
-	num_material_static_uniforms = 0;
-}
-
 bool CompressedTextureFormat( TextureFormat format ) {
 	switch( format ) {
 		case TextureFormat_BC1_sRGB:
@@ -800,7 +791,6 @@ void InitMaterials() {
 
 	num_textures = 0;
 	num_materials = 0;
-	ClearMaterialStaticUniforms();
 
 	world_material = Material();
 	world_material.rgbgen.args[ 0 ] = 0.17f;
@@ -1024,33 +1014,7 @@ static float EvaluateWaveFunc( Wave wave ) {
 	return wave.args[ 0 ] + wave.args[ 1 ] * v;
 }
 
-PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned, bool map_model, GPUMaterial * gpu_material ) {
-	TracyZoneScoped;
-
-	if( material == &world_material || material == &wallbang_material ) {
-		PipelineState pipeline;
-		pipeline.shader = &shaders.world;
-		pipeline.pass = frame_static.world_opaque_pass;
-		pipeline.bind_texture_and_sampler( "u_BlueNoiseTexture", BlueNoiseTexture(), Sampler_Standard );
-		color.x = material->rgbgen.args[ 0 ];
-		color.y = material->rgbgen.args[ 1 ];
-		color.z = material->rgbgen.args[ 2 ];
-		pipeline.bind_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( material->specular, material->shininess ) );
-		pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );
-		pipeline.bind_texture_and_sampler( "u_ShadowmapTextureArray", &frame_static.render_targets.shadowmaps[ 0 ].depth_attachment, Sampler_Shadowmap );
-		pipeline.bind_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
-		pipeline.bind_texture_and_sampler( "u_DecalAtlases", DecalAtlasTextureArray(), Sampler_Standard );
-		AddDynamicsToPipeline( &pipeline );
-		return pipeline;
-	}
-
-	if( material->mask_outlines ) {
-		PipelineState pipeline;
-		pipeline.pass = frame_static.world_opaque_pass;
-		pipeline.shader = &shaders.depth_only;
-		return pipeline;
-	}
-
+GPUMaterial GetGPUMaterial( const Material * material, Vec4 color ) {
 	// evaluate rgbgen/alphagen
 	switch( material->rgbgen.type ) {
 		case ColorGenType_Constant:
@@ -1111,6 +1075,43 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		tcmod_row1 = Vec3( 0, scale, offset );
 	}
 
+	GPUMaterial gpu_material = {
+		.specular = material->specular,
+		.shininess = material->shininess,
+		.lod_bias = 0.0f,
+		.color = color,
+		.tcmod_row0 = tcmod_row0,
+		.tcmod_row1 = tcmod_row1,
+	};
+	return gpu_material;
+}
+
+PipelineState MaterialToPipelineState( const Material * material, GPUMaterial gpu_material, Vec4 color, bool skinned, bool map_model ) {
+	TracyZoneScoped;
+
+	if( material == &world_material || material == &wallbang_material ) {
+		PipelineState pipeline;
+		pipeline.shader = &shaders.world;
+		pipeline.pass = frame_static.world_opaque_pass;
+		pipeline.bind_texture_and_sampler( "u_BlueNoiseTexture", BlueNoiseTexture(), Sampler_Standard );
+		color.x = material->rgbgen.args[ 0 ];
+		color.y = material->rgbgen.args[ 1 ];
+		color.z = material->rgbgen.args[ 2 ];
+		pipeline.bind_uniform( "u_Material", UploadMaterialUniforms( material->specular, material->shininess, 0.0f, color ) );
+		pipeline.bind_texture_and_sampler( "u_ShadowmapTextureArray", &frame_static.render_targets.shadowmaps[ 0 ].depth_attachment, Sampler_Shadowmap );
+		pipeline.bind_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
+		pipeline.bind_texture_and_sampler( "u_DecalAtlases", DecalAtlasTextureArray(), Sampler_Standard );
+		AddDynamicsToPipeline( &pipeline );
+		return pipeline;
+	}
+
+	if( material->mask_outlines ) {
+		PipelineState pipeline;
+		pipeline.pass = frame_static.world_opaque_pass;
+		pipeline.shader = &shaders.depth_only;
+		return pipeline;
+	}
+
 	PipelineState pipeline;
 	if( material->blend_func == BlendFunc_Disabled ) {
 		pipeline.pass = material->outlined ? frame_static.nonworld_opaque_outlined_pass : frame_static.nonworld_opaque_pass;
@@ -1127,29 +1128,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 
 	pipeline.bind_texture_and_sampler( "u_BaseTexture", material->texture, Sampler_Standard );
 
-	{
-		u64 hash = Hash64( u64( material ) );
-
-		u64 idx = num_material_static_uniforms;
-		if( !material_static_uniforms_hashtable.get( hash, &idx ) ) {
-			Assert( num_material_static_uniforms < ARRAY_COUNT( material_static_uniforms ) );
-			material_static_uniforms_hashtable.add( hash, num_material_static_uniforms );
-			material_static_uniforms[ idx ] = UploadMaterialStaticUniforms( material->specular, material->shininess );
-			num_material_static_uniforms++;
-		}
-
-		pipeline.bind_uniform( "u_MaterialStatic", material_static_uniforms[ idx ] );
-	}
-
-	if( skinned || gpu_material == NULL ) {
-		pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, tcmod_row0, tcmod_row1 ) );
-	}
-	if( gpu_material != NULL ) {
-		// instanced matrial
-		gpu_material->color = color;
-		gpu_material->tcmod_row0 = tcmod_row0;
-		gpu_material->tcmod_row1 = tcmod_row1;
-	}
+	pipeline.bind_uniform( "u_Material", UploadMaterialUniforms( gpu_material ) );
 
 	if( map_model ) {
 		// TODO: heavy duplication between here and MaterialToPipelineState

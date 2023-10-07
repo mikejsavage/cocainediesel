@@ -26,9 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/q_math.h"
 #include "gameshared/gs_synctypes.h"
 
-//===============================================================
-//		WARSOW player AAboxes sizes
-
 constexpr MinMax3 playerbox_stand = MinMax3( Vec3( -16, -16, -24 ), Vec3( 16, 16, 40 ) );
 constexpr int playerbox_stand_viewheight = 30;
 

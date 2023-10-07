@@ -74,8 +74,6 @@ trace_t MakeMissedTrace( const Ray & ray );
 trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, const Shape & shape, const SyncEntityState * ent, SolidBits solid_mask );
 bool EntityOverlap( const CollisionModelStorage * storage, const SyncEntityState * ent_a, const SyncEntityState * ent_b, SolidBits solid_mask );
 
-constexpr size_t SHG_GRID_SIZE = 64 * 64;
-
 struct SpatialHashBounds {
 	s32 x1, x2;
 	s32 y1, y2;
@@ -92,7 +90,7 @@ struct SpatialHashCell {
 };
 
 struct SpatialHashGrid {
-	SpatialHashCell cells[ SHG_GRID_SIZE ];
+	SpatialHashCell cells[ 64 * 64 ];
 	SpatialHashPrimitive primitives[ MAX_EDICTS ];
 };
 

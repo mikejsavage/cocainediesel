@@ -5,8 +5,6 @@
 
 #include "qcommon/hashtable.h"
 
-static constexpr size_t SHG_CELL_DIMENSIONS[] = { 64, 64, 1024 };
-
 static inline u64 GetCellHash( s32 x, s32 y, s32 z ) {
 	u64 hash;
 	hash = Hash64( &x, sizeof( x ) );
@@ -16,15 +14,17 @@ static inline u64 GetCellHash( s32 x, s32 y, s32 z ) {
 }
 
 static SpatialHashBounds GetSpatialHashBounds( MinMax3 bounds ) {
+	constexpr s32 dimensions[] = { 64, 64, 1024 };
+
 	SpatialHashBounds sbounds;
 
-	sbounds.x1 = s32( bounds.mins.x ) / SHG_CELL_DIMENSIONS[ 0 ];
-	sbounds.y1 = s32( bounds.mins.y ) / SHG_CELL_DIMENSIONS[ 1 ];
-	sbounds.z1 = s32( bounds.mins.z ) / SHG_CELL_DIMENSIONS[ 2 ];
+	sbounds.x1 = s32( bounds.mins.x ) / dimensions[ 0 ];
+	sbounds.y1 = s32( bounds.mins.y ) / dimensions[ 1 ];
+	sbounds.z1 = s32( bounds.mins.z ) / dimensions[ 2 ];
 
-	sbounds.x2 = ( s32( bounds.maxs.x ) - 1 ) / SHG_CELL_DIMENSIONS[ 0 ] + 1;
-	sbounds.y2 = ( s32( bounds.maxs.y ) - 1 ) / SHG_CELL_DIMENSIONS[ 1 ] + 1;
-	sbounds.z2 = ( s32( bounds.maxs.z ) - 1 ) / SHG_CELL_DIMENSIONS[ 2 ] + 1;
+	sbounds.x2 = ( s32( bounds.maxs.x ) - 1 ) / dimensions[ 0 ] + 1;
+	sbounds.y2 = ( s32( bounds.maxs.y ) - 1 ) / dimensions[ 1 ] + 1;
+	sbounds.z2 = ( s32( bounds.maxs.z ) - 1 ) / dimensions[ 2 ] + 1;
 
 	return sbounds;
 }
@@ -42,7 +42,7 @@ static size_t TraverseSpatialHashGridGeneric( const SpatialHashGrid * a, const S
 		for( s32 y = sbounds.y1; y <= sbounds.y2; y++ ) {
 			for( s32 z = sbounds.z1; z <= sbounds.z2; z++ ) {
 				u64 hash = GetCellHash( x, y, z );
-				u64 cell_idx = hash % SHG_GRID_SIZE;
+				u64 cell_idx = hash % ARRAY_COUNT( a->cells );
 				for( size_t i = 0; i < ARRAY_COUNT( &SpatialHashCell::active ); i++ ) {
 					result.active[ i ] |= a->cells[ cell_idx ].active[ i ];
 					if constexpr( Union ) {
@@ -92,7 +92,7 @@ void UnlinkEntity( SpatialHashGrid * grid, u64 entity_id ) {
 		for( s32 y = primitive.sbounds.y1; y <= primitive.sbounds.y2; y++ ) {
 			for( s32 z = primitive.sbounds.z1; z <= primitive.sbounds.z2; z++ ) {
 				u64 hash = GetCellHash( x, y, z );
-				u64 cell_idx = hash % SHG_GRID_SIZE;
+				u64 cell_idx = hash % ARRAY_COUNT( grid->cells );
 				SpatialHashCell & cell = grid->cells[ cell_idx ];
 				cell.active[ entity_id / 64 ] &= ~( 1ULL << ( entity_id % 64 ) );
 			}
@@ -124,7 +124,7 @@ void LinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, 
 		for( s32 y = sbounds.y1; y <= sbounds.y2; y++ ) {
 			for( s32 z = sbounds.z1; z <= sbounds.z2; z++ ) {
 				u64 hash = GetCellHash( x, y, 0 );
-				u64 cell_idx = hash % SHG_GRID_SIZE;
+				u64 cell_idx = hash % ARRAY_COUNT( grid->cells );
 				SpatialHashCell & cell = grid->cells[ cell_idx ];
 				cell.active[ entity_id / 64 ] |= 1ULL << ( entity_id % 64 );
 			}

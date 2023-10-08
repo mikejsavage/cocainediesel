@@ -1,4 +1,4 @@
-/ggbuild/zig/zig
+/ggbuild/zig-*
 /build
 /release
 /build.ninja

@@ -15,6 +15,14 @@ local function copy( t, extra )
 	return res
 end
 
+local zig
+do
+	local f = assert( io.open( "ggbuild/zig_version.txt", "r" ) )
+	local zig_version = assert( f:read( "*all" ) ):gsub( "%s+$", "" )
+	assert( f:close() )
+	zig = "ggbuild/zig-" .. zig_version .. "/zig"
+end
+
 local configs = { }
 
 configs[ "windows" ] = {
@@ -75,8 +83,8 @@ configs[ "linux-tsan" ] = {
 	prebuilt_lib_dir = "linux-debug",
 }
 configs[ "linux-release" ] = {
-	cxx = "ggbuild/zig/zig c++",
-	ar = "ggbuild/zig/zig ar",
+	cxx = zig .. " c++",
+	ar = zig .. " ar",
 
 	cxxflags = "-O2 -DNDEBUG",
 	output_dir = "release/",
@@ -380,18 +388,19 @@ rule bin
 
 printf( [[
 rule bin
+    command = %s build-exe -femit-bin=$out $in -lc -lc++ -fno-PIE $ldflags $extra_ldflags -target x86_64-linux-gnu && objcopy --only-keep-debug $out $out.debug && strip $out
     command = g++ -o $out $in -no-pie -static-libstdc++ $ldflags $extra_ldflags && objcopy --only-keep-debug $out $out.debug && strip $out
     description = $out
 
 rule bin-static
-    command = ggbuild/zig/zig build-exe --name $out $in -lc -lc++ -fno-PIE $ldflags $extra_ldflags -target x86_64-linux-musl -static && objcopy --only-keep-debug $out $out.debug && strip $out
+    command = %s build-exe -femit-bin=$out $in -lc -lc++ -fno-PIE $ldflags $extra_ldflags -target x86_64-linux-musl -static && objcopy --only-keep-debug $out $out.debug && strip $out
     description = $out
 
-rule ungzip
-    command = gzip --decompress --force --keep $in
+rule zig
+    command = ggbuild/download_zig.sh
 
-build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
-]] )
+build %s: zig ggbuild/download_zig.sh
+]], zig, zig, zig )
 
 		end
 	end
@@ -413,7 +422,7 @@ build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
 	end
 
 	for src_name, cfg in sort_by_key( objs ) do
-		printf( "build %s/%s%s: cpp %s | %s", dir, src_name, obj_suffix, src_name, can_static_link and "ggbuild/zig/zig" or "" )
+		printf( "build %s/%s%s: cpp %s | %s", dir, src_name, obj_suffix, src_name, can_static_link and zig or "" )
 		if cfg.cxxflags then
 			printf( "    cxxflags = %s", cfg.cxxflags )
 		end
@@ -445,7 +454,7 @@ build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
 			( can_static_link and not cfg.no_static_link ) and "bin-static" or "bin",
 			join_srcs( srcs ),
 			join_libs( cfg.libs ),
-			( can_static_link and not cfg.no_static_link ) and "ggbuild/zig/zig" or ""
+			( can_static_link and not cfg.no_static_link ) and zig or ""
 		)
 
 		local ldflags_key = OS .. "_ldflags"

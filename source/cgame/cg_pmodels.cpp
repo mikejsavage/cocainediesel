@@ -788,7 +788,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 	Vec4 color = CG_TeamColorVec4( cent->current.team );
 	if( corpse ) {
-		color *= Vec4( 0.25f, 0.25f, 0.25f, 1.0 );
+		color *= Vec4( 0.25f, 0.25f, 0.25f, 1.0f );
 	}
 
 	bool draw_model = !ISVIEWERENTITY( cent->current.number ) || cg.view.thirdperson;

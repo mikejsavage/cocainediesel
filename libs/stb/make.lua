@@ -3,7 +3,7 @@ obj_cxxflags( "libs/stb/stb_image.cpp", "-DSTBI_NO_BMP -DSTBI_NO_GIF -DSTBI_NO_H
 msvc_obj_cxxflags( "libs/stb/stb_image.cpp", "/O2 /wd4244 /wd4456" )
 
 lib( "stb_image_resize", { "libs/stb/stb_image_resize2.cpp" } )
-obj_cxxflags( "libs/stb/stb_image_resize2.cpp", "-mavx2 -mf16c -DSTBIR_USE_FMA" )
+obj_cxxflags( "libs/stb/stb_image_resize2.cpp", "-mavx2 -mf16c -mfma -DSTBIR_USE_FMA" )
 msvc_obj_cxxflags( "libs/stb/stb_image_resize2.cpp", "/arch:AVX2 -DSTBIR_USE_FMA" )
 
 lib( "stb_image_write", { "libs/stb/stb_image_write.cpp" } )

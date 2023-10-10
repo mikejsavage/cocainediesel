@@ -8,7 +8,7 @@
 #include "rgbcx/rgbcx.h"
 
 #include "stb/stb_image.h"
-#include "stb/stb_image_resize.h"
+#include "stb/stb_image_resize2.h"
 
 #include "zstd/zstd.h"
 
@@ -101,13 +101,13 @@ int main( int argc, char ** argv ) {
 		u32 mip_w, mip_h;
 		MipDims( &mip_w, &mip_h, w, h, i );
 
-		int ok = stbir_resize_uint8(
+		u8 * ok = stbir_resize_uint8_linear(
 			alpha_channel, w, h, 0,
 			resized, mip_w, mip_h, 0,
-			1
+			STBIR_1CHANNEL
 		);
 
-		if( ok == 0 ) {
+		if( ok == NULL ) {
 			Fatal( "stb_image_resize died lol" );
 		}
 

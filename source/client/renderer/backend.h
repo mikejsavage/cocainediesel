@@ -186,7 +186,6 @@ UniformBlock UploadUniforms( const void * data, size_t size );
 
 GPUBuffer NewGPUBuffer( const void * data, u32 size, const char * name = NULL );
 GPUBuffer NewGPUBuffer( u32 size, const char * name = NULL );
-void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 size, u32 offset = 0 );
 void DeleteGPUBuffer( GPUBuffer buf );
 void DeferDeleteGPUBuffer( GPUBuffer buf );
 
@@ -198,11 +197,6 @@ void DeferDeleteStreamingBuffer( StreamingBuffer buf );
 template< typename T >
 GPUBuffer NewGPUBuffer( Span< T > data, const char * name = NULL ) {
 	return NewGPUBuffer( data.ptr, data.num_bytes(), name );
-}
-
-template< typename T >
-void WriteGPUBuffer( GPUBuffer buf, Span< T > data, u32 offset = 0 ) {
-	WriteGPUBuffer( buf, data.ptr, data.num_bytes(), offset );
 }
 
 Sampler NewSampler( const SamplerConfig & config );

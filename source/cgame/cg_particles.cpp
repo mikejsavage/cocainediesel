@@ -11,18 +11,25 @@
 
 #include "imgui/imgui.h"
 
-constexpr u32 MAX_PARTICLE_SYSTEMS = 512;
-constexpr u32 MAX_PARTICLE_EMITTERS = 512;
-constexpr u32 MAX_PARTICLE_EMITTER_EVENTS = 8;
-constexpr u32 MAX_PARTICLE_EMITTER_MATERIALS = 16;
+// TODO: WriteGPUBuffer is always wrong but fixing it here is non-trivial
+// we should write new particles to a coherent buffer and perform the CPU->GPU
+// copy in the update shader
+// similarly we should clear particles by making it part of the update step
+// rather than zeroing out a buffer that may or may not be in use
+void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 size, u32 offset = 0 );
 
-constexpr u32 MAX_DECAL_EMITTERS = 512;
-constexpr u32 MAX_DECAL_EMITTER_MATERIALS = 8;
+static constexpr u32 MAX_PARTICLE_SYSTEMS = 512;
+static constexpr u32 MAX_PARTICLE_EMITTERS = 512;
+static constexpr u32 MAX_PARTICLE_EMITTER_EVENTS = 8;
+static constexpr u32 MAX_PARTICLE_EMITTER_MATERIALS = 16;
 
-constexpr u32 MAX_DLIGHT_EMITTERS = 512;
+static constexpr u32 MAX_DECAL_EMITTERS = 512;
+static constexpr u32 MAX_DECAL_EMITTER_MATERIALS = 8;
 
-constexpr u32 MAX_VISUAL_EFFECT_GROUPS = 512;
-constexpr u32 MAX_VISUAL_EFFECTS = 16;
+static constexpr u32 MAX_DLIGHT_EMITTERS = 512;
+
+static constexpr u32 MAX_VISUAL_EFFECT_GROUPS = 512;
+static constexpr u32 MAX_VISUAL_EFFECTS = 16;
 
 struct GPUParticle {
 	Vec3 position;

@@ -17,10 +17,9 @@ constexpr u32 MAX_INSTANCE_GROUPS = 512;
 
 template< typename T >
 struct ModelInstanceGroup {
-	T instances[ MAX_INSTANCES ];
 	u32 num_instances;
 	PipelineState pipeline;
-	GPUBuffer instance_data;
+	StreamingBuffer instance_data;
 	Mesh mesh;
 };
 
@@ -28,7 +27,6 @@ template< typename T >
 struct ModelInstanceCollection {
 	ModelInstanceGroup< T > groups[ MAX_INSTANCE_GROUPS ];
 	Hashtable< MAX_INSTANCE_GROUPS * 2 > groups_hashtable;
-	u32 num_groups;
 };
 
 struct GPUModelInstance {
@@ -641,17 +639,28 @@ static void DrawVfxNode( DrawModelConfig::DrawModel config, const GLTFRenderData
 
 template< typename T >
 static void AddInstanceToCollection( ModelInstanceCollection< T > & collection, const Mesh & mesh, const PipelineState & pipeline, T & instance, u64 hash ) {
-	u64 idx = collection.num_groups;
+	u64 idx = collection.groups_hashtable.size();
 	if( !collection.groups_hashtable.get( hash, &idx ) ) {
-		Assert( collection.num_groups < ARRAY_COUNT( collection.groups ) );
-		collection.groups_hashtable.add( hash, collection.num_groups );
+		if( collection.groups_hashtable.size() == ARRAY_COUNT( collection.groups ) ) {
+			Com_Printf( S_COLOR_YELLOW "Too many instancing groups!\n" );
+			return;
+		}
+
+		collection.groups_hashtable.add( hash, idx );
 		collection.groups[ idx ].pipeline = pipeline;
 		collection.groups[ idx ].mesh = mesh;
-		collection.num_groups++;
 	}
 
-	Assert( collection.groups[ idx ].num_instances < ARRAY_COUNT( collection.groups[ idx ].instances ) );
-	collection.groups[ idx ].instances[ collection.groups[ idx ].num_instances++ ] = instance;
+	ModelInstanceGroup< T > * group = &collection.groups[ idx ];
+
+	if( group->num_instances == MAX_INSTANCES ) {
+		Com_Printf( S_COLOR_YELLOW "Too many instanced draws!\n" );
+		return;
+	}
+
+	T * instances = ( T * ) GetStreamingBufferMemory( group->instance_data );
+	instances[ group->num_instances ] = instance;
+	group->num_instances++;
 }
 
 static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh, bool skinned, PipelineState pipeline, Mat4 & transform, GPUMaterial gpu_material ) {
@@ -819,42 +828,38 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 	}
 }
 
+template< typename T >
+static void InitModelInstanceGroup( ModelInstanceGroup< T > * group ) {
+       group->instance_data = NewStreamingBuffer( MAX_INSTANCES * sizeof( T ) );
+}
+
 void InitGLTFInstancing() {
 	TracyZoneScoped;
 	for( u32 i = 0; i < MAX_INSTANCE_GROUPS; i++ ) {
-		model_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelInstance ) * MAX_INSTANCES );
-		model_instance_collection.num_groups = 0;
-
-		model_shadows_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelShadowsInstance ) * MAX_INSTANCES );
-		model_shadows_instance_collection.num_groups = 0;
-
-		model_outlines_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelOutlinesInstance ) * MAX_INSTANCES );
-		model_outlines_instance_collection.num_groups = 0;
-
-		model_silhouette_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelSilhouetteInstance ) * MAX_INSTANCES );
-		model_silhouette_instance_collection.num_groups = 0;
+		InitModelInstanceGroup( &model_instance_collection.groups[ i ] );
+		InitModelInstanceGroup( &model_shadows_instance_collection.groups[ i ] );
+		InitModelInstanceGroup( &model_outlines_instance_collection.groups[ i ] );
+		InitModelInstanceGroup( &model_silhouette_instance_collection.groups[ i ] );
 	}
 }
 
 void ShutdownGLTFInstancing() {
 	for( u32 i = 0; i < MAX_INSTANCE_GROUPS; i++ ) {
-		DeleteGPUBuffer( model_instance_collection.groups[ i ].instance_data );
-		DeleteGPUBuffer( model_shadows_instance_collection.groups[ i ].instance_data );
-		DeleteGPUBuffer( model_outlines_instance_collection.groups[ i ].instance_data );
-		DeleteGPUBuffer( model_silhouette_instance_collection.groups[ i ].instance_data );
+		DeleteStreamingBuffer( model_instance_collection.groups[ i ].instance_data );
+		DeleteStreamingBuffer( model_shadows_instance_collection.groups[ i ].instance_data );
+		DeleteStreamingBuffer( model_outlines_instance_collection.groups[ i ].instance_data );
+		DeleteStreamingBuffer( model_silhouette_instance_collection.groups[ i ].instance_data );
 	}
 }
 
 template< typename T >
 static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collection ) {
-	for( u32 i = 0; i < collection.num_groups; i++ ) {
+	for( u32 i = 0; i < collection.groups_hashtable.size(); i++ ) {
 		ModelInstanceGroup< T > & group = collection.groups[ i ];
-		WriteGPUBuffer( group.instance_data, group.instances, sizeof( T ) * group.num_instances );
-		group.pipeline.bind_buffer( "b_Instances", group.instance_data );
+		group.pipeline.bind_streaming_buffer( "b_Instances", group.instance_data );
 		DrawInstancedMesh( group.mesh, group.pipeline, group.num_instances );
 		group.num_instances = 0;
 	}
-	collection.num_groups = 0;
 	collection.groups_hashtable.clear();
 }
 

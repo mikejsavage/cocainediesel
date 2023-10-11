@@ -325,14 +325,12 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	DeleteParticleSystem( a, ps );
 
 	ps->particles = AllocSpan< GPUParticle >( a, ps->max_particles );
-	ps->gpu_particles1 = NewGPUBuffer( ps->max_particles * sizeof( GPUParticle ), "particles flip" );
-	ps->gpu_particles2 = NewGPUBuffer( ps->max_particles * sizeof( GPUParticle ), "particles flop" );
+	ps->gpu_particles1 = NewGPUBuffer( NULL, ps->max_particles * sizeof( GPUParticle ), GPUBuffer_Writeable, "particles flip" );
+	ps->gpu_particles2 = NewGPUBuffer( NULL, ps->max_particles * sizeof( GPUParticle ), GPUBuffer_Writeable, "particles flop" );
 
-	u32 count = 0;
-	ps->compute_count1 = NewGPUBuffer( sizeof( u32 ), "compute_count flip" );
-	WriteGPUBuffer( ps->compute_count1, &count, sizeof( u32 ) );
-	ps->compute_count2 = NewGPUBuffer( sizeof( u32 ), "compute_count flop" );
-	WriteGPUBuffer( ps->compute_count2, &count, sizeof( u32 ) );
+	u32 zero = 0;
+	ps->compute_count1 = NewGPUBuffer( &zero, sizeof( u32 ), GPUBuffer_Writeable, "compute_count flip" );
+	ps->compute_count2 = NewGPUBuffer( &zero, sizeof( u32 ), GPUBuffer_Writeable, "compute_count flop" );
 
 	u32 counts[] = { 1, 1, 1 };
 	ps->compute_indirect = NewGPUBuffer( counts, sizeof( counts ), "compute_indirect" );
@@ -1148,9 +1146,9 @@ void ClearParticles() {
 			ParticleSystem * ps = &particleSystems[ i ];
 			ps->new_particles = 0;
 
-			u32 count = 0;
-			WriteGPUBuffer( ps->compute_count1, &count, sizeof( count ) );
-			WriteGPUBuffer( ps->compute_count2, &count, sizeof( count ) );
+			u32 zero = 0;
+			WriteGPUBuffer( ps->compute_count1, &zero, sizeof( zero ) );
+			WriteGPUBuffer( ps->compute_count2, &zero, sizeof( zero ) );
 		}
 	}
 }

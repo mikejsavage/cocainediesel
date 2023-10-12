@@ -915,7 +915,7 @@ static int LuauGetClockTime( lua_State * L ) {
 			clocktime = Max2( curtime - startTime, zero );
 		}
 	}
-	lua_pushnumber( L, clocktime * 0.001 );
+	lua_pushnumber( L, clocktime );
 	return 1;
 }
 

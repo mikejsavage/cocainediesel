@@ -53,9 +53,13 @@ local function DrawTopInfo( state )
 			end
 
 			local testPosY = state.viewport_height * 0.012
-			cd.text( options, posX - state.viewport_height * 0.025, testPosY, string.format( "%d:%02i", minutes, seconds ) )
+
+			options.alignment = "right top"
+			cd.text( options, posX + posX * 0.019, testPosY, string.format( "%d:%02i", minutes, seconds ) )
+			
 			options.font_size /= 2;
-			cd.text( options, posX + state.viewport_height * 0.025, testPosY + options.font_size * 0.6, string.format( ".%03i", milliseconds ))
+			options.alignment = "left top"
+			cd.text( options, posX + posX * 0.023, testPosY + options.font_size * 0.6, string.format( ".%03i", milliseconds ))
 		elseif state.gametype == Gametype_Bomb then
 			local size = state.viewport_height * 0.055
 			cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, "#fff", assets.bomb )

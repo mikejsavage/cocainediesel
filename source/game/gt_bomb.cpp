@@ -1001,10 +1001,6 @@ static void Bomb_PlayerRespawned( edict_t * ent, Team old_team, Team new_team ) 
 		return;
 	}
 
-	if( match_state == MatchState_Warmup ) {
-		G_RespawnEffect( ent );
-	}
-
 	if( round_state == RoundState_Countdown ) {
 		DisableMovementFor( PLAYERNUM( ent ) );
 	}

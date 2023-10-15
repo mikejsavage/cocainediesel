@@ -356,7 +356,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		edict_t * ev = G_SpawnEvent( EV_RESPAWN, 0, NULL );
 		ev->s.svflags |= SVF_ONLYOWNER;
 		ev->s.ownerNum = ENTNUM( self );
-
 	}
 	else {
 		G_ChasePlayer( self );
@@ -378,6 +377,10 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	}
 
 	GT_CallPlayerRespawned( self, old_team, self->s.team );
+
+	if( !ghost ) {
+		G_RespawnEffect( self );
+	}
 }
 
 bool G_PlayerCanTeleport( edict_t *player ) {

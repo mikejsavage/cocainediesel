@@ -316,7 +316,6 @@ static void Gladiator_PlayerRespawned( edict_t * ent, Team old_team, Team new_te
 	}
 	else {
 		ent->r.client->ps.can_change_loadout = true;
-		G_RespawnEffect( ent );
 	}
 }
 

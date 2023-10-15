@@ -524,7 +524,6 @@ void CG_JetpackEffect( centity_t * cent ) {
 			PlayEntityOrFirstPersonSFX( "perks/jetpack/stop", cent->current.number, volume );
 		}
 		cent->localEffects[ LOCALEFFECT_JETPACK ] = 0;
-		cent->jetpack_sound = PlayImmediateSFX( "perks/jetpack/idle", cent->jetpack_sound, PlaySFXConfigEntity( cent->current.number ) );
 		return;
 	}
 

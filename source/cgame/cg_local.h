@@ -86,6 +86,7 @@ struct centity_t {
 	bool jetpack_boost;
 	PlayingSFXHandle jetpack_sound;
 
+	PlayingSFXHandle playing_idle_sound;
 	PlayingSFXHandle playing_body_sound;
 	PlayingSFXHandle playing_vsay;
 	PlayingSFXHandle playing_reload;

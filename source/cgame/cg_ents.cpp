@@ -596,6 +596,18 @@ void CG_EntityLoopSound( centity_t * cent, SyncEntityState * state ) {
 	cent->sound = PlayImmediateSFX( state->sound, cent->sound, PlaySFXConfigEntity( state->number ) );
 }
 
+static void PerkIdleSounds( centity_t * cent, SyncEntityState * state ) {
+	if( state->perk == Perk_Jetpack ) {
+		cent->playing_idle_sound = PlayImmediateSFX( "perks/jetpack/idle", cent->playing_idle_sound, PlaySFXConfigEntity( cent->current.number ) );
+	} else if( state->perk == Perk_Wheel ) {
+		PlaySFXConfig cfg = PlaySFXConfigEntity( cent->current.number );
+		float speed = Length( cent->velocity.xy() );
+		cfg.pitch = 0.65f + speed * 0.0015f;
+		cfg.volume = 0.25f + speed * 0.001f; 
+		cent->playing_idle_sound = PlayImmediateSFX( "perks/wheel/idle", cent->playing_idle_sound, cfg );
+	}
+}
+
 static void DrawEntityTrail( const centity_t * cent, StringHash name ) {
 	// didn't move
 	Vec3 vec = cent->interpolated.origin - cent->trailOrigin;
@@ -702,6 +714,7 @@ void DrawEntities() {
 				CG_EntityLoopSound( cent, state );
 				CG_LaserBeamEffect( cent );
 				CG_JetpackEffect( cent );
+				PerkIdleSounds( cent, state );
 				break;
 
 			case ET_CORPSE:

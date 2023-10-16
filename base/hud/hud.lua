@@ -6,6 +6,14 @@ local function hotkeys( state )
 	return state.show_hotkeys and state.chasing == NOT_CHASING
 end
 
+local function Override( t, overrides )
+	local t2 = table.clone( t ) -- note that this is a shallow copy
+	for k, v in pairs( overrides ) do
+		t2[ k ] = v
+	end
+	return t2
+end
+
 local function DrawTopInfo( state )
 	local options = {
 		color = "#ffff",
@@ -55,11 +63,11 @@ local function DrawTopInfo( state )
 			local testPosY = state.viewport_height * 0.012
 
 			options.alignment = "right top"
-			cd.text( options, posX + posX * 0.019, testPosY, string.format( "%d:%02i", minutes, seconds ) )
-			
-			options.font_size /= 2;
+			cd.text( options, posX + posX * 0.028, testPosY, string.format( "%d:%02i", minutes, seconds ) )
+
 			options.alignment = "left top"
-			cd.text( options, posX + posX * 0.023, testPosY + options.font_size * 0.6, string.format( ".%03i", milliseconds ))
+			local ms_options = Override( options, { font_size = options.font_size / 2 } )
+			cd.text( ms_options, posX + posX * 0.032, testPosY + options.font_size * 0.3, string.format( ".%03i", milliseconds ))
 		elseif state.gametype == Gametype_Bomb then
 			local size = state.viewport_height * 0.055
 			cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, "#fff", assets.bomb )

@@ -571,7 +571,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.model, baseline.model );
 	Delta( buf, ent.material, baseline.material );
 	Delta( buf, ent.color, baseline.color );
-	Delta( buf, ent.svflags, baseline.svflags );
+	DeltaBitfieldEnum( buf, ent.svflags, baseline.svflags, EntityFlags( U16_MAX ) );
 	Delta( buf, ent.effects, baseline.effects );
 	Delta( buf, ent.ownerNum, baseline.ownerNum );
 	Delta( buf, ent.sound, baseline.sound );

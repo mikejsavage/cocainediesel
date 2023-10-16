@@ -6,18 +6,18 @@ enum SolidBits : u16 {
 	Solid_NotSolid = 0,
 
 	// useful to stop the bomb etc falling through the floor without also blocking movement/shots
-	Solid_World = ( 1 << 0 ),
+	Solid_World = 1 << 0,
 
-	Solid_PlayerClip = ( 1 << 1 ),
-	Solid_WeaponClip = ( 1 << 2 ),
-	Solid_Wallbangable = ( 1 << 3 ),
-	Solid_Ladder = ( 1 << 4 ),
-	Solid_Trigger = ( 1 << 5 ),
+	Solid_PlayerClip = 1 << 1,
+	Solid_WeaponClip = 1 << 2,
+	Solid_Wallbangable = 1 << 3,
+	Solid_Ladder = 1 << 4,
+	Solid_Trigger = 1 << 5,
 
-	Solid_PlayerTeamOne = ( 1 << 6 ),
-	Solid_PlayerTeamTwo = ( 1 << 7 ),
-	Solid_PlayerTeamThree = ( 1 << 8 ),
-	Solid_PlayerTeamFour = ( 1 << 9 ),
+	Solid_PlayerTeamOne = 1 << 6,
+	Solid_PlayerTeamTwo = 1 << 7,
+	Solid_PlayerTeamThree = 1 << 8,
+	Solid_PlayerTeamFour = 1 << 9,
 
 	Solid_MaskGenerator
 };

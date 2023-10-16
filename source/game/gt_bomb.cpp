@@ -210,7 +210,7 @@ static void SpawnBombSite( edict_t * ent ) {
 	site->hud->s.type = ET_BOMB_SITE;
 	site->hud->s.solidity = Solid_NotSolid;
 	site->hud->s.origin = bomb_state.sites[ i ].indicator->s.origin;
-	site->hud->s.svflags = 0;
+	site->hud->s.svflags = EntityFlags( 0 );
 	site->hud->s.site_letter = letter;
 	GClip_LinkEntity( site->hud );
 
@@ -607,32 +607,43 @@ static bool BombCanPlant() {
 }
 
 static void BombGiveToRandom() {
-	const int total_num_players = server_gs.gameState.teams[ AttackingTeam() ].num_players;
+	int total_num_players = server_gs.gameState.teams[ AttackingTeam() ].num_players;
 	int num_bots = 0;
 	int num_players = total_num_players;
 	for( int i = 0; i < total_num_players; i++ ) {
 		s32 player_num = server_gs.gameState.teams[ AttackingTeam() ].player_indices[ i ] - 1;
 		edict_t * ent = PLAYERENT( player_num );
 		if( ent->s.type == ET_GHOST ) {
+			G_DebugPrint( "BombGiveToRandom: %s spectating", server_gs.gameState.players[ PLAYERNUM( ent ) ] );
 			num_players--;
-		} else if( ( ent->s.svflags & SVF_FAKECLIENT ) != 0 ) {
+		}
+		else if( HasAnyBit( ent->s.svflags, SVF_FAKECLIENT ) ) {
+			G_DebugPrint( "BombGiveToRandom: %s bot", server_gs.gameState.players[ PLAYERNUM( ent ) ] );
 			num_bots++;
 		}
 	}
 
 	bool all_bots = num_bots == num_players;
 	s32 carrier = RandomUniform( &svs.rng, 0, all_bots ? num_players : num_players - num_bots );
+	G_DebugPrint( "BombGiveToRandom: picked %d", carrier );
 	s32 seen = 0;
 
 	for( int i = 0; i < total_num_players; i++ ) {
-		s32 player_num = server_gs.gameState.teams[ AttackingTeam() ].player_indices[ i ] - 1;
-		edict_t * ent = PLAYERENT( player_num );
-		if( ent->s.type != ET_GHOST && (all_bots || ( ent->s.svflags & SVF_FAKECLIENT ) == 0) ) {
+		edict_t * ent = &game.edicts[ server_gs.gameState.teams[ AttackingTeam() ].player_indices[ i ] ];
+		s32 player_num = PLAYERNUM( ent );
+		if( ent->s.type != ET_GHOST && ( all_bots || !HasAnyBit( ent->s.svflags, SVF_FAKECLIENT ) ) ) {
 			if( seen == carrier ) {
+				G_DebugPrint( "BombGiveToRandom: picked %s", server_gs.gameState.players[ player_num ] );
 				BombSetCarrier( player_num, true );
 				break;
 			}
+			else {
+				G_DebugPrint( "BombGiveToRandom: %s (%d) wasn't it", server_gs.gameState.players[ PLAYERNUM( ent ) ], seen );
+			}
 			seen++;
+		}
+		else {
+			G_DebugPrint( "BombGiveToRandom: %s doesn't count at all", server_gs.gameState.players[ PLAYERNUM( ent ) ] );
 		}
 	}
 }

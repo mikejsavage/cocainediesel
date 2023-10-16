@@ -75,7 +75,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	body->s.team = ent->s.team;
 	body->s.perk = ent->s.perk;
 	body->s.scale = ent->s.scale;
-	body->s.svflags = 0;
+	body->s.svflags = EntityFlags( 0 );
 	body->s.mask = ent->s.mask;
 	body->activator = ent;
 	body->enemy = attacker;
@@ -280,7 +280,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	client->resp.timeStamp = level.time;
 	client->ps.playerNum = PLAYERNUM( self );
 
-	int old_svflags = self->s.svflags;
+	EntityFlags old_svflags = self->s.svflags;
 	G_InitEdict( self );
 	self->s.svflags = old_svflags;
 
@@ -601,7 +601,7 @@ bool ClientConnect( edict_t *ent, char *userinfo, const NetAddress & address, bo
 	G_InitEdict( ent );
 	ent->s.solidity = Solid_NotSolid;
 	ent->r.client = game.clients + PLAYERNUM( ent );
-	ent->s.svflags = ( SVF_NOCLIENT | ( fakeClient ? SVF_FAKECLIENT : 0 ) );
+	ent->s.svflags = EntityFlags( SVF_NOCLIENT | ( fakeClient ? SVF_FAKECLIENT : 0 ) );
 	memset( ent->r.client, 0, sizeof( gclient_t ) );
 	ent->r.client->ps.playerNum = PLAYERNUM( ent );
 	ent->r.client->connecting = true;

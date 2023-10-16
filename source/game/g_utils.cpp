@@ -575,7 +575,7 @@ void G_LocalSound( edict_t * owner, StringHash sound ) {
 
 	edict_t * ent = _G_SpawnSound( sound );
 	ent->s.ownerNum = ENTNUM( owner );
-	ent->s.svflags |= SVF_ONLYOWNER | SVF_BROADCAST;
+	ent->s.svflags |= EntityFlags( SVF_ONLYOWNER | SVF_BROADCAST );
 
 	GClip_LinkEntity( ent );
 }

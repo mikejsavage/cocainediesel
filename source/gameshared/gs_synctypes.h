@@ -346,11 +346,28 @@ struct EntityID {
 	u64 id;
 };
 
+enum EntityFlags : u16 {
+	SVF_NOCLIENT         = 1 << 0, // don't send entity to clients, even if it has effects
+	SVF_SOUNDCULL        = 1 << 1, // distance culling
+	SVF_FAKECLIENT       = 1 << 2, // do not try to send anything to this client
+	SVF_BROADCAST        = 1 << 3, // global sound
+	SVF_ONLYTEAM         = 1 << 4, // this entity is only transmited to clients with the same ent->s.team value
+	SVF_FORCEOWNER       = 1 << 5, // this entity forces the entity at s.ownerNum to be included in the snapshot
+	SVF_ONLYOWNER        = 1 << 6, // this entity is only transmitted to its owner
+	SVF_OWNERANDCHASERS  = 1 << 7, // this entity is only transmitted to its owner and people spectating them
+	SVF_FORCETEAM        = 1 << 8, // this entity is always transmitted to clients with the same ent->s.team value
+	SVF_NEVEROWNER       = 1 << 9, // this entity is tramitted to everyone but its owner
+};
+
+void operator&=( EntityFlags & lhs, EntityFlags rhs );
+void operator|=( EntityFlags & lhs, EntityFlags rhs );
+EntityFlags operator~( EntityFlags x );
+
 struct SyncEntityState {
 	int number;
 	EntityID id;
 
-	unsigned int svflags;
+	EntityFlags svflags;
 
 	EntityType type;
 

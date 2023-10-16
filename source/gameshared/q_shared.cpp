@@ -721,6 +721,18 @@ void operator++( PerkType & x, int ) {
 	x = PerkType( T( x ) + 1 );
 }
 
+void operator&=( EntityFlags & lhs, EntityFlags rhs ) {
+	lhs = EntityFlags( lhs & rhs );
+}
+
+void operator|=( EntityFlags & lhs, EntityFlags rhs ) {
+	lhs = EntityFlags( lhs | rhs );
+}
+
+EntityFlags operator~( EntityFlags x ) {
+	return EntityFlags( ~u16( x ) );
+}
+
 void operator|=( UserCommandButton & lhs, UserCommandButton rhs ) {
 	lhs = UserCommandButton( lhs | rhs );
 }

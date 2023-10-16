@@ -1,6 +1,6 @@
 #include "gameshared/movement.h"
 
-static constexpr float wallclimbspeed = 200.0f;
+static constexpr float wallclimbspeed = 250.0f;
 
 static constexpr float jumpspeed = 280.0f;
 

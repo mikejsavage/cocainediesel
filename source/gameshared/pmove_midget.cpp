@@ -16,8 +16,10 @@ static constexpr float climbfriction = 5.0f;
 
 static constexpr float stamina_use = 0.15f;
 static constexpr float stamina_use_moving = 0.3f;
-static constexpr float stamina_usewj = 0.5f;
+static constexpr float stamina_usewj = 0.2f;
 static constexpr float stamina_recover = 1.0f;
+
+static constexpr float wj_cooldown = 0.05f;
 
 static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
 	if( !StaminaAvailable( ps, pml, stamina_use ) ) {
@@ -39,23 +41,27 @@ static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Sy
 }
 
 static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
+	ps->pmove.jump_buffering = Max2( 0.0f, ps->pmove.jump_buffering - pml->frametime );
 
-	ps->pmove.stamina_state = Stamina_Normal;
+	if( pm->groundentity != -1 ) {
+		ps->pmove.stamina_state = Stamina_Normal;
+	}
 
 	if( !pressed ) {
+		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;
 		return;
 	}
 
 	if( pm->groundentity == -1 ) {
-		if ( ps->pmove.pm_flags & PMF_CLIMBING ) {
-			Walljump( pm, pml, pmove_gs, ps, jumpupspeed, dashupspeed, dashspeed, wjupspeed, wjbouncefactor, stamina_usewj, stamina_recover );
-			ps->pmove.pm_flags &= ~PMF_CLIMBING;
-			ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
+		if( (ps->pmove.pm_flags & PMF_ABILITY2_HELD) && !(ps->pmove.pm_flags & PMF_ABILITY1_HELD) ) {
+			Walljump( pm, pml, pmove_gs, ps, jumpupspeed, dashupspeed, dashspeed, wjupspeed, wjbouncefactor );
+			ps->pmove.jump_buffering = wj_cooldown;
+			ps->pmove.pm_flags |= PMF_ABILITY1_HELD;
 		}
-		return;
+	} else {
+		Jump( pm, pml, pmove_gs, ps, jumpupspeed, true );
+		ps->pmove.pm_flags |= PMF_ABILITY1_HELD;
 	}
-
-	Jump( pm, pml, pmove_gs, ps, jumpupspeed, true );
 }
 
 static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
@@ -71,7 +77,7 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 		return;
 	}
 
-	if( pressed && CanClimb( pm, pml, pmove_gs, ps ) ) {
+	if( pressed && CanClimb( pm, pml, pmove_gs, ps ) && ps->pmove.jump_buffering == 0.f ) {
 		pml->ladder = Ladder_Fake;
 		pml->groundFriction = climbfriction;
 
@@ -80,7 +86,6 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 
 		ps->pmove.stamina_state = Stamina_UsingAbility;
 		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
-		ps->pmove.pm_flags |= PMF_CLIMBING;
 
 		if( wishvel == Vec3( 0.0f ) ) {
 			StaminaUse( ps, pml, stamina_use );

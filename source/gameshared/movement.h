@@ -52,7 +52,7 @@ void PM_InitPerk( pmove_t * pm, pml_t * pml, PerkType perk,
 
 void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed, bool addvel );
 void Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir, float dash_speed, float dash_upspeed );
-void Walljump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpupspeed, float dashupspeed, float dashspeed, float wjupspeed, float wjbouncefactor, float stamina_usewj, float stamina_recover );
+bool Walljump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpupspeed, float dashupspeed, float dashspeed, float wjupspeed, float wjbouncefactor );
 
 
 

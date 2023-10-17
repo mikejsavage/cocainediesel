@@ -32,10 +32,15 @@ static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 
 
 static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	if( !StaminaAvailableImmediate( ps, stamina_usewj ) || ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
+	if( !StaminaAvailableImmediate( ps, stamina_usewj ) || (ps->pmove.pm_flags & PMF_ABILITY2_HELD) )
 		return;
+
+	if( Walljump( pm, pml, pmove_gs, ps, jumpupspeed, dashupspeed, dashspeed, wjupspeed, wjbouncefactor ) ) {
+		StaminaUseImmediate( ps, stamina_usewj );
+
+		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
+		ps->pmove.stamina_state = Stamina_UsedAbility;
 	}
-	Walljump( pm, pml, pmove_gs, ps, jumpupspeed, dashupspeed, dashspeed, wjupspeed, wjbouncefactor, stamina_usewj, stamina_recover );
 }
 
 
@@ -46,7 +51,6 @@ static void PM_HooliganDash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		pml->forwardPush = dashspeed;
 	}
 
-	ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
 	Dash( pm, pml, pmove_gs, dashdir, dashspeed, dashupspeed );
 }
 

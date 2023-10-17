@@ -2,8 +2,8 @@
 #include "gameshared/gs_weapons.h"
 
 static constexpr float jumpupspeed = 260.0f;
-static constexpr float dashupspeed = 160.0f;
-static constexpr float dashspeed = 550.0f;
+static constexpr float dashupspeed = 150.0f;
+static constexpr float dashspeed = 625.0f;
 
 static constexpr float wjupspeed = 371.875f;
 static constexpr float wjbouncefactor = 0.4f;

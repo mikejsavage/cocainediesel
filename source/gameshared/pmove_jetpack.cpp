@@ -2,22 +2,22 @@
 #include "gameshared/gs_weapons.h"
 
 
-static constexpr float pm_jumpspeed = 220.0f;
+static constexpr float pm_jumpspeed = 230.0f;
 static constexpr float jump_detection = 0.06f; //slight jump buffering
 
 static constexpr float pm_jetpackspeed = 25.0f * 62.0f;
 static constexpr float pm_maxjetpackupspeed = 82.0f;
-static constexpr float pm_maxjetpackupspeedslowdown = 0.75f;
+static constexpr float pm_maxjetpackupspeedslowdown = 0.70f;
 
-static constexpr float pm_boostspeed = 7.45f * 62.0f;
+static constexpr float pm_boostspeed = 9.0f * 62.0f;
 static constexpr float pm_boostupspeed = 15.0f * 62.0f;
 
-static constexpr float fuel_use_jetpack = 0.125f;
-static constexpr float fuel_use_boost = 0.45f;
+static constexpr float fuel_use_jetpack = 0.1f;
+static constexpr float fuel_use_boost = 0.4f;
 static constexpr float fuel_min = 0.01f;
 
 static constexpr float refuel_min = 0.1f; //50%
-static constexpr float refuel_ground = 0.75f;
+static constexpr float refuel_ground = 0.8f;
 static constexpr float refuel_air = 0.0f;
 
 

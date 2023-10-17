@@ -49,6 +49,7 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 	if( pm->groundentity == -1 ) {
 		if ( ps->pmove.pm_flags & PMF_CLIMBING ) {
 			Walljump( pm, pml, pmove_gs, ps, jumpupspeed, dashupspeed, dashspeed, wjupspeed, wjbouncefactor, stamina_usewj, stamina_recover );
+			ps->pmove.pm_flags &= ~PMF_CLIMBING;
 			ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 		}
 		return;

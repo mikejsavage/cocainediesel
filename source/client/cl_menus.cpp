@@ -1093,6 +1093,8 @@ static bool LoadoutMenu() {
 	ImGui::SetNextWindowSize( displaySize );
 	ImGui::Begin( "Loadout", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 
+	Vec2 icon_size = Vec2( displaySize.y * 0.075f );
+
 	{
 		size_t title_height = displaySize.y * 0.075f;
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
@@ -1105,12 +1107,39 @@ static bool LoadoutMenu() {
 		CenterTextY( "LOADOUT", title_height );
 		ImGui::PopFont();
 
+		ImGui::SameLine();
+
+		ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.f, 0.f, 0.f, 0.f ) );
+		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.f, 0.f, 0.f, 0.f ) );
+		ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.f, 0.f, 0.f, 0.f ) );
+
+		ImGui::SetCursorPos( ImVec2( displaySize.x - icon_size.x, 0.f ) );
+
+		const Material * icon = FindMaterial( "hud/icons/dice" );
+		Vec2 half_pixel = HalfPixelSize( icon );
+		if( ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 0, Vec4( 0.f ), Vec4( 1.0f ) ) ) {
+			for( int category = WeaponCategory_Melee; category < WeaponCategory_Count; ++category ) {
+				WeaponType w;
+				while(GS_GetWeaponDef(w = (WeaponType)RandomUniform( &cls.rng, Weapon_None + 1, Weapon_Count ))->category != category);
+				loadout.weapons[ category ] = w;
+			}
+
+			loadout.gadget = (GadgetType)RandomUniform( &cls.rng, Gadget_None + 1, Gadget_Count );
+
+			PerkType p;
+			while(GetPerkDef(p = (PerkType)RandomUniform( &cls.rng, Perk_None + 1, Perk_Count))->disabled);
+			loadout.perk = p;
+
+			SendLoadout();
+		}
+
+		ImGui::PopStyleColor( 3 );
+
 		ImGui::EndChild();
 		ImGui::PopStyleColor();
 	}
 
 	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, Vec2( 0.0f ) );
-	Vec2 icon_size = Vec2( displaySize.y * 0.075f );
 
 	ImGui::Dummy( ImVec2( 0.0f, displaySize.x * 0.01f ) );
 	ImGui::Dummy( ImVec2( displaySize.x * 0.02f, 0.0f ) );

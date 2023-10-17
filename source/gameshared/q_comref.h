@@ -40,7 +40,6 @@ enum pmtype_t {
 #define PMF_NO_PREDICTION   ( 1 << 1 )  // temporarily disables prediction (used for grappling hook)
 #define PMF_ABILITY1_HELD   ( 1 << 2 )  // Special held flag
 #define PMF_ABILITY2_HELD   ( 1 << 3 )  // Jump held flag
-#define PMF_CLIMBING        ( 1 << 4 )  // Jump held flag
 
 // note that Q_rint was causing problems here
 // (spawn looking straight up\down at delta_angles wrapping)

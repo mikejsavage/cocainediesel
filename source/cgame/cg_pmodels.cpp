@@ -249,6 +249,8 @@ const PlayerModelMetadata * GetPlayerModelMetadata( int ent_num ) {
 	switch( ent->perk ) {
 		case Perk_Jetpack:
 			return GetPlayerModelMetadata( "players/jetpack/model" );
+		case Perk_Wheel:
+			return GetPlayerModelMetadata( "players/wheel/model" );
 		default:
 			return GetPlayerModelMetadata( "players/rigg/model" );
 	}

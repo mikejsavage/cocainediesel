@@ -567,6 +567,7 @@ static constexpr WeaponDef weapon_defs[] = {
 		.knockback = 100,
 
 		.speed = 2000,
+		.gravity_scale = 0.f,
 	},
 
 #if 0
@@ -616,7 +617,6 @@ const GadgetDef gadget_defs[] = {
 		.timeout = 5000,
 		.speed = 2500,
 		.min_speed = 2000,
-		.gravity_scale = 1.f,
 	},
 
 	GadgetDef {
@@ -641,7 +641,6 @@ const GadgetDef gadget_defs[] = {
 		.timeout = 1500,
 		.speed = 1500,
 		.min_speed = 1000,
-		.gravity_scale = 1.f,
 	},
 
 	GadgetDef {
@@ -673,6 +672,7 @@ const GadgetDef gadget_defs[] = {
 		.knockback = 60,
 		.timeout = 5000,
 		.speed = 4000,
+		.gravity_scale = 0.f,
 	},
 };
 

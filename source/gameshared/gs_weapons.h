@@ -64,7 +64,7 @@ struct GadgetDef {
 	s64 timeout;
 	int speed;
 	int min_speed;
-	float gravity_scale;
+	float gravity_scale = 1.0f;
 };
 
 struct PerkDef {

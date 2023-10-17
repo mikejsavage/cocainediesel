@@ -140,3 +140,42 @@ void Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir,
 				( pml->sidePush < 0 ? 1 : 2 ) : //left or right
 				( pml->forwardPush < 0 ? 3 : 0 ) ); //back or forward
 }
+
+void Walljump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpupspeed, float dashupspeed, float dashspeed, float wjupspeed, float wjbouncefactor, float stamina_usewj, float stamina_recover ) {
+	// don't walljump if our height is smaller than a step
+	// unless jump is pressed or the player is moving faster than dash speed and upwards
+	constexpr float floor_distance = STEPSIZE * 0.5f;
+	Vec3 point = pml->origin;
+	point.z -= floor_distance;
+	trace_t trace = pmove_gs->api.Trace( pml->origin, pm->bounds, point, ps->POVnum, pm->solid_mask, 0 );
+
+	float hspeed = Length( Vec3( pml->velocity.x, pml->velocity.y, 0 ) );
+	if( ( hspeed > dashspeed && pml->velocity.z > 8 ) || trace.HitNothing() || !ISWALKABLEPLANE( trace.normal ) ) {
+		Optional< Vec3 > normal = PlayerTouchWall( pm, pml, pmove_gs, false, Solid_NotSolid );
+		if( !normal.exists )
+			return;
+
+		float oldupvelocity = pml->velocity.z;
+		pml->velocity.z = 0.0;
+
+		hspeed = Normalize2D( &pml->velocity );
+
+		pml->velocity = GS_ClipVelocity( pml->velocity, normal.value, 1.0005f );
+		pml->velocity = pml->velocity + normal.value * wjbouncefactor;
+
+		hspeed = Max2( hspeed, pml->maxSpeed );
+
+		pml->velocity = Normalize( pml->velocity );
+
+		pml->velocity *= hspeed;
+		pml->velocity.z = ( oldupvelocity > wjupspeed ) ? oldupvelocity : wjupspeed; // jal: if we had a faster upwards speed, keep it
+
+		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
+		ps->pmove.stamina_state = Stamina_UsedAbility;
+
+		StaminaUseImmediate( ps, stamina_usewj );
+
+		// Create the event
+		pmove_gs->api.PredictedEvent( ps->POVnum, EV_WALLJUMP, DirToU64( normal.value ) );
+	}
+}

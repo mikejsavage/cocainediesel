@@ -1,13 +1,22 @@
 #include "gameshared/movement.h"
 
-static constexpr float wallclimbspeed = 250.0f;
+static constexpr float dashupspeed = 160.0f;
+static constexpr float dashspeed = 550.0f;
 
-static constexpr float jumpspeed = 280.0f;
+static constexpr float wjupspeed = 371.875f;
+static constexpr float wjbouncefactor = 0.4f;
 
-static constexpr float climbfriction = 10.0f;
+
+
+static constexpr float wallclimbspeed = 450.0f;
+
+static constexpr float jumpupspeed = 280.0f;
+
+static constexpr float climbfriction = 5.0f;
 
 static constexpr float stamina_use = 0.15f;
 static constexpr float stamina_use_moving = 0.3f;
+static constexpr float stamina_usewj = 0.5f;
 static constexpr float stamina_recover = 1.0f;
 
 static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
@@ -30,9 +39,6 @@ static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Sy
 }
 
 static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( pm->groundentity == -1 ) {
-		return;
-	}
 
 	ps->pmove.stamina_state = Stamina_Normal;
 
@@ -40,7 +46,15 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 		return;
 	}
 
-	Jump( pm, pml, pmove_gs, ps, jumpspeed, true );
+	if( pm->groundentity == -1 ) {
+		if ( ps->pmove.pm_flags & PMF_CLIMBING ) {
+			Walljump( pm, pml, pmove_gs, ps, jumpupspeed, dashupspeed, dashspeed, wjupspeed, wjbouncefactor, stamina_usewj, stamina_recover );
+			ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
+		}
+		return;
+	}
+
+	Jump( pm, pml, pmove_gs, ps, jumpupspeed, true );
 }
 
 static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
@@ -65,6 +79,7 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 
 		ps->pmove.stamina_state = Stamina_UsingAbility;
 		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
+		ps->pmove.pm_flags |= PMF_CLIMBING;
 
 		if( wishvel == Vec3( 0.0f ) ) {
 			StaminaUse( ps, pml, stamina_use );

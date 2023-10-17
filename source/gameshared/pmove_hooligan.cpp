@@ -1,12 +1,12 @@
 #include "gameshared/movement.h"
 #include "gameshared/gs_weapons.h"
 
-static constexpr float pm_jumpupspeed = 260.0f;
-static constexpr float pm_dashupspeed = 160.0f;
-static constexpr float pm_dashspeed = 550.0f;
+static constexpr float jumpupspeed = 260.0f;
+static constexpr float dashupspeed = 160.0f;
+static constexpr float dashspeed = 550.0f;
 
-static constexpr float pm_wjupspeed = 371.875f;
-static constexpr float pm_wjbouncefactor = 0.4f;
+static constexpr float wjupspeed = 371.875f;
+static constexpr float wjbouncefactor = 0.4f;
 
 static constexpr float stamina_usewj = 0.5f; //50%
 static constexpr float stamina_recover = 1.5f;
@@ -27,7 +27,7 @@ static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		return;
 	}
 
-	Jump( pm, pml, pmove_gs, ps, pm_jumpupspeed, true );
+	Jump( pm, pml, pmove_gs, ps, jumpupspeed, true );
 }
 
 
@@ -35,56 +35,19 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 	if( !StaminaAvailableImmediate( ps, stamina_usewj ) || ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
 		return;
 	}
-
-	// don't walljump if our height is smaller than a step
-	// unless jump is pressed or the player is moving faster than dash speed and upwards
-	constexpr float floor_distance = STEPSIZE * 0.5f;
-	Vec3 point = pml->origin;
-	point.z -= floor_distance;
-	trace_t trace = pmove_gs->api.Trace( pml->origin, pm->bounds, point, ps->POVnum, pm->solid_mask, 0 );
-
-	float hspeed = Length( Vec3( pml->velocity.x, pml->velocity.y, 0 ) );
-	if( ( hspeed > pm_dashspeed && pml->velocity.z > 8 ) || trace.HitNothing() || !ISWALKABLEPLANE( trace.normal ) ) {
-		Optional< Vec3 > normal = PlayerTouchWall( pm, pml, pmove_gs, false, Solid_NotSolid );
-		if( !normal.exists )
-			return;
-
-		float oldupvelocity = pml->velocity.z;
-		pml->velocity.z = 0.0;
-
-		hspeed = Normalize2D( &pml->velocity );
-
-		pml->velocity = GS_ClipVelocity( pml->velocity, normal.value, 1.0005f );
-		pml->velocity = pml->velocity + normal.value * pm_wjbouncefactor;
-
-		hspeed = Max2( hspeed, pml->maxSpeed );
-
-		pml->velocity = Normalize( pml->velocity );
-
-		pml->velocity *= hspeed;
-		pml->velocity.z = ( oldupvelocity > pm_wjupspeed ) ? oldupvelocity : pm_wjupspeed; // jal: if we had a faster upwards speed, keep it
-
-		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
-		ps->pmove.stamina_state = Stamina_UsedAbility;
-
-		StaminaUseImmediate( ps, stamina_usewj );
-
-		// Create the event
-		pmove_gs->api.PredictedEvent( ps->POVnum, EV_WALLJUMP, DirToU64( normal.value ) );
-	}
+	Walljump( pm, pml, pmove_gs, ps, jumpupspeed, dashupspeed, dashspeed, wjupspeed, wjbouncefactor, stamina_usewj, stamina_recover );
 }
-
 
 
 static void PM_HooliganDash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
 	Vec3 dashdir = pml->forward * pml->forwardPush + pml->right * pml->sidePush;
 	if( Length( dashdir ) < 0.01f ) { // if not moving, dash like a "forward dash"
 		dashdir = pml->forward;
-		pml->forwardPush = pm_dashspeed;
+		pml->forwardPush = dashspeed;
 	}
 
 	ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
-	Dash( pm, pml, pmove_gs, dashdir, pm_dashspeed, pm_dashupspeed );
+	Dash( pm, pml, pmove_gs, dashdir, dashspeed, dashupspeed );
 }
 
 

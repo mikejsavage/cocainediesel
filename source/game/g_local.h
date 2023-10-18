@@ -655,6 +655,7 @@ struct edict_t {
 
 	int mass;
 	float gravity_scale;
+	float restitution;
 
 	edict_t * movetarget;
 

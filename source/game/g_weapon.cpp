@@ -164,6 +164,7 @@ struct ProjectileStats {
 	int speed;
 	s64 timeout;
 	float gravity_scale;
+	float restitution;
 	int splash_radius;
 	DamageType damage_type;
 };
@@ -179,6 +180,7 @@ static ProjectileStats WeaponProjectileStats( WeaponType weapon ) {
 		.speed = def->speed,
 		.timeout = def->range,
 		.gravity_scale = def->gravity_scale,
+		.restitution = def->restitution,
 		.splash_radius = def->splash_radius,
 		.damage_type = weapon,
 	};
@@ -195,6 +197,7 @@ static ProjectileStats GadgetProjectileStats( GadgetType gadget ) {
 		.speed = def->speed,
 		.timeout = def->timeout,
 		.gravity_scale = def->gravity_scale,
+		.restitution = def->restitution,
 		.splash_radius = def->splash_radius,
 		.damage_type = gadget,
 	};
@@ -245,6 +248,7 @@ static edict_t * FireProjectile(
 	projectile->s.solidity = SolidMask_Shot;
 	projectile->s.svflags &= ~SVF_NOCLIENT;
 	projectile->gravity_scale = stats.gravity_scale;
+	projectile->restitution = stats.restitution;
 
 	projectile->timeDelta = timeDelta;
 

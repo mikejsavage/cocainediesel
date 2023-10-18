@@ -386,8 +386,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 	trace_t trace = SV_PushEntity( ent, move );
 	if( trace.HitSomething() ) {
-		float restitution = ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ? 1.0f/(1.0f + ent->gravity_scale) :
-							0.0f;
+		float restitution = ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ? ent->restitution : 0.0f;
 
 		Vec3 impulse = -Dot( ent->velocity, trace.normal ) * trace.normal;
 		ent->velocity += ( 1.0f + restitution ) * impulse;

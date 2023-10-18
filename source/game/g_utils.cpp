@@ -219,6 +219,7 @@ void G_InitEdict( edict_t * e ) {
 
 	e->s.scale = Vec3( 1.0f );
 	e->gravity_scale = 1.0f;
+	e->restitution = 1.0f;
 
 	// mark all entities to not be sent by default
 	e->s.svflags = SVF_NOCLIENT;

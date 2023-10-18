@@ -42,6 +42,7 @@ struct WeaponDef {
 
 	int speed;
 	float gravity_scale = 1.0f;
+	float restitution = 1.0f;
 	float spread;
 	bool has_altfire;
 };
@@ -65,6 +66,7 @@ struct GadgetDef {
 	int speed;
 	int min_speed;
 	float gravity_scale = 1.0f;
+	float restitution = 1.0f;
 };
 
 struct PerkDef {

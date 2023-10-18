@@ -42,6 +42,7 @@ require( "libs.openal" )
 require( "libs.picohttpparser" )
 require( "libs.rgbcx" )
 require( "libs.stb" )
+require( "libs.sokol" )
 require( "libs.tracy" )
 require( "libs.yoga" )
 require( "libs.zstd" )
@@ -71,6 +72,7 @@ do
 			"cgltf",
 			"discord",
 			"freetype",
+			"ggaudio",
 			"ggentropy",
 			"ggformat",
 			"ggtime",

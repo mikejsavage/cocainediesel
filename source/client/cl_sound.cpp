@@ -14,15 +14,22 @@
 #include "nanosort/nanosort.hpp"
 
 #define AL_LIBTYPE_STATIC
+#define AL_ALEXT_PROTOTYPES
 #include "openal/al.h"
 #include "openal/alc.h"
 #include "openal/alext.h"
 
+#include "sokol/ggaudio.h"
+
 #define STB_VORBIS_HEADER_ONLY
 #include "stb/stb_vorbis.h"
 
+#include <immintrin.h>
+
 struct Sound {
 	ALuint buf;
+	Span< s16 > samples;
+	int sample_rate;
 	bool mono;
 };
 
@@ -69,9 +76,12 @@ static Cvar * s_volume;
 static Cvar * s_musicvolume;
 static Cvar * s_muteinbackground;
 
-constexpr u32 MAX_SOUND_ASSETS = 4096;
-constexpr u32 MAX_SOUND_EFFECTS = 4096;
-constexpr u32 MAX_PLAYING_SOUNDS = 256;
+static constexpr u32 MAX_SOUND_ASSETS = 4096;
+static constexpr u32 MAX_SOUND_EFFECTS = 4096;
+static constexpr u32 MAX_PLAYING_SOUNDS = 256;
+
+static constexpr int SAMPLE_RATE = 44100;
+static constexpr size_t AUDIO_ARENA_SIZE = 1024 * 64; // 64KB
 
 static Sound sounds[ MAX_SOUND_ASSETS ];
 static u32 num_sounds;
@@ -93,6 +103,16 @@ static ALuint music_source;
 static bool music_playing;
 
 constexpr float MusicIsWayTooLoud = 0.25f;
+
+#include <atomic>
+struct MixContext {
+	ArenaAllocator arena;
+	u64 samples_time;
+	Time fuse_time;
+};
+
+static MixContext mix_context;
+static bool FindSound( StringHash name, Sound * sound ); // TODO lol
 
 const char * ALErrorMessage( ALenum error ) {
 	switch( error ) {
@@ -182,28 +202,36 @@ static void CheckedALSourceStop( ALuint source ) {
 	CheckALErrors( "alSourceStop( {} )", source );
 }
 
-static bool InitOpenAL() {
+static void InitOpenAL() {
 	TracyZoneScoped;
 
 	al_device = NULL;
 
-	if( !StrEqual( s_device->value, "" ) ) {
-		al_device = alcOpenDevice( s_device->value );
-		if( al_device == NULL ) {
-			Com_Printf( S_COLOR_YELLOW "Failed to open sound device %s, trying default\n", s_device->value );
-		}
-	}
-
+	// if( !StrEqual( s_device->value, "" ) ) {
+	// 	al_device = alcOpenDevice( s_device->value );
+	// 	if( al_device == NULL ) {
+	// 		Com_Printf( S_COLOR_YELLOW "Failed to open sound device %s, trying default\n", s_device->value );
+	// 	}
+	// }
+        //
+	// if( al_device == NULL ) {
+	// 	al_device = alcOpenDevice( NULL );
+        //
+	// 	if( al_device == NULL ) {
+	// 		Com_Printf( S_COLOR_RED "Failed to open device\n" );
+	// 		return false;
+	// 	}
+	// }
+	al_device = alcLoopbackOpenDeviceSOFT( NULL );
+	Assert( al_device != NULL );
 	if( al_device == NULL ) {
-		al_device = alcOpenDevice( NULL );
-
-		if( al_device == NULL ) {
-			Com_Printf( S_COLOR_RED "Failed to open device\n" );
-			return false;
-		}
+		Fatal( "alcLoopbackOpenDeviceSOFT" );
 	}
 
 	ALCint attrs[] = {
+		ALC_FORMAT_CHANNELS_SOFT, ALC_STEREO_SOFT,
+		ALC_FORMAT_TYPE_SOFT, ALC_FLOAT_SOFT,
+		ALC_FREQUENCY, SAMPLE_RATE,
 		ALC_HRTF_SOFT, ALC_HRTF_ENABLED_SOFT,
 		ALC_MONO_SOURCES, MAX_PLAYING_SOUNDS,
 		ALC_STEREO_SOURCES, 16,
@@ -211,9 +239,7 @@ static bool InitOpenAL() {
 	};
 	al_context = alcCreateContext( al_device, attrs );
 	if( al_context == NULL ) {
-		alcCloseDevice( al_device );
-		Com_Printf( S_COLOR_RED "Failed to create context\n" );
-		return false;
+		Fatal( "alcCreateContext" );
 	}
 	alcMakeContextCurrent( al_context );
 
@@ -228,12 +254,8 @@ static bool InitOpenAL() {
 	num_free_sound_sources = ARRAY_COUNT( free_sound_sources );
 
 	if( alGetError() != AL_NO_ERROR ) {
-		Com_Printf( S_COLOR_RED "Failed to allocate sound sources\n" );
-		ShutdownSound();
-		return false;
+		Fatal( "Failed to allocate sound sources" );
 	}
-
-	return true;
 }
 
 struct DecodeSoundJob {
@@ -289,20 +311,21 @@ static void AddSound( const char * path, int num_samples, int channels, int samp
 		restart_music = music_playing;
 		StopAllSounds( true );
 		alDeleteBuffers( 1, &sounds[ idx ].buf );
+		free( sounds[ idx ].samples.ptr );
 	}
 
 	ALenum format = channels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
 	alGenBuffers( 1, &sounds[ idx ].buf );
-	alBufferData( sounds[ idx ].buf, format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
-	CheckALErrors( "AddSound" );
-
+	sounds[ idx ].samples = Span< s16 >( samples, num_samples );
+	sounds[ idx ].sample_rate = sample_rate;
 	sounds[ idx ].mono = channels == 1;
+
+	alBufferDataStatic( sounds[ idx ].buf, format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
+	CheckALErrors( "AddSound" );
 
 	if( restart_music ) {
 		StartMenuMusic();
 	}
-
-	free( samples );
 }
 
 static void LoadSounds() {
@@ -541,6 +564,178 @@ static void HotloadSoundEffects() {
 	}
 }
 
+static float DequantizeS16( s16 x ) {
+	return Clamp( -1.0f, float( x ) / float( S16_MAX ), 1.0f );
+}
+
+// precompute a piecewise linear approximation to the left side of
+// https://en.wikipedia.org/wiki/Bicubic_interpolation#Bicubic_convolution_algorithm
+// i.e the `0.5 * [ 1 t t^2 t^3 ] M` part with t in [0, 1)
+struct CubicCoefficients {
+	static constexpr size_t NUM_CUBIC_COEFFICIENTS = 16;
+	__m128 coeffs[ NUM_CUBIC_COEFFICIENTS ];
+	__m128 deltas[ NUM_CUBIC_COEFFICIENTS ]; // coeffs[ i ] + deltas[ i ] == coeffs[ i + 1 ]
+};
+
+static CubicCoefficients InitCubicCoefficients() {
+	CubicCoefficients r;
+
+	for( size_t i = 0; i < ARRAY_COUNT( r.coeffs ); i++ ) {
+		float t = float( i ) / float( ARRAY_COUNT( r.coeffs ) );
+		float t2 = t * t;
+		float t3 = t * t * t;
+
+		alignas( 16 ) Vec4 coeff = 0.5f * Vec4(
+			0 - 1*t + 2*t2 - 1*t3,
+			2 + 0*t - 5*t2 + 3*t3,
+			0 + 1*t + 4*t2 - 3*t3,
+			0 + 0*t - 1*t2 + 1*t3
+		);
+		r.coeffs[ i ] = _mm_load_ps( coeff.ptr() );
+	}
+
+	for( size_t i = 0; i < ARRAY_COUNT( r.coeffs ); i++ ) {
+		__m128 next = i == ARRAY_COUNT( r.coeffs ) - 1 ? r.coeffs[ 0 ] : r.coeffs[ i + 1 ];
+		r.deltas[ i ] = _mm_sub_ps( next, r.coeffs[ i ] );
+	}
+
+	return r;
+}
+
+static CubicCoefficients cubic_coefficients;
+
+static __m128 SIMDDequantize( const s16 * samples ) {
+	__m128i simd_samples = _mm_loadl_epi64( ( const __m128i * ) samples );
+	__m128i simd_samples_u32 = _mm_unpacklo_epi16( simd_samples, _mm_set1_epi16( 0 ) );
+	__m128i samples_that_need_sign_extending = _mm_cmpgt_epi32( simd_samples_u32, _mm_set1_epi32( INT16_MAX ) );
+	__m128i s16_to_s32_sign_extension = _mm_and_si128( samples_that_need_sign_extending, _mm_set1_epi32( 0xffff0000_u32 ) );
+
+	// TODO: there may be a single instruction for this, select alternating u16s
+	__m128i simd_samples_s32 = _mm_or_si128( simd_samples_u32, s16_to_s32_sign_extension );
+
+	__m128 simd_samples_float = _mm_cvtepi32_ps( simd_samples_s32 );
+	return _mm_max_ps( _mm_mul_ps( simd_samples_float, _mm_set1_ps( 1.0f / INT16_MAX ) ), _mm_set1_ps( -1.0f ) );
+}
+
+static float SIMDDotProduct( __m128 a, __m128 b ) {
+	__m128 result = _mm_mul_ps( a, b );
+
+	// horizontal add
+	// result = [ r0, r1, r2, r3 ]
+
+	result = _mm_add_ps( result, _mm_shuffle_ps( result, result, _MM_SHUFFLE( 0, 1, 2, 3 ) ) );
+	// result = [ r0 + r3, r1 + r2, r2 + r1, r3 + r0 ]
+
+	result = _mm_add_ps( result, _mm_movehl_ps( result, result ) );
+	// result = [ r0 + r3 + r2 + r1, ... ]
+
+	return _mm_cvtss_f32( result );
+}
+
+static void Mix( float * buffer, int num_frames, int num_channels, void * userdata ) {
+	Assert( num_channels == 2 );
+
+	MixContext * ctx = ( MixContext * ) userdata;
+
+	ctx->arena.clear();
+	TempAllocator temp = ctx->arena.temp();
+
+	Vec2 * openal_samples = AllocMany< Vec2 >( &temp, num_frames );
+
+	alcRenderSamplesSOFT( al_device, openal_samples, num_frames );
+	CheckALErrors( "alcRenderSamplesSOFT( {} )", num_frames );
+
+	Vec2 * sin_samples = AllocMany< Vec2 >( &temp, num_frames );
+	for( int i = 0; i < num_frames; i++ ) {
+		sin_samples[ i ] = Vec2( sinf( ( float( ctx->samples_time + i ) / float( SAMPLE_RATE ) ) * 2.0f * PI * 400.0f ) );
+	}
+
+	Vec2 * fuse_samples = AllocMany< Vec2 >( &temp, num_frames );
+	Sound fuse;
+	bool ok = FindSound( "models/bomb/fuse", &fuse );
+	Assert( ok );
+	Assert( fuse.mono );
+
+	Time dt = Seconds( 1.0 / double( SAMPLE_RATE ) );
+	Time mix_timespan = Seconds( double( num_frames ) / double( SAMPLE_RATE ) );
+
+	size_t num_samples_to_mix = ceilf( ToSeconds( mix_timespan ) * float( fuse.sample_rate ) ) + 1 + 2; // need 1/2 extra samples at the start/end for cubic resampling
+	s16 * samples_to_mix = AllocMany< s16 >( &temp, num_samples_to_mix );
+
+	float sample_0_t_secs = ToSeconds( ctx->fuse_time );
+	float sample_0_t = sample_0_t_secs * float( fuse.sample_rate );
+	size_t sample_0_idx = sample_0_t;
+
+	bool looping = true;
+
+	// fill out -1th sample
+	if( sample_0_idx == 0 ) {
+		samples_to_mix[ 0 ] = looping ? fuse.samples[ fuse.samples.n - 1 ] : 0;
+	}
+	else {
+		if( sample_0_idx >= fuse.samples.n ) {
+			samples_to_mix[ 0 ] = looping ? fuse.samples[ ( sample_0_idx - 1 ) % fuse.samples.n ] : 0;
+		}
+		else {
+			samples_to_mix[ 0 ] = fuse.samples[ sample_0_idx - 1 ];
+		}
+	}
+
+	// fill out 0..n+2 samples
+	for( size_t i = 0; i < num_samples_to_mix - 1; i++ ) {
+		size_t idx = sample_0_idx + i;
+		if( looping ) {
+			samples_to_mix[ i + 1 ] = fuse.samples[ idx % fuse.samples.n ];
+		}
+		else {
+			samples_to_mix[ i + 1 ] = idx < fuse.samples.n ? fuse.samples[ idx ] : 0;
+		}
+	}
+
+#if 1
+	for( int i = 0; i < num_frames; i++ ) {
+		float t = ToSeconds( i * dt );
+		float t48000 = t * float( fuse.sample_rate );
+		size_t idx = t48000;
+		float frac = t48000 - idx;
+
+		size_t coeff_idx = frac / ARRAY_COUNT( cubic_coefficients.coeffs );
+		float coeff_frac = frac / ARRAY_COUNT( cubic_coefficients.coeffs ) - coeff_idx;
+
+		// coeffs[ coeff_idx ] + deltas[ coeff_idx ] * coeff_frac
+		__m128 coeffs = _mm_add_ps(
+			cubic_coefficients.coeffs[ coeff_idx ],
+			_mm_mul_ps( cubic_coefficients.deltas[ coeff_idx ], _mm_set1_ps( coeff_frac ) )
+		);
+
+		__m128 samples = SIMDDequantize( &samples_to_mix[ idx - 1 ] );
+		float sample = SIMDDotProduct( coeffs, samples );
+
+		fuse_samples[ i ] = Vec2( sample );
+	}
+#else
+	for( int i = 0; i < num_frames; i++ ) {
+		float t = ToSeconds( i * dt );
+		float t48000 = t * float( fuse.sample_rate );
+		size_t idx = t48000;
+		float frac = t48000 - idx;
+
+		float a = DequantizeS16( samples_to_mix[ idx + 1 ] );
+		float b = DequantizeS16( samples_to_mix[ idx + 2 ] );
+		fuse_samples[ i ] = Vec2( Lerp( a, frac, b ) );
+	}
+#endif
+
+	// mix
+	for( int i = 0; i < num_frames; i++ ) {
+		buffer[ i * 2 + 0 ] = openal_samples[ i ].x + sin_samples[ i ].x * 0.0f + fuse_samples[ i ].x * 0.2f;
+		buffer[ i * 2 + 1 ] = openal_samples[ i ].y + sin_samples[ i ].y * 0.0f + fuse_samples[ i ].y * 0.2f;
+	}
+
+	ctx->samples_time += num_frames;
+	ctx->fuse_time += Seconds( double( num_frames ) / double( SAMPLE_RATE ) );
+}
+
 bool InitSound() {
 	TracyZoneScoped;
 
@@ -560,11 +755,27 @@ bool InitSound() {
 	s_musicvolume = NewCvar( "s_musicvolume", "1", CvarFlag_Archive );
 	s_muteinbackground = NewCvar( "s_muteinbackground", "1", CvarFlag_Archive );
 
-	if( !InitOpenAL() )
-		return false;
+	cubic_coefficients = InitCubicCoefficients();
+
+	InitOpenAL();
+
+	void * mixer_arena_memory = sys_allocator->allocate( AUDIO_ARENA_SIZE, 16 );
+	mix_context.arena = ArenaAllocator( mixer_arena_memory, AUDIO_ARENA_SIZE );
+	mix_context.samples_time = 0;
+	mix_context.fuse_time = { };
 
 	LoadSounds();
 	LoadSoundEffects();
+
+	saudio_desc sokol = {
+		.sample_rate = SAMPLE_RATE,
+		.num_channels = 2,
+		.buffer_frames = int( SAMPLE_RATE * 0.02f ), // 20ms
+		.callback = Mix,
+		.user_data = &mix_context,
+	};
+	if( !saudio_setup( sokol ) )
+		return false;
 
 	initialized = true;
 
@@ -584,12 +795,17 @@ void ShutdownSound() {
 
 	for( u32 i = 0; i < num_sounds; i++ ) {
 		alDeleteBuffers( 1, &sounds[ i ].buf );
+		free( sounds[ i ].samples.ptr );
 	}
 
 	CheckALErrors( "ShutdownSound" );
 
+	saudio_shutdown();
+
 	alcDestroyContext( al_context );
 	alcCloseDevice( al_device );
+
+	Free( sys_allocator, mix_context.arena.get_memory() );
 }
 
 Span< const char * > GetAudioDevices( Allocator * a ) {

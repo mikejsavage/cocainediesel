@@ -1,7 +1,7 @@
 layout( local_size_x = 1 ) in;
 
 layout( std140 ) uniform u_ParticleUpdate {
-	uint new_particles;
+	uint num_new_particles;
 };
 
 layout( std430 ) writeonly buffer b_NextComputeCount {
@@ -34,7 +34,7 @@ layout( std430 ) writeonly buffer b_DrawIndirect {
 };
 
 void main() {
-	num_particles += new_particles;
+	num_particles += num_new_particles;
 	next_num_particles = 0;
 	compute_indirect.num_groups_x = num_particles / 64 + 1;
 	draw_indirect.instanceCount = num_particles;

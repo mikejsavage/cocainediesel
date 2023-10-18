@@ -1410,7 +1410,7 @@ static GLuint CompileShader( GLenum type, const char * body, const char * name )
 	return shader;
 }
 
-static bool LinkShader( Shader * shader, GLuint program ) {
+static bool LinkShader( Shader * shader, GLuint program, const char * shader_name ) {
 	glLinkProgram( program );
 
 	GLint status;
@@ -1444,7 +1444,7 @@ static bool LinkShader( Shader * shader, GLuint program ) {
 		if( is_texture ) {
 			if( num_textures == ARRAY_COUNT( shader->textures ) ) {
 				glDeleteProgram( program );
-				Com_Printf( S_COLOR_YELLOW "Too many samplers in shader\n" );
+				Com_Printf( S_COLOR_YELLOW "Too many textures in shader %s\n", shader_name );
 				return false;
 			}
 
@@ -1455,6 +1455,11 @@ static bool LinkShader( Shader * shader, GLuint program ) {
 	}
 
 	glGetProgramInterfaceiv( program, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &count );
+	if( count > ARRAY_COUNT( shader->uniforms ) ) {
+		glDeleteProgram( program );
+		Com_Printf( S_COLOR_YELLOW "Too many uniforms in shader %s\n", shader_name );
+		return false;
+	}
 	for( GLint i = 0; i < count; i++ ) {
 		char name[ 128 ];
 		GLint len;
@@ -1464,6 +1469,11 @@ static bool LinkShader( Shader * shader, GLuint program ) {
 	}
 
 	glGetProgramInterfaceiv( program, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &count );
+	if( count > ARRAY_COUNT( shader->uniforms ) ) {
+		glDeleteProgram( program );
+		Com_Printf( S_COLOR_YELLOW "Too many buffers in shader %s\n", shader_name );
+		return false;
+	}
 	for( GLint i = 0; i < count; i++ ) {
 		char name[ 128 ];
 		GLint len;
@@ -1499,7 +1509,7 @@ bool NewShader( Shader * shader, const char * src, const char * name ) {
 	glAttachShader( shader->program, vertex_shader );
 	glAttachShader( shader->program, fragment_shader );
 
-	return LinkShader( shader, shader->program );
+	return LinkShader( shader, shader->program, name );
 }
 
 bool NewComputeShader( Shader * shader, const char * src, const char * name ) {
@@ -1517,7 +1527,7 @@ bool NewComputeShader( Shader * shader, const char * src, const char * name ) {
 	DebugLabel( GL_PROGRAM, shader->program, name );
 	glAttachShader( shader->program, cs );
 
-	return LinkShader( shader, shader->program );
+	return LinkShader( shader, shader->program, name );
 }
 
 void DeleteShader( Shader shader ) {

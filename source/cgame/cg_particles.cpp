@@ -125,11 +125,11 @@ struct ParticleSystem {
 	// dynamic stuff
 	bool initialized;
 
-	size_t new_particles;
-	Span< GPUParticle > particles;
-
 	GPUBuffer gpu_particles1;
 	GPUBuffer gpu_particles2;
+
+	StreamingBuffer new_particles;
+	size_t num_new_particles;
 
 	GPUBuffer compute_count1;
 	GPUBuffer compute_count2;
@@ -324,9 +324,10 @@ struct DrawArraysIndirect {
 void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	DeleteParticleSystem( a, ps );
 
-	ps->particles = AllocSpan< GPUParticle >( a, ps->max_particles );
 	ps->gpu_particles1 = NewGPUBuffer( NULL, ps->max_particles * sizeof( GPUParticle ), GPUBuffer_Writeable, "particles flip" );
 	ps->gpu_particles2 = NewGPUBuffer( NULL, ps->max_particles * sizeof( GPUParticle ), GPUBuffer_Writeable, "particles flop" );
+
+	ps->new_particles = NewStreamingBuffer( ps->max_particles * sizeof( GPUParticle ), "new particles" );
 
 	u32 zero = 0;
 	ps->compute_count1 = NewGPUBuffer( &zero, sizeof( u32 ), GPUBuffer_Writeable, "compute_count flip" );
@@ -767,14 +768,14 @@ void CreateParticleSystems() {
 	DeleteParticleSystem( sys_allocator, addSystem );
 	addSystem->blend_func = BlendFunc_Add;
 	particleSystems_hashtable.add( addSystem_hash, 0 );
-	num_particleSystems ++;
+	num_particleSystems++;
 
 	ParticleSystem * blendSystem = &particleSystems[ 1 ];
 	u64 blendSystem_hash = Hash64( "blendSystem", strlen( "blendSystem" ) );
 	DeleteParticleSystem( sys_allocator, blendSystem );
 	blendSystem->blend_func = BlendFunc_Blend;
 	particleSystems_hashtable.add( blendSystem_hash, 1 );
-	num_particleSystems ++;
+	num_particleSystems++;
 
 	for( size_t i = 0; i < num_particleEmitters; i++ ) {
 		ParticleEmitter * emitter = &particleEmitters[ i ];
@@ -851,9 +852,9 @@ void DeleteParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	if( !ps->initialized ) {
 		return;
 	}
-	Free( a, ps->particles.ptr );
 	DeleteGPUBuffer( ps->gpu_particles1 );
 	DeleteGPUBuffer( ps->gpu_particles2 );
+	DeleteStreamingBuffer( ps->new_particles );
 	DeleteGPUBuffer( ps->compute_count1 );
 	DeleteGPUBuffer( ps->compute_count2 );
 	DeleteGPUBuffer( ps->compute_indirect );
@@ -880,11 +881,12 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		pipeline.shader = &shaders.particle_compute;
 		pipeline.bind_buffer( "b_ParticlesIn", ps->gpu_particles1 );
 		pipeline.bind_buffer( "b_ParticlesOut", ps->gpu_particles2 );
+		pipeline.bind_streaming_buffer( "b_NewParticles", ps->new_particles );
 		pipeline.bind_buffer( "b_ComputeCountIn", ps->compute_count1 );
 		pipeline.bind_buffer( "b_ComputeCountOut", ps->compute_count2 );
 		// u32 collision = cl.map == NULL ? 0 : 1;
 		u32 collision = 0;
-		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, ps->radius, dt, u32( ps->new_particles ) ) );
+		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, ps->radius, dt, u32( ps->num_new_particles ) ) );
 		// if( collision ) {
 		// 	pipeline.bind_buffer( "b_BSPNodeLinks", cl.map->render_data.nodes );
 		// 	pipeline.bind_buffer( "b_BSPLeaves", cl.map->render_data.leaves );
@@ -902,13 +904,11 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		pipeline.bind_buffer( "b_ComputeCount", ps->compute_count2 );
 		pipeline.bind_buffer( "b_ComputeIndirect", ps->compute_indirect );
 		pipeline.bind_buffer( "b_DrawIndirect", ps->draw_indirect );
-		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( u32( ps->new_particles ) ) );
+		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( u32( ps->num_new_particles ) ) );
 		DispatchCompute( pipeline, 1, 1, 1 );
 	}
 
-	WriteGPUBuffer( ps->gpu_particles2, ps->particles.begin(), ps->new_particles * sizeof( GPUParticle ) );
-
-	ps->new_particles = 0;
+	ps->num_new_particles = 0;
 }
 
 static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
@@ -934,7 +934,7 @@ void DrawParticles() {
 
 	for( size_t i = 0; i < num_particleSystems; i++ ) {
 		if( particleSystems[ i ].initialized ) {
-			total_new_particles += particleSystems[ i ].new_particles;
+			total_new_particles += particleSystems[ i ].num_new_particles;
 			UpdateParticleSystem( &particleSystems[ i ], dt );
 			DrawParticleSystem( &particleSystems[ i ], dt );
 		}
@@ -945,27 +945,29 @@ void DrawParticles() {
 
 static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float angle, float angular_velocity, float acceleration, float drag, float restitution, Vec4 uvwh, Vec4 start_color, Vec4 end_color, float start_size, float end_size, ParticleFlags flags ) {
 	TracyZoneScopedN( "Store Particle" );
-	if( ps->new_particles == ps->max_particles )
+	if( ps->num_new_particles == ps->max_particles )
 		return;
 
-	GPUParticle & particle = ps->particles[ ps->new_particles ];
-	particle.position = position;
-	particle.angle = angle;
-	particle.velocity = velocity;
-	particle.angular_velocity = angular_velocity;
-	particle.acceleration = acceleration;
-	particle.drag = drag;
-	particle.restitution = restitution;
-	particle.uvwh = uvwh;
-	particle.start_color = LinearTosRGB( start_color );
-	particle.end_color = LinearTosRGB( end_color );
-	particle.start_size = start_size;
-	particle.end_size = end_size;
-	particle.age = 0.0f;
-	particle.lifetime = lifetime;
-	particle.flags = flags;
+	GPUParticle * new_particles = ( GPUParticle * ) GetStreamingBufferMemory( ps->new_particles );
+	new_particles[ ps->num_new_particles ] = GPUParticle {
+		.position = position,
+		.angle = angle,
+		.velocity = velocity,
+		.angular_velocity = angular_velocity,
+		.acceleration = acceleration,
+		.drag = drag,
+		.restitution = restitution,
+		.uvwh = uvwh,
+		.start_color = LinearTosRGB( start_color ),
+		.end_color = LinearTosRGB( end_color ),
+		.start_size = start_size,
+		.end_size = end_size,
+		.age = 0.0f,
+		.lifetime = lifetime,
+		.flags = flags,
+	};
 
-	ps->new_particles++;
+	ps->num_new_particles++;
 }
 
 static float SampleRandomDistribution( RNG * rng, RandomDistribution dist ) {
@@ -1144,7 +1146,7 @@ void ClearParticles() {
 	for( size_t i = 0; i < num_particleSystems; i++ ) {
 		if( particleSystems[ i ].initialized ) {
 			ParticleSystem * ps = &particleSystems[ i ];
-			ps->new_particles = 0;
+			ps->num_new_particles = 0;
 
 			u32 zero = 0;
 			WriteGPUBuffer( ps->compute_count1, &zero, sizeof( zero ) );

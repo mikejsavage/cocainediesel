@@ -24,7 +24,7 @@
 #define STB_VORBIS_HEADER_ONLY
 #include "stb/stb_vorbis.h"
 
-#include <immintrin.h>
+// #include <immintrin.h>
 
 struct Sound {
 	ALuint buf;
@@ -104,7 +104,6 @@ static bool music_playing;
 
 constexpr float MusicIsWayTooLoud = 0.25f;
 
-#include <atomic>
 struct MixContext {
 	ArenaAllocator arena;
 	u64 samples_time;
@@ -568,71 +567,8 @@ static float DequantizeS16( s16 x ) {
 	return Clamp( -1.0f, float( x ) / float( S16_MAX ), 1.0f );
 }
 
-// precompute a piecewise linear approximation to the left side of
-// https://en.wikipedia.org/wiki/Bicubic_interpolation#Bicubic_convolution_algorithm
-// i.e the `0.5 * [ 1 t t^2 t^3 ] M` part with t in [0, 1)
-struct CubicCoefficients {
-	static constexpr size_t NUM_CUBIC_COEFFICIENTS = 16;
-	__m128 coeffs[ NUM_CUBIC_COEFFICIENTS ];
-	__m128 deltas[ NUM_CUBIC_COEFFICIENTS ]; // coeffs[ i ] + deltas[ i ] == coeffs[ i + 1 ]
-};
-
-static CubicCoefficients InitCubicCoefficients() {
-	CubicCoefficients r;
-
-	for( size_t i = 0; i < ARRAY_COUNT( r.coeffs ); i++ ) {
-		float t = float( i ) / float( ARRAY_COUNT( r.coeffs ) );
-		float t2 = t * t;
-		float t3 = t * t * t;
-
-		alignas( 16 ) Vec4 coeff = 0.5f * Vec4(
-			0 - 1*t + 2*t2 - 1*t3,
-			2 + 0*t - 5*t2 + 3*t3,
-			0 + 1*t + 4*t2 - 3*t3,
-			0 + 0*t - 1*t2 + 1*t3
-		);
-		r.coeffs[ i ] = _mm_load_ps( coeff.ptr() );
-	}
-
-	for( size_t i = 0; i < ARRAY_COUNT( r.coeffs ); i++ ) {
-		__m128 next = i == ARRAY_COUNT( r.coeffs ) - 1 ? r.coeffs[ 0 ] : r.coeffs[ i + 1 ];
-		r.deltas[ i ] = _mm_sub_ps( next, r.coeffs[ i ] );
-	}
-
-	return r;
-}
-
-static CubicCoefficients cubic_coefficients;
-
-static __m128 SIMDDequantize( const s16 * samples ) {
-	__m128i simd_samples = _mm_loadl_epi64( ( const __m128i * ) samples );
-	__m128i simd_samples_u32 = _mm_unpacklo_epi16( simd_samples, _mm_set1_epi16( 0 ) );
-	__m128i samples_that_need_sign_extending = _mm_cmpgt_epi32( simd_samples_u32, _mm_set1_epi32( INT16_MAX ) );
-	__m128i s16_to_s32_sign_extension = _mm_and_si128( samples_that_need_sign_extending, _mm_set1_epi32( 0xffff0000_u32 ) );
-
-	// TODO: there may be a single instruction for this, select alternating u16s
-	__m128i simd_samples_s32 = _mm_or_si128( simd_samples_u32, s16_to_s32_sign_extension );
-
-	__m128 simd_samples_float = _mm_cvtepi32_ps( simd_samples_s32 );
-	return _mm_max_ps( _mm_mul_ps( simd_samples_float, _mm_set1_ps( 1.0f / INT16_MAX ) ), _mm_set1_ps( -1.0f ) );
-}
-
-static float SIMDDotProduct( __m128 a, __m128 b ) {
-	__m128 result = _mm_mul_ps( a, b );
-
-	// horizontal add
-	// result = [ r0, r1, r2, r3 ]
-
-	result = _mm_add_ps( result, _mm_shuffle_ps( result, result, _MM_SHUFFLE( 0, 1, 2, 3 ) ) );
-	// result = [ r0 + r3, r1 + r2, r2 + r1, r3 + r0 ]
-
-	result = _mm_add_ps( result, _mm_movehl_ps( result, result ) );
-	// result = [ r0 + r3 + r2 + r1, ... ]
-
-	return _mm_cvtss_f32( result );
-}
-
 static void Mix( float * buffer, int num_frames, int num_channels, void * userdata ) {
+#if 0
 	Assert( num_channels == 2 );
 
 	MixContext * ctx = ( MixContext * ) userdata;
@@ -734,6 +670,7 @@ static void Mix( float * buffer, int num_frames, int num_channels, void * userda
 
 	ctx->samples_time += num_frames;
 	ctx->fuse_time += Seconds( double( num_frames ) / double( SAMPLE_RATE ) );
+#endif
 }
 
 bool InitSound() {
@@ -755,7 +692,7 @@ bool InitSound() {
 	s_musicvolume = NewCvar( "s_musicvolume", "1", CvarFlag_Archive );
 	s_muteinbackground = NewCvar( "s_muteinbackground", "1", CvarFlag_Archive );
 
-	cubic_coefficients = InitCubicCoefficients();
+	// cubic_coefficients = InitCubicCoefficients();
 
 	InitOpenAL();
 

@@ -27,6 +27,8 @@ bool operator>=( Time lhs, Time rhs );
 
 Time operator+( Time lhs, Time rhs );
 Time operator-( Time lhs, Time rhs );
+Time operator*( Time t, u64 scale );
+Time operator*( u64 scale, Time t );
 Time operator*( Time t, float scale );
 Time operator*( float scale, Time t );
 Time operator/( Time t, float inv_scale );

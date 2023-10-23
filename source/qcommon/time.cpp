@@ -46,13 +46,15 @@ bool operator>( Time lhs, Time rhs ) { return lhs.flicks > rhs.flicks; }
 bool operator>=( Time lhs, Time rhs ) { return lhs.flicks >= rhs.flicks; }
 Time operator+( Time lhs, Time rhs ) { return { lhs.flicks + rhs.flicks }; }
 Time operator-( Time lhs, Time rhs ) { return { lhs.flicks - rhs.flicks }; }
+Time operator*( Time t, u64 scale ) { return { t.flicks * scale }; }
+Time operator*( u64 scale, Time t ) { return t * scale; }
 
 Time operator*( Time t, float scale ) {
 	AssertSmallEnoughToCastToFloat( t );
 	return { u64( float( t.flicks ) * scale ) };
 }
-
 Time operator*( float scale, Time t ) { return t * scale; }
+
 Time operator/( Time t, float inv_scale ) { return t * ( 1.0f / inv_scale ); }
 Time operator%( Time lhs, Time rhs ) { return { lhs.flicks % rhs.flicks }; }
 

@@ -68,8 +68,8 @@ typedef struct saudio_desc {
 	const char * device_name;
 	int sample_rate;        // requested sample rate
 	int num_channels;       // number of channels, default: 1 (mono)
-	int buffer_frames;      // number of frames in streaming buffer
-	void (*callback)(float* buffer, int num_frames, int num_channels, void* user_data); //... and with user data
+	size_t buffer_frames;      // number of frames in streaming buffer
+	void (*callback)(float* buffer, size_t num_frames, int num_channels, void* user_data); //... and with user data
 	void* user_data;        // optional user data argument for callback
 	saudio_allocator allocator;     // optional allocation override functions
 	saudio_logger logger;           // optional logging function (default: NO LOGGING!)
@@ -92,6 +92,7 @@ void saudio_shutdown(void);
 #include <stdlib.h> // alloc, free
 #include <string.h> // memset, memcpy
 #include <stddef.h> // size_t
+#include <atomic>
 
 #ifndef SOKOL_DEBUG
 #ifndef NDEBUG
@@ -132,13 +133,11 @@ struct GGAudioBackend {
 #define ALSA_PCM_NEW_HW_PARAMS_API
 #include <alsa/asoundlib.h>
 
-#include <atomic>
-
 struct GGAudioBackend {
 	snd_pcm_t* device;
 	float* buffer;
-	int buffer_byte_size;
-	int buffer_frames;
+	size_t buffer_byte_size;
+	size_t buffer_frames;
 	pthread_t thread;
 };
 
@@ -171,10 +170,10 @@ struct GGAudioBackend {
 #endif
 
 typedef struct {
-	void ( *callback )( float * buffer, int num_frames, int num_channels, void * user_data );
+	void ( *callback )( float * buffer, size_t num_frames, int num_channels, void * user_data );
 	void * user_data;
 	int sample_rate;
-	int buffer_frames;          /* number of frames in streaming buffer */
+	size_t buffer_frames;          /* number of frames in streaming buffer */
 	int bytes_per_frame;        /* filled by backend */
 	int num_channels;           /* actual number of channels */
 	GGAudioBackend backend;
@@ -561,6 +560,68 @@ static void _saudio_backend_shutdown(void) {
 // >>coreaudio
 #elif defined(_SAUDIO_APPLE)
 
+#include <vector>
+
+static constexpr AudioObjectPropertyAddress DEVICES_PROPERTY_ADDRESS = {
+    kAudioHardwarePropertyDevices, kAudioObjectPropertyScopeGlobal,
+    kAudioObjectPropertyElementMaster};
+
+static void PrintDevices() {
+	UInt32 size = 0;
+	if( AudioObjectGetPropertyDataSize( kAudioObjectSystemObject, &DEVICES_PROPERTY_ADDRESS, 0, NULL, &size ) != noErr ) {
+		abort();
+	}
+
+	std::vector< AudioObjectID > devices( size / sizeof( AudioObjectID ) );
+	if( AudioObjectGetPropertyData(kAudioObjectSystemObject, &DEVICES_PROPERTY_ADDRESS, 0, NULL, &size, devices.data() ) != noErr ) {
+		abort();
+	}
+
+	for( AudioObjectID device : devices ) {
+		UInt32 size = sizeof( CFStringRef );
+		CFStringRef name = nullptr;
+		AudioObjectPropertyAddress address_uuid = {kAudioDevicePropertyDeviceUID,
+			kAudioObjectPropertyScopeGlobal,
+			kAudioObjectPropertyElementMaster};
+		if( AudioObjectGetPropertyData( device, &address_uuid, 0, nullptr, &size, &name) != noErr ) {
+			abort();
+		}
+
+		char utf8[ 256 ];
+		// CFIndex len = CFStringGetLength( name );
+		// CFIndex utf8_size = CFStringGetMaximumSizeForEncoding( len, kCFStringEncodingUTF8 ) + 1;
+
+		if( !CFStringGetCString( name, utf8, sizeof( utf8 ), kCFStringEncodingUTF8 ) ) {
+			abort();
+		}
+
+		printf( "%s\n", utf8 );
+		CFRelease( name );
+	}
+
+	// /* Expected sorted but did not find anything in the docs. */
+	// sort(devices.begin(), devices.end(),
+	// 	[](AudioObjectID a, AudioObjectID b) { return a < b; });
+    //
+	// if (devtype == (CUBEB_DEVICE_TYPE_INPUT | CUBEB_DEVICE_TYPE_OUTPUT)) {
+	// 	return devices;
+	// }
+    //
+	// AudioObjectPropertyScope scope = (devtype == CUBEB_DEVICE_TYPE_INPUT)
+	// 	? kAudioDevicePropertyScopeInput
+	// 	: kAudioDevicePropertyScopeOutput;
+    //
+	// vector<AudioObjectID> devices_in_scope;
+	// for (uint32_t i = 0; i < devices.size(); ++i) {
+	// 	/* For device in the given scope channel must be > 0. */
+	// 	if (audiounit_get_channel_count(devices[i], scope) > 0) {
+	// 		devices_in_scope.push_back(devices[i]);
+	// 	}
+	// }
+    //
+	// return devices_in_scope;
+}
+
 /* NOTE: the buffer data callback is called on a separate thread! */
 static void _saudio_coreaudio_callback(void* user_data, AudioQueueRef queue, AudioQueueBufferRef buffer) {
 	const int num_frames = (int)buffer->mAudioDataByteSize / _saudio.bytes_per_frame;
@@ -643,7 +704,5 @@ void saudio_shutdown(void) {
 	shutting_down.store( true, std::memory_order_release );
 	_saudio_backend_shutdown();
 }
-
-#undef _saudio_def
 
 #endif /* SOKOL_AUDIO_IMPL */

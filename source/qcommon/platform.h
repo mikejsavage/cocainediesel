@@ -23,3 +23,11 @@
 #else
 #  error unsupported compiler
 #endif
+
+#if defined( _M_X64 ) || defined( __x86_64__ )
+#  define ARCHITECTURE_X86 1
+#elif defined( __aarch64__ )
+#  define ARCHITECTURE_ARM64 1
+#else
+#  error unsupported architecture
+#endif

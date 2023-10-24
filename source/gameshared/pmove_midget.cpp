@@ -16,7 +16,6 @@ static constexpr float climbfriction = 5.0f;
 
 static constexpr float stamina_use = 0.15f;
 static constexpr float stamina_use_moving = 0.3f;
-static constexpr float stamina_usewj = 0.2f;
 static constexpr float stamina_recover = 1.0f;
 
 static constexpr float wj_cooldown = 0.05f;

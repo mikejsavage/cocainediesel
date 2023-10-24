@@ -64,7 +64,7 @@ static float DotFloat32x4( float32x4_t lhs, float32x4_t rhs ) {
 #include <arm_neon.h>
 
 static float32x4_t BroadcastFloatx4( float x ) { return vmovq_n_f32( x ); }
-static float32x4_t SetFloat4( float a, float b, float c, float d ) {
+static float32x4_t SetFloatx4( float a, float b, float c, float d ) {
 	float32x4_t ret = vmovq_n_f32( a );
 	ret = vsetq_lane_f32( b, ret, 1 );
 	ret = vsetq_lane_f32( c, ret, 2 );

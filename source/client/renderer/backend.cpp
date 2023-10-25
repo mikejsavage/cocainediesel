@@ -1455,7 +1455,7 @@ static bool LinkShader( Shader * shader, GLuint program, const char * shader_nam
 	}
 
 	glGetProgramInterfaceiv( program, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &count );
-	if( count > ARRAY_COUNT( shader->uniforms ) ) {
+	if( count > checked_cast< GLint >( ARRAY_COUNT( shader->uniforms ) ) ) {
 		glDeleteProgram( program );
 		Com_Printf( S_COLOR_YELLOW "Too many uniforms in shader %s\n", shader_name );
 		return false;
@@ -1469,7 +1469,7 @@ static bool LinkShader( Shader * shader, GLuint program, const char * shader_nam
 	}
 
 	glGetProgramInterfaceiv( program, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &count );
-	if( count > ARRAY_COUNT( shader->uniforms ) ) {
+	if( count > checked_cast< GLint >( ARRAY_COUNT( shader->uniforms ) ) ) {
 		glDeleteProgram( program );
 		Com_Printf( S_COLOR_YELLOW "Too many buffers in shader %s\n", shader_name );
 		return false;

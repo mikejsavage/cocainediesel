@@ -19,12 +19,7 @@
 
 #include <new>
 
-template< typename S, typename T >
-struct SameType { static constexpr bool value = false; };
-template< typename T >
-struct SameType< T, T > { static constexpr bool value = true; };
-
-STATIC_ASSERT( ( SameType< u32, GLuint >::value ) );
+STATIC_ASSERT( ( SameType< u32, GLuint > ) );
 
 static const u32 UNIFORM_BUFFER_SIZE = 64 * 1024;
 

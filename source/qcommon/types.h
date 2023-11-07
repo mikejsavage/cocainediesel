@@ -188,6 +188,9 @@ constexpr T Clamp01( const T & x ) {
 	return Clamp( T( 0.0f ), x, T( 1.0f ) );
 }
 
+template< typename T, typename S > constexpr bool SameType = false;
+template< typename T > constexpr bool SameType< T, T > = true;
+
 /*
  * Span
  */

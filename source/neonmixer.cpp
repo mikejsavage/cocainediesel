@@ -187,7 +187,7 @@ static u64 ScaleFixed( u64 x, u64 numer, u64 denom ) {
 	return a + b;
 }
 
-static void MixStereo( float * buffer, size_t num_frames, const CubicCoefficients & cubic_coefficients, Time t_0, Time dt, Sound sound ) {
+static void MixStereo( Vec2 * buffer, size_t num_frames, const CubicCoefficients & cubic_coefficients, Time t_0, Time dt, Sound sound ) {
 	// if( sound.sample_rate == SAMPLE_RATE ) {
 	// 	size_t idx = ScaleFixed( t_0.flicks, sound.sample_rate, GGTIME_FLICKS_PER_SECOND );
 	// 	memcpy( buffer, ( sound.samples + idx * 2 ).ptr, num_frames * sizeof( float ) * 2 );
@@ -199,13 +199,11 @@ static void MixStereo( float * buffer, size_t num_frames, const CubicCoefficient
 		size_t idx = ScaleFixed( t.flicks, sound.sample_rate, GGTIME_FLICKS_PER_SECOND );
 		float remainder = ToSeconds( t - Time { idx * ( GGTIME_FLICKS_PER_SECOND / sound.sample_rate ) } ) * sound.sample_rate;
 
-		Vec2 sample = ResampleStereo( cubic_coefficients, ( sound.samples + idx * 2 ).ptr, remainder );
-		buffer[ i * 2 + 0 ] = sample.x;
-		buffer[ i * 2 + 1 ] = sample.y;
+		buffer[ i ] = ResampleStereo( cubic_coefficients, ( sound.samples + idx * 2 ).ptr, remainder );
 	}
 }
 
-static void GenerateSamples( float * buffer, size_t num_frames, int num_channels, void * userdata ) {
+static void GenerateSamples( Vec2 * buffer, size_t num_frames, void * userdata ) {
 	MixContext * ctx = ( MixContext * ) userdata;
 
 	memset( buffer, 0, num_frames * sizeof( float ) * 2 );
@@ -259,7 +257,6 @@ int main() {
 
 	saudio_desc sokol = {
 		.sample_rate = SAMPLE_RATE,
-		.num_channels = 2,
 		.buffer_frames = int( SAMPLE_RATE * 0.02f ), // 20ms
 		.callback = GenerateSamples,
 		.user_data = &mix_context,

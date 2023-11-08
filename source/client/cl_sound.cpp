@@ -567,10 +567,8 @@ static float DequantizeS16( s16 x ) {
 	return Clamp( -1.0f, float( x ) / float( S16_MAX ), 1.0f );
 }
 
-static void Mix( float * buffer, int num_frames, int num_channels, void * userdata ) {
+static void AudioCallback( Vec2 * buffer, size_t num_frames, void * userdata ) {
 #if 0
-	Assert( num_channels == 2 );
-
 	MixContext * ctx = ( MixContext * ) userdata;
 
 	ctx->arena.clear();
@@ -706,9 +704,8 @@ bool InitSound() {
 
 	saudio_desc sokol = {
 		.sample_rate = SAMPLE_RATE,
-		.num_channels = 2,
 		.buffer_frames = int( SAMPLE_RATE * 0.02f ), // 20ms
-		.callback = Mix,
+		.callback = AudioCallback,
 		.user_data = &mix_context,
 	};
 	if( !saudio_setup( sokol ) )

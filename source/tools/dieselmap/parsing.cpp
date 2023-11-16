@@ -446,7 +446,7 @@ static void StripComments( Span< char > map ) {
 	}
 }
 
-static size_t LineNumber( size_t offset, const std::vector< size_t > new_lines ) {
+static size_t LineNumber( size_t offset, const std::vector< size_t > & new_lines ) {
 	return 1 + std::lower_bound( new_lines.begin(), new_lines.end(), offset ) - new_lines.begin();
 }
 

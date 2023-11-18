@@ -67,6 +67,7 @@ void saudio_shutdown();
 #include <stddef.h> // size_t
 #include <atomic>
 
+#include "qcommon/base.h"
 #include "qcommon/threads.h"
 
 #ifndef SOKOL_DEBUG
@@ -205,8 +206,6 @@ static void wasapi_thread( void * data ) {
 			_saudio.backend.render_client->ReleaseBuffer( num_frames, 0 );
 		}
 	}
-
-	return 0;
 }
 
 static void _saudio_wasapi_release() {
@@ -278,18 +277,26 @@ static bool _saudio_backend_init() {
 	   */
 	HRESULT hr = CoInitializeEx( 0, COINIT_MULTITHREADED );
 	_saudio.backend.buffer_end_event = CreateEventA( NULL, FALSE, FALSE, NULL );
+
+	bool ok = false;
+	defer {
+		if( !ok ) {
+			_saudio_wasapi_release();
+		}
+	};
+
 	if( _saudio.backend.buffer_end_event == NULL ) {
 		_SAUDIO_ERROR(WASAPI_CREATE_EVENT_FAILED);
-		goto error;
+		return false;
 	}
 
 	if( FAILED( CoCreateInstance( __uuidof( MMDeviceEnumerator ),
 			    NULL, CLSCTX_ALL,
-			    IID_IMMDeviceEnumerator,
+			    __uuidof( IMMDeviceEnumerator ),
 			    (void**) &_saudio.backend.device_enumerator ) ) )
 	{
 		_SAUDIO_ERROR( WASAPI_CREATE_DEVICE_ENUMERATOR_FAILED );
-		goto error;
+		return false;
 	}
 
 	_saudio.backend.device = OpenDeviceOrDefault( "hello" );
@@ -299,7 +306,7 @@ static bool _saudio_backend_init() {
 			    (void**)&_saudio.backend.audio_client ) ) )
 	{
 		_SAUDIO_ERROR( WASAPI_DEVICE_ACTIVATE_FAILED );
-		goto error;
+		return false;
 	}
 
 	WAVEFORMATEXTENSIBLE fmtex = { };
@@ -313,37 +320,36 @@ static bool _saudio_backend_init() {
 	fmtex.Samples.wValidBitsPerSample = 32;
 	fmtex.dwChannelMask = SPEAKER_FRONT_LEFT|SPEAKER_FRONT_RIGHT;
 	fmtex.SubFormat = KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
-	dur = REFERENCE_TIME(double(_saudio.buffer_frames) / ((double(_saudio.sample_rate) * (1.0/10000000.0));
+	dur = REFERENCE_TIME(double(_saudio.buffer_frames) / ((double(_saudio.sample_rate) * (1.0/10000000.0))));
 	if (FAILED(_saudio.backend.audio_client->Initialize(
 			    AUDCLNT_SHAREMODE_SHARED,
 			    AUDCLNT_STREAMFLAGS_EVENTCALLBACK|AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM|AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY,
 			    dur, 0, (WAVEFORMATEX*)&fmtex, NULL)))
 	{
 		_SAUDIO_ERROR(WASAPI_AUDIO_CLIENT_INITIALIZE_FAILED);
-		goto error;
+		return false;
 	}
 	if (FAILED(_saudio.backend.audio_client->GetBufferSize(&_saudio.backend.dst_buffer_frames))) {
 		_SAUDIO_ERROR(WASAPI_AUDIO_CLIENT_GET_BUFFER_SIZE_FAILED);
-		goto error;
+		return false;
 	}
 	if (FAILED(_saudio.backend.audio_client->GetService(
 			    __uuidof(IAudioRenderClient),
 			    (void**)&_saudio.backend.render_client)))
 	{
 		_SAUDIO_ERROR(WASAPI_AUDIO_CLIENT_GET_SERVICE_FAILED);
-		goto error;
+		return false;
 	}
 	if (FAILED(_saudio.backend.audio_client->SetEventHandle(_saudio.backend.buffer_end_event))) {
 		_SAUDIO_ERROR(WASAPI_AUDIO_CLIENT_SET_EVENT_HANDLE_FAILED);
-		goto error;
+		return false;
 	}
 
 	_saudio.backend.audio_client->Start();
 	_saudio.backend.thread = NewThread( wasapi_thread, NULL );
+
+	ok = true;
 	return true;
-	error:
-		_saudio_wasapi_release();
-	return false;
 }
 
 static void _saudio_backend_shutdown() {

@@ -61,8 +61,9 @@ bin( "audio", {
 		"source/qcommon/allocators.cpp",
 		"source/qcommon/base.cpp",
 		"source/qcommon/time.cpp",
-		"source/qcommon/platform/unix_time.cpp",
-		"source/qcommon/platform/unix_threads.cpp",
+		"source/qcommon/platform/*_time.cpp",
+		"source/qcommon/platform/*_threads.cpp",
+		"source/qcommon/platform/windows_sys.cpp",
 	},
 	libs = {
 		"ggaudio",

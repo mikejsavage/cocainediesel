@@ -75,52 +75,52 @@ bin( "audio", {
 	macos_ldflags = "-framework AudioToolbox -framework CoreAudio -framework Foundation",
 } )
 
--- do
--- 	bin( "client", {
--- 		srcs = {
--- 			"source/cgame/*.cpp",
--- 			"source/client/**.cpp",
--- 			"source/game/**.cpp",
--- 			"source/gameshared/*.cpp",
--- 			"source/qcommon/**.cpp",
--- 			"source/server/sv_*.cpp",
--- 		},
---
--- 		libs = {
--- 			"imgui",
---
--- 			"cgltf",
--- 			"discord",
--- 			"freetype",
--- 			"ggaudio",
--- 			"ggentropy",
--- 			"ggformat",
--- 			"ggtime",
--- 			"glad",
--- 			"glfw3",
--- 			"jsmn",
--- 			"luau",
--- 			"monocypher",
--- 			"openal",
--- 			"picohttpparser",
--- 			"stb_image",
--- 			"stb_image_write",
--- 			"stb_rect_pack",
--- 			"stb_vorbis",
--- 			"tracy",
--- 			"yoga",
--- 			"zstd",
--- 			platform_curl_libs,
--- 		},
---
--- 		rc = "source/client/platform/client",
---
--- 		windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib /SUBSYSTEM:WINDOWS",
--- 		macos_ldflags = "-lcurl -framework AudioToolbox -framework Cocoa -framework CoreAudio -framework CoreVideo -framework IOKit",
--- 		linux_ldflags = "-lm -lpthread -ldl",
--- 		no_static_link = true,
--- 	} )
--- end
+do
+	bin( "client", {
+		srcs = {
+			"source/cgame/*.cpp",
+			"source/client/**.cpp",
+			"source/game/**.cpp",
+			"source/gameshared/*.cpp",
+			"source/qcommon/**.cpp",
+			"source/server/sv_*.cpp",
+		},
+
+		libs = {
+			"imgui",
+
+			"cgltf",
+			"discord",
+			"freetype",
+			"ggaudio",
+			"ggentropy",
+			"ggformat",
+			"ggtime",
+			"glad",
+			"glfw3",
+			"jsmn",
+			"luau",
+			"monocypher",
+			"openal",
+			"picohttpparser",
+			"stb_image",
+			"stb_image_write",
+			"stb_rect_pack",
+			"stb_vorbis",
+			"tracy",
+			"yoga",
+			"zstd",
+			platform_curl_libs,
+		},
+
+		rc = "source/client/platform/client",
+
+		windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib /SUBSYSTEM:WINDOWS",
+		macos_ldflags = "-lcurl -framework AudioToolbox -framework Cocoa -framework CoreAudio -framework CoreVideo -framework IOKit",
+		linux_ldflags = "-lm -lpthread -ldl",
+		no_static_link = true,
+	} )
+end
 
 do
 	bin( "server", {

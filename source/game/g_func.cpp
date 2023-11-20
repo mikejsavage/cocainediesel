@@ -302,7 +302,7 @@ void SP_func_door( edict_t * ent, const spawn_temp_t * st ) {
 	abs_movedir.y = Abs( ent->moveinfo.movedir.y );
 	abs_movedir.z = Abs( ent->moveinfo.movedir.z );
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
-	ent->moveinfo.distance = Dot( abs_movedir, Size( bounds ) ) - lip;
+	ent->moveinfo.distance = Dot( abs_movedir, Dimensions( bounds ) ) - lip;
 	ent->moveinfo.end_origin = ent->moveinfo.start_origin + ent->moveinfo.movedir * ent->moveinfo.distance;
 
 	// if it starts open, switch the positions

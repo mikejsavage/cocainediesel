@@ -5,7 +5,7 @@
 #include "qcommon/qcommon.h"
 #include "qcommon/time.h"
 
-#include "sokol/ggaudio.h"
+#include "client/audio/backend.h"
 
 #define STB_VORBIS_HEADER_ONLY
 #include "stb/stb_vorbis.h"
@@ -187,14 +187,14 @@ static u64 ScaleFixed( u64 x, u64 numer, u64 denom ) {
 	return a + b;
 }
 
-static void MixStereo( Vec2 * buffer, size_t num_frames, const CubicCoefficients & cubic_coefficients, Time t_0, Time dt, Sound sound ) {
+static void MixStereo( Span< Vec2 > buffer, const CubicCoefficients & cubic_coefficients, Time t_0, Time dt, Sound sound ) {
 	// if( sound.sample_rate == SAMPLE_RATE ) {
 	// 	size_t idx = ScaleFixed( t_0.flicks, sound.sample_rate, GGTIME_FLICKS_PER_SECOND );
 	// 	memcpy( buffer, ( sound.samples + idx * 2 ).ptr, num_frames * sizeof( float ) * 2 );
 	// 	return;
 	// }
 
-	for( size_t i = 0; i < num_frames; i++ ) {
+	for( size_t i = 0; i < buffer.n; i++ ) {
 		Time t = t_0 + u64( i ) * dt;
 		size_t idx = ScaleFixed( t.flicks, sound.sample_rate, GGTIME_FLICKS_PER_SECOND );
 		float remainder = ToSeconds( t - Time { idx * ( GGTIME_FLICKS_PER_SECOND / sound.sample_rate ) } ) * sound.sample_rate;
@@ -203,14 +203,14 @@ static void MixStereo( Vec2 * buffer, size_t num_frames, const CubicCoefficients
 	}
 }
 
-static void GenerateSamples( Vec2 * buffer, size_t num_frames, void * userdata ) {
+static void GenerateSamples( Span< Vec2 > buffer, u32 sample_rate, void * userdata ) {
 	MixContext * ctx = ( MixContext * ) userdata;
 
-	memset( buffer, 0, num_frames * sizeof( float ) * 2 );
+	memset( buffer.ptr, 0, buffer.num_bytes() );
 
 	Time dt_44100_hz = Hz( SAMPLE_RATE );
-	MixStereo( buffer, num_frames, ctx->cubic_coefficients, ctx->time, dt_44100_hz, ctx->longcovid );
-	ctx->time += u64( num_frames ) * dt_44100_hz;
+	MixStereo( buffer, ctx->cubic_coefficients, ctx->time, dt_44100_hz, ctx->longcovid );
+	ctx->time += u64( buffer.n ) * dt_44100_hz;
 }
 
 static void Print( const char * name, float32x4_t simd ) {
@@ -251,18 +251,14 @@ int main() {
 	mix_context.cubic_coefficients = cubic_coefficients;
 	constexpr size_t AUDIO_ARENA_SIZE = 1024 * 64; // 64KB
 	void * mixer_arena_memory = sys_allocator->allocate( AUDIO_ARENA_SIZE, 16 );
+	defer { Free( sys_allocator, mixer_arena_memory ); };
 	mix_context.arena = ArenaAllocator( mixer_arena_memory, AUDIO_ARENA_SIZE );
 	mix_context.time = Seconds( 50 );
 	mix_context.longcovid = LoadSound( "base/sounds/music/longcovid.ogg" );
 
-	saudio_desc sokol = {
-		.sample_rate = SAMPLE_RATE,
-		.buffer_frames = int( SAMPLE_RATE * 0.02f ), // 20ms
-		.callback = GenerateSamples,
-		.user_data = &mix_context,
-	};
-	if( !saudio_setup( sokol ) )
+	if( !InitAudioBackend( "", GenerateSamples, &mix_context ) ) {
 		return 1;
+	}
 
 	while( true ) {
 		Sys_Sleep( 50 );

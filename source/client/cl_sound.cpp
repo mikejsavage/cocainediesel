@@ -5,6 +5,7 @@
 #include "qcommon/hashtable.h"
 #include "qcommon/time.h"
 #include "client/client.h"
+#include "client/audio/backend.h"
 #include "client/assets.h"
 #include "client/sound.h"
 #include "client/threadpool.h"
@@ -18,8 +19,6 @@
 #include "openal/al.h"
 #include "openal/alc.h"
 #include "openal/alext.h"
-
-#include "sokol/ggaudio.h"
 
 #define STB_VORBIS_HEADER_ONLY
 #include "stb/stb_vorbis.h"
@@ -567,7 +566,7 @@ static float DequantizeS16( s16 x ) {
 	return Clamp( -1.0f, float( x ) / float( S16_MAX ), 1.0f );
 }
 
-static void AudioCallback( Vec2 * buffer, size_t num_frames, void * userdata ) {
+static void AudioCallback( Span< Vec2 > buffer, u32 sample_rate, void * userdata ) {
 #if 0
 	MixContext * ctx = ( MixContext * ) userdata;
 
@@ -661,9 +660,8 @@ static void AudioCallback( Vec2 * buffer, size_t num_frames, void * userdata ) {
 #endif
 
 	// mix
-	for( int i = 0; i < num_frames; i++ ) {
-		buffer[ i * 2 + 0 ] = openal_samples[ i ].x + sin_samples[ i ].x * 0.0f + fuse_samples[ i ].x * 0.2f;
-		buffer[ i * 2 + 1 ] = openal_samples[ i ].y + sin_samples[ i ].y * 0.0f + fuse_samples[ i ].y * 0.2f;
+	for( int i = 0; i < buffer.n; i++ ) {
+		buffer[ i ] = openal_samples[ i ] + sin_samples[ i ] * 0.0f + fuse_samples[ i ] * 0.2f;
 	}
 
 	ctx->samples_time += num_frames;
@@ -702,13 +700,7 @@ bool InitSound() {
 	LoadSounds();
 	LoadSoundEffects();
 
-	saudio_desc sokol = {
-		.sample_rate = SAMPLE_RATE,
-		.buffer_frames = int( SAMPLE_RATE * 0.02f ), // 20ms
-		.callback = AudioCallback,
-		.user_data = &mix_context,
-	};
-	if( !saudio_setup( sokol ) )
+	if( !InitAudioBackend( s_device->value, AudioCallback, &mix_context ) )
 		return false;
 
 	initialized = true;
@@ -734,7 +726,7 @@ void ShutdownSound() {
 
 	CheckALErrors( "ShutdownSound" );
 
-	saudio_shutdown();
+	ShutdownAudioBackend();
 
 	alcDestroyContext( al_context );
 	alcCloseDevice( al_device );

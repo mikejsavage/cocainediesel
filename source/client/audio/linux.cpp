@@ -97,6 +97,7 @@ static Optional< AlsaAPI > LoadAlsaAPI() {
 	ok = ok && LoadFunction( alsa, &api.set_error_handler, "snd_lib_error_set_handler" );
 	ok = ok && LoadFunction( alsa, &api.open, "snd_pcm_open" );
 	ok = ok && LoadFunction( alsa, &api.close, "snd_pcm_close" );
+	ok = ok && LoadFunction( alsa, &api.hw_params_sizeof, "snd_pcm_hw_params_sizeof" );
 	ok = ok && LoadFunction( alsa, &api.hw_params_any, "snd_pcm_hw_params_any" );
 	ok = ok && LoadFunction( alsa, &api.hw_params_set_access, "snd_pcm_hw_params_set_access" );
 	ok = ok && LoadFunction( alsa, &api.hw_params_set_format, "snd_pcm_hw_params_set_format" );
@@ -132,7 +133,7 @@ static void AlsaThread( void * user_data ) {
 		if( write_res == -EPIPE ) {
 			alsa.api.prepare( alsa.device );
 		}
-		else {
+		else if( write_res < 0 ) {
 			Fatal( "snd_pcm_writei = %d", write_res );
 		}
 	}

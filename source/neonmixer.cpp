@@ -148,7 +148,7 @@ static float ResampleMono( const CubicCoefficients & cubic_coefficients, const s
 static Vec2 ResampleStereo( const CubicCoefficients & cubic_coefficients, const s16 * samples, float t ) {
 	float32x4_t coeffs = SampleCubicCoefficients( cubic_coefficients, t );
 
-	__m128i interleaved = _mm_load_si128( ( const __m128i * ) samples );
+	__m128i interleaved = _mm_loadu_si128( ( const __m128i * ) samples );
 	__m128i left_s32 = _mm_srai_epi32( interleaved, 16 );
 	__m128i right_s32 = _mm_madd_epi16( interleaved, _mm_set1_epi32( 1 ) );
 

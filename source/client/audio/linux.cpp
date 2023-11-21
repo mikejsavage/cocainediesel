@@ -5,18 +5,48 @@
 #include "qcommon/base.h"
 #include "qcommon/threads.h"
 #include "client/audio/backend.h"
+#include "gameshared/q_shared.h"
 
 #include <atomic>
-#include <alloca.h>
 #include <dlfcn.h>
 #include <alsa/asoundlib.h>
+#include <pulse/pulseaudio.h>
+#include <pulse/simple.h>
 
 struct PulseAPI {
-	void * lib;
+	void * main_lib;
+	void * simple_lib;
+
+	decltype( pa_strerror ) * strerror;
+
+	decltype( pa_simple_new ) * simple_new;
+	decltype( pa_simple_free ) * simple_free;
+	decltype( pa_simple_write ) * simple_write;
+	decltype( pa_simple_drain ) * simple_drain;
+
+	// decltype( pa_mainloop_new ) * mainloop_new;
+	// decltype( pa_mainloop_free ) * mainloop_free;
+	// decltype( pa_mainloop_get_api ) * mainloop_get_api;
+        //
+	// decltype( pa_context_new ) * context_new;
+	// decltype( pa_context_unref ) * context_unref;
+	// decltype( pa_context_connect ) * context_connect;
+	// decltype( pa_context_disconnect ) * context_disconnect;
+	// decltype( pa_context_get_state ) * context_get_state;
+	// decltype( pa_context_set_state_callback ) * context_set_state_callback;
+        //
+	// decltype( pa_sample_spec_valid ) * sample_spec_valid;
+	// decltype( pa_stream_new ) * stream_new;
+	// decltype( pa_stream_set_write_callback ) * stream_set_write_callback;
+	// decltype( pa_stream_connect_playback ) * stream_connect_playback;
+	// decltype( pa_stream_begin_write ) * stream_begin_write;
+	// decltype( pa_stream_write ) * stream_write;
 };
 
 struct PulseBackend {
 	PulseAPI api;
+	Thread * thread;
+	std::atomic< bool > shutting_down;
 };
 
 struct AlsaAPI {
@@ -58,6 +88,10 @@ static AlsaBackend alsa;
 
 template< typename F >
 static bool LoadFunction( void * lib, F ** f, const char * name ) {
+	if( lib == NULL ) {
+		return false;
+	}
+
 	*f = ( F * ) dlsym( lib, name );
 	if( *f == NULL ) {
 		printf( "can't find %s\n", name );
@@ -66,13 +100,78 @@ static bool LoadFunction( void * lib, F ** f, const char * name ) {
 }
 
 static void CloseLib( void * lib ) {
-	if( dlclose( lib ) != 0 ) {
+	if( lib != NULL && dlclose( lib ) != 0 ) {
 		Fatal( "dlclose: %s\n", dlerror() );
 	}
 }
 
 static Optional< PulseAPI > LoadPulseAPI() {
-	return NONE;
+	void * pulse = dlopen( "libpulse.so", RTLD_NOW );
+	void * simple = dlopen( "libpulse-simple.so", RTLD_NOW );
+
+	PulseAPI api = { .main_lib = pulse, .simple_lib = simple };
+	bool ok = true;
+	ok = ok && LoadFunction( pulse, &api.strerror, "pa_strerror" );
+	ok = ok && LoadFunction( simple, &api.simple_new, "pa_simple_new" );
+	ok = ok && LoadFunction( simple, &api.simple_free, "pa_simple_free" );
+	ok = ok && LoadFunction( simple, &api.simple_write, "pa_simple_write" );
+	ok = ok && LoadFunction( simple, &api.simple_drain, "pa_simple_drain" );
+
+	if( !ok ) {
+		CloseLib( pulse );
+		CloseLib( simple );
+		return NONE;
+	}
+
+	return api;
+}
+
+struct PulseThreadData {
+	const char * preferred_device;
+	void * user_data;
+};
+
+static void PulseThread( void * opaque ) {
+	PulseThreadData * thread_data = ( PulseThreadData * ) opaque;
+	defer { Free( sys_allocator, thread_data ); };
+
+	pa_sample_spec sample_spec = {
+                .format = PA_SAMPLE_FLOAT32NE,
+                .rate = 44100,
+                .channels = 2,
+        };
+
+        pa_buffer_attr buffer_attr = {
+                .maxlength = u32( -1 ),
+                .tlength = AudioBackendBufferSize * sizeof( Vec2 ),
+                .prebuf = u32( -1 ),
+                .minreq = u32( -1 ),
+                .fragsize = AudioBackendBufferSize * sizeof( Vec2 ),
+        };
+
+        int err;
+        pa_simple * simple = pulse.api.simple_new( NULL, "Cocaine Diesel", PA_STREAM_PLAYBACK, thread_data->preferred_device, "Cocaine Diesel", &sample_spec, NULL, &buffer_attr, &err );
+        if( simple == NULL && err == PA_ERR_NOENTITY ) {
+                simple = pulse.api.simple_new( NULL, "Cocaine Diesel", PA_STREAM_PLAYBACK, thread_data->preferred_device, "Cocaine Diesel", &sample_spec, NULL, &buffer_attr, &err );
+        }
+
+        if( simple == NULL ) {
+		Fatal( "pa_simple_new: %s", pulse.api.strerror( err ) );
+	}
+
+	while( !pulse.shutting_down.load( std::memory_order_acquire ) ) {
+		Vec2 buffer[ AudioBackendBufferSize ];
+		audio_callback( Span< Vec2 >( buffer, ARRAY_COUNT( buffer ) ), AudioBackendSampleRate, thread_data->user_data );
+		if( pulse.api.simple_write( simple, buffer, sizeof( buffer ), &err ) < 0 ) {
+			Fatal( "pa_simple_write: %s", pulse.api.strerror( err ) );
+		}
+	}
+
+        if( pulse.api.simple_drain( simple, &err ) < 0 ) {
+		Fatal( "pa_simple_drain: %s", pulse.api.strerror( err ) );
+	}
+
+        pulse.api.simple_free( simple );
 }
 
 static bool InitPulse( const char * preferred_device, void * user_data ) {
@@ -80,18 +179,23 @@ static bool InitPulse( const char * preferred_device, void * user_data ) {
 	if( !api.exists )
 		return false;
 
+	PulseThreadData * thread_data = Alloc< PulseThreadData >( sys_allocator );
+	*thread_data = {
+		.preferred_device = StrEqual( preferred_device, "" ) ? NULL : preferred_device,
+		.user_data = user_data,
+	};
+
 	pulse.api = api.value;
+	pulse.shutting_down.store( false, std::memory_order_release );
+	pulse.thread = NewThread( PulseThread, thread_data );
 
 	return true;
 }
 
 static Optional< AlsaAPI > LoadAlsaAPI() {
 	void * alsa = dlopen( "libasound.so", RTLD_NOW );
-	if( alsa == NULL )
-		return NONE;
 
 	AlsaAPI api = { .lib = alsa };
-
 	bool ok = true;
 	ok = ok && LoadFunction( alsa, &api.strerror, "snd_strerror" );
 	ok = ok && LoadFunction( alsa, &api.set_error_handler, "snd_lib_error_set_handler" );
@@ -111,9 +215,10 @@ static Optional< AlsaAPI > LoadAlsaAPI() {
 
 	if( !ok ) {
 		CloseLib( alsa );
+		return NONE;
 	}
 
-	return ok ? api : Optional< AlsaAPI >( NONE );
+	return api;
 }
 
 // static void AlsaErrorCallback( const char * file, int line, const char * function, int err, const char * fmt, ... ) {
@@ -161,7 +266,8 @@ static bool InitAlsa( const char * preferred_device, void * user_data ) {
 		return false;
 	}
 
-	snd_pcm_hw_params_t * params = ( snd_pcm_hw_params_t * ) alloca( alsa.api.hw_params_sizeof() );
+	snd_pcm_hw_params_t * params = ( snd_pcm_hw_params_t * ) sys_allocator->allocate( alsa.api.hw_params_sizeof(), 16 );
+	defer { Free( sys_allocator, params ); };
 	memset( params, 0, alsa.api.hw_params_sizeof() );
 	alsa.api.hw_params_any( device, params );
 
@@ -182,8 +288,8 @@ static bool InitAlsa( const char * preferred_device, void * user_data ) {
 	alsa.sample_rate = sample_rate;
 	alsa.device = device;
 	alsa.buffer = AllocSpan< Vec2 >( sys_allocator, AudioBackendBufferSize );
-	alsa.thread = NewThread( AlsaThread, user_data );
 	alsa.shutting_down.store( false, std::memory_order_release );
+	alsa.thread = NewThread( AlsaThread, user_data );
 
 	return true;
 }
@@ -197,8 +303,11 @@ bool InitAudioBackend( const char * preferred_device, AudioBackendCallback callb
 };
 
 void ShutdownAudioBackend() {
-	if( pulse.api.lib != NULL ) {
-		CloseLib( pulse.api.lib );
+	if( pulse.api.main_lib != NULL ) {
+		pulse.shutting_down.store( true, std::memory_order_release );
+		JoinThread( pulse.thread );
+		CloseLib( pulse.api.main_lib );
+		CloseLib( pulse.api.simple_lib );
 	}
 
 	if( alsa.api.lib != NULL ) {

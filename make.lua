@@ -61,6 +61,7 @@ bin( "audio", {
 		"source/qcommon/allocators.cpp",
 		"source/qcommon/base.cpp",
 		"source/qcommon/time.cpp",
+		"source/gameshared/q_shared.cpp",
 		"source/qcommon/platform/*_time.cpp",
 		"source/qcommon/platform/*_threads.cpp",
 		"source/qcommon/platform/windows_sys.cpp",

@@ -4,7 +4,6 @@
 
 #include "qcommon/base.h"
 #include "qcommon/threads.h"
-
 #include "client/audio/backend.h"
 
 #include <atomic>

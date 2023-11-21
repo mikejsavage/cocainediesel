@@ -3,11 +3,15 @@
 #if PLATFORM_MACOS
 
 #include "qcommon/base.h"
+#include "client/audio/backend.h"
 
 #include <AudioToolbox/AudioToolbox.h>
 
 static AudioQueueRef audio_queue;
+static AudioBackendCallback audio_callback;
+static void * callback_user_data;
 
+#if 0
 static void PrintDevices() {
 	constexpr AudioObjectPropertyAddress devices_property_address = {
 		kAudioHardwarePropertyDevices,
@@ -71,16 +75,16 @@ static void PrintDevices() {
     //
 	// return devices_in_scope;
 }
+#endif
 
-static void coreaudio_callback(void* user_data, AudioQueueRef queue, AudioQueueBufferRef buffer) {
-	_saudio.callback( ( Vec2 * ) buffer->mAudioData, buffer->mAudioDataByteSize / sizeof( Vec2 ), _saudio.user_data );
-	AudioQueueEnqueueBuffer(queue, buffer, 0, NULL);
+static void CoreAudioCallback( void * user_data, AudioQueueRef queue, AudioQueueBufferRef buffer ) {
+	audio_callback( Span< Vec2 >( ( Vec2 * ) buffer->mAudioData, buffer->mAudioDataByteSize / sizeof( Vec2 ) ), AudioBackendSampleRate, callback_user_data );
+	AudioQueueEnqueueBuffer( queue, buffer, 0, NULL );
 }
 
 bool InitAudioBackend( const char * preferred_device, AudioBackendCallback callback, void * user_data ) {
-	/* create an audio queue with fp32 samples */
 	AudioStreamBasicDescription fmt = {
-		.mSampleRate = double( _saudio.sample_rate ),
+		.mSampleRate = double( AudioBackendSampleRate ),
 		.mFormatID = kAudioFormatLinearPCM,
 		.mFormatFlags = kLinearPCMFormatFlagIsFloat | kAudioFormatFlagIsPacked,
 		.mFramesPerPacket = 1,
@@ -89,39 +93,36 @@ bool InitAudioBackend( const char * preferred_device, AudioBackendCallback callb
 		.mBytesPerPacket = sizeof( Vec2 ),
 		.mBitsPerChannel = sizeof( float ) * 8,
 	};
-	OSStatus res = AudioQueueNewOutput(&fmt, coreaudio_callback, 0, NULL, NULL, 0, &_saudio.backend.ca_audio_queue);
-	if (0 != res) {
-		_SAUDIO_ERROR(COREAUDIO_NEW_OUTPUT_FAILED);
+	if( AudioQueueNewOutput( &fmt, CoreAudioCallback, 0, NULL, NULL, 0, &audio_queue ) != 0 ) {
 		return false;
 	}
 
-	/* create 2 audio buffers */
-	for (int i = 0; i < 2; i++) {
+	for( int i = 0; i < 2; i++ ) {
 		AudioQueueBufferRef buf = NULL;
-		const uint32_t buf_byte_size = (uint32_t)_saudio.buffer_frames * fmt.mBytesPerFrame;
-		res = AudioQueueAllocateBuffer(_saudio.backend.ca_audio_queue, buf_byte_size, &buf);
-		if (0 != res) {
-			_SAUDIO_ERROR(COREAUDIO_ALLOCATE_BUFFER_FAILED);
-			_saudio_backend_shutdown();
+		u32 size = AudioBackendBufferSize * fmt.mBytesPerFrame;
+		if( AudioQueueAllocateBuffer( audio_queue, size, &buf ) != 0 ) {
+			ShutdownAudioBackend();
 			return false;
 		}
-		buf->mAudioDataByteSize = buf_byte_size;
-		memset( buf->mAudioData, 0, buf->mAudioDataByteSize );
-		AudioQueueEnqueueBuffer(_saudio.backend.ca_audio_queue, buf, 0, NULL);
+		buf->mAudioDataByteSize = size;
+		memset( buf->mAudioData, 0, size );
+		AudioQueueEnqueueBuffer( audio_queue, buf, 0, NULL );
 	}
 
-	if( AudioQueueStart( _saudio.backend.ca_audio_queue, NULL ) != 0 ) {
-		_SAUDIO_ERROR(COREAUDIO_START_FAILED);
-		_saudio_backend_shutdown();
+	if( AudioQueueStart( audio_queue, NULL ) != 0 ) {
+		ShutdownAudioBackend();
 		return false;
 	}
+
+	audio_callback = callback;
+	callback_user_data = user_data;
+
 	return true;
 }
 
-static void ShutdownAudioBackend() {
-	AudioQueueStop(_saudio.backend.ca_audio_queue, true);
-	AudioQueueDispose(_saudio.backend.ca_audio_queue, false);
-	_saudio.backend.ca_audio_queue = 0;
+void ShutdownAudioBackend() {
+	AudioQueueStop( audio_queue, true );
+	AudioQueueDispose( audio_queue, false );
 }
 
 #endif // #if PLATFORM_MACOS

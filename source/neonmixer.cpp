@@ -28,8 +28,8 @@ using int32x4_t = __m128i;
 
 static float32x4_t BroadcastFloatx4( float x ) { return _mm_set1_ps( x ); }
 static float32x4_t SetFloatx4( float a, float b, float c, float d ) { return _mm_setr_ps( a, b, c, d ); }
-static float32x4_t LoadFloatx4( const float * x ) { return _mm_load_ps( x ); }
-static void StoreFloatx4( float * x, float32x4_t simd ) { _mm_store_ps( x, simd ); }
+static float32x4_t LoadFloatx4( const float * x ) { return _mm_loadu_ps( x ); }
+static void StoreFloatx4( float * x, float32x4_t simd ) { _mm_storeu_ps( x, simd ); }
 
 static float32x4_t AddFloatx4( float32x4_t lhs, float32x4_t rhs ) { return _mm_add_ps( lhs, rhs ); }
 static float32x4_t SubFloatx4( float32x4_t lhs, float32x4_t rhs ) { return _mm_sub_ps( lhs, rhs ); }

@@ -28,8 +28,8 @@ using int32x4_t = __m128i;
 
 static float32x4_t BroadcastFloatx4( float x ) { return _mm_set1_ps( x ); }
 static float32x4_t SetFloatx4( float a, float b, float c, float d ) { return _mm_setr_ps( a, b, c, d ); }
-static float32x4_t LoadFloatx4( const float * x ) { return _mm_loadu_ps( x ); }
-static void StoreFloatx4( float * x, float32x4_t simd ) { _mm_storeu_ps( x, simd ); }
+static float32x4_t LoadFloatx4Unaligned( const float * x ) { return _mm_loadu_ps( x ); }
+static void StoreFloatx4Unaligned( float * x, float32x4_t simd ) { _mm_storeu_ps( x, simd ); }
 
 static float32x4_t AddFloatx4( float32x4_t lhs, float32x4_t rhs ) { return _mm_add_ps( lhs, rhs ); }
 static float32x4_t SubFloatx4( float32x4_t lhs, float32x4_t rhs ) { return _mm_sub_ps( lhs, rhs ); }
@@ -71,8 +71,8 @@ static float32x4_t SetFloatx4( float a, float b, float c, float d ) {
 	ret = vsetq_lane_f32( d, ret, 3 );
 	return ret;
 }
-static float32x4_t LoadFloatx4( const float * x ) { return vld1q_f32( x ); }
-static void StoreFloatx4( float * x, float32x4_t simd ) { vst1q_f32( x, simd ); }
+static float32x4_t LoadFloatx4Unaligned( const float * x ) { return vld1q_f32( x ); }
+static void StoreFloatx4Unaligned( float * x, float32x4_t simd ) { vst1q_f32( x, simd ); }
 
 static float32x4_t AddFloatx4( float32x4_t lhs, float32x4_t rhs ) { return vaddq_f32( lhs, rhs ); }
 static float32x4_t SubFloatx4( float32x4_t lhs, float32x4_t rhs ) { return vsubq_f32( lhs, rhs ); }
@@ -108,13 +108,13 @@ static CubicCoefficients InitCubicCoefficients() {
 		float t2 = t * t;
 		float t3 = t * t * t;
 
-		alignas( 16 ) Vec4 coeff = 0.5f * Vec4(
+		Vec4 coeff = 0.5f * Vec4(
 			0 - 1*t + 2*t2 - 1*t3,
 			2 + 0*t - 5*t2 + 3*t3,
 			0 + 1*t + 4*t2 - 3*t3,
 			0 + 0*t - 1*t2 + 1*t3
 		);
-		r.coeffs[ i ] = LoadFloatx4( coeff.ptr() );
+		r.coeffs[ i ] = LoadFloatx4Unaligned( coeff.ptr() );
 	}
 
 	for( size_t i = 0; i < ARRAY_COUNT( r.coeffs ); i++ ) {
@@ -215,7 +215,7 @@ static void GenerateSamples( Span< Vec2 > buffer, u32 sample_rate, void * userda
 
 static void Print( const char * name, float32x4_t simd ) {
 	float xs[ 4 ];
-	StoreFloatx4( xs, simd );
+	StoreFloatx4Unaligned( xs, simd );
 	printf( "%s = [%f, %f, %f, %f]\n", name, xs[ 0 ], xs[ 1 ], xs[ 2 ], xs[ 3 ] );
 }
 

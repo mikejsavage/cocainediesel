@@ -63,7 +63,7 @@ configs[ "linux" ] = {
 	cxx = "g++",
 	ar = "ar",
 
-	cxxflags = "-c -g -fdiagnostics-color",
+	cxxflags = "-c -ggdb3 -O0 -fdiagnostics-color",
 }
 
 configs[ "linux-debug" ] = {

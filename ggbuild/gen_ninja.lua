@@ -63,7 +63,8 @@ configs[ "linux" ] = {
 	cxx = "g++",
 	ar = "ar",
 
-	cxxflags = "-c -g -fdiagnostics-color",
+	-- we need explicit -O0 because we can't rely on the distro (NixOS) to not fuck this up
+	cxxflags = "-c -ggdb3 -O0 -fdiagnostics-color",
 }
 
 configs[ "linux-debug" ] = {

@@ -64,9 +64,9 @@ bin( "audio", {
 		"source/qcommon/platform/*_time.cpp",
 		"source/qcommon/platform/*_threads.cpp",
 		"source/qcommon/platform/windows_sys.cpp",
+		"source/client/audio/*.cpp",
 	},
 	libs = {
-		"ggaudio",
 		"ggformat",
 		"ggtime",
 		"stb_vorbis",
@@ -92,7 +92,6 @@ do
 			"cgltf",
 			"discord",
 			"freetype",
-			"ggaudio",
 			"ggentropy",
 			"ggformat",
 			"ggtime",

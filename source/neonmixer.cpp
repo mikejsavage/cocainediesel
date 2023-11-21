@@ -257,6 +257,7 @@ int main() {
 	mix_context.longcovid = LoadSound( "base/sounds/music/longcovid.ogg" );
 
 	if( !InitAudioBackend( "", GenerateSamples, &mix_context ) ) {
+		printf( "can't open audio backend\n" );
 		return 1;
 	}
 

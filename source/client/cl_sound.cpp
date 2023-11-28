@@ -567,6 +567,9 @@ static float DequantizeS16( s16 x ) {
 }
 
 static void AudioCallback( Span< Vec2 > buffer, u32 sample_rate, void * userdata ) {
+	alcRenderSamplesSOFT( al_device, buffer.ptr, buffer.n );
+	CheckALErrors( "alcRenderSamplesSOFT( {} )", buffer.n );
+
 #if 0
 	MixContext * ctx = ( MixContext * ) userdata;
 
@@ -735,6 +738,7 @@ void ShutdownSound() {
 }
 
 Span< const char * > GetAudioDevices( Allocator * a ) {
+	return Span< const char * >();
 	NonRAIIDynamicArray< const char * > devices( a );
 
 	const char * cursor = alcGetString( NULL, ALC_ALL_DEVICES_SPECIFIER );

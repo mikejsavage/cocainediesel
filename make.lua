@@ -72,6 +72,7 @@ bin( "audio", {
 		"stb_vorbis",
 		"tracy",
 	},
+	windows_ldflags = "ole32.lib",
 	macos_ldflags = "-framework AudioToolbox -framework CoreAudio -framework Foundation",
 } )
 

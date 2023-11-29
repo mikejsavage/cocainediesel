@@ -220,7 +220,6 @@ void * ArenaAllocator::try_temp_reallocate( void * ptr, size_t current_size, siz
 		return try_temp_allocate( new_size, alignment, src );
 
 	if( ptr == cursor - current_size && size_t( ptr ) % alignment == 0 ) {
-		Assert( size_t( ptr ) % alignment == 0 );
 		u8 * new_cursor = cursor - current_size + new_size;
 		if( new_cursor > top )
 			return NULL;

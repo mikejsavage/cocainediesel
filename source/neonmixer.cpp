@@ -188,7 +188,7 @@ static u64 ScaleFixed( u64 x, u64 numer, u64 denom ) {
 }
 
 static void MixStereo( Span< Vec2 > buffer, const CubicCoefficients & cubic_coefficients, Time t_0, Time dt, Sound sound ) {
-	// if( sound.sample_rate == SAMPLE_RATE ) {
+	// if( !sound.mono && sound.sample_rate == SAMPLE_RATE ) {
 	// 	size_t idx = ScaleFixed( t_0.flicks, sound.sample_rate, GGTIME_FLICKS_PER_SECOND );
 	// 	memcpy( buffer, ( sound.samples + idx * 2 ).ptr, num_frames * sizeof( float ) * 2 );
 	// 	return;

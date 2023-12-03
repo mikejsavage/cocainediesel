@@ -77,7 +77,7 @@ void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t ne
 
 template< typename T >
 T * Alloc( Allocator * a, SourceLocation src = CurrentSourceLocation() ) {
-	return ( T * ) a->allocate( sizeof( T ), alignof( T ) );
+	return ( T * ) a->allocate( sizeof( T ), alignof( T ), src );
 }
 
 template< typename T >

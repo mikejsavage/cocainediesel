@@ -345,9 +345,10 @@ void G_RespawnLevel() {
 }
 
 void G_HotloadMap() {
-	// TODO: come back to this
-	char map[ ARRAY_COUNT( sv.mapname ) ];
-	SafeStrCpy( map, sv.mapname, sizeof( map ) );
+	ShutdownServerCollisionModels();
+	InitServerCollisionModels();
+	LoadServerMap( sv.mapname );
+
 	G_ResetLevel();
 
 	if( level.gametype.MapHotloaded != NULL ) {

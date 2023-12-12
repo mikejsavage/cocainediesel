@@ -273,9 +273,6 @@ static void SpawnMapEntities() {
 void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	ResetEntityIDSequence();
 
-	ShutdownServerCollisionModels();
-	InitServerCollisionModels();
-
 	memset( &level, 0, sizeof( level_locals_t ) );
 	level.time = levelTime;
 

@@ -1,31 +1,24 @@
 <?xml version="1.0"?>
 <classes>
 	<group name="worldspawn" color="0 0 0">
-		Entity, which stores regular static map primitives (brushes and patches).
+		The world
 		<string key="gametype" name="Gametype">Set to gladiator to make this a gladiator map</string>
 		<boolean key="randomise_arena" name="Randomise Arena">Only for the gladiator shim map</boolean>
-		<boolean key="_ignoreleaks" name="Keep Light Entities" value="1">Set to 1 to shut up the map compiler</boolean>
 	</group>
 
 	<point name="spawn_gladiator" color="0 0.2 1" box="-16 -16 -24 16 16 40" model="players/rigg/model.glb">
 		Gladiator spawn point
 		<angle key="angle" name="Yaw Angle">View angle, yaw</angle>
-		<angles key="angles" name="Pitch Yaw Roll">View angles, pitch/yaw/roll</angles>
-		<flag key="SUSPENDED" name="SUSPENDED" bit="0">don't drop the spawn to the floor</flag>
 	</point>
 
-	<point name="spawn_bomb_attacking" color="0 0.2 1" box="-16 -16 -24 16 16 40" model="players/rigg/model.glb">
+	<point name="spawn_bomb_attacking" color="0 0.2 1" box="-16 -16 -24 16 16 40" model="{ 'path': 'players/rigg/model.glb', 'frame': '1' }">
 		Bomb attacker spawn point
 		<angle key="angle" name="Yaw Angle">View angle, yaw</angle>
-		<angles key="angles" name="Pitch Yaw Roll">View angles, pitch/yaw/roll</angles>
-		<flag key="SUSPENDED" name="SUSPENDED" bit="0">don't drop the spawn to the floor</flag>
 	</point>
 
 	<point name="spawn_bomb_defending" color="1 0.1 0.25" box="-16 -16 -24 16 16 40" model="players/rigg/model.glb">
 		Bomb defending spawn point
 		<angle key="angle" name="Yaw Angle">View angle, yaw</angle>
-		<angles key="angles" name="Pitch Yaw Roll">View angles, pitch/yaw/roll</angles>
-		<flag key="SUSPENDED" name="SUSPENDED" bit="0">don't drop the spawn to the floor</flag>
 	</point>
 
 	<group name="func_group" color="0 .4375 .7">
@@ -41,7 +34,6 @@
 		<real key="speed" name="Move Speed" value="400">Determines how fast the door moves (default 400, -1 = reach the end of move instantly).</real>
 		<real key="wait" name="Return Delay" value="2">Number of seconds before door returns (default 2, -1 = return immediately)</real>
 		<real key="lip" name="Lip" value="8">Lip remaining at end of move. Default value is 8, which results in 6u of physical lip. I.e. for wished amount of move set key to [size + 2 - amount], 2 for full move, [size + 2] for none.</real>
-		<targetname key="targetname" name="Target Name">Used to attach a misc_model entity to this entity.</targetname>
 		<flag key="START_OPEN" name="Start Open" bit="0">The door will spawn in the open state and operate in reverse.</flag>
 		<flag key="CRUSHER" name="Crusher" bit="2">Door will not reverse direction when blocked and will keep damaging player until he dies or gets out of the way.</flag>
 	</group>
@@ -97,11 +89,10 @@
 		To make a jump pad, place this entity at the highest point of the jump and target it with a trigger_push entity.
 	</point>
 
-	<point name="model" color="1 .5 .25" box="-16 -16 -16 16 16 16">
+	<point name="model" color="1 .5 .25" box="-16 -16 -16 16 16 16" model="{ 'path': model }">
 		Place a model to be loaded at runtime
-		<model key="model" name="Model File">Path/name of model to use (e.g. models/mapobjects/teleporter/teleporter.md3).</model>
-		<angle key="angle" name="Yaw Angle">Direction in which model will be oriented.</angle>
-		<angles key="angles" name="Pitch Yaw Roll">Individual control of PITCH, YAW, and ROLL (default 0 0 0).</angles>
+		<model key="model" name="Model File">Path to the model e.g. models/map/barrel.glb</model>
+		<angles key="angles" name="Pitch Yaw Roll" value="0 0 0">Individual control of PITCH, YAW, and ROLL (default 0 0 0).</angles>
 		<real key="modelscale" name="Uniform Scale" value="1">Floating-point value used to scale a model up or down (default 1.0).</real>
 		<real3 key="modelscale_vec" name="Scale XYZ" value="1 1 1">Floating-point vector used to scale a model's axes individually (default 1.0 1.0 1.0).</real3>
 	</point>
@@ -140,7 +131,7 @@
 		<angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
 	</point>
 
-	<point name="deadcam" color="0.5 0.5 0.5" box="-4 -8 -4 4 14 4" model="models/deadcam/radiant_model.glb">
+	<point name="deadcam" color="0.5 0.5 0.5" box="-4 -8 -4 4 14 4" model="entities/deadcam/radiant_model.glb">
 		Look through this camera when all your teammates are dead
 		<targetname key="targetname" name="Target Name">The deadcam's name, set your bomb_site deadcam key to this</targetname>
 		<angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>

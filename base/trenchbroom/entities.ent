@@ -11,7 +11,7 @@
 		<angle key="angle" name="Yaw Angle">View angle, yaw</angle>
 	</point>
 
-	<point name="spawn_bomb_attacking" color="0 0.2 1" box="-16 -16 -24 16 16 40" model="{ 'path': 'players/rigg/model.glb', 'frame': '1' }">
+	<point name="spawn_bomb_attacking" color="0 0.2 1" box="-16 -16 -24 16 16 40" model="players/rigg/model.glb">
 		Bomb attacker spawn point
 		<angle key="angle" name="Yaw Angle">View angle, yaw</angle>
 	</point>

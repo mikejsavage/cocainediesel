@@ -49,7 +49,7 @@ Vec2 FixedSpreadPattern( int i, float spread ) {
 	return Vec2( cosf( x ), sinf( x ) ) * spread * sqrtf( x );
 }
 
-trace_t GS_TraceLaserBeam( const gs_state_t * gs, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta ) {
+trace_t GS_TraceLaserBeam( const gs_state_t * gs, Vec3 origin, EulerDegrees3 angles, float range, int ignore, int timeDelta ) {
 	Vec3 dir;
 	AngleVectors( angles, &dir, NULL, NULL );
 	Vec3 end = origin + dir * range;

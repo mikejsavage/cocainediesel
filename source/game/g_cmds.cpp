@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * Teleports client to specified position
 * If client is not spectator teleporting is only done if position is free and teleport effects are drawn.
 */
-static bool G_Teleport( edict_t * ent, Vec3 origin, Vec3 angles ) {
+static bool G_Teleport( edict_t * ent, Vec3 origin, EulerDegrees3 angles ) {
 	if( !ent->r.inuse || !ent->r.client ) {
 		return false;
 	}
@@ -54,11 +54,7 @@ static bool G_Teleport( edict_t * ent, Vec3 origin, Vec3 angles ) {
 	// set angles
 	ent->s.angles = angles;
 	ent->r.client->ps.viewangles = angles;
-
-	// set the delta angle
-	ent->r.client->ps.pmove.delta_angles[ 0 ] = ANGLE2SHORT( ent->r.client->ps.viewangles.x ) - ent->r.client->ucmd.angles[ 0 ];
-	ent->r.client->ps.pmove.delta_angles[ 1 ] = ANGLE2SHORT( ent->r.client->ps.viewangles.y ) - ent->r.client->ucmd.angles[ 1 ];
-	ent->r.client->ps.pmove.delta_angles[ 2 ] = ANGLE2SHORT( ent->r.client->ps.viewangles.z ) - ent->r.client->ucmd.angles[ 2 ];
+	ent->r.client->ps.pmove.angles = angles;
 
 	return true;
 }
@@ -135,7 +131,7 @@ static void Cmd_Position_f( edict_t * ent, msg_t args ) {
 		}
 	} else if( StrCaseEqual( action, "set" ) && Cmd_Argc() == 6 ) {
 		Vec3 origin = Vec3( atof( Cmd_Argv( 1 ) ), atof( Cmd_Argv( 2 ) ), atof( Cmd_Argv( 3 ) ) );
-		Vec3 angles = Vec3( atof( Cmd_Argv( 4 ) ), atof( Cmd_Argv( 5 ) ), 0.0f );
+		EulerDegrees3 angles = EulerDegrees3( atof( Cmd_Argv( 4 ) ), atof( Cmd_Argv( 5 ) ), 0.0f );
 
 		if( G_Teleport( ent, origin, angles ) ) {
 			G_PrintMsg( ent, "Position set.\n" );
@@ -149,7 +145,7 @@ static void Cmd_Position_f( edict_t * ent, msg_t args ) {
 			"position load - Teleport to saved position\n"
 			"position set <x> <y> <z> <pitch> <yaw> - Teleport to specified position\n"
 			"Current position: %.4f %.4f %.4f %.4f %.4f\n",
-			ent->s.origin.x, ent->s.origin.y, ent->s.origin.z, ent->s.angles.x, ent->s.angles.y );
+			ent->s.origin.x, ent->s.origin.y, ent->s.origin.z, ent->s.angles.pitch, ent->s.angles.yaw );
 	}
 }
 

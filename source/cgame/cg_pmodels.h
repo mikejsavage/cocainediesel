@@ -98,7 +98,7 @@ struct WeaponModelMetadata {
 	StringHash model;
 
 	Vec3 handpositionOrigin;
-	Vec3 handpositionAngles;
+	EulerDegrees3 handpositionAngles;
 
 	StringHash fire_sound;
 	StringHash reload_sound;
@@ -181,8 +181,8 @@ struct PlayerModelMetadata {
 struct pmodel_t {
 	pmodel_animationstate_t animState;
 
-	Vec3 angles[PMODEL_PARTS];                // for rotations
-	Vec3 oldangles[PMODEL_PARTS];             // for rotations
+	EulerDegrees3 angles[PMODEL_PARTS];                // for rotations
+	EulerDegrees3 oldangles[PMODEL_PARTS];             // for rotations
 
 	Mat4 muzzle_transform;
 };

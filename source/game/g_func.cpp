@@ -338,20 +338,20 @@ static void rotating_blocked( edict_t *self, edict_t *other ) {
 }
 
 static void rotating_touch( edict_t *self, edict_t *other, Vec3 normal, SolidBits solid_mask ) {
-	if( self->avelocity != Vec3( 0.0f ) ) {
+	if( self->avelocity != EulerDegrees3( 0.0f, 0.0f, 0.0f ) ) {
 		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, WorldDamage_Crush );
 	}
 }
 
 static void rotating_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	if( self->moveinfo.state == STATE_FULLSPEED ) {
-		self->avelocity = Vec3( 0.0f );
+		self->avelocity = EulerDegrees3( 0.0f, 0.0f, 0.0f );
 		self->touch = NULL;
 		self->think = NULL;
 		self->moveinfo.state = STATE_STOPPED;
 	} else {
 		self->s.sound = self->moveinfo.sound_middle;
-		self->avelocity = self->moveinfo.movedir * self->speed;
+		self->avelocity = EulerDegrees3( self->moveinfo.movedir * self->speed );
 		self->moveinfo.state = STATE_FULLSPEED;
 	}
 
@@ -588,7 +588,7 @@ static void train_use( edict_t *self, edict_t *other, edict_t *activator ) {
 void SP_func_train( edict_t * self, const spawn_temp_t * st ) {
 	G_InitMover( self );
 
-	self->s.angles = Vec3( 0.0f );
+	self->s.angles = EulerDegrees3( 0.0f, 0.0f, 0.0f );
 	self->moveinfo.blocked = train_blocked;
 	if( self->spawnflags & TRAIN_BLOCK_STOPS ) {
 		self->dmg = 0;

@@ -51,7 +51,7 @@ void InitSprays() {
 	num_sprays = 0;
 }
 
-void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, float scale, u64 entropy ) {
+void AddSpray( Vec3 origin, Vec3 normal, EulerDegrees3 angles, float scale, u64 entropy ) {
 	RNG rng = NewRNG( entropy, 0 );
 
 	Vec3 forward, up;

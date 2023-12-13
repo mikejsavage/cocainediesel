@@ -180,9 +180,9 @@ void G_UseTargets( edict_t * ent, edict_t * activator ) {
 	}
 }
 
-void G_SetMovedir( Vec3 * angles, Vec3 * movedir ) {
+void G_SetMovedir( EulerDegrees3 * angles, Vec3 * movedir ) {
 	AngleVectors( *angles, movedir, NULL, NULL );
-	*angles = Vec3( 0.0f );
+	*angles = EulerDegrees3( 0.0f, 0.0f, 0.0f );
 }
 
 void G_FreeEdict( edict_t * ed ) {
@@ -623,10 +623,10 @@ float LookAtKillerYAW( edict_t * self, edict_t * inflictor, edict_t * attacker )
 	} else if( inflictor && inflictor != world && inflictor != self ) {
 		dir = inflictor->s.origin - self->s.origin;
 	} else {
-		return self->s.angles.y;
+		return self->s.angles.yaw;
 	}
 
-	return VecToAngles( dir ).y;
+	return VecToAngles( dir ).yaw;
 }
 
 //==============================================================================
@@ -647,14 +647,7 @@ static void G_SpawnTeleportEffect( edict_t * ent, bool respawn, bool in ) {
 		return;
 	}
 
-	// add a teleportation effect
-	edict_t * event;
-	if( respawn ) {
-		event = G_SpawnEvent( EV_PLAYER_RESPAWN, 0, &ent->s.origin );
-	}
-	else {
-		event = G_SpawnEvent( EV_SOUND_ORIGIN, in ? tele_in.hash : tele_out.hash, &ent->s.origin );
-	}
+	edict_t * event = G_SpawnEvent( EV_SOUND_ORIGIN, in ? tele_in.hash : tele_out.hash, &ent->s.origin );
 	event->s.ownerNum = ENTNUM( ent );
 }
 
@@ -788,7 +781,7 @@ void G_AnnouncerSound( edict_t * targ, StringHash sound, Team team, bool queued,
 void G_SunCycle( u64 time ) {
 	float yaw = 3.420f + 24.0f * RandomUniformFloat( &svs.rng, 0.0f, 15.0f ); // idk, some random angle that doesn't hit 90° etc
 	server_gs.gameState.sun_angles_from = server_gs.gameState.sun_angles_to;
-	server_gs.gameState.sun_angles_to = Vec3( 53.31f, yaw, 0.0f );
+	server_gs.gameState.sun_angles_to = EulerDegrees3( 53.31f, yaw, 0.0f );
 	server_gs.gameState.sun_moved_from = svs.gametime;
 	server_gs.gameState.sun_moved_to = svs.gametime + time;
 }

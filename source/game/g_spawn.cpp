@@ -112,6 +112,15 @@ static bool DoField( const char * name, Vec3 * x, Span< const char > key, Span< 
 	return true;
 }
 
+static bool DoField( const char * name, EulerDegrees3 * x, Span< const char > key, Span< const char > value ) {
+	if( !StrEqual( name, key ) )
+		return false;
+	x->pitch = AngleNormalize180( ParseFloat( &value, 0.0f, Parse_StopOnNewLine ) );
+	x->yaw = AngleNormalize360( ParseFloat( &value, 0.0f, Parse_StopOnNewLine ) );
+	x->roll = AngleNormalize360( ParseFloat( &value, 0.0f, Parse_StopOnNewLine ) );
+	return true;
+}
+
 static bool DoField( const char * name, RGBA8 * x, Span< const char > key, Span< const char > value ) {
 	if( !StrEqual( name, key ) )
 		return false;
@@ -174,7 +183,7 @@ static void ParseEntityKeyValue( Span< const char > key, Span< const char > valu
 
 	// yaw
 	if( key == "angle" ) {
-		ent->s.angles = Vec3( 0.0f, SpanToFloat( value, 0.0f ), 0.0f );
+		ent->s.angles = EulerDegrees3( 0.0f, AngleNormalize360( SpanToFloat( value, 0.0f ) ), 0.0f );
 		used = true;
 	}
 

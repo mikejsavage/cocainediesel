@@ -41,12 +41,6 @@ enum pmtype_t {
 #define PMF_ABILITY1_HELD   ( 1 << 2 )  // Special held flag
 #define PMF_ABILITY2_HELD   ( 1 << 3 )  // Jump held flag
 
-// note that Q_rint was causing problems here
-// (spawn looking straight up\down at delta_angles wrapping)
-
-#define ANGLE2SHORT( x )    ( (int)( ( x ) * 65536 / 360 ) & 65535 )
-#define SHORT2ANGLE( x )    ( ( x ) * ( 360.0 / 65536 ) )
-
 //==============================================
 
 constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "excalibur.nvg.ntnu.no" };

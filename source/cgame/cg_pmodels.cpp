@@ -36,7 +36,7 @@ static Hashtable< MAX_PLAYER_MODELS * 2 > player_models_hashtable;
 
 static Mat4 EulerAnglesToMat4( float pitch, float yaw, float roll ) {
 	mat3_t axis;
-	AnglesToAxis( Vec3( pitch, yaw, roll ), axis );
+	AnglesToAxis( EulerDegrees3( pitch, yaw, roll ), axis );
 
 	Mat4 m = Mat4::Identity();
 
@@ -113,8 +113,9 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 			}
 			else {
 				Com_GGPrint( "{}: Unknown node name: {}", filename, node_name );
-				for( int i = 0; i < 7; i++ )
+				for( int i = 0; i < 7; i++ ) {
 					ParseToken( &cursor, Parse_StopOnNewLine );
+				}
 			}
 		}
 		else if( cmd == "clip" ) {
@@ -411,7 +412,7 @@ static PlayerModelAnimationSet CG_GetBaseAnims( const SyncEntityState * state, V
 	Vec3 movedir = Vec3( SafeNormalize( hvel ), 0.0f );
 	if( xyspeedcheck > WALKEPSILON ) {
 		mat3_t viewaxis;
-		Matrix3_FromAngles( Vec3( 0, state->angles.y, 0 ), viewaxis );
+		Matrix3_FromAngles( state->angles.yaw_only(), viewaxis );
 
 		// if it's moving to where is looking, it's moving forward
 		if( Dot( movedir, FromQFAxis( viewaxis, AXIS_RIGHT ) ) > MOVEDIREPSILON ) {
@@ -533,7 +534,7 @@ void CG_PModel_AddAnimation( int entNum, int loweranim, int upperanim, int heada
 void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 	mat3_t axis;
 	float speed;
-	Vec3 leanAngles[PMODEL_PARTS];
+	EulerDegrees3 leanAngles[PMODEL_PARTS];
 
 	memset( leanAngles, 0, sizeof( leanAngles ) );
 
@@ -543,46 +544,46 @@ void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 	float scale = 0.04f;
 
 	if( ( speed = Length( hvelocity ) ) * scale > 1.0f ) {
-		AnglesToAxis( Vec3( 0, cent->current.angles.y, 0 ), axis );
+		AnglesToAxis( cent->current.angles.yaw_only(), axis );
 
 		float front = scale * Dot( hvelocity, FromQFAxis( axis, AXIS_FORWARD ) );
 		if( front < -0.1f || front > 0.1f ) {
-			leanAngles[LOWER].x += front;
-			leanAngles[UPPER].x -= front * 0.25f;
-			leanAngles[HEAD].x -= front * 0.5f;
+			leanAngles[LOWER].pitch += front;
+			leanAngles[UPPER].pitch -= front * 0.25f;
+			leanAngles[HEAD].pitch -= front * 0.5f;
 		}
 
 		float aside = ( front * 0.001f ) * cent->yawVelocity;
 
 		if( aside ) {
 			float asidescale = 75;
-			leanAngles[LOWER].z -= aside * 0.5f * asidescale;
-			leanAngles[UPPER].z += aside * 1.75f * asidescale;
-			leanAngles[HEAD].z -= aside * 0.35f * asidescale;
+			leanAngles[LOWER].roll -= aside * 0.5f * asidescale;
+			leanAngles[UPPER].roll += aside * 1.75f * asidescale;
+			leanAngles[HEAD].roll -= aside * 0.35f * asidescale;
 		}
 
 		float side = scale * Dot( hvelocity, FromQFAxis( axis, AXIS_RIGHT ) );
 
 		if( side < -1 || side > 1 ) {
-			leanAngles[LOWER].z -= side * 0.5f;
-			leanAngles[UPPER].z += side * 0.5f;
-			leanAngles[HEAD].z += side * 0.25f;
+			leanAngles[LOWER].roll -= side * 0.5f;
+			leanAngles[UPPER].roll += side * 0.5f;
+			leanAngles[HEAD].roll += side * 0.25f;
 		}
 
-		leanAngles[LOWER].x = Clamp( -45.0f, leanAngles[LOWER].x, 45.0f );
-		leanAngles[LOWER].z = Clamp( -15.0f, leanAngles[LOWER].z, 15.0f );
+		leanAngles[LOWER].pitch = Clamp( -45.0f, leanAngles[LOWER].pitch, 45.0f );
+		leanAngles[LOWER].roll = Clamp( -15.0f, leanAngles[LOWER].roll, 15.0f );
 
-		leanAngles[UPPER].x = Clamp( -45.0f, leanAngles[UPPER].x, 45.0f );
-		leanAngles[UPPER].z = Clamp( -20.0f, leanAngles[UPPER].z, 20.0f );
+		leanAngles[UPPER].pitch = Clamp( -45.0f, leanAngles[UPPER].pitch, 45.0f );
+		leanAngles[UPPER].roll = Clamp( -20.0f, leanAngles[UPPER].roll, 20.0f );
 
-		leanAngles[HEAD].x = Clamp( -45.0f, leanAngles[HEAD].x, 45.0f );
-		leanAngles[HEAD].z = Clamp( -20.0f, leanAngles[HEAD].z, 20.0f );
+		leanAngles[HEAD].pitch = Clamp( -45.0f, leanAngles[HEAD].pitch, 45.0f );
+		leanAngles[HEAD].roll = Clamp( -20.0f, leanAngles[HEAD].roll, 20.0f );
 	}
 
 	for( int i = LOWER; i < PMODEL_PARTS; i++ ) {
-		pmodel->angles[i].x = AngleNormalize180( pmodel->angles[i].x + leanAngles[i].x );
-		pmodel->angles[i].y = AngleNormalize180( pmodel->angles[i].y + leanAngles[i].y );
-		pmodel->angles[i].z = AngleNormalize180( pmodel->angles[i].z + leanAngles[i].z );
+		pmodel->angles[i].pitch = AngleNormalize180( pmodel->angles[i].pitch + leanAngles[i].pitch );
+		pmodel->angles[i].yaw = AngleNormalize180( pmodel->angles[i].yaw + leanAngles[i].yaw );
+		pmodel->angles[i].roll = AngleNormalize180( pmodel->angles[i].roll + leanAngles[i].roll );
 	}
 }
 
@@ -609,8 +610,9 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	}
 
 	// update parts rotation angles
-	for( int i = LOWER; i < PMODEL_PARTS; i++ )
+	for( int i = LOWER; i < PMODEL_PARTS; i++ ) {
 		pmodel->oldangles[i] = pmodel->angles[i];
+	}
 
 	if( cent->current.type == ET_CORPSE ) {
 		cent->animVelocity = Vec3( 0.0f );
@@ -618,7 +620,7 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	} else {
 		// update smoothed velocities used for animations and leaning angles
 		// rotational yaw velocity
-		float adelta = AngleDelta( cent->current.angles.y, cent->prev.angles.y );
+		float adelta = AngleDelta( cent->current.angles.yaw, cent->prev.angles.yaw );
 		adelta = Clamp( -35.0f, adelta, 35.0f );
 
 		// smooth a velocity vector between the last snaps
@@ -647,30 +649,9 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 		// Calculate angles for each model part
 		//
 
-		// lower has horizontal direction, and zeroes vertical
-		pmodel->angles[LOWER].x = 0;
-		pmodel->angles[LOWER].y = cent->current.angles.y;
-		pmodel->angles[LOWER].z = 0;
-
-		// upper marks vertical direction (total angle, so it fits aim)
-		if( cent->current.angles.x > 180 ) {
-			pmodel->angles[UPPER].x = ( -360 + cent->current.angles.x );
-		} else {
-			pmodel->angles[UPPER].x = cent->current.angles.x;
-		}
-
-		pmodel->angles[UPPER].y = 0;
-		pmodel->angles[UPPER].z = 0;
-
-		// head adds a fraction of vertical angle again
-		if( cent->current.angles.x > 180 ) {
-			pmodel->angles[HEAD].x = ( -360 + cent->current.angles.x ) / 3;
-		} else {
-			pmodel->angles[HEAD].x = cent->current.angles.x / 3;
-		}
-
-		pmodel->angles[HEAD].y = 0;
-		pmodel->angles[HEAD].z = 0;
+		pmodel->angles[LOWER] = cent->current.angles.yaw_only();
+		pmodel->angles[UPPER] = EulerDegrees3( AngleNormalize180( cent->current.angles.pitch ), 0.0f, 0.0f );
+		pmodel->angles[HEAD] = EulerDegrees3( AngleNormalize180( cent->current.angles.pitch ) / 3.0f, 0.0f, 0.0f );
 
 		CG_PModel_LeanAngles( cent, pmodel );
 	}
@@ -678,8 +659,9 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 
 	// Spawning (teleported bit) forces nobacklerp and the interruption of EVENT_CHANNEL animations
 	if( cent->current.teleported ) {
-		for( int i = LOWER; i < PMODEL_PARTS; i++ )
+		for( int i = LOWER; i < PMODEL_PARTS; i++ ) {
 			pmodel->oldangles[i] = pmodel->angles[i];
+		}
 	}
 
 	CG_UpdatePModelAnimations( cent );
@@ -750,12 +732,10 @@ void CG_DrawPlayer( centity_t * cent ) {
 		MergeLowerUpperPoses( lower, upper, model, meta->upper_root_node );
 
 		if( !corpse ) {
-			Vec3 tmpangles;
+			EulerDegrees3 tmpangles;
 			// if it's our client use the predicted angles
 			if( cg.view.playerPrediction && ISVIEWERENTITY( cent->current.number ) ) {
-				tmpangles.y = cg.predictedPlayerState.viewangles.y;
-				tmpangles.x = 0;
-				tmpangles.z = 0;
+				tmpangles = cg.predictedPlayerState.viewangles.yaw_only();
 			}
 			else {
 				// apply interpolated LOWER angles to entity

@@ -60,9 +60,6 @@ void AI_SpawnBot() {
 }
 
 void AI_Respawn( edict_t * ent ) {
-	ent->r.client->ps.pmove.delta_angles[ 0 ] = 0;
-	ent->r.client->ps.pmove.delta_angles[ 1 ] = 0;
-	ent->r.client->ps.pmove.delta_angles[ 2 ] = 0;
 	ent->r.client->level.last_activity = level.time;
 }
 
@@ -79,6 +76,7 @@ static void AI_SpecThink( edict_t * self ) {
 	UserCommand ucmd = { };
 
 	// set approximate ping and show values
+	ucmd.angles = EulerDegrees2( self->s.angles.pitch, self->s.angles.yaw );
 	ucmd.serverTimeStamp = svs.gametime;
 	ucmd.msec = u8( game.frametime );
 
@@ -110,19 +108,10 @@ static void AI_GameThink( edict_t * self ) {
 		}
 	}
 
-	UserCommand ucmd;
-	memset( &ucmd, 0, sizeof( UserCommand ) );
-
-	// set up for pmove
-	ucmd.angles[ 0 ] = (short)ANGLE2SHORT( self->s.angles.x ) - self->r.client->ps.pmove.delta_angles[ 0 ];
-	ucmd.angles[ 1 ] = (short)ANGLE2SHORT( self->s.angles.y ) - self->r.client->ps.pmove.delta_angles[ 1 ];
-	ucmd.angles[ 2 ] = (short)ANGLE2SHORT( self->s.angles.z ) - self->r.client->ps.pmove.delta_angles[ 2 ];
-
-	self->r.client->ps.pmove.delta_angles[ 0 ] = 0;
-	self->r.client->ps.pmove.delta_angles[ 1 ] = 0;
-	self->r.client->ps.pmove.delta_angles[ 2 ] = 0;
+	UserCommand ucmd = { };
 
 	// set approximate ping and show values
+	ucmd.angles = EulerDegrees2( self->s.angles.pitch, self->s.angles.yaw );
 	ucmd.msec = u8( game.frametime );
 	ucmd.serverTimeStamp = svs.gametime;
 

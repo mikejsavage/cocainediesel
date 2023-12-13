@@ -172,7 +172,7 @@ void G_EndMatch();
 // g_spawnpoints.c
 //
 void DropSpawnToFloor( edict_t * ent );
-void SelectSpawnPoint( const edict_t * ent, const edict_t ** spawnpoint, Vec3 * origin, Vec3 * angles );
+const edict_t * SelectSpawnPoint( const edict_t * ent );
 void SP_post_match_camera( edict_t * ent, const spawn_temp_t * st );
 
 // g_teams
@@ -256,7 +256,7 @@ edict_t * G_Find( edict_t * cursor, StringHash edict_t::* field, StringHash valu
 edict_t * G_PickRandomEnt( StringHash edict_t::* field, StringHash value );
 edict_t * G_PickTarget( StringHash name );
 void G_UseTargets( edict_t * ent, edict_t * activator );
-void G_SetMovedir( Vec3 * angles, Vec3 * movedir );
+void G_SetMovedir( EulerDegrees3 * angles, Vec3 * movedir );
 void G_InitMover( edict_t * ent );
 
 void G_InitEdict( edict_t * e );
@@ -493,9 +493,9 @@ struct assistinfo_t {
 struct moveinfo_t {
 	// fixed data
 	Vec3 start_origin;
-	Vec3 start_angles;
+	EulerDegrees3 start_angles;
 	Vec3 end_origin;
-	Vec3 end_angles;
+	EulerDegrees3 end_angles;
 
 	StringHash sound_start;
 	StringHash sound_middle;
@@ -515,7 +515,6 @@ struct moveinfo_t {
 	void ( *blocked )( edict_t * self, edict_t * other );
 
 	Vec3 dest;
-	Vec3 destangles;
 };
 
 #define MAX_CLIENT_EVENTS   16
@@ -567,7 +566,7 @@ struct client_teamreset_t {
 	// for position command
 	bool position_saved;
 	Vec3 position_origin;
-	Vec3 position_angles;
+	EulerDegrees3 position_angles;
 	int64_t position_lastcmd;
 };
 
@@ -639,7 +638,7 @@ struct edict_t {
 	edict_t * target_ent;
 
 	Vec3 velocity;
-	Vec3 avelocity;
+	EulerDegrees3 avelocity;
 
 	float speed;
 

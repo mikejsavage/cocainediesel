@@ -128,7 +128,7 @@ retry:
 struct pushed_t {
 	edict_t *ent;
 	Vec3 origin;
-	Vec3 angles;
+	EulerDegrees3 angles;
 	float yaw;
 	Vec3 pmove_origin;
 };
@@ -143,22 +143,21 @@ static edict_t *obstacle;
 * Objects need to be moved back on a failed push,
 * otherwise riders would continue to slide.
 */
-static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
+static bool SV_Push( edict_t *pusher, Vec3 move, EulerDegrees3 amove ) {
 	TracyZoneScoped;
 
 	int e;
 	edict_t *check;
 	pushed_t *p;
 	mat3_t axis;
-	Vec3 org, org2, move2;
+	Vec3 org2, move2;
 
 	// find the bounding box
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &pusher->s );
 	bounds += pusher->s.origin + move;
 
 	// we need this for pushing things later
-	org = -amove;
-	AnglesToAxis( org, axis );
+	AnglesToAxis( -amove, axis );
 
 	// save the pusher's original position
 	pushed_p->ent = pusher;
@@ -166,7 +165,7 @@ static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
 	pushed_p->angles = pusher->s.angles;
 	if( pusher->r.client ) {
 		pushed_p->pmove_origin = pusher->r.client->ps.pmove.velocity;
-		pushed_p->yaw = pusher->r.client->ps.viewangles.y;
+		pushed_p->yaw = pusher->r.client->ps.viewangles.yaw;
 	}
 	pushed_p++;
 
@@ -215,11 +214,11 @@ static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
 			if( check->r.client ) {
 				// FIXME: doesn't rotate monsters?
 				check->r.client->ps.pmove.origin = check->r.client->ps.pmove.origin + move;
-				check->r.client->ps.viewangles.y += amove.y;
+				check->r.client->ps.viewangles.yaw += amove.yaw;
 			}
 
 			// figure movement due to the pusher's amove
-			org = check->s.origin - pusher->s.origin;
+			Vec3 org = check->s.origin - pusher->s.origin;
 			Matrix3_TransformVector( axis, org, &org2 );
 			move2 = org2 - org;
 			check->s.origin = check->s.origin + move2;
@@ -263,7 +262,7 @@ static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
 			p->ent->s.angles = p->angles;
 			if( p->ent->r.client ) {
 				p->ent->r.client->ps.pmove.origin = p->pmove_origin;
-				p->ent->r.client->ps.viewangles.y = p->yaw;
+				p->ent->r.client->ps.viewangles.yaw = p->yaw;
 			}
 			GClip_LinkEntity( p->ent );
 		}
@@ -291,7 +290,7 @@ static void SV_Physics_Pusher( edict_t *ent ) {
 
 	bool blocked = false;
 
-	if( ent->velocity != Vec3( 0.0f ) || ent->avelocity != Vec3( 0.0f ) ) {
+	if( ent->velocity != Vec3( 0.0f ) || ent->avelocity != EulerDegrees3( 0.0f, 0.0f, 0.0f ) ) {
 		Vec3 move;
 		if( ent->s.linearMovement ) {
 			GS_LinearMovement( &ent->s, svs.gametime, &move );
@@ -301,7 +300,7 @@ static void SV_Physics_Pusher( edict_t *ent ) {
 			move = ent->velocity * FRAMETIME;
 		}
 
-		Vec3 amove = ent->avelocity * FRAMETIME;
+		EulerDegrees3 amove = ent->avelocity * FRAMETIME;
 
 		blocked = !SV_Push( ent, move, amove );
 	}
@@ -363,7 +362,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 				ent->groundentity = NULL;
 			} else {
 				ent->velocity = Vec3( 0.0f );
-				ent->avelocity = Vec3( 0.0f );
+				ent->avelocity = EulerDegrees3( 0.0f, 0.0f, 0.0f );
 				G_CallStop( ent );
 				return;
 			}
@@ -407,7 +406,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 			) {
 				ent->groundentity = &game.edicts[trace.ent];
 				ent->velocity = Vec3( 0.0f );
-				ent->avelocity = Vec3( 0.0f );
+				ent->avelocity = EulerDegrees3( 0.0f, 0.0f, 0.0f );
 				G_CallStop( ent );
 			}
 		} else {
@@ -417,7 +416,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 			if( trace.GotNowhere() || ISWALKABLEPLANE( trace.normal ) ) {
 				ent->groundentity = trace.HitNothing() ? world : &game.edicts[trace.ent];
 				ent->velocity = Vec3( 0.0f );
-				ent->avelocity = Vec3( 0.0f );
+				ent->avelocity = EulerDegrees3( 0.0f, 0.0f, 0.0f );
 				G_CallStop( ent );
 			}
 		}
@@ -426,8 +425,8 @@ static void SV_Physics_Toss( edict_t *ent ) {
 	// move angles
 	if( ent->movetype == MOVETYPE_BOUNCEGRENADE ) {
 		if( ent->velocity == Vec3( 0.0f ) ) {
-			ent->s.angles.x = 0.0f;
-			ent->s.angles.z = 0.0f;
+			ent->s.angles.pitch = 0.0f;
+			ent->s.angles.roll = 0.0f;
 		}
 		else {
 			ent->s.angles = VecToAngles( SafeNormalize( ent->velocity ) );

@@ -449,6 +449,9 @@ struct EulerDegrees3 {
 	EulerDegrees3() = default;
 	constexpr EulerDegrees3( float p, float y, float r ) : pitch( p ), yaw( y ), roll( r ) { }
 	explicit constexpr EulerDegrees3( Vec3 v ) : pitch( v.x ), yaw( v.y ), roll( v.z ) { }
+	explicit constexpr EulerDegrees3( EulerDegrees2 a ) : pitch( a.pitch ), yaw( a.yaw ), roll( 0.0f ) { }
+
+	constexpr EulerDegrees3 yaw_only() const { return EulerDegrees3( 0.0f, yaw, 0.0f ); }
 };
 
 struct Quaternion {

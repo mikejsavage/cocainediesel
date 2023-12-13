@@ -68,14 +68,14 @@ void ViewVectors( Vec3 forward, Vec3 * right, Vec3 * up ) {
 	*up = Normalize( Cross( *right, forward ) );
 }
 
-void AngleVectors( Vec3 angles, Vec3 * forward, Vec3 * right, Vec3 * up ) {
-	float pitch = Radians( angles.x );
+void AngleVectors( EulerDegrees3 angles, Vec3 * forward, Vec3 * right, Vec3 * up ) {
+	float pitch = Radians( angles.pitch );
 	float sp = sinf( pitch );
 	float cp = cosf( pitch );
-	float yaw = Radians( angles.y );
+	float yaw = Radians( angles.yaw );
 	float sy = sinf( yaw );
 	float cy = cosf( yaw );
-	float roll = Radians( angles.z );
+	float roll = Radians( angles.roll );
 	float sr = sinf( roll );
 	float cr = cosf( roll );
 
@@ -94,11 +94,12 @@ void AngleVectors( Vec3 angles, Vec3 * forward, Vec3 * right, Vec3 * up ) {
 	}
 }
 
-Vec3 VecToAngles( Vec3 vec ) {
+EulerDegrees3 VecToAngles( Vec3 vec ) {
 	if( vec.xy() == Vec2( 0.0f ) ) {
-		if( vec.z == 0.0f )
-			return Vec3( 0.0f );
-		return vec.z > 0 ? Vec3( -90.0f, 0.0f, 0.0f ) : Vec3( -270.0f, 0.0f, 0.0f );
+		if( vec.z == 0.0f ) {
+			return EulerDegrees3( 0.0f, 0.0f, 0.0f );
+		}
+		return vec.z > 0 ? EulerDegrees3( -90.0f, 0.0f, 0.0f ) : EulerDegrees3( -270.0f, 0.0f, 0.0f );
 	}
 
 	float yaw;
@@ -122,10 +123,10 @@ Vec3 VecToAngles( Vec3 vec ) {
 		pitch += 360;
 	}
 
-	return Vec3( -pitch, yaw, 0.0f );
+	return EulerDegrees3( -pitch, yaw, 0.0f );
 }
 
-void AnglesToAxis( Vec3 angles, mat3_t axis ) {
+void AnglesToAxis( EulerDegrees3 angles, mat3_t axis ) {
 	Vec3 forward, right, up;
 	AngleVectors( angles, &forward, &right, &up );
 	axis[0] = forward.x;
@@ -161,11 +162,11 @@ static float LerpAngle( float a, float t, float b ) {
 	return Lerp( a, t, b );
 }
 
-Vec3 LerpAngles( Vec3 a, float t, Vec3 b ) {
-	return Vec3(
-		LerpAngle( a.x, t, b.x ),
-		LerpAngle( a.y, t, b.y ),
-		LerpAngle( a.z, t, b.z )
+EulerDegrees3 LerpAngles( EulerDegrees3 a, float t, EulerDegrees3 b ) {
+	return EulerDegrees3(
+		LerpAngle( a.pitch, t, b.pitch ),
+		LerpAngle( a.yaw, t, b.yaw ),
+		LerpAngle( a.roll, t, b.roll )
 	);
 }
 
@@ -230,17 +231,13 @@ Capsule MakePlayerCapsule( const MinMax3 & bounds ) {
 
 //============================================================================
 
-void Matrix3_Copy( const mat3_t m1, mat3_t m2 ) {
-	memcpy( m2, m1, sizeof( mat3_t ) );
-}
-
 void Matrix3_TransformVector( const mat3_t m, Vec3 v, Vec3 * out ) {
 	out->x = m[0] * v.x + m[1] * v.y + m[2] * v.z;
 	out->y = m[3] * v.x + m[4] * v.y + m[5] * v.z;
 	out->z = m[6] * v.x + m[7] * v.y + m[8] * v.z;
 }
 
-void Matrix3_FromAngles( Vec3 angles, mat3_t m ) {
+void Matrix3_FromAngles( EulerDegrees3 angles, mat3_t m ) {
 	Vec3 forward, right, up;
 	AngleVectors( angles, &forward, &right, &up );
 	m[0] = forward.x;

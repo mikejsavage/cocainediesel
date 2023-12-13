@@ -63,30 +63,11 @@ void AI_Respawn( edict_t * ent ) {
 	ent->r.client->level.last_activity = level.time;
 }
 
-static void AI_SpecThink( edict_t * self ) {
-	if( self->r.client->team == Team_None ) {
+void AI_Think( edict_t * self ) {
+	if( G_ISGHOSTING( self ) ) {
 		G_Teams_JoinAnyTeam( self, false );
-
-		if( self->r.client->team == Team_None ) {
-			self->nextThink = level.time + 100;
-			return;
-		}
 	}
-
-	UserCommand ucmd = { };
-
-	// set approximate ping and show values
-	ucmd.angles = EulerDegrees2( self->s.angles.pitch, self->s.angles.yaw );
-	ucmd.serverTimeStamp = svs.gametime;
-	ucmd.msec = u8( game.frametime );
-
-	ClientThink( self, &ucmd, 0 );
-
-	self->nextThink = level.time + 1;
-}
-
-static void AI_GameThink( edict_t * self ) {
-	if( server_gs.gameState.match_state <= MatchState_Warmup ) {
+	else if( server_gs.gameState.match_state == MatchState_Warmup ) {
 		bool all_humans_ready = true;
 		bool any_humans = false;
 
@@ -116,14 +97,6 @@ static void AI_GameThink( edict_t * self ) {
 	ucmd.serverTimeStamp = svs.gametime;
 
 	ClientThink( self, &ucmd, 0 );
-	self->nextThink = level.time + 1;
-}
 
-void AI_Think( edict_t * self ) {
-	if( G_ISGHOSTING( self ) ) {
-		AI_SpecThink( self );
-	}
-	else {
-		AI_GameThink( self );
-	}
+	self->nextThink = level.time + 1;
 }

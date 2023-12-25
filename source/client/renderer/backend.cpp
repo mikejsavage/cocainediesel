@@ -125,11 +125,6 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 			*channels = GL_RG;
 			*type = GL_UNSIGNED_BYTE;
 			return;
-		case TextureFormat_RG_Half:
-			*internal = GL_RG16F;
-			*channels = GL_RG;
-			*type = GL_HALF_FLOAT;
-			return;
 
 		case TextureFormat_RGBA_U8:
 		case TextureFormat_RGBA_U8_sRGB:

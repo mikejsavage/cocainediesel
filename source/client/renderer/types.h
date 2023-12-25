@@ -109,8 +109,6 @@ enum TextureFormat : u8 {
 
 	TextureFormat_A_U8,
 
-	TextureFormat_RG_Half,
-
 	TextureFormat_RA_U8,
 
 	TextureFormat_RGBA_U8,

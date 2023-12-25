@@ -461,7 +461,7 @@ static void CreateRenderTargets() {
 
 	{
 		Texture shadowmap = NewTexture( TextureConfig {
-			.format = TextureFormat_Shadow,
+			.format = TextureFormat_Depth,
 			.width = frame_static.shadow_parameters.resolution,
 			.height = frame_static.shadow_parameters.resolution,
 			.num_layers = frame_static.shadow_parameters.num_cascades,

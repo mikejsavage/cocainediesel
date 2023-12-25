@@ -150,7 +150,6 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 			return;
 
 		case TextureFormat_Depth:
-		case TextureFormat_Shadow:
 			*internal = GL_DEPTH_COMPONENT24;
 			*channels = GL_DEPTH_COMPONENT;
 			*type = GL_FLOAT;

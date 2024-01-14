@@ -1,3 +1,6 @@
+env:
+  CIRRUS_CLONE_DEPTH: 1
+
 windows_task:
   name: "Windows"
   windows_container:
@@ -5,7 +8,7 @@ windows_task:
     cpu: 2
     memory: 2G
   script:
-    - call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat" amd64
+    - "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat" amd64
     - ggbuild\lua.exe make.lua release > build.ninja
     - ggbuild\ninja.exe -v -k 0
     - ggbuild\lua.exe ggbuild\ninja_timeline.lua
@@ -27,8 +30,11 @@ linux_task:
     image: alpine
     cpu: 4
     memory: 2G
-  script:
-    - apk add bash git wget
+  install_script:
+    - apk add bash git wget binutils
+  build_script:
     - ggbuild/lua.linux make.lua release > build.ninja
     - ggbuild/ninja.linux -v -k 0
     - ggbuild/lua.linux ggbuild/ninja_timeline.lua
+  test_script:
+    - tests/test_downloads.sh

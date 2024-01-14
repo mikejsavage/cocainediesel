@@ -19,12 +19,7 @@
 
 #include <new>
 
-template< typename S, typename T >
-struct SameType { static constexpr bool value = false; };
-template< typename T >
-struct SameType< T, T > { static constexpr bool value = true; };
-
-STATIC_ASSERT( ( SameType< u32, GLuint >::value ) );
+STATIC_ASSERT( ( SameType< u32, GLuint > ) );
 
 static const u32 UNIFORM_BUFFER_SIZE = 64 * 1024;
 
@@ -1455,7 +1450,7 @@ static bool LinkShader( Shader * shader, GLuint program, const char * shader_nam
 	}
 
 	glGetProgramInterfaceiv( program, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &count );
-	if( count > ARRAY_COUNT( shader->uniforms ) ) {
+	if( count > checked_cast< GLint >( ARRAY_COUNT( shader->uniforms ) ) ) {
 		glDeleteProgram( program );
 		Com_Printf( S_COLOR_YELLOW "Too many uniforms in shader %s\n", shader_name );
 		return false;
@@ -1469,7 +1464,7 @@ static bool LinkShader( Shader * shader, GLuint program, const char * shader_nam
 	}
 
 	glGetProgramInterfaceiv( program, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &count );
-	if( count > ARRAY_COUNT( shader->uniforms ) ) {
+	if( count > checked_cast< GLint >( ARRAY_COUNT( shader->uniforms ) ) ) {
 		glDeleteProgram( program );
 		Com_Printf( S_COLOR_YELLOW "Too many buffers in shader %s\n", shader_name );
 		return false;

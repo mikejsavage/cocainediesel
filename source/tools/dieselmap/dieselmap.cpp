@@ -452,6 +452,7 @@ static void BuildKDTree( CompiledKDTree * tree, Span< const MinMax3 > brush_boun
 
 static CompiledMesh MergeMeshes( Span< const CompiledMesh > meshes ) {
 	CompiledMesh merged;
+	merged.material = meshes[ 0 ].material;
 
 	for( const CompiledMesh & mesh : meshes ) {
 		size_t base_vertex = merged.vertices.size();

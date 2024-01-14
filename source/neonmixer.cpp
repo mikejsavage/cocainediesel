@@ -40,7 +40,7 @@ static float32x4_t UnzipEvenFloat32x4( float32x4_t a, float32x4_t b ) { return _
 
 static float32x4_t MaxFloat32x4( float32x4_t lhs, float32x4_t rhs ) { return _mm_max_ps( lhs, rhs ); }
 
-static int16x4_t LoadInt16x4( const s16 * x ) { return _mm_loadl_epi64( ( const __m128i * ) x ); }
+static int16x4_t LoadInt16x4( const s16 * x ) { return _mm_loadl_epi64( reinterpret_cast< const __m128i * >( x ) ); }
 static int32x4_t Int16x4ToInt32x4( int16x4_t x ) { return _mm_cvtepi16_epi32( x ); }
 static float32x4_t Int32x4ToFloatx4( int32x4_t x ) { return _mm_cvtepi32_ps( x ); }
 
@@ -148,7 +148,7 @@ static float ResampleMono( const CubicCoefficients & cubic_coefficients, const s
 static Vec2 ResampleStereo( const CubicCoefficients & cubic_coefficients, const s16 * samples, float t ) {
 	float32x4_t coeffs = SampleCubicCoefficients( cubic_coefficients, t );
 
-	__m128i interleaved = _mm_loadu_si128( ( const __m128i * ) samples );
+	__m128i interleaved = _mm_loadu_si128( reinterpret_cast< const __m128i * >( samples ) );
 	__m128i left_s32 = _mm_srai_epi32( interleaved, 16 );
 	__m128i right_s32 = _mm_madd_epi16( interleaved, _mm_set1_epi32( 1 ) );
 
@@ -257,8 +257,7 @@ int main() {
 	mix_context.longcovid = LoadSound( "base/sounds/music/longcovid.ogg" );
 
 	if( !InitAudioBackend( "", GenerateSamples, &mix_context ) ) {
-		printf( "can't open audio backend\n" );
-		return 1;
+		Fatal( "Can't open audio backend" );
 	}
 
 	while( true ) {

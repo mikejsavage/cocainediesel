@@ -88,6 +88,7 @@ configs[ "linux-release" ] = {
 	ar = zig .. " ar",
 
 	cxxflags = "-O2 -DNDEBUG",
+	ldflags = "--build-id=sha1",
 	output_dir = "release/",
 	can_static_link = true,
 }

@@ -86,6 +86,9 @@ static AudioBackendCallback audio_callback;
 static PulseBackend pulse;
 static AlsaBackend alsa;
 
+static char * pulse_error;
+static char * alsa_error;
+
 template< typename F >
 static bool LoadFunction( void * lib, F ** f, const char * name ) {
 	if( lib == NULL ) {
@@ -120,6 +123,7 @@ static Optional< PulseAPI > LoadPulseAPI() {
 	if( !ok ) {
 		CloseLib( pulse );
 		CloseLib( simple );
+		pulse_error = CopyString( sys_allocator, dlerror() );
 		return NONE;
 	}
 
@@ -215,6 +219,7 @@ static Optional< AlsaAPI > LoadAlsaAPI() {
 
 	if( !ok ) {
 		CloseLib( alsa );
+		alsa_error = CopyString( sys_allocator, dlerror() );
 		return NONE;
 	}
 
@@ -296,6 +301,16 @@ static bool InitAlsa( const char * preferred_device, void * user_data ) {
 
 bool InitAudioBackend( const char * preferred_device, AudioBackendCallback callback, void * user_data ) {
 	audio_callback = callback;
+
+	pulse_error = NULL;
+	alsa_error = NULL;
+	defer {
+		if( pulse_error != NULL && alsa_error != NULL ) {
+			printf( "%s\n%s\n", pulse_error, alsa_error );
+			Free( sys_allocator, pulse_error );
+			Free( sys_allocator, alsa_error );
+		}
+	};
 
 	if( InitPulse( preferred_device, user_data ) )
 		return true;

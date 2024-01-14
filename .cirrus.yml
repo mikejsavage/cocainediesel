@@ -8,7 +8,7 @@ windows_task:
     cpu: 2
     memory: 2G
   script:
-    - "ls C:\\Program Files"
+    - "ls \"C:\\Program Files\""
     - "dir C:\\Program Files"
     - "dir C:\\Program Files\\Microsoft Visual Studio"
     - "dir C:\\Program Files\\Microsoft Visual Studio\\2022"

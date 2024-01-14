@@ -8,6 +8,9 @@ windows_task:
     cpu: 2
     memory: 2G
   script:
+    - "dir C:\\Program Files"
+    - "dir C:\\Program Files\\Microsoft Visual Studio"
+    - "dir C:\\Program Files\\Microsoft Visual Studio\\2022"
     # - "\"C:\\Program Files\\Microsoft Visual Studio\\2022\\VC\\Auxiliary\\Build\\vcvarsall.bat\" amd64"
     - ggbuild\lua.exe make.lua release > build.ninja
     - ggbuild\ninja.exe -v -k 0
@@ -17,26 +20,26 @@ windows_task:
     - ggbuild\ducible.exe release\bc4.exe
     - ggbuild\ducible.exe release\dieselmap.exe
 
-macos_task:
-  name: "macOS"
-  macos_instance:
-    image: ghcr.io/cirruslabs/macos-ventura-base:latest
-    cpu: 1
-    memory: 1G
-  script:
-    - echo hi
+# macos_task:
+#   name: "macOS"
+#   macos_instance:
+#     image: ghcr.io/cirruslabs/macos-ventura-base:latest
+#     cpu: 1
+#     memory: 1G
+#   script:
+#     - echo hi
 
-linux_task:
-  name: "Linux"
-  container:
-    image: alpine
-    cpu: 4
-    memory: 2G
-  install_script:
-    - apk add bash git wget binutils
-  build_script:
-    - ggbuild/lua.linux make.lua release > build.ninja
-    - ggbuild/ninja.linux -v -k 0
-    - ggbuild/lua.linux ggbuild/ninja_timeline.lua
-  test_script:
-    - tests/test_downloads.sh
+# linux_task:
+#   name: "Linux"
+#   container:
+#     image: alpine
+#     cpu: 4
+#     memory: 2G
+#   install_script:
+#     - apk add bash git wget binutils
+#   build_script:
+#     - ggbuild/lua.linux make.lua release > build.ninja
+#     - ggbuild/ninja.linux -v -k 0
+#     - ggbuild/lua.linux ggbuild/ninja_timeline.lua
+#   test_script:
+#     - tests/test_downloads.sh

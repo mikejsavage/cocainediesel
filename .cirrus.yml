@@ -37,7 +37,7 @@ linux_task:
     cpu: 4
     memory: 2G
   install_script:
-    - apk add bash git wget binutils
+    - apk add bash git curl wget binutils
   build_script:
     - ggbuild/lua.linux make.lua release > build.ninja
     - ggbuild/ninja.linux -v -k 0

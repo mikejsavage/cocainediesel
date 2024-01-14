@@ -8,11 +8,8 @@ windows_task:
     cpu: 2
     memory: 2G
   script:
-    - "ls \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\""
-    - "dir C:\\Program Files"
-    - "dir C:\\Program Files\\Microsoft Visual Studio"
-    - "dir C:\\Program Files\\Microsoft Visual Studio\\2022"
-    # - "\"C:\\Program Files\\Microsoft Visual Studio\\2022\\VC\\Auxiliary\\Build\\vcvarsall.bat\" amd64"
+    - "ls \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\""
+    - "\"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Auxiliary\\Build\\vcvarsall.bat\" amd64"
     - ggbuild\lua.exe make.lua release > build.ninja
     - ggbuild\ninja.exe -v -k 0
     - ggbuild\lua.exe ggbuild\ninja_timeline.lua

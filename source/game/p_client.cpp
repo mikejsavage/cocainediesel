@@ -81,7 +81,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	body->enemy = attacker;
 
 	//use flat yaw
-	body->s.angles.y = ent->s.angles.y;
+	body->s.angles.yaw = ent->s.angles.yaw;
 
 	//copy player position and box size
 	body->s.origin = ent->s.origin;
@@ -163,10 +163,8 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAss
 
 	DropHeldItem( ent );
 
-	ent->avelocity = Vec3( 0.0f );
-
-	ent->s.angles.x = 0;
-	ent->s.angles.z = 0;
+	ent->s.angles.pitch = 0;
+	ent->s.angles.roll = 0;
 	ent->s.sound = EMPTY_HASH;
 
 	ent->s.solidity = Solid_NotSolid;
@@ -178,7 +176,7 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAss
 	CreateCorpse( ent, attacker, damage_type, damage );
 	ent->enemy = NULL;
 
-	ent->s.angles.y = ent->r.client->ps.viewangles.y = LookAtKillerYAW( ent, inflictor, attacker );
+	ent->s.angles.yaw = ent->r.client->ps.viewangles.yaw = LookAtKillerYAW( ent, inflictor, attacker );
 
 	// go ghost (also resets snap)
 	G_GhostClient( ent );
@@ -186,7 +184,7 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAss
 	ent->deathTimeStamp = level.time;
 
 	ent->velocity = Vec3( 0.0f );
-	ent->avelocity = Vec3( 0.0f );
+	ent->avelocity = EulerDegrees3( 0.0f, 0.0f, 0.0f );
 	ent->r.client->snap = snap_backup;
 	ent->r.client->snap.buttons = 0;
 	GClip_LinkEntity( ent );
@@ -309,7 +307,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 
 	self->s.override_collision_model = CollisionModelAABB( playerbox_stand );
 	self->velocity = Vec3( 0.0f );
-	self->avelocity = Vec3( 0.0f );
+	self->avelocity = EulerDegrees3( 0.0f, 0.0f, 0.0f );
 
 	client->ps.POVnum = ENTNUM( self );
 
@@ -339,32 +337,26 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	}
 
 	if( !ghost ) {
-		const edict_t * spawnpoint;
-		Vec3 spawn_origin, spawn_angles;
-		SelectSpawnPoint( self, &spawnpoint, &spawn_origin, &spawn_angles );
-		client->ps.pmove.origin = spawn_origin;
-		self->s.origin = spawn_origin;
+		const edict_t * spawnpoint = SelectSpawnPoint( self );
+		client->ps.pmove.origin = spawnpoint->s.origin;
+		self->s.origin = spawnpoint->s.origin;
 
 		// set angles
-		self->s.angles.x = 0.0f;
-		self->s.angles.y = AngleNormalize360( spawn_angles.y );
-		self->s.angles.z = 0.0f;
-		client->ps.viewangles = Vec3( self->s.angles );
+		self->s.angles = spawnpoint->s.angles.yaw_only();
+		client->ps.viewangles = self->s.angles;
 
 		KillBox( self, WorldDamage_Telefrag, Vec3( 0.0f ) );
 
 		edict_t * ev = G_SpawnEvent( EV_RESPAWN, 0, NULL );
 		ev->s.svflags |= SVF_ONLYOWNER;
 		ev->s.ownerNum = ENTNUM( self );
+		ev->s.angles = self->s.angles;
 	}
 	else {
 		G_ChasePlayer( self );
 	}
 
-	// set the delta angle
-	client->ps.pmove.delta_angles[ 0 ] = ANGLE2SHORT( client->ps.viewangles.x ) - client->ucmd.angles[ 0 ];
-	client->ps.pmove.delta_angles[ 1 ] = ANGLE2SHORT( client->ps.viewangles.y ) - client->ucmd.angles[ 1 ];
-	client->ps.pmove.delta_angles[ 2 ] = ANGLE2SHORT( client->ps.viewangles.z ) - client->ucmd.angles[ 2 ];
+	client->ps.pmove.angles = EulerDegrees3( client->ucmd.angles );
 
 	self->s.teleported = true;
 
@@ -423,10 +415,7 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 	client->ps.viewangles = dest->s.angles;
 	client->ps.pmove.origin = dest->s.origin;
 
-	// set the delta angle
-	client->ps.pmove.delta_angles[ 0 ] = ANGLE2SHORT( client->ps.viewangles.x ) - client->ucmd.angles[ 0 ];
-	client->ps.pmove.delta_angles[ 1 ] = ANGLE2SHORT( client->ps.viewangles.y ) - client->ucmd.angles[ 1 ];
-	client->ps.pmove.delta_angles[ 2 ] = ANGLE2SHORT( client->ps.viewangles.z ) - client->ucmd.angles[ 2 ];
+	client->ps.pmove.angles = EulerDegrees3( client->ucmd.angles );
 
 	player->s.teleported = true;
 
@@ -700,7 +689,11 @@ void G_PredictedFireWeapon( int entNum, u64 parm ) {
 
 	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, parm, &start );
 	event->s.ownerNum = entNum;
-	event->s.origin2 = ent->r.client->ps.viewangles;
+	event->s.origin2 = Vec3(
+		ent->r.client->ps.viewangles.pitch,
+		ent->r.client->ps.viewangles.yaw,
+		ent->r.client->ps.viewangles.roll
+	);
 	event->s.team = ent->s.team;
 }
 
@@ -713,7 +706,11 @@ void G_PredictedAltFireWeapon( int entNum, u64 parm ) {
 
 	edict_t * event = G_SpawnEvent( EV_ALTFIREWEAPON, parm, &start );
 	event->s.ownerNum = entNum;
-	event->s.origin2 = ent->r.client->ps.viewangles;
+	event->s.origin2 = Vec3(
+		ent->r.client->ps.viewangles.pitch,
+		ent->r.client->ps.viewangles.yaw,
+		ent->r.client->ps.viewangles.roll
+	);
 	event->s.team = ent->s.team;
 }
 
@@ -726,7 +723,11 @@ void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead ) 
 
 	edict_t * event = G_SpawnEvent( EV_USEGADGET, ( parm << 8 ) | gadget, &start );
 	event->s.ownerNum = entNum;
-	event->s.origin2 = ent->r.client->ps.viewangles;
+	event->s.origin2 = Vec3(
+		ent->r.client->ps.viewangles.pitch,
+		ent->r.client->ps.viewangles.yaw,
+		ent->r.client->ps.viewangles.roll
+	);
 	event->s.team = ent->s.team;
 }
 
@@ -805,7 +806,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 
 	// update activity if he touched any controls
 	if( ucmd->forwardmove != 0 || ucmd->sidemove != 0 || ucmd->buttons != 0 ||
-		client->ucmd.angles[PITCH] != ucmd->angles[PITCH] || client->ucmd.angles[YAW] != ucmd->angles[YAW] ) {
+		client->ucmd.angles.pitch != ucmd->angles.pitch || client->ucmd.angles.yaw != ucmd->angles.yaw ) {
 		G_Client_UpdateActivity( client );
 	}
 

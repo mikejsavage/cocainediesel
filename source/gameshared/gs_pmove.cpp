@@ -358,7 +358,7 @@ static Vec3 PM_LadderMove( Vec3 wishvel ) {
 			wishvel.z = pm_ladderspeed;
 		}
 		else if( pml.forwardPush > 0 ) {
-			wishvel.z = Lerp( -float( pm_ladderspeed ), Unlerp01( 15.0f, pm->playerState->viewangles[PITCH], -15.0f ), float( pm_ladderspeed ) );
+			wishvel.z = Lerp( -float( pm_ladderspeed ), Unlerp01( 15.0f, pm->playerState->viewangles.pitch, -15.0f ), float( pm_ladderspeed ) );
 		}
 		else {
 			wishvel.z = 0;
@@ -582,27 +582,12 @@ static void PM_UpdateDeltaAngles() {
 		return;
 	}
 
-	for( int i = 0; i < 3; i++ ) {
-		pm->playerState->pmove.delta_angles[ i ] = ANGLE2SHORT( pm->playerState->viewangles[ i ] ) - pm->cmd.angles[ i ];
-	}
+	pm->playerState->pmove.angles = EulerDegrees3( pm->cmd.angles );
 }
 
 static void PM_ApplyMouseAnglesClamp() {
-	for( int i = 0; i < 3; i++ ) {
-		s16 temp = pm->cmd.angles[i] + pm->playerState->pmove.delta_angles[i];
-		if( i == PITCH ) {
-			// don't let the player look up or down more than 90 degrees
-			if( temp > (short)ANGLE2SHORT( 90 ) - 1 ) {
-				pm->playerState->pmove.delta_angles[i] = ( ANGLE2SHORT( 90 ) - 1 ) - pm->cmd.angles[i];
-				temp = (short)ANGLE2SHORT( 90 ) - 1;
-			} else if( temp < (short)ANGLE2SHORT( -90 ) + 1 ) {
-				pm->playerState->pmove.delta_angles[i] = ( ANGLE2SHORT( -90 ) + 1 ) - pm->cmd.angles[i];
-				temp = (short)ANGLE2SHORT( -90 ) + 1;
-			}
-		}
-
-		pm->playerState->viewangles[i] = SHORT2ANGLE( (short)temp );
-	}
+	pm->playerState->viewangles = EulerDegrees3( pm->cmd.angles );
+	pm->playerState->viewangles.pitch = Clamp( -90.0f, pm->playerState->viewangles.pitch, 90.0f );
 
 	AngleVectors( pm->playerState->viewangles, &pml.forward, &pml.right, &pml.up );
 
@@ -745,12 +730,8 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 
 	PM_Friction();
 
-	Vec3 angles = ps->viewangles;
-	if( angles.x > 180 ) {
-		angles.x -= 360;
-	}
-	angles.x /= 3;
-
+	EulerDegrees3 angles = ps->viewangles;
+	angles.pitch = AngleNormalize180( angles.pitch ) / 3.0f;
 	AngleVectors( angles, &pml.forward, &pml.right, &pml.up );
 
 	// hack to work when looking straight up and straight down

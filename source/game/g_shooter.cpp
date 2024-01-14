@@ -6,7 +6,7 @@ static void Shooter_Think( edict_t * shooter ) {
 	if( weapon->speed == 0 ) { // hitscan
 		edict_t * event = G_SpawnEvent( EV_FIREWEAPON, shooter->s.weapon, &shooter->s.origin );
 		event->s.ownerNum = ENTNUM( shooter );
-		event->s.origin2 = shooter->s.angles;
+		event->s.origin2 = Vec3( shooter->s.angles.pitch, shooter->s.angles.yaw, shooter->s.angles.roll );
 		event->s.team = shooter->s.team;
 	}
 	else {

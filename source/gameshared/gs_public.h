@@ -208,8 +208,6 @@ enum EventType {
 	EV_DIE,
 	EV_RESPAWN,
 
-	EV_PLAYER_RESPAWN,
-
 	EV_BLOOD,
 	EV_GIB,
 

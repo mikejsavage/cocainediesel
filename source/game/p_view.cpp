@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // DEAD VIEW
 //====================================================================
 
-static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t *passent ) {
+static void G_ProjectThirdPersonView( Vec3 * vieworg, EulerDegrees3 * viewangles, edict_t *passent ) {
 	float thirdPersonRange = 60;
 	float thirdPersonAngle = 0;
 	Vec3 v_forward, v_right, v_up;
@@ -51,8 +51,8 @@ static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t
 	if( dist < 1 ) {
 		dist = 1;
 	}
-	viewangles->x = Degrees( -atan2f( stop.z, dist ) );
-	viewangles->y -= thirdPersonAngle;
+	viewangles->pitch = Degrees( -atan2f( stop.z, dist ) );
+	viewangles->yaw -= thirdPersonAngle;
 	AngleVectors( *viewangles, &v_forward, &v_right, &v_up );
 
 	// move towards destination
@@ -79,8 +79,8 @@ static void G_Client_DeadView( edict_t *ent ) {
 	// move us to body position
 	ent->s.origin = body->s.origin;
 	ent->s.teleported = true;
-	client->ps.viewangles.z = 0;
-	client->ps.viewangles.x = 0;
+	client->ps.viewangles.roll = 0;
+	client->ps.viewangles.pitch = 0;
 
 	// see if our killer is still in view
 	if( body->enemy && ( body->enemy != ent ) ) {
@@ -88,7 +88,7 @@ static void G_Client_DeadView( edict_t *ent ) {
 		if( trace.HitSomething() ) {
 			body->enemy = NULL;
 		} else {
-			client->ps.viewangles.y = LookAtKillerYAW( ent, NULL, body->enemy );
+			client->ps.viewangles.yaw = LookAtKillerYAW( ent, NULL, body->enemy );
 		}
 	} else {   // nobody killed us, so just circle around the body ?
 
@@ -195,10 +195,7 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 
 	G_ReleaseClientPSEvent( client );
 
-	// set the delta angle
-	for( int i = 0; i < 3; i++ ) {
-		client->ps.pmove.delta_angles[i] = ANGLE2SHORT( client->ps.viewangles[i] ) - client->ucmd.angles[i];
-	}
+	client->ps.pmove.angles = EulerDegrees3( client->ucmd.angles );
 
 	// this is pretty hackish
 	if( !G_ISGHOSTING( ent ) ) {

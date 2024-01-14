@@ -109,8 +109,6 @@ enum TextureFormat : u8 {
 
 	TextureFormat_A_U8,
 
-	TextureFormat_RG_Half,
-
 	TextureFormat_RA_U8,
 
 	TextureFormat_RGBA_U8,
@@ -122,7 +120,6 @@ enum TextureFormat : u8 {
 	TextureFormat_BC5,
 
 	TextureFormat_Depth,
-	TextureFormat_Shadow,
 };
 
 struct Texture {

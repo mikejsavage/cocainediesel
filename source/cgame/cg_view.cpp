@@ -189,8 +189,8 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view, bool hold_angle ) {
 
 	// calc exact destination
 	Vec3 chase_dest = view->origin;
-	Vec3 angles = hold_angle ? -view->angles : Vec3( 0.0f );
-	r = Radians( angles.y );
+	EulerDegrees3 angles = hold_angle ? -view->angles : EulerDegrees3( 0.0f, 0.0f, 0.0f );
+	r = Radians( angles.yaw );
 	f = -cosf( r );
 	r = -sinf( r );
 	chase_dest += FromQFAxis( view->axis, AXIS_FORWARD ) * ( cg_thirdPersonRange->number * f );
@@ -207,8 +207,8 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view, bool hold_angle ) {
 	if( dist < 1 ) {
 		dist = 1;
 	}
-	view->angles.x = Degrees( -atan2f( stop.z, dist ) );
-	view->angles.y -= angles.y;
+	view->angles.pitch = Degrees( -atan2f( stop.z, dist ) );
+	view->angles.yaw -= angles.yaw;
 	Matrix3_FromAngles( view->angles, view->axis );
 
 	// move towards destination
@@ -372,7 +372,9 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type, UserCommand * cmd ) {
 		view->velocity = cg.predictedPlayerState.pmove.velocity;
 	}
 	else if( view->type == VIEWDEF_DEMOCAM ) {
-		CG_DemoCamGetOrientation( &view->origin, &view->angles, &view->velocity );
+		EulerDegrees2 angles2;
+		CG_DemoCamGetOrientation( &view->origin, &angles2, &view->velocity );
+		view->angles = EulerDegrees3( angles2 );
 	}
 
 	view->fov_y = WidescreenFov( CG_CalcViewFov() );

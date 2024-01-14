@@ -131,7 +131,7 @@ struct cg_viewdef_t {
 	float fov_x, fov_y;
 	float fracDistFOV;
 	Vec3 origin;
-	Vec3 angles;
+	EulerDegrees3 angles;
 	mat3_t axis;
 	Vec3 velocity;
 };
@@ -457,7 +457,7 @@ void CG_ClearInputState();
 void CG_MouseMove( Vec2 m );
 UserCommandButton CG_GetButtonBits();
 UserCommandButton CG_GetButtonDownEdges();
-Vec3 CG_GetDeltaViewAngles();
+EulerDegrees2 CG_GetDeltaViewAngles();
 Vec2 CG_GetMovement();
 
 /*

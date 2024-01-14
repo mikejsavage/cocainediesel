@@ -1,7 +1,5 @@
 #include "qcommon/base.h"
-
-static float DequantizeU8( u8 x ) { return x / 255.0f; }
-static u8 QuantizeU8( float x ) { return u8( x * 255.0f + 0.5f ); }
+#include "gameshared/q_math.h"
 
 float LinearTosRGB( float linear ) {
 	if( linear <= 0.0031308f )
@@ -17,24 +15,24 @@ float sRGBToLinear( float srgb ) {
 
 Vec3 sRGBToLinear( RGB8 srgb ) {
 	return Vec3(
-		sRGBToLinear( DequantizeU8( srgb.r ) ),
-		sRGBToLinear( DequantizeU8( srgb.g ) ),
-		sRGBToLinear( DequantizeU8( srgb.b ) )
+		sRGBToLinear( Dequantize01< u8 >( srgb.r ) ),
+		sRGBToLinear( Dequantize01< u8 >( srgb.g ) ),
+		sRGBToLinear( Dequantize01< u8 >( srgb.b ) )
 	);
 }
 
 RGB8 LinearTosRGB( Vec3 linear ) {
 	return RGB8(
-		QuantizeU8( LinearTosRGB( linear.x ) ),
-		QuantizeU8( LinearTosRGB( linear.y ) ),
-		QuantizeU8( LinearTosRGB( linear.z ) )
+		Quantize01< u8 >( LinearTosRGB( linear.x ) ),
+		Quantize01< u8 >( LinearTosRGB( linear.y ) ),
+		Quantize01< u8 >( LinearTosRGB( linear.z ) )
 	);
 }
 
 Vec4 sRGBToLinear( RGBA8 srgb ) {
-	return Vec4( sRGBToLinear( srgb.rgb() ), DequantizeU8( srgb.a ) );
+	return Vec4( sRGBToLinear( srgb.rgb() ), Dequantize01< u8 >( srgb.a ) );
 }
 
 RGBA8 LinearTosRGB( Vec4 linear ) {
-	return RGBA8( LinearTosRGB( linear.xyz() ), QuantizeU8( linear.w ) );
+	return RGBA8( LinearTosRGB( linear.xyz() ), Quantize01< u8 >( linear.w ) );
 }

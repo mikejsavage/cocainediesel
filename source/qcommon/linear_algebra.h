@@ -294,6 +294,26 @@ constexpr Mat4 operator-( const Mat4 & m ) {
 }
 
 /*
+ * EulerDegrees2
+ */
+
+constexpr EulerDegrees2 operator+( EulerDegrees2 lhs, EulerDegrees2 rhs ) { return EulerDegrees2( lhs.pitch + rhs.pitch, lhs.yaw + rhs.yaw ); }
+constexpr void operator+=( EulerDegrees2 & lhs, EulerDegrees2 rhs ) { lhs = lhs + rhs; }
+
+/*
+ * EulerDegrees3
+ */
+
+constexpr EulerDegrees3 operator+( EulerDegrees3 lhs, EulerDegrees3 rhs ) { return EulerDegrees3( lhs.pitch + rhs.pitch, lhs.yaw + rhs.yaw, lhs.roll + rhs.roll ); }
+constexpr EulerDegrees3 operator*( EulerDegrees3 a, float scale ) { return EulerDegrees3( a.pitch * scale, a.yaw * scale, a.roll * scale ); }
+constexpr void operator+=( EulerDegrees3 & lhs, EulerDegrees3 rhs ) { lhs = lhs + rhs; }
+
+constexpr EulerDegrees3 operator-( EulerDegrees3 a ) { return EulerDegrees3( -a.pitch, -a.yaw, -a.roll ); }
+
+constexpr bool operator==( EulerDegrees3 lhs, EulerDegrees3 rhs ) { return lhs.pitch == rhs.pitch && lhs.yaw == rhs.yaw && lhs.roll == rhs.roll; }
+constexpr bool operator!=( EulerDegrees3 lhs, EulerDegrees3 rhs ) { return !( lhs == rhs ); }
+
+/*
  * Quaternion
  */
 
@@ -430,6 +450,24 @@ inline void format( FormatBuffer * fb, const Mat4 & m, const FormatOpts & opts )
 	format( fb, m.row2(), opts );
 	format( fb, ", " );
 	format( fb, m.row3(), opts );
+	format( fb, ")" );
+}
+
+inline void format( FormatBuffer * fb, const EulerDegrees2 & e, const FormatOpts & opts ) {
+	format( fb, "(pitch=" );
+	format( fb, e.pitch, opts );
+	format( fb, ", yaw=" );
+	format( fb, e.yaw, opts );
+	format( fb, ")" );
+}
+
+inline void format( FormatBuffer * fb, const EulerDegrees3 & e, const FormatOpts & opts ) {
+	format( fb, "(pitch=" );
+	format( fb, e.pitch, opts );
+	format( fb, ", yaw=" );
+	format( fb, e.yaw, opts );
+	format( fb, ", roll=" );
+	format( fb, e.roll, opts );
 	format( fb, ")" );
 }
 

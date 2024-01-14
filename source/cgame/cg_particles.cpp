@@ -21,7 +21,7 @@ void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 size, u32 offset = 0 
 static constexpr u32 MAX_PARTICLE_SYSTEMS = 512;
 static constexpr u32 MAX_PARTICLE_EMITTERS = 512;
 static constexpr u32 MAX_PARTICLE_EMITTER_EVENTS = 8;
-static constexpr u32 MAX_PARTICLE_EMITTER_MATERIALS = 16;
+static constexpr u32 MAX_PARTICLE_EMITTER_MATERIALS = 32;
 
 static constexpr u32 MAX_DECAL_EMITTERS = 512;
 static constexpr u32 MAX_DECAL_EMITTER_MATERIALS = 8;
@@ -374,6 +374,11 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 			}
 
 			if( key == "material" ) {
+				if( emitter->num_materials == ARRAY_COUNT( emitter->materials ) ) {
+					Com_Printf( S_COLOR_YELLOW "Too many materials in particle emitter!\n" );
+					return false;
+				}
+
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
 				emitter->materials[ emitter->num_materials ] = StringHash( Hash64( value.ptr, value.n ) );
 				emitter->num_materials++;

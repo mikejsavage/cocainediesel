@@ -71,6 +71,8 @@ static void LoadModelsRecursive( TempAllocator * temp, DynamicString * path, siz
 }
 
 void InitServerCollisionModels() {
+	TracyZoneScoped;
+
 	InitCollisionModelStorage( &collision_models );
 
 	TempAllocator temp = svs.frame_arena.temp();
@@ -81,6 +83,8 @@ void InitServerCollisionModels() {
 }
 
 void ShutdownServerCollisionModels() {
+	TracyZoneScoped;
+
 	ShutdownCollisionModelStorage( &collision_models );
 
 	for( size_t i = 0; i < num_maps; i++ ) {

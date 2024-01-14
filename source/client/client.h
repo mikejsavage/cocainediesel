@@ -69,8 +69,8 @@ struct client_state_t {
 	// the server sends a delta each frame which is added to the locally
 	// tracked view angles to account for standing on rotating objects,
 	// and teleport direction changes
-	Vec3 prevviewangles;
-	Vec3 viewangles;
+	EulerDegrees2 prevviewangles;
+	EulerDegrees2 viewangles;
 
 	int serverTimeDeltas[MAX_TIMEDELTAS_BACKUP];
 	int newServerTimeDelta;         // the time difference with the server time, or at least our best guess about it

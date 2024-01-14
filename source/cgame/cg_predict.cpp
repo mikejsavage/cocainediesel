@@ -230,11 +230,6 @@ static void CG_PredictSmoothSteps() {
 	}
 }
 
-/*
-* CG_PredictMovement
-*
-* Sets cg.predictedVelocty, cg.predictedOrigin and cg.predictedAngles
-*/
 void CG_PredictMovement() {
 	TracyZoneScoped;
 

@@ -20,9 +20,9 @@ static bool ParseWeaponModelConfig( WeaponModelMetadata * metadata, const char *
 		metadata->handpositionOrigin[ i ] = ParseFloat( &contents, 0.0f, Parse_StopOnNewLine );
 	}
 
-	for( int i = 0; i < 3; i++ ) {
-		metadata->handpositionAngles[ i ] = ParseFloat( &contents, 0.0f, Parse_StopOnNewLine );
-	}
+	metadata->handpositionAngles.pitch = ParseFloat( &contents, 0.0f, Parse_StopOnNewLine );
+	metadata->handpositionAngles.yaw = ParseFloat( &contents, 0.0f, Parse_StopOnNewLine );
+	metadata->handpositionAngles.roll= ParseFloat( &contents, 0.0f, Parse_StopOnNewLine );
 
 	return true;
 }

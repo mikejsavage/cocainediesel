@@ -26,7 +26,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static bool CamIsFree;
 
-static Vec3 cam_origin, cam_angles, cam_velocity;
+static Vec3 cam_origin, cam_velocity;
+static EulerDegrees2 cam_angles;
 
 void CG_DemoCamGetViewDef( cg_viewdef_t *view ) {
 	view->POVent = cgs.demoPlaying && CamIsFree ? 0 : cg.frame.playerState.POVnum;
@@ -36,13 +37,11 @@ void CG_DemoCamGetViewDef( cg_viewdef_t *view ) {
 	view->draw2D = false;
 }
 
-void CG_DemoCamGetOrientation( Vec3 * origin, Vec3 * angles, Vec3 * velocity ) {
+void CG_DemoCamGetOrientation( Vec3 * origin, EulerDegrees2 * angles, Vec3 * velocity ) {
 	*angles = cam_angles;
 	*origin = cam_origin;
 	*velocity = cam_velocity;
 }
-
-static short freecam_delta_angles[3];
 
 static void CG_DemoCamFreeFly() {
 	constexpr float SPEED = 500;
@@ -54,15 +53,9 @@ static void CG_DemoCamFreeFly() {
 	CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
 	cmd.msec = cls.realFrameTime;
 
-	Vec3 moveangles = Vec3(
-		SHORT2ANGLE( cmd.angles[ 0 ] ) + SHORT2ANGLE( freecam_delta_angles[ 0 ] ),
-		SHORT2ANGLE( cmd.angles[ 1 ] ) + SHORT2ANGLE( freecam_delta_angles[ 1 ] ),
-		SHORT2ANGLE( cmd.angles[ 2 ] ) + SHORT2ANGLE( freecam_delta_angles[ 2 ] )
-	);
-
 	Vec3 forward, right, up;
-	AngleVectors( moveangles, &forward, &right, &up );
-	cam_angles = moveangles;
+	AngleVectors( EulerDegrees3( cmd.angles ), &forward, &right, &up );
+	cam_angles = cmd.angles;
 
 	float fmove = cmd.forwardmove * SPEED / 127.0f;
 	float smove = cmd.sidemove * SPEED / 127.0f;
@@ -87,18 +80,8 @@ static void CG_DemoCamFreeFly() {
 static void CG_DemoCamSetCameraPositionFromView() {
 	if( cg.view.type == VIEWDEF_PLAYERVIEW ) {
 		cam_origin = cg.view.origin;
-		cam_angles = cg.view.angles;
+		cam_angles = EulerDegrees2( cg.view.angles.pitch, cg.view.angles.yaw );
 		cam_velocity = cg.view.velocity;
-	}
-
-	if( !CamIsFree ) {
-		UserCommand cmd;
-
-		CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
-
-		freecam_delta_angles[ 0 ] = ANGLE2SHORT( cam_angles.x ) - cmd.angles[ 0 ];
-		freecam_delta_angles[ 1 ] = ANGLE2SHORT( cam_angles.y ) - cmd.angles[ 1 ];
-		freecam_delta_angles[ 2 ] = ANGLE2SHORT( cam_angles.z ) - cmd.angles[ 2 ];
 	}
 }
 

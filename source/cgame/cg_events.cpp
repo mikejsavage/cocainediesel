@@ -84,7 +84,8 @@ static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin )
 }
 
 void CG_LaserBeamEffect( centity_t * cent ) {
-	Vec3 laserOrigin, laserAngles, laserPoint;
+	Vec3 laserOrigin, laserPoint;
+	EulerDegrees3 laserAngles;
 
 	if( cent->localEffects[ LOCALEFFECT_LASERBEAM ] <= cl.serverTime ) {
 		if( cent->localEffects[ LOCALEFFECT_LASERBEAM ] ) {
@@ -481,7 +482,7 @@ static void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
 	Vec3 normal = U64ToDir( parm );
 
 	Vec3 forward, right;
-	AngleVectors( Vec3( state->angles.x, state->angles.y, 0 ), &forward, &right, NULL );
+	AngleVectors( EulerDegrees3( state->angles.pitch, state->angles.yaw, 0.0f ), &forward, &right, NULL );
 
 	if( Dot( normal, right ) > 0.3f ) {
 		CG_PModel_AddAnimation( state->number, LEGS_WALLJUMP_RIGHT, 0, 0, EVENT_CHANNEL );
@@ -562,7 +563,7 @@ static void CG_Event_Jump( SyncEntityState * state, u64 parm ) {
 		movedir.z = 0.0f;
 		movedir = Normalize( movedir );
 
-		Matrix3_FromAngles( Vec3( 0, cent->current.angles.y, 0 ), viewaxis );
+		Matrix3_FromAngles( cent->current.angles.yaw_only(), viewaxis );
 
 		// see what's his relative movement direction
 		constexpr float MOVEDIREPSILON = 0.25f;
@@ -650,7 +651,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 
 			int owner;
-			Vec3 origin, angles;
+			Vec3 origin;
+			EulerDegrees3 angles;
 			if( predicted ) {
 				owner = ent->number;
 				origin = cg.predictedPlayerState.pmove.origin;
@@ -660,7 +662,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			else {
 				owner = ent->ownerNum;
 				origin = ent->origin;
-				angles = ent->origin2;
+				angles = EulerDegrees3( ent->origin2 );
 			}
 
 			CG_FireWeaponEvent( owner, weapon );
@@ -781,7 +783,12 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_RESPAWN:
-			MaybeResetShadertoyTime( true );
+			if( ( unsigned ) ent->ownerNum == cgs.playerNum + 1 ) {
+				MaybeResetShadertoyTime( true );
+				cl.viewangles = EulerDegrees2( ent->angles.pitch, ent->angles.yaw );
+				cg.recoiling = false;
+				cg.damage_effect = 0.0f;
+			}
 			break;
 
 		case EV_BOMB_EXPLOSION:
@@ -790,13 +797,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_GIB:
 			SpawnGibs( ent->origin, ent->origin2, parm, team_color );
-			break;
-
-		case EV_PLAYER_RESPAWN:
-			if( ( unsigned ) ent->ownerNum == cgs.playerNum + 1 ) {
-				cg.recoiling = false;
-				cg.damage_effect = 0.0f;
-			}
 			break;
 
 		case EV_BOLT_EXPLOSION: {

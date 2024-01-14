@@ -1,6 +1,7 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
+#include "qcommon/fpe.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/time.h"
@@ -354,6 +355,7 @@ static void LoadSounds() {
 		TracyZoneScopedN( "stb_vorbis_decode_memory" );
 		TracyZoneText( job->in.path, strlen( job->in.path ) );
 
+		DisableFPEScoped;
 		job->out.num_samples = stb_vorbis_decode_memory( job->in.ogg.ptr, job->in.ogg.num_bytes(), &job->out.channels, &job->out.sample_rate, &job->out.samples );
 	} );
 
@@ -374,6 +376,7 @@ static void HotloadSounds() {
 			{
 				TracyZoneScopedN( "stb_vorbis_decode_memory" );
 				TracyZoneText( path, strlen( path ) );
+				DisableFPEScoped;
 				num_samples = stb_vorbis_decode_memory( ogg.ptr, ogg.num_bytes(), &channels, &sample_rate, &samples );
 			}
 

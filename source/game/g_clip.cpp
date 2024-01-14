@@ -8,7 +8,7 @@ struct CollisionEntity {
 	EntityID id;
 	Vec3 origin;
 	Vec3 scale;
-	Vec3 angles;
+	EulerDegrees3 angles;
 	Optional< CollisionModel > override_collision_model;
 	StringHash model;
 	int view_height;

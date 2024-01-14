@@ -291,7 +291,7 @@ static void CG_Cmd_Weapon_f() {
 
 static void CG_Viewpos_f() {
 	Com_Printf( "\"origin\" \"%i %i %i\"\n", (int)cg.view.origin.x, (int)cg.view.origin.y, (int)cg.view.origin.z );
-	Com_Printf( "\"angles\" \"%i %i %i\"\n", (int)cg.view.angles.x, (int)cg.view.angles.y, (int)cg.view.angles.z );
+	Com_Printf( "\"angles\" \"%i %i %i\"\n", (int)cg.view.angles.pitch, (int)cg.view.angles.yaw, (int)cg.view.angles.roll );
 }
 
 // local cgame commands

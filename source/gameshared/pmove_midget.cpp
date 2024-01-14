@@ -94,7 +94,7 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 		wishvel = Normalize( wishvel );
 
 		if( pml->forwardPush > 0 ) {
-			wishvel.z = Lerp( -1.0f, Unlerp01( 15.0f, ps->viewangles[ PITCH ], -15.0f ), 1.0f );
+			wishvel.z = Lerp( -1.0f, Unlerp01( 15.0f, ps->viewangles.pitch, -15.0f ), 1.0f );
 		}
 
 		StaminaUse( ps, pml, Length( wishvel ) * stamina_use_moving );

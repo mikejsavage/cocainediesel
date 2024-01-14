@@ -328,7 +328,7 @@ void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
 }
 
 void CG_LerpGenericEnt( centity_t *cent ) {
-	Vec3 ent_angles = Vec3( 0, 0, 0 );
+	EulerDegrees3 ent_angles = EulerDegrees3( 0.0f, 0.0f, 0.0f );
 
 	if( ISVIEWERENTITY( cent->current.number ) || cg.view.POVent == cent->current.number ) {
 		ent_angles = cg.predictedPlayerState.viewangles;
@@ -337,11 +337,7 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 		ent_angles = LerpAngles( cent->prev.angles, cg.lerpfrac, cent->current.angles );
 	}
 
-	if( ent_angles.x || ent_angles.y || ent_angles.z ) {
-		AnglesToAxis( ent_angles, cent->interpolated.axis );
-	} else {
-		Matrix3_Copy( axis_identity, cent->interpolated.axis );
-	}
+	AnglesToAxis( ent_angles, cent->interpolated.axis );
 
 	if( ISVIEWERENTITY( cent->current.number ) || cg.view.POVent == cent->current.number ) {
 		cent->interpolated.origin = cg.predictedPlayerState.pmove.origin;

@@ -23,8 +23,6 @@
 /maps/*.srf
 /screenshots
 
-/listip.cfg
-
 .vs/
 .vscode/
 

@@ -461,7 +461,7 @@ static void CreateRenderTargets() {
 
 	{
 		Texture shadowmap = NewTexture( TextureConfig {
-			.format = TextureFormat_Shadow,
+			.format = TextureFormat_Depth,
 			.width = frame_static.shadow_parameters.resolution,
 			.height = frame_static.shadow_parameters.resolution,
 			.num_layers = frame_static.shadow_parameters.num_cascades,
@@ -754,7 +754,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	if( client_gs.gameState.sun_moved_from != client_gs.gameState.sun_moved_to ) {
 		t = Unlerp01( client_gs.gameState.sun_moved_from, cls.gametime, client_gs.gameState.sun_moved_to );
 	}
-	Vec3 sun_angles = LerpAngles( client_gs.gameState.sun_angles_from, t, client_gs.gameState.sun_angles_to );
+	EulerDegrees3 sun_angles = LerpAngles( client_gs.gameState.sun_angles_from, t, client_gs.gameState.sun_angles_to );
 	AngleVectors( sun_angles, &frame_static.light_direction, NULL, NULL );
 
 	SetupShadowCascades();

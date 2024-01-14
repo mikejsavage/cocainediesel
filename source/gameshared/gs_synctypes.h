@@ -308,8 +308,8 @@ struct SyncGameState {
 	bool exploding;
 	s64 exploded_at;
 
-	Vec3 sun_angles_from;
-	Vec3 sun_angles_to;
+	EulerDegrees3 sun_angles_from;
+	EulerDegrees3 sun_angles_to;
 	s64 sun_moved_from;
 	s64 sun_moved_to;
 };
@@ -372,7 +372,7 @@ struct SyncEntityState {
 	EntityType type;
 
 	Vec3 origin;
-	Vec3 angles;
+	EulerDegrees3 angles;
 	Vec3 origin2; // velocity for players/corpses. often used for endpoints, e.g. ET_BEAM and some events
 
 	StringHash model;
@@ -427,9 +427,7 @@ struct pmove_state_t {
 
 	Vec3 origin;
 	Vec3 velocity;
-	short delta_angles[3];      // add to command angles to get view direction
-	                            // changed by spawns, rotating objects, and teleporters
-
+	EulerDegrees3 angles;
 	int pm_flags;               // ducked, jump_held, etc
 
 	u16 features;
@@ -460,7 +458,7 @@ struct TouchInfo {
 struct SyncPlayerState {
 	pmove_state_t pmove;
 
-	Vec3 viewangles;
+	EulerDegrees3 viewangles; // TODO: EulerDegrees2
 
 	SyncEvent events[ 2 ];
 	unsigned int POVnum;        // entity number of the player in POV
@@ -521,7 +519,7 @@ struct UserCommand {
 	UserCommandButton buttons, down_edges;
 	u16 entropy;
 	s64 serverTimeStamp;
-	s16 angles[ 3 ];
+	EulerDegrees2 angles;
 	s8 forwardmove, sidemove;
 	WeaponType weaponSwitch;
 };

@@ -19,13 +19,7 @@ void DropSpawnToFloor( edict_t * ent ) {
 	ent->s.origin = trace.endpos + trace.normal;
 }
 
-void SelectSpawnPoint( const edict_t * ent, const edict_t ** spawnpoint, Vec3 * origin, Vec3 * angles ) {
+const edict_t * SelectSpawnPoint( const edict_t * ent ) {
 	const edict_t * spot = GT_CallSelectSpawnPoint( ent );
-	if( spot == NULL ) {
-		spot = world;
-	}
-
-	*spawnpoint = spot;
-	*origin = spot->s.origin;
-	*angles = spot->s.angles;
+	return spot == NULL ? world : spot;
 }

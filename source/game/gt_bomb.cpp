@@ -411,7 +411,7 @@ static void BombStartPlanting( edict_t * carrier_ent, u32 site ) {
 
 	trace_t trace = G_Trace( start, bomb_bounds, end, carrier_ent, SolidMask_AnySolid );
 
-	Vec3 angles( 0.0f, RandomUniformFloat( &svs.rng, 0.0f, 360.0f ), 0.0f );
+	EulerDegrees3 angles( 0.0f, RandomUniformFloat( &svs.rng, 0.0f, 360.0f ), 0.0f );
 
 	bomb_state.bomb.model->s.origin = trace.endpos;
 	bomb_state.bomb.model->s.angles = angles;

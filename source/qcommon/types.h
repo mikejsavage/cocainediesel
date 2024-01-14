@@ -146,7 +146,7 @@ To * align_cast( From * from ) {
 	Assert( uintptr_t( from ) % alignof( To ) == 0 );
 	// error if we cast away const, __builtin_assume_aligned returns void *
 	( void ) reinterpret_cast< To * >( from );
-	return ( To * ) __builtin_assume_aligned( from, alignof( To * ) );
+	return ( To * ) __builtin_assume_aligned( from, alignof( To ) );
 }
 #endif
 

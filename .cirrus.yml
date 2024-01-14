@@ -3,12 +3,12 @@ env:
 
 windows_task:
   name: "Windows"
+  alias cocaine_diesel_windows
   windows_container:
     image: cirrusci/windowsservercore:visualstudio2022
-    cpu: 2
-    memory: 2G
+    cpu: 4
+    memory: 4G
   script:
-    - "ls \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\""
     - "\"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Auxiliary\\Build\\vcvarsall.bat\" amd64"
     - ggbuild\lua.exe make.lua release > build.ninja
     - ggbuild\ninja.exe -v -k 0
@@ -17,6 +17,8 @@ windows_task:
     - ggbuild\ducible.exe release\server.exe
     - ggbuild\ducible.exe release\bc4.exe
     - ggbuild\ducible.exe release\dieselmap.exe
+  cocaine_diesel_windows_artifacts:
+    path: "release/*"
 
 # macos_task:
 #   name: "macOS"
@@ -27,17 +29,20 @@ windows_task:
 #   script:
 #     - echo hi
 
-# linux_task:
-#   name: "Linux"
-#   container:
-#     image: alpine
-#     cpu: 4
-#     memory: 2G
-#   install_script:
-#     - apk add bash git wget binutils
-#   build_script:
-#     - ggbuild/lua.linux make.lua release > build.ninja
-#     - ggbuild/ninja.linux -v -k 0
-#     - ggbuild/lua.linux ggbuild/ninja_timeline.lua
-#   test_script:
-#     - tests/test_downloads.sh
+linux_task:
+  name: "Linux"
+  alias cocaine_diesel_linux
+  container:
+    image: alpine
+    cpu: 4
+    memory: 2G
+  install_script:
+    - apk add bash git wget binutils
+  build_script:
+    - ggbuild/lua.linux make.lua release > build.ninja
+    - ggbuild/ninja.linux -v -k 0
+    - ggbuild/lua.linux ggbuild/ninja_timeline.lua
+  test_script:
+    - tests/test_downloads.sh
+  cocaine_diesel_linux_artifacts:
+    path: "release/*"

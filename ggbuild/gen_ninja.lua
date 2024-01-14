@@ -64,22 +64,21 @@ configs[ "linux" ] = {
 	ar = "ar",
 
 	-- we need explicit -O0 because we can't rely on the distro (NixOS) to not fuck this up
-	cxxflags = "-c -ggdb3 -O0 -fdiagnostics-color",
+	cxxflags = "-c -ggdb3 -O0 -fdiagnostics-color -fno-omit-frame-pointer",
 }
 
 configs[ "linux-debug" ] = {
-	cxxflags = "-fno-omit-frame-pointer",
 	ldflags = "-fuse-ld=gold -no-pie",
 }
 configs[ "linux-asan" ] = {
 	bin_suffix = "-asan",
-	cxxflags = configs[ "linux-debug" ].cxxflags .. " -fsanitize=address",
+	cxxflags = "-fsanitize=address",
 	ldflags = configs[ "linux-debug" ].ldflags .. "-fsanitize=address -static-libasan",
 	prebuilt_lib_dir = "linux-debug",
 }
 configs[ "linux-tsan" ] = {
 	bin_suffix = "-tsan",
-	cxxflags = configs[ "linux-debug" ].cxxflags .. " -fsanitize=thread",
+	cxxflags = "-fsanitize=thread",
 	ldflags = configs[ "linux-debug" ].ldflags .. "-fsanitize=thread -static-libtsan",
 	prebuilt_lib_dir = "linux-debug",
 }
@@ -106,7 +105,7 @@ configs[ "macos" ] = copy( configs[ "linux" ], {
 	ldflags = "-arch arm64",
 } )
 configs[ "macos-debug" ] = {
-	cxxflags = "-O0 -g -fno-omit-frame-pointer",
+	cxxflags = "-O0 -g",
 }
 configs[ "macos-release" ] = {
 	cxxflags = "-O2 -DNDEBUG",

@@ -8,7 +8,7 @@ windows_task:
     cpu: 2
     memory: 2G
   script:
-    - call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat" amd64
+    - call "C:\\Program Files\\Microsoft Visual Studio\\2022\\VC\\Auxiliary\\Build\\vcvarsall.bat" amd64
     - ggbuild\lua.exe make.lua release > build.ninja
     - ggbuild\ninja.exe -v -k 0
     - ggbuild\lua.exe ggbuild\ninja_timeline.lua
@@ -21,6 +21,8 @@ macos_task:
   name: "macOS"
   macos_instance:
     image: ghcr.io/cirruslabs/macos-ventura-base:latest
+    cpu: 1
+    memory: 1G
   script:
     - echo hi
 

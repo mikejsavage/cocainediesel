@@ -2,7 +2,7 @@ windows_task:
   name: "Windows"
   windows_container:
     image: cirrusci/windowsservercore:visualstudio2022
-    cpu: 4
+    cpu: 2
     memory: 2G
   script:
     - call "C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat" amd64
@@ -28,6 +28,7 @@ linux_task:
     cpu: 4
     memory: 2G
   script:
+    - apk add bash git wget
     - ggbuild/lua.linux make.lua release > build.ninja
     - ggbuild/ninja.linux -v -k 0
     - ggbuild/lua.linux ggbuild/ninja_timeline.lua

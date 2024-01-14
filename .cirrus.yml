@@ -3,7 +3,7 @@ env:
 
 windows_task:
   name: "Windows"
-  alias cocaine_diesel_windows
+  alias: cocaine_diesel_windows
   windows_container:
     image: cirrusci/windowsservercore:visualstudio2022
     cpu: 4
@@ -31,7 +31,7 @@ windows_task:
 
 linux_task:
   name: "Linux"
-  alias cocaine_diesel_linux
+  alias: cocaine_diesel_linux
   container:
     image: alpine
     cpu: 4

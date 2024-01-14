@@ -54,6 +54,8 @@ local platform_curl_libs = {
 	{ OS == "linux" and "mbedtls" or nil },
 }
 
+obj_cxxflags( "source/client/audio/linux.cpp", "-Ilibs/alsa-headers -Ilibs/pulseaudio-headers" )
+
 bin( "audio", {
 	srcs = {
 		"source/neonmixer.cpp",
@@ -74,6 +76,7 @@ bin( "audio", {
 	},
 	windows_ldflags = "ole32.lib",
 	macos_ldflags = "-framework AudioToolbox -framework CoreAudio -framework Foundation",
+	no_static_link = true,
 } )
 
 do

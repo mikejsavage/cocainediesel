@@ -100,9 +100,7 @@ configs[ "macos" ] = copy( configs[ "linux" ], {
 	cxxflags = gcc_common_cxxflags .. " -arch arm64 -mmacosx-version-min=10.13",
 	ldflags = "-arch arm64",
 } )
-configs[ "macos-debug" ] = {
-	cxxflags = "-O0 -g",
-}
+configs[ "macos-debug" ] = { }
 configs[ "macos-release" ] = {
 	cxxflags = "-O2 -DNDEBUG",
 	ldflags = "-Wl,-dead_strip -Wl,-x",

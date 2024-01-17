@@ -377,11 +377,11 @@ rule bin-static
 
 printf( [[
 rule bin
-    command = %s build-exe -femit-bin=$out $in -lc -lc++ $ldflags $extra_ldflags && objcopy --only-keep-debug $out $out.debug && strip $out
+    command = %s build-exe -femit-bin=$out $in -lc -lc++ $ldflags $extra_ldflags && objcopy --only-keep-debug $out $out.debug && objcopy --strip-unneeded --add-gnu-debuglink=$out.debug $out
     description = $out
 
 rule bin-static
-    command = %s build-exe -femit-bin=$out $in -lc -lc++ $ldflags $extra_ldflags -target x86_64-linux-musl -static && objcopy --only-keep-debug $out $out.debug && strip $out
+    command = %s build-exe -femit-bin=$out $in -lc -lc++ $ldflags $extra_ldflags -target x86_64-linux-musl -static && objcopy --only-keep-debug $out $out.debug && objcopy --strip-unneeded --add-gnu-debuglink=$out.debug $out
     description = $out
 ]], zig, zig )
 

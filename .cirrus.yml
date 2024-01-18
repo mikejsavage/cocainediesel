@@ -20,12 +20,18 @@ windows_task:
   cocaine_diesel_windows_artifacts:
     path: "release/*"
 
-# macos_task:
-#   name: "macOS"
-#   macos_instance:
-#     image: ghcr.io/cirruslabs/macos-ventura-base:latest
-#   script:
-#     - echo hi
+macos_task:
+  name: "macOS"
+  macos_instance:
+    image: ghcr.io/cirruslabs/macos-sonoma-xcode:latest
+  env:
+    ZERO_AR_DATE: "1"
+  script:
+    - ggbuild/lua.macos make.lua release > build.ninja
+    - ggbuild/ninja.macos -v -k 0
+    - ggbuild/lua.macos ggbuild/ninja_timeline.lua
+  cocaine_diesel_macos_artifacts:
+    path: "release/*"
 
 linux_task:
   name: "Linux"

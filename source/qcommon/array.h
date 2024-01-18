@@ -91,16 +91,6 @@ public:
 		return elems[ i ];
 	}
 
-	T & top() {
-		Assert( n > 0 );
-		return elems[ n - 1 ];
-	}
-
-	const T & top() const {
-		Assert( n > 0 );
-		return elems[ n - 1 ];
-	}
-
 	T * ptr() { return elems; }
 	const T * ptr() const { return elems; }
 	size_t size() const { return n; }

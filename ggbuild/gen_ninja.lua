@@ -460,7 +460,9 @@ rule lib
 		local implicit_outputs = ""
 		local implicit_dependencies = ""
 		if OS == "linux" then
-			implicit_outputs = ( " | %s/%s.fat %s.debug" ):format( dir, full_name, full_name )
+			if config == "release" then
+				implicit_outputs = ( " | %s/%s.fat %s.debug" ):format( dir, full_name, full_name )
+			end
 			implicit_dependencies = " | " .. zig
 		end
 

@@ -5,10 +5,10 @@ bin( "dieselmap", {
 		"source/qcommon/base.cpp",
 		"source/qcommon/fs.cpp",
 		"source/qcommon/hash.cpp",
-		"source/qcommon/utf8.cpp",
 		"source/qcommon/platform/*_fs.cpp",
 		"source/qcommon/platform/*_sys.cpp",
 		"source/qcommon/platform/*_threads.cpp",
+		"source/qcommon/platform/windows_utf8.cpp",
 
 		"source/gameshared/q_math.cpp",
 		"source/gameshared/q_shared.cpp",

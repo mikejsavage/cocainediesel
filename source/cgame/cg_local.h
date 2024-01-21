@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_particles.h"
 #include "cgame/cg_sprays.h"
 
-#include "client/sound.h"
+#include "client/audio/types.h"
 #include "client/renderer/types.h"
 
 #define VSAY_TIMEOUT 2500

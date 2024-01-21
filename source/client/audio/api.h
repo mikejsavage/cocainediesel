@@ -1,10 +1,7 @@
 #pragma once
 
 #include "qcommon/types.h"
-
-struct PlayingSFXHandle {
-	u64 handle;
-};
+#include "client/audio/types.h"
 
 enum SpatialisationMethod {
 	SpatialisationMethod_None, // plays at max volume everywhere
@@ -27,12 +24,13 @@ struct PlaySFXConfig {
 	Optional< u64 > entropy;
 };
 
+struct Cvar;
 extern Cvar * s_device;
 
-bool InitSound();
+void InitSound();
 void ShutdownSound();
 
-Span< const char * > GetAudioDevices( Allocator * a );
+Span< const char * > GetAudioDeviceNames( Allocator * a );
 
 void SoundFrame( Vec3 origin, Vec3 velocity, Vec3 forward, Vec3 up );
 

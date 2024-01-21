@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "client/client.h"
 #include "client/assets.h"
+#include "client/audio/api.h"
 #include "client/discord.h"
 #include "client/downloads.h"
 #include "client/gltf.h"
@@ -1138,23 +1139,22 @@ void CL_Init() {
 
 	InitThreadPool();
 
-	ThreadPoolDo( []( TempAllocator * temp, void * data ) {
-		InitAssets( temp );
-	} );
+	{
+		// overlap loading assets and creating a window
+		ThreadPoolDo( []( TempAllocator * temp, void * data ) {
+			InitAssets( temp );
+		} );
+		VID_Init();
 
-	VID_Init();
-
-	ThreadPoolFinish();
+		ThreadPoolFinish();
+	}
 
 	InitRenderer();
 	InitGLTFModels();
 	InitMaps();
+	InitSound();
 
 	cls.white_material = FindMaterial( "$whiteimage" );
-
-	if( !InitSound() ) {
-		Com_Printf( S_COLOR_RED "Couldn't initialise audio engine\n" );
-	}
 
 	CL_ClearState();
 

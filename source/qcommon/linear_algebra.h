@@ -390,7 +390,7 @@ constexpr void operator-=( MinMax3 & bounds, Vec3 offset ) { bounds = bounds - o
 constexpr bool operator==( const MinMax3 & lhs, const MinMax3 & rhs ) { return lhs.mins == rhs.mins && lhs.maxs == rhs.maxs; }
 constexpr bool operator!=( const MinMax3 & lhs, const MinMax3 & rhs ) { return !( lhs == rhs ); }
 
-constexpr Vec3 Size( const MinMax3 & bounds ) { return bounds.maxs - bounds.mins; }
+constexpr Vec3 Dimensions( const MinMax3 & bounds ) { return bounds.maxs - bounds.mins; }
 constexpr Vec3 Center( const MinMax3 & bounds ) { return 0.5f * ( bounds.mins + bounds.maxs ); }
 
 constexpr MinMax3 Expand( const MinMax3 & bounds, Vec3 expand ) {

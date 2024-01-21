@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "client/audio/api.h"
 #include "gameshared/collision.h"
 
 static void RailgunImpact( Vec3 pos, Vec3 dir, Vec4 color ) {

@@ -67,6 +67,7 @@ bin( "audio", {
 		"source/qcommon/platform/*_time.cpp",
 		"source/qcommon/platform/*_threads.cpp",
 		"source/qcommon/platform/windows_sys.cpp",
+		"source/qcommon/platform/windows_utf8.cpp",
 		"source/client/audio/windows.cpp",
 		"source/client/audio/macos.cpp",
 		"source/client/audio/linux.cpp",

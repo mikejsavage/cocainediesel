@@ -2,6 +2,7 @@
 #include "imgui/imgui_internal.h"
 
 #include "client/assets.h"
+#include "client/audio/api.h"
 #include "client/client.h"
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
@@ -630,27 +631,20 @@ static void SettingsVideo() {
 	CvarCheckbox( "Colorblind mode", "cg_colorBlind" );
 }
 
-static const char * CleanAudioDeviceName( const char * name ) {
-	const char * openal_prefix = "OpenAL Soft on ";
-	if( StartsWith( name, openal_prefix ) ) {
-		return name + strlen( openal_prefix );
-	}
-	return name;
-}
-
 static void SettingsAudio() {
+#if PLATFORM_WINDOWS
 	SettingLabel( "Audio device" );
 	ImGui::PushItemWidth( 400 );
 
 	const char * current = StrEqual( s_device->value, "" ) ? "Default" : s_device->value;
-	if( ImGui::BeginCombo( "##audio_device", CleanAudioDeviceName( current ) ) ) {
+	if( ImGui::BeginCombo( "##audio_device", current ) ) {
 		if( ImGui::Selectable( "Default", StrEqual( s_device->value, "" ) ) ) {
 			Cvar_Set( "s_device", "" );
 		}
 
 		TempAllocator temp = cls.frame_arena.temp();
-		for( const char * device : GetAudioDevices( &temp ) ) {
-			if( ImGui::Selectable( CleanAudioDeviceName( device ), StrEqual( device, s_device->value ) ) ) {
+		for( const char * device : GetAudioDeviceNames( &temp ) ) {
+			if( ImGui::Selectable( device, StrEqual( device, s_device->value ) ) ) {
 				Cvar_Set( "s_device", device );
 			}
 		}
@@ -662,6 +656,7 @@ static void SettingsAudio() {
 	}
 
 	ImGui::Separator();
+#endif
 
 	CvarSliderFloat( "Master volume", "s_volume", 0.0f, 1.0f );
 	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f );

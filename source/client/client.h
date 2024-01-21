@@ -30,7 +30,7 @@
 #include "client/keys.h"
 #include "client/maps.h"
 #include "client/console.h"
-#include "client/sound.h"
+#include "client/audio/types.h"
 #include "client/renderer/types.h"
 
 struct ImFont;

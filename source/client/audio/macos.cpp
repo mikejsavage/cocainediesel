@@ -11,14 +11,21 @@ static AudioQueueRef audio_queue;
 static AudioBackendCallback audio_callback;
 static void * callback_user_data;
 
+bool InitAudioBackend() {
+	return true;
+}
+
+void ShutdownAudioBackend() {
+}
+
 static void CoreAudioCallback( void * user_data, AudioQueueRef queue, AudioQueueBufferRef buffer ) {
-	audio_callback( Span< Vec2 >( ( Vec2 * ) buffer->mAudioData, buffer->mAudioDataByteSize / sizeof( Vec2 ) ), AudioBackendSampleRate, callback_user_data );
+	audio_callback( Span< Vec2 >( ( Vec2 * ) buffer->mAudioData, buffer->mAudioDataByteSize / sizeof( Vec2 ) ), callback_user_data );
 	AudioQueueEnqueueBuffer( queue, buffer, 0, NULL );
 }
 
-bool InitAudioBackend( const char * preferred_device, AudioBackendCallback callback, void * user_data ) {
+bool InitAudioDevice( const char * preferred_device, AudioBackendCallback callback, void * user_data ) {
 	AudioStreamBasicDescription fmt = {
-		.mSampleRate = double( AudioBackendSampleRate ),
+		.mSampleRate = double( AUDIO_BACKEND_SAMPLE_RATE ),
 		.mFormatID = kAudioFormatLinearPCM,
 		.mFormatFlags = kLinearPCMFormatFlagIsFloat | kAudioFormatFlagIsPacked,
 		.mFramesPerPacket = 1,
@@ -33,7 +40,7 @@ bool InitAudioBackend( const char * preferred_device, AudioBackendCallback callb
 
 	for( int i = 0; i < 2; i++ ) {
 		AudioQueueBufferRef buf = NULL;
-		u32 size = AudioBackendBufferSize * fmt.mBytesPerFrame;
+		u32 size = AUDIO_BACKEND_BUFFER_SIZE * fmt.mBytesPerFrame;
 		if( AudioQueueAllocateBuffer( audio_queue, size, &buf ) != 0 ) {
 			ShutdownAudioBackend();
 			return false;
@@ -54,9 +61,13 @@ bool InitAudioBackend( const char * preferred_device, AudioBackendCallback callb
 	return true;
 }
 
-void ShutdownAudioBackend() {
+void ShutdownAudioDevice() {
 	AudioQueueStop( audio_queue, true );
 	AudioQueueDispose( audio_queue, false );
+}
+
+Span< const char * > GetAudioDeviceNames( Allocator * a ) {
+	return Span< const char * >();
 }
 
 #endif // #if PLATFORM_MACOS

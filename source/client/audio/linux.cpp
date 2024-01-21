@@ -13,6 +13,14 @@
 #include <pulse/pulseaudio.h>
 #include <pulse/simple.h>
 
+// TODO: implement these properly
+bool InitAudioBackend() {
+	return true;
+}
+
+void ShutdownAudioBackend() {
+}
+
 struct PulseAPI {
 	void * main_lib;
 	void * simple_lib;
@@ -23,24 +31,6 @@ struct PulseAPI {
 	decltype( pa_simple_free ) * simple_free;
 	decltype( pa_simple_write ) * simple_write;
 	decltype( pa_simple_drain ) * simple_drain;
-
-	// decltype( pa_mainloop_new ) * mainloop_new;
-	// decltype( pa_mainloop_free ) * mainloop_free;
-	// decltype( pa_mainloop_get_api ) * mainloop_get_api;
-        //
-	// decltype( pa_context_new ) * context_new;
-	// decltype( pa_context_unref ) * context_unref;
-	// decltype( pa_context_connect ) * context_connect;
-	// decltype( pa_context_disconnect ) * context_disconnect;
-	// decltype( pa_context_get_state ) * context_get_state;
-	// decltype( pa_context_set_state_callback ) * context_set_state_callback;
-        //
-	// decltype( pa_sample_spec_valid ) * sample_spec_valid;
-	// decltype( pa_stream_new ) * stream_new;
-	// decltype( pa_stream_set_write_callback ) * stream_set_write_callback;
-	// decltype( pa_stream_connect_playback ) * stream_connect_playback;
-	// decltype( pa_stream_begin_write ) * stream_begin_write;
-	// decltype( pa_stream_write ) * stream_write;
 };
 
 struct PulseBackend {
@@ -64,7 +54,7 @@ struct AlsaAPI {
 	decltype( snd_pcm_hw_params_set_format ) * hw_params_set_format;
 	decltype( snd_pcm_hw_params_set_buffer_size ) * hw_params_set_buffer_size;
 	decltype( snd_pcm_hw_params_set_channels ) * hw_params_set_channels;
-	decltype( snd_pcm_hw_params_set_rate_near ) * hw_params_set_rate_near;
+	decltype( snd_pcm_hw_params_set_rate ) * hw_params_set_rate;
 	decltype( snd_pcm_hw_params ) * hw_params;
 
 	decltype( snd_pcm_prepare ) * prepare;
@@ -74,7 +64,6 @@ struct AlsaAPI {
 
 struct AlsaBackend {
 	AlsaAPI api;
-	u32 sample_rate;
 	snd_pcm_t * device;
 	Span< Vec2 > buffer;
 	Thread * thread;
@@ -136,46 +125,48 @@ struct PulseThreadData {
 };
 
 static void PulseThread( void * opaque ) {
+	TracyCSetThreadName( "PulseAudio" );
+
 	PulseThreadData * thread_data = ( PulseThreadData * ) opaque;
 	defer { Free( sys_allocator, thread_data ); };
 
 	pa_sample_spec sample_spec = {
-                .format = PA_SAMPLE_FLOAT32NE,
-                .rate = 44100,
-                .channels = 2,
-        };
+		.format = PA_SAMPLE_FLOAT32NE,
+		.rate = 44100,
+		.channels = 2,
+	};
 
-        pa_buffer_attr buffer_attr = {
-                .maxlength = u32( -1 ),
-                .tlength = AudioBackendBufferSize * sizeof( Vec2 ),
-                .prebuf = u32( -1 ),
-                .minreq = u32( -1 ),
-                .fragsize = AudioBackendBufferSize * sizeof( Vec2 ),
-        };
+	pa_buffer_attr buffer_attr = {
+		.maxlength = u32( -1 ),
+		.tlength = AUDIO_BACKEND_BUFFER_SIZE * sizeof( Vec2 ),
+		.prebuf = u32( -1 ),
+		.minreq = u32( -1 ),
+		.fragsize = AUDIO_BACKEND_BUFFER_SIZE * sizeof( Vec2 ),
+	};
 
-        int err;
-        pa_simple * simple = pulse.api.simple_new( NULL, "Cocaine Diesel", PA_STREAM_PLAYBACK, thread_data->preferred_device, "Cocaine Diesel", &sample_spec, NULL, &buffer_attr, &err );
-        if( simple == NULL && err == PA_ERR_NOENTITY ) {
-                simple = pulse.api.simple_new( NULL, "Cocaine Diesel", PA_STREAM_PLAYBACK, thread_data->preferred_device, "Cocaine Diesel", &sample_spec, NULL, &buffer_attr, &err );
-        }
+	int err;
+	pa_simple * simple = pulse.api.simple_new( NULL, "Cocaine Diesel", PA_STREAM_PLAYBACK, thread_data->preferred_device, "Cocaine Diesel", &sample_spec, NULL, &buffer_attr, &err );
+	if( simple == NULL && err == PA_ERR_NOENTITY ) {
+		simple = pulse.api.simple_new( NULL, "Cocaine Diesel", PA_STREAM_PLAYBACK, thread_data->preferred_device, "Cocaine Diesel", &sample_spec, NULL, &buffer_attr, &err );
+	}
 
-        if( simple == NULL ) {
+	if( simple == NULL ) {
 		Fatal( "pa_simple_new: %s", pulse.api.strerror( err ) );
 	}
 
 	while( !pulse.shutting_down.load( std::memory_order_acquire ) ) {
-		Vec2 buffer[ AudioBackendBufferSize ];
-		audio_callback( Span< Vec2 >( buffer, ARRAY_COUNT( buffer ) ), AudioBackendSampleRate, thread_data->user_data );
+		Vec2 buffer[ AUDIO_BACKEND_BUFFER_SIZE ];
+		audio_callback( Span< Vec2 >( buffer, ARRAY_COUNT( buffer ) ), thread_data->user_data );
 		if( pulse.api.simple_write( simple, buffer, sizeof( buffer ), &err ) < 0 ) {
 			Fatal( "pa_simple_write: %s", pulse.api.strerror( err ) );
 		}
 	}
 
-        if( pulse.api.simple_drain( simple, &err ) < 0 ) {
+	if( pulse.api.simple_drain( simple, &err ) < 0 ) {
 		Fatal( "pa_simple_drain: %s", pulse.api.strerror( err ) );
 	}
 
-        pulse.api.simple_free( simple );
+	pulse.api.simple_free( simple );
 }
 
 static bool InitPulse( const char * preferred_device, void * user_data ) {
@@ -211,7 +202,7 @@ static Optional< AlsaAPI > LoadAlsaAPI() {
 	ok = ok && LoadFunction( alsa, &api.hw_params_set_format, "snd_pcm_hw_params_set_format" );
 	ok = ok && LoadFunction( alsa, &api.hw_params_set_buffer_size, "snd_pcm_hw_params_set_buffer_size" );
 	ok = ok && LoadFunction( alsa, &api.hw_params_set_channels, "snd_pcm_hw_params_set_channels" );
-	ok = ok && LoadFunction( alsa, &api.hw_params_set_rate_near, "snd_pcm_hw_params_set_rate_near" );
+	ok = ok && LoadFunction( alsa, &api.hw_params_set_rate, "snd_pcm_hw_params_set_rate" );
 	ok = ok && LoadFunction( alsa, &api.hw_params, "snd_pcm_hw_params" );
 	ok = ok && LoadFunction( alsa, &api.prepare, "snd_pcm_prepare" );
 	ok = ok && LoadFunction( alsa, &api.writei, "snd_pcm_writei" );
@@ -237,8 +228,10 @@ static Optional< AlsaAPI > LoadAlsaAPI() {
 // }
 
 static void AlsaThread( void * user_data ) {
+	TracyCSetThreadName( "ALSA" );
+
 	while( !alsa.shutting_down.load( std::memory_order_acquire ) ) {
-		audio_callback( alsa.buffer, alsa.sample_rate, user_data );
+		audio_callback( alsa.buffer, user_data );
 		int write_res = alsa.api.writei( alsa.device, alsa.buffer.ptr, checked_cast< snd_pcm_uframes_t >( alsa.buffer.n ) );
 		if( write_res == -EPIPE ) {
 			alsa.api.prepare( alsa.device );
@@ -279,10 +272,9 @@ static bool InitAlsa( const char * preferred_device, void * user_data ) {
 	bool ok = true;
 	ok = ok && AlsaChecked( alsa.api.hw_params_set_access( device, params, SND_PCM_ACCESS_RW_INTERLEAVED ), "snd_pcm_hw_params_set_access" );
 	ok = ok && AlsaChecked( alsa.api.hw_params_set_format( device, params, SND_PCM_FORMAT_FLOAT_LE ), "snd_pcm_alsa.api.hw_params_set_format" );
-	ok = ok && AlsaChecked( alsa.api.hw_params_set_buffer_size( device, params, checked_cast< snd_pcm_uframes_t >( AudioBackendBufferSize ) ), "snd_pcm_hw_params_set_buffer_size" );
+	ok = ok && AlsaChecked( alsa.api.hw_params_set_buffer_size( device, params, checked_cast< snd_pcm_uframes_t >( AUDIO_BACKEND_BUFFER_SIZE ) ), "snd_pcm_hw_params_set_buffer_size" );
 	ok = ok && AlsaChecked( alsa.api.hw_params_set_channels( device, params, 2 ), "snd_pcm_api.hw_params_set_channels" );
-	u32 sample_rate = AudioBackendSampleRate;
-	ok = ok && AlsaChecked( alsa.api.hw_params_set_rate_near( device, params, &sample_rate, NULL ), "snd_pcm_api.hw_params_set_rate_near" );
+	ok = ok && AlsaChecked( alsa.api.hw_params_set_rate( device, params, AUDIO_BACKEND_SAMPLE_RATE, 0 ), "snd_pcm_api.hw_params_set_rate" );
 	ok = ok && AlsaChecked( alsa.api.hw_params( device, params ), "snd_pcm_api.hw_params" );
 
 	if( !ok ) {
@@ -290,16 +282,15 @@ static bool InitAlsa( const char * preferred_device, void * user_data ) {
 		return false;
 	}
 
-	alsa.sample_rate = sample_rate;
 	alsa.device = device;
-	alsa.buffer = AllocSpan< Vec2 >( sys_allocator, AudioBackendBufferSize );
+	alsa.buffer = AllocSpan< Vec2 >( sys_allocator, AUDIO_BACKEND_BUFFER_SIZE );
 	alsa.shutting_down.store( false, std::memory_order_release );
 	alsa.thread = NewThread( AlsaThread, user_data );
 
 	return true;
 }
 
-bool InitAudioBackend( const char * preferred_device, AudioBackendCallback callback, void * user_data ) {
+bool InitAudioDevice( const char * preferred_device, AudioBackendCallback callback, void * user_data ) {
 	audio_callback = callback;
 
 	pulse_error = NULL;
@@ -317,7 +308,7 @@ bool InitAudioBackend( const char * preferred_device, AudioBackendCallback callb
 	return InitAlsa( preferred_device, user_data );
 };
 
-void ShutdownAudioBackend() {
+void ShutdownAudioDevice() {
 	if( pulse.api.main_lib != NULL ) {
 		pulse.shutting_down.store( true, std::memory_order_release );
 		JoinThread( pulse.thread );
@@ -334,5 +325,9 @@ void ShutdownAudioBackend() {
 		Free( sys_allocator, alsa.buffer.ptr );
 	}
 };
+
+Span< const char * > GetAudioDeviceNames( Allocator * a ) {
+	return Span< const char * >();
+}
 
 #endif // #if PLATFORM_LINUX

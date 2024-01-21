@@ -100,9 +100,7 @@ configs[ "macos" ] = copy( configs[ "linux" ], {
 	cxxflags = gcc_common_cxxflags .. " -arch arm64 -mmacosx-version-min=10.13",
 	ldflags = "-arch arm64",
 } )
-configs[ "macos-debug" ] = {
-	cxxflags = "-O0 -g",
-}
+configs[ "macos-debug" ] = { }
 configs[ "macos-release" ] = {
 	cxxflags = "-O2 -DNDEBUG",
 	ldflags = "-Wl,-dead_strip -Wl,-x",
@@ -379,13 +377,13 @@ rule bin-static
 
 printf( [[
 rule bin
-    command = %s build-exe -femit-bin=$out $in -lc -lc++ $ldflags $extra_ldflags && objcopy --only-keep-debug $out $out.debug && strip $out
+    command = %s build-exe -femit-bin=%s/$out.fat $in -lc -lc++ $ldflags $extra_ldflags && %s objcopy --only-keep-debug %s/$out.fat $out.debug && %s objcopy --strip-all --add-gnu-debuglink=$out.debug %s/$out.fat $out && chmod +x $out
     description = $out
 
 rule bin-static
-    command = %s build-exe -femit-bin=$out $in -lc -lc++ $ldflags $extra_ldflags -target x86_64-linux-musl -static && objcopy --only-keep-debug $out $out.debug && strip $out
+    command = %s build-exe -femit-bin=%s/$out.fat $in -lc -lc++ $ldflags $extra_ldflags -target x86_64-linux-musl -static && %s objcopy --only-keep-debug %s/$out.fat $out.debug && %s objcopy --strip-all --add-gnu-debuglink=$out.debug %s/$out.fat $out && chmod +x $out
     description = $out
-]], zig, zig )
+]], zig, dir, zig, dir, zig, dir, zig, dir, zig, dir, zig, dir )
 
 			end
 
@@ -458,12 +456,23 @@ rule lib
 		end
 
 		local full_name = output_dir .. bin_name .. bin_suffix
-		printf( "build %s: %s %s %s%s",
+
+		local implicit_outputs = ""
+		local implicit_dependencies = ""
+		if OS == "linux" then
+			if config == "release" then
+				implicit_outputs = ( " | %s/%s.fat %s.debug" ):format( dir, full_name, full_name )
+			end
+			implicit_dependencies = " | " .. zig
+		end
+
+		printf( "build %s%s: %s %s %s%s",
 			full_name,
+			implicit_outputs,
 			( can_static_link and not cfg.no_static_link ) and "bin-static" or "bin",
 			join_srcs( srcs ),
 			join_libs( cfg.libs ),
-			OS == "linux" and ( " | " .. zig ) or ""
+			implicit_dependencies
 		)
 
 		local ldflags_key = OS .. "_ldflags"

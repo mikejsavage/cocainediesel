@@ -8,6 +8,7 @@ msvc_global_cxxflags( "/wd4244 /wd4267" ) -- silence conversion warnings because
 msvc_global_cxxflags( "/wd4611" ) -- setjmp warning
 msvc_global_cxxflags( "/wd5030" ) -- unrecognized [[gnu::...]] attribute
 msvc_global_cxxflags( "/GR- /EHs-c-" )
+msvc_obj_cxxflags( "source/*", "/RTC1" )
 
 gcc_global_cxxflags( "-std=c++20 -fno-exceptions -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fno-math-errno -fvisibility=hidden" )
 gcc_global_cxxflags( "-Wall -Wextra -Wcast-align -Wvla -Wformat-security -Wimplicit-fallthrough" ) -- -Wconversion

@@ -1,4 +1,5 @@
 #include "cgame/cg_local.h"
+#include "client/audio/api.h"
 #include "client/renderer/renderer.h"
 
 static float RandomRadians() {

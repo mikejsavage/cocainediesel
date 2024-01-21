@@ -1,5 +1,5 @@
 #include "qcommon/base.h"
-#include "qcommon/qcommon.h"
+#include "gameshared/q_shared.h"
 
 #include "zstd/zstd.h"
 

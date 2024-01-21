@@ -1,5 +1,6 @@
 #include "qcommon/base.h"
 #include "client/assets.h"
+#include "client/audio/api.h"
 #include "client/renderer/material.h"
 #include "cgame/cg_local.h"
 

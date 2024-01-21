@@ -1,4 +1,5 @@
 #include "cgame/cg_local.h"
+#include "client/audio/api.h"
 
 static StringHash GetPlayerSound( int entnum, PlayerSound ps ) {
 	const PlayerModelMetadata * meta = GetPlayerModelMetadata( entnum );
@@ -25,7 +26,7 @@ void CG_PlayerSound( int entnum, PlayerSound ps, bool stop_current ) {
 
 	PlaySFXConfig config = ISVIEWERENTITY( entnum ) ? PlaySFXConfigGlobal() : PlaySFXConfigEntity( entnum );
 	config.pitch = pitch;
-	
+
 	PlayingSFXHandle handle = PlaySFX( sfx, config );
 
 	if( stop_current ) {

@@ -11,7 +11,6 @@
 #include "stb/stb_vorbis.h"
 
 static const s16 samples[ 4 ] = { S16_MIN, 0, -5, S16_MAX };
-static constexpr int SAMPLE_RATE = 44100;
 
 void ShowErrorMessage( const char * msg, const char * file, int line ) {
 	printf( "%s (%s:%d)\n", msg, file, line );
@@ -174,12 +173,14 @@ struct Sound {
 	bool mono;
 };
 
+namespace {
 struct MixContext {
 	CubicCoefficients cubic_coefficients;
 	ArenaAllocator arena;
 	Time time;
 	Sound longcovid;
 };
+}
 
 static u64 ScaleFixed( u64 x, u64 numer, u64 denom ) {
 	u64 a = ( x / denom ) * numer;
@@ -188,7 +189,7 @@ static u64 ScaleFixed( u64 x, u64 numer, u64 denom ) {
 }
 
 static void MixStereo( Span< Vec2 > buffer, const CubicCoefficients & cubic_coefficients, Time t_0, Time dt, Sound sound ) {
-	// if( !sound.mono && sound.sample_rate == SAMPLE_RATE ) {
+	// if( !sound.mono && sound.sample_rate == AUDIO_BACKEND_SAMPLE_RATE ) {
 	// 	size_t idx = ScaleFixed( t_0.flicks, sound.sample_rate, GGTIME_FLICKS_PER_SECOND );
 	// 	memcpy( buffer, ( sound.samples + idx * 2 ).ptr, num_frames * sizeof( float ) * 2 );
 	// 	return;
@@ -203,12 +204,12 @@ static void MixStereo( Span< Vec2 > buffer, const CubicCoefficients & cubic_coef
 	}
 }
 
-static void GenerateSamples( Span< Vec2 > buffer, u32 sample_rate, void * userdata ) {
-	MixContext * ctx = ( MixContext * ) userdata;
+static void GenerateSamples( Span< Vec2 > buffer, void * userdata ) {
+	::MixContext * ctx = ( ::MixContext * ) userdata;
 
 	memset( buffer.ptr, 0, buffer.num_bytes() );
 
-	Time dt_44100_hz = Hz( SAMPLE_RATE );
+	Time dt_44100_hz = Hz( AUDIO_BACKEND_SAMPLE_RATE );
 	MixStereo( buffer, ctx->cubic_coefficients, ctx->time, dt_44100_hz, ctx->longcovid );
 	ctx->time += u64( buffer.n ) * dt_44100_hz;
 }
@@ -247,7 +248,7 @@ int main() {
 	Print( "left", left );
 	Print( "right", right );
 
-	MixContext mix_context;
+	::MixContext mix_context;
 	mix_context.cubic_coefficients = cubic_coefficients;
 	constexpr size_t AUDIO_ARENA_SIZE = 1024 * 64; // 64KB
 	void * mixer_arena_memory = sys_allocator->allocate( AUDIO_ARENA_SIZE, 16 );
@@ -256,8 +257,11 @@ int main() {
 	mix_context.time = Seconds( 50 );
 	mix_context.longcovid = LoadSound( "base/sounds/music/longcovid.ogg" );
 
-	if( !InitAudioBackend( "", GenerateSamples, &mix_context ) ) {
+	if( !InitAudioBackend() ) {
 		Fatal( "Can't open audio backend" );
+	}
+	if( !InitAudioDevice( "", GenerateSamples, &mix_context ) ) {
+		Fatal( "Can't open audio device" );
 	}
 
 	while( true ) {

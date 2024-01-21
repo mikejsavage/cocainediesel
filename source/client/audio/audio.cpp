@@ -551,7 +551,7 @@ static void HotloadSoundEffects() {
 	}
 }
 
-static void AudioCallback( Span< Vec2 > buffer, u32 sample_rate, void * userdata ) {
+static void AudioCallback( Span< Vec2 > buffer, void * userdata ) {
 	alcRenderSamplesSOFT( al_device, buffer.ptr, buffer.n );
 	CheckALErrors( "alcRenderSamplesSOFT( {} )", buffer.n );
 
@@ -657,7 +657,7 @@ static void AudioCallback( Span< Vec2 > buffer, u32 sample_rate, void * userdata
 #endif
 }
 
-bool InitSound() {
+void InitSound() {
 	TracyZoneScoped;
 
 	num_sounds = 0;

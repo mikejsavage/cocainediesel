@@ -184,13 +184,6 @@ u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, 
 
 UniformBlock UploadUniforms( const void * data, size_t size );
 
-enum GPUBufferType {
-	GPUBuffer_Private,
-	GPUBuffer_Writeable,
-	GPUBuffer_Coherent,
-};
-
-GPUBuffer NewGPUBuffer( const void * data, u32 size, GPUBufferType type, const char * name = NULL );
 GPUBuffer NewGPUBuffer( const void * data, u32 size, const char * name = NULL );
 void DeleteGPUBuffer( GPUBuffer buf );
 void DeferDeleteGPUBuffer( GPUBuffer buf );

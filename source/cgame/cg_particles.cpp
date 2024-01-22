@@ -11,13 +11,6 @@
 
 #include "imgui/imgui.h"
 
-// TODO: WriteGPUBuffer is always wrong but fixing it here is non-trivial
-// we should write new particles to a coherent buffer and perform the CPU->GPU
-// copy in the update shader
-// similarly we should clear particles by making it part of the update step
-// rather than zeroing out a buffer that may or may not be in use
-void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 size, u32 offset = 0 );
-
 static constexpr u32 MAX_PARTICLE_SYSTEMS = 512;
 static constexpr u32 MAX_PARTICLE_EMITTERS = 512;
 static constexpr u32 MAX_PARTICLE_EMITTER_EVENTS = 8;
@@ -129,7 +122,8 @@ struct ParticleSystem {
 	GPUBuffer gpu_particles2;
 
 	StreamingBuffer new_particles;
-	size_t num_new_particles;
+	u32 num_new_particles;
+	bool clear;
 
 	GPUBuffer compute_count1;
 	GPUBuffer compute_count2;
@@ -324,14 +318,14 @@ struct DrawArraysIndirect {
 void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	DeleteParticleSystem( a, ps );
 
-	ps->gpu_particles1 = NewGPUBuffer( NULL, ps->max_particles * sizeof( GPUParticle ), GPUBuffer_Writeable, "particles flip" );
-	ps->gpu_particles2 = NewGPUBuffer( NULL, ps->max_particles * sizeof( GPUParticle ), GPUBuffer_Writeable, "particles flop" );
+	ps->gpu_particles1 = NewGPUBuffer( NULL, ps->max_particles * sizeof( GPUParticle ), "particles flip" );
+	ps->gpu_particles2 = NewGPUBuffer( NULL, ps->max_particles * sizeof( GPUParticle ), "particles flop" );
 
 	ps->new_particles = NewStreamingBuffer( ps->max_particles * sizeof( GPUParticle ), "new particles" );
 
 	u32 zero = 0;
-	ps->compute_count1 = NewGPUBuffer( &zero, sizeof( u32 ), GPUBuffer_Writeable, "compute_count flip" );
-	ps->compute_count2 = NewGPUBuffer( &zero, sizeof( u32 ), GPUBuffer_Writeable, "compute_count flop" );
+	ps->compute_count1 = NewGPUBuffer( &zero, sizeof( u32 ), "compute_count flip" );
+	ps->compute_count2 = NewGPUBuffer( &zero, sizeof( u32 ), "compute_count flop" );
 
 	u32 counts[] = { 1, 1, 1 };
 	ps->compute_indirect = NewGPUBuffer( counts, sizeof( counts ), "compute_indirect" );
@@ -891,7 +885,7 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		pipeline.bind_buffer( "b_ComputeCountOut", ps->compute_count2 );
 		// u32 collision = cl.map == NULL ? 0 : 1;
 		u32 collision = 0;
-		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, ps->radius, dt, u32( ps->num_new_particles ) ) );
+		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, ps->radius, dt, ps->num_new_particles ) );
 		// if( collision ) {
 		// 	pipeline.bind_buffer( "b_BSPNodeLinks", cl.map->render_data.nodes );
 		// 	pipeline.bind_buffer( "b_BSPLeaves", cl.map->render_data.leaves );
@@ -909,11 +903,12 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		pipeline.bind_buffer( "b_ComputeCount", ps->compute_count2 );
 		pipeline.bind_buffer( "b_ComputeIndirect", ps->compute_indirect );
 		pipeline.bind_buffer( "b_DrawIndirect", ps->draw_indirect );
-		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( u32( ps->num_new_particles ) ) );
+		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( ps->num_new_particles, ps->clear ? u32( 1 ) : u32( 0 ) ) );
 		DispatchCompute( pipeline, 1, 1, 1 );
 	}
 
 	ps->num_new_particles = 0;
+	ps->clear = false;
 }
 
 static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
@@ -1151,11 +1146,7 @@ void ClearParticles() {
 	for( size_t i = 0; i < num_particleSystems; i++ ) {
 		if( particleSystems[ i ].initialized ) {
 			ParticleSystem * ps = &particleSystems[ i ];
-			ps->num_new_particles = 0;
-
-			u32 zero = 0;
-			WriteGPUBuffer( ps->compute_count1, &zero, sizeof( zero ) );
-			WriteGPUBuffer( ps->compute_count2, &zero, sizeof( zero ) );
+			ps->clear = true;
 		}
 	}
 }

@@ -1079,14 +1079,8 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 	return block;
 }
 
-GPUBuffer NewGPUBuffer( const void * data, u32 size, GPUBufferType type, const char * name ) {
-	GLbitfield flags = 0;
-	switch( type ) {
-		case GPUBuffer_Private: flags = 0; break;
-		case GPUBuffer_Writeable: flags = GL_DYNAMIC_STORAGE_BIT; break;
-		case GPUBuffer_Coherent: flags = GL_MAP_COHERENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT; break;
-	}
-
+static GPUBuffer NewGPUBuffer( const void * data, u32 size, bool coherent, const char * name ) {
+	GLbitfield flags = coherent ? GL_MAP_COHERENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT : 0;
 	GPUBuffer buf = { };
 	glCreateBuffers( 1, &buf.buffer );
 	glNamedBufferStorage( buf.buffer, size, data, flags );
@@ -1099,16 +1093,11 @@ GPUBuffer NewGPUBuffer( const void * data, u32 size, GPUBufferType type, const c
 }
 
 GPUBuffer NewGPUBuffer( const void * data, u32 size, const char * name ) {
-	return NewGPUBuffer( data, size, GPUBuffer_Private, name );
+	return NewGPUBuffer( data, size, false, name );
 }
 
 GPUBuffer NewGPUBuffer( u32 size, const char * name ) {
 	return NewGPUBuffer( NULL, size, name );
-}
-
-void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 size, u32 offset ) {
-	// TODO: remove GL_DYNAMIC_STORAGE_BIT when we delete this
-	glNamedBufferSubData( buf.buffer, offset, size, data );
 }
 
 void DeleteGPUBuffer( GPUBuffer buf ) {
@@ -1123,7 +1112,7 @@ void DeferDeleteGPUBuffer( GPUBuffer buf ) {
 
 StreamingBuffer NewStreamingBuffer( u32 size, const char * name ) {
 	StreamingBuffer stream = { };
-	stream.buffer = NewGPUBuffer( NULL, size * MAX_FRAMES_IN_FLIGHT, GPUBuffer_Coherent, name );
+	stream.buffer = NewGPUBuffer( NULL, size * MAX_FRAMES_IN_FLIGHT, true, name );
 	stream.ptr = glMapNamedBufferRange( stream.buffer.buffer, 0, size * MAX_FRAMES_IN_FLIGHT, GL_MAP_COHERENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT );
 	stream.size = size;
 

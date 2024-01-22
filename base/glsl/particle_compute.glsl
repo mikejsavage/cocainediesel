@@ -8,6 +8,7 @@ layout( std140 ) uniform u_ParticleUpdate {
 	float u_Radius;
 	float u_dt;
 	uint num_new_particles;
+	uint clear;
 };
 
 layout( std430 ) readonly buffer b_ParticlesIn {

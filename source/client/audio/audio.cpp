@@ -5,9 +5,9 @@
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/time.h"
-#include "client/client.h"
+#include "client/audio/api.h"
+#include "client/audio/backend.h"
 #include "client/assets.h"
-#include "client/sound.h"
 #include "client/threadpool.h"
 #include "cgame/cg_local.h"
 #include "gameshared/gs_public.h"
@@ -15,6 +15,7 @@
 #include "nanosort/nanosort.hpp"
 
 #define AL_LIBTYPE_STATIC
+#define AL_ALEXT_PROTOTYPES
 #include "openal/al.h"
 #include "openal/alc.h"
 #include "openal/alext.h"
@@ -24,6 +25,7 @@
 
 struct Sound {
 	ALuint buf;
+	Span< s16 > samples;
 	bool mono;
 };
 
@@ -62,17 +64,17 @@ struct PlayingSFX {
 static ALCdevice * al_device;
 static ALCcontext * al_context;
 
-// so we don't crash when some other application is running in exclusive playback mode (WASAPI/JACK/etc)
-static bool initialized;
+static bool backend_initialized;
+static bool backend_device_initialized;
 
 Cvar * s_device;
 static Cvar * s_volume;
 static Cvar * s_musicvolume;
 static Cvar * s_muteinbackground;
 
-constexpr u32 MAX_SOUND_ASSETS = 4096;
-constexpr u32 MAX_SOUND_EFFECTS = 4096;
-constexpr u32 MAX_PLAYING_SOUNDS = 256;
+static constexpr u32 MAX_SOUND_ASSETS = 4096;
+static constexpr u32 MAX_SOUND_EFFECTS = 4096;
+static constexpr u32 MAX_PLAYING_SOUNDS = 256;
 
 static Sound sounds[ MAX_SOUND_ASSETS ];
 static u32 num_sounds;
@@ -183,28 +185,15 @@ static void CheckedALSourceStop( ALuint source ) {
 	CheckALErrors( "alSourceStop( {} )", source );
 }
 
-static bool InitOpenAL() {
+static void InitOpenAL() {
 	TracyZoneScoped;
 
-	al_device = NULL;
+	al_device = alcLoopbackOpenDeviceSOFT( NULL );
 
-	if( !StrEqual( s_device->value, "" ) ) {
-		al_device = alcOpenDevice( s_device->value );
-		if( al_device == NULL ) {
-			Com_Printf( S_COLOR_YELLOW "Failed to open sound device %s, trying default\n", s_device->value );
-		}
-	}
-
-	if( al_device == NULL ) {
-		al_device = alcOpenDevice( NULL );
-
-		if( al_device == NULL ) {
-			Com_Printf( S_COLOR_RED "Failed to open device\n" );
-			return false;
-		}
-	}
-
-	ALCint attrs[] = {
+	constexpr ALCint attrs[] = {
+		ALC_FORMAT_CHANNELS_SOFT, ALC_STEREO_SOFT,
+		ALC_FORMAT_TYPE_SOFT, ALC_FLOAT_SOFT,
+		ALC_FREQUENCY, AUDIO_BACKEND_SAMPLE_RATE,
 		ALC_HRTF_SOFT, ALC_HRTF_ENABLED_SOFT,
 		ALC_MONO_SOURCES, MAX_PLAYING_SOUNDS,
 		ALC_STEREO_SOURCES, 16,
@@ -212,9 +201,7 @@ static bool InitOpenAL() {
 	};
 	al_context = alcCreateContext( al_device, attrs );
 	if( al_context == NULL ) {
-		alcCloseDevice( al_device );
-		Com_Printf( S_COLOR_RED "Failed to create context\n" );
-		return false;
+		Fatal( "alcCreateContext" );
 	}
 	alcMakeContextCurrent( al_context );
 
@@ -229,12 +216,18 @@ static bool InitOpenAL() {
 	num_free_sound_sources = ARRAY_COUNT( free_sound_sources );
 
 	if( alGetError() != AL_NO_ERROR ) {
-		Com_Printf( S_COLOR_RED "Failed to allocate sound sources\n" );
-		ShutdownSound();
-		return false;
+		Fatal( "Failed to allocate sound sources" );
 	}
+}
 
-	return true;
+static void ShutdownOpenAL() {
+	alDeleteSources( ARRAY_COUNT( free_sound_sources ), free_sound_sources );
+	alDeleteSources( 1, &music_source );
+
+	CheckALErrors( "ShutdownSound" );
+
+	alcDestroyContext( al_context );
+	alcCloseDevice( al_device );
 }
 
 struct DecodeSoundJob {
@@ -294,16 +287,15 @@ static void AddSound( const char * path, int num_samples, int channels, int samp
 
 	ALenum format = channels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
 	alGenBuffers( 1, &sounds[ idx ].buf );
-	alBufferData( sounds[ idx ].buf, format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
-	CheckALErrors( "AddSound" );
-
+	sounds[ idx ].samples = Span< s16 >( samples, num_samples );
 	sounds[ idx ].mono = channels == 1;
+
+	alBufferDataStatic( sounds[ idx ].buf, format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
+	CheckALErrors( "AddSound" );
 
 	if( restart_music ) {
 		StartMenuMusic();
 	}
-
-	free( samples );
 }
 
 static void LoadSounds() {
@@ -544,7 +536,14 @@ static void HotloadSoundEffects() {
 	}
 }
 
-bool InitSound() {
+static void AudioCallback( Span< Vec2 > buffer, void * userdata ) {
+	TracyZoneScoped;
+
+	alcRenderSamplesSOFT( al_device, buffer.ptr, buffer.n );
+	CheckALErrors( "alcRenderSamplesSOFT( {} )", buffer.n );
+}
+
+void InitSound() {
 	TracyZoneScoped;
 
 	num_sounds = 0;
@@ -555,7 +554,8 @@ bool InitSound() {
 	sound_effects_hashtable.clear();
 	playing_sounds_hashtable.clear();
 	music_playing = false;
-	initialized = false;
+	backend_initialized = false;
+	backend_device_initialized = false;
 
 	s_device = NewCvar( "s_device", "", CvarFlag_Archive );
 	s_device->modified = false;
@@ -563,53 +563,44 @@ bool InitSound() {
 	s_musicvolume = NewCvar( "s_musicvolume", "1", CvarFlag_Archive );
 	s_muteinbackground = NewCvar( "s_muteinbackground", "1", CvarFlag_Archive );
 
-	if( !InitOpenAL() )
-		return false;
+	if( !InitAudioBackend() ) {
+		Com_Printf( S_COLOR_RED "Couldn't initialize audio backend!\n" );
+		return;
+	}
 
+	InitOpenAL();
 	LoadSounds();
 	LoadSoundEffects();
 
-	initialized = true;
-
-	return true;
+	backend_initialized = true;
+	backend_device_initialized = InitAudioDevice( s_device->value, AudioCallback, NULL );
 }
 
 void ShutdownSound() {
 	TracyZoneScoped;
 
-	if( !initialized )
+	if( !backend_initialized ) {
 		return;
+	}
+
+	if( backend_device_initialized ) {
+		ShutdownAudioDevice();
+	}
 
 	StopAllSounds( true );
 
-	alDeleteSources( ARRAY_COUNT( free_sound_sources ), free_sound_sources );
-	alDeleteSources( 1, &music_source );
-
 	for( u32 i = 0; i < num_sounds; i++ ) {
 		alDeleteBuffers( 1, &sounds[ i ].buf );
+		free( sounds[ i ].samples.ptr );
 	}
 
-	CheckALErrors( "ShutdownSound" );
-
-	alcDestroyContext( al_context );
-	alcCloseDevice( al_device );
-}
-
-Span< const char * > GetAudioDevices( Allocator * a ) {
-	NonRAIIDynamicArray< const char * > devices( a );
-
-	const char * cursor = alcGetString( NULL, ALC_ALL_DEVICES_SPECIFIER );
-	while( !StrEqual( cursor, "" ) ) {
-		devices.add( cursor );
-		cursor += strlen( cursor ) + 1;
-	}
-
-	return devices.span();
+	ShutdownOpenAL();
+	ShutdownAudioBackend();
 }
 
 static bool FindSound( StringHash name, Sound * sound ) {
 	u64 idx;
-	if( !initialized || !sounds_hashtable.get( name.hash, &idx ) )
+	if( !backend_initialized || !sounds_hashtable.get( name.hash, &idx ) )
 		return false;
 	*sound = sounds[ idx ];
 	return true;
@@ -617,7 +608,7 @@ static bool FindSound( StringHash name, Sound * sound ) {
 
 static const SoundEffect * FindSoundEffect( StringHash name ) {
 	u64 idx;
-	if( !initialized || !sound_effects_hashtable.get( name.hash, &idx ) )
+	if( !backend_initialized || !sound_effects_hashtable.get( name.hash, &idx ) )
 		return NULL;
 	return &sound_effects[ idx ];
 }
@@ -737,12 +728,12 @@ static void UpdateSound( PlayingSFX * ps, float volume, float pitch ) {
 void SoundFrame( Vec3 origin, Vec3 velocity, Vec3 forward, Vec3 up ) {
 	TracyZoneScoped;
 
-	if( !initialized )
+	if( !backend_initialized )
 		return;
 
 	if( s_device->modified ) {
-		ShutdownSound();
-		InitSound();
+		ShutdownAudioDevice();
+		backend_device_initialized = InitAudioDevice( s_device->value, AudioCallback, NULL );
 		s_device->modified = false;
 	}
 
@@ -859,8 +850,8 @@ PlaySFXConfig PlaySFXConfigLineSegment( Vec3 start, Vec3 end, float volume ) {
 	return config;
 }
 
-PlayingSFX * PlaySFXInternal( StringHash name, const PlaySFXConfig & config ) {
-	if( !initialized )
+static PlayingSFX * PlaySFXInternal( StringHash name, const PlaySFXConfig & config ) {
+	if( !backend_device_initialized )
 		return NULL;
 
 	const SoundEffect * sfx = FindSoundEffect( name );
@@ -928,7 +919,7 @@ void StopSFX( PlayingSFXHandle handle ) {
 }
 
 void StopAllSounds( bool stop_music ) {
-	if( !initialized )
+	if( !backend_initialized )
 		return;
 
 	while( num_playing_sound_effects > 0 ) {
@@ -943,7 +934,7 @@ void StopAllSounds( bool stop_music ) {
 }
 
 void StartMenuMusic() {
-	if( !initialized )
+	if( !backend_device_initialized )
 		return;
 
 	Sound sound;
@@ -954,7 +945,7 @@ void StartMenuMusic() {
 		return;
 
 	CheckedALSource( music_source, AL_GAIN, s_volume->number * s_musicvolume->number * MusicIsWayTooLoud );
-	CheckedALSource( music_source, AL_DIRECT_CHANNELS_SOFT, AL_TRUE );
+	CheckedALSource( music_source, AL_DIRECT_CHANNELS_SOFT, AL_REMIX_UNMATCHED_SOFT );
 	CheckedALSource( music_source, AL_LOOPING, AL_TRUE );
 	CheckedALSource( music_source, AL_BUFFER, sound.buf );
 
@@ -964,7 +955,7 @@ void StartMenuMusic() {
 }
 
 void StopMenuMusic() {
-	if( initialized && music_playing ) {
+	if( backend_device_initialized && music_playing ) {
 		CheckedALSourceStop( music_source );
 		CheckedALSource( music_source, AL_BUFFER, 0 );
 	}

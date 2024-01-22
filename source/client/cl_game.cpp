@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "client/client.h"
+#include "client/audio/api.h"
 #include "cgame/cg_local.h"
 
 static cgame_export_t *cge;

@@ -101,7 +101,7 @@ struct AllocationTracker {
 		if( allocations.erase( ptr ) == 0 )
 			Fatal( "Stray free in '%s' (%s:%d)", src.function, src.file, src.line );
 		Unlock( mutex );
-	};
+	}
 };
 
 #endif

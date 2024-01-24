@@ -46,7 +46,6 @@ linux_task:
     - ggbuild/lua.linux make.lua release > build.ninja
     - ggbuild/ninja.linux -v -k 0
     - ggbuild/lua.linux ggbuild/ninja_timeline.lua
-    - ls release
   test_script:
     - tests/test_downloads.sh
   cocaine_diesel_linux_artifacts:

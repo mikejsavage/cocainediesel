@@ -1140,6 +1140,12 @@ void CL_Init() {
 	InitThreadPool();
 
 	{
+#if PLATFORM_WINDOWS
+		// both VID_Init and InitAssets need to run on the main thread on Windows
+		VID_Init();
+		TempAllocator temp = cls.frame_arena.temp();
+		InitAssets( &temp );
+#else
 		// overlap loading assets and creating a window
 		ThreadPoolDo( []( TempAllocator * temp, void * data ) {
 			InitAssets( temp );
@@ -1147,6 +1153,7 @@ void CL_Init() {
 		VID_Init();
 
 		ThreadPoolFinish();
+#endif
 	}
 
 	InitRenderer();

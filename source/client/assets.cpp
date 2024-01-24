@@ -14,10 +14,16 @@
 
 #include "nanosort/nanosort.hpp"
 
+#if PLATFORM_WINDOWS
+#include "qcommon/platform/windows_mini_windows_h.h"
+#include "qcommon/platform/windows_utf8.h"
+#endif
+
 struct Asset {
 	Span< char > path;
 	Span< u8 > data;
 	bool compressed;
+	bool virtual_free;
 };
 
 static constexpr u32 MAX_ASSETS = 4096;
@@ -40,7 +46,14 @@ enum IsCompressedBool : bool {
 	IsCompressed_Yes = true,
 };
 
-static void AddAsset( Span< const char > path, u64 hash, Span< u8 > data, IsCompressedBool compressed ) {
+enum UseVirtualFree : bool {
+	UseVirtualFree_No = false,
+	UseVirtualFree_Yes = true,
+};
+
+static void AddAsset( Span< const char > path, u64 hash, Span< u8 > data, IsCompressedBool compressed, UseVirtualFree virtual_free ) {
+	TracyZoneScoped;
+
 	Lock( assets_mutex );
 	defer { Unlock( assets_mutex ); };
 
@@ -65,6 +78,7 @@ static void AddAsset( Span< const char > path, u64 hash, Span< u8 > data, IsComp
 
 	a->data = data;
 	a->compressed = compressed;
+	a->virtual_free = virtual_free;
 
 	modified_asset_paths[ num_modified_assets ] = a->path;
 	num_modified_assets++;
@@ -91,12 +105,24 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 	Span< char > path_with_zst = temp->sv( "{}.zst", job->path );
 	Span< u8 > decompressed;
 	if( Decompress( path_with_zst, sys_allocator, job->compressed, &decompressed ) ) {
-		AddAsset( job->path, job->hash, decompressed, IsCompressed_Yes );
+		AddAsset( job->path, job->hash, decompressed, IsCompressed_Yes, UseVirtualFree_No );
 	}
 
 	Free( sys_allocator, job->path.ptr );
+#if PLATFORM_WINDOWS
+	VirtualFree( job->compressed.ptr, 0, MEM_RELEASE );
+#else
 	Free( sys_allocator, job->compressed.ptr );
+#endif
 	Free( sys_allocator, job );
+}
+
+static void LaunchDecompressAssetJob( Span< const char > path, u64 hash, Span< u8 > compressed ) {
+	DecompressAssetJob * job = Alloc< DecompressAssetJob >( sys_allocator );
+	job->path = CloneSpan( sys_allocator, path );
+	job->hash = hash;
+	job->compressed = compressed;
+	ThreadPoolDo( DecompressAsset, job );
 }
 
 static void LoadAsset( TempAllocator * temp, Span< const char > game_path, const char * full_path ) {
@@ -135,20 +161,134 @@ static void LoadAsset( TempAllocator * temp, Span< const char > game_path, const
 		return;
 
 	if( compressed ) {
-		DecompressAssetJob * job = Alloc< DecompressAssetJob >( sys_allocator );
-		job->path = CloneSpan( sys_allocator, game_path_no_zst );
-		job->hash = hash;
-		job->compressed = contents;
-
-		ThreadPoolDo( DecompressAsset, job );
+		LaunchDecompressAssetJob( game_path_no_zst, hash, contents );
 	}
 	else {
-		AddAsset( game_path, hash, contents, IsCompressed_No );
+		AddAsset( game_path, hash, contents, IsCompressed_No, UseVirtualFree_No );
 	}
 }
 
-static void LoadAssetsRecursive( TempAllocator * temp, DynamicString * path, size_t skip ) {
-	ListDirHandle scan = BeginListDir( temp, path->c_str() );
+#if PLATFORM_WINDOWS
+
+static constexpr size_t MAX_ASYNC_READ_SIZE = 16 * 1024 * 1024; // 16MB
+
+struct LoadAssetResult {
+	Span< u8 > data;
+};
+
+struct HandleAndPath {
+	HANDLE handle;
+	const char * path;
+};
+
+static size_t FileSize( HANDLE file ) {
+	LARGE_INTEGER size;
+	if( GetFileSizeEx( file, &size ) == 0 ) {
+		FatalGLE( "GetFileSizeEx" );
+	}
+	return size.QuadPart;
+}
+
+void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip ) {
+	TracyZoneScoped;
+
+	DynamicArray< LoadAssetResult > results( temp );
+
+	Span< HandleAndPath > handles_and_paths = AllocSpan< HandleAndPath >( temp, files.n );
+	{
+		TracyZoneScopedN( "Open files" );
+
+		for( size_t i = 0; i < files.n; i++ ) {
+			handles_and_paths[ i ] = { .path = files[ i ] };
+		}
+
+		ParallelFor( handles_and_paths, []( TempAllocator * temp, void * data ) {
+			HandleAndPath * hp = ( HandleAndPath * ) data;
+			wchar_t * wide_path = UTF8ToWide( temp, hp->path );
+			hp->handle = CreateFileW( wide_path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED | FILE_FLAG_SEQUENTIAL_SCAN | FILE_FLAG_NO_BUFFERING, NULL );
+		} );
+	}
+
+	Span< Span< u8 > > buffers = AllocSpan< Span< u8 > >( temp, handles_and_paths.n );
+	{
+		TracyZoneScopedN( "VirtualAllocs" );
+		for( size_t i = 0; i < handles_and_paths.n; i++ ) {
+			if( handles_and_paths[ i ].handle == INVALID_HANDLE_VALUE ) {
+				buffers[ i ] = Span< u8 >();
+				continue;
+			}
+
+			size_t actual_size = FileSize( handles_and_paths[ i ].handle );
+			size_t aligned_size = AlignPow2( actual_size, 4096 );
+			// there's no particular reason to use VirtualAlloc beyond it returning 4k aligned allocs
+			buffers[ i ] = Span< u8 >( ( u8 * ) VirtualAlloc( NULL, aligned_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE ), actual_size );
+		}
+	}
+
+	{
+		TracyZoneScopedN( "Async I/O" );
+
+		// keep 32 async reads in flight at a time. chosen semi-arbitrarily by
+		// seeing where perf pleateaus on my computer, which is around 60% of
+		// my SSD's paper bandwidth
+		constexpr size_t overlap = 32;
+		OVERLAPPED overlapped[ overlap ];
+
+		for( size_t i = 0; i < files.n + overlap - 1; i++ ) {
+			if( i < files.n && handles_and_paths[ i ].handle != INVALID_HANDLE_VALUE ) {
+				overlapped[ i % overlap ] = { };
+				if( ReadFile( handles_and_paths[ i ].handle, buffers[ i ].ptr, AlignPow2( buffers[ i ].n, 4096 ), NULL, &overlapped[ i % overlap ] ) != TRUE && GetLastError() != ERROR_IO_PENDING ) {
+					VirtualFree( buffers[ i ].ptr, 0, MEM_RELEASE );
+					buffers[ i ] = Span< u8 >();
+				}
+			}
+
+			if( i > overlap - 1 ) {
+				size_t prev = i - ( overlap - 1 );
+				if( handles_and_paths[ prev ].handle != INVALID_HANDLE_VALUE ) {
+					DWORD r;
+					BOOL ok = GetOverlappedResult( handles_and_paths[ prev ].handle, &overlapped[ prev % overlap ], &r, TRUE );
+					if( ok == 0 && GetLastError() || r != buffers[ prev ].n ) {
+						VirtualFree( buffers[ prev ].ptr, 0, MEM_RELEASE );
+						buffers[ prev ] = Span< u8 >();
+					}
+
+					Span< const char > game_path = MakeSpan( files[ prev ] + skip );
+					Span< const char > ext = FileExtension( game_path );
+					if( ext == ".zst" ) {
+						game_path.n -= ext.n;
+						LaunchDecompressAssetJob( game_path, Hash64( game_path ), buffers[ prev ] );
+					}
+					else {
+						AddAsset( game_path, Hash64( game_path ), buffers[ prev ], IsCompressed_No, UseVirtualFree_Yes );
+					}
+				}
+			}
+		}
+	}
+
+	{
+		TracyZoneScopedN( "Cleanup" );
+		ParallelFor( handles_and_paths, []( TempAllocator * temp, void * data ) {
+			HandleAndPath * hp = ( HandleAndPath * ) data;
+			CloseHandle( hp->handle );
+		} );
+	}
+}
+
+#else
+
+void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip ) {
+	TracyZoneScoped;
+	for( const char * file : files ) {
+		LoadAsset( temp, MakeSpan( file + skip ), file );
+	}
+}
+
+#endif
+
+static void BuildAssetList( TempAllocator * temp, DynamicArray< const char * > * files, DynamicString * search_path ) {
+	ListDirHandle scan = BeginListDir( temp, search_path->c_str() );
 
 	const char * name;
 	bool dir;
@@ -157,15 +297,15 @@ static void LoadAssetsRecursive( TempAllocator * temp, DynamicString * path, siz
 		if( name[ 0 ] == '.' )
 			continue;
 
-		size_t old_len = path->length();
-		path->append( "/{}", name );
+		size_t old_len = search_path->length();
+		search_path->append( "/{}", name );
 		if( dir ) {
-			LoadAssetsRecursive( temp, path, skip );
+			BuildAssetList( temp, files, search_path );
 		}
 		else {
-			LoadAsset( temp, MakeSpan( path->c_str() + skip ), path->c_str() );
+			files->add( CopyString( temp, search_path->c_str() ) );
 		}
-		path->truncate( old_len );
+		search_path->truncate( old_len );
 	}
 }
 
@@ -179,8 +319,28 @@ void InitAssets( TempAllocator * temp ) {
 	assets_hashtable.clear();
 
 	DynamicString base( temp, "{}/base", RootDirPath() );
+	size_t skip = base.length() + 1;
 	fs_change_monitor = NewFSChangeMonitor( sys_allocator, base.c_str() );
-	LoadAssetsRecursive( temp, &base, base.length() + 1 );
+
+	DynamicArray< const char * > files( temp );
+	{
+		TracyZoneScopedN( "BuildAssetList" );
+		BuildAssetList( temp, &files, &base );
+		{
+			TracyZoneScopedN( "Sort" );
+			nanosort( files.begin(), files.end(), SortCStringsComparator );
+		}
+	}
+
+	// remove file.zst if file is in the list too
+	DynamicArray< const char * > deduped( temp );
+	for( size_t i = 0; i < files.size(); i++ ) {
+		if( i == 0 || FileExtension( files[ i ] ) != ".zst" || !StrEqual( StripExtension( files[ i ] ), files[ i - 1 ] ) ) {
+			deduped.add( files[ i ] );
+		}
+	}
+
+	LoadAssets( temp, deduped.span(), skip );
 
 	num_modified_assets = 0;
 }
@@ -218,6 +378,12 @@ void ShutdownAssets() {
 
 	for( u32 i = 0; i < num_assets; i++ ) {
 		Free( sys_allocator, assets[ i ].path.ptr );
+#if PLATFORM_WINDOWS
+		if( assets[ i ].virtual_free ) {
+			VirtualFree( assets[ i ].data.ptr, 0, MEM_RELEASE );
+			continue;
+		}
+#endif
 		Free( sys_allocator, assets[ i ].data.ptr );
 	}
 

@@ -162,8 +162,15 @@ struct Span {
 	constexpr Span( T * ptr_, size_t n_ ) : ptr( ptr_ ), n( n_ ) { }
 	constexpr Span( std::initializer_list< T > && elems ) : ptr( elems.begin() ), n( elems.size() ) { }
 
-	template< size_t N >
-	constexpr Span( const char ( &str )[ N ] ) requires( SameType< T, const char > ) : ptr( str ), n( N - 1 ) { }
+	/*
+	 * require S is explicitly const char so this doesn't compile:
+	 *
+	 * char buf[ 128 ];
+	 * sprintf( buf, "hello" );
+	 * ThingThatTakesSpan( buf );
+	 */
+	template< size_t N, typename S >
+	constexpr Span( S ( &str )[ N ] ) requires( SameType< T, const char > && SameType< S, const char > ) : ptr( str ), n( N - 1 ) { }
 
 	// allow implicit conversion to Span< const T >
 	operator Span< const T >() const { return Span< const T >( ptr, n ); }

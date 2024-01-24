@@ -108,8 +108,7 @@ To * align_cast( From * from ) {
 }
 #endif
 
-template< typename T >
-constexpr T AlignPow2( T x, T alignment ) {
+constexpr size_t AlignPow2( size_t x, size_t alignment ) {
 	return ( x + alignment - 1 ) & ~( alignment - 1 );
 }
 

@@ -1057,7 +1057,7 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 	u32 offset = 0;
 
 	for( size_t i = 0; i < ARRAY_COUNT( ubos ); i++ ) {
-		offset = AlignPow2( ubos[ i ].bytes_used, ubo_offset_alignment );
+		offset = checked_cast< u32 >( AlignPow2( ubos[ i ].bytes_used, ubo_offset_alignment ) );
 		if( UNIFORM_BUFFER_SIZE - offset >= size ) {
 			ubo = &ubos[ i ];
 			break;
@@ -1070,7 +1070,7 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 	UniformBlock block;
 	block.ubo = ubo->stream.buffer.buffer;
 	block.offset = offset + ubo->stream.size * FrameSlot();
-	block.size = AlignPow2( checked_cast< u32 >( size ), u32( 16 ) );
+	block.size = checked_cast< u32 >( AlignPow2( size, 16 ) );
 
 	u8 * mapping = ( u8 * ) GetStreamingBufferMemory( ubo->stream );
 	memcpy( mapping + offset, data, size );

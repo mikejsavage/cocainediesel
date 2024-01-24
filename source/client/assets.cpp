@@ -237,20 +237,12 @@ Span< const char > AssetString( Span< const char > path ) {
 	return AssetString( StringHash( path ) );
 }
 
-Span< const char > AssetString( const char * path ) {
-	return AssetString( MakeSpan( path ) );
-}
-
 Span< const u8 > AssetBinary( StringHash path ) {
 	return AssetString( path ).cast< const u8 >();
 }
 
 Span< const u8 > AssetBinary( Span< const char > path ) {
 	return AssetBinary( StringHash( path ) );
-}
-
-Span< const u8 > AssetBinary( const char * path ) {
-	return AssetBinary( MakeSpan( path ) );
 }
 
 Span< Span< const char > > AssetPaths() {

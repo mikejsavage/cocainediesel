@@ -23,10 +23,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/fs.h"
 
 static void CG_SC_Print() {
-	CG_LocalPrint( "%s", Cmd_Argv( 1 ) );
+	CG_LocalPrint( MakeSpan( Cmd_Argv( 1 ) ) );
 }
 
 static void CG_SC_ChatPrint() {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	bool teamonly = StrCaseEqual( Cmd_Argv( 0 ), "tch" );
 	int who = atoi( Cmd_Argv( 1 ) );
 
@@ -45,7 +47,7 @@ static void CG_SC_ChatPrint() {
 	const char * text = Cmd_Argv( 2 );
 
 	if( who == 0 ) {
-		CG_LocalPrint( "Console: %s\n", text );
+		CG_LocalPrint( temp.sv( "Console: {}\n", text ) );
 		return;
 	}
 
@@ -59,10 +61,11 @@ static void CG_SC_ChatPrint() {
 	}
 
 	ImGuiColorToken color( team_color );
-	CG_LocalPrint( "%s%s%s%s: %s\n",
+	CG_LocalPrint( temp.sv( "{}{}{}{}: {}\n",
 		prefix,
-		( const char * ) ImGuiColorToken( team_color ).token, name,
-		( const char * ) ImGuiColorToken( rgba8_white ).token, text );
+		ImGuiColorToken( team_color ), name,
+		ImGuiColorToken( rgba8_white ), text
+	) );
 }
 
 static void CG_SC_CenterPrint() {

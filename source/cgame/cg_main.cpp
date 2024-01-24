@@ -37,17 +37,9 @@ Cvar *cg_showClamp;
 
 Cvar *cg_showServerDebugPrints;
 
-void CG_LocalPrint( const char *format, ... ) {
-	va_list argptr;
-	char msg[ 1024 ];
-
-	va_start( argptr, format );
-	vsnprintf( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	Con_Print( msg );
-
-	CG_AddChat( msg );
+void CG_LocalPrint( Span< const char > str ) {
+	Con_Print( str );
+	CG_AddChat( str );
 }
 
 static trace_t CG_GS_Trace( Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask, int timeDelta ) {

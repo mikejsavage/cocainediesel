@@ -1,7 +1,5 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/array.h"
-#include "qcommon/string.h"
 #include "qcommon/utf8.h"
 #include "qcommon/hash.h"
 #include "qcommon/serialization.h"
@@ -70,23 +68,23 @@ const Font * RegisterFont( const char * path ) {
 
 	// load MSDF spec
 	{
-		DynamicString msdf_path( &temp, "{}.msdf", path );
-		Span< const char > data = AssetBinary( msdf_path.c_str() ).cast< const char >();
+		Span< const char > msdf_path = temp.sv( "{}.msdf", path );
+		Span< const char > data = AssetBinary( msdf_path ).cast< const char >();
 		if( data.ptr == NULL ) {
-			Com_Printf( S_COLOR_RED "Couldn't read file %s\n", msdf_path.c_str() );
+			Com_GGPrint( S_COLOR_RED "Couldn't read file {}", msdf_path );
 			return NULL;
 		}
 
 		if( !Deserialize( NULL, font, data.ptr, data.n ) ) {
-			Com_Printf( S_COLOR_RED "Couldn't load MSDF spec from %s\n", msdf_path.c_str() );
+			Com_GGPrint( S_COLOR_RED "Couldn't load MSDF spec from {}", msdf_path );
 			return NULL;
 		}
 	}
 
 	// load MSDF atlas
 	{
-		DynamicString atlas_path( &temp, "{}.png", path );
-		Span< const u8 > data = AssetBinary( atlas_path.c_str() );
+		Span< const char > atlas_path = temp.sv( "{}.png", path );
+		Span< const u8 > data = AssetBinary( atlas_path );
 
 		int w, h, channels;
 		u8 * pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 4 );

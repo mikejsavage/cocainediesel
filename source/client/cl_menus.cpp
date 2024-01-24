@@ -996,15 +996,16 @@ static Vec4 RGBA8ToVec4NosRGB( RGBA8 rgba ) {
 	return Vec4( rgba.r / 255.0f, rgba.g / 255.0f, rgba.b / 255.0f, rgba.a / 255.0f );
 }
 
-static bool LoadoutButton( const char * label, Vec2 icon_size, const Material * icon, bool selected ) {
+static bool LoadoutButton( Span< const char > label, Vec2 icon_size, const Material * icon, bool selected ) {
 	Vec2 start_pos = ImGui::GetCursorPos();
 	ImGui::GetCursorPos();
 
-	bool clicked = ImGui::InvisibleButton( label, ImVec2( -1, icon_size.y ) );
+	ImGui::PushID( label.begin(), label.end() );
+	bool clicked = ImGui::InvisibleButton( "", ImVec2( -1, icon_size.y ) );
+	ImGui::PopID();
 
 	Vec2 half_pixel = HalfPixelSize( icon );
 	Vec4 color = RGBA8ToVec4NosRGB( selected ? rgba8_diesel_yellow : ImGui::IsItemHovered() ? rgba8_diesel_green : rgba8_white ); // TODO...
-
 
 	ImGui::SetCursorPos( start_pos );
 	ImGui::Image( icon, icon_size, half_pixel, 1.0f - half_pixel, color, Vec4( 0.0f ) );
@@ -1043,7 +1044,6 @@ static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 i
 			}
 		}
 	}
-
 }
 
 static void Perks( Vec2 icon_size ) {
@@ -1073,7 +1073,6 @@ static void Gadgets( Vec2 icon_size ) {
 			SendLoadout();
 		}
 	}
-
 }
 
 static bool LoadoutMenu() {

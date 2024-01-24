@@ -78,11 +78,10 @@ void Con_Close() {
 	}
 }
 
-static void MakeSpaceAndPrint( const char * str ) {
+static void MakeSpaceAndPrint( Span< const char > str ) {
 	// delete lines until we have enough space to add str
-	size_t len = strlen( str );
 	size_t trim = 0;
-	while( console.log.length() - trim + len >= CONSOLE_LOG_SIZE ) {
+	while( console.log.length() - trim + str.n >= CONSOLE_LOG_SIZE ) {
 		const char * newline = strchr( console.log.c_str() + trim, '\n' );
 		if( newline == NULL ) {
 			trim = console.log.length();
@@ -93,10 +92,10 @@ static void MakeSpaceAndPrint( const char * str ) {
 	}
 
 	console.log.remove( 0, trim );
-	console.log.append_raw( str, len );
+	console.log += str;
 }
 
-void Con_Print( const char * str ) {
+void Con_Print( Span< const char > str ) {
 	if( console.log_mutex == NULL )
 		return;
 

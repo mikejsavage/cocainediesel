@@ -248,7 +248,7 @@ void CL_Frame( int realMsec, int gameMsec );
 void CL_Disconnect( const char *message );
 bool CL_DemoPlaying();
 
-void Con_Print( const char *text );
+void Con_Print( Span< const char > str );
 
 void SV_Init();
 void SV_Shutdown( const char *finalmsg );

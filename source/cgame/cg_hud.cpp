@@ -337,7 +337,7 @@ void CG_SC_Obituary() {
 	}
 
 	if( assistor == NULL ) {
-		CG_AddChat( temp( "{} {}{} {}",
+		CG_AddChat( temp.sv( "{} {}{} {}",
 			attacker_name,
 			ImGuiColorToken( rgba8_diesel_yellow ), obituary,
 			victim_name
@@ -345,7 +345,7 @@ void CG_SC_Obituary() {
 	}
 	else {
 		const char * conjugation = RandomElement( &rng, conjunctions );
-		CG_AddChat( temp( "{} {}{} {} {}{} {}",
+		CG_AddChat( temp.sv( "{} {}{} {} {}{} {}",
 			attacker_name,
 			ImGuiColorToken( 255, 255, 255, 255 ), conjugation,
 			assistor_name,
@@ -1533,8 +1533,9 @@ void CG_InitHUD() {
 
 	AddCommand( "toggleuiinspector", []() { show_inspector = !show_inspector; } );
 
+	Span< const char > src = AssetString( StringHash( "hud/hud.lua" ) );
 	size_t bytecode_size;
-	char * bytecode = luau_compile( AssetString( "hud/hud.lua" ).ptr, AssetBinary( "hud/hud.lua" ).n, NULL, &bytecode_size );
+	char * bytecode = luau_compile( src.ptr, src.n, NULL, &bytecode_size );
 	defer { free( bytecode ); };
 	if( bytecode == NULL ) {
 		Fatal( "luau_compile" );
@@ -1827,7 +1828,7 @@ void CG_DrawHUD() {
 
 		lua_pushnumber( hud_L, cg.predictedPlayerState.weapons[ i ].weapon );
 		lua_setfield( hud_L, -2, "weapon" );
-		lua_pushstring( hud_L, def->name );
+		lua_pushlstring( hud_L, def->name.ptr, def->name.n );
 		lua_setfield( hud_L, -2, "name" );
 		lua_pushnumber( hud_L, cg.predictedPlayerState.weapons[ i ].ammo );
 		lua_setfield( hud_L, -2, "ammo" );

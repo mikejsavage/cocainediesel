@@ -168,7 +168,7 @@ void Com_Printf( const char *format, ... ) {
 
 	PrintStdout( msg );
 
-	Con_Print( msg );
+	Con_Print( MakeSpan( msg ) );
 
 	TracyCMessage( msg, strlen( msg ) );
 

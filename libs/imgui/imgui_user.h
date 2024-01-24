@@ -10,4 +10,7 @@ enum WindowZOrder {
 namespace ImGui {
 	void Begin( const char * name, WindowZOrder z_order, ImGuiWindowFlags flags );
 	bool Hotkey( int key );
+
+	ImVec2 CalcTextSize( Span< const char > str );
+	void Text( Span< const char > str );
 };

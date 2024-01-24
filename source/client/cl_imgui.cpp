@@ -265,6 +265,14 @@ namespace ImGui {
 	bool Hotkey( int key ) {
 		return ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows ) && ImGui::IsKeyPressed( key, false );
 	}
+
+	ImVec2 CalcTextSize( Span< const char > str ) {
+		return ImGui::CalcTextSize( str.begin(), str.end() );
+	}
+
+	void Text( Span< const char > str ) {
+		ImGui::TextUnformatted( str.begin(), str.end() );
+	}
 }
 
 ImGuiColorToken::ImGuiColorToken( u8 r, u8 g, u8 b, u8 a ) {
@@ -273,20 +281,19 @@ ImGuiColorToken::ImGuiColorToken( u8 r, u8 g, u8 b, u8 a ) {
 	token[ 2 ] = Max2( g, u8( 1 ) );
 	token[ 3 ] = Max2( b, u8( 1 ) );
 	token[ 4 ] = Max2( a, u8( 1 ) );
-	token[ 5 ] = 0;
 }
 
 ImGuiColorToken::ImGuiColorToken( RGB8 rgb ) : ImGuiColorToken( rgb.r, rgb.g, rgb.b, 255 ) { }
 ImGuiColorToken::ImGuiColorToken( RGBA8 rgba ) : ImGuiColorToken( rgba.r, rgba.g, rgba.b, rgba.a ) { }
 
 void format( FormatBuffer * fb, const ImGuiColorToken & token, const FormatOpts & opts ) {
-	format( fb, ( const char * ) token.token );
+	format( fb, Span< const char >( ( const char * ) token.token, sizeof( token.token ) ), FormatOpts() );
 }
 
-void CenterTextY( const char * str, float height ) {
+void CenterTextY( Span< const char > str, float height ) {
 	float text_height = ImGui::CalcTextSize( str ).y;
 	ImGui::SetCursorPosY( ImGui::GetCursorPosY() + 0.5f * ( height - text_height ) );
-	ImGui::Text( "%s", str );
+	ImGui::Text( str );
 }
 
 void CellCenter( float item_width ) {
@@ -294,27 +301,27 @@ void CellCenter( float item_width ) {
 	ImGui::SetCursorPosX( ImGui::GetCursorPosX() + 0.5f * ( cell_width - item_width ) );
 }
 
-void CellCenterText( const char * str ) {
+void CellCenterText( Span< const char > str ) {
 	CellCenter( ImGui::CalcTextSize( str ).x );
-	ImGui::Text( "%s", str );
+	ImGui::Text( str );
 }
 
-void ColumnCenterText( const char * str ) {
+void ColumnCenterText( Span< const char > str ) {
 	float width = ImGui::CalcTextSize( str ).x;
 	ImGui::SetCursorPosX( ImGui::GetColumnOffset() + 0.5f * ( ImGui::GetColumnWidth() - width ) );
-	ImGui::Text( "%s", str );
+	ImGui::Text( str );
 }
 
-void ColumnRightText( const char * str ) {
+void ColumnRightText( Span< const char > str ) {
 	float width = ImGui::CalcTextSize( str ).x;
 	ImGui::SetCursorPosX( ImGui::GetColumnOffset() + ImGui::GetColumnWidth() - width );
-	ImGui::Text( "%s", str );
+	ImGui::Text( str );
 }
 
-void WindowCenterTextXY( const char * str ) {
+void WindowCenterTextXY( Span< const char > str ) {
 	Vec2 text_size = ImGui::CalcTextSize( str );
 	ImGui::SetCursorPos( 0.5f * ( ImGui::GetWindowSize() - text_size ) );
-	ImGui::Text( "%s", str );
+	ImGui::Text( str );
 }
 
 Vec4 CustomAttentionGettingColor( Vec4 from, Vec4 to, Time period ) {

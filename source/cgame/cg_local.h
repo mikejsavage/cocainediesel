@@ -337,7 +337,7 @@ extern Cvar *cg_showServerDebugPrints;
 void CG_Init( unsigned int playerNum, int max_clients, bool demoplaying, const char *demoName, unsigned snapFrameTime );
 void CG_Shutdown();
 
-[[gnu::format( printf, 1, 2 )]] void CG_LocalPrint( const char *format, ... );
+void CG_LocalPrint( Span< const char > str );
 
 void CG_Reset();
 void CG_Precache();
@@ -444,7 +444,7 @@ void CG_LaserBeamEffect( centity_t *cent );
 //
 void CG_InitChat();
 void CG_ShutdownChat();
-void CG_AddChat( const char * str );
+void CG_AddChat( Span< const char > str );
 void CG_DrawChat();
 
 //

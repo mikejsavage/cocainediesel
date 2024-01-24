@@ -45,26 +45,26 @@ static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndex, float l
 
 	// player name
 	u8 alpha = player->alive ? 255 : 75;
-	DynamicString final_name( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, alpha ), player->name );
+	Span< const char > alpha_name = temp.sv( "{}{}", ImGuiColorToken( 0, 0, 0, alpha ), player->name );
 	ImGui::AlignTextToFramePadding();
-	ImGui::Text( "%s", final_name.c_str() );
+	ImGui::Text( alpha_name );
 	ImGui::NextColumn();
 
 	// stats
 	if( bomb_gt ) {
 		ImGui::AlignTextToFramePadding();
-		ColumnCenterText( temp( "{}", player->score ) );
+		ColumnCenterText( temp.sv( "{}", player->score ) );
 	}
 
 	ImGui::NextColumn();
 	if( bomb_gt ) {
 		ImGui::AlignTextToFramePadding();
-		ColumnCenterText( temp( "{}", player->kills ) );
+		ColumnCenterText( temp.sv( "{}", player->kills ) );
 	}
 
 	ImGui::NextColumn();
 	ImGui::AlignTextToFramePadding();
-	ColumnCenterText( temp( "{}", player->ping ) );
+	ColumnCenterText( temp.sv( "{}", player->ping ) );
 	ImGui::NextColumn();
 }
 
@@ -85,7 +85,7 @@ static void DrawTeamScoreboard( TempAllocator & temp, Team team, ImFont * score_
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, 255 ) );
 		ImGui::BeginChild( temp( "{}score", team ), ImVec2( min_tabs * line_height, slots * line_height ) );
 		ImGui::PushFont( score_font );
-		WindowCenterTextXY( temp( "{}", team_info->score ) );
+		WindowCenterTextXY( temp.sv( "{}", team_info->score ) );
 		ImGui::PopFont();
 		ImGui::EndChild();
 		ImGui::PopStyleColor();
@@ -194,7 +194,7 @@ void CG_DrawScoreboard() {
 			ImGui::SetColumnWidth( 3, col_width );
 			ImGui::SetColumnWidth( 4, col_width );
 
-			ColumnCenterText( warmup ? "WARMUP" : temp( "ROUND {}", client_gs.gameState.round_num ) );
+			ColumnCenterText( warmup ? Span< const char >( "WARMUP" ) : temp.sv( "ROUND {}", client_gs.gameState.round_num ) );
 			ImGui::NextColumn();
 			ImGui::NextColumn();
 			ImGui::NextColumn();
@@ -326,7 +326,6 @@ void CG_DrawScoreboard() {
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 255 ) );
 		ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8, 0 ) );
 		ImGui::BeginChild( "spectators", ImVec2( 0, separator_height ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
-
 
 		DynamicString spectators( &temp, "Spectating: " );
 		for( u8 i = 0; i < team_spec->num_players; i++ ) {

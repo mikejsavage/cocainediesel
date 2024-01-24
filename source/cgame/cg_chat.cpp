@@ -60,10 +60,10 @@ void CG_ShutdownChat() {
 	RemoveCommand( "teamchat" );
 }
 
-void CG_AddChat( const char * str ) {
+void CG_AddChat( Span< const char > str ) {
 	size_t idx = ( chat.history_head + chat.history_len ) % ARRAY_COUNT( chat.history );
 	chat.history[ idx ].time = cls.monotonicTime;
-	SafeStrCpy( chat.history[ idx ].text, str, sizeof( chat.history[ idx ].text ) );
+	ggformat( chat.history[ idx ].text, sizeof( chat.history[ idx ].text ), "{}", str );
 
 	if( chat.history_len < ARRAY_COUNT( chat.history ) ) {
 		chat.history_len++;

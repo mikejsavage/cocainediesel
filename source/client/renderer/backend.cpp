@@ -1375,7 +1375,7 @@ static GLuint CompileShader( GLenum type, Span< const char > body, Span< const c
 	if( status == GL_FALSE ) {
 		char buf[ 1024 ];
 		glGetShaderInfoLog( shader, sizeof( buf ), NULL, buf );
-		Com_Printf( S_COLOR_YELLOW "Shader compilation failed %s: %s\n", name, buf );
+		Com_GGPrint( S_COLOR_YELLOW "Shader compilation failed {}: {}", name, buf );
 		glDeleteShader( shader );
 
 		// static char src[ 65536 ];
@@ -1422,7 +1422,7 @@ static bool LinkShader( Shader * shader, GLuint program, Span< const char > shad
 		if( is_texture ) {
 			if( num_textures == ARRAY_COUNT( shader->textures ) ) {
 				glDeleteProgram( program );
-				Com_Printf( S_COLOR_YELLOW "Too many textures in shader %s\n", shader_name );
+				Com_GGPrint( S_COLOR_YELLOW "Too many textures in shader {}", shader_name );
 				return false;
 			}
 
@@ -1435,7 +1435,7 @@ static bool LinkShader( Shader * shader, GLuint program, Span< const char > shad
 	glGetProgramInterfaceiv( program, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &count );
 	if( count > checked_cast< GLint >( ARRAY_COUNT( shader->uniforms ) ) ) {
 		glDeleteProgram( program );
-		Com_Printf( S_COLOR_YELLOW "Too many uniforms in shader %s\n", shader_name );
+		Com_GGPrint( S_COLOR_YELLOW "Too many uniforms in shader {}", shader_name );
 		return false;
 	}
 	for( GLint i = 0; i < count; i++ ) {
@@ -1449,7 +1449,7 @@ static bool LinkShader( Shader * shader, GLuint program, Span< const char > shad
 	glGetProgramInterfaceiv( program, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &count );
 	if( count > checked_cast< GLint >( ARRAY_COUNT( shader->uniforms ) ) ) {
 		glDeleteProgram( program );
-		Com_Printf( S_COLOR_YELLOW "Too many buffers in shader %s\n", shader_name );
+		Com_GGPrint( S_COLOR_YELLOW "Too many buffers in shader {}", shader_name );
 		return false;
 	}
 	for( GLint i = 0; i < count; i++ ) {

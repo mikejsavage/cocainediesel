@@ -53,48 +53,6 @@ consteval u64 operator""_u64( unsigned long long value ) {
 }
 
 /*
- * Allocator
- */
-
-struct Allocator {
-	virtual void * try_allocate( size_t size, size_t alignment, SourceLocation src = CurrentSourceLocation() ) = 0;
-	virtual void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src = CurrentSourceLocation() ) = 0;
-	void * allocate( size_t size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
-	void * reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
-	virtual void deallocate( void * ptr, SourceLocation src = CurrentSourceLocation() ) = 0;
-
-	template< typename... Rest >
-	char * operator()( SourceLocation src, const char * fmt, const Rest & ... rest );
-
-	template< typename... Rest >
-	char * operator()( const char * fmt, const Rest & ... rest );
-};
-
-struct TempAllocator;
-
-void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, SourceLocation src );
-void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t new_n, size_t size, size_t alignment, SourceLocation src );
-
-template< typename T >
-T * Alloc( Allocator * a, SourceLocation src = CurrentSourceLocation() ) {
-	return ( T * ) a->allocate( sizeof( T ), alignof( T ), src );
-}
-
-template< typename T >
-T * AllocMany( Allocator * a, size_t n, SourceLocation src = CurrentSourceLocation() ) {
-	return ( T * ) AllocManyHelper( a, n, sizeof( T ), alignof( T ), src );
-}
-
-template< typename T >
-T * ReallocMany( Allocator * a, T * ptr, size_t current_n, size_t new_n, SourceLocation src = CurrentSourceLocation() ) {
-	return ( T * ) ReallocManyHelper( a, ptr, current_n, new_n, sizeof( T ), alignof( T ), src );
-}
-
-inline void Free( Allocator * a, void * p, SourceLocation src = CurrentSourceLocation() ) {
-	a->deallocate( p, src );
-}
-
-/*
  * helper functions that are useful in templates. so headers don't need to include base.h
  */
 
@@ -204,6 +162,9 @@ struct Span {
 	constexpr Span( T * ptr_, size_t n_ ) : ptr( ptr_ ), n( n_ ) { }
 	constexpr Span( std::initializer_list< T > && elems ) : ptr( elems.begin() ), n( elems.size() ) { }
 
+	template< size_t N >
+	constexpr Span( const char ( &str )[ N ] ) requires( SameType< T, const char > ) : ptr( str ), n( N - 1 ) { }
+
 	// allow implicit conversion to Span< const T >
 	operator Span< const T >() const { return Span< const T >( ptr, n ); }
 
@@ -245,9 +206,51 @@ struct Span {
 	}
 };
 
+/*
+ * Allocator
+ */
+
+struct Allocator {
+	virtual void * try_allocate( size_t size, size_t alignment, SourceLocation src = CurrentSourceLocation() ) = 0;
+	virtual void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src = CurrentSourceLocation() ) = 0;
+	void * allocate( size_t size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
+	void * reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
+	virtual void deallocate( void * ptr, SourceLocation src = CurrentSourceLocation() ) = 0;
+
+	template< typename... Rest >
+	char * operator()( SourceLocation src, const char * fmt, const Rest & ... rest );
+
+	template< typename... Rest >
+	char * operator()( const char * fmt, const Rest & ... rest );
+};
+
+struct TempAllocator;
+
+void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, SourceLocation src );
+void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t new_n, size_t size, size_t alignment, SourceLocation src );
+
+template< typename T >
+T * Alloc( Allocator * a, SourceLocation src = CurrentSourceLocation() ) {
+	return ( T * ) a->allocate( sizeof( T ), alignof( T ), src );
+}
+
+template< typename T >
+T * AllocMany( Allocator * a, size_t n, SourceLocation src = CurrentSourceLocation() ) {
+	return ( T * ) AllocManyHelper( a, n, sizeof( T ), alignof( T ), src );
+}
+
+template< typename T >
+T * ReallocMany( Allocator * a, T * ptr, size_t current_n, size_t new_n, SourceLocation src = CurrentSourceLocation() ) {
+	return ( T * ) ReallocManyHelper( a, ptr, current_n, new_n, sizeof( T ), alignof( T ), src );
+}
+
 template< typename T >
 Span< T > AllocSpan( Allocator * a, size_t n, SourceLocation src = CurrentSourceLocation() ) {
 	return Span< T >( AllocMany< T >( a, n, src ), n );
+}
+
+inline void Free( Allocator * a, void * p, SourceLocation src = CurrentSourceLocation() ) {
+	a->deallocate( p, src );
 }
 
 /*

@@ -103,17 +103,6 @@ static u32 MipmappedByteSize( u32 w, u32 h, u32 levels, TextureFormat format ) {
 	return size;
 }
 
-static u64 HashMaterialName( Span< const char > name ) {
-	// skip leading /
-	while( name != "" && name[ 0 ] == '/' )
-		name++;
-	return Hash64( name );
-}
-
-static u64 HashMaterialName( const char * str ) {
-	return HashMaterialName( MakeSpan( str ) );
-}
-
 static Span< const char > ParseMaterialToken( Span< const char > * data ) {
 	Span< const char > token = ParseToken( data, Parse_StopOnNewLine );
 	if( token == "" ) {
@@ -533,7 +522,7 @@ static void LoadMaterialFile( const char * path ) {
 		if( name == "" )
 			break;
 
-		u64 hash = HashMaterialName( name );
+		u64 hash = Hash64( name );
 		ParseToken( &data, Parse_DontStopOnNewLine );
 
 		Material material = Material();
@@ -977,7 +966,7 @@ const Material * FindMaterial( StringHash name, const Material * def ) {
 }
 
 const Material * FindMaterial( const char * name, const Material * def ) {
-	return FindMaterial( StringHash( HashMaterialName( name ) ), def );
+	return FindMaterial( StringHash( name ), def );
 }
 
 bool TryFindDecal( StringHash name, Vec4 * uvwh ) {

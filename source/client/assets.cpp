@@ -147,7 +147,7 @@ static void LoadAsset( TempAllocator * temp, Span< const char > game_path, const
 		bool exists = assets_hashtable.get( hash, &idx );
 		if( exists ) {
 			if( !StrEqual( game_path_no_zst, asset_paths[ idx ] ) ) {
-				Fatal( "Asset hash name collision: %s and %s", game_path, assets[ idx ].path );
+				Fatal( ( *temp )( "Asset hash name collision: {} and {}", game_path, assets[ idx ].path ) );
 			}
 
 			if( compressed && !assets[ idx ].compressed ) {

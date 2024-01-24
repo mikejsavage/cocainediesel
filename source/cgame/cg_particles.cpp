@@ -749,7 +749,7 @@ static void LoadVisualEffect( Span< const char > path ) {
 	VisualEffectGroup vfx = { };
 
 	if( !ParseVisualEffectGroup( &vfx, &data, hash ) ) {
-		Com_Printf( S_COLOR_YELLOW "Couldn't load %s\n", path );
+		Com_GGPrint( S_COLOR_YELLOW "Couldn't load {}", path );
 		return;
 	}
 

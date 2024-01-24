@@ -501,7 +501,7 @@ static void LoadSoundEffect( Span< const char > path ) {
 	SoundEffect sfx = { };
 
 	if( !ParseSoundEffect( &sfx, &data, BasePath( path ) ) ) {
-		Com_Printf( S_COLOR_YELLOW "Couldn't load %s\n", path );
+		Com_GGPrint( S_COLOR_YELLOW "Couldn't load {}", path );
 		return;
 	}
 

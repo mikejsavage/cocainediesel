@@ -34,7 +34,7 @@ void InitSprays() {
 
 		const Material * material = FindMaterial( StringHash( Hash64( StripExtension( path ) ) ) );
 		if( !material->decal ) {
-			Com_Printf( S_COLOR_YELLOW "Spray %s needs a decal material\n", path );
+			Com_GGPrint( S_COLOR_YELLOW "Spray {} needs a decal material", path );
 			continue;
 		}
 

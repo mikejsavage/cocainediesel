@@ -27,7 +27,7 @@ static size_t num_sprays;
 void InitSprays() {
 	num_spray_assets = 0;
 
-	for( const char * path : AssetPaths() ) {
+	for( Span< const char > path : AssetPaths() ) {
 		bool ext_ok = EndsWith( path, ".png" ) || EndsWith( path, ".jpg" ) || EndsWith( path, ".dds" );
 		if( !StartsWith( path, "textures/sprays/" ) || !ext_ok )
 			continue;

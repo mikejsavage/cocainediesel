@@ -86,7 +86,7 @@ struct GLTFRenderData {
 		u8 node_idx;
 	};
 
-	char * name;
+	Span< char > name;
 
 	Mat4 transform;
 	MinMax3 bounds;
@@ -98,7 +98,7 @@ struct GLTFRenderData {
 };
 
 struct cgltf_data;
-bool NewGLTFRenderData( GLTFRenderData * render_data, cgltf_data * gltf, const char * path );
+bool NewGLTFRenderData( GLTFRenderData * render_data, cgltf_data * gltf, Span< const char > path );
 void DeleteGLTFRenderData( GLTFRenderData * render_data );
 
 const GLTFRenderData * FindGLTFRenderData( StringHash name );

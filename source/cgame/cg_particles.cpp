@@ -739,12 +739,12 @@ static bool ParseVisualEffectGroup( VisualEffectGroup * group, Span< const char 
 	return true;
 }
 
-static void LoadVisualEffect( const char * path ) {
+static void LoadVisualEffect( Span< const char > path ) {
 	TracyZoneScoped;
-	TracyZoneText( path, strlen( path ) );
+	TracyZoneSpan( path );
 
 	Span< const char > data = AssetString( path );
-	u64 hash = Hash64( path, strlen( path ) - strlen( ".cdvfx" ) );
+	u64 hash = Hash64( StripExtension( path ) );
 
 	VisualEffectGroup vfx = { };
 
@@ -763,14 +763,14 @@ static void LoadVisualEffect( const char * path ) {
 
 void CreateParticleSystems() {
 	ParticleSystem * addSystem = &particleSystems[ 0 ];
-	u64 addSystem_hash = Hash64( "addSystem", strlen( "addSystem" ) );
+	u64 addSystem_hash = StringHash( "addSystem" ).hash;
 	DeleteParticleSystem( sys_allocator, addSystem );
 	addSystem->blend_func = BlendFunc_Add;
 	particleSystems_hashtable.add( addSystem_hash, 0 );
 	num_particleSystems++;
 
 	ParticleSystem * blendSystem = &particleSystems[ 1 ];
-	u64 blendSystem_hash = Hash64( "blendSystem", strlen( "blendSystem" ) );
+	u64 blendSystem_hash = StringHash( "blendSystem" ).hash;
 	DeleteParticleSystem( sys_allocator, blendSystem );
 	blendSystem->blend_func = BlendFunc_Blend;
 	particleSystems_hashtable.add( blendSystem_hash, 1 );
@@ -811,7 +811,7 @@ void InitVisualEffects() {
 
 	ShutdownParticleSystems();
 
-	for( const char * path : AssetPaths() ) {
+	for( Span< const char > path : AssetPaths() ) {
 		if( FileExtension( path ) == ".cdvfx" ) {
 			LoadVisualEffect( path );
 		}
@@ -824,7 +824,7 @@ void HotloadVisualEffects() {
 	TracyZoneScoped;
 
 	bool restart_systems = false;
-	for( const char * path : ModifiedAssetPaths() ) {
+	for( Span< const char > path : ModifiedAssetPaths() ) {
 		if( FileExtension( path ) == ".cdvfx" ) {
 			LoadVisualEffect( path );
 			restart_systems = true;

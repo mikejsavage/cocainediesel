@@ -15,7 +15,7 @@
 #include "nanosort/nanosort.hpp"
 
 struct Asset {
-	char * path;
+	Span< char > path;
 	Span< u8 > data;
 	bool compressed;
 };
@@ -25,12 +25,12 @@ static constexpr u32 MAX_ASSETS = 4096;
 static Mutex * assets_mutex;
 
 static Asset assets[ MAX_ASSETS ];
-static const char * asset_paths[ MAX_ASSETS ];
+static Span< const char > asset_paths[ MAX_ASSETS ];
 static u32 num_assets;
 
 static FSChangeMonitor * fs_change_monitor;
 
-static const char * modified_asset_paths[ MAX_ASSETS ];
+static Span< const char > modified_asset_paths[ MAX_ASSETS ];
 static u32 num_modified_assets;
 
 static Hashtable< MAX_ASSETS * 2 > assets_hashtable;
@@ -40,7 +40,7 @@ enum IsCompressedBool : bool {
 	IsCompressed_Yes = true,
 };
 
-static void AddAsset( const char * path, u64 hash, Span< u8 > data, IsCompressedBool compressed ) {
+static void AddAsset( Span< const char > path, u64 hash, Span< u8 > data, IsCompressedBool compressed ) {
 	Lock( assets_mutex );
 	defer { Unlock( assets_mutex ); };
 
@@ -59,7 +59,7 @@ static void AddAsset( const char * path, u64 hash, Span< u8 > data, IsCompressed
 	}
 	else {
 		a = &assets[ num_assets ];
-		a->path = CopyString( sys_allocator, path );
+		a->path = CloneSpan( sys_allocator, path );
 		asset_paths[ num_assets ] = a->path;
 	}
 
@@ -76,7 +76,7 @@ static void AddAsset( const char * path, u64 hash, Span< u8 > data, IsCompressed
 }
 
 struct DecompressAssetJob {
-	char * path;
+	Span< char > path;
 	u64 hash;
 	Span< u8 > compressed;
 };
@@ -86,27 +86,27 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 
 	DecompressAssetJob * job = ( DecompressAssetJob * ) data;
 
-	TracyZoneText( job->path, strlen( job->path ) );
+	TracyZoneSpan( job->path );
 
-	char * path_with_zst = ( *temp )( "{}.zst", job->path );
+	Span< char > path_with_zst = temp->sv( "{}.zst", job->path );
 	Span< u8 > decompressed;
 	if( Decompress( path_with_zst, sys_allocator, job->compressed, &decompressed ) ) {
 		AddAsset( job->path, job->hash, decompressed, IsCompressed_Yes );
 	}
 
-	Free( sys_allocator, job->path );
+	Free( sys_allocator, job->path.ptr );
 	Free( sys_allocator, job->compressed.ptr );
 	Free( sys_allocator, job );
 }
 
-static void LoadAsset( TempAllocator * temp, const char * game_path, const char * full_path ) {
+static void LoadAsset( TempAllocator * temp, Span< const char > game_path, const char * full_path ) {
 	TracyZoneScoped;
-	TracyZoneText( game_path, strlen( game_path ) );
+	TracyZoneSpan( game_path );
 
 	Span< const char > ext = FileExtension( game_path );
 	bool compressed = ext == ".zst";
 
-	Span< const char > game_path_no_zst = MakeSpan( game_path );
+	Span< const char > game_path_no_zst = game_path;
 	if( compressed ) {
 		game_path_no_zst.n -= ext.n;
 	}
@@ -136,7 +136,7 @@ static void LoadAsset( TempAllocator * temp, const char * game_path, const char 
 
 	if( compressed ) {
 		DecompressAssetJob * job = Alloc< DecompressAssetJob >( sys_allocator );
-		job->path = ( *sys_allocator )( "{}", game_path_no_zst );
+		job->path = CloneSpan( sys_allocator, game_path_no_zst );
 		job->hash = hash;
 		job->compressed = contents;
 
@@ -163,7 +163,7 @@ static void LoadAssetsRecursive( TempAllocator * temp, DynamicString * path, siz
 			LoadAssetsRecursive( temp, path, skip );
 		}
 		else {
-			LoadAsset( temp, path->c_str() + skip, path->c_str() );
+			LoadAsset( temp, MakeSpan( path->c_str() + skip ), path->c_str() );
 		}
 		path->truncate( old_len );
 	}
@@ -195,16 +195,16 @@ void HotloadAssets( TempAllocator * temp ) {
 	for( size_t i = 0; i < changes.n; i++ ) {
 		if( i > 0 && StrEqual( changes[ i ], changes[ i - 1 ] ) )
 			continue;
-		char * full_path = ( *temp )( "{}/base/{}", RootDirPath(), changes[ i ] );
-		LoadAsset( temp, changes[ i ], full_path );
+		const char * full_path = ( *temp )( "{}/base/{}", RootDirPath(), changes[ i ] );
+		LoadAsset( temp, MakeSpan( changes[ i ] ), full_path );
 	}
 
 	ThreadPoolFinish();
 
 	if( num_modified_assets > 0 ) {
 		Com_Printf( "Hotloading:\n" );
-		for( const char * path : ModifiedAssetPaths() ) {
-			Com_Printf( "    %s\n", path );
+		for( Span< const char > path : ModifiedAssetPaths() ) {
+			Com_GGPrint( "    {}", path );
 		}
 	}
 }
@@ -217,7 +217,7 @@ void ShutdownAssets() {
 	TracyZoneScoped;
 
 	for( u32 i = 0; i < num_assets; i++ ) {
-		Free( sys_allocator, assets[ i ].path );
+		Free( sys_allocator, assets[ i ].path.ptr );
 		Free( sys_allocator, assets[ i ].data.ptr );
 	}
 
@@ -233,22 +233,30 @@ Span< const char > AssetString( StringHash path ) {
 	return assets[ i ].data.cast< const char >();
 }
 
-Span< const char > AssetString( const char * path ) {
+Span< const char > AssetString( Span< const char > path ) {
 	return AssetString( StringHash( path ) );
+}
+
+Span< const char > AssetString( const char * path ) {
+	return AssetString( MakeSpan( path ) );
 }
 
 Span< const u8 > AssetBinary( StringHash path ) {
 	return AssetString( path ).cast< const u8 >();
 }
 
-Span< const u8 > AssetBinary( const char * path ) {
+Span< const u8 > AssetBinary( Span< const char > path ) {
 	return AssetBinary( StringHash( path ) );
 }
 
-Span< const char * > AssetPaths() {
-	return Span< const char * >( asset_paths, num_assets );
+Span< const u8 > AssetBinary( const char * path ) {
+	return AssetBinary( MakeSpan( path ) );
 }
 
-Span< const char * > ModifiedAssetPaths() {
-	return Span< const char * >( modified_asset_paths, num_modified_assets );
+Span< Span< const char > > AssetPaths() {
+	return Span< Span< const char > >( asset_paths, num_assets );
+}
+
+Span< Span< const char > > ModifiedAssetPaths() {
+	return Span< Span< const char > >( modified_asset_paths, num_modified_assets );
 }

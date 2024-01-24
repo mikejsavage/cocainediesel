@@ -53,12 +53,12 @@ static Mat4 EulerAnglesToMat4( float pitch, float yaw, float roll ) {
 	return m;
 }
 
-static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * filename ) {
+static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, Span< const char > filename ) {
 	int num_clips = 1;
 
 	Span< const char > cursor = AssetString( filename );
 	if( cursor.ptr == NULL ) {
-		Com_Printf( "Couldn't find animation script: %s\n", filename );
+		Com_GGPrint( "Couldn't find animation script: {}", filename );
 		return false;
 	}
 
@@ -120,7 +120,7 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 		}
 		else if( cmd == "clip" ) {
 			if( num_clips == PMODEL_TOTAL_ANIMATIONS ) {
-				Com_Printf( "%s: Too many animations\n", filename );
+				Com_GGPrint( "{}: Too many animations", filename );
 				break;
 			}
 
@@ -143,7 +143,7 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 	}
 
 	if( num_clips < PMODEL_TOTAL_ANIMATIONS ) {
-		Com_Printf( "%s: Not enough animations (%i)\n", filename, num_clips );
+		Com_GGPrint( "{}: Not enough animations ({})", filename, num_clips );
 		return false;
 	}
 
@@ -154,7 +154,7 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 	return true;
 }
 
-static bool FindTag( const GLTFRenderData * model, PlayerModelMetadata::Tag * tag, StringHash node_name, const char * model_name ) {
+static bool FindTag( const GLTFRenderData * model, PlayerModelMetadata::Tag * tag, StringHash node_name, Span< const char > model_name ) {
 	u8 idx;
 	if( !FindNodeByName( model, node_name, &idx ) ) {
 		Com_GGPrint( S_COLOR_YELLOW "Can't find node {} in {}", node_name, model_name );
@@ -167,7 +167,7 @@ static bool FindTag( const GLTFRenderData * model, PlayerModelMetadata::Tag * ta
 	return true;
 }
 
-static bool LoadPlayerModelMetadata( PlayerModelMetadata * meta, const char * model_name ) {
+static bool LoadPlayerModelMetadata( PlayerModelMetadata * meta, Span< const char > model_name ) {
 	const GLTFRenderData * model = FindGLTFRenderData( meta->model );
 	if( model == NULL )
 		return false;
@@ -181,7 +181,7 @@ static bool LoadPlayerModelMetadata( PlayerModelMetadata * meta, const char * mo
 	return ok;
 }
 
-static constexpr const char * PLAYER_SOUND_NAMES[] = {
+static constexpr Span< const char > PLAYER_SOUND_NAMES[] = {
 	"death",
 	"void_death",
 	"smackdown",
@@ -196,7 +196,7 @@ STATIC_ASSERT( ARRAY_COUNT( PLAYER_SOUND_NAMES ) == PlayerSound_Count );
 static void FindPlayerSounds( PlayerModelMetadata * meta, Span< const char > dir ) {
 	for( size_t i = 0; i < ARRAY_COUNT( meta->sounds ); i++ ) {
 		TempAllocator temp = cls.frame_arena.temp();
-		const char * path = temp( "{}/{}", dir, PLAYER_SOUND_NAMES[ i ] );
+		Span< const char > path = temp.sv( "{}/{}", dir, PLAYER_SOUND_NAMES[ i ] );
 		meta->sounds[ i ] = StringHash( path );
 	}
 }
@@ -204,7 +204,7 @@ static void FindPlayerSounds( PlayerModelMetadata * meta, Span< const char > dir
 void InitPlayerModels() {
 	num_player_models = 0;
 
-	for( const char * path : AssetPaths() ) {
+	for( Span< const char > path : AssetPaths() ) {
 		if( num_player_models == ARRAY_COUNT( player_model_metadatas ) ) {
 			Com_Printf( S_COLOR_RED "Too many player models!\n" );
 			break;
@@ -220,7 +220,7 @@ void InitPlayerModels() {
 			meta->model = StringHash( hash );
 
 			TempAllocator temp = cls.frame_arena.temp();
-			const char * config_path = temp( "{}/model.cfg", dir );
+			Span< const char > config_path = temp.sv( "{}/model.cfg", dir );
 			if( AssetString( config_path ).ptr == NULL ) {
 				if( !LoadPlayerModelMetadata( meta, path ) ) {
 					continue;

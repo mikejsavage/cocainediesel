@@ -3,14 +3,14 @@
 #include "client/renderer/renderer.h"
 #include "gameshared/cdmap.h"
 
-MapSharedRenderData NewMapRenderData( const MapData & map, const char * name ) {
+MapSharedRenderData NewMapRenderData( const MapData & map, Span< const char > name ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	MeshConfig mesh_config = { };
 	mesh_config.name = name;
-	mesh_config.set_attribute( VertexAttribute_Position, NewGPUBuffer( map.vertex_positions, temp( "{} positions", name ) ) );
-	mesh_config.set_attribute( VertexAttribute_Normal, NewGPUBuffer( map.vertex_normals, temp( "{} normals", name ) ) );
-	mesh_config.index_buffer = NewGPUBuffer( map.vertex_indices, temp( "{} indices", name ) );
+	mesh_config.set_attribute( VertexAttribute_Position, NewGPUBuffer( map.vertex_positions, temp.sv( "{} positions", name ) ) );
+	mesh_config.set_attribute( VertexAttribute_Normal, NewGPUBuffer( map.vertex_normals, temp.sv( "{} normals", name ) ) );
+	mesh_config.index_buffer = NewGPUBuffer( map.vertex_indices, temp.sv( "{} indices", name ) );
 	mesh_config.index_format = IndexFormat_U32;
 	mesh_config.num_vertices = map.vertex_indices.n;
 

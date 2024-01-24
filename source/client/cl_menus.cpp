@@ -104,7 +104,7 @@ static void RefreshMasksList() {
 	ClearMasksList();
 
 	masks.add( CopyString( sys_allocator, "None" ) );
-	for( const char * path : AssetPaths() ) {
+	for( Span< const char > path : AssetPaths() ) {
 		if( !StartsWith( path, masks_folder ) || !EndsWith( path, ".glb" ) )
 			continue;
 

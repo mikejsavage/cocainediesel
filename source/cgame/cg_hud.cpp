@@ -1656,7 +1656,7 @@ void CG_DrawHUD() {
 	yoga_arena.clear();
 
 	bool hotload = false;
-	for( const char * path : ModifiedAssetPaths() ) {
+	for( Span< const char > path : ModifiedAssetPaths() ) {
 		if( StartsWith( path, "hud/" ) && EndsWith( path, ".lua" ) ) {
 			hotload = true;
 			break;

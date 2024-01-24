@@ -53,9 +53,9 @@ static void FillMapModelsHashtable() {
 	}
 }
 
-bool AddMap( Span< const u8 > data, const char * path ) {
+bool AddMap( Span< const u8 > data, Span< const char > path ) {
 	TracyZoneScoped;
-	TracyZoneText( path, strlen( path ) );
+	TracyZoneSpan( path );
 
 	Span< const char > name = StripPrefix( StripExtension( path ), "maps/" );
 	StringHash hash = StringHash( name );
@@ -124,7 +124,7 @@ void InitMaps() {
 
 	InitCollisionModelStorage( &collision_models );
 
-	for( const char * path : AssetPaths() ) {
+	for( Span< const char > path : AssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
 		if( ext == ".cdmap" ) {
 			AddMap( AssetBinary( path ), path );
@@ -140,7 +140,7 @@ void HotloadMaps() {
 
 	bool hotloaded_anything = false;
 
-	for( const char * path : ModifiedAssetPaths() ) {
+	for( Span< const char > path : ModifiedAssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
 		if( ext != ".cdmap" )
 			continue;

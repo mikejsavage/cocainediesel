@@ -97,7 +97,7 @@ static bool music_playing;
 
 constexpr float MusicIsWayTooLoud = 0.25f;
 
-const char * ALErrorMessage( ALenum error ) {
+static const char * ALErrorMessage( ALenum error ) {
 	switch( error ) {
 		case AL_NO_ERROR:
 			return "No error";
@@ -124,10 +124,10 @@ static void CheckALErrors( const char * fmt, const Rest & ... rest ) {
 		ggformat( buf, sizeof( buf ), fmt, rest... );
 
 		if( is_public_build ) {
-			Com_Printf( S_COLOR_RED "AL error: %s\n", buf );
+			Com_Printf( S_COLOR_RED "AL error (%s): %s\n", ALErrorMessage( err ), buf );
 		}
 		else {
-			Fatal( "AL error: %s", buf );
+			Fatal( "AL error (%s): %s", ALErrorMessage( err ), buf );
 		}
 	}
 }
@@ -232,7 +232,7 @@ static void ShutdownOpenAL() {
 
 struct DecodeSoundJob {
 	struct {
-		const char * path;
+		Span< const char > path;
 		Span< const u8 > ogg;
 	} in;
 
@@ -244,16 +244,16 @@ struct DecodeSoundJob {
 	} out;
 };
 
-static void AddSound( const char * path, int num_samples, int channels, int sample_rate, s16 * samples ) {
+static void AddSound( Span< const char > path, int num_samples, int channels, int sample_rate, s16 * samples ) {
 	TracyZoneScoped;
-	TracyZoneText( path, strlen( path ) );
+	TracyZoneSpan( path );
 
 	if( num_samples == -1 ) {
-		Com_Printf( S_COLOR_RED "Couldn't decode sound %s\n", path );
+		Com_GGPrint( S_COLOR_RED "Couldn't decode sound {}", path );
 		return;
 	}
 
-	u64 hash = Hash64( path, strlen( path ) - strlen( ".ogg" ) );
+	u64 hash = Hash64( StripExtension( path ) );
 
 	bool restart_music = false;
 
@@ -305,7 +305,7 @@ static void LoadSounds() {
 	{
 		TracyZoneScopedN( "Build job list" );
 
-		for( const char * path : AssetPaths() ) {
+		for( Span< const char > path : AssetPaths() ) {
 			if( FileExtension( path ) == ".ogg" ) {
 				DecodeSoundJob job;
 				job.in.path = path;
@@ -324,7 +324,7 @@ static void LoadSounds() {
 		DecodeSoundJob * job = ( DecodeSoundJob * ) data;
 
 		TracyZoneScopedN( "stb_vorbis_decode_memory" );
-		TracyZoneText( job->in.path, strlen( job->in.path ) );
+		TracyZoneSpan( job->in.path );
 
 		DisableFPEScoped;
 		job->out.num_samples = stb_vorbis_decode_memory( job->in.ogg.ptr, job->in.ogg.num_bytes(), &job->out.channels, &job->out.sample_rate, &job->out.samples );
@@ -338,7 +338,7 @@ static void LoadSounds() {
 static void HotloadSounds() {
 	TracyZoneScoped;
 
-	for( const char * path : ModifiedAssetPaths() ) {
+	for( Span< const char > path : ModifiedAssetPaths() ) {
 		if( FileExtension( path ) == ".ogg" ) {
 			Span< const u8 > ogg = AssetBinary( path );
 
@@ -346,7 +346,7 @@ static void HotloadSounds() {
 			s16 * samples;
 			{
 				TracyZoneScopedN( "stb_vorbis_decode_memory" );
-				TracyZoneText( path, strlen( path ) );
+				TracyZoneSpan( path );
 				DisableFPEScoped;
 				num_samples = stb_vorbis_decode_memory( ogg.ptr, ogg.num_bytes(), &channels, &sample_rate, &samples );
 			}
@@ -416,8 +416,8 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span
 					prefix = MakeSpan( temp( "{}{}", base_path, value + 1 ) );
 				}
 
-				for( const char * path : AssetPaths() ) {
-					if( FileExtension( path ) == ".ogg" && StartsWith( MakeSpan( path ), prefix ) ) {
+				for( Span< const char > path : AssetPaths() ) {
+					if( FileExtension( path ) == ".ogg" && StartsWith( path, prefix ) ) {
 						if( config->num_random_sounds == ARRAY_COUNT( config->sounds ) ) {
 							Com_Printf( S_COLOR_YELLOW "SFX with too many random sounds\n" );
 							return false;
@@ -492,9 +492,9 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span
 	return true;
 }
 
-static void LoadSoundEffect( const char * path ) {
+static void LoadSoundEffect( Span< const char > path ) {
 	TracyZoneScoped;
-	TracyZoneText( path, strlen( path ) );
+	TracyZoneSpan( path );
 
 	Span< const char > data = AssetString( path );
 
@@ -505,7 +505,7 @@ static void LoadSoundEffect( const char * path ) {
 		return;
 	}
 
-	u64 hash = Hash64( path, strlen( path ) - strlen( ".cdsfx" ) );
+	u64 hash = Hash64( StripExtension( path ) );
 
 	u64 idx = num_sound_effects;
 	if( !sound_effects_hashtable.get( hash, &idx ) ) {
@@ -519,7 +519,7 @@ static void LoadSoundEffect( const char * path ) {
 static void LoadSoundEffects() {
 	TracyZoneScoped;
 
-	for( const char * path : AssetPaths() ) {
+	for( Span< const char > path : AssetPaths() ) {
 		if( FileExtension( path ) == ".cdsfx" ) {
 			LoadSoundEffect( path );
 		}
@@ -529,7 +529,7 @@ static void LoadSoundEffects() {
 static void HotloadSoundEffects() {
 	TracyZoneScoped;
 
-	for( const char * path : ModifiedAssetPaths() ) {
+	for( Span< const char > path : ModifiedAssetPaths() ) {
 		if( FileExtension( path ) == ".cdsfx" ) {
 			LoadSoundEffect( path );
 		}

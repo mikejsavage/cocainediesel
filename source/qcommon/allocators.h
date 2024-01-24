@@ -63,6 +63,14 @@ char * Allocator::operator()( const char * fmt, const Rest & ... rest ) {
 	return ( *this )( CurrentSourceLocation(), fmt, rest... );
 }
 
+template< typename... Rest >
+Span< char > Allocator::sv( const char * fmt, const Rest & ... rest ) {
+	// still need the + 1 because ggformat always null terminates
+	Span< char > buf = AllocSpan< char >( this, ggformat( NULL, 0, fmt, rest... ) + 1 );
+	ggformat( buf.ptr, buf.n + 1, fmt, rest... );
+	return buf.slice( 0, buf.n - 1 ); // trim '\0'
+}
+
 char * CopyString( Allocator * a, const char * str, SourceLocation src = CurrentSourceLocation() );
 
 template< typename T >

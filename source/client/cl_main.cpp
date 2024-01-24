@@ -582,14 +582,14 @@ static bool AddDownloadedMap( const char * filename, Span< const u8 > compressed
 	Span< u8 > data;
 	defer { Free( sys_allocator, data.ptr ); };
 
-	if( !Decompress( filename, sys_allocator, compressed, &data ) ) {
+	if( !Decompress( MakeSpan( filename ), sys_allocator, compressed, &data ) ) {
 		Com_Printf( "Downloaded map is corrupt.\n" );
 		return false;
 	}
 
 	TempAllocator temp = cls.frame_arena.temp();
 	Span< const char > clean_filename = StripPrefix( StripExtension( filename ), "base/" );
-	if( !AddMap( data, temp( "{}", clean_filename ) ) ) {
+	if( !AddMap( data, clean_filename ) ) {
 		Com_Printf( "Downloaded map is corrupt.\n" );
 		return false;
 	}

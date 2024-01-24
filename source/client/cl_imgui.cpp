@@ -182,13 +182,13 @@ static void SubmitDrawCalls() {
 		}
 
 		MeshConfig config = { };
-		config.name = temp( "ImGui - {}", n );
-		config.vertex_buffers[ 0 ] = NewGPUBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ), temp( "ImGui vertices - {}", n ) );
+		config.name = temp.sv( "ImGui - {}", n );
+		config.vertex_buffers[ 0 ] = NewGPUBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ), temp.sv( "ImGui vertices - {}", n ) );
 		config.vertex_descriptor.buffer_strides[ 0 ] = sizeof( ImDrawVert );
 		config.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, pos ) };
 		config.set_attribute( VertexAttribute_TexCoord, 0, offsetof( ImDrawVert, uv ) );
 		config.set_attribute( VertexAttribute_Color, 0, offsetof( ImDrawVert, col ) );
-		config.index_buffer = NewGPUBuffer( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof( u16 ), temp( "ImGui indices - {}", n ) );
+		config.index_buffer = NewGPUBuffer( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof( u16 ), temp.sv( "ImGui indices - {}", n ) );
 		Mesh mesh = NewMesh( config );
 		DeferDeleteMesh( mesh );
 

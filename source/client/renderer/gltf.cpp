@@ -108,7 +108,7 @@ static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf
 		return;
 
 	MeshConfig mesh_config = { };
-	mesh_config.name = temp( "{} nodes[{}]", render_data->name, node->name );
+	mesh_config.name = temp.sv( "{} nodes[{}]", render_data->name, node->name );
 
 	for( size_t i = 0; i < prim.attributes_count; i++ ) {
 		const cgltf_attribute & attr = prim.attributes[ i ];
@@ -133,7 +133,7 @@ static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf
 
 		if( attr.type == cgltf_attribute_type_texcoord ) {
 			if( mesh_config.vertex_descriptor.attributes[ VertexAttribute_TexCoord ].exists ) {
-				Com_Printf( S_COLOR_YELLOW "%s has multiple sets of uvs\n", render_data->name );
+				Com_GGPrint( S_COLOR_YELLOW "{} has multiple sets of uvs", render_data->name );
 			}
 			else {
 				VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
@@ -203,7 +203,7 @@ static GLTFExtras LoadExtras( cgltf_data * gltf, cgltf_node * gltf_node ) {
 	return extras;
 }
 
-static Span< const char > GetExtrasKey( const char * key, GLTFExtras * extras ) {
+static Span< const char > GetExtrasKey( Span< const char > key, GLTFExtras * extras ) {
 	for( u32 i = 0; i < extras->num_extras; i++ ) {
 		if( StrEqual( extras->keys[ i ], key ) ) {
 			return extras->values[ i ];
@@ -392,13 +392,13 @@ static void LoadSkin( GLTFRenderData * model, const cgltf_skin * skin ) {
 	}
 }
 
-bool NewGLTFRenderData( GLTFRenderData * render_data, cgltf_data * gltf, const char * path ) {
+bool NewGLTFRenderData( GLTFRenderData * render_data, cgltf_data * gltf, Span< const char > path ) {
 	TracyZoneScoped;
 
 	// TODO: check nodes fit into u8 etc
 
 	*render_data = { };
-	render_data->name = CopyString( sys_allocator, path );
+	render_data->name = CloneSpan( sys_allocator, path );
 	render_data->bounds = MinMax3::Empty();
 
 	bool ok = false;
@@ -464,7 +464,7 @@ void DeleteGLTFRenderData( GLTFRenderData * render_data ) {
 		Free( sys_allocator, node.animations.ptr );
 	}
 
-	Free( sys_allocator, render_data->name );
+	Free( sys_allocator, render_data->name.ptr );
 	Free( sys_allocator, render_data->nodes.ptr );
 	Free( sys_allocator, render_data->skin.ptr );
 	Free( sys_allocator, render_data->animations.ptr );

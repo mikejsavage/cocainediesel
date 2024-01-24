@@ -222,6 +222,9 @@ struct Allocator {
 
 	template< typename... Rest >
 	char * operator()( const char * fmt, const Rest & ... rest );
+
+	template< typename... Rest >
+	Span< char > sv( const char * fmt, const Rest & ... rest );
 };
 
 struct TempAllocator;

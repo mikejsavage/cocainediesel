@@ -368,7 +368,7 @@ static void UnloadTexture( u64 idx ) {
 	DeleteTexture( textures[ idx ] );
 }
 
-static u64 AddTexture( const char * name, u64 hash, const TextureConfig & config ) {
+static u64 AddTexture( Span< const char > name, u64 hash, const TextureConfig & config ) {
 	TracyZoneScoped;
 
 	Assert( num_textures < ARRAY_COUNT( textures ) );
@@ -379,7 +379,7 @@ static u64 AddTexture( const char * name, u64 hash, const TextureConfig & config
 
 		materials[ num_materials ] = Material();
 		materials[ num_materials ].texture = &textures[ num_textures ];
-		materials[ num_materials ].name = CopyString( sys_allocator, name );
+		materials[ num_materials ].name = CloneSpan( sys_allocator, name );
 		materials[ num_materials ].hash = hash;
 		materials_hashtable.add( hash, num_materials );
 
@@ -431,12 +431,13 @@ static void LoadBuiltinTextures() {
 	}
 }
 
-static void LoadSTBTexture( const char * path, u8 * pixels, int w, int h, int channels, const char * failure_reason ) {
+static void LoadSTBTexture( Span< const char > path, u8 * pixels, int w, int h, int channels, const char * failure_reason ) {
 	TracyZoneScoped;
-	TracyZoneText( path, strlen( path ) );
+	TracyZoneSpan( path );
 
 	if( pixels == NULL ) {
-		Com_Printf( S_COLOR_YELLOW "WARNING: couldn't load texture from %s: %s\n", path, failure_reason );
+		Assert( failure_reason != NULL );
+		Com_GGPrint( S_COLOR_YELLOW "WARNING: couldn't load texture from {}: {}", path, failure_reason );
 		return;
 	}
 
@@ -457,7 +458,7 @@ static void LoadSTBTexture( const char * path, u8 * pixels, int w, int h, int ch
 	texture_stb_data[ idx ] = pixels;
 }
 
-static void LoadDDSTexture( const char * path ) {
+static void LoadDDSTexture( Span< const char > path ) {
 	Span< const u8 > dds = AssetBinary( path );
 	if( dds.num_bytes() < sizeof( DDSHeader ) ) {
 		Com_GGPrint( S_COLOR_YELLOW "{} is too small to be a DDS file", path );
@@ -514,7 +515,7 @@ static void LoadDDSTexture( const char * path ) {
 	texture_bc4_data[ idx ] = ( dds + sizeof( DDSHeader ) ).cast< const BC4Block >();
 }
 
-static void LoadMaterialFile( const char * path ) {
+static void LoadMaterialFile( Span< const char > path ) {
 	Span< const char > data = AssetString( path );
 
 	while( data != "" ) {
@@ -532,7 +533,7 @@ static void LoadMaterialFile( const char * path ) {
 		u64 idx = num_materials;
 		if( !materials_hashtable.get( hash, &idx ) ) {
 			materials_hashtable.add( hash, idx );
-			material.name = ( *sys_allocator )( "{}", name );
+			material.name = CloneSpan( sys_allocator, name );
 			num_materials++;
 		}
 		else {
@@ -546,7 +547,7 @@ static void LoadMaterialFile( const char * path ) {
 
 struct DecodeSTBTextureJob {
 	struct {
-		const char * path;
+		Span< const char > path;
 		Span< const u8 > data;
 	} in;
 
@@ -554,7 +555,7 @@ struct DecodeSTBTextureJob {
 		int width, height;
 		int channels;
 		u8 * pixels;
-		const char * failure_reason;
+		Span< const char > failure_reason;
 	} out;
 };
 
@@ -817,7 +818,7 @@ void InitMaterials() {
 		{
 			TracyZoneScopedN( "Build job list" );
 
-			for( const char * path : AssetPaths() ) {
+			for( Span< const char > path : AssetPaths() ) {
 				Span< const char > ext = FileExtension( path );
 
 				if( StartsWith( path, "textures/editor" ) ) {
@@ -846,7 +847,7 @@ void InitMaterials() {
 			DecodeSTBTextureJob * job = ( DecodeSTBTextureJob * ) data;
 
 			TracyZoneScopedN( "stbi_load_from_memory" );
-			TracyZoneText( job->in.path, strlen( job->in.path ) );
+			TracyZoneSpan( job->in.path );
 
 			job->out.pixels = stbi_load_from_memory( job->in.data.ptr, job->in.data.num_bytes(), &job->out.width, &job->out.height, &job->out.channels, 0 );
 
@@ -880,7 +881,7 @@ void InitMaterials() {
 	{
 		TracyZoneScopedN( "Load materials" );
 
-		for( const char * path : AssetPaths() ) {
+		for( Span< const char > path : AssetPaths() ) {
 			if( FileExtension( path ) == ".cdmaterial" ) {
 				LoadMaterialFile( path );
 			}
@@ -899,7 +900,7 @@ void HotloadMaterials() {
 
 	bool changes = false;
 
-	for( const char * path : ModifiedAssetPaths() ) {
+	for( Span< const char > path : ModifiedAssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
 
 		if( ext == ".png" || ext == ".jpg" ) {
@@ -909,7 +910,7 @@ void HotloadMaterials() {
 			u8 * pixels;
 			{
 				TracyZoneScopedN( "stbi_load_from_memory" );
-				TracyZoneText( path, strlen( path ) );
+				TracyZoneSpan( path );
 				pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
 			}
 
@@ -924,7 +925,7 @@ void HotloadMaterials() {
 		}
 	}
 
-	for( const char * path : ModifiedAssetPaths() ) {
+	for( Span< const char > path : ModifiedAssetPaths() ) {
 		if( FileExtension( path ) == ".cdmaterial" ) {
 			LoadMaterialFile( path );
 			changes = true;
@@ -942,7 +943,7 @@ void ShutdownMaterials() {
 	}
 
 	for( u32 i = 0; i < num_materials; i++ ) {
-		Free( sys_allocator, materials[ i ].name );
+		Free( sys_allocator, materials[ i ].name.ptr );
 	}
 
 	DeleteSamplers();

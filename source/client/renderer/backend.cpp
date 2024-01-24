@@ -326,9 +326,9 @@ static void DebugOutputCallback(
 	}
 }
 
-static void DebugLabel( GLenum type, GLuint object, const char * label ) {
-	Assert( label != NULL );
-	glObjectLabel( type, object, -1, label );
+static void DebugLabel( GLenum type, GLuint object, Span< const char > label ) {
+	Assert( label.ptr != NULL );
+	glObjectLabel( type, object, checked_cast< GLsizei >( label.n ), label.ptr );
 }
 
 static void PlotVRAMUsage() {
@@ -461,7 +461,7 @@ void InitRenderBackend() {
 
 	for( size_t i = 0; i < ARRAY_COUNT( ubos ); i++ ) {
 		TempAllocator temp = cls.frame_arena.temp();
-		ubos[ i ].stream = NewStreamingBuffer( UNIFORM_BUFFER_SIZE, temp( "UBO {}", i ) );
+		ubos[ i ].stream = NewStreamingBuffer( UNIFORM_BUFFER_SIZE, temp.sv( "UBO {}", i ) );
 	}
 
 	in_frame = false;
@@ -1079,24 +1079,24 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 	return block;
 }
 
-static GPUBuffer NewGPUBuffer( const void * data, u32 size, bool coherent, const char * name ) {
+static GPUBuffer NewGPUBuffer( const void * data, u32 size, bool coherent, Span< const char > name ) {
 	GLbitfield flags = coherent ? GL_MAP_COHERENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT : 0;
 	GPUBuffer buf = { };
 	glCreateBuffers( 1, &buf.buffer );
 	glNamedBufferStorage( buf.buffer, size, data, flags );
 
-	if( name != NULL ) {
+	if( name.ptr != NULL ) {
 		DebugLabel( GL_BUFFER, buf.buffer, name );
 	}
 
 	return buf;
 }
 
-GPUBuffer NewGPUBuffer( const void * data, u32 size, const char * name ) {
+GPUBuffer NewGPUBuffer( const void * data, u32 size, Span< const char > name ) {
 	return NewGPUBuffer( data, size, false, name );
 }
 
-GPUBuffer NewGPUBuffer( u32 size, const char * name ) {
+GPUBuffer NewGPUBuffer( u32 size, Span< const char > name ) {
 	return NewGPUBuffer( NULL, size, name );
 }
 
@@ -1110,13 +1110,13 @@ void DeferDeleteGPUBuffer( GPUBuffer buf ) {
 	deferred_buffer_deletes.add( buf );
 }
 
-StreamingBuffer NewStreamingBuffer( u32 size, const char * name ) {
+StreamingBuffer NewStreamingBuffer( u32 size, Span< const char > name ) {
 	StreamingBuffer stream = { };
 	stream.buffer = NewGPUBuffer( NULL, size * MAX_FRAMES_IN_FLIGHT, true, name );
 	stream.ptr = glMapNamedBufferRange( stream.buffer.buffer, 0, size * MAX_FRAMES_IN_FLIGHT, GL_MAP_COHERENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT );
 	stream.size = size;
 
-	if( name != NULL ) {
+	if( name.ptr != NULL ) {
 		DebugLabel( GL_BUFFER, stream.buffer.buffer, name );
 	}
 
@@ -1347,15 +1347,15 @@ void DeleteRenderTargetAndTextures( RenderTarget rt ) {
 	DeleteTexture( rt.depth_attachment );
 }
 
-static GLuint CompileShader( GLenum type, const char * body, const char * name ) {
+static GLuint CompileShader( GLenum type, Span< const char > body, Span< const char > name ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	DynamicString src( &temp, "#version 450 core\n" );
 	if( type == GL_VERTEX_SHADER || type == GL_FRAGMENT_SHADER ) {
-		constexpr const char * vertex_shader_prelude =
+		constexpr Span< const char > vertex_shader_prelude =
 			"#define VERTEX_SHADER 1\n"
 			"#define v2f out\n";
-		constexpr const char * fragment_shader_prelude =
+		constexpr Span< const char > fragment_shader_prelude =
 			"#define FRAGMENT_SHADER 1\n"
 			"#define v2f in\n";
 
@@ -1388,7 +1388,7 @@ static GLuint CompileShader( GLenum type, const char * body, const char * name )
 	return shader;
 }
 
-static bool LinkShader( Shader * shader, GLuint program, const char * shader_name ) {
+static bool LinkShader( Shader * shader, GLuint program, Span< const char > shader_name ) {
 	glLinkProgram( program );
 
 	GLint status;
@@ -1463,19 +1463,19 @@ static bool LinkShader( Shader * shader, GLuint program, const char * shader_nam
 	return true;
 }
 
-bool NewShader( Shader * shader, const char * src, const char * name ) {
+bool NewShader( Shader * shader, Span< const char > src, Span< const char > name ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	*shader = { };
 
-	const char * vertex_shader_name = temp( "{} [VS]", name );
+	Span< const char > vertex_shader_name = temp.sv( "{} [VS]", name );
 	GLuint vertex_shader = CompileShader( GL_VERTEX_SHADER, src, vertex_shader_name );
 	if( vertex_shader == 0 )
 		return false;
 	DebugLabel( GL_SHADER, vertex_shader, vertex_shader_name );
 	defer { glDeleteShader( vertex_shader ); };
 
-	const char * fragment_shader_name = temp( "{} [FS]", name );
+	Span< const char > fragment_shader_name = temp.sv( "{} [FS]", name );
 	GLuint fragment_shader = CompileShader( GL_FRAGMENT_SHADER, src, fragment_shader_name );
 	if( fragment_shader == 0 )
 		return false;
@@ -1490,7 +1490,7 @@ bool NewShader( Shader * shader, const char * src, const char * name ) {
 	return LinkShader( shader, shader->program, name );
 }
 
-bool NewComputeShader( Shader * shader, const char * src, const char * name ) {
+bool NewComputeShader( Shader * shader, Span< const char > src, Span< const char > name ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	*shader = { };
@@ -1498,7 +1498,7 @@ bool NewComputeShader( Shader * shader, const char * src, const char * name ) {
 	GLuint cs = CompileShader( GL_COMPUTE_SHADER, src, name );
 	if( cs == 0 )
 		return false;
-	DebugLabel( GL_SHADER, cs, temp( "{} [CS]", name ) );
+	DebugLabel( GL_SHADER, cs, temp.sv( "{} [CS]", name ) );
 	defer { glDeleteShader( cs ); };
 
 	shader->program = glCreateProgram();

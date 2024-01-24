@@ -82,7 +82,7 @@ struct PipelineState {
 };
 
 struct MeshConfig {
-	const char * name;
+	Span< const char > name;
 
 	VertexDescriptor vertex_descriptor;
 	GPUBuffer vertex_buffers[ VertexAttribute_Count ];
@@ -184,17 +184,17 @@ u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, 
 
 UniformBlock UploadUniforms( const void * data, size_t size );
 
-GPUBuffer NewGPUBuffer( const void * data, u32 size, const char * name = NULL );
+GPUBuffer NewGPUBuffer( const void * data, u32 size, Span< const char > name = { } );
 void DeleteGPUBuffer( GPUBuffer buf );
 void DeferDeleteGPUBuffer( GPUBuffer buf );
 
-StreamingBuffer NewStreamingBuffer( u32 size, const char * name = NULL );
+StreamingBuffer NewStreamingBuffer( u32 size, Span< const char > name = { } );
 void * GetStreamingBufferMemory( StreamingBuffer stream );
 void DeleteStreamingBuffer( StreamingBuffer buf );
 void DeferDeleteStreamingBuffer( StreamingBuffer buf );
 
 template< typename T >
-GPUBuffer NewGPUBuffer( Span< T > data, const char * name = NULL ) {
+GPUBuffer NewGPUBuffer( Span< T > data, Span< const char > name = { } ) {
 	return NewGPUBuffer( data.ptr, data.num_bytes(), name );
 }
 
@@ -208,8 +208,8 @@ RenderTarget NewRenderTarget( const RenderTargetConfig & config );
 void DeleteRenderTarget( RenderTarget rt );
 void DeleteRenderTargetAndTextures( RenderTarget rt );
 
-bool NewShader( Shader * shader, const char * src, const char * name );
-bool NewComputeShader( Shader * shader, const char * src, const char * name );
+bool NewShader( Shader * shader, Span< const char > src, Span< const char > name = { } );
+bool NewComputeShader( Shader * shader, Span< const char > src, Span< const char > name );
 void DeleteShader( Shader shader );
 
 Mesh NewMesh( const MeshConfig & config );

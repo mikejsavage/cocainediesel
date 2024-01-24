@@ -110,7 +110,7 @@ bool LoadServerMap( const char * name ) {
 			return false;
 		}
 
-		bool ok = Decompress( zst_path, sys_allocator, compressed, &map.data );
+		bool ok = Decompress( MakeSpan( zst_path ), sys_allocator, compressed, &map.data );
 		if( !ok ) {
 			Com_Printf( "Couldn't decompress %s\n", zst_path );
 			return false;

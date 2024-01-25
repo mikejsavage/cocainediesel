@@ -51,6 +51,12 @@ enum UseVirtualFree : bool {
 	UseVirtualFree_Yes = true,
 };
 
+static void CheckedVirtualFree( void * ptr ) {
+	if( VirtualFree( ptr, 0, MEM_RELEASE ) == 0 ) {
+		FatalGLE( "VirtualFree" );
+	}
+}
+
 static void AddAsset( Span< const char > path, u64 hash, Span< u8 > data, IsCompressedBool compressed, UseVirtualFree virtual_free ) {
 	TracyZoneScoped;
 
@@ -110,7 +116,7 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 
 	Free( sys_allocator, job->path.ptr );
 #if PLATFORM_WINDOWS
-	VirtualFree( job->compressed.ptr, 0, MEM_RELEASE );
+	CheckedVirtualFree( job->compressed.ptr );
 #else
 	Free( sys_allocator, job->compressed.ptr );
 #endif
@@ -238,7 +244,7 @@ void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip )
 			if( i < files.n && handles_and_paths[ i ].handle != INVALID_HANDLE_VALUE ) {
 				overlapped[ i % overlap ] = { };
 				if( ReadFile( handles_and_paths[ i ].handle, buffers[ i ].ptr, AlignPow2( buffers[ i ].n, 4096 ), NULL, &overlapped[ i % overlap ] ) != TRUE && GetLastError() != ERROR_IO_PENDING ) {
-					VirtualFree( buffers[ i ].ptr, 0, MEM_RELEASE );
+					CheckedVirtualFree( buffers[ i ].ptr );
 					buffers[ i ] = Span< u8 >();
 				}
 			}
@@ -249,7 +255,7 @@ void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip )
 					DWORD r;
 					BOOL ok = GetOverlappedResult( handles_and_paths[ prev ].handle, &overlapped[ prev % overlap ], &r, TRUE );
 					if( ok == 0 && GetLastError() || r != buffers[ prev ].n ) {
-						VirtualFree( buffers[ prev ].ptr, 0, MEM_RELEASE );
+						CheckedVirtualFree( buffers[ prev ].ptr );
 						buffers[ prev ] = Span< u8 >();
 					}
 
@@ -380,7 +386,7 @@ void ShutdownAssets() {
 		Free( sys_allocator, assets[ i ].path.ptr );
 #if PLATFORM_WINDOWS
 		if( assets[ i ].virtual_free ) {
-			VirtualFree( assets[ i ].data.ptr, 0, MEM_RELEASE );
+			CheckedVirtualFree( assets[ i ].data.ptr );
 			continue;
 		}
 #endif

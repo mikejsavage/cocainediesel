@@ -15,8 +15,16 @@
 #include "nanosort/nanosort.hpp"
 
 #if PLATFORM_WINDOWS
+
 #include "qcommon/platform/windows_mini_windows_h.h"
 #include "qcommon/platform/windows_utf8.h"
+
+static void CheckedVirtualFree( void * ptr ) {
+	if( VirtualFree( ptr, 0, MEM_RELEASE ) == 0 ) {
+		FatalGLE( "VirtualFree" );
+	}
+}
+
 #endif
 
 struct Asset {
@@ -50,12 +58,6 @@ enum UseVirtualFree : bool {
 	UseVirtualFree_No = false,
 	UseVirtualFree_Yes = true,
 };
-
-static void CheckedVirtualFree( void * ptr ) {
-	if( VirtualFree( ptr, 0, MEM_RELEASE ) == 0 ) {
-		FatalGLE( "VirtualFree" );
-	}
-}
 
 static void AddAsset( Span< const char > path, u64 hash, Span< u8 > data, IsCompressedBool compressed, UseVirtualFree virtual_free ) {
 	TracyZoneScoped;

@@ -367,7 +367,7 @@ void InitRenderBackend() {
 
 	{
 		TracyZoneScopedN( "Load OpenGL" );
-		if( gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) != 1 ) {
+		if( gladLoadGLLoader( GLADloadproc( glfwGetProcAddress ) ) != 1 ) {
 			Fatal( "Couldn't load GL" );
 		}
 	}

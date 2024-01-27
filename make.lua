@@ -14,6 +14,7 @@ end
 
 gcc_global_cxxflags( "-std=c++20 -fno-exceptions -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fno-math-errno -fvisibility=hidden" )
 gcc_global_cxxflags( "-Wall -Wextra -Wcast-align -Wvla -Wformat-security -Wimplicit-fallthrough" ) -- -Wconversion
+gcc_global_cxxflags( "-Werror=format" )
 gcc_global_cxxflags( "-Wno-unused-parameter -Wno-missing-field-initializers" )
 
 if OS == "linux" then

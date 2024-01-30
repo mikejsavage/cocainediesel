@@ -118,6 +118,14 @@ extern bool break2;
 extern bool break3;
 extern bool break4;
 
+#if COMPILER_MSVC
+#define Breakpoint() __debugbreak()
+#elif COMPILER_CLANG
+#define Breakpoint() __builtin_trap()
+#elif COMPILER_GCC
+#define Breakpoint() asm( "int $3" )
+#endif
+
 /*
  * Com_Print
  */

@@ -70,6 +70,12 @@ struct AllocationTracker {
 			const AllocInfo & info = alloc.second;
 			msg.append( "\n{} bytes at {} ({}:{})", info.size, info.src.function, info.src.file, info.src.line );
 
+			// sometimes this is useful
+#if 0
+			[[maybe_unused]] const char * mem_str = ( const char * ) alloc.first;
+			Breakpoint();
+#endif
+
 			leaks++;
 			if( leaks == 5 )
 				break;

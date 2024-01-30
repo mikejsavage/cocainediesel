@@ -66,7 +66,7 @@ struct AllocationTracker {
 		String< 2048 > msg( "Memory leaks:" );
 
 		size_t leaks = 0;
-		for( auto & alloc : allocations ) {
+		for( const auto & alloc : allocations ) {
 			const AllocInfo & info = alloc.second;
 			msg.append( "\n{} bytes at {} ({}:{})", info.size, info.src.function, info.src.file, info.src.line );
 

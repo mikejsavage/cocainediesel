@@ -7,6 +7,7 @@ msvc_global_cxxflags( "/std:c++20 /W4 /wd4100 /wd4146 /wd4189 /wd4201 /wd4307 /w
 msvc_global_cxxflags( "/wd4244 /wd4267" ) -- silence conversion warnings because there are tons of them
 msvc_global_cxxflags( "/wd4611" ) -- setjmp warning
 msvc_global_cxxflags( "/wd5030" ) -- unrecognized [[gnu::...]] attribute
+msvc_global_cxxflags( "/we4130" ) -- warning C4130: '!=': logical operation on address of string constant
 msvc_global_cxxflags( "/GR- /EHs-c-" )
 if config == "debug" then
 	msvc_obj_cxxflags( "source/*", "/RTC1" )

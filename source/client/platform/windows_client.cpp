@@ -17,7 +17,10 @@ void ShowErrorMessage( const char * msg, const char * file, int line ) {
 #if NDEBUG
 	MessageBoxA( NULL, msg, "Error", MB_OK );
 #else
-	if( _CrtDbgReport( _CRT_ERROR, file, line, NULL, msg ) == 1 ) {
+	if( IsDebuggerPresent() != 0 ) {
+		__debugbreak();
+	}
+	else if( _CrtDbgReport( _CRT_ERROR, file, line, NULL, msg ) == 1 ) {
 		_CrtDbgBreak();
 	}
 #endif

@@ -271,14 +271,14 @@ static char * MakeObituary( Allocator * a, RNG * rng, int type, DamageType damag
 	return ( *a )( "{}{}{}{}", prefix1, prefix2, prefix3, obituaries[ RandomUniform( rng, 0, obituaries.n ) ] );
 }
 
-void CG_SC_Obituary() {
-	int victimNum = atoi( Cmd_Argv( 1 ) );
-	int attackerNum = atoi( Cmd_Argv( 2 ) );
-	int topAssistorNum = atoi( Cmd_Argv( 3 ) );
+void CG_SC_Obituary( const Tokenized & args ) {
+	int victimNum = SpanToInt( args.tokens[ 1 ], 0 );
+	int attackerNum = SpanToInt( args.tokens[ 2 ], 0 );
+	int topAssistorNum = SpanToInt( args.tokens[ 3 ], 0 );
 	DamageType damage_type;
-	damage_type.encoded = atoi( Cmd_Argv( 4 ) );
-	bool wallbang = atoi( Cmd_Argv( 5 ) ) == 1;
-	u64 entropy = SpanToU64( MakeSpan( Cmd_Argv( 6 ) ), 0 );
+	damage_type.encoded = SpanToInt( args.tokens[ 4 ], 0 );
+	bool wallbang = SpanToInt( args.tokens[ 5 ], 0 ) == 1;
+	u64 entropy = SpanToU64( args.tokens[ 6 ], 0 );
 
 	const char * victim = PlayerName( victimNum - 1 );
 	const char * attacker = attackerNum == 0 ? NULL : PlayerName( attackerNum - 1 );
@@ -355,7 +355,7 @@ void CG_SC_Obituary() {
 	}
 
 	if( ISVIEWERENTITY( attackerNum ) && attacker != victim ) {
-		CG_CenterPrint( temp( "{} {}", obituary, Uppercase( &temp, victim ) ) );
+		CG_CenterPrint( temp.sv( "{} {}", obituary, Uppercase( &temp, victim ) ) );
 	}
 }
 
@@ -1531,7 +1531,9 @@ void CG_InitHUD() {
 	hud_L = NULL;
 	show_inspector = false;
 
-	AddCommand( "toggleuiinspector", []() { show_inspector = !show_inspector; } );
+	AddCommand( "toggleuiinspector", []( const Tokenized & args ) {
+		show_inspector = !show_inspector;
+	} );
 
 	Span< const char > src = AssetString( StringHash( "hud/hud.lua" ) );
 	size_t bytecode_size;

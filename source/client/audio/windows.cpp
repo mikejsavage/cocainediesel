@@ -103,7 +103,7 @@ static void WasapiThread( void * data ) {
 
 struct AudioDevice {
 	IMMDevice * device;
-	char * name;
+	Span< char > name;
 };
 
 static Span< AudioDevice > GetAudioDevices( Allocator * a ) {
@@ -135,7 +135,7 @@ static Span< AudioDevice > GetAudioDevices( Allocator * a ) {
 		}
 		defer { PropVariantClear( &device_name ); };
 
-		char * utf8 = WideToUTF8( a, device_name.pwszVal );
+		Span< char > utf8 = MakeSpan( WideToUTF8( a, device_name.pwszVal ) );
 		result.add( { device, utf8 } );
 	}
 
@@ -222,14 +222,14 @@ void ShutdownAudioDevice() {
 	ComRelease( active_device.output_device );
 }
 
-Span< const char * > GetAudioDeviceNames( Allocator * a ) {
+Span< Span< const char > > GetAudioDeviceNames( Allocator * a ) {
 	if( backend.device_enumerator == NULL ) {
-		return Span< const char * >();
+		return { };
 	}
 
 	Span< AudioDevice > devices = GetAudioDevices( a );
 
-	NonRAIIDynamicArray< const char * > names( a );
+	NonRAIIDynamicArray< Span< const char > > names( a );
 	for( AudioDevice device : devices ) {
 		device.device->Release();
 		names.add( device.name );

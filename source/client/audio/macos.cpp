@@ -66,8 +66,8 @@ void ShutdownAudioDevice() {
 	AudioQueueDispose( audio_queue, false );
 }
 
-Span< const char * > GetAudioDeviceNames( Allocator * a ) {
-	return Span< const char * >();
+Span< Span< const char > > GetAudioDeviceNames( Allocator * a ) {
+	return Span< Span< const char > >();
 }
 
 #endif // #if PLATFORM_MACOS

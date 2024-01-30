@@ -278,12 +278,12 @@ void SV_LocateEntities( edict_t * edicts, int num_edicts, int max_edicts );
 //
 void SV_Demo_WriteSnap();
 void SV_Demo_AddServerCommand( const char * command );
+void SV_Demo_Start_f( const Tokenized & args );
+void SV_Demo_Record( Span< const char > name );
 void SV_Demo_Stop( bool silent );
-void SV_Demo_Start_f();
-void SV_Demo_Stop_f();
-void SV_Demo_Purge_f();
+void SV_DeleteOldDemos();
 
-void SV_DemoList_f( edict_t * ent );
+void SV_DemoList_f( edict_t * ent, msg_t args );
 void SV_DemoGetUrl_f( edict_t * ent, msg_t args );
 
 //

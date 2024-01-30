@@ -54,7 +54,7 @@ void SV_Demo_WriteSnap() {
 	}
 	if( i == sv_maxclients->integer ) { // FIXME
 		Com_Printf( "No players left, stopping server side demo recording\n" );
-		SV_Demo_Stop_f();
+		SV_Demo_Stop( true );
 		return;
 	}
 
@@ -94,12 +94,7 @@ static void SV_Demo_InitClient() {
 	demo_client.nodelta = false;
 }
 
-void SV_Demo_Start_f() {
-	if( Cmd_Argc() < 2 ) {
-		Com_Printf( "Usage: serverrecord <demoname>\n" );
-		return;
-	}
-
+void SV_Demo_Record( Span< const char > name ) {
 	if( record_demo_context.temp_file != NULL ) {
 		Com_Printf( "Already recording\n" );
 		return;
@@ -122,13 +117,8 @@ void SV_Demo_Start_f() {
 		return;
 	}
 
-	if( !COM_ValidateRelativeFilename( Cmd_Argv( 1 ) ) ) {
-		Com_Printf( "Invalid filename.\n" );
-		return;
-	}
-
 	TempAllocator temp = svs.frame_arena.temp();
-	char * filename = temp( "{}/{}.cddemo", GetDemoDir( &temp ), Cmd_Argv( 1 ) );
+	char * filename = temp( "{}/{}.cddemo", GetDemoDir( &temp ), name );
 	COM_SanitizeFilePath( filename );
 
 	Com_Printf( "Recording server demo: %s\n", filename );
@@ -146,6 +136,15 @@ void SV_Demo_Start_f() {
 	demo_client.nodelta = true;
 	SV_Demo_WriteSnap();
 	demo_client.nodelta = false;
+}
+
+void SV_Demo_Start_f( const Tokenized & args ) {
+	if( args.tokens.n != 2 ) {
+		Com_Printf( "Usage: serverrecord <demoname>\n" );
+		return;
+	}
+
+	SV_Demo_Record( args.tokens[ 1 ] );
 }
 
 void SV_Demo_Stop( bool silent ) {
@@ -171,10 +170,6 @@ void SV_Demo_Stop( bool silent ) {
 
 	StopRecordingDemo( &temp, &record_demo_context, metadata );
 	record_demo_context = { };
-}
-
-void SV_Demo_Stop_f() {
-	SV_Demo_Stop( false );
 }
 
 static Span< char * > GetServerDemos( TempAllocator * temp ) {
@@ -204,7 +199,7 @@ static bool IsDigit( char c ) {
 	return c >= '0' && c <= '9';
 }
 
-void SV_Demo_Purge_f() {
+void SV_DeleteOldDemos() {
 	if( !is_dedicated_server ) {
 		return;
 	}
@@ -233,8 +228,8 @@ void SV_Demo_Purge_f() {
 
 	size_t to_remove = auto_demos.size() - keep;
 	for( size_t i = 0; i < to_remove; i++ ) {
-		DynamicString path( &temp, "{}/{}", GetDemoDir( &temp ), auto_demos[ i ] );
-		if( RemoveFile( &temp, path.c_str() ) ) {
+		const char * path = temp( "{}/{}", GetDemoDir( &temp ), auto_demos[ i ] );
+		if( RemoveFile( &temp, path ) ) {
 			Com_GGPrint( "Removed old autorecord demo: {}", path );
 		}
 		else {
@@ -243,7 +238,7 @@ void SV_Demo_Purge_f() {
 	}
 }
 
-void SV_DemoList_f( edict_t * ent ) {
+void SV_DemoList_f( edict_t * ent, msg_t args ) {
 	TempAllocator temp = svs.frame_arena.temp();
 	Span< char * > demos = GetServerDemos( &temp );
 	defer {
@@ -265,14 +260,14 @@ void SV_DemoList_f( edict_t * ent ) {
 	PF_GameCmd( ent, output.c_str() );
 }
 
-void SV_DemoGetUrl_f( edict_t * ent, msg_t args ) {
-	Cmd_TokenizeString( MSG_ReadString( &args ) );
+void SV_DemoGetUrl_f( edict_t * ent, msg_t msg ) {
+	TempAllocator temp = svs.frame_arena.temp();
 
-	if( Cmd_Argc() != 1 ) {
+	Tokenized args = Tokenize( &temp, MakeSpan( MSG_ReadString( &msg ) ) );
+	if( args.tokens.n != 2 ) {
 		return;
 	}
 
-	TempAllocator temp = svs.frame_arena.temp();
 	Span< char * > demos = GetServerDemos( &temp );
 	defer {
 		for( char * demo : demos ) {
@@ -280,9 +275,8 @@ void SV_DemoGetUrl_f( edict_t * ent, msg_t args ) {
 		}
 	};
 
-	Span< const char > arg = MakeSpan( Cmd_Argv( 0 ) );
 	u64 id;
-	if( !TrySpanToU64( arg, &id ) || id > demos.n ) {
+	if( !TrySpanToU64( args.tokens[ 1 ], &id ) || id > demos.n ) {
 		PF_GameCmd( ent, "pr \"demoget <id from demolist>\"\n" );
 		return;
 	}

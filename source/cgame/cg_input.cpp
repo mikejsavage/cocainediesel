@@ -49,13 +49,8 @@ static void ClearButton( Button * b ) {
 	b->down = false;
 }
 
-static void KeyDown( Button * b ) {
-	const char * c = Cmd_Argv( 1 );
-	int k = -1;
-	if( c[0] ) {
-		k = atoi( c );
-	}
-
+static void KeyDown( Button * b, const Tokenized & args ) {
+	int k = args.tokens.n < 2 ? -1 : SpanToInt( args.tokens[ 1 ], -1 );
 	if( k == b->keys[ 0 ] || k == b->keys[ 1 ] ) {
 		return;
 	}
@@ -75,9 +70,8 @@ static void KeyDown( Button * b ) {
 	b->down = true;
 }
 
-static void KeyUp( Button * b ) {
-	const char * c = Cmd_Argv( 1 );
-	if( !c[0] ) {
+static void KeyUp( Button * b, const Tokenized & args ) {
+	if( args.tokens.n < 2 ) {
 		b->keys[ 0 ] = 0;
 		b->keys[ 1 ] = 0;
 		b->edge = b->down;
@@ -85,7 +79,7 @@ static void KeyUp( Button * b ) {
 		return;
 	}
 
-	int k = atoi( c );
+	int k = SpanToInt( args.tokens[ 1 ], -1 );
 	if( b->keys[ 0 ] == k ) {
 		b->keys[ 0 ] = 0;
 	}
@@ -100,30 +94,30 @@ static void KeyUp( Button * b ) {
 	b->down = false;
 }
 
-static void IN_ForwardDown() { KeyDown( &button_forward ); }
-static void IN_ForwardUp() { KeyUp( &button_forward ); }
-static void IN_BackDown() { KeyDown( &button_back ); }
-static void IN_BackUp() { KeyUp( &button_back ); }
-static void IN_LeftDown() { KeyDown( &button_left ); }
-static void IN_LeftUp() { KeyUp( &button_left ); }
-static void IN_RightDown() { KeyDown( &button_right ); }
-static void IN_RightUp() { KeyUp( &button_right ); }
+static void IN_ForwardDown( const Tokenized & args ) { KeyDown( &button_forward, args ); }
+static void IN_ForwardUp( const Tokenized & args ) { KeyUp( &button_forward, args ); }
+static void IN_BackDown( const Tokenized & args ) { KeyDown( &button_back, args ); }
+static void IN_BackUp( const Tokenized & args ) { KeyUp( &button_back, args ); }
+static void IN_LeftDown( const Tokenized & args ) { KeyDown( &button_left, args ); }
+static void IN_LeftUp( const Tokenized & args ) { KeyUp( &button_left, args ); }
+static void IN_RightDown( const Tokenized & args ) { KeyDown( &button_right, args ); }
+static void IN_RightUp( const Tokenized & args ) { KeyUp( &button_right, args ); }
 
-static void IN_Ability1Down() { KeyDown( &button_ability1 ); }
-static void IN_Ability1Up() { KeyUp( &button_ability1 ); }
-static void IN_Ability2Down() { KeyDown( &button_ability2 ); }
-static void IN_Ability2Up() { KeyUp( &button_ability2 ); }
-static void IN_PlantDown() { KeyDown( &button_plant ); }
-static void IN_PlantUp() { KeyUp( &button_plant ); }
+static void IN_Ability1Down( const Tokenized & args ) { KeyDown( &button_ability1, args ); }
+static void IN_Ability1Up( const Tokenized & args ) { KeyUp( &button_ability1, args ); }
+static void IN_Ability2Down( const Tokenized & args ) { KeyDown( &button_ability2, args ); }
+static void IN_Ability2Up( const Tokenized & args ) { KeyUp( &button_ability2, args ); }
+static void IN_PlantDown( const Tokenized & args ) { KeyDown( &button_plant, args ); }
+static void IN_PlantUp( const Tokenized & args ) { KeyUp( &button_plant, args ); }
 
-static void IN_Attack1Down() { KeyDown( &button_attack1 ); }
-static void IN_Attack1Up() { KeyUp( &button_attack1 ); }
-static void IN_Attack2Down() { KeyDown( &button_attack2 ); }
-static void IN_Attack2Up() { KeyUp( &button_attack2 ); }
-static void IN_GadgetDown() { KeyDown( &button_gadget ); }
-static void IN_GadgetUp() { KeyUp( &button_gadget ); }
-static void IN_ReloadDown() { KeyDown( &button_reload ); }
-static void IN_ReloadUp() { KeyUp( &button_reload ); }
+static void IN_Attack1Down( const Tokenized & args ) { KeyDown( &button_attack1, args ); }
+static void IN_Attack1Up( const Tokenized & args ) { KeyUp( &button_attack1, args ); }
+static void IN_Attack2Down( const Tokenized & args ) { KeyDown( &button_attack2, args ); }
+static void IN_Attack2Up( const Tokenized & args ) { KeyUp( &button_attack2, args ); }
+static void IN_GadgetDown( const Tokenized & args ) { KeyDown( &button_gadget, args ); }
+static void IN_GadgetUp( const Tokenized & args ) { KeyUp( &button_gadget, args ); }
+static void IN_ReloadDown( const Tokenized & args ) { KeyDown( &button_reload, args ); }
+static void IN_ReloadUp( const Tokenized & args ) { KeyUp( &button_reload, args ); }
 
 UserCommandButton CG_GetButtonBits() {
 	UserCommandButton buttons = { };
@@ -215,7 +209,7 @@ Vec2 CG_GetMovement() {
 	);
 }
 
-bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize ) {
+bool CG_GetBoundKeysString( const char * cmd, char * keys, size_t keysSize ) {
 	int keyCodes[ 2 ];
 	int numKeys = CG_GetBoundKeycodes( cmd, keyCodes );
 
@@ -232,12 +226,12 @@ bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize ) {
 	return numKeys > 0;
 }
 
-int CG_GetBoundKeycodes( const char *cmd, int keys[ 2 ] ) {
+int CG_GetBoundKeycodes( const char * cmd, int keys[ 2 ] ) {
 	int numKeys = 0;
 
 	for( int key = 0; key < 256; key++ ) {
-		const char * bind = Key_GetBindingBuf( key );
-		if( bind == NULL || !StrCaseEqual( bind, cmd ) ) {
+		Span< const char > bind = Key_GetBindingBuf( key );
+		if( bind == "" || !StrCaseEqual( bind, cmd ) ) {
 			continue;
 		}
 

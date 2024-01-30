@@ -90,7 +90,7 @@ bool operator!=( WindowMode lhs, WindowMode rhs ) {
 static void UpdateVidModeCvar() {
 	WindowMode mode = GetWindowMode();
 	TempAllocator temp = cls.frame_arena.temp();
-	Cvar_Set( vid_mode->name, temp( "{}", mode ) );
+	Cvar_Set( "vid_mode", temp.sv( "{}", mode ) );
 	vid_mode->modified = false;
 }
 

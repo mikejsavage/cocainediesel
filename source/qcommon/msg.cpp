@@ -428,18 +428,14 @@ void MSG_WriteIntBase128( msg_t * msg, int64_t c ) {
 	MSG_WriteUintBase128( msg, cc );
 }
 
-void MSG_WriteString( msg_t * msg, const char *s ) {
-	if( !s ) {
-		MSG_Write( msg, "", 1 );
-	} else {
-		int l = strlen( s );
-		if( l >= MAX_MSG_STRING_CHARS ) {
-			Com_Printf( "MSG_WriteString: MAX_MSG_STRING_CHARS overflow" );
-			MSG_Write( msg, "", 1 );
-			return;
-		}
-		MSG_Write( msg, s, l + 1 );
-	}
+void MSG_WriteString( msg_t * msg, Span< const char > str ) {
+	Assert( str.n < MAX_MSG_STRING_CHARS );
+	MSG_Write( msg, str.ptr, str.n );
+	MSG_Write( msg, "", 1 );
+}
+
+void MSG_WriteString( msg_t * msg, const char * str ) {
+	MSG_WriteString( msg, MakeSpan( str ) );
 }
 
 void MSG_WriteMsg( msg_t * msg, msg_t other ) {

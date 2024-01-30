@@ -106,7 +106,7 @@ void CG_Reset() {
 	memset( cg_entities, 0, sizeof( cg_entities ) );
 }
 
-static void PrintMap() {
+static void PrintMap( const Tokenized & args ) {
 	Com_Printf( "Current map: %s\n", cl.map == NULL ? "null" : cl.map->name );
 }
 

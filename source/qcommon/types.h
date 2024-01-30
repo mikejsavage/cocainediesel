@@ -549,3 +549,9 @@ struct RGBA8 {
 
 	constexpr RGB8 rgb() const { return RGB8( r, g, b ); }
 };
+
+/*
+ * forward declarations
+ */
+
+struct Tokenized;

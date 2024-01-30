@@ -71,7 +71,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 
 	sv.nextSnapTime = 1000;
 
-	Cvar_ForceSet( "mapname", sv.mapname );
+	Cvar_ForceSet( "mapname", MakeSpan( sv.mapname ) );
 
 	//
 	// spawn the rest of the entities on the map

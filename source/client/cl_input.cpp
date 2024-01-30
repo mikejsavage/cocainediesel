@@ -50,9 +50,6 @@ void CL_UserInputFrame( int realMsec ) {
 
 	// create a new UserCommand structure for this frame
 	CL_CreateNewUserCommand( realMsec );
-
-	// process console commands
-	Cbuf_Execute();
 }
 
 void CL_InitInput() {

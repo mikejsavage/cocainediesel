@@ -71,8 +71,7 @@ static float sensivity_range[] = { 0.25f, 10.f };
 
 static size_t selected_mask = 0;
 static NonRAIIDynamicArray< char * > masks;
-static const char * masks_folder = "models/masks/";
-
+static Span< const char > MASKS_DIR = "models/masks/";
 
 static void PushButtonColor( ImVec4 color ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, color );
@@ -93,8 +92,7 @@ static void ClearMasksList() {
 
 static void SetMask( const char * mask_name ) {
 	TempAllocator temp = cls.frame_arena.temp();
-	char * path = temp( "{}{}", masks_folder, mask_name );
-	Cvar_Set( "cg_mask", path );
+	Cvar_Set( "cg_mask", temp.sv( "{}{}", MASKS_DIR, mask_name ) );
 }
 
 static void RefreshMasksList() {
@@ -105,16 +103,16 @@ static void RefreshMasksList() {
 
 	masks.add( CopyString( sys_allocator, "None" ) );
 	for( Span< const char > path : AssetPaths() ) {
-		if( !StartsWith( path, masks_folder ) || !EndsWith( path, ".glb" ) )
+		if( !StartsWith( path, MASKS_DIR ) || !EndsWith( path, ".glb" ) )
 			continue;
 
-		masks.add( ( *sys_allocator )( "{}", StripPrefix( StripExtension( path ), masks_folder ) ) );
+		masks.add( ( *sys_allocator )( "{}", StripPrefix( StripExtension( path ), MASKS_DIR ) ) );
 	}
 
 
-	const char * mask = Cvar_String( "cg_mask" );
+	Span< const char > mask = Cvar_String( "cg_mask" );
 	for( size_t i = 0; i < masks.size(); i++ ) {
-		if( StrEqual( mask, temp( "{}{}", masks_folder, masks[ i ] ) ) ) {
+		if( StrEqual( mask, temp( "{}{}", MASKS_DIR, masks[ i ] ) ) ) {
 			selected_mask = i;
 			return;
 		}
@@ -147,27 +145,27 @@ void UI_Shutdown() {
 	// ShutdownParticleEditor();
 }
 
-static void SettingLabel( const char * label ) {
+static void SettingLabel( Span< const char > label ) {
 	ImGui::AlignTextToFramePadding();
-	ImGui::Text( "%s", label );
+	ImGui::Text( label );
 	ImGui::SameLine( 200 );
 }
 
-template< size_t maxlen >
-static void CvarTextbox( const char * label, const char * cvar_name ) {
+static void CvarTextbox( Span< const char > label, Span< const char > cvar_name, size_t max_len ) {
 	SettingLabel( label );
 
-	char buf[ maxlen + 1 ];
-	SafeStrCpy( buf, Cvar_String( cvar_name ), sizeof( buf ) );
+	TempAllocator temp = cls.frame_arena.temp();
+	char * buf = AllocMany< char >( &temp, max_len + 1 );
+	ggformat( buf, max_len + 1, "{}", Cvar_String( cvar_name ) );
 
 	ImGui::PushID( cvar_name );
-	ImGui::InputText( "", buf, sizeof( buf ) );
+	ImGui::InputText( "", buf, max_len + 1 );
 	ImGui::PopID();
 
-	Cvar_Set( cvar_name, buf );
+	Cvar_Set( cvar_name, MakeSpan( buf ) );
 }
 
-static void CvarCheckbox( const char * label, const char * cvar_name ) {
+static void CvarCheckbox( Span< const char > label, Span< const char > cvar_name ) {
 	SettingLabel( label );
 
 	bool val = Cvar_Bool( cvar_name );
@@ -178,7 +176,7 @@ static void CvarCheckbox( const char * label, const char * cvar_name ) {
 	Cvar_Set( cvar_name, val ? "1" : "0" );
 }
 
-static void CvarSliderInt( const char * label, const char * cvar_name, int lo, int hi ) {
+static void CvarSliderInt( Span< const char > label, Span< const char > cvar_name, int lo, int hi ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	SettingLabel( label );
@@ -188,11 +186,10 @@ static void CvarSliderInt( const char * label, const char * cvar_name, int lo, i
 	ImGui::SliderInt( "", &val, lo, hi, NULL );
 	ImGui::PopID();
 
-	char * buf = temp( "{}", val );
-	Cvar_Set( cvar_name, buf );
+	Cvar_Set( cvar_name, temp.sv( "{}", val ) );
 }
 
-static void CvarSliderFloat( const char * label, const char * cvar_name, float lo, float hi ) {
+static void CvarSliderFloat( Span< const char > label, Span< const char > cvar_name, float lo, float hi ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	SettingLabel( label );
@@ -202,22 +199,20 @@ static void CvarSliderFloat( const char * label, const char * cvar_name, float l
 	ImGui::SliderFloat( "", &val, lo, hi, "%.2f" );
 	ImGui::PopID();
 
-	char * buf = temp( "{}", val );
-	RemoveTrailingZeroesFloat( buf );
-	Cvar_Set( cvar_name, buf );
+	Cvar_Set( cvar_name, RemoveTrailingZeroesFloat( temp.sv( "{}", val ) ) );
 }
 
-static void KeyBindButton( const char * label, const char * command ) {
+static void KeyBindButton( Span< const char > label, const char * command ) {
 	SettingLabel( label );
 	ImGui::PushID( label );
 
 	char keys[ 128 ];
 	CG_GetBoundKeysString( command, keys, sizeof( keys ) );
 	if( ImGui::Button( keys, ImVec2( 200, 0 ) ) ) {
-		ImGui::OpenPopup( label );
+		ImGui::OpenPopup( "modal" );
 	}
 
-	if( ImGui::BeginPopupModal( label, NULL, ImGuiWindowFlags_NoDecoration ) ) {
+	if( ImGui::BeginPopupModal( "modal", NULL, ImGuiWindowFlags_NoDecoration ) ) {
 		ImGui::Text( "Press a key to set a new bind, or press DEL to delete it (ESCAPE to cancel)" );
 
 		ImGuiIO & io = ImGui::GetIO();
@@ -227,10 +222,10 @@ static void KeyBindButton( const char * label, const char * command ) {
 					int binds[ 2 ];
 					int num_binds = CG_GetBoundKeycodes( command, binds );
 					for( int j = 0; j < num_binds; j++ ) {
-						Key_SetBinding( binds[ j ], NULL );
+						Key_SetBinding( binds[ j ], "" );
 					}
 				} else if( i != K_ESCAPE ) {
-					Key_SetBinding( i, command );
+					Key_SetBinding( i, MakeSpan( command ) );
 				}
 				ImGui::CloseCurrentPopup();
 
@@ -241,7 +236,7 @@ static void KeyBindButton( const char * label, const char * command ) {
 		}
 
 		if( ImGui::IsKeyReleased( K_MWHEELUP ) || ImGui::IsKeyReleased( K_MWHEELDOWN ) ) {
-			Key_SetBinding( ImGui::IsKeyReleased( K_MWHEELUP ) ? K_MWHEELUP : K_MWHEELDOWN, command );
+			Key_SetBinding( ImGui::IsKeyReleased( K_MWHEELUP ) ? K_MWHEELUP : K_MWHEELDOWN, MakeSpan( command ) );
 			ImGui::CloseCurrentPopup();
 		}
 
@@ -251,14 +246,15 @@ static void KeyBindButton( const char * label, const char * command ) {
 	ImGui::PopID();
 }
 
-static const char * SelectableMapList() {
-	Span< const char * const > maps = GetMapList();
+static Span< const char > SelectableMapList() {
+	TempAllocator temp = cls.frame_arena.temp();
+	Span< Span< const char > > maps = GetMapList();
 	static size_t selected_map = 0;
 
 	ImGui::PushItemWidth( 200 );
-	if( ImGui::BeginCombo( "##map", maps[ selected_map ] ) ) {
+	if( ImGui::BeginCombo( "##map", temp( "{}", maps[ selected_map ] ) ) ) {
 		for( size_t i = 0; i < maps.n; i++ ) {
-			if( ImGui::Selectable( maps[ i ], i == selected_map ) )
+			if( ImGui::Selectable( temp( "{}", maps[ i ] ), i == selected_map ) )
 				selected_map = i;
 			if( i == selected_map )
 				ImGui::SetItemDefaultFocus();
@@ -270,7 +266,7 @@ static const char * SelectableMapList() {
 	return ( selected_map < maps.n ? maps[ selected_map ] : "" );
 }
 
-static const char * SelectablePlayerList() {
+static Span< const char > SelectablePlayerList() {
 	TempAllocator temp = cls.frame_arena.temp();
 	DynamicArray< const char * > players( &temp );
 
@@ -299,7 +295,7 @@ static const char * SelectablePlayerList() {
 	}
 	ImGui::PopItemWidth();
 
-	return selected_player < players.size() ? players[ selected_player ] : "";
+	return selected_player < players.size() ? MakeSpan( players[ selected_player ] ) : "";
 }
 
 static void MasksList() {
@@ -325,7 +321,7 @@ static void MasksList() {
 static void SettingsGeneral() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	CvarTextbox< MAX_NAME_CHARS >( "Name", "name" );
+	CvarTextbox( "Name", "name", MAX_NAME_CHARS );
 
 	CvarSliderInt( "Crosshair size", "cg_crosshair_size", 1, 50 );
 	CvarSliderInt( "Crosshair gap", "cg_crosshair_gap", 0, 50 );
@@ -345,9 +341,10 @@ static void SettingsControls() {
 
 	PushButtonColor( ImVec4( 0.375f, 0.f, 0.f, 0.75f ) );
 	if( ImGui::Button("Reset to default") ) {
-		Key_Unbindall();
+		Key_UnbindAll();
 		ExecDefaultCfg();
-	} ImGui::PopStyleColor( 3 );
+	}
+	ImGui::PopStyleColor( 3 );
 
 	if( ImGui::BeginTabBar( "##binds", ImGuiTabBarFlags_None ) ) {
 		if( ImGui::BeginTabItem( "Game" ) ) {
@@ -537,7 +534,7 @@ static void SettingsVideo() {
 				mode.y = -1;
 			}
 
-			Cvar_Set( "vid_mode", temp( "{}", mode ) );
+			Cvar_Set( "vid_mode", temp.sv( "{}", mode ) );
 			reset_video_settings = true;
 		}
 
@@ -580,7 +577,7 @@ static void SettingsVideo() {
 			ImGui::Text( S_COLOR_WHITE "Enabling anti-aliasing can cause significant FPS drops!" );
 		}
 
-		Cvar_Set( "r_samples", temp( "{}", samples ) );
+		Cvar_Set( "r_samples", temp.sv( "{}", samples ) );
 	}
 
 	{
@@ -600,7 +597,7 @@ static void SettingsVideo() {
 		}
 		ImGui::PopItemWidth();
 
-		Cvar_Set( "r_shadow_quality", temp( "{}", quality ) );
+		Cvar_Set( "r_shadow_quality", temp.sv( "{}", quality ) );
 	}
 
 	{
@@ -623,7 +620,7 @@ static void SettingsVideo() {
 		}
 		ImGui::PopItemWidth();
 
-		Cvar_Set( "cl_maxfps", temp( "{}", maxfps ) );
+		Cvar_Set( "cl_maxfps", temp.sv( "{}", maxfps ) );
 	}
 
 	CvarCheckbox( "Vsync", "vid_vsync" );
@@ -643,8 +640,8 @@ static void SettingsAudio() {
 		}
 
 		TempAllocator temp = cls.frame_arena.temp();
-		for( const char * device : GetAudioDeviceNames( &temp ) ) {
-			if( ImGui::Selectable( device, StrEqual( device, s_device->value ) ) ) {
+		for( Span< const char > device : GetAudioDeviceNames( &temp ) ) {
+			if( ImGui::Selectable( temp( "{}", device ), StrEqual( device, s_device->value ) ) ) {
 				Cvar_Set( "s_device", device );
 			}
 		}
@@ -787,7 +784,7 @@ static void DemoBrowser() {
 
 		if( clicked && ImGui::IsMouseDoubleClicked( 0 ) ) {
 			const char * cmd = yolodemo ? "yolodemo" : "demo";
-			Cbuf_Add( "{} \"{}\"", cmd, demo.path );
+			Cmd_Execute( &temp, "{} \"{}\"", cmd, demo.path );
 		}
 	}
 
@@ -798,30 +795,13 @@ static void DemoBrowser() {
 static void CreateServer() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	CvarTextbox< 128 >( "Server name", "sv_hostname" );
-
-	{
-		int maxclients = Cvar_Integer( "sv_maxclients" );
-
-		SettingLabel( "Max players" );
-		ImGui::PushItemWidth( 150 );
-		ImGui::InputInt( "##sv_maxclients", &maxclients );
-		ImGui::PopItemWidth();
-
-		maxclients = Clamp( 1, maxclients, 64 );
-
-		Cvar_Set( "sv_maxclients", temp( "{}", maxclients ) );
-	}
-
-
+	CvarTextbox( "Server name", "sv_hostname", 128 );
 	SettingLabel( "Map" );
-
-	const char * map_name = SelectableMapList();
-
+	Span< const char > map_name = SelectableMapList();
 	CvarCheckbox( "Public", "sv_public" );
 
 	if( ImGui::Button( "Create server" ) ) {
-		Cbuf_Add( "map \"{}\"", map_name );
+		Cmd_Execute( &temp, "map \"{}\"", map_name );
 	}
 }
 
@@ -896,7 +876,8 @@ static void MainMenu() {
 	PushButtonColor( ImVec4( 0.375f, 0.f, 0.f, 0.75f ) );
 	if( ImGui::Button( "QUIT" ) ) {
 		Com_DeferQuit();
-	} ImGui::PopStyleColor( 3 );
+	}
+	ImGui::PopStyleColor( 3 );
 
 	if( cl_devtools->integer != 0 ) {
 		ImGui::SameLine( 0, 50 );
@@ -981,7 +962,7 @@ static void GameMenuButton( const char * label, const char * command, bool * cli
 	}
 
 	if( ImGui::Button( label, size ) ) {
-		Cbuf_Add( "{}", command );
+		Cmd_Execute( &temp, "{}", command );
 		if( clicked != NULL )
 			*clicked = true;
 	}
@@ -989,7 +970,7 @@ static void GameMenuButton( const char * label, const char * command, bool * cli
 
 static void SendLoadout() {
 	TempAllocator temp = cls.frame_arena.temp();
-	Cbuf_Add( "setloadout {}", loadout );
+	Cmd_Execute( &temp, "setloadout {}", loadout );
 }
 
 static Vec4 RGBA8ToVec4NosRGB( RGBA8 rgba ) {
@@ -1167,6 +1148,8 @@ static bool LoadoutMenu() {
 }
 
 static void GameMenu() {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	bool spectating = cg.predictedPlayerState.real_team == Team_None;
 	bool ready = false;
 
@@ -1207,7 +1190,7 @@ static void GameMenu() {
 		else {
 			if( client_gs.gameState.match_state <= MatchState_Countdown ) {
 				if( ImGui::Checkbox( ready ? "Ready!" : "Not ready", &ready ) ) {
-					Cbuf_Add( "toggleready" );
+					Cmd_Execute( &temp, "toggleready" );
 				}
 			}
 
@@ -1245,7 +1228,6 @@ static void GameMenu() {
 		}
 	}
 	else if( gamemenu_state == GameMenuState_Vote ) {
-		TempAllocator temp = cls.frame_arena.temp();
 		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( displaySize.x * 0.5f, -1 ) );
 		ImGui::Begin( "votemap", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
@@ -1259,8 +1241,8 @@ static void GameMenu() {
 
 		ImGui::NextColumn();
 
-		const char * vote;
-		const char * arg;
+		Span< const char > vote;
+		Span< const char > arg;
 		if( e == 0 ) {
 			vote = "start";
 			arg = "";
@@ -1268,7 +1250,7 @@ static void GameMenu() {
 			vote = "map";
 			arg = SelectableMapList();
 		} else {
-			vote = e == 2 ? "spectate" : "kick";
+			vote = e == 2 ? Span< const char >( "spectate" ) : Span< const char >( "kick" );
 			arg = SelectablePlayerList();
 		}
 
@@ -1392,8 +1374,6 @@ void UI_Refresh() {
 	if( Con_IsVisible() ) {
 		Con_Draw();
 	}
-
-	Cbuf_Execute();
 }
 
 void UI_ShowConnectingScreen() {

@@ -22,15 +22,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/q_shared.h"
 #include "client/client.h"
 
-static char *keybindings[256];
-static bool keydown[256];
+static Span< char > keybindings[ Key_Count ];
+static bool keydown[ Key_Count ];
 
-struct keyname_t {
-	const char *name;
-	int keynum;
-};
-
-static const keyname_t keynames[] = {
+static constexpr struct {
+	Span< const char > name;
+	int key;
+} keynames[] = {
 	{ "TAB", K_TAB },
 	{ "ENTER", K_ENTER },
 	{ "ESCAPE", K_ESCAPE },
@@ -105,117 +103,99 @@ static const keyname_t keynames[] = {
 	{ "MWHEELDOWN", K_MWHEELDOWN },
 
 	{ "PAUSE", K_PAUSE },
-
-	{ NULL, 0 }
 };
 
-int Key_StringToKeynum( const char *str ) {
-	const keyname_t *kn;
-
-	if( !str || !str[0] ) {
-		return -1;
-	}
-	if( !str[1] ) {
-		return ToLowerASCII( (unsigned char)str[0] );
+Optional< int > Key_StringToKeynum( Span< const char > str ) {
+	if( str.n == 1 ) {
+		return ToLowerASCII( str[ 0 ] );
 	}
 
-	for( kn = keynames; kn->name; kn++ ) {
-		if( StrCaseEqual( str, kn->name ) ) {
-			return kn->keynum;
+	for( auto key : keynames ) {
+		if( StrCaseEqual( str, key.name ) ) {
+			return key.key;
 		}
 	}
-	return -1;
+
+	return NONE;
 }
 
-Span< const char > Key_KeynumToString( int keynum ) {
+Span< const char > Key_KeynumToString( int key ) {
 	constexpr const char * uppercase_ascii = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~";
 
-	if( keynum >= '!' && keynum <= '~' ) {
-		return Span< const char >( uppercase_ascii + keynum - '!', 1 );
+	if( key >= '!' && key <= '~' ) {
+		return Span< const char >( uppercase_ascii + key - '!', 1 );
 	}
 
-	for( keyname_t kn : keynames ) {
-		if( keynum == kn.keynum ) {
-			return MakeSpan( kn.name );
+	for( auto k : keynames ) {
+		if( key == k.key ) {
+			return k.name;
 		}
 	}
 
 	return Span< const char >();
 }
 
-void Key_SetBinding( int keynum, const char *binding ) {
-	if( keybindings[keynum] ) {
-		Free( sys_allocator, keybindings[keynum] );
-		keybindings[keynum] = NULL;
-	}
+void Key_SetBinding( int key, Span< const char > binding ) {
+	Free( sys_allocator, keybindings[ key ].ptr );
+	keybindings[ key ] = { };
 
-	if( binding != NULL ) {
-		keybindings[keynum] = CopyString( sys_allocator, binding );
+	if( binding != "" ) {
+		keybindings[ key ] = CloneSpan( sys_allocator, binding );
 	}
 }
 
-static void Key_Unbind_f() {
-	if( Cmd_Argc() != 2 ) {
+static void Key_Unbind_f( const Tokenized & args ) {
+	if( args.tokens.n != 2 ) {
 		Com_Printf( "unbind <key> : remove commands from a key\n" );
 		return;
 	}
 
-	int key = Key_StringToKeynum( Cmd_Argv( 1 ) );
-	if( key == -1 ) {
-		Com_Printf( "\"%s\" isn't a valid key\n", Cmd_Argv( 1 ) );
+	Optional< int > key = Key_StringToKeynum( args.tokens[ 1 ] );
+	if( key.exists ) {
+		Com_GGPrint( "\"{}\" isn't a valid key", args.tokens[ 1 ] );
 		return;
 	}
 
-	Key_SetBinding( key, NULL );
+	Key_SetBinding( key.value, "" );
 }
 
-void Key_Unbindall() {
+void Key_UnbindAll() {
 	for( int i = 0; i < int( ARRAY_COUNT( keybindings ) ); i++ ) {
-		if( keybindings[ i ] ) {
-			Key_SetBinding( i, NULL );
-		}
+		Key_SetBinding( i, "" );
 	}
 }
 
-static void Key_Bind_f() {
-	int c = Cmd_Argc();
-	if( c < 2 ) {
+static void Key_Bind_f( const Tokenized & args ) {
+	if( args.tokens.n < 2 ) {
 		Com_Printf( "bind <key> [command] : attach a command to a key\n" );
 		return;
 	}
 
-	int b = Key_StringToKeynum( Cmd_Argv( 1 ) );
-	if( b == -1 ) {
-		Com_Printf( "\"%s\" isn't a valid key\n", Cmd_Argv( 1 ) );
+	Optional< int > key = Key_StringToKeynum( args.tokens[ 1 ] );
+	if( !key.exists ) {
+		Com_GGPrint( "\"{}\" isn't a valid key", args.tokens[ 1 ] );
 		return;
 	}
 
-	if( c == 2 ) {
-		if( keybindings[b] ) {
-			Com_Printf( "\"%s\" = \"%s\"\n", Cmd_Argv( 1 ), keybindings[b] );
-		} else {
-			Com_Printf( "\"%s\" is not bound\n", Cmd_Argv( 1 ) );
+	if( args.tokens.n == 2 ) {
+		if( keybindings[ key.value ] != "" ) {
+			Com_GGPrint( "\"{}\" = \"{}\"\n", args.tokens[ 1 ], keybindings[ key.value ] );
+		}
+		else {
+			Com_GGPrint( "\"{}\" is not bound\n", args.tokens[ 1 ] );
 		}
 		return;
 	}
 
-	// copy the rest of the command line
-	String< 1024 > cmd;
-	for( int i = 2; i < c; i++ ) {
-		if( i != 2 ) {
-			cmd += " ";
-		}
-		cmd += Cmd_Argv( i );
-	}
-
-	Key_SetBinding( b, cmd.c_str() );
+	Span< const char > command = Span< const char >( args.tokens[ 2 ].ptr, args.tokens[ args.tokens.n - 1 ].end() - args.tokens[ 2 ].ptr );
+	Key_SetBinding( key.value, command );
 }
 
 void Key_WriteBindings( DynamicString * config ) {
 	config->append( "unbindall\r\n" );
 
 	for( int i = 0; i < int( ARRAY_COUNT( keybindings ) ); i++ ) {
-		if( keybindings[i] && keybindings[i][0] ) {
+		if( keybindings[ i ] != "" ) {
 			config->append( "bind {} \"{}\"\r\n", Key_KeynumToString( i ), keybindings[ i ] );
 		}
 	}
@@ -224,7 +204,7 @@ void Key_WriteBindings( DynamicString * config ) {
 void Key_Init() {
 	AddCommand( "bind", Key_Bind_f );
 	AddCommand( "unbind", Key_Unbind_f );
-	AddCommand( "unbindall", Key_Unbindall );
+	AddCommand( "unbindall", []( const Tokenized & args ) { Key_UnbindAll(); } );
 
 	memset( keybindings, 0, sizeof( keybindings ) );
 	memset( keydown, 0, sizeof( keydown ) );
@@ -235,7 +215,7 @@ void Key_Shutdown() {
 	RemoveCommand( "unbind" );
 	RemoveCommand( "unbindall" );
 
-	Key_Unbindall();
+	Key_UnbindAll();
 }
 
 void Key_Event( int key, bool down ) {
@@ -245,7 +225,7 @@ void Key_Event( int key, bool down ) {
 		}
 
 		if( cls.state != CA_ACTIVE ) {
-			CL_Disconnect_f();
+			CL_Disconnect( NULL );
 			return;
 		}
 
@@ -255,13 +235,14 @@ void Key_Event( int key, bool down ) {
 	}
 
 	if( cls.state == CA_ACTIVE ) {
-		const char * command = keybindings[ key ];
-		if( command != NULL ) {
+		TempAllocator temp = cls.frame_arena.temp();
+		Span< const char > command = keybindings[ key ];
+		if( command != "" ) {
 			if( StartsWith( command, "+" ) ) {
-				Cbuf_Add( "{}{} {}", down ? "+" : "-", command + 1, key );
+				Cmd_Execute( &temp, "{}{} {}", down ? "+" : "-", command + 1, key );
 			}
 			else if( down ) {
-				Cbuf_Add( "{}", command );
+				Cmd_ExecuteLine( &temp, command, true );
 			}
 		}
 	}
@@ -275,8 +256,10 @@ void Key_ClearStates() {
 			Key_Event( i, false );
 		}
 	}
+
+	memset( keydown, 0, sizeof( keydown ) );
 }
 
-const char *Key_GetBindingBuf( int binding ) {
-	return keybindings[binding];
+Span< const char > Key_GetBindingBuf( int binding ) {
+	return keybindings[ binding ];
 }

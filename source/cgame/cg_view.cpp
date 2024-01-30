@@ -78,7 +78,8 @@ bool CG_ChaseStep( int step ) {
 	}
 
 	if( !cgs.demoPlaying ) {
-		Cbuf_ExecuteLine( step > 0 ? "chasenext" : "chaseprev" );
+		TempAllocator temp = cls.frame_arena.temp();
+		Cmd_Execute( &temp, step > 0 ? "chasenext" : "chaseprev" );
 		return true;
 	}
 

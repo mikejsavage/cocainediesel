@@ -398,34 +398,32 @@ void G_PrintMsg( edict_t * ent, const char * format, ... ) {
 *
 * NULL sends the message to all clients
 */
-void G_ChatMsg( edict_t * ent, const edict_t * who, bool teamonly, const char *format, ... ) {
-	char msg[MAX_STRING_CHARS];
-	va_list argptr;
-
-	va_start( argptr, format );
-	vsnprintf( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
+void G_ChatMsg( edict_t * ent, const edict_t * who, bool teamonly, Span< const char > msg_bad_quotes ) {
+	TempAllocator temp = svs.frame_arena.temp();
 
 	// double quotes are bad
-	char * p = msg;
-	while( ( p = strchr( p, '\"' ) ) != NULL )
-		*p = '\'';
+	Span< char > msg = CloneSpan( &temp, msg_bad_quotes );
+	for( char & c : msg ) {
+		if( c == '\"' ) {
+			c = '\'';
+		}
+	}
 
 	char cmd[ MAX_STRING_CHARS ];
-	snprintf( cmd, sizeof( cmd ), "%s %d \"%s\"", ( who && teamonly ? "tch" : "ch" ), ( who ? ENTNUM( who ) : 0 ), msg );
+	ggformat( cmd, sizeof( cmd ), "{} {} \"{}\"", who && teamonly ? "tch" : "ch", who ? ENTNUM( who ) : 0, msg );
 
 	if( !ent ) {
 		// mirror at server console
 		if( is_dedicated_server ) {
 			if( !who ) {
-				Com_Printf( "Console: %s\n", msg );     // admin console
+				Com_GGPrint( "Console: {}", msg );     // admin console
 			} else if( !who->r.client ) {
 				;   // wtf?
 			} else if( teamonly ) {
 				const char * channel = who->r.client->ps.team == Team_None ? "SPEC" : "TEAM";
-				Com_Printf( "[%s] %s %s\n", channel, who->r.client->name, msg );
+				Com_GGPrint( "[{}] {} {}", channel, who->r.client->name, msg );
 			} else {
-				Com_Printf( "%s: %s\n", who->r.client->name, msg );
+				Com_GGPrint( "{}: {}", who->r.client->name, msg );
 			}
 		}
 
@@ -714,13 +712,9 @@ void G_ClearPlayerStateEvents( gclient_t *client ) {
 * G_PlayerForText
 * Returns player matching given text. It can be either number of the player or player's name.
 */
-edict_t * G_PlayerForText( const char * text ) {
-	if( !text || !text[0] ) {
-		return NULL;
-	}
-
+edict_t * G_PlayerForText( Span< const char > text ) {
 	u64 num;
-	if( TrySpanToU64( MakeSpan( text ), &num ) && num < u64( server_gs.maxclients ) && game.edicts[ num + 1 ].r.inuse ) {
+	if( TrySpanToU64( text, &num ) && num < u64( server_gs.maxclients ) && game.edicts[ num + 1 ].r.inuse ) {
 		return &game.edicts[ num + 1 ];
 	}
 

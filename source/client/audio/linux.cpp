@@ -356,8 +356,8 @@ void ShutdownAudioDevice() {
 	ShutdownPulse();
 };
 
-Span< const char * > GetAudioDeviceNames( Allocator * a ) {
-	return Span< const char * >();
+Span< Span< const char > > GetAudioDeviceNames( Allocator * a ) {
+	return Span< Span< const char > >();
 }
 
 #endif // #if PLATFORM_LINUX

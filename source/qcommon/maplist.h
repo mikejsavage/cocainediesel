@@ -6,7 +6,7 @@ void InitMapList();
 void ShutdownMapList();
 
 void RefreshMapList( Allocator * a );
-Span< const char * const > GetMapList();
-bool MapExists( const char * name );
+Span< Span< const char > > GetMapList();
+bool MapExists( Span< const char > name );
 
-Span< const char * > CompleteMapName( TempAllocator * a, const char * prefix );
+Span< Span< const char > > CompleteMapName( TempAllocator * a, Span< const char > prefix );

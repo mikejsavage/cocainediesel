@@ -203,7 +203,7 @@ extern SyncEntityState cl_baselines[MAX_EDICTS];
 void CL_Init();
 
 msg_t * CL_AddReliableCommand( ClientCommandType command );
-void CL_Netchan_Transmit( msg_t *msg );
+void CL_Netchan_Transmit( msg_t * msg );
 void CL_SendMessagesToServer( bool sendNow );
 void CL_RestartTimeDeltas( int newTimeDelta );
 void CL_AdjustServerTime( unsigned int gamemsec );
@@ -211,15 +211,14 @@ void CL_AdjustServerTime( unsigned int gamemsec );
 void CL_SetClientState( connstate_t state );
 void CL_ClearState();
 void CL_ReadPackets();
-void CL_Disconnect_f();
 
 void CL_Connect( const NetAddress & address );
 void CL_Reconnect_f();
 void CL_FinishConnect();
 void CL_ServerReconnect_f();
 void CL_Changing_f();
-void CL_Precache_f();
-void CL_ServerDisconnect_f();
+void CL_Precache_f( const Tokenized & args );
+void CL_ServerDisconnect_f( const Tokenized & args );
 
 void CL_ForceVsync( bool force );
 
@@ -256,17 +255,17 @@ void CL_WriteUcmdsToMessage( msg_t *msg );
 void CL_WriteDemoMessage( msg_t msg, size_t offset );
 void CL_DemoBaseline( const snapshot_t * snap );
 void CL_DemoCompleted();
-void CL_PlayDemo_f();
-void CL_YoloDemo_f();
+void CL_PlayDemo_f( const Tokenized & args );
+void CL_YoloDemo_f( const Tokenized & args );
 void CL_ReadDemoPackets();
 void CL_LatchedDemoJump();
-void CL_Record_f();
+void CL_Record_f( const Tokenized & args );
 bool CL_DemoPaused();
 bool CL_DemoSeeking();
 bool CL_YoloDemo();
 void CL_StopRecording( bool silent );
 void CL_PauseDemo_f();
-void CL_DemoJump_f();
+void CL_DemoJump_f( const Tokenized & args );
 
 //
 // cl_parse.c
@@ -276,7 +275,7 @@ void CL_ParseServerMessage( msg_t *msg );
 
 using DownloadCompleteCallback = void ( * )( const char * filename, Span< const u8 > data );
 
-bool CL_DownloadFile( const char * filename, DownloadCompleteCallback cb );
+bool CL_DownloadFile( Span< const char > filename, DownloadCompleteCallback cb );
 bool CL_IsDownloading();
 void CL_CancelDownload();
 

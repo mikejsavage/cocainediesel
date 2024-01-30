@@ -21,8 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 #include <stdarg.h>
-#include <stdint.h>
-#include <inttypes.h>
+#include "qcommon/types.h"
 
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
@@ -87,7 +86,8 @@ void MSG_WriteInt64( msg_t * msg, s64 x );
 void MSG_WriteUint64( msg_t * msg, u64 x );
 void MSG_WriteUintBase128( msg_t * msg, uint64_t c );
 void MSG_WriteIntBase128( msg_t * msg, int64_t c );
-void MSG_WriteString( msg_t * msg, const char *s );
+void MSG_WriteString( msg_t * msg, Span< const char > str );
+void MSG_WriteString( msg_t * msg, const char * str );
 void MSG_WriteDeltaUsercmd( msg_t * msg, const UserCommand * baseline , const UserCommand * cmd );
 void MSG_WriteEntityNumber( msg_t * msg, int number, bool remove );
 void MSG_WriteDeltaEntity( msg_t * msg, const SyncEntityState * baseline, const SyncEntityState * ent, bool force );

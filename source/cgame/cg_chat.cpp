@@ -1,7 +1,6 @@
 #include "cgame/cg_local.h"
 #include "client/audio/api.h"
 #include "client/renderer/renderer.h"
-#include "qcommon/string.h"
 #include "qcommon/time.h"
 
 #include "imgui/imgui.h"
@@ -51,8 +50,8 @@ static void CloseChat() {
 void CG_InitChat() {
 	chat = { };
 
-	AddCommand( "chat", []() { OpenChat( ChatMode_All ); } );
-	AddCommand( "teamchat", []() { OpenChat( ChatMode_Team ); } );
+	AddCommand( "chat", []( const Tokenized & args ) { OpenChat( ChatMode_All ); } );
+	AddCommand( "teamchat", []( const Tokenized & args ) { OpenChat( ChatMode_Team ); } );
 }
 
 void CG_ShutdownChat() {
@@ -80,10 +79,7 @@ void CG_AddChat( Span< const char > str ) {
 static void SendChat() {
 	if( strlen( chat.input ) > 0 ) {
 		TempAllocator temp = cls.frame_arena.temp();
-
-		const char * cmd = chat.mode == ChatMode_Team ? "say_team" : "say";
-		Cbuf_Add( "{} {}", cmd, chat.input );
-
+		Cmd_Execute( &temp, "{} {}", chat.mode == ChatMode_Team ? "say_team" : "say", chat.input );
 		PlaySFX( "sounds/typewriter/return" );
 	}
 

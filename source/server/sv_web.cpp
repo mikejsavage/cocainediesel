@@ -106,10 +106,9 @@ static HTTPResponseCode RouteRequest( HTTPConnection * con, Span< const char > m
 	TempAllocator temp = web_server_arena.temp();
 
 	Span< const char > path = path_with_leading_slash + 1;
-	char * null_terminated_path = temp( "{}", path );
 
 	// check for malicious URLs
-	if( !COM_ValidateRelativeFilename( null_terminated_path ) ) {
+	if( !COM_ValidateRelativeFilename( path ) ) {
 		return HTTPResponseCode_Forbidden;
 	}
 
@@ -118,7 +117,7 @@ static HTTPResponseCode RouteRequest( HTTPConnection * con, Span< const char > m
 	}
 
 	HTTPResponse * response = &con->response;
-	response->file = OpenFile( sys_allocator, null_terminated_path, OpenFile_Read );
+	response->file = OpenFile( sys_allocator, temp( "{}", path ), OpenFile_Read );
 	if( response->file == NULL ) {
 		return HTTPResponseCode_NotFound;
 	}

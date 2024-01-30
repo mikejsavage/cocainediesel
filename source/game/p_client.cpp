@@ -466,18 +466,6 @@ void ClientBegin( edict_t *ent ) {
 	G_ClientEndSnapFrame( ent ); // make sure all view stuff is valid
 }
 
-static Span< const char > Trim( Span< const char > str ) {
-	while( str.n > 0 && str[ 0 ] == ' ' ) {
-		str++;
-	}
-
-	while( str.n > 0 && str[ str.n - 1 ] == ' ' ) {
-		str = str.slice( 0, str.n - 1 );
-	}
-
-	return str;
-}
-
 static Optional< Span< const char > > ValidateAndTrimName( const char * name ) {
 	if( name == NULL ) {
 		return NONE;
@@ -576,7 +564,7 @@ bool ClientConnect( edict_t *ent, char *userinfo, const NetAddress & address, bo
 
 	// check for a password
 	char * value = Info_ValueForKey( userinfo, "password" );
-	if( !fakeClient && ( *sv_password->value && ( !value || !StrEqual( sv_password->value, value ) ) ) ) {
+	if( !fakeClient && ( !StrEqual( sv_password->value, "" ) && ( !value || !StrEqual( sv_password->value, value ) ) ) ) {
 		if( value && value[0] ) {
 			Info_SetValueForKey( userinfo, "rejmsg", "Incorrect password" );
 		} else {

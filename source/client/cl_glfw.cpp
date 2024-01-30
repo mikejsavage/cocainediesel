@@ -27,7 +27,7 @@ extern Cvar * vid_mode;
 
 static void UpdateVidModeCvar() {
 	TempAllocator temp = cls.frame_arena.temp();
-	Cvar_Set( "vid_mode", temp( "{}", GetWindowMode() ) );
+	Cvar_Set( "vid_mode", temp.sv( "{}", GetWindowMode() ) );
 	vid_mode->modified = false;
 }
 

@@ -283,7 +283,7 @@ extern Cvar *cg_showFPS;
 void CG_ScreenInit();
 void CG_DrawScope();
 void CG_Draw2D();
-void CG_CenterPrint( const char *str );
+void CG_CenterPrint( Span< const char > str );
 
 void CG_EscapeKey();
 
@@ -312,7 +312,7 @@ void AddDamageEffect( float x = 0.0f );
 void CG_InitHUD();
 void CG_ShutdownHUD();
 void CG_SC_ResetObituaries();
-void CG_SC_Obituary();
+void CG_SC_Obituary( const Tokenized & args );
 void CG_DrawHUD();
 
 //

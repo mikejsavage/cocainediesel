@@ -10,7 +10,7 @@ Shaders shaders;
 
 static Span< const char > FindInclude( Span< const char > str ) {
 	while( true ) {
-		const char * before_hash = ( const char * ) memchr( str.ptr, '#', str.n );
+		const char * before_hash = StrChr( str, '#' );
 		if( before_hash == NULL )
 			break;
 

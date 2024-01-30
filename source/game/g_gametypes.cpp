@@ -50,18 +50,14 @@ void G_Match_Autorecord_Start() {
 	char date[ 128 ];
 	FormatCurrentTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
 
-	snprintf( level.autorecord_name, sizeof( level.autorecord_name ), "%s_%s_auto%04i", date, sv.mapname, RandomUniform( &svs.rng, 1, 10000 ) );
-
-	Cbuf_Add( "serverrecord {}", level.autorecord_name );
+	TempAllocator temp = svs.frame_arena.temp();
+	SV_Demo_Record( temp.sv( "{}_{}_auto{04}", date, sv.mapname, RandomUniform( &svs.rng, 1, 10000 ) ) );
 }
 
 void G_Match_Autorecord_Stop() {
 	if( g_autorecord->integer ) {
-		Cbuf_Add( "{}", "serverrecordstop 1" );
-
-		if( g_autorecord_maxdemos->integer > 0 ) {
-			Cbuf_Add( "{}", "serverrecordpurge" );
-		}
+		SV_Demo_Stop( true );
+		SV_DeleteOldDemos();
 	}
 }
 

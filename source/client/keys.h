@@ -109,19 +109,21 @@ enum {
 
 	K_MWHEELUP,
 	K_MWHEELDOWN,
+
+	Key_Count
 };
 
 void Key_Event( int key, bool down );
 void Key_Init();
 void Key_Shutdown();
 
-void Key_SetBinding( int keynum, const char *binding );
-const char *Key_GetBindingBuf( int binding );
+void Key_SetBinding( int keynum, Span< const char > binding );
+Span< const char > Key_GetBindingBuf( int binding );
 void Key_ClearStates();
-void Key_Unbindall();
+void Key_UnbindAll();
 
-Span< const char > Key_KeynumToString( int keynum );
-int Key_StringToKeynum( const char *str );
+Span< const char > Key_KeynumToString( int id );
+Optional< int > Key_StringToKeynum( Span< const char > str );
 
 class DynamicString;
 void Key_WriteBindings( DynamicString * config );

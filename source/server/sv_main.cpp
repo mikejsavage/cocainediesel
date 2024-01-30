@@ -337,10 +337,10 @@ void SV_Init() {
 
 	SV_InitOperatorCommands();
 
-	NewCvar( "protocol", temp( "{}", s32( APP_PROTOCOL_VERSION ) ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
-	NewCvar( "serverid", temp( "{}", Random64( &svs.rng ) ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
+	NewCvar( "protocol", temp.sv( "{}", s32( APP_PROTOCOL_VERSION ) ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
+	NewCvar( "serverid", temp.sv( "{}", Random64( &svs.rng ) ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 
-	sv_port = NewCvar( "sv_port", temp( "{}", PORT_SERVER ), CvarFlag_Archive | CvarFlag_ServerReadOnly );
+	sv_port = NewCvar( "sv_port", temp.sv( "{}", PORT_SERVER ), CvarFlag_Archive | CvarFlag_ServerReadOnly );
 
 	sv_downloadurl = NewCvar( "sv_downloadurl", "", CvarFlag_Archive | CvarFlag_ServerReadOnly );
 
@@ -362,7 +362,7 @@ void SV_Init() {
 	if( sv_maxclients->integer < 1 ) {
 		Cvar_ForceSet( "sv_maxclients", "1" );
 	} else if( sv_maxclients->integer > MAX_CLIENTS ) {
-		Cvar_ForceSet( "sv_maxclients", temp( "{}", MAX_CLIENTS ) );
+		Cvar_ForceSet( "sv_maxclients", temp.sv( "{}", MAX_CLIENTS ) );
 	}
 
 	sv_demodir = NewCvar( "sv_demodir", "server", CvarFlag_ServerReadOnly );

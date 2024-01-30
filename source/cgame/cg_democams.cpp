@@ -20,7 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "qcommon/fs.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/string.h"
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 
@@ -99,11 +98,11 @@ int CG_DemoCamUpdate() {
 	return CamIsFree ? VIEWDEF_DEMOCAM : VIEWDEF_PLAYERVIEW;
 }
 
-static void CG_DemoFreeFly_Cmd_f() {
-	if( Cmd_Argc() > 1 ) {
-		if( StrCaseEqual( Cmd_Argv( 1 ), "on" ) ) {
+static void CG_DemoFreeFly_Cmd_f( const Tokenized & args ) {
+	if( args.tokens.n > 1 ) {
+		if( StrCaseEqual( args.tokens[ 1 ], "on" ) ) {
 			CamIsFree = true;
-		} else if( StrCaseEqual( Cmd_Argv( 1 ), "off" ) ) {
+		} else if( StrCaseEqual( args.tokens[ 1 ], "off" ) ) {
 			CamIsFree = false;
 		}
 	} else {

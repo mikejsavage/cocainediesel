@@ -118,8 +118,10 @@ void InitRenderer() {
 
 	InitRenderBackend();
 
+	TempAllocator temp = cls.frame_arena.temp();
+
 	r_samples = NewCvar( "r_samples", "0", CvarFlag_Archive );
-	r_shadow_quality = NewCvar( "r_shadow_quality", "1", CvarFlag_Archive );
+	r_shadow_quality = NewCvar( "r_shadow_quality", temp.sv( "{}", ShadowQuality_Ultra ), CvarFlag_Archive );
 
 	frame_static = { };
 	frame_counter = 0;
@@ -172,7 +174,7 @@ void InitRenderer() {
 		dynamic_geometry.mesh = NewMesh( config );
 	}
 
-	AddCommand( "screenshot", TakeScreenshot );
+	AddCommand( "screenshot", []( const Tokenized & args ) { TakeScreenshot(); } );
 	strcpy( last_screenshot_date, "" );
 	same_date_count = 0;
 

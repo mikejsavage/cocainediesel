@@ -273,6 +273,10 @@ namespace ImGui {
 	void Text( Span< const char > str ) {
 		ImGui::TextUnformatted( str.begin(), str.end() );
 	}
+
+	void PushID( Span< const char > id ) {
+		ImGui::PushID( id.begin(), id.end() );
+	}
 }
 
 ImGuiColorToken::ImGuiColorToken( u8 r, u8 g, u8 b, u8 a ) {

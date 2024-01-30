@@ -182,9 +182,9 @@ static char *SV_LongInfoString( bool fullStatus ) {
 //
 //==============================================================================
 
-static void SVC_InfoResponse( const NetAddress & address ) {
+static void SVC_InfoResponse( const NetAddress & address, const Tokenized & args ) {
 	if( sv_showInfoQueries->integer ) {
-		Com_GGPrint( "Info Packet {} {}", address, Cmd_Argv( 1 ) );
+		Com_GGPrint( "Info Packet {} {}", address, args.tokens[ 1 ] );
 	}
 
 	int num_players = 0;
@@ -202,7 +202,7 @@ static void SVC_InfoResponse( const NetAddress & address ) {
 	int max_players = sv_maxclients->integer - num_bots;
 
 	String< 256 > response( "info\n{}\\\\n\\\\{}\\\\m\\\\{}\\\\u\\\\{}/{}\\\\id\\\\{}",
-		Cmd_Argv( 1 ),
+		args.tokens[ 1 ],
 		Cvar_String( "sv_hostname" ),
 		sv.mapname,
 		Min2( num_players, 99 ),
@@ -210,7 +210,7 @@ static void SVC_InfoResponse( const NetAddress & address ) {
 		Cvar_String( "serverid" )
 	);
 
-	if( strlen( Cvar_String( "sv_password" ) ) > 0 ) {
+	if( Cvar_String( "sv_password" ) != "" ) {
 		response += "\\\\p\\\\1";
 	}
 
@@ -219,20 +219,21 @@ static void SVC_InfoResponse( const NetAddress & address ) {
 	Netchan_OutOfBandPrint( svs.socket, address, "%s", response.c_str() );
 }
 
-static void MasterOrLivesowResponse( const NetAddress & address, const char * command, bool include_players ) {
+static void MasterOrLivesowResponse( const NetAddress & address, const char * command, const Tokenized & args, bool include_players ) {
 	if( sv_showInfoQueries->integer ) {
 		Com_GGPrint( "getstatus {}", address );
 	}
 
-	Netchan_OutOfBandPrint( svs.socket, address, "%s\n\\challenge\\%s%s", command, Cmd_Argv( 1 ), SV_LongInfoString( include_players ) );
+	TempAllocator temp = svs.frame_arena.temp();
+	Netchan_OutOfBandPrint( svs.socket, address, "%s", temp( "{}\n\\challenge\\{}{}", command, args.tokens[ 1 ], SV_LongInfoString( include_players ) ) );
 }
 
-static void SVC_GetStatusResponse( const NetAddress & address ) {
-	MasterOrLivesowResponse( address, "statusResponse", true );
+static void SVC_GetStatusResponse( const NetAddress & address, const Tokenized & args ) {
+	MasterOrLivesowResponse( address, "statusResponse", args, true );
 }
 
-static void SVC_MasterServerResponse( const NetAddress & address ) {
-	MasterOrLivesowResponse( address, "infoResponse", false );
+static void SVC_MasterServerResponse( const NetAddress & address, const Tokenized & args ) {
+	MasterOrLivesowResponse( address, "infoResponse", args, false );
 }
 
 /*
@@ -244,7 +245,7 @@ static void SVC_MasterServerResponse( const NetAddress & address ) {
 * flood the server with invalid connection IPs.  With a
 * challenge, they must give a valid IP address.
 */
-static void SVC_GetChallenge( const NetAddress & address ) {
+static void SVC_GetChallenge( const NetAddress & address, const Tokenized & args ) {
 	int oldest = 0;
 	int oldestTime = 0x7fffffff;
 
@@ -279,23 +280,22 @@ static void SVC_GetChallenge( const NetAddress & address ) {
 * SVC_DirectConnect
 * A connection request that did not come from the master
 */
-static void SVC_DirectConnect( const NetAddress & address ) {
-	u64 version = SpanToU64( MakeSpan( Cmd_Argv( 1 ) ), U64_MAX );
+static void SVC_DirectConnect( const NetAddress & address, const Tokenized & args ) {
+	u64 version = SpanToU64( args.tokens[ 1 ], U64_MAX );
 	if( version != APP_PROTOCOL_VERSION ) {
 		Netchan_OutOfBandPrint( svs.socket, address, "reject\n%i\nServer and client don't have the same version\n", 0 );
 		return;
 	}
 
-	u64 session_id = SpanToU64( MakeSpan( Cmd_Argv( 2 ) ), 0 );
-	int challenge = atoi( Cmd_Argv( 3 ) );
+	u64 session_id = SpanToU64( args.tokens[ 2 ], 0 );
+	int challenge = SpanToInt( args.tokens[ 3 ], 0 );
 
-	if( !Info_Validate( Cmd_Argv( 4 ) ) ) {
+	char userinfo[ MAX_INFO_STRING ];
+	ggformat( userinfo, sizeof( userinfo ), "{}", args.tokens[ 4 ] );
+	if( !Info_Validate( userinfo ) ) {
 		Netchan_OutOfBandPrint( svs.socket, address, "reject\n%i\nInvalid userinfo string\n", 0 );
 		return;
 	}
-
-	char userinfo[ MAX_INFO_STRING ];
-	SafeStrCpy( userinfo, Cmd_Argv( 4 ), sizeof( userinfo ) );
 
 	// see if the challenge is valid
 	{
@@ -413,12 +413,16 @@ struct connectionless_cmd_t {
 	void ( *func )( const NetAddress & address );
 };
 
-static connectionless_cmd_t connectionless_cmds[] = {
-	{ "info", SVC_InfoResponse },
-	{ "getinfo", SVC_MasterServerResponse },
-	{ "getstatus", SVC_GetStatusResponse },
-	{ "getchallenge", SVC_GetChallenge },
-	{ "connect", SVC_DirectConnect },
+static constexpr struct {
+	Span< const char > name;
+	void ( *func )( const NetAddress & address, const Tokenized & args );
+	size_t num_args;
+} connectionless_cmds[] = {
+	{ "info", SVC_InfoResponse, 1 },
+	{ "getinfo", SVC_MasterServerResponse, 1 },
+	{ "getstatus", SVC_GetStatusResponse, 1 },
+	{ "getchallenge", SVC_GetChallenge, 0 },
+	{ "connect", SVC_DirectConnect, 4 },
 };
 
 /*
@@ -431,16 +435,17 @@ static connectionless_cmd_t connectionless_cmds[] = {
 */
 void SV_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 	MSG_BeginReading( msg );
-	MSG_ReadInt32( msg );    // skip the -1 marker
+	MSG_ReadInt32( msg ); // skip the -1 marker
 
-	const char * s = MSG_ReadStringLine( msg );
-	Cmd_TokenizeString( s );
+	TempAllocator temp = svs.frame_arena.temp();
+	Tokenized args = Tokenize( &temp, MakeSpan( MSG_ReadStringLine( msg ) ) );
 
-	const char * c = Cmd_Argv( 0 );
 	for( auto cmd : connectionless_cmds ) {
-		if( StrEqual( c, cmd.name ) ) {
-			cmd.func( address );
+		if( StrEqual( cmd.name, args.tokens[ 0 ] ) && args.tokens.n == cmd.num_args + 1 ) {
+			cmd.func( address, args );
 			return;
 		}
 	}
+
+	Assert( is_public_build );
 }

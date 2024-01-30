@@ -9,6 +9,8 @@
 
 #include "nanosort/nanosort.hpp"
 
+#include <inttypes.h>
+
 struct MasterServer {
 	NetAddress address;
 	Thread * resolver_thread;

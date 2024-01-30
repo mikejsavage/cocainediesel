@@ -13,4 +13,5 @@ namespace ImGui {
 
 	ImVec2 CalcTextSize( Span< const char > str );
 	void Text( Span< const char > str );
+	void PushID( Span< const char > id );
 };

@@ -81,7 +81,6 @@ struct level_locals_t {
 	int64_t finalMatchDuration;
 
 	char callvote_map[128];
-	char autorecord_name[128];
 
 	bool canSpawnEntities; // security check to prevent entities being spawned before map entities
 
@@ -274,7 +273,7 @@ void G_CallPain( edict_t * ent, edict_t * attacker, float kick, float damage );
 void G_CallDie( edict_t * ent, edict_t * inflictor, edict_t * attacker, int assistorNo, DamageType damage_type, int damage );
 
 [[gnu::format( printf, 2, 3 )]] void G_PrintMsg( edict_t * ent, const char * format, ... );
-[[gnu::format( printf, 4, 5 )]] void G_ChatMsg( edict_t * ent, const edict_t * who, bool teamonly, const char * format, ... );
+void G_ChatMsg( edict_t * ent, const edict_t * who, bool teamonly, Span< const char > msg );
 [[gnu::format( printf, 2, 3 )]] void G_CenterPrintMsg( edict_t * ent, const char * format, ... );
 void G_ClearCenterPrint( edict_t * ent );
 
@@ -294,7 +293,7 @@ void G_ClearPlayerStateEvents( gclient_t *client );
 
 // announcer events
 void G_AnnouncerSound( edict_t * targ, StringHash sound, Team team, bool queued, edict_t * ignore );
-edict_t * G_PlayerForText( const char *text );
+edict_t * G_PlayerForText( Span< const char > text );
 
 void G_SunCycle( u64 time );
 
@@ -307,8 +306,8 @@ void G_CallVotes_ResetClient( int n );
 void G_CallVotes_Think();
 bool G_Callvotes_HasVoted( edict_t * ent );
 void G_CallVote_Cmd( edict_t * ent, msg_t args );
-void G_CallVotes_VoteYes( edict_t * ent, msg_t args );
-void G_CallVotes_VoteNo( edict_t * ent, msg_t args );
+void G_CallVotes_VoteYes( edict_t * ent );
+void G_CallVotes_VoteNo( edict_t * ent );
 
 //
 // g_trigger.c
@@ -372,11 +371,11 @@ void G_AltFireWeapon( edict_t * ent, u64 parm );
 void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm, bool dead );
 
 //
-// g_chasecam	//newgametypes
+// g_chasecam
 //
 void G_ChasePlayer( edict_t * ent );
 void G_ChaseStep( edict_t * ent, int step );
-void Cmd_ToggleFreeFly( edict_t * ent );
+void Cmd_ToggleFreeFly( edict_t * ent, msg_t args );
 void Cmd_Spectate( edict_t * ent );
 void G_EndServerFrames_UpdateChaseCam();
 

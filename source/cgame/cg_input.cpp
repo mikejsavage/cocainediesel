@@ -45,8 +45,8 @@ static Button button_reload;
 static void ClearButton( Button * b ) {
 	b->keys[ 0 ] = 0;
 	b->keys[ 1 ] = 0;
+	b->edge = b->down;
 	b->down = false;
-	b->edge = false;
 }
 
 static void KeyDown( Button * b ) {
@@ -80,6 +80,7 @@ static void KeyUp( Button * b ) {
 	if( !c[0] ) {
 		b->keys[ 0 ] = 0;
 		b->keys[ 1 ] = 0;
+		b->edge = b->down;
 		b->down = false;
 		return;
 	}

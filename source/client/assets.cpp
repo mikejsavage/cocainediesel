@@ -14,19 +14,6 @@
 
 #include "nanosort/nanosort.hpp"
 
-#if PLATFORM_WINDOWS
-
-#include "qcommon/platform/windows_mini_windows_h.h"
-#include "qcommon/platform/windows_utf8.h"
-
-static void CheckedVirtualFree( void * ptr ) {
-	if( VirtualFree( ptr, 0, MEM_RELEASE ) == 0 ) {
-		FatalGLE( "VirtualFree" );
-	}
-}
-
-#endif
-
 struct Asset {
 	Span< char > path;
 	Span< u8 > data;
@@ -59,6 +46,30 @@ enum UseVirtualFree : bool {
 	UseVirtualFree_Yes = true,
 };
 
+#if PLATFORM_WINDOWS
+
+#include "qcommon/platform/windows_mini_windows_h.h"
+#include "qcommon/platform/windows_utf8.h"
+
+static void CheckedVirtualFree( void * ptr ) {
+	if( VirtualFree( ptr, 0, MEM_RELEASE ) == 0 ) {
+		FatalGLE( "VirtualFree" );
+	}
+}
+
+#endif
+
+static void FreeAssetData( Asset * asset ) {
+#if PLATFORM_WINDOWS
+	if( asset->virtual_free ) {
+		CheckedVirtualFree( asset->data.ptr );
+		return;
+	}
+#endif
+
+	Free( sys_allocator, asset->data.ptr );
+}
+
 static void AddAsset( Span< const char > path, u64 hash, Span< u8 > data, IsCompressedBool compressed, UseVirtualFree virtual_free ) {
 	TracyZoneScoped;
 
@@ -76,7 +87,7 @@ static void AddAsset( Span< const char > path, u64 hash, Span< u8 > data, IsComp
 	Asset * a;
 	if( exists ) {
 		a = &assets[ idx ];
-		Free( sys_allocator, a->data.ptr );
+		FreeAssetData( a );
 	}
 	else {
 		a = &assets[ num_assets ];
@@ -386,13 +397,7 @@ void ShutdownAssets() {
 
 	for( u32 i = 0; i < num_assets; i++ ) {
 		Free( sys_allocator, assets[ i ].path.ptr );
-#if PLATFORM_WINDOWS
-		if( assets[ i ].virtual_free ) {
-			CheckedVirtualFree( assets[ i ].data.ptr );
-			continue;
-		}
-#endif
-		Free( sys_allocator, assets[ i ].data.ptr );
+		FreeAssetData( &assets[ i ] );
 	}
 
 	DeleteFSChangeMonitor( sys_allocator, fs_change_monitor );

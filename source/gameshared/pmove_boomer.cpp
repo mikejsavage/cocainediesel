@@ -1,9 +1,7 @@
 #include "gameshared/movement.h"
-#include "gameshared/gs_weapons.h"
 
 static constexpr float jump_upspeed = 260.0f;
 static constexpr float jump_detection = 0.06f; //slight jump buffering
-
 
 static constexpr float charge_groundAccel = 2.0f;
 static constexpr float charge_friction = 0.75f;
@@ -13,7 +11,6 @@ static constexpr float charge_sidespeed = 400.0f;
 static constexpr float stamina_limit = 0.5f;
 static constexpr float stamina_use = 0.5f;
 static constexpr float stamina_recover = 0.25f;
-
 
 static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) {
@@ -38,8 +35,6 @@ static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 	}
 }
 
-
-
 static void PM_BoomerSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( !pressed ) {
 		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
@@ -62,7 +57,6 @@ static void PM_BoomerSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 		StaminaRecover( ps, pml, stamina_recover );
 	}
 }
-
 
 void PM_BoomerInit( pmove_t * pm, pml_t * pml ) {
 	PM_InitPerk( pm, pml, Perk_Boomer, PM_BoomerJump, PM_BoomerSpecial );

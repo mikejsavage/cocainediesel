@@ -1,5 +1,4 @@
 #include "qcommon/base.h"
-#include "qcommon/qcommon.h"
 #include "qcommon/asan.h"
 #include "qcommon/string.h"
 

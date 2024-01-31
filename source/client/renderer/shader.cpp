@@ -1,5 +1,4 @@
 #include "qcommon/base.h"
-#include "qcommon/array.h"
 #include "qcommon/string.h"
 #include "client/client.h"
 #include "client/assets.h"

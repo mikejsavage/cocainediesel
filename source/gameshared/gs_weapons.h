@@ -4,8 +4,6 @@
 #include "gameshared/gs_synctypes.h"
 
 struct gs_state_t;
-struct SyncPlayerState;
-struct UserCommand;
 
 struct WeaponDef {
 	Span< const char > name;

@@ -1,5 +1,4 @@
 #include "qcommon/base.h"
-#include "qcommon/qcommon.h"
 #include "qcommon/array.h"
 #include "qcommon/fpe.h"
 #include "qcommon/hash.h"

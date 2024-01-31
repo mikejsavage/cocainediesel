@@ -22,8 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client/client.h"
 #include "client/downloads.h"
-#include "qcommon/fs.h"
-#include "qcommon/string.h"
 #include "qcommon/version.h"
 
 struct DownloadInProgress {

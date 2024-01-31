@@ -20,7 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "server/server.h"
 #include "qcommon/csprng.h"
-#include "qcommon/hash.h"
 #include "game/g_maps.h"
 
 server_constant_t svc;              // constant server info (trully persistant since sv_init)

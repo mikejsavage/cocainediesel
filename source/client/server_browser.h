@@ -1,7 +1,7 @@
 #pragma once
 
 #include "qcommon/types.h"
-#include "qcommon/qcommon.h"
+#include "qcommon/net.h"
 
 struct ServerBrowserEntry {
 	NetAddress address;

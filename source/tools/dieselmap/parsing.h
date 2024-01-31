@@ -3,9 +3,6 @@
 #include <vector>
 
 #include "qcommon/types.h"
-#include "qcommon/array.h"
-
-#include "gameshared/q_shared.h"
 
 template< typename T, size_t N >
 struct StaticArray {

@@ -19,8 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/base.h"
-#include "qcommon/compression.h"
-#include "qcommon/fs.h"
 #include "qcommon/srgb.h"
 #include "game/g_local.h"
 #include "game/g_maps.h"

@@ -1,6 +1,4 @@
 #include "gameshared/movement.h"
-#include "gameshared/gs_weapons.h"
-
 
 static constexpr float pm_jumpspeed = 230.0f;
 static constexpr float jump_detection = 0.06f; //slight jump buffering
@@ -19,7 +17,6 @@ static constexpr float fuel_min = 0.01f;
 static constexpr float refuel_min = 0.1f; //50%
 static constexpr float refuel_ground = 0.8f;
 static constexpr float refuel_air = 0.0f;
-
 
 static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( pressed ) {
@@ -64,8 +61,6 @@ static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 	}
 }
 
-
-
 static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( (ps->pmove.stamina_state == Stamina_Normal || ps->pmove.stamina_state == Stamina_Reloading) && !(ps->pmove.pm_flags & PMF_ABILITY2_HELD) ) {
 		StaminaRecover( ps, pml, refuel_ground );
@@ -101,7 +96,6 @@ static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmo
 		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 	}
 }
-
 
 void PM_JetpackInit( pmove_t * pm, pml_t * pml ) {
 	PM_InitPerk( pm, pml, Perk_Jetpack, PM_JetpackJump, PM_JetpackSpecial );

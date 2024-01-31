@@ -1,6 +1,5 @@
 #pragma once
 
-#include "qcommon/types.h"
 #include "qcommon/hash.h"
 #include "gameshared/q_collision.h"
 

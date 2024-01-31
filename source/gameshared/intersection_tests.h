@@ -1,7 +1,7 @@
 #pragma once
 
 #include "qcommon/types.h"
-#include "gameshared/cdmap.h"
+#include "gameshared/q_collision.h"
 
 enum ShapeType {
 	ShapeType_Ray,
@@ -44,6 +44,8 @@ bool RayVsSphere( const Ray & ray, const Sphere & sphere, float * t );
 bool RayVsCapsule( const Ray & ray, const Capsule & capsule, float * t );
 
 // TODO: special case stationary traces
+struct MapData;
+struct MapModel;
 bool SweptShapeVsMapModel( const MapData * map, const MapModel * model, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection );
 bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, Intersection * intersection );
 

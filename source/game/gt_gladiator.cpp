@@ -1,7 +1,6 @@
 #include "qcommon/base.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
-#include "qcommon/string.h"
 #include "game/g_local.h"
 #include "game/g_maps.h"
 #include "gameshared/cdmap.h"

@@ -1,6 +1,4 @@
 #include "qcommon/base.h"
-#include "qcommon/array.h"
-
 #include "game/g_local.h"
 #include "gameshared/collision.h"
 

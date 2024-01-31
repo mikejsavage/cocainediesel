@@ -18,8 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "qcommon/qcommon.h"
-#include "gameshared/movement.h"
+#include "qcommon/base.h"
+#include "gameshared/gs_public.h"
 
 Vec3 GS_EvaluateJumppad( const SyncEntityState * jumppad, Vec3 velocity ) {
 	if( jumppad->type == ET_PAINKILLER_JUMPPAD ) {

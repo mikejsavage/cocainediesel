@@ -51,7 +51,6 @@ Span< Span< const char > > SearchCvars( Allocator * a, Span< const char > partia
 bool Cvar_CheatsAllowed();
 void ResetCheatCvars();
 
-class DynamicString;
 Span< const char > Cvar_MakeConfig( Allocator * a );
 
 void Cvar_Init();

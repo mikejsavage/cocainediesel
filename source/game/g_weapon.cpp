@@ -21,8 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "game/g_local.h"
 
-#include "gameshared/intersection_tests.h"
-
 #define ARBULLETHACK // ffs : hack for the assault rifle
 
 static bool CanHit( const edict_t * projectile, const edict_t * target ) {

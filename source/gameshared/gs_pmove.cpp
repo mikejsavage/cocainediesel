@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "qcommon/qcommon.h"
+#include "qcommon/base.h"
 #include "gameshared/movement.h"
 
 static constexpr float pm_ladderspeed = 300.0f;

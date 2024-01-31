@@ -2,7 +2,6 @@
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "client/assets.h"
-#include "client/maps.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
 #include "client/renderer/gltf.h"

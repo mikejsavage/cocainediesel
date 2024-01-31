@@ -4,6 +4,7 @@
 #include "qcommon/array.h"
 #include "qcommon/hash.h"
 #include "qcommon/span2d.h"
+#include "gameshared/q_shared.h"
 
 #include "parsing.h"
 

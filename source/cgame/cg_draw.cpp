@@ -23,7 +23,7 @@ static Vec2 ClipToScreen( Vec2 clip ) {
 }
 
 Vec2 WorldToScreen( Vec3 v ) {
-	Vec4 clip = frame_static.P * frame_static.V * Vec4( v, 1.0f );
+	Vec4 clip = frame_static.P * Mat4( frame_static.V ) * Vec4( v, 1.0f );
 	if( clip.w == 0.0f )
 		return Vec2( 0, 0 );
 	return ClipToScreen( clip.xy() / clip.w );
@@ -32,7 +32,7 @@ Vec2 WorldToScreen( Vec3 v ) {
 Vec2 WorldToScreenClamped( Vec3 v, Vec2 screen_border, bool * clamped ) {
 	*clamped = false;
 
-	Vec4 clip = frame_static.P * frame_static.V * Vec4( v, 1.0f );
+	Vec4 clip = frame_static.P * Mat4( frame_static.V ) * Vec4( v, 1.0f );
 	if( clip.w == 0.0f )
 		return Vec2( 0.0f, 0.0f );
 

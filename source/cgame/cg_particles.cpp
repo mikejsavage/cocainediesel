@@ -978,7 +978,7 @@ static float SampleRandomDistribution( RNG * rng, RandomDistribution dist ) {
 	return SampleNormalDistribution( rng ) * dist.sigma;
 }
 
-static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, ParticleEmitterPosition pos, float t, Vec4 start_color, Vec4 end_color, Mat4 dir_transform ) {
+static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, ParticleEmitterPosition pos, float t, Vec4 start_color, Vec4 end_color, Mat3x4 dir_transform ) {
 	TracyZoneScopedN( "Emit Particle" );
 	float lifetime = Max2( 0.0f, emitter->lifetime + SampleRandomDistribution( &cls.rng, emitter->lifetime_distribution ) );
 
@@ -1030,6 +1030,43 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 	}
 }
 
+static Mat3x4 TransformKToDir( Vec3 dir ) {
+	if( dir == Vec3( 0.0f ) )
+		return Mat3x4::Identity();
+
+	dir = Normalize( dir );
+
+	Vec3 K = Vec3( 0, 0, 1 );
+
+	Vec3 axis;
+	if( Abs( dir.z ) < 0.9999f ) {
+		axis = Normalize( Cross( K, dir ) );
+	}
+	else {
+		axis = Vec3( 1.0f, 0.0f, 0.0f );
+	}
+
+	float c = Dot( K, dir );
+	float s = sqrtf( 1.0f - c * c );
+
+	return Mat3x4(
+		c + axis.x * axis.x * ( 1.0f - c ),
+		axis.x * axis.y * ( 1.0f - c ) - axis.z * s,
+		axis.x * axis.z * ( 1.0f - c ) + axis.y * s,
+		0.0f,
+
+		axis.y * axis.x * ( 1.0f - c ) + axis.z * s,
+		c + axis.y * axis.y * ( 1.0f - c ),
+		axis.y * axis.z * ( 1.0f - c ) - axis.x * s,
+		0.0f,
+
+		axis.z * axis.x * ( 1.0f - c ) - axis.y * s,
+		axis.z * axis.y * ( 1.0f - c ) + axis.x * s,
+		c + axis.z * axis.z * ( 1.0f - c ),
+		0.0f
+	);
+}
+
 static void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 color ) {
 	TracyZoneScoped;
 
@@ -1045,13 +1082,12 @@ static void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition po
 	u32 n = u32( p );
 	float remaining_p = p - n;
 
-	Mat4 dir_transform = Mat4::Identity();
+	Mat3x4 dir_transform = Mat3x4::Identity();
 	if( pos.theta != 0.0f ) {
-		dir_transform = pos.normal == Vec3( 0.0f ) ? Mat4::Identity() : TransformKToDir( pos.normal );
+		dir_transform = TransformKToDir( pos.normal );
 	}
 	else if( pos.type == ParticleEmitterPosition_Line && pos.radius > 0.0f ) {
-		Vec3 dir = pos.end - pos.origin;
-		dir_transform = dir == Vec3( 0.0f ) ? Mat4::Identity() : TransformKToDir( dir );
+		dir_transform = TransformKToDir( pos.end - pos.origin );
 	}
 
 	Vec4 start_color = emitter->start_color;

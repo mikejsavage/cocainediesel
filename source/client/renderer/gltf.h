@@ -60,8 +60,8 @@ struct GLTFRenderData {
 	struct Node {
 		StringHash name;
 
-		Mat4 global_transform;
-		TRS local_transform;
+		Mat3x4 global_transform;
+		Transform local_transform;
 
 		StringHash material;
 		Mesh mesh;
@@ -82,13 +82,13 @@ struct GLTFRenderData {
 	};
 
 	struct Joint {
-		Mat4 joint_to_bind;
+		Mat3x4 joint_to_bind;
 		u8 node_idx;
 	};
 
 	Span< char > name;
 
-	Mat4 transform;
+	Mat3x4 transform;
 	MinMax3 bounds;
 	Optional< u8 > camera_node;
 
@@ -103,14 +103,14 @@ void DeleteGLTFRenderData( GLTFRenderData * render_data );
 
 const GLTFRenderData * FindGLTFRenderData( StringHash name );
 
-void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * render_data, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
+void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * render_data, const Mat3x4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
 
 bool FindNodeByName( const GLTFRenderData * model, StringHash name, u8 * idx );
 bool FindAnimationByName( const GLTFRenderData * model, StringHash name, u8 * idx );
 
-Span< TRS > SampleAnimation( Allocator * a, const GLTFRenderData * model, float t, u8 animation = 0 );
-void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const GLTFRenderData * model, u8 upper_root_joint );
-MatrixPalettes ComputeMatrixPalettes( Allocator * a, const GLTFRenderData * model, Span< const TRS > local_poses );
+Span< Transform > SampleAnimation( Allocator * a, const GLTFRenderData * model, float t, u8 animation = 0 );
+void MergeLowerUpperPoses( Span< Transform > lower, Span< const Transform > upper, const GLTFRenderData * model, u8 upper_root_joint );
+MatrixPalettes ComputeMatrixPalettes( Allocator * a, const GLTFRenderData * model, Span< const Transform > local_poses );
 
 void InitGLTFInstancing();
 void ShutdownGLTFInstancing();

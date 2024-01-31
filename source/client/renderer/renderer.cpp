@@ -301,7 +301,7 @@ static Mat4 InvertPerspectiveProjection( const Mat4 & P ) {
 	);
 }
 
-static Mat4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
+static Mat3x4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
 	float pitch = Radians( angles.pitch );
 	float sp = sinf( pitch );
 	float cp = cosf( pitch );
@@ -324,39 +324,37 @@ static Mat4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
 		cp * cr
 	);
 
-	Mat4 rotation(
+	Mat3x4 rotation(
 		right.x, right.y, right.z, 0,
 		up.x, up.y, up.z, 0,
-		-forward.x, -forward.y, -forward.z, 0,
-		0, 0, 0, 1
+		-forward.x, -forward.y, -forward.z, 0
 	);
 	return rotation * Mat4Translation( -position );
 }
 
-static Mat4 ViewMatrix( Vec3 position, Vec3 forward ) {
+static Mat3x4 ViewMatrix( Vec3 position, Vec3 forward ) {
 	Vec3 right, up;
 	ViewVectors( forward, &right, &up );
-	Mat4 rotation(
+	Mat3x4 rotation(
 		right.x, right.y, right.z, 0,
 		up.x, up.y, up.z, 0,
-		-forward.x, -forward.y, -forward.z, 0,
-		0, 0, 0, 1
+		-forward.x, -forward.y, -forward.z, 0
 	);
 	return rotation * Mat4Translation( -position );
 }
 
-static Mat4 InvertViewMatrix( const Mat4 & V, Vec3 position ) {
-	return Mat4(
+static Mat3x4 InvertViewMatrix( const Mat3x4 & V, Vec3 position ) {
+	return Mat3x4(
 		// transpose rotation part
-		Vec4( V.row0().xyz(), 0.0f ),
-		Vec4( V.row1().xyz(), 0.0f ),
-		Vec4( V.row2().xyz(), 0.0f ),
+		Vec3( V.row0().xyz() ),
+		Vec3( V.row1().xyz() ),
+		Vec3( V.row2().xyz() ),
 
-		Vec4( position, 1.0f )
+		Vec3( position )
 	);
 }
 
-static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & inverse_V, const Mat4 & P, const Mat4 & inverse_P, Vec3 camera_pos, Vec2 viewport_size, float near_plane, int samples, Vec3 light_dir ) {
+static UniformBlock UploadViewUniforms( const Mat3x4 & V, const Mat3x4 & inverse_V, const Mat4 & P, const Mat4 & inverse_P, Vec3 camera_pos, Vec2 viewport_size, float near_plane, int samples, Vec3 light_dir ) {
 	return UploadUniformBlock( V, inverse_V, P, inverse_P, camera_pos, viewport_size, near_plane, samples, light_dir );
 }
 
@@ -529,8 +527,8 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	last_msaa = frame_static.msaa_samples;
 	last_shadow_quality = frame_static.shadow_quality;
 
-	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples, Vec3() );
-	frame_static.identity_model_uniforms = UploadModelUniforms( Mat4::Identity() );
+	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat3x4::Identity(), Mat3x4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples, Vec3() );
+	frame_static.identity_model_uniforms = UploadModelUniforms( Mat3x4::Identity() );
 	frame_static.identity_material_static_uniforms = UploadMaterialStaticUniforms( 0.0f, 64.0f );
 	frame_static.identity_material_dynamic_uniforms = UploadMaterialDynamicUniforms( vec4_white );
 
@@ -662,7 +660,7 @@ void SetupShadowCascades() {
 
 	Vec3 frustum_directions[ num_corners ];
 	for( u32 i = 0; i < num_corners; i++ ) {
-		Vec4 corner = frame_static.inverse_V * frame_static.inverse_P * frustum_direction_corners[ i ];
+		Vec4 corner = Mat4( frame_static.inverse_V ) * frame_static.inverse_P * frustum_direction_corners[ i ];
 		frustum_directions[ i ] = Normalize( frame_static.position - corner.xyz() / corner.w );
 	}
 
@@ -681,7 +679,7 @@ void SetupShadowCascades() {
 	}
 
 	Vec3 shadow_camera_positions[ num_planes ];
-	Mat4 shadow_views[ num_planes ];
+	Mat3x4 shadow_views[ num_planes ];
 	Mat4 shadow_projections[ num_planes ];
 	for( u32 i = 0; i < num_planes; i++ ) {
 		frustum_centers[ i ] /= num_corners * 2;
@@ -703,9 +701,9 @@ void SetupShadowCascades() {
 	Vec3 cascade_scales[ num_cascades ];
 	for( u32 i = 0; i < num_cascades; i++ ) {
 		Mat4 & shadow_projection = shadow_projections[ i + 1 ];
-		Mat4 & shadow_view = shadow_views[ i + 1 ];
-		Vec3 & shadow_camera_position = shadow_camera_positions[ i + 1 ];
-		Mat4 shadow_matrix = shadow_projection * shadow_view;
+		const Mat3x4 & shadow_view = shadow_views[ i + 1 ];
+		const Vec3 & shadow_camera_position = shadow_camera_positions[ i + 1 ];
+		Mat4 shadow_matrix = shadow_projection * Mat4( shadow_view );
 
 		{
 			u32 shadowmap_size = frame_static.shadow_parameters.resolution;
@@ -717,15 +715,15 @@ void SetupShadowCascades() {
 			shadow_projection.col3.y += rounded_offset.y;
 		}
 
-		frame_static.shadowmap_view_uniforms[ i ] = UploadViewUniforms( shadow_view, Mat4::Identity(), shadow_projection, Mat4::Identity(), shadow_camera_position, Vec2(), cascade_dist[ i ], 0, frame_static.light_direction );
+		Mat3x4 inv_shadow_view = InvertViewMatrix( shadow_view, shadow_camera_position );
+		frame_static.shadowmap_view_uniforms[ i ] = UploadViewUniforms( shadow_view, Mat3x4::Identity(), shadow_projection, Mat4::Identity(), shadow_camera_position, Vec2(), cascade_dist[ i ], 0, frame_static.light_direction );
 
-		Mat4 inv_shadow_view = InvertViewMatrix( shadow_view, shadow_camera_position );
 		Mat4 inv_shadow_projection = InverseScaleTranslation( shadow_projection );
 
-		Mat4 tex_scale_bias = Mat4Translation( 0.5f, 0.5f, 0.0f ) * Mat4Scale( 0.5f, 0.5f, 1.0f );
+		Mat4 tex_scale_bias = Mat4( Mat4Translation( 0.5f, 0.5f, 0.0f ) * Mat4Scale( 0.5f, 0.5f, 1.0f ) );
 		Mat4 inv_tex_scale_bias = InverseScaleTranslation( tex_scale_bias );
 
-		Mat4 inv_cascade = shadow_views[ 0 ] * inv_shadow_view * inv_shadow_projection * inv_tex_scale_bias;
+		Mat4 inv_cascade = Mat4( shadow_views[ 0 ] * inv_shadow_view ) * inv_shadow_projection * inv_tex_scale_bias;
 		Vec3 cascade_corner = ( inv_cascade * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xyz();
 		Vec3 other_corner = ( inv_cascade * Vec4( 1.0f, 1.0f, 1.0f, 1.0f ) ).xyz();
 
@@ -826,7 +824,7 @@ void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bott
 	bg->PopTextureID();
 }
 
-UniformBlock UploadModelUniforms( const Mat4 & M ) {
+UniformBlock UploadModelUniforms( const Mat3x4 & M ) {
 	return UploadUniformBlock( M );
 }
 
@@ -862,7 +860,7 @@ Optional< ModelRenderData > FindModelRenderData( const char * name ) {
 	return FindModelRenderData( StringHash( name ) );
 }
 
-void DrawModel( DrawModelConfig config, ModelRenderData render_data, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
+void DrawModel( DrawModelConfig config, ModelRenderData render_data, const Mat3x4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
 	switch( render_data.type ) {
 		case ModelType_GLTF: DrawGLTFModel( config, render_data.gltf, transform, color, palettes ); break;
 		case ModelType_Map: DrawMapModel( config, render_data.map, transform, color ); break;

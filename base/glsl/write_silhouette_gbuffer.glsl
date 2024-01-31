@@ -25,7 +25,7 @@ layout( location = VertexAttribute_Position ) in vec4 a_Position;
 
 void main() {
 #if INSTANCED
-	mat4 u_M = AffineToMat4( instances[ gl_InstanceID ].transform );
+	AffineTransform u_M = instances[ gl_InstanceID ].transform;
 	v_Instance = gl_InstanceID;
 #endif
 	vec4 Position = a_Position;
@@ -35,7 +35,7 @@ void main() {
 	Skin( Position, NormalDontCare );
 #endif
 
-	gl_Position = u_P * u_V * u_M * Position;
+	gl_Position = u_P * AffineToMat4( u_V ) * AffineToMat4( u_M ) * Position;
 }
 
 #else

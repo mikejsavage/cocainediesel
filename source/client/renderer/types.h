@@ -140,15 +140,15 @@ struct Mesh {
 	bool cw_winding;
 };
 
-struct TRS {
+struct Transform {
 	Quaternion rotation;
 	Vec3 translation;
 	float scale;
 };
 
 struct MatrixPalettes {
-	Span< Mat4 > node_transforms;
-	Span< Mat4 > skinning_matrices;
+	Span< Mat3x4 > node_transforms;
+	Span< Mat3x4 > skinning_matrices;
 };
 
 struct Font;

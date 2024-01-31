@@ -456,7 +456,7 @@ bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, In
 	return true;
 }
 
-static bool SweptShapeVsGLTFBrush( const GLTFCollisionData * gltf, GLTFCollisionBrush & brush, Mat4 transform, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection ) {
+static bool SweptShapeVsGLTFBrush( const GLTFCollisionData * gltf, GLTFCollisionBrush & brush, const Mat3x4 & transform, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection ) {
 	constexpr Vec3 bevel_axes[] = {
 		Vec3( 1, 0, 0 ),
 		Vec3( 0, 1, 0 ),
@@ -551,7 +551,7 @@ static bool SweptShapeVsGLTFBrush( const GLTFCollisionData * gltf, GLTFCollision
 	return true;
 }
 
-bool SweptShapeVsGLTF( const GLTFCollisionData * gltf, Mat4 transform, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection ) {
+bool SweptShapeVsGLTF( const GLTFCollisionData * gltf, const Mat3x4 & transform, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection ) {
 	Optional< Intersection > best = NONE;
 
 	for( GLTFCollisionBrush & brush : gltf->brushes ) {

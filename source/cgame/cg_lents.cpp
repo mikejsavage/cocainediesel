@@ -122,7 +122,7 @@ void DrawGibs() {
 			continue;
 		}
 
-		Mat4 transform = Mat4Translation( gib->origin ) * Mat4Scale( size );
+		Mat3x4 transform = Mat4Translation( gib->origin ) * Mat4Scale( size );
 		DrawModelConfig config = { };
 		config.draw_model.enabled = true;
 		config.draw_shadows.enabled = true;

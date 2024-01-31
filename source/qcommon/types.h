@@ -394,6 +394,7 @@ struct Mat3 {
 	}
 };
 
+struct Mat3x4;
 struct alignas( 16 ) Mat4 {
 	Vec4 col0, col1, col2, col3;
 
@@ -405,6 +406,8 @@ struct alignas( 16 ) Mat4 {
 		float e20, float e21, float e22, float e23,
 		float e30, float e31, float e32, float e33
 	) : col0( e00, e10, e20, e30 ), col1( e01, e11, e21, e31 ), col2( e02, e12, e22, e32 ), col3( e03, e13, e23, e33 ) { }
+
+	constexpr explicit Mat4( const Mat3x4 & m34 );
 
 	constexpr Vec4 row0() const { return Vec4( col0.x, col1.x, col2.x, col3.x ); }
 	constexpr Vec4 row1() const { return Vec4( col0.y, col1.y, col2.y, col3.y ); }
@@ -427,13 +430,14 @@ struct alignas( 16 ) Mat3x4 {
 	Vec3 col0, col1, col2, col3;
 
 	Mat3x4() = default;
+	constexpr Mat3x4( Vec3 c0, Vec3 c1, Vec3 c2, Vec3 c3 ) : col0( c0 ), col1( c1 ), col2( c2 ), col3( c3 ) { }
 	constexpr Mat3x4(
 		float e00, float e01, float e02, float e03,
 		float e10, float e11, float e12, float e13,
 		float e20, float e21, float e22, float e23
 	) : col0( e00, e10, e20 ), col1( e01, e11, e21 ), col2( e02, e12, e22 ), col3( e03, e13, e23 ) { }
 
-	constexpr explicit Mat3x4( Mat4 m4 ) :
+	constexpr explicit Mat3x4( const Mat4 & m4 ) :
 		col0( m4.col0.xyz() ),
 		col1( m4.col1.xyz() ),
 		col2( m4.col2.xyz() ),
@@ -445,7 +449,21 @@ struct alignas( 16 ) Mat3x4 {
 	constexpr Vec4 row3() const { return Vec4( 0.0f, 0.0f, 0.0f, 1.0f ); }
 
 	float * ptr() { return col0.ptr(); }
+
+	static constexpr Mat3x4 Identity() {
+		return Mat3x4(
+			1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, 1, 0
+		);
+	}
 };
+
+constexpr Mat4::Mat4( const Mat3x4 & m34 ) :
+		col0( Vec4( m34.col0, 0.0f ) ),
+		col1( Vec4( m34.col1, 0.0f ) ),
+		col2( Vec4( m34.col2, 0.0f ) ),
+		col3( Vec4( m34.col3, 1.0f ) ) { }
 
 struct EulerDegrees2 {
 	float pitch, yaw;

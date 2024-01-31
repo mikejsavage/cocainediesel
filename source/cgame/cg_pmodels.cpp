@@ -34,25 +34,6 @@ static PlayerModelMetadata player_model_metadatas[ MAX_PLAYER_MODELS ];
 static u32 num_player_models;
 static Hashtable< MAX_PLAYER_MODELS * 2 > player_models_hashtable;
 
-static Mat4 EulerAnglesToMat4( float pitch, float yaw, float roll ) {
-	mat3_t axis;
-	AnglesToAxis( EulerDegrees3( pitch, yaw, roll ), axis );
-
-	Mat4 m = Mat4::Identity();
-
-	m.col0.x = axis[ 0 ];
-	m.col0.y = axis[ 1 ];
-	m.col0.z = axis[ 2 ];
-	m.col1.x = axis[ 3 ];
-	m.col1.y = axis[ 4 ];
-	m.col1.z = axis[ 5 ];
-	m.col2.x = axis[ 6 ];
-	m.col2.y = axis[ 7 ];
-	m.col2.z = axis[ 8 ];
-
-	return m;
-}
-
 static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, Span< const char > filename ) {
 	int num_clips = 1;
 
@@ -109,7 +90,7 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, Span< const char
 				float roll = ParseFloat( &cursor, 0.0f, Parse_StopOnNewLine );
 
 				tag->node_idx = node_idx;
-				tag->transform = Mat4Translation( forward, right, up ) * EulerAnglesToMat4( pitch, yaw, roll );
+				tag->transform = Mat4Translation( forward, right, up ) * Mat4Rotation( EulerDegrees3( pitch, yaw, roll ) );
 			}
 			else {
 				Com_GGPrint( "{}: Unknown node name: {}", filename, node_name );
@@ -162,7 +143,7 @@ static bool FindTag( const GLTFRenderData * model, PlayerModelMetadata::Tag * ta
 	}
 
 	tag->node_idx = idx;
-	tag->transform = Mat4::Identity();
+	tag->transform = Mat3x4::Identity();
 
 	return true;
 }
@@ -683,7 +664,7 @@ static Quaternion EulerAnglesToQuaternion( EulerDegrees3 angles ) {
 	);
 }
 
-static Mat4 TransformTag( const GLTFRenderData * model, const Mat4 & transform, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
+static Mat3x4 TransformTag( const GLTFRenderData * model, const Mat3x4 & transform, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
 	if( pose.node_transforms.ptr != NULL ) {
 		return transform * model->transform * pose.node_transforms[ tag.node_idx ] * tag.transform;
 	}
@@ -727,8 +708,8 @@ void CG_DrawPlayer( centity_t * cent ) {
 	if( model->animations.n > 0 ) {
 		float lower_time, upper_time;
 		CG_GetAnimationTimes( meta, pmodel, cl.serverTime, &lower_time, &upper_time );
-		Span< TRS > lower = SampleAnimation( &temp, model, lower_time );
-		Span< TRS > upper = SampleAnimation( &temp, model, upper_time );
+		Span< Transform > lower = SampleAnimation( &temp, model, lower_time );
+		Span< Transform > upper = SampleAnimation( &temp, model, upper_time );
 		MergeLowerUpperPoses( lower, upper, model, meta->upper_root_node );
 
 		if( !corpse ) {
@@ -764,7 +745,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 		pose = ComputeMatrixPalettes( &temp, model, lower );
 	}
 
-	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->interpolated.scale );
+	Mat3x4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->interpolated.scale );
 
 	Vec4 color = CG_TeamColorVec4( cent->current.team );
 	if( corpse ) {
@@ -796,14 +777,14 @@ void CG_DrawPlayer( centity_t * cent ) {
 		DrawGLTFModel( config, model, transform, color, pose );
 	}
 
-	Mat4 inverse_scale = Mat4Scale( 1.0f / cent->interpolated.scale );
+	Mat3x4 inverse_scale = Mat4Scale( 1.0f / cent->interpolated.scale );
 
 	// add weapon model
 	{
 		const GLTFRenderData * weapon_model = GetEquippedItemRenderData( &cent->current );
 		if( weapon_model != NULL ) {
 			PlayerModelMetadata::Tag tag = cent->current.gadget == Gadget_None ? meta->tag_weapon : meta->tag_gadget;
-			Mat4 tag_transform = TransformTag( weapon_model, transform, pose, tag ) * inverse_scale;
+			Mat3x4 tag_transform = TransformTag( weapon_model, transform, pose, tag ) * inverse_scale;
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -834,7 +815,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			if( cent->current.effects & EF_HAT )
 				tag = meta->tag_hat;
 
-			Mat4 tag_transform = TransformTag( attached_model, transform, pose, tag ) * inverse_scale;
+			Mat3x4 tag_transform = TransformTag( attached_model, transform, pose, tag ) * inverse_scale;
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -852,7 +833,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 		if( mask_model != NULL ) {
 			PlayerModelMetadata::Tag tag = meta->tag_mask;
 
-			Mat4 tag_transform = TransformTag( mask_model, transform, pose, tag ) * inverse_scale;
+			Mat3x4 tag_transform = TransformTag( mask_model, transform, pose, tag ) * inverse_scale;
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;

@@ -231,6 +231,7 @@ template<> constexpr size_t Std140Alignment< float >() { return sizeof( float );
 template<> constexpr size_t Std140Alignment< Vec2 >() { return sizeof( Vec2 ); }
 template<> constexpr size_t Std140Alignment< Vec3 >() { return sizeof( Vec4 ); } // !
 template<> constexpr size_t Std140Alignment< Vec4 >() { return sizeof( Vec4 ); }
+template<> constexpr size_t Std140Alignment< Mat3x4 >() { return sizeof( Vec4 ); } // !
 template<> constexpr size_t Std140Alignment< Mat4 >() { return sizeof( Vec4 ); } // !
 
 template< typename T >

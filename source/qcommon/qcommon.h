@@ -32,12 +32,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/cmd.h"
 #include "qcommon/cvar.h"
 
-inline Vec3 FromQFAxis( const mat3_t m, int axis ) {
+constexpr Vec3 FromQFAxis( const mat3_t m, int axis ) {
 	return Vec3( m[ axis + 0 ], m[ axis + 1 ], m[ axis + 2 ] );
 }
 
-inline Mat4 FromAxisAndOrigin( const mat3_t axis, Vec3 origin ) {
-	Mat4 rotation = Mat4::Identity();
+constexpr Mat3x4 FromAxisAndOrigin( const mat3_t axis, Vec3 origin ) {
+	Mat3x4 rotation = Mat3x4::Identity();
 	rotation.col0.x = axis[ 0 ];
 	rotation.col0.y = axis[ 1 ];
 	rotation.col0.z = axis[ 2 ];
@@ -48,8 +48,8 @@ inline Mat4 FromAxisAndOrigin( const mat3_t axis, Vec3 origin ) {
 	rotation.col2.y = axis[ 7 ];
 	rotation.col2.z = axis[ 8 ];
 
-	Mat4 translation = Mat4::Identity();
-	translation.col3 = Vec4( origin, 1.0f );
+	Mat3x4 translation = Mat3x4::Identity();
+	translation.col3 = Vec3( origin );
 
 	return translation * rotation;
 }

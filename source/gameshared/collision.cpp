@@ -234,9 +234,9 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 	return true;
 }
 
-static MinMax3 GLTFBounds( const GLTFCollisionData * gltf, Mat4 transform ) {
+static MinMax3 GLTFBounds( const GLTFCollisionData * gltf, const Mat3x4 & transform ) {
 	MinMax3 bounds = MinMax3::Empty();
-	for( Vec3 & vert : gltf->vertices ) {
+	for( const Vec3 & vert : gltf->vertices ) {
 		bounds = Union( bounds, ( transform * Vec4( vert, 1.0f ) ).xyz() );
 	}
 	return bounds;
@@ -348,8 +348,8 @@ MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntitySta
 		const GLTFCollisionData * gltf = FindGLTFSharedCollisionData( storage, model.gltf_model );
 		if( gltf == NULL )
 			return MinMax3::Empty();
-		// Mat4 transform = Mat4Translation( ent->origin ) * Mat4Rotation( EulerDegrees3( ent->angles ) ) * Mat4Scale( ent->scale );
-		Mat4 transform = Mat4Rotation( EulerDegrees3( ent->angles ) ) * Mat4Scale( ent->scale );
+		// Mat3x4 transform = Mat4Translation( ent->origin ) * Mat4Rotation( EulerDegrees3( ent->angles ) ) * Mat4Scale( ent->scale );
+		Mat3x4 transform = Mat4Rotation( EulerDegrees3( ent->angles ) ) * Mat4Scale( ent->scale );
 		return GLTFBounds( gltf, transform );
 	}
 
@@ -449,7 +449,7 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 		if( gltf == NULL )
 			return trace;
 
-		Mat4 transform = Mat4Translation( ent->origin ) * Mat4Rotation( EulerDegrees3( ent->angles ) ) * Mat4Scale( ent->scale );
+		Mat3x4 transform = Mat4Translation( ent->origin ) * Mat4Rotation( EulerDegrees3( ent->angles ) ) * Mat4Scale( ent->scale );
 
 		Intersection intersection;
 		if( SweptShapeVsGLTF( gltf, transform, ray, shape, solid_mask, &intersection ) ) {
@@ -543,7 +543,7 @@ bool EntityOverlap( const CollisionModelStorage * storage, const SyncEntityState
 		if( gltf == NULL )
 			return false;
 
-		Mat4 transform = Mat4Translation( ent_b->origin ) * Mat4Rotation( EulerDegrees3( ent_b->angles ) ) * Mat4Scale( ent_b->scale );
+		Mat3x4 transform = Mat4Translation( ent_b->origin ) * Mat4Rotation( EulerDegrees3( ent_b->angles ) ) * Mat4Scale( ent_b->scale );
 
 		Intersection intersection;
 		return SweptShapeVsGLTF( gltf, transform, ray, shape, solid_mask, &intersection );

@@ -100,7 +100,7 @@ static VertexFormat VertexFormatFromGLTF( cgltf_type dim, cgltf_component_type c
 	return VertexFormat_Floatx4;
 }
 
-static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf_node * node, const Mat4 & transform ) {
+static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf_node * node, const Mat3x4 & transform ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	const cgltf_primitive & prim = node->mesh->primitives[ 0 ];
@@ -221,8 +221,10 @@ static void LoadNode( GLTFRenderData * model, cgltf_data * gltf, cgltf_node * gl
 	node->parent = gltf_node->parent != NULL ? GetNodeIdx( gltf_node->parent ) : U8_MAX;
 	node->name = gltf_node->name == NULL ? EMPTY_HASH : StringHash( gltf_node->name );
 
-	cgltf_node_transform_world( gltf_node, node->global_transform.ptr() );
+	Mat4 global_transform;
+	cgltf_node_transform_world( gltf_node, global_transform.ptr() );
 
+	node->global_transform = Mat3x4( global_transform );
 	node->local_transform.rotation = Quaternion::Identity();
 	node->local_transform.translation = Vec3( 0.0f );
 	node->local_transform.scale = 1.0f;
@@ -387,7 +389,9 @@ static void LoadSkin( GLTFRenderData * model, const cgltf_skin * skin ) {
 		GLTFRenderData::Joint * joint = &model->skin[ i ];
 		joint->node_idx = GetNodeIdx( skin->joints[ i ] );
 
-		cgltf_bool ok = cgltf_accessor_read_float( skin->inverse_bind_matrices, i, joint->joint_to_bind.ptr(), 16 );
+		Mat4 joint_to_bind;
+		cgltf_bool ok = cgltf_accessor_read_float( skin->inverse_bind_matrices, i, joint_to_bind.ptr(), 16 );
+		joint->joint_to_bind = Mat3x4( joint_to_bind );
 		Assert( ok != 0 );
 	}
 }
@@ -408,11 +412,10 @@ bool NewGLTFRenderData( GLTFRenderData * render_data, cgltf_data * gltf, Span< c
 		}
 	};
 
-	constexpr Mat4 y_up_to_z_up(
+	constexpr Mat3x4 y_up_to_z_up(
 		1, 0, 0, 0,
 		0, 0, -1, 0,
-		0, 1, 0, 0,
-		0, 0, 0, 1
+		0, 1, 0, 0
 	);
 	render_data->transform = y_up_to_z_up;
 
@@ -500,10 +503,10 @@ static T SampleAnimationChannel( const GLTFRenderData::AnimationChannel< T > & c
 static Vec3 LerpVec3( Vec3 a, float t, Vec3 b ) { return Lerp( a, t, b ); }
 static float LerpFloat( float a, float t, float b ) { return Lerp( a, t, b ); }
 
-Span< TRS > SampleAnimation( Allocator * a, const GLTFRenderData * render_data, float t, u8 animation ) {
+Span< Transform > SampleAnimation( Allocator * a, const GLTFRenderData * render_data, float t, u8 animation ) {
 	TracyZoneScoped;
 
-	Span< TRS > local_poses = AllocSpan< TRS >( a, render_data->nodes.n );
+	Span< Transform > local_poses = AllocSpan< Transform >( a, render_data->nodes.n );
 
 	for( u8 i = 0; i < render_data->nodes.n; i++ ) {
 		const GLTFRenderData::Node * node = &render_data->nodes[ i ];
@@ -515,13 +518,13 @@ Span< TRS > SampleAnimation( Allocator * a, const GLTFRenderData * render_data, 
 	return local_poses;
 }
 
-static Mat4 TRSToMat4( const TRS & trs ) {
-	Quaternion q = trs.rotation;
-	Vec3 t = trs.translation;
-	float s = trs.scale;
+static Mat3x4 TransformToMat3x4( const Transform & transform ) {
+	Quaternion q = transform.rotation;
+	Vec3 t = transform.translation;
+	float s = transform.scale;
 
 	// return t * q * s;
-	return Mat4(
+	return Mat3x4(
 		( 1.0f - 2 * q.y * q.y - 2.0f * q.z * q.z ) * s,
 		( 2.0f * q.x * q.y - 2.0f * q.z * q.w ) * s,
 		( 2.0f * q.x * q.z + 2.0f * q.y * q.w ) * s,
@@ -535,30 +538,28 @@ static Mat4 TRSToMat4( const TRS & trs ) {
 		( 2.0f * q.x * q.z - 2.0f * q.y * q.w ) * s,
 		( 2.0f * q.y * q.z + 2.0f * q.x * q.w ) * s,
 		( 1.0f - 2.0f * q.x * q.x - 2.0f * q.y * q.y ) * s,
-		t.z,
-
-		0.0f, 0.0f, 0.0f, 1.0f
+		t.z
 	);
 }
 
-MatrixPalettes ComputeMatrixPalettes( Allocator * a, const GLTFRenderData * render_data, Span< const TRS > local_poses ) {
+MatrixPalettes ComputeMatrixPalettes( Allocator * a, const GLTFRenderData * render_data, Span< const Transform > local_poses ) {
 	TracyZoneScoped;
 
 	Assert( local_poses.n == render_data->nodes.n );
 
 	MatrixPalettes palettes = { };
-	palettes.node_transforms = AllocSpan< Mat4 >( a, render_data->nodes.n );
+	palettes.node_transforms = AllocSpan< Mat3x4 >( a, render_data->nodes.n );
 	if( render_data->skin.n != 0 ) {
-		palettes.skinning_matrices = AllocSpan< Mat4 >( a, render_data->skin.n );
+		palettes.skinning_matrices = AllocSpan< Mat3x4 >( a, render_data->skin.n );
 	}
 
 	for( u8 i = 0; i < render_data->nodes.n; i++ ) {
 		u8 parent = render_data->nodes[ i ].parent;
 		if( parent == U8_MAX ) {
-			palettes.node_transforms[ i ] = TRSToMat4( local_poses[ i ] );
+			palettes.node_transforms[ i ] = TransformToMat3x4( local_poses[ i ] );
 		}
 		else {
-			palettes.node_transforms[ i ] = palettes.node_transforms[ parent ] * TRSToMat4( local_poses[ i ] );
+			palettes.node_transforms[ i ] = palettes.node_transforms[ parent ] * TransformToMat3x4( local_poses[ i ] );
 		}
 	}
 
@@ -592,7 +593,7 @@ bool FindAnimationByName( const GLTFRenderData * render_data, StringHash name, u
 	return false;
 }
 
-static void MergePosesRecursive( Span< TRS > lower, Span< const TRS > upper, const GLTFRenderData * render_data, u8 i ) {
+static void MergePosesRecursive( Span< Transform > lower, Span< const Transform > upper, const GLTFRenderData * render_data, u8 i ) {
 	lower[ i ] = upper[ i ];
 
 	const GLTFRenderData::Node * node = &render_data->nodes[ i ];
@@ -602,7 +603,7 @@ static void MergePosesRecursive( Span< TRS > lower, Span< const TRS > upper, con
 		MergePosesRecursive( lower, upper, render_data, node->first_child );
 }
 
-void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const GLTFRenderData * render_data, u8 upper_root_node ) {
+void MergeLowerUpperPoses( Span< Transform > lower, Span< const Transform > upper, const GLTFRenderData * render_data, u8 upper_root_node ) {
 	lower[ upper_root_node ] = upper[ upper_root_node ];
 
 	const GLTFRenderData::Node * node = &render_data->nodes[ upper_root_node ];
@@ -610,20 +611,20 @@ void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const GLT
 		MergePosesRecursive( lower, upper, render_data, node->first_child );
 }
 
-static void DrawVfxNode( DrawModelConfig::DrawModel config, const GLTFRenderData::Node * node, Mat4 & transform, const Vec4 & color ) {
+static void DrawVfxNode( DrawModelConfig::DrawModel config, const GLTFRenderData::Node * node, const Mat3x4 & transform, const Vec4 & color ) {
 	TracyZoneScoped;
 	if( !config.enabled || node->vfx_type == ModelVfxType_None )
 		return;
 
 	// TODO: idk about this cheers
-	Vec3 scale = Vec3( Length( transform.col0.xyz() ), Length( transform.col1.xyz() ), Length( transform.col2.xyz() ) );
+	Vec3 scale = Vec3( Length( transform.col0 ), Length( transform.col1 ), Length( transform.col2 ) );
 	float size = Min2( Min2( Abs( scale.x ), Abs( scale.y ) ), Abs( scale.z ) );
 
 	if( size <= 0.01f )
 		return;
 
-	Vec3 origin = transform.col3.xyz();
-	Vec3 normal = SafeNormalize( transform.col1.xyz() );
+	Vec3 origin = transform.col3;
+	Vec3 normal = SafeNormalize( transform.col1 );
 	switch( node->vfx_type ) {
 		case ModelVfxType_Vfx:
 			DoVisualEffect( node->vfx_node.name, origin, normal, size, node->vfx_node.color * color );
@@ -663,7 +664,7 @@ static void AddInstanceToCollection( ModelInstanceCollection< T > & collection, 
 	group->num_instances++;
 }
 
-static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh, bool skinned, PipelineState pipeline, Mat4 & transform, GPUMaterial gpu_material ) {
+static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh, bool skinned, PipelineState pipeline, const Mat3x4 & transform, GPUMaterial gpu_material ) {
 	TracyZoneScoped;
 	if( !config.enabled )
 		return;
@@ -682,12 +683,12 @@ static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh,
 
 	GPUModelInstance instance = { };
 	instance.material = gpu_material;
-	instance.transform = Mat3x4( transform );
+	instance.transform = transform;
 
 	AddInstanceToCollection( model_instance_collection, mesh, pipeline, instance, hash );
 }
 
-static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Mesh & mesh, bool skinned, PipelineState pipeline, Mat4 & transform ) {
+static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Mesh & mesh, bool skinned, PipelineState pipeline, const Mat3x4 & transform ) {
 	TracyZoneScoped;
 	if( !config.enabled )
 		return;
@@ -709,13 +710,13 @@ static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Mesh & m
 		u64 hash = Hash64( &i, sizeof( i ), Hash64( mesh.vertex_buffers->buffer ) );
 
 		GPUModelShadowsInstance instance = { };
-		instance.transform = Mat3x4( transform );
+		instance.transform = transform;
 
 		AddInstanceToCollection( model_shadows_instance_collection, mesh, pipeline, instance, hash );
 	}
 }
 
-static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Mesh & mesh, bool skinned, PipelineState pipeline, UniformBlock outline_uniforms, Mat4 & transform ) {
+static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Mesh & mesh, bool skinned, PipelineState pipeline, UniformBlock outline_uniforms, const Mat3x4 & transform ) {
 	TracyZoneScoped;
 	if( !config.enabled )
 		return;
@@ -733,13 +734,13 @@ static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Mesh &
 	GPUModelOutlinesInstance instance = { };
 	instance.color = config.outline_color;
 	instance.height = config.outline_height;
-	instance.transform = Mat3x4( transform );
+	instance.transform = transform;
 
 	u64 hash = Hash64( mesh.vertex_buffers->buffer );
 	AddInstanceToCollection( model_outlines_instance_collection, mesh, pipeline, instance, hash );
 }
 
-static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Mesh & mesh, bool skinned, PipelineState pipeline, UniformBlock silhouette_uniforms, Mat4 & transform ) {
+static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Mesh & mesh, bool skinned, PipelineState pipeline, UniformBlock silhouette_uniforms, const Mat3x4 & transform ) {
 	TracyZoneScoped;
 	if( !config.enabled )
 		return;
@@ -756,13 +757,13 @@ static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Me
 
 	GPUModelSilhouetteInstance instance = { };
 	instance.color = config.silhouette_color;
-	instance.transform = Mat3x4( transform );
+	instance.transform = transform;
 
 	u64 hash = Hash64( mesh.vertex_buffers->buffer );
 	AddInstanceToCollection( model_silhouette_instance_collection, mesh, pipeline, instance, hash );
 }
 
-void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * render_data, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
+void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * render_data, const Mat3x4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
 	TracyZoneScoped;
 	if( render_data == NULL )
 		return;
@@ -794,9 +795,9 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 
 		bool skinned = animated && node->skinned;
 
-		Mat4 node_transform;
+		Mat3x4 node_transform;
 		if( skinned ) {
-			node_transform = Mat4::Identity();
+			node_transform = Mat3x4::Identity();
 		}
 		else if( animated ) {
 			node_transform = palettes.node_transforms[ i ];

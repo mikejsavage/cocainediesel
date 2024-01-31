@@ -28,7 +28,7 @@ void DeleteMapRenderData( const MapSharedRenderData & render_data ) {
 	// DeleteGPUBuffer( render_data.planes );
 }
 
-void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData * render_data, const Mat4 & transform, const Vec4 & color ) {
+void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData * render_data, const Mat3x4 & transform, const Vec4 & color ) {
 	if( render_data == NULL )
 		return;
 

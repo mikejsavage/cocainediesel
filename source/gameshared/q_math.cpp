@@ -310,71 +310,30 @@ Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p ) {
 	return Lerp( start, Clamp01( t ), end );
 }
 
-Mat4 TransformKToDir( Vec3 dir ) {
-	dir = Normalize( dir );
-
-	Vec3 K = Vec3( 0, 0, 1 );
-
-	Vec3 axis;
-	if( Abs( dir.z ) < 0.9999f ) {
-		axis = Normalize( Cross( K, dir ) );
-	}
-	else {
-		axis = Vec3( 1.0f, 0.0f, 0.0f );
-	}
-
-	float c = Dot( K, dir );
-	float s = sqrtf( 1.0f - c * c );
-
-	Mat4 rotation = Mat4(
-		c + axis.x * axis.x * ( 1.0f - c ),
-		axis.x * axis.y * ( 1.0f - c ) - axis.z * s,
-		axis.x * axis.z * ( 1.0f - c ) + axis.y * s,
-		0.0f,
-
-		axis.y * axis.x * ( 1.0f - c ) + axis.z * s,
-		c + axis.y * axis.y * ( 1.0f - c ),
-		axis.y * axis.z * ( 1.0f - c ) - axis.x * s,
-		0.0f,
-
-		axis.z * axis.x * ( 1.0f - c ) - axis.y * s,
-		axis.z * axis.y * ( 1.0f - c ) + axis.x * s,
-		c + axis.z * axis.z * ( 1.0f - c ),
-		0.0f,
-
-		0.0f, 0.0f, 0.0f, 1.0f
-	);
-
-	return rotation;
-}
-
-Mat4 Mat4Rotation( EulerDegrees3 angles ) {
+Mat3x4 Mat4Rotation( EulerDegrees3 angles ) {
 	float pitch = Radians( angles.pitch );
 	float sp = sinf( pitch );
 	float cp = cosf( pitch );
-	Mat4 rp(
+	Mat3x4 rp(
 		cp, 0, sp, 0,
 		0, 1, 0, 0,
-		-sp, 0, cp, 0,
-		0, 0, 0, 1
+		-sp, 0, cp, 0
 	);
 	float yaw = Radians( angles.yaw );
 	float sy = sinf( yaw );
 	float cy = cosf( yaw );
-	Mat4 ry(
+	Mat3x4 ry(
 		cy, -sy, 0, 0,
 		sy, cy, 0, 0,
-		0, 0, 1, 0,
-		0, 0, 0, 1
+		0, 0, 1, 0
 	);
 	float roll = Radians( angles.roll );
 	float sr = sinf( roll );
 	float cr = cosf( roll );
-	Mat4 rr(
+	Mat3x4 rr(
 		1, 0, 0, 0,
 		0, cr, -sr, 0,
-		0, sr, cr, 0,
-		0, 0, 0, 1
+		0, sr, cr, 0
 	);
 
 	return ry * rp * rr;

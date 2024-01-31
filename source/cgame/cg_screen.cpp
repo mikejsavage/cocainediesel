@@ -339,12 +339,12 @@ void CG_AddBombIndicator( const centity_t * cent ) {
 
 		TempAllocator temp = cls.frame_arena.temp();
 
-		Span< TRS > pose = SampleAnimation( &temp, model, cent->interpolated.animation_time );
+		Span< Transform > pose = SampleAnimation( &temp, model, cent->interpolated.animation_time );
 		MatrixPalettes palettes = ComputeMatrixPalettes( &temp, model, pose );
 
 		Vec3 bomb_origin = cent->interpolated.origin - Vec3( 0.0f, 0.0f, 32.0f ); // BOMB_HUD_OFFSET
 
-		Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, bomb_origin );
+		Mat3x4 transform = FromAxisAndOrigin( cent->interpolated.axis, bomb_origin );
 		Vec3 tip = ( transform * model->transform * palettes.node_transforms[ tip_node ] * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xyz();
 
 		DoVisualEffect( "models/bomb/fuse", tip );

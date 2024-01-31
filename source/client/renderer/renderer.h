@@ -46,7 +46,7 @@ struct FrameStatic {
 	UniformBlock identity_material_static_uniforms;
 	UniformBlock identity_material_dynamic_uniforms;
 
-	Mat4 V, inverse_V;
+	Mat3x4 V, inverse_V;
 	Mat4 P, inverse_P;
 	Vec3 light_direction;
 	Vec3 position;
@@ -122,7 +122,7 @@ void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bott
 
 void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh );
 
-UniformBlock UploadModelUniforms( const Mat4 & M );
+UniformBlock UploadModelUniforms( const Mat3x4 & M );
 UniformBlock UploadMaterialStaticUniforms( float specular, float shininess, float lod_bias = 0.0f );
 UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0 = Vec3( 1, 0, 0 ), Vec3 tcmod_row1 = Vec3( 0, 1, 0 ) );
 

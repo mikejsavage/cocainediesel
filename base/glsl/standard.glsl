@@ -23,7 +23,6 @@ layout( std430 ) readonly buffer b_Instances {
 v2f flat int v_Instance;
 #endif
 
-
 #if VERTEX_COLORS
 v2f vec4 v_Color;
 #endif
@@ -50,9 +49,12 @@ vec2 ApplyTCMod( vec2 uv ) {
 
 void main() {
 #if INSTANCED
-	mat4 u_M = AffineToMat4( instances[ gl_InstanceID ].transform );
+	mat4 M = AffineToMat4( instances[ gl_InstanceID ].transform );
 	v_Instance = gl_InstanceID;
+#else
+	mat4 M = AffineToMat4( u_M );
 #endif
+
 	vec4 Position = a_Position;
 	vec3 Normal = a_Normal;
 	vec2 TexCoord = a_TexCoord;
@@ -61,9 +63,9 @@ void main() {
 	Skin( Position, Normal );
 #endif
 
-	v_Position = ( u_M * Position ).xyz;
+	v_Position = ( M * Position ).xyz;
 
-	mat3 m = transpose( inverse( mat3( u_M ) ) );
+	mat3 m = transpose( inverse( mat3( M ) ) );
 	v_Normal = m * Normal;
 
 	v_TexCoord = ApplyTCMod( a_TexCoord );
@@ -72,7 +74,7 @@ void main() {
 	v_Color = sRGBToLinear( a_Color );
 #endif
 
-	gl_Position = u_P * u_V * u_M * Position;
+	gl_Position = u_P * AffineToMat4( u_V ) * M * Position;
 }
 
 #else

@@ -106,8 +106,7 @@ float SampleNormalDistribution( RNG * rng );
 Vec3 Project( Vec3 a, Vec3 b );
 Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p );
 
-Mat4 TransformKToDir( Vec3 dir );
-Mat4 Mat4Rotation( EulerDegrees3 angles );
+Mat3x4 Mat4Rotation( EulerDegrees3 angles );
 
 MinMax3 Union( const MinMax3 & bounds, Vec3 p );
 MinMax3 Union( const MinMax3 & a, const MinMax3 & b );

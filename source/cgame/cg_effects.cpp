@@ -17,7 +17,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash materia
 	// we should really do this in the shader so it's accurate across the whole beam.
 	// scale width by 8 because our beam textures have their own fade to transparent at the edges.
 	float pixel_scale = tanf( 0.5f * Radians( cg.view.fov_y ) ) / frame_static.viewport.y;
-	Mat4 VP = frame_static.P * frame_static.V;
+	Mat4 VP = frame_static.P * Mat4( frame_static.V );
 
 	float start_w = ( VP * Vec4( start, 1.0f ) ).w;
 	float start_width = Max2( width, 8.0f * start_w * pixel_scale );

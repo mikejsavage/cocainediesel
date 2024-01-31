@@ -411,18 +411,18 @@ static void DrawEntityModel( centity_t * cent ) {
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( scale );
+	Mat3x4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( scale );
 
 	Vec4 color = sRGBToLinear( cent->interpolated.color );
 
 	MatrixPalettes palettes = { };
 	if( cent->interpolated.animating && model.type == ModelType_GLTF && model.gltf->animations.n > 0 ) { // TODO: this is fragile and we should do something better
-		Span< TRS > pose = SampleAnimation( &temp, model.gltf, cent->interpolated.animation_time );
+		Span< Transform > pose = SampleAnimation( &temp, model.gltf, cent->interpolated.animation_time );
 		palettes = ComputeMatrixPalettes( &temp, model.gltf, pose );
 	}
 	else if( cent->current.type == ET_MAPMODEL && model.type == ModelType_GLTF && model.gltf->animations.n > 0 ) {
 		float t = PositiveMod( ToSeconds( cls.monotonicTime ), model.gltf->animations[ 0 ].duration );
-		Span< TRS > pose = SampleAnimation( &temp, model.gltf, t );
+		Span< Transform > pose = SampleAnimation( &temp, model.gltf, t );
 		palettes = ComputeMatrixPalettes( &temp, model.gltf, pose );
 	}
 

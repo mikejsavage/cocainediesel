@@ -119,7 +119,7 @@ float ShadowCascade( vec3 position, vec3 normal, int cascadeIdx ) {
 	GetCascadeOffsetScale( cascadeIdx, cascadeOffset, cascadeScale );
 
 	vec3 offset = GetShadowPosOffset( dot( normal, u_LightDir ), normal ) / abs( cascadeScale.z );
-	vec3 shadowPos = ( u_ShadowMatrix * vec4( position + offset, 1.0 ) ).xyz;
+	vec3 shadowPos = ( AffineToMat4( u_ShadowMatrix ) * vec4( position + offset, 1.0 ) ).xyz;
 	vec3 shadowPosDX = dFdx( shadowPos ) * cascadeScale;
 	vec3 shadowPosDY = dFdy( shadowPos ) * cascadeScale;
 	shadowPos = ( shadowPos + cascadeOffset ) * cascadeScale;

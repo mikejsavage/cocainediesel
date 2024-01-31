@@ -39,7 +39,7 @@ static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles
 	DoVisualEffect( "vfx/wallbang_impact", trace->endpos, trace->normal, num_particles, color, decal_lifetime_scale );
 }
 
-static Mat4 GetMuzzleTransform( int ent ) {
+static Mat3x4 GetMuzzleTransform( int ent ) {
 	if( ent < 1 || ent > client_gs.maxclients ) {
 		centity_t * cent = &cg_entities[ ent ];
 		return Mat4Translation( cent->current.origin );
@@ -79,7 +79,7 @@ static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin )
 		PlaySFX( GetWeaponModelMetadata( Weapon_Railgun )->fire_sound, PlaySFXConfigPosition( origin ) );
 	}
 
-	Vec3 fx_origin = from_origin ? origin : GetMuzzleTransform( ownerNum ).col3.xyz();
+	Vec3 fx_origin = from_origin ? origin : GetMuzzleTransform( ownerNum ).col3;
 	AddPersistentBeam( fx_origin, trace.endpos, 16.0f, color, "weapons/eb/beam", 0.25f, 0.1f );
 	RailTrailParticles( fx_origin, trace.endpos, color );
 }
@@ -132,9 +132,7 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 		cent->lg_tip_sound = PlayImmediateSFX( "weapons/lg/tip_hit", cent->lg_tip_sound, PlaySFXConfigPosition( trace.endpos ) );
 	}
 
-	Mat4 muzzle_transform = GetMuzzleTransform( cent->current.number );
-
-	Vec3 start = muzzle_transform.col3.xyz();
+	Vec3 start = GetMuzzleTransform( cent->current.number ).col3;
 	Vec3 end = trace.endpos;
 	DrawBeam( start, end, 8.0f, color, "weapons/lg/beam" );
 
@@ -254,9 +252,7 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 		WallbangImpact( &wallbang, team_color, 12 );
 	}
 
-	Mat4 muzzle_transform = GetMuzzleTransform( owner );
-
-	AddPersistentBeam( muzzle_transform.col3.xyz(), trace.endpos, 1.0f, team_color, "weapons/tracer", 0.2f, 0.1f );
+	AddPersistentBeam( GetMuzzleTransform( owner ).col3, trace.endpos, 1.0f, team_color, "weapons/tracer", 0.2f, 0.1f );
 }
 
 static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_color, WeaponType weapon ) {
@@ -265,8 +261,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 	Vec3 right, up;
 	ViewVectors( dir, &right, &up );
 
-	Mat4 muzzle_transform = GetMuzzleTransform( owner );
-	Vec3 muzzle = muzzle_transform.col3.xyz();
+	Vec3 muzzle = GetMuzzleTransform( owner ).col3;
 
 	for( int i = 0; i < def->projectile_count; i++ ) {
 		Vec2 spread = FixedSpreadPattern( i, def->spread );

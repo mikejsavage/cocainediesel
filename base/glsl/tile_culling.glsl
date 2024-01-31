@@ -1,4 +1,5 @@
 #include "include/uniforms.glsl"
+#include "include/common.glsl"
 
 layout( local_size_x = 64 ) in;
 
@@ -74,8 +75,8 @@ void CullTile( uvec2 tile ) {
 	tile_min.y = -tile_min.y;
 	tile_max.y = -tile_max.y;
 
-	vec3 tile_vmin = ( ( u_InverseV * u_InverseP * vec4( tile_min, 1.0, 1.0 ) ).xyz );
-	vec3 tile_vmax = ( ( u_InverseV * u_InverseP * vec4( tile_max, 1.0, 1.0 ) ).xyz );
+	vec3 tile_vmin = ( ( AffineToMat4( u_InverseV ) * u_InverseP * vec4( tile_min, 1.0, 1.0 ) ).xyz );
+	vec3 tile_vmax = ( ( AffineToMat4( u_InverseV ) * u_InverseP * vec4( tile_max, 1.0, 1.0 ) ).xyz );
 	float cone_tan = distance( tile_vmin, tile_vmax ) * 0.5;
 	vec3 tile_direction = normalize( ( tile_vmin + tile_vmax ) * 0.5 );
 

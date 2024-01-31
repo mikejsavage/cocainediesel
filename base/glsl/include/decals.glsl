@@ -94,7 +94,7 @@ void ApplyDecals( uint count, int tile_index, inout vec4 diffuse, inout vec3 nor
 	}
 
 	vec3 decal_normal = vec3( dFdx( accumulated_alpha ), dFdy( accumulated_alpha ), 0.0 ) * accumulated_height;
-	decal_normal = mat3( u_InverseV ) * decal_normal;
+	decal_normal = mat3( AffineToMat4( u_InverseV ) ) * decal_normal;
 	normal = normalize( normal + decal_normal );
 
 	diffuse.rgb = diffuse.rgb * accumulated_alpha + accumulated_color;

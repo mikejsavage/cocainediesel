@@ -222,36 +222,6 @@ constexpr Vec4 Clamp( Vec4 lo, Vec4 v, Vec4 hi ) {
  * Mat4
  */
 
-constexpr Mat4 Mat4Translation( float x, float y, float z ) {
-	return Mat4(
-		1, 0, 0, x,
-		0, 1, 0, y,
-		0, 0, 1, z,
-		0, 0, 0, 1
-	);
-}
-
-constexpr Mat4 Mat4Translation( Vec3 v ) {
-	return Mat4Translation( v.x, v.y, v.z );
-}
-
-constexpr Mat4 Mat4Scale( float x, float y, float z ) {
-	return Mat4(
-		x, 0, 0, 0,
-		0, y, 0, 0,
-		0, 0, z, 0,
-		0, 0, 0, 1
-	);
-}
-
-constexpr Mat4 Mat4Scale( float s ) {
-	return Mat4Scale( s, s, s );
-}
-
-constexpr Mat4 Mat4Scale( Vec3 v ) {
-	return Mat4Scale( v.x, v.y, v.z );
-}
-
 constexpr Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
 	return Mat4(
 		Dot( lhs.row0(), rhs.col0 ),
@@ -291,6 +261,66 @@ constexpr Vec4 operator*( const Mat4 & m, const Vec4 & v ) {
 
 constexpr Mat4 operator-( const Mat4 & m ) {
 	return Mat4( -m.col0, -m.col1, -m.col2, -m.col3 );
+}
+
+/*
+ * Mat3x4
+ */
+
+constexpr Mat3x4 Mat4Translation( float x, float y, float z ) {
+	return Mat3x4(
+		1.0f, 0.0f, 0.0f, x,
+		0.0f, 1.0f, 0.0f, y,
+		0.0f, 0.0f, 1.0f, z
+	);
+}
+
+constexpr Mat3x4 Mat4Translation( Vec3 v ) {
+	return Mat4Translation( v.x, v.y, v.z );
+}
+
+constexpr Mat3x4 Mat4Scale( float x, float y, float z ) {
+	return Mat3x4(
+		x,    0.0f, 0.0f, 0.0f,
+		0.0f, y,    0.0f, 0.0f,
+		0.0f, 0.0f, z,    0.0f
+	);
+}
+
+constexpr Mat3x4 Mat4Scale( float s ) {
+	return Mat4Scale( s, s, s );
+}
+
+constexpr Mat3x4 Mat4Scale( Vec3 v ) {
+	return Mat4Scale( v.x, v.y, v.z );
+}
+
+constexpr Mat3x4 operator*( const Mat3x4 & lhs, const Mat3x4 & rhs ) {
+	return Mat3x4(
+		Dot( lhs.row0(), Vec4( rhs.col0, 0.0f ) ),
+		Dot( lhs.row0(), Vec4( rhs.col1, 0.0f ) ),
+		Dot( lhs.row0(), Vec4( rhs.col2, 0.0f ) ),
+		Dot( lhs.row0(), Vec4( rhs.col3, 1.0f ) ),
+
+		Dot( lhs.row1(), Vec4( rhs.col0, 0.0f ) ),
+		Dot( lhs.row1(), Vec4( rhs.col1, 0.0f ) ),
+		Dot( lhs.row1(), Vec4( rhs.col2, 0.0f ) ),
+		Dot( lhs.row1(), Vec4( rhs.col3, 1.0f ) ),
+
+		Dot( lhs.row2(), Vec4( rhs.col0, 0.0f ) ),
+		Dot( lhs.row2(), Vec4( rhs.col1, 0.0f ) ),
+		Dot( lhs.row2(), Vec4( rhs.col2, 0.0f ) ),
+		Dot( lhs.row2(), Vec4( rhs.col3, 1.0f ) )
+	);
+}
+
+constexpr Vec4 operator*( const Mat3x4 & m, const Vec4 & v ) {
+	return Vec4(
+		Dot( m.row0(), v ),
+		Dot( m.row1(), v ),
+		Dot( m.row2(), v ),
+		Dot( Vec4( 0.0f, 0.0f, 0.0f, 1.0f ), v )
+	);
 }
 
 /*

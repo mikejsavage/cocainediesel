@@ -153,7 +153,7 @@ void Cvar_Set( Span< const char > name, Span< const char > value ) {
 		}
 	}
 
-	bool read_only = HasAnyBit( cvar->flags, CvarFlag_ReadOnly | CvarFlag_Developer );
+	bool read_only = HasAnyBit( cvar->flags, CvarFlag_ReadOnly ) || ( is_public_build && HasAnyBit( cvar->flags, CvarFlag_Developer ) );
 	if( read_only ) {
 		Com_GGPrint( "{} is write protected.", name );
 		return;

@@ -23,8 +23,8 @@ void FatalImpl( const char * file, int line, const char * format, ... ) {
 	abort();
 }
 
-void FatalErrnoImpl( const char * msg, const char * file, int line ) {
-	FatalImpl( file, line, "%s: %s (%d)", msg, strerror( errno ), errno );
+void FatalErrno( const char * msg, SourceLocation src_loc ) {
+	FatalImpl( src_loc.file, src_loc.line, "%s: %s (%d)", msg, strerror( errno ), errno );
 }
 
 void AssertFail( const char * str, const char * file, int line ) {

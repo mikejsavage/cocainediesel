@@ -29,10 +29,9 @@ To bit_cast( const From & from ) {
 }
 
 #define Fatal( format, ... ) FatalImpl( __FILE__, __LINE__, format, ##__VA_ARGS__ )
-#define FatalErrno( msg ) FatalErrnoImpl( msg, __FILE__, __LINE__ )
 
 [[gnu::format( printf, 3, 4 )]] void FatalImpl( const char * file, int line, const char * format, ... );
-void FatalErrnoImpl( const char * msg, const char * file, int line );
+void FatalErrno( const char * msg, SourceLocation src_loc = CurrentSourceLocation() );
 
 template< typename T >
 constexpr bool HasAnyBit( T haystack, T needle ) {

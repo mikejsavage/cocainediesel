@@ -181,16 +181,17 @@ static void SubmitDrawCalls() {
 			continue;
 		}
 
-		MeshConfig config = { };
-		config.name = temp.sv( "ImGui - {}", n );
-		config.vertex_buffers[ 0 ] = NewGPUBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ), temp.sv( "ImGui vertices - {}", n ) );
-		config.vertex_descriptor.buffer_strides[ 0 ] = sizeof( ImDrawVert );
-		config.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, pos ) };
-		config.set_attribute( VertexAttribute_TexCoord, 0, offsetof( ImDrawVert, uv ) );
-		config.set_attribute( VertexAttribute_Color, 0, offsetof( ImDrawVert, col ) );
-		config.index_buffer = NewGPUBuffer( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof( u16 ), temp.sv( "ImGui indices - {}", n ) );
-		Mesh mesh = NewMesh( config );
-		DeferDeleteMesh( mesh );
+		VertexDescriptor vertex_descriptor = { };
+		vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( ImDrawVert, pos ) };
+		vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, uv ) };
+		vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_Norm, 0, offsetof( ImDrawVert, col ) };
+		vertex_descriptor.buffer_strides[ 0 ] = sizeof( ImDrawVert );
+
+		DynamicDrawData dynamic_geometry = UploadDynamicGeometry(
+			Span< const ImDrawVert >( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size ).cast< const u8 >(),
+			Span< const ImDrawIdx >( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size ),
+			vertex_descriptor
+		);
 
 		for( int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++ ) {
 			const ImDrawCmd * pcmd = &cmd_list->CmdBuffer[ cmd_i ];
@@ -225,7 +226,7 @@ static void SubmitDrawCalls() {
 
 					pipeline.bind_texture_and_sampler( "u_BaseTexture", pcmd->TextureId.material->texture, Sampler_Standard );
 
-					DrawMesh( mesh, pipeline, pcmd->ElemCount, pcmd->IdxOffset );
+					DrawDynamicGeometry( pipeline, dynamic_geometry, pcmd->ElemCount, pcmd->IdxOffset );
 				}
 			}
 		}

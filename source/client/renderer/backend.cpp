@@ -54,7 +54,6 @@ static GLsync fences[ MAX_FRAMES_IN_FLIGHT ];
 static NonRAIIDynamicArray< RenderPass > render_passes;
 static u8 num_render_passes;
 
-static NonRAIIDynamicArray< Mesh > deferred_mesh_deletes;
 static NonRAIIDynamicArray< GPUBuffer > deferred_buffer_deletes;
 static NonRAIIDynamicArray< StreamingBuffer > deferred_streaming_buffer_deletes;
 
@@ -346,11 +345,6 @@ static void PlotVRAMUsage() {
 static void RunDeferredDeletes() {
 	TracyZoneScoped;
 
-	for( const Mesh & mesh : deferred_mesh_deletes ) {
-		DeleteMesh( mesh );
-	}
-	deferred_mesh_deletes.clear();
-
 	for( const GPUBuffer & buffer : deferred_buffer_deletes ) {
 		DeleteGPUBuffer( buffer );
 	}
@@ -427,7 +421,6 @@ void InitRenderBackend() {
 	render_passes.init( sys_allocator );
 	num_render_passes = 0;
 
-	deferred_mesh_deletes.init( sys_allocator );
 	deferred_buffer_deletes.init( sys_allocator );
 	deferred_streaming_buffer_deletes.init( sys_allocator );
 
@@ -499,7 +492,6 @@ void ShutdownRenderBackend() {
 	}
 	render_passes.shutdown();
 
-	deferred_mesh_deletes.shutdown();
 	deferred_buffer_deletes.shutdown();
 	deferred_streaming_buffer_deletes.shutdown();
 }
@@ -1540,10 +1532,6 @@ void DeleteMesh( const Mesh & mesh ) {
 		DeleteGPUBuffer( buffer );
 	}
 	DeleteGPUBuffer( mesh.index_buffer );
-}
-
-void DeferDeleteMesh( const Mesh & mesh ) {
-	deferred_mesh_deletes.add( mesh );
 }
 
 u8 AddRenderPass( const RenderPassConfig & config ) {

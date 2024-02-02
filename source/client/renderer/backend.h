@@ -214,7 +214,6 @@ void DeleteShader( Shader shader );
 
 Mesh NewMesh( const MeshConfig & config );
 void DeleteMesh( const Mesh & mesh );
-void DeferDeleteMesh( const Mesh & mesh );
 
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0, u32 base_vertex = 0 );
 void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_instances, u32 num_vertices_override = 0, u32 first_index = 0, u32 base_vertex = 0 );

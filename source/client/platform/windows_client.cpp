@@ -20,7 +20,7 @@ void ShowErrorMessage( const char * msg, const char * file, int line ) {
 	if( IsDebuggerPresent() != 0 ) {
 		__debugbreak();
 	}
-	else if( _CrtDbgReport( _CRT_ERROR, file, line, NULL, msg ) == 1 ) {
+	else if( _CrtDbgReport( _CRT_ERROR, file, line, NULL, "%s", msg ) == 1 ) {
 		_CrtDbgBreak();
 	}
 #endif

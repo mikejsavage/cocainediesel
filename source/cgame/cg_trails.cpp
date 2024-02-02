@@ -22,6 +22,11 @@ public:
 		return buffer[ ( head + i ) % N ];
 	}
 
+	const T & operator[]( size_t i ) const {
+		Assert( i < n );
+		return buffer[ ( head + i ) % N ];
+	}
+
 	void push( T element ) {
 		if( n == N ) {
 			buffer[ head ] = element;
@@ -140,15 +145,19 @@ static bool UpdateTrail( Trail & trail ) {
 	return trail.points.n > 0;
 }
 
-static void DrawActualTrail( Trail & trail ) {
+static void DrawActualTrail( const Trail & trail ) {
 	if( trail.points.n <= 1 ) {
 		return;
 	}
 
+	struct TrailVertex {
+		Vec3 position;
+		Vec2 uv;
+		RGBA8 color;
+	};
+
 	TempAllocator temp = cls.frame_arena.temp();
-	Span< Vec3 > positions = AllocSpan< Vec3 >( &temp, trail.points.n * 2 );
-	Span< Vec2 > uvs = AllocSpan< Vec2 >( &temp, trail.points.n * 2 );
-	Span< RGBA8 > colors = AllocSpan< RGBA8 >( &temp, trail.points.n * 2 );
+	Span< TrailVertex > vertices = AllocSpan< TrailVertex >( &temp, trail.points.n * 2 );
 	Span< u16 > indices = AllocSpan< u16 >( &temp, ( trail.points.n - 1 ) * 6 );
 
 	const Material * material = FindMaterial( trail.material );
@@ -173,13 +182,13 @@ static void DrawActualTrail( Trail & trail ) {
 		Vec3 forward = SafeNormalize( a.p - frame_static.position );
 		Vec3 bitangent = SafeNormalize( Cross( -forward, dir ) );
 
-		positions[ i * 2 + 0 ] = a.p + bitangent * trail.width * 0.5f * fract;
-		positions[ i * 2 + 1 ] = a.p - bitangent * trail.width * 0.5f * fract;
+		vertices[ i * 2 + 0 ].position = a.p + bitangent * trail.width * 0.5f * fract;
+		vertices[ i * 2 + 1 ].position = a.p - bitangent * trail.width * 0.5f * fract;
 
 		float u = distance;
 
-		uvs[ i * 2 + 0 ] = Vec2( u, 0.0f );
-		uvs[ i * 2 + 1 ] = Vec2( u, 1.0f );
+		vertices[ i * 2 + 0 ].uv = Vec2( u, 0.0f );
+		vertices[ i * 2 + 1 ].uv = Vec2( u, 1.0f );
 
 		float beam_aspect_ratio = len / trail.width;
 		float repetitions = beam_aspect_ratio / texture_aspect_ratio;
@@ -187,8 +196,8 @@ static void DrawActualTrail( Trail & trail ) {
 
 		float alpha = fract;
 
-		colors[ i * 2 + 0 ] = RGBA8( 255, 255, 255, 255 * alpha );
-		colors[ i * 2 + 1 ] = RGBA8( 255, 255, 255, 255 * alpha );
+		vertices[ i * 2 + 0 ].color = RGBA8( 255, 255, 255, 255 * alpha );
+		vertices[ i * 2 + 1 ].color = RGBA8( 255, 255, 255, 255 * alpha );
 
 		if( i < trail.points.n - 1 ) {
 			indices[ i * 6 + 0 ] = i * 2 + 0;
@@ -206,15 +215,13 @@ static void DrawActualTrail( Trail & trail ) {
 	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 
-	DynamicMesh mesh = { };
-	mesh.positions = positions.ptr;
-	mesh.uvs = uvs.ptr;
-	mesh.colors = colors.ptr;
-	mesh.indices = indices.ptr;
-	mesh.num_vertices = positions.n;
-	mesh.num_indices = indices.n;
+	VertexDescriptor vertex_descriptor = { };
+	vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( TrailVertex, position ) };
+	vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( TrailVertex, uv ) };
+	vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_Norm, 0, offsetof( TrailVertex, color ) };
+	vertex_descriptor.buffer_strides[ 0 ] = sizeof( TrailVertex );
 
-	DrawDynamicMesh( pipeline, mesh );
+	DrawDynamicGeometry( pipeline, vertices, indices, vertex_descriptor );
 }
 
 void DrawTrails() {

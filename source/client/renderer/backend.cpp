@@ -1124,7 +1124,7 @@ StreamingBuffer NewStreamingBuffer( u32 size, Span< const char > name ) {
 }
 
 void * GetStreamingBufferMemory( StreamingBuffer stream ) {
-	return ( ( u8 * ) stream.ptr ) + stream.size * FrameSlot();
+	return ( ( char * ) stream.ptr ) + stream.size * FrameSlot();
 }
 
 void DeleteStreamingBuffer( StreamingBuffer stream ) {

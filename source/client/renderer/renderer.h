@@ -122,7 +122,7 @@ void DrawDynamicGeometry( const PipelineState & pipeline, const DynamicDrawData 
 
 template< typename T >
 void DrawDynamicGeometry( const PipelineState & pipeline, Span< T > vertices, Span< const u16 > indices, const VertexDescriptor & vertex_descriptor ) {
-	DynamicDrawData data = UploadDynamicGeometry( vertices.cast< const u8 >(), indices, vertex_descriptor );
+	DynamicDrawData data = UploadDynamicGeometry( vertices.template cast< const u8 >(), indices, vertex_descriptor );
 	DrawDynamicGeometry( pipeline, data );
 }
 

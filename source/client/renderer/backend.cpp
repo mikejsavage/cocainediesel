@@ -104,58 +104,35 @@ static GLenum DepthFuncToGL( DepthFunc depth_func ) {
 	return GL_INVALID_ENUM;
 }
 
-static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum * channels, GLenum * type ) {
+struct GLTextureFormat {
+	GLenum internal;
+	GLenum channels;
+	GLenum type;
+	GLint swizzle[ 4 ] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
+};
+
+static GLTextureFormat TextureFormatToGL( TextureFormat format ) {
 	switch( format ) {
-		case TextureFormat_R_U8:
-		case TextureFormat_R_S8:
-		case TextureFormat_A_U8:
-			*internal = format == TextureFormat_R_S8 ? GL_R8_SNORM : GL_R8;
-			*channels = GL_RED;
-			*type = GL_UNSIGNED_BYTE;
-			return;
-		case TextureFormat_R_UI8:
-			*internal = GL_R8UI;
-			*channels = GL_RED;
-			*type = GL_UNSIGNED_BYTE;
-			return;
+		case TextureFormat_R_U8: return { GL_R8, GL_RED, GL_UNSIGNED_BYTE, { GL_RED, GL_RED, GL_RED, GL_ONE } };
+		case TextureFormat_R_S8: return { GL_R8_SNORM, GL_RED, GL_UNSIGNED_BYTE, { GL_RED, GL_RED, GL_RED, GL_ONE } };
+		case TextureFormat_A_U8: return { GL_R8, GL_RED, GL_UNSIGNED_BYTE, { GL_ONE, GL_ONE, GL_ONE, GL_RED } };
+		case TextureFormat_R_UI8: return { GL_R8UI, GL_RED, GL_UNSIGNED_BYTE, { GL_RED, GL_RED, GL_RED, GL_ONE } };
 
-		case TextureFormat_RA_U8:
-			*internal = GL_RG8;
-			*channels = GL_RG;
-			*type = GL_UNSIGNED_BYTE;
-			return;
+		case TextureFormat_RA_U8: return { GL_RG8, GL_RG, GL_UNSIGNED_BYTE, { GL_RED, GL_RED, GL_RED, GL_GREEN } };
 
-		case TextureFormat_RGBA_U8:
-		case TextureFormat_RGBA_U8_sRGB:
-			*internal = format == TextureFormat_RGBA_U8 ? GL_RGBA8 : GL_SRGB8_ALPHA8;
-			*channels = GL_RGBA;
-			*type = GL_UNSIGNED_BYTE;
-			return;
+		case TextureFormat_RGBA_U8: return { GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE };
+		case TextureFormat_RGBA_U8_sRGB: return { GL_SRGB8_ALPHA8, GL_RGBA, GL_UNSIGNED_BYTE };
 
-		case TextureFormat_BC1_sRGB:
-			*internal = GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
-			return;
+		case TextureFormat_BC1_sRGB: return { GL_COMPRESSED_SRGB_S3TC_DXT1_EXT };
+		case TextureFormat_BC3_sRGB: return { GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT };
+		case TextureFormat_BC4: return { GL_COMPRESSED_RED_RGTC1, 0, 0, { GL_ONE, GL_ONE, GL_ONE, GL_RED } };
+		case TextureFormat_BC5: return { GL_COMPRESSED_RG_RGTC2 };
 
-		case TextureFormat_BC3_sRGB:
-			*internal = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
-			return;
-
-		case TextureFormat_BC4:
-			*internal = GL_COMPRESSED_RED_RGTC1;
-			return;
-
-		case TextureFormat_BC5:
-			*internal = GL_COMPRESSED_RG_RGTC2;
-			return;
-
-		case TextureFormat_Depth:
-			*internal = GL_DEPTH_COMPONENT24;
-			*channels = GL_DEPTH_COMPONENT;
-			*type = GL_FLOAT;
-			return;
+		case TextureFormat_Depth: return { GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT };
 	}
 
 	Assert( false );
+	return { };
 }
 
 static GLenum SamplerWrapToGL( SamplerWrap wrap ) {
@@ -170,92 +147,48 @@ static GLenum SamplerWrapToGL( SamplerWrap wrap ) {
 	return GL_INVALID_ENUM;
 }
 
-static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_components, bool * integral, GLboolean * normalized ) {
-	*integral = false;
-	*normalized = false;
+enum GLVertexFormatType {
+	GLVertexFormat_Float,
+	GLVertexFormat_Int,
+	GLVertexFormat_Normalized,
+};
 
+struct GLVertexFormat {
+	GLenum type;
+	int num_components;
+	size_t component_size;
+	GLVertexFormatType kind;
+};
+
+static GLVertexFormat VertexFormatToGL( VertexFormat format ) {
 	switch( format ) {
-		case VertexFormat_U8x2:
-		case VertexFormat_U8x2_Norm:
-			*type = GL_UNSIGNED_BYTE;
-			*num_components = 2;
-			*integral = true;
-			*normalized = format == VertexFormat_U8x2_Norm;
-			break;
-		case VertexFormat_U8x3:
-		case VertexFormat_U8x3_Norm:
-			*type = GL_UNSIGNED_BYTE;
-			*num_components = 3;
-			*integral = true;
-			*normalized = format == VertexFormat_U8x3_Norm;
-			break;
-		case VertexFormat_U8x4:
-		case VertexFormat_U8x4_Norm:
-			*type = GL_UNSIGNED_BYTE;
-			*num_components = 4;
-			*integral = true;
-			*normalized = format == VertexFormat_U8x4_Norm;
-			break;
+		case VertexFormat_U8x2:    return { GL_UNSIGNED_BYTE, 2, sizeof( u8 ), GLVertexFormat_Int };
+		case VertexFormat_U8x2_01: return { GL_UNSIGNED_BYTE, 2, sizeof( u8 ), GLVertexFormat_Normalized };
+		case VertexFormat_U8x3:    return { GL_UNSIGNED_BYTE, 3, sizeof( u8 ), GLVertexFormat_Int };
+		case VertexFormat_U8x3_01: return { GL_UNSIGNED_BYTE, 3, sizeof( u8 ), GLVertexFormat_Normalized };
+		case VertexFormat_U8x4:    return { GL_UNSIGNED_BYTE, 4, sizeof( u8 ), GLVertexFormat_Int };
+		case VertexFormat_U8x4_01: return { GL_UNSIGNED_BYTE, 4, sizeof( u8 ), GLVertexFormat_Normalized };
 
-		case VertexFormat_U16x2:
-		case VertexFormat_U16x2_Norm:
-			*type = GL_UNSIGNED_SHORT;
-			*num_components = 2;
-			*integral = true;
-			*normalized = format == VertexFormat_U16x2_Norm;
-			break;
-		case VertexFormat_U16x3:
-		case VertexFormat_U16x3_Norm:
-			*type = GL_UNSIGNED_SHORT;
-			*num_components = 3;
-			*integral = true;
-			*normalized = format == VertexFormat_U16x3_Norm;
-			break;
-		case VertexFormat_U16x4:
-		case VertexFormat_U16x4_Norm:
-			*type = GL_UNSIGNED_SHORT;
-			*num_components = 4;
-			*integral = true;
-			*normalized = format == VertexFormat_U16x4_Norm;
-			break;
+		case VertexFormat_U16x2:    return { GL_UNSIGNED_SHORT, 2, sizeof( u16 ), GLVertexFormat_Int };
+		case VertexFormat_U16x2_01: return { GL_UNSIGNED_SHORT, 2, sizeof( u16 ), GLVertexFormat_Normalized };
+		case VertexFormat_U16x3:    return { GL_UNSIGNED_SHORT, 3, sizeof( u16 ), GLVertexFormat_Int };
+		case VertexFormat_U16x3_01: return { GL_UNSIGNED_SHORT, 3, sizeof( u16 ), GLVertexFormat_Normalized };
+		case VertexFormat_U16x4:    return { GL_UNSIGNED_SHORT, 4, sizeof( u16 ), GLVertexFormat_Int };
+		case VertexFormat_U16x4_01: return { GL_UNSIGNED_SHORT, 4, sizeof( u16 ), GLVertexFormat_Normalized };
 
-		case VertexFormat_Floatx2:
-			*type = GL_FLOAT;
-			*num_components = 2;
-			break;
-		case VertexFormat_Floatx3:
-			*type = GL_FLOAT;
-			*num_components = 3;
-			break;
-		case VertexFormat_Floatx4:
-			*type = GL_FLOAT;
-			*num_components = 4;
-			break;
+		case VertexFormat_Floatx2: return { GL_FLOAT, 2, sizeof( float ), GLVertexFormat_Float };
+		case VertexFormat_Floatx3: return { GL_FLOAT, 3, sizeof( float ), GLVertexFormat_Float };
+		case VertexFormat_Floatx4: return { GL_FLOAT, 4, sizeof( float ), GLVertexFormat_Float };
 
 		default:
 			Assert( false );
+			return { };
 	}
 }
 
 static u32 VertexFormatDefaultStride( VertexFormat format ) {
-	GLenum type;
-	int num_components;
-	bool integral;
-	GLboolean normalized;
-	VertexFormatToGL( format, &type, &num_components, &integral, &normalized );
-
-	u32 component_size = 0;
-	if( type == GL_UNSIGNED_BYTE ) {
-		component_size = 1;
-	}
-	else if( type == GL_UNSIGNED_SHORT ) {
-		component_size = 2;
-	}
-	else if( type == GL_FLOAT ) {
-		component_size = 4;
-	}
-
-	return component_size * num_components;
+	GLVertexFormat gl = VertexFormatToGL( format );
+	return gl.num_components * gl.component_size;
 }
 
 static const char * DebugTypeString( GLenum type ) {
@@ -807,27 +740,21 @@ static void BindVertexDescriptorAndBuffers( const Mesh & mesh ) {
 
 		if( opt_attr.exists ) {
 			const VertexAttribute & attr = opt_attr.value;
-
-			GLenum type;
-			int num_components;
-			bool integral;
-			GLboolean normalized;
-			VertexFormatToGL( attr.format, &type, &num_components, &integral, &normalized );
-
-			if( integral && !normalized ) {
+			GLVertexFormat gl = VertexFormatToGL( attr.format );
+			if( gl.kind == GLVertexFormat_Int ) {
 				/*
 				 * wintel driver ignores the type and treats everything as u32
 				 * non-DSA call works fine so fall back to that here
 				 *
 				 * see also https://doc.magnum.graphics/magnum/opengl-workarounds.html
 				 *
-				 * glVertexArrayAttribIFormat( vao, attr, num_components, type, attr.offset );
+				 * glVertexArrayAttribIFormat( vao, attr, gl.num_components, gl.type, attr.offset );
 				 */
 
-				glVertexAttribIFormat( i, num_components, type, attr.offset );
+				glVertexAttribIFormat( i, gl.num_components, gl.type, attr.offset );
 			}
 			else {
-				glVertexArrayAttribFormat( vao, i, num_components, type, normalized, attr.offset );
+				glVertexArrayAttribFormat( vao, i, gl.num_components, gl.type, gl.kind == GLVertexFormat_Normalized ? GL_TRUE : GL_FALSE, attr.offset );
 			}
 		}
 	}
@@ -1174,61 +1101,44 @@ Texture NewTexture( const TextureConfig & config ) {
 	}
 	glCreateTextures( target, 1, &texture.texture );
 
-	GLenum internal_format, channels, type;
-	TextureFormatToGL( config.format, &internal_format, &channels, &type );
+	GLTextureFormat gl = TextureFormatToGL( config.format );
 
 	if( config.msaa_samples != 0 ) {
 		Assert( config.data == NULL );
 		if( config.num_layers == 0 ) {
 			glTextureStorage2DMultisample( texture.texture, config.msaa_samples,
-				internal_format, config.width, config.height, GL_TRUE );
+				gl.internal, config.width, config.height, GL_TRUE );
 		}
 		else {
 			glTextureStorage3DMultisample( texture.texture, config.msaa_samples,
-				internal_format, config.width, config.height, config.num_layers, GL_TRUE );
+				gl.internal, config.width, config.height, config.num_layers, GL_TRUE );
 		}
 		return texture;
 	}
 
 	if( config.num_layers == 0 ) {
-		glTextureStorage2D( texture.texture, config.num_mipmaps, internal_format, config.width, config.height );
+		glTextureStorage2D( texture.texture, config.num_mipmaps, gl.internal, config.width, config.height );
 	}
 	else {
-		glTextureStorage3D( texture.texture, config.num_mipmaps, internal_format, config.width, config.height, config.num_layers );
+		glTextureStorage3D( texture.texture, config.num_mipmaps, gl.internal, config.width, config.height, config.num_layers );
 	}
+
+	glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_R, gl.swizzle[ 0 ] );
+	glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_G, gl.swizzle[ 1 ] );
+	glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_B, gl.swizzle[ 2 ] );
+	glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_A, gl.swizzle[ 3 ] );
 
 	if( !CompressedTextureFormat( config.format ) ) {
 		Assert( config.num_mipmaps == 1 );
 
-		if( channels == GL_RED ) {
-			if( config.format == TextureFormat_A_U8 ) {
-				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_A, GL_RED );
-			}
-			else {
-				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_R, GL_RED );
-				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_G, GL_RED );
-				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_B, GL_RED );
-				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_A, GL_ONE );
-			}
-		}
-		else if( channels == GL_RG && config.format == TextureFormat_RA_U8 ) {
-			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_R, GL_RED );
-			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_G, GL_RED );
-			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_B, GL_RED );
-			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
-		}
-
 		if( config.data != NULL ) {
 			if( config.num_layers == 0 ) {
 				glTextureSubImage2D( texture.texture, 0, 0, 0,
-					config.width, config.height, channels, type, config.data );
+					config.width, config.height, gl.channels, gl.type, config.data );
 			}
 			else {
 				glTextureSubImage3D( texture.texture, 0, 0, 0, 0,
-					config.width, config.height, config.num_layers, channels, type, config.data );
+					config.width, config.height, config.num_layers, gl.channels, gl.type, config.data );
 			}
 		}
 	}
@@ -1254,11 +1164,11 @@ Texture NewTexture( const TextureConfig & config ) {
 
 			if( config.num_layers == 0 ) {
 				glCompressedTextureSubImage2D( texture.texture, i, 0, 0,
-					w, h, internal_format, size, cursor );
+					w, h, gl.internal, size, cursor );
 			}
 			else {
 				glCompressedTextureSubImage3D( texture.texture, i, 0, 0, 0,
-					w, h, config.num_layers, internal_format, size, cursor );
+					w, h, config.num_layers, gl.internal, size, cursor );
 			}
 
 			cursor += size;

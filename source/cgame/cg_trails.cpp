@@ -218,7 +218,7 @@ static void DrawActualTrail( const Trail & trail ) {
 	VertexDescriptor vertex_descriptor = { };
 	vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( TrailVertex, position ) };
 	vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( TrailVertex, uv ) };
-	vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_Norm, 0, offsetof( TrailVertex, color ) };
+	vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( TrailVertex, color ) };
 	vertex_descriptor.buffer_strides[ 0 ] = sizeof( TrailVertex );
 
 	DrawDynamicGeometry( pipeline, vertices, indices, vertex_descriptor );

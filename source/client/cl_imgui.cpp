@@ -184,7 +184,7 @@ static void SubmitDrawCalls() {
 		VertexDescriptor vertex_descriptor = { };
 		vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( ImDrawVert, pos ) };
 		vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, uv ) };
-		vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_Norm, 0, offsetof( ImDrawVert, col ) };
+		vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( ImDrawVert, col ) };
 		vertex_descriptor.buffer_strides[ 0 ] = sizeof( ImDrawVert );
 
 		DynamicDrawData dynamic_geometry = UploadDynamicGeometry(

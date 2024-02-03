@@ -71,27 +71,27 @@ static VertexFormat VertexFormatFromGLTF( cgltf_type dim, cgltf_component_type c
 	// TODO: support signed types
 	if( dim == cgltf_type_vec2 ) {
 		if( component == cgltf_component_type_r_8u )
-			return normalized ? VertexFormat_U8x2_Norm : VertexFormat_U8x2;
+			return normalized ? VertexFormat_U8x2_01 : VertexFormat_U8x2;
 		if( component == cgltf_component_type_r_16u )
-			return normalized ? VertexFormat_U16x2_Norm : VertexFormat_U16x2;
+			return normalized ? VertexFormat_U16x2_01 : VertexFormat_U16x2;
 		if( component == cgltf_component_type_r_32f )
 			return VertexFormat_Floatx2;
 	}
 
 	if( dim == cgltf_type_vec3 ) {
 		if( component == cgltf_component_type_r_8u )
-			return normalized ? VertexFormat_U8x3_Norm : VertexFormat_U8x3;
+			return normalized ? VertexFormat_U8x3_01 : VertexFormat_U8x3;
 		if( component == cgltf_component_type_r_16u )
-			return normalized ? VertexFormat_U16x3_Norm : VertexFormat_U16x3;
+			return normalized ? VertexFormat_U16x3_01 : VertexFormat_U16x3;
 		if( component == cgltf_component_type_r_32f )
 			return VertexFormat_Floatx3;
 	}
 
 	if( dim == cgltf_type_vec4 ) {
 		if( component == cgltf_component_type_r_8u )
-			return normalized ? VertexFormat_U8x4_Norm : VertexFormat_U8x4;
+			return normalized ? VertexFormat_U8x4_01 : VertexFormat_U8x4;
 		if( component == cgltf_component_type_r_16u )
-			return normalized ? VertexFormat_U16x4_Norm : VertexFormat_U16x4;
+			return normalized ? VertexFormat_U16x4_01 : VertexFormat_U16x4;
 		if( component == cgltf_component_type_r_32f )
 			return VertexFormat_Floatx4;
 	}

@@ -10,18 +10,18 @@ enum BlendFunc : u8 {
 
 enum VertexFormat : u8 {
 	VertexFormat_U8x2,
-	VertexFormat_U8x2_Norm,
+	VertexFormat_U8x2_01,
 	VertexFormat_U8x3,
-	VertexFormat_U8x3_Norm,
+	VertexFormat_U8x3_01,
 	VertexFormat_U8x4,
-	VertexFormat_U8x4_Norm,
+	VertexFormat_U8x4_01,
 
 	VertexFormat_U16x2,
-	VertexFormat_U16x2_Norm,
+	VertexFormat_U16x2_01,
 	VertexFormat_U16x3,
-	VertexFormat_U16x3_Norm,
+	VertexFormat_U16x3_01,
 	VertexFormat_U16x4,
-	VertexFormat_U16x4_Norm,
+	VertexFormat_U16x4_01,
 
 	VertexFormat_Floatx2,
 	VertexFormat_Floatx3,

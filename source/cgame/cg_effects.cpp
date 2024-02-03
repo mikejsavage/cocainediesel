@@ -71,7 +71,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash materia
 	VertexDescriptor vertex_descriptor = { };
 	vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( BeamVertex, position ) };
 	vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( BeamVertex, uv ) };
-	vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_Norm, 0, offsetof( BeamVertex, color ) };
+	vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( BeamVertex, color ) };
 	vertex_descriptor.buffer_strides[ 0 ] = sizeof( BeamVertex );
 
 	DrawDynamicGeometry( pipeline, StaticSpan( vertices ), StaticSpan( indices ), vertex_descriptor );

@@ -97,7 +97,7 @@ struct MeshConfig {
 		VertexFormat_Floatx3,
 		VertexFormat_Floatx3,
 		VertexFormat_Floatx2,
-		VertexFormat_U8x4_Norm,
+		VertexFormat_U8x4_01,
 		VertexFormat_U16x4,
 		VertexFormat_Floatx4,
 	};

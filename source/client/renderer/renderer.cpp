@@ -758,7 +758,6 @@ static size_t FillDynamicGeometryBuffer( Span< const T > data, size_t alignment 
 	size_t aligned_offset = AlignNonPow2( frame_offset + dynamic_geometry.cursor, alignment );
 	memcpy( ( ( char * ) dynamic_geometry.buffer.ptr ) + aligned_offset, data.ptr, data.num_bytes() );
 	dynamic_geometry.cursor = aligned_offset + data.num_bytes() - frame_offset;
-	if( dynamic_geometry.cursor >= DynamicGeometry::BufferSize ) Breakpoint();
 	return aligned_offset / alignment;
 }
 

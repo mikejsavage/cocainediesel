@@ -1,14 +1,16 @@
-#include "qcommon/qcommon.h"
-#include "qcommon/array.h"
+#include "qcommon/base.h"
+#include "qcommon/cmd.h"
+#include "qcommon/cvar.h"
 #include "qcommon/fs.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/string.h"
+#include "gameshared/q_shared.h"
 
 #include "nanosort/nanosort.hpp"
 
 struct ConsoleCommand {
-	char * name;
+	Span< const char > name;
 	ConsoleCommandCallback callback;
 	TabCompletionCallback tab_completion_callback;
 	bool disabled;
@@ -16,13 +18,11 @@ struct ConsoleCommand {
 
 constexpr size_t MAX_COMMANDS = 1024;
 
-static String< 1024 > command_buffer;
-
 static ConsoleCommand commands[ MAX_COMMANDS ];
 static Hashtable< MAX_COMMANDS * 2 > commands_hashtable;
 
 static Span< const char > GrabLine( Span< const char > str, bool * eof ) {
-	const char * newline = ( const char * ) memchr( str.ptr, '\n', str.n );
+	const char * newline = StrChr( str, '\n' );
 	*eof = newline == NULL;
 	return newline == NULL ? str : str.slice( 0, newline - str.ptr );
 }
@@ -35,47 +35,100 @@ static ConsoleCommand * FindCommand( Span< const char > name ) {
 	return &commands[ idx ];
 }
 
-static ConsoleCommand * FindCommand( const char * name ) {
-	return FindCommand( MakeSpan( name ) );
-}
-
-static void Cmd_TokenizeString( Span< const char > str ); // TODO: nuke
-
-bool Cbuf_ExecuteLine( Span< const char > line, bool warn_on_invalid ) {
-	Cmd_TokenizeString( line );
-
-	if( Cmd_Argc() == 0 ) {
+bool Cmd_ExecuteLine( Allocator * a, Span< const char > line, bool warn_on_invalid ) {
+	Tokenized args = Tokenize( a, line );
+	defer { Free( a, args.tokens.ptr ); };
+	if( args.tokens.n == 0 ) {
 		return true;
 	}
 
-	const ConsoleCommand * command = FindCommand( Cmd_Argv( 0 ) );
+	const ConsoleCommand * command = FindCommand( args.tokens[ 0 ] );
 	if( command != NULL && !command->disabled ) {
-		command->callback();
+		command->callback( args );
 		return true;
 	}
 
-	if( Cvar_Command() ) {
+	if( Cvar_Command( args ) ) {
 		return true;
 	}
 
 	if( warn_on_invalid ) {
-		Com_GGPrint( "Unknown command \"{}\"", Cmd_Argv( 0 ) );
+		Com_GGPrint( "Unknown command \"{}\"", args.tokens[ 0 ] );
 	}
 
 	return false;
 }
 
-void Cbuf_ExecuteLine( const char * line ) {
-	Cbuf_ExecuteLine( MakeSpan( line ), true );
+static const char * Argv( Span< const char * > args, size_t i ) {
+	return i < args.n ? args[ i ] : "";
 }
 
-static void Cbuf_Execute( const char * str, bool skip_comments ) {
-	Span< const char > cursor = MakeSpan( str );
+static void ClearArg( Span< const char * > args, size_t i ) {
+	if( i < args.n ) {
+		args[ i ] = NULL;
+	}
+}
+
+void Cmd_ExecuteEarlyCommands( Span< const char * > args ) {
+	for( size_t i = 1; i < args.n; i++ ) {
+		if( StrCaseEqual( args[ i ], "-set" ) || StrCaseEqual( args[ i ], "+set" ) ) {
+			Cmd_Execute( sys_allocator, "set \"{}\" \"{}\"", Argv( args, i + 1 ), Argv( args, i + 2 ) );
+			ClearArg( args, i );
+			ClearArg( args, i + 1 );
+			ClearArg( args, i + 2 );
+			i += 2;
+		}
+		else if( StrCaseEqual( args[ i ], "-exec" ) || StrCaseEqual( args[ i ], "+exec" ) ) {
+			Cmd_Execute( sys_allocator, "exec \"{}\"", Argv( args, i + 1 ) );
+			ClearArg( args, i );
+			ClearArg( args, i + 1 );
+			i += 1;
+		}
+		else if( StrCaseEqual( args[ i ], "-config" ) || StrCaseEqual( args[ i ], "+config" ) ) {
+			Cmd_Execute( sys_allocator, "config \"{}\"", Argv( args, i + 1 ) );
+			ClearArg( args, i );
+			ClearArg( args, i + 1 );
+			i += 1;
+		}
+	}
+}
+
+void Cmd_ExecuteLateCommands( Span< const char * > args ) {
+	String< 1024 > buf;
+
+	// TODO: should probably not roundtrip to string and retokenize
+	for( size_t i = 1; i < args.n; i++ ) {
+		if( args[ i ] == NULL )
+			continue;
+
+		if( StartsWith( args[ i ], "-" ) || StartsWith( args[ i ], "+" ) ) {
+			Cmd_ExecuteLine( sys_allocator, buf.span(), true );
+			buf.format( "{}", args[ i ] + 1 );
+		}
+		else {
+			buf.append( " \"{}\"", args[ i ] );
+		}
+	}
+
+	Cmd_ExecuteLine( sys_allocator, buf.span(), true );
+}
+
+static void ExecConfig( const char * path ) {
+	TracyZoneScoped;
+
+	Span< char > config = ReadFileBinary( sys_allocator, path ).cast< char >();
+	defer { Free( sys_allocator, config.ptr ); };
+	if( config.ptr == NULL ) {
+		Com_Printf( "Couldn't execute: %s\n", path );
+		return;
+	}
+
+	Span< const char > cursor = config;
 	while( cursor.n > 0 ) {
 		bool eof;
 		Span< const char > line = GrabLine( cursor, &eof );
-		if( !skip_comments || !StartsWith( line, "//" ) ) {
-			Cbuf_ExecuteLine( line, true );
+		if( !StartsWith( line, "//" ) ) {
+			Cmd_ExecuteLine( sys_allocator, line, true );
 		}
 
 		cursor += line.n;
@@ -85,99 +138,14 @@ static void Cbuf_Execute( const char * str, bool skip_comments ) {
 	}
 }
 
-void Cbuf_AddLine( const char * text ) {
-	size_t length_with_newline = strlen( text ) + 1;
-	if( command_buffer.length() + length_with_newline > command_buffer.capacity() ) {
-		Com_Printf( S_COLOR_YELLOW "Typed too much stuff...\n" );
-		return;
-	}
-
-	command_buffer.append_raw( text, strlen( text ) );
-	command_buffer += '\n';
-}
-
-void Cbuf_Execute() {
-	Cbuf_Execute( command_buffer.c_str(), false );
-	command_buffer.clear();
-}
-
-static const char * Argv( int argc, char ** argv, int i ) {
-	return i < argc ? argv[ i ] : "";
-}
-
-static void ClearArg( int argc, char ** argv, int i ) {
-	if( i < argc ) {
-		argv[ i ] = NULL;
-	}
-}
-
-void Cbuf_AddEarlyCommands( int argc, char ** argv ) {
-	for( int i = 1; i < argc; i++ ) {
-		if( StrCaseEqual( argv[ i ], "-set" ) || StrCaseEqual( argv[ i ], "+set" ) ) {
-			Cbuf_Add( "set \"{}\" \"{}\"", Argv( argc, argv, i + 1 ), Argv( argc, argv, i + 2 ) );
-			ClearArg( argc, argv, i );
-			ClearArg( argc, argv, i + 1 );
-			ClearArg( argc, argv, i + 2 );
-			i += 2;
-		}
-		else if( StrCaseEqual( argv[ i ], "-exec" ) || StrCaseEqual( argv[ i ], "+exec" ) ) {
-			Cbuf_Add( "exec \"{}\"", Argv( argc, argv, i + 1 ) );
-			ClearArg( argc, argv, i );
-			ClearArg( argc, argv, i + 1 );
-			i += 1;
-		}
-		else if( StrCaseEqual( argv[ i ], "-config" ) || StrCaseEqual( argv[ i ], "+config" ) ) {
-			Cbuf_Add( "config \"{}\"", Argv( argc, argv, i + 1 ) );
-			ClearArg( argc, argv, i );
-			ClearArg( argc, argv, i + 1 );
-			i += 1;
-		}
-	}
-
-	Cbuf_Execute();
-}
-
-void Cbuf_AddLateCommands( int argc, char ** argv ) {
-	String< 1024 > buf;
-
-	// TODO: should probably not roundtrip to string and retokenize
-	for( int i = 1; i < argc; i++ ) {
-		if( argv[ i ] == NULL )
-			continue;
-
-		if( StartsWith( argv[ i ], "-" ) || StartsWith( argv[ i ], "+" ) ) {
-			Cbuf_ExecuteLine( buf.c_str() );
-			buf.format( "{}", argv[ i ] + 1 );
-		}
-		else {
-			buf.append( " \"{}\"", argv[ i ] );
-		}
-	}
-
-	Cbuf_ExecuteLine( buf.c_str() );
-}
-
-static void ExecConfig( const char * path ) {
-	TracyZoneScoped;
-
-	char * config = ReadFileString( sys_allocator, path );
-	defer { Free( sys_allocator, config ); };
-	if( config == NULL ) {
-		Com_Printf( "Couldn't execute: %s\n", path );
-		return;
-	}
-
-	Cbuf_Execute( config, true );
-}
-
-static void Cmd_Exec_f() {
-	if( Cmd_Argc() < 2 ) {
+static void Cmd_Exec_f( const Tokenized & args ) {
+	if( args.tokens.n != 2 ) {
 		Com_Printf( "Usage: exec <filename>\n" );
 		return;
 	}
 
 	const char * fmt = is_public_build ? "{}/{}" : "{}/base/{}";
-	DynamicString path( sys_allocator, fmt, HomeDirPath(), Cmd_Argv( 1 ) );
+	DynamicString path( sys_allocator, fmt, HomeDirPath(), args.tokens[ 1 ] );
 	if( FileExtension( path.c_str() ) == "" ) {
 		path += ".cfg";
 	}
@@ -185,13 +153,13 @@ static void Cmd_Exec_f() {
 	ExecConfig( path.c_str() );
 }
 
-static void Cmd_Config_f() {
-	if( Cmd_Argc() < 2 ) {
+static void Cmd_Config_f( const Tokenized & args ) {
+	if( args.tokens.n != 2 ) {
 		Com_Printf( "Usage: config <filename>\n" );
 		return;
 	}
 
-	DynamicString path( sys_allocator, "{}", Cmd_Argv( 1 ) );
+	DynamicString path( sys_allocator, "{}", args.tokens[ 1 ] );
 	if( FileExtension( path.c_str() ) == "" ) {
 		path += ".cfg";
 	}
@@ -199,11 +167,26 @@ static void Cmd_Config_f() {
 	ExecConfig( path.c_str() );
 }
 
-static void Cmd_Find_f() {
-	const char * needle = Cmd_Argc() < 2 ? "" : Cmd_Argv( 1 );
+static Span< Span< const char > > SearchCommands( Allocator * a, Span< const char > partial ) {
+	NonRAIIDynamicArray< Span< const char > > results( a );
 
-	Span< const char * > cmds = SearchCommands( sys_allocator, needle );
-	Span< const char * > cvars = SearchCvars( sys_allocator, needle );
+	for( size_t i = 0; i < commands_hashtable.size(); i++ ) {
+		const ConsoleCommand * command = &commands[ i ];
+		if( !command->disabled && CaseContains( command->name, partial ) ) {
+			results.add( command->name );
+		}
+	}
+
+	nanosort( results.begin(), results.end(), SortSpanStringsComparator );
+
+	return results.span();
+}
+
+static void Cmd_Find_f( const Tokenized & args ) {
+	Span< const char > needle = args.tokens.n < 2 ? Span< const char >( "" ) : args.tokens[ 1 ];
+
+	Span< Span< const char > > cmds = SearchCommands( sys_allocator, needle );
+	Span< Span< const char > > cvars = SearchCvars( sys_allocator, needle );
 	defer {
 		Free( sys_allocator, cmds.ptr );
 		Free( sys_allocator, cvars.ptr );
@@ -217,16 +200,16 @@ static void Cmd_Find_f() {
 	if( cmds.n > 0 ) {
 		Com_Printf( "Found %zu command%s:\n", cmds.n, cmds.n == 1 ? "" : "s" );
 
-		for( const char * cvar : cmds ) {
-			Com_Printf( "    %s\n", cvar );
+		for( Span< const char > cmd : cmds ) {
+			Com_GGPrint( "    {}", cmd );
 		}
 	}
 
 	if( cvars.n > 0 ) {
 		Com_Printf( "Found %zu cvar%s:\n", cvars.n, cvars.n == 1 ? "" : "s" );
 
-		for( const char * cvar : cvars ) {
-			Com_Printf( "    %s\n", cvar );
+		for( Span< const char > cvar : cvars ) {
+			Com_GGPrint( "    {}", cvar );
 		}
 	}
 }
@@ -236,59 +219,7 @@ void ExecDefaultCfg() {
 	ExecConfig( path.c_str() );
 }
 
-/* DUMB SHIT */
-// TODO: just pass the span to commands and stop misusing this everywhere else
-
-static int cmd_argc;
-static char * cmd_argv[MAX_STRING_TOKENS];
-static char cmd_args[MAX_STRING_CHARS];
-
-int Cmd_Argc() {
-	return cmd_argc;
-}
-
-const char * Cmd_Argv( int arg ) {
-	return arg < cmd_argc ? cmd_argv[ arg ] : "";
-}
-
-char * Cmd_Args() {
-	return cmd_args;
-}
-
-// TODO: this sucks
-static void Cmd_TokenizeString( Span< const char > str ) {
-	for( int i = 0; i < cmd_argc; i++ ) {
-		Free( sys_allocator, cmd_argv[ i ] );
-	}
-
-	strcpy( cmd_args, "" );
-
-	for( cmd_argc = 0; cmd_argc < MAX_STRING_TOKENS; cmd_argc++ ) {
-		Span< const char > token = ParseToken( &str, Parse_StopOnNewLine );
-		if( token.ptr == NULL )
-			return;
-
-		cmd_argv[ cmd_argc ] = ( *sys_allocator )( "{}", token );
-
-		if( cmd_argc == 1 ) {
-			Span< const char > rest_of_line( token.ptr, str.end() - token.ptr );
-			if( rest_of_line.ptr[ -1 ] == '"' ) {
-				rest_of_line.ptr--;
-				rest_of_line.n++;
-			}
-			ggformat( cmd_args, sizeof( cmd_args ), "{}", rest_of_line );
-			for( size_t n = strlen( cmd_args ); n > 0 && cmd_args[ n - 1 ] == ' '; n-- ) {
-				cmd_args[ n - 1 ] = '\0';
-			}
-		}
-	}
-}
-
-void Cmd_TokenizeString( const char * str ) {
-	Cmd_TokenizeString( MakeSpan( str ) );
-}
-
-void AddCommand( const char * name, ConsoleCommandCallback callback ) {
+void AddCommand( Span< const char > name, ConsoleCommandCallback callback ) {
 	Assert( callback != NULL );
 
 	ConsoleCommand * old_command = FindCommand( name );
@@ -302,7 +233,7 @@ void AddCommand( const char * name, ConsoleCommandCallback callback ) {
 
 	ConsoleCommand * command = &commands[ commands_hashtable.size() ];
 	*command = { };
-	command->name = CopyString( sys_allocator, name );
+	command->name = name;
 	command->callback = callback;
 
 	u64 hash = CaseHash64( name );
@@ -310,18 +241,18 @@ void AddCommand( const char * name, ConsoleCommandCallback callback ) {
 	Assert( ok );
 }
 
-void RemoveCommand( const char * name ) {
+void RemoveCommand( Span< const char > name ) {
 	FindCommand( name )->disabled = true;
 }
 
-void SetTabCompletionCallback( const char * name, TabCompletionCallback callback ) {
+void SetTabCompletionCallback( Span< const char > name, TabCompletionCallback callback ) {
 	ConsoleCommand * command = FindCommand( name );
 	Assert( command->tab_completion_callback == NULL || command->tab_completion_callback == callback );
 	command->tab_completion_callback = callback;
 }
 
-Span< const char * > TabCompleteCommand( TempAllocator * a, const char * partial ) {
-	NonRAIIDynamicArray< const char * > results( a );
+Span< Span< const char > > TabCompleteCommand( TempAllocator * temp, Span< const char > partial ) {
+	NonRAIIDynamicArray< Span< const char > > results( temp );
 
 	for( size_t i = 0; i < commands_hashtable.size(); i++ ) {
 		const ConsoleCommand * command = &commands[ i ];
@@ -330,42 +261,25 @@ Span< const char * > TabCompleteCommand( TempAllocator * a, const char * partial
 		}
 	}
 
-	nanosort( results.begin(), results.end(), SortCStringsComparator );
+	nanosort( results.begin(), results.end(), SortSpanStringsComparator );
 
 	return results.span();
 }
 
-Span< const char * > SearchCommands( Allocator * a, const char * partial ) {
-	NonRAIIDynamicArray< const char * > results( a );
+Span< Span< const char > > TabCompleteArgument( TempAllocator * temp, Span< const char > partial ) {
+	Assert( partial != "" );
 
-	for( size_t i = 0; i < commands_hashtable.size(); i++ ) {
-		const ConsoleCommand * command = &commands[ i ];
-		if( !command->disabled && CaseContains( command->name, partial ) ) {
-			results.add( command->name );
-		}
-	}
+	Tokenized tokenized = Tokenize( temp, partial );
 
-	nanosort( results.begin(), results.end(), SortCStringsComparator );
-
-	return results.span();
-}
-
-Span< const char * > TabCompleteArgument( TempAllocator * a, const char * partial ) {
-	Span< const char > partial_span = MakeSpan( partial );
-	Span< const char > command_name = ParseToken( &partial_span, Parse_StopOnNewLine );
-
-	const ConsoleCommand * command = FindCommand( command_name );
+	const ConsoleCommand * command = FindCommand( tokenized.tokens[ 0 ] );
 	if( command == NULL || command->tab_completion_callback == NULL ) {
-		return Span< const char * >();
+		return { };
 	}
 
-	const char * first_arg = command_name.end();
-	while( *first_arg == ' ' )
-		first_arg++;
-	return command->tab_completion_callback( a, first_arg );
+	return command->tab_completion_callback( temp, tokenized.all_but_first );
 }
 
-static void FindMatchingFilesRecursive( TempAllocator * a, NonRAIIDynamicArray< const char * > * files, DynamicString * path, const char * prefix, size_t skip, const char * extension ) {
+static void FindMatchingFilesRecursive( TempAllocator * temp, NonRAIIDynamicArray< Span< const char > > * files, DynamicString * path, Span< const char > prefix, size_t skip, Span< const char > extension ) {
 	ListDirHandle scan = BeginListDir( sys_allocator, path->c_str() );
 
 	const char * name;
@@ -378,41 +292,41 @@ static void FindMatchingFilesRecursive( TempAllocator * a, NonRAIIDynamicArray< 
 		size_t old_len = path->length();
 		path->append( "/{}", name );
 		if( dir ) {
-			FindMatchingFilesRecursive( a, files, path, prefix, skip, extension );
+			FindMatchingFilesRecursive( temp, files, path, prefix, skip, extension );
 		}
 		else {
-			bool prefix_matches = CaseStartsWith( path->c_str() + skip, prefix );
+			bool prefix_matches = CaseStartsWith( path->span() + skip, prefix );
 			bool ext_matches = StrCaseEqual( FileExtension( path->c_str() ), extension );
 			if( prefix_matches && ext_matches ) {
-				files->add( ( *a )( "{}", path->span().slice( skip, path->length() ) ) );
+				files->add( temp->sv( "{}", path->span().slice( skip, path->length() ) ) );
 			}
 		}
 		path->truncate( old_len );
 	}
 }
 
-Span< const char * > TabCompleteFilename( TempAllocator * a, const char * partial, const char * search_dir, const char * extension ) {
+Span< Span< const char > > TabCompleteFilename( TempAllocator * temp, Span< const char > partial, Span< const char > search_dir, Span< const char > extension ) {
 	DynamicString base_path( sys_allocator, "{}", search_dir );
 
-	NonRAIIDynamicArray< const char * > results( a );
-	FindMatchingFilesRecursive( a, &results, &base_path, partial, base_path.length() + 1, extension );
+	NonRAIIDynamicArray< Span< const char > > results( temp );
+	FindMatchingFilesRecursive( temp, &results, &base_path, partial, base_path.length() + 1, extension );
 
-	nanosort( results.begin(), results.end(), SortCStringsComparator );
+	nanosort( results.begin(), results.end(), SortSpanStringsComparator );
 
 	return results.span();
 }
 
-Span< const char * > TabCompleteFilenameHomeDir( TempAllocator * a, const char * partial, const char * search_dir, const char * extension ) {
-	const char * home_search_dir = ( *a )( "{}/{}", HomeDirPath(), search_dir );
-	return TabCompleteFilename( a, partial, home_search_dir, extension );
+Span< Span< const char > > TabCompleteFilenameHomeDir( TempAllocator * temp, Span< const char > partial, Span< const char > search_dir, Span< const char > extension ) {
+	Span< const char > home_search_dir = temp->sv( "{}/{}", HomeDirPath(), search_dir );
+	return TabCompleteFilename( temp, partial, home_search_dir, extension );
 }
 
-static Span< const char * > TabCompleteExec( TempAllocator * a, const char * partial ) {
-	return TabCompleteFilenameHomeDir( a, partial, "base", ".cfg" );
+static Span< Span< const char > > TabCompleteExec( TempAllocator * temp, Span< const char > partial ) {
+	return TabCompleteFilenameHomeDir( temp, partial, "base", ".cfg" );
 }
 
-static Span< const char * > TabCompleteConfig( TempAllocator * a, const char * partial ) {
-	return TabCompleteFilename( a, partial, "base", ".cfg" );
+static Span< Span< const char > > TabCompleteConfig( TempAllocator * temp, Span< const char > partial ) {
+	return TabCompleteFilename( temp, partial, "base", ".cfg" );
 }
 
 void Cmd_Init() {
@@ -422,10 +336,6 @@ void Cmd_Init() {
 
 	SetTabCompletionCallback( "exec", TabCompleteExec );
 	SetTabCompletionCallback( "config", TabCompleteConfig );
-
-	command_buffer.clear();
-
-	cmd_argc = 0;
 }
 
 void Cmd_Shutdown() {
@@ -433,13 +343,8 @@ void Cmd_Shutdown() {
 	RemoveCommand( "config" );
 	RemoveCommand( "find" );
 
-	for( int i = 0; i < cmd_argc; i++ ) {
-		Free( sys_allocator, cmd_argv[ i ] );
-	}
-
 	for( size_t i = 0; i < commands_hashtable.size(); i++ ) {
 		ConsoleCommand * command = &commands[ i ];
 		Assert( command->disabled );
-		Free( sys_allocator, command->name );
 	}
 }

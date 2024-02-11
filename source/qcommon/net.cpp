@@ -93,25 +93,26 @@ void format( FormatBuffer * fb, const NetAddress & address, const FormatOpts & o
 	format( fb, buf, opts );
 }
 
-char * SplitIntoHostnameAndPort( Allocator * a, const char * str, u16 * port ) {
+Span< const char > SplitIntoHostnameAndPort( Span< const char > str, u16 * port ) {
 	*port = 0;
 
 	bool is_portless_ipv6 = false;
 	if( str[ 0 ] != '[' ) {
-		const char * first_colon = strchr( str, ':' );
+		const char * first_colon = StrChr( str, ':' );
 		if( first_colon != NULL ) {
-			const char *  second_colon = strchr( first_colon + 1, ':' );
+			Span< const char > after_first_colon = str + ( first_colon - str.ptr ) + 1;
+			const char * second_colon = StrChr( after_first_colon, ':' );
 			is_portless_ipv6 = second_colon != NULL;
 		}
 	}
 
-	const char * last_colon = strrchr( str, ':' );
+	const char * last_colon = StrRChr( str, ':' );
 	if( last_colon == NULL || is_portless_ipv6 ) {
-		return CopyString( a, str );
+		return str;
 	}
 
-	*port = SpanToU64( MakeSpan( last_colon + 1 ), 0 );
-	return ( *a )( "{}", Span< const char >( str, last_colon - str ) );
+	*port = SpanToU64( str.slice( last_colon - str.ptr + 1, str.n ), 0 );
+	return str.slice( 0, last_colon - str.ptr );
 }
 
 bool DNS( const char * hostname, NetAddress * address, DNSFamily family ) {

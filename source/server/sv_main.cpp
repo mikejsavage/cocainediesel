@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "server/server.h"
 #include "qcommon/version.h"
 #include "qcommon/csprng.h"
-#include "qcommon/time.h"
 
 static bool sv_initialized = false;
 
@@ -325,7 +324,7 @@ void SV_Init() {
 	memset( &svs, 0, sizeof( svs ) );
 	memset( &svc, 0, sizeof( svc ) );
 
-	constexpr size_t frame_arena_size = 1024 * 1024; // 1MB
+	constexpr size_t frame_arena_size = 1024 * 1024 * 32; // 32MB
 	void * frame_arena_memory = sys_allocator->allocate( frame_arena_size, 16 );
 	svs.frame_arena = ArenaAllocator( frame_arena_memory, frame_arena_size );
 
@@ -337,10 +336,10 @@ void SV_Init() {
 
 	SV_InitOperatorCommands();
 
-	NewCvar( "protocol", temp( "{}", s32( APP_PROTOCOL_VERSION ) ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
-	NewCvar( "serverid", temp( "{}", Random64( &svs.rng ) ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
+	NewCvar( "protocol", temp.sv( "{}", s32( APP_PROTOCOL_VERSION ) ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
+	NewCvar( "serverid", temp.sv( "{}", Random64( &svs.rng ) ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 
-	sv_port = NewCvar( "sv_port", temp( "{}", PORT_SERVER ), CvarFlag_Archive | CvarFlag_ServerReadOnly );
+	sv_port = NewCvar( "sv_port", temp.sv( "{}", PORT_SERVER ), CvarFlag_Archive | CvarFlag_ServerReadOnly );
 
 	sv_downloadurl = NewCvar( "sv_downloadurl", "", CvarFlag_Archive | CvarFlag_ServerReadOnly );
 
@@ -362,7 +361,7 @@ void SV_Init() {
 	if( sv_maxclients->integer < 1 ) {
 		Cvar_ForceSet( "sv_maxclients", "1" );
 	} else if( sv_maxclients->integer > MAX_CLIENTS ) {
-		Cvar_ForceSet( "sv_maxclients", temp( "{}", MAX_CLIENTS ) );
+		Cvar_ForceSet( "sv_maxclients", temp.sv( "{}", MAX_CLIENTS ) );
 	}
 
 	sv_demodir = NewCvar( "sv_demodir", "server", CvarFlag_ServerReadOnly );

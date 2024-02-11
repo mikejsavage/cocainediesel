@@ -56,8 +56,8 @@ static int scr_centertime_off;
 * Called for important messages that should stay in the center of the screen
 * for a few moments
 */
-void CG_CenterPrint( const char * str ) {
-	SafeStrCpy( scr_centerstring, str, sizeof( scr_centerstring ) );
+void CG_CenterPrint( Span< const char > str ) {
+	ggformat( scr_centerstring, sizeof( scr_centerstring ), "{}", str );
 	scr_centertime_off = centerTimeOff;
 }
 
@@ -180,14 +180,13 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		trace_t trace;
 		Vec3 headpos = Vec3( 0.0f, 0.0f, 34.0f * cent->interpolated.scale.z );
-		CG_Trace( &trace, cg.view.origin, Vec3( 0.0f ), Vec3( 0.0f ), cent->interpolated.origin + headpos, cg.predictedPlayerState.POVnum, MASK_OPAQUE );
-		if( trace.fraction < 1.0f && trace.ent != cent->current.number ) {
+		trace_t trace = CG_Trace( cg.view.origin, MinMax3( 0.0f ), cent->interpolated.origin + headpos, cg.predictedPlayerState.POVnum, SolidMask_Opaque );
+		if( trace.HitSomething() && trace.ent != cent->current.number ) {
 			continue;
 		}
 
-		Vec3 drawOrigin = cent->interpolated.origin + Vec3( 0.0f, 0.0f, playerbox_stand_maxs.z + 8 );
+		Vec3 drawOrigin = cent->interpolated.origin + Vec3( 0.0f, 0.0f, playerbox_stand.maxs.z + 8 );
 
 		Vec2 coords = WorldToScreen( drawOrigin );
 		if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
@@ -330,22 +329,22 @@ void CG_AddBombIndicator( const centity_t * cent ) {
 
 	// TODO: this really does not belong here...
 	if( cent->interpolated.animating ) {
-		const Model * model = FindModel( "models/bomb/bomb" );
+		const GLTFRenderData * model = FindGLTFRenderData( "models/bomb/bomb" );
 		if( model == NULL )
 			return;
 
 		u8 tip_node;
-		if( !FindNodeByName( model, Hash32( "a" ), &tip_node ) )
+		if( !FindNodeByName( model, "a", &tip_node ) )
 			return;
 
 		TempAllocator temp = cls.frame_arena.temp();
 
-		Span< TRS > pose = SampleAnimation( &temp, model, cent->interpolated.animation_time );
+		Span< Transform > pose = SampleAnimation( &temp, model, cent->interpolated.animation_time );
 		MatrixPalettes palettes = ComputeMatrixPalettes( &temp, model, pose );
 
 		Vec3 bomb_origin = cent->interpolated.origin - Vec3( 0.0f, 0.0f, 32.0f ); // BOMB_HUD_OFFSET
 
-		Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, bomb_origin );
+		Mat3x4 transform = FromAxisAndOrigin( cent->interpolated.axis, bomb_origin );
 		Vec3 tip = ( transform * model->transform * palettes.node_transforms[ tip_node ] * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xyz();
 
 		DoVisualEffect( "models/bomb/fuse", tip );

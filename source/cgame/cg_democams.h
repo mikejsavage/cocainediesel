@@ -17,9 +17,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#include "qcommon/types.h"
+
 void CG_DemoCamInit();
 void CG_DemoCamShutdown();
 
 int CG_DemoCamUpdate();
-void CG_DemoCamGetOrientation( Vec3 * origin, Vec3 * angles, Vec3 * velocity );
+void CG_DemoCamGetOrientation( Vec3 * origin, EulerDegrees2 * angles, Vec3 * velocity );
+
+struct cg_viewdef_t;
 void CG_DemoCamGetViewDef( cg_viewdef_t *view );

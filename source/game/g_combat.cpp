@@ -20,20 +20,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 
-bool G_IsTeamDamage( SyncEntityState * target, SyncEntityState * attacker ) {
+bool G_IsTeamDamage( const SyncEntityState * target, const SyncEntityState * attacker ) {
 	return target->number != attacker->number && target->team == attacker->team;
 }
 
-static bool G_CanSplashDamage( const edict_t *targ, const edict_t *inflictor, const Plane *plane, Vec3 pos, int timeDelta ) {
+static bool G_CanSplashDamage( const edict_t * targ, const edict_t * inflictor, Optional< Vec3 > normal, Vec3 pos, int timeDelta ) {
 	constexpr float SPLASH_DAMAGE_TRACE_FRAC_EPSILON = 1.0f / 32.0f;
-
-	trace_t trace;
 
 	// bmodels need special checking because their origin is 0,0,0
 	if( targ->movetype == MOVETYPE_PUSH ) {
 		// NOT FOR PLAYERS only for entities that can push the players
-		Vec3 dest = ( targ->r.absmin + targ->r.absmax ) * 0.5f;
-		G_Trace4D( &trace, pos, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, MASK_SOLID, timeDelta );
+		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &targ->s );
+		Vec3 dest = targ->s.origin + Center( bounds );
+		trace_t trace = G_Trace4D( pos, MinMax3( 0.0f ), dest, inflictor, Solid_WeaponClip, timeDelta );
 		if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 			return true;
 		}
@@ -41,11 +40,8 @@ static bool G_CanSplashDamage( const edict_t *targ, const edict_t *inflictor, co
 		return false;
 	}
 
-	Vec3 origin = pos;
-	if( plane != NULL ) {
-		// up by 9 units to account for stairs
-		origin += plane->normal * 9.0f;
-	}
+	// up by 9 units to account for stairs
+	Vec3 origin = pos + Default( normal, Vec3( 0.0f ) ) * 9.0f;
 
 	constexpr Vec3 offsets[] = {
 		Vec3( 0.0f, 0.0f, 0.0f ),
@@ -56,7 +52,7 @@ static bool G_CanSplashDamage( const edict_t *targ, const edict_t *inflictor, co
 	};
 
 	for( Vec3 offset : offsets ) {
-		G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), targ->s.origin + offset, inflictor, MASK_SOLID, timeDelta );
+		trace_t trace = G_Trace4D( origin, MinMax3( 0.0f ), targ->s.origin + offset, inflictor, Solid_WeaponClip, timeDelta );
 		if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 			return true;
 		}
@@ -65,7 +61,7 @@ static bool G_CanSplashDamage( const edict_t *targ, const edict_t *inflictor, co
 	return false;
 }
 
-void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int assistorNo, DamageType damage_type, int damage ) {
+void G_Killed( edict_t * targ, edict_t * inflictor, edict_t * attacker, int assistorNo, DamageType damage_type, int damage ) {
 	if( targ->health < -999 ) {
 		targ->health = -999;
 	}
@@ -77,8 +73,8 @@ void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int assisto
 	targ->deadflag = DEAD_DEAD;
 	targ->enemy = attacker;
 
-	if( targ->r.client && attacker && targ != attacker ) {
-		attacker->snap.kill = true;
+	if( targ->r.client && attacker && attacker->r.client && targ != attacker ) {
+		attacker->r.client->snap.kill = true;
 	}
 
 	// count stats
@@ -97,15 +93,15 @@ void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int assisto
 	G_CallDie( targ, inflictor, attacker, assistorNo, damage_type, damage );
 }
 
-static void G_AddAssistDamage( edict_t* targ, edict_t* attacker, int amount ) {
+static void G_AddAssistDamage( edict_t * targ, edict_t * attacker, int amount ) {
 	if( attacker == world || attacker == targ ) {
 		return;
 	}
 
 	int attacker_entno = attacker->s.number;
-	assistinfo_t *assist = NULL;
+	assistinfo_t * assist = NULL;
 
-	for ( int i = 0; i < MAX_ASSIST_INFO; ++i ) {
+	for( size_t i = 0; i < ARRAY_COUNT( targ->recent_attackers ); i++ ) {
 		// check for recent attacker or free slot first
 		if( targ->recent_attackers[i].entno == attacker_entno || !targ->recent_attackers[i].entno) {
 			assist = &targ->recent_attackers[i];
@@ -115,7 +111,7 @@ static void G_AddAssistDamage( edict_t* targ, edict_t* attacker, int amount ) {
 
 	if( assist == NULL ) {
 		// no free slots, replace oldest attacker seeya pal
-		for ( int i = 0; i < MAX_ASSIST_INFO; ++i ) {
+		for( size_t i = 0; i < ARRAY_COUNT( targ->recent_attackers ); i++ ) {
 			if( assist == NULL || targ->recent_attackers[i].lastTime < assist->lastTime ) {
 				assist = &targ->recent_attackers[i];
 			}
@@ -129,11 +125,11 @@ static void G_AddAssistDamage( edict_t* targ, edict_t* attacker, int amount ) {
 	assist->cumDamage += amount;
 }
 
-static int G_FindTopAssistor( edict_t* victim, edict_t* attacker ) {
-	assistinfo_t *top = NULL;
+static int G_FindTopAssistor( edict_t * victim, edict_t * attacker ) {
+	const assistinfo_t * top = NULL;
 
 	// TODO: could weigh damage by most recent timestamp as well
-	for (int i = 0; i < MAX_ASSIST_INFO; ++i) {
+	for( size_t i = 0; i < ARRAY_COUNT( victim->recent_attackers ); i++ ) {
 		if(victim->recent_attackers[i].entno && (top == NULL || victim->recent_attackers[i].cumDamage > top->cumDamage)) {
 			top = &victim->recent_attackers[i];
 		}
@@ -143,7 +139,7 @@ static int G_FindTopAssistor( edict_t* victim, edict_t* attacker ) {
 	return top != NULL && top->entno != attacker->s.number && top->cumDamage > 9 ? top->entno : -1;
 }
 
-static void G_KnockBackPush( edict_t *targ, edict_t *attacker, Vec3 basedir, int knockback, int dflags ) {
+static void G_KnockBackPush( edict_t * targ, const edict_t * attacker, Vec3 basedir, int knockback, int dflags ) {
 	if( knockback < 1 ) {
 		return;
 	}
@@ -199,22 +195,7 @@ void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage
 	}
 }
 
-/*
-* G_Damage
-* targ		entity that is being damaged
-* inflictor	entity that is causing the damage
-* attacker	entity that caused the inflictor to damage targ
-* example: targ=enemy, inflictor=rocket, attacker=player
-*
-* dir			direction of the attack
-* point		point at which the damage is being inflicted
-* normal		normal vector from that point
-* damage		amount of damage being inflicted
-* knockback	force to be applied against targ as a result of the damage
-*
-* dflags		these flags are used to control how T_Damage works
-*/
-void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, DamageType damage_type ) {
+void G_Damage( edict_t * targ, edict_t * inflictor, edict_t * attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, DamageType damage_type ) {
 	gclient_t *client;
 
 	if( !targ || !targ->takedamage ) {
@@ -305,8 +286,8 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 	int clamped_takedmg = HEALTH_TO_INT( take );
 
 	// accumulate given damage for hit sounds
-	if( targ != attacker && client && !targ->deadflag && attacker ) {
-		attacker->snap.damage_given += take;
+	if( targ != attacker && client && !targ->deadflag && attacker && attacker->r.client ) {
+		attacker->r.client->snap.damage_given += take;
 	}
 
 	if( G_IsDead( targ ) ) {
@@ -327,17 +308,16 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 	}
 }
 
-void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 point, float maxradius, Vec3 * pushdir, float *frac, bool selfdamage ) {
+void G_SplashFrac( const SyncEntityState * s, const entity_shared_t * r, Vec3 point, float maxradius, Vec3 * pushdir, float * frac, bool selfdamage ) {
 	const Vec3 & origin = s->origin;
-	const Vec3 & mins = r->mins;
-	const Vec3 & maxs = r->maxs;
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), s );
 
-	float innerradius = ( maxs.x + maxs.y - mins.x - mins.y ) * 0.25f;
+	float innerradius = ( bounds.maxs.x + bounds.maxs.y - bounds.mins.x - bounds.mins.y ) * 0.25f;
 
 	// Find the distance to the closest point in the capsule contained in the player bbox
 	// modify the origin so the inner sphere acts as a capsule
 	Vec3 closest_point = origin;
-	closest_point.z = Clamp( ( origin.z + mins.z ) + innerradius, point.z, ( origin.z + maxs.z ) - innerradius );
+	closest_point.z = Clamp( ( origin.z + bounds.mins.z ) + innerradius, point.z, ( origin.z + bounds.maxs.z ) - innerradius );
 
 	// find push intensity
 	float distance = Length( point - closest_point );
@@ -368,13 +348,13 @@ void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 poin
 	}
 	else {
 		// find real center of the box again
-		center_of_mass = origin + 0.5f * ( maxs + mins );
+		center_of_mass = origin + Center( bounds );
 	}
 
 	*pushdir = SafeNormalize( center_of_mass - point );
 }
 
-void G_RadiusKnockback( float maxknockback, float minknockback, float radius, edict_t *attacker, Vec3 pos, Plane *plane, int timeDelta ) {
+void G_RadiusKnockback( float maxknockback, float minknockback, float radius, edict_t * attacker, Vec3 pos, Optional< Vec3 > normal, int timeDelta ) {
 	Assert( radius >= 0.0f );
 	Assert( minknockback >= 0.0f && maxknockback >= 0.0f );
 
@@ -392,14 +372,14 @@ void G_RadiusKnockback( float maxknockback, float minknockback, float radius, ed
 		if( frac == 0.0f )
 			continue;
 
-		if( G_CanSplashDamage( ent, NULL, plane, pos, timeDelta ) ) {
+		if( G_CanSplashDamage( ent, NULL, normal, pos, timeDelta ) ) {
 			float knockback = Lerp( minknockback, frac, maxknockback );
 			G_KnockBackPush( ent, attacker, pushDir, knockback, 0 );
 		}
 	}
 }
 
-void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, const Plane *plane, edict_t *ignore, DamageType damage_type ) {
+void G_RadiusDamage( edict_t * inflictor, edict_t * attacker, Optional< Vec3 > normal, edict_t * ignore, DamageType damage_type ) {
 	Assert( inflictor );
 
 	float maxdamage = inflictor->projectileInfo.maxDamage;
@@ -434,7 +414,7 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, const Plane *plane, 
 		if( frac == 0.0f )
 			continue;
 
-		if( G_CanSplashDamage( ent, inflictor, plane, inflictor->s.origin, inflictor->timeDelta ) ) {
+		if( G_CanSplashDamage( ent, inflictor, normal, inflictor->s.origin, inflictor->timeDelta ) ) {
 			float damage = Lerp( mindamage, frac, maxdamage );
 			float knockback = Lerp( minknockback, frac, maxknockback );
 			G_Damage( ent, inflictor, attacker, pushDir, inflictor->velocity, inflictor->s.origin, damage, knockback, DAMAGE_RADIUS, damage_type );

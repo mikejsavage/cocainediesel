@@ -181,16 +181,17 @@ static void SubmitDrawCalls() {
 			continue;
 		}
 
-		MeshConfig config = { };
-		config.name = temp( "ImGui - {}", n );
-		config.vertex_buffers[ 0 ] = NewGPUBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ), temp( "ImGui vertices - {}", n ) );
-		config.vertex_descriptor.buffer_strides[ 0 ] = sizeof( ImDrawVert );
-		config.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, pos ) };
-		config.set_attribute( VertexAttribute_TexCoord, 0, offsetof( ImDrawVert, uv ) );
-		config.set_attribute( VertexAttribute_Color, 0, offsetof( ImDrawVert, col ) );
-		config.index_buffer = NewGPUBuffer( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof( u16 ), temp( "ImGui indices - {}", n ) );
-		Mesh mesh = NewMesh( config );
-		DeferDeleteMesh( mesh );
+		VertexDescriptor vertex_descriptor = { };
+		vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( ImDrawVert, pos ) };
+		vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, uv ) };
+		vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( ImDrawVert, col ) };
+		vertex_descriptor.buffer_strides[ 0 ] = sizeof( ImDrawVert );
+
+		DynamicDrawData dynamic_geometry = UploadDynamicGeometry(
+			Span< const ImDrawVert >( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size ).cast< const u8 >(),
+			Span< const ImDrawIdx >( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size ),
+			vertex_descriptor
+		);
 
 		for( int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++ ) {
 			const ImDrawCmd * pcmd = &cmd_list->CmdBuffer[ cmd_i ];
@@ -203,7 +204,7 @@ static void SubmitDrawCalls() {
 					PipelineState pipeline;
 					pipeline.pass = pass == 0 ? frame_static.ui_pass : frame_static.post_ui_pass;
 					pipeline.shader = pcmd->TextureId.shader;
-					pipeline.depth_func = DepthFunc_Disabled;
+					pipeline.depth_func = DepthFunc_AlwaysAndDontWrite;
 					pipeline.blend_func = BlendFunc_Blend;
 					pipeline.cull_face = CullFace_Disabled;
 					pipeline.write_depth = false;
@@ -225,7 +226,7 @@ static void SubmitDrawCalls() {
 
 					pipeline.bind_texture_and_sampler( "u_BaseTexture", pcmd->TextureId.material->texture, Sampler_Standard );
 
-					DrawMesh( mesh, pipeline, pcmd->ElemCount, pcmd->IdxOffset );
+					DrawDynamicGeometry( pipeline, dynamic_geometry, pcmd->ElemCount, pcmd->IdxOffset );
 				}
 			}
 		}
@@ -265,6 +266,18 @@ namespace ImGui {
 	bool Hotkey( int key ) {
 		return ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows ) && ImGui::IsKeyPressed( key, false );
 	}
+
+	ImVec2 CalcTextSize( Span< const char > str ) {
+		return ImGui::CalcTextSize( str.begin(), str.end() );
+	}
+
+	void Text( Span< const char > str ) {
+		ImGui::TextUnformatted( str.begin(), str.end() );
+	}
+
+	void PushID( Span< const char > id ) {
+		ImGui::PushID( id.begin(), id.end() );
+	}
 }
 
 ImGuiColorToken::ImGuiColorToken( u8 r, u8 g, u8 b, u8 a ) {
@@ -273,20 +286,19 @@ ImGuiColorToken::ImGuiColorToken( u8 r, u8 g, u8 b, u8 a ) {
 	token[ 2 ] = Max2( g, u8( 1 ) );
 	token[ 3 ] = Max2( b, u8( 1 ) );
 	token[ 4 ] = Max2( a, u8( 1 ) );
-	token[ 5 ] = 0;
 }
 
 ImGuiColorToken::ImGuiColorToken( RGB8 rgb ) : ImGuiColorToken( rgb.r, rgb.g, rgb.b, 255 ) { }
 ImGuiColorToken::ImGuiColorToken( RGBA8 rgba ) : ImGuiColorToken( rgba.r, rgba.g, rgba.b, rgba.a ) { }
 
 void format( FormatBuffer * fb, const ImGuiColorToken & token, const FormatOpts & opts ) {
-	format( fb, ( const char * ) token.token );
+	format( fb, Span< const char >( ( const char * ) token.token, sizeof( token.token ) ), FormatOpts() );
 }
 
-void CenterTextY( const char * str, float height ) {
+void CenterTextY( Span< const char > str, float height ) {
 	float text_height = ImGui::CalcTextSize( str ).y;
 	ImGui::SetCursorPosY( ImGui::GetCursorPosY() + 0.5f * ( height - text_height ) );
-	ImGui::Text( "%s", str );
+	ImGui::Text( str );
 }
 
 void CellCenter( float item_width ) {
@@ -294,27 +306,27 @@ void CellCenter( float item_width ) {
 	ImGui::SetCursorPosX( ImGui::GetCursorPosX() + 0.5f * ( cell_width - item_width ) );
 }
 
-void CellCenterText( const char * str ) {
+void CellCenterText( Span< const char > str ) {
 	CellCenter( ImGui::CalcTextSize( str ).x );
-	ImGui::Text( "%s", str );
+	ImGui::Text( str );
 }
 
-void ColumnCenterText( const char * str ) {
+void ColumnCenterText( Span< const char > str ) {
 	float width = ImGui::CalcTextSize( str ).x;
 	ImGui::SetCursorPosX( ImGui::GetColumnOffset() + 0.5f * ( ImGui::GetColumnWidth() - width ) );
-	ImGui::Text( "%s", str );
+	ImGui::Text( str );
 }
 
-void ColumnRightText( const char * str ) {
+void ColumnRightText( Span< const char > str ) {
 	float width = ImGui::CalcTextSize( str ).x;
 	ImGui::SetCursorPosX( ImGui::GetColumnOffset() + ImGui::GetColumnWidth() - width );
-	ImGui::Text( "%s", str );
+	ImGui::Text( str );
 }
 
-void WindowCenterTextXY( const char * str ) {
+void WindowCenterTextXY( Span< const char > str ) {
 	Vec2 text_size = ImGui::CalcTextSize( str );
 	ImGui::SetCursorPos( 0.5f * ( ImGui::GetWindowSize() - text_size ) );
-	ImGui::Text( "%s", str );
+	ImGui::Text( str );
 }
 
 Vec4 CustomAttentionGettingColor( Vec4 from, Vec4 to, Time period ) {

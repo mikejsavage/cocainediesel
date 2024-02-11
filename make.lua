@@ -7,10 +7,15 @@ msvc_global_cxxflags( "/std:c++20 /W4 /wd4100 /wd4146 /wd4189 /wd4201 /wd4307 /w
 msvc_global_cxxflags( "/wd4244 /wd4267" ) -- silence conversion warnings because there are tons of them
 msvc_global_cxxflags( "/wd4611" ) -- setjmp warning
 msvc_global_cxxflags( "/wd5030" ) -- unrecognized [[gnu::...]] attribute
+msvc_global_cxxflags( "/we4130" ) -- warning C4130: '!=': logical operation on address of string constant
 msvc_global_cxxflags( "/GR- /EHs-c-" )
+if config == "debug" then
+	msvc_obj_cxxflags( "source/*", "/RTC1" )
+end
 
 gcc_global_cxxflags( "-std=c++20 -fno-exceptions -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fno-math-errno -fvisibility=hidden" )
 gcc_global_cxxflags( "-Wall -Wextra -Wcast-align -Wvla -Wformat-security -Wimplicit-fallthrough" ) -- -Wconversion
+gcc_global_cxxflags( "-Werror=format" )
 gcc_global_cxxflags( "-Wno-unused-parameter -Wno-missing-field-initializers" )
 
 if OS == "linux" then
@@ -56,6 +61,8 @@ local platform_curl_libs = {
 	{ OS == "linux" and "mbedtls" or nil },
 }
 
+obj_cxxflags( "source/client/audio/linux.cpp", "-Ilibs/alsa-headers -Ilibs/pulseaudio-headers" )
+
 do
 	bin( "client", {
 		srcs = {
@@ -98,7 +105,7 @@ do
 		rc = "source/client/platform/client",
 
 		windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib /SUBSYSTEM:WINDOWS",
-		macos_ldflags = "-lcurl -framework AppKit -framework AudioUnit -framework Cocoa -framework CoreAudio -framework CoreVideo -framework Foundation -framework IOKit -framework Metal -framework QuartzCore",
+		macos_ldflags = "-lcurl -framework AppKit -framework AudioToolbox -framework Cocoa -framework CoreAudio -framework CoreVideo -framework Foundation -framework IOKit -framework Metal -framework QuartzCore",
 		linux_ldflags = "-lm -lpthread -ldl",
 		no_static_link = true,
 	} )
@@ -114,6 +121,7 @@ do
 		},
 
 		libs = {
+			"cgltf",
 			"ggentropy",
 			"ggformat",
 			"ggtime",

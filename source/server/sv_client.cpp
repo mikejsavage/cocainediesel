@@ -122,8 +122,6 @@ void SV_DropClient( client_t *drop, const char *format, ... ) {
 		}
 	}
 
-	SNAP_FreeClientFrames( drop );
-
 	drop->state = CS_ZOMBIE;    // become free in a few seconds
 }
 
@@ -206,7 +204,7 @@ static void SV_Baselines_f( client_t *client, msg_t args ) {
 	SV_InitClientMessage( client, &tmpMessage, NULL, 0 );
 
 	while( tmpMessage.cursize < FRAGMENT_SIZE * 3 && start < MAX_EDICTS ) {
-		SyncEntityState * base = &sv.baselines[start];
+		const SyncEntityState * base = &sv.baselines[start];
 		if( base->number != 0 ) {
 			MSG_WriteUint8( &tmpMessage, svc_spawnbaseline );
 			MSG_WriteDeltaEntity( &tmpMessage, &nullstate, base, true );

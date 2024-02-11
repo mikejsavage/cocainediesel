@@ -1,12 +1,11 @@
-#include "qcommon/qcommon.h"
-#include "gameshared/gs_weapons.h"
+#include "qcommon/types.h"
+#include "gameshared/gs_public.h"
 
 enum LadderMovement : u8 {
 	Ladder_Off,
 	Ladder_On,
 	Ladder_Fake,
 };
-
 
 struct pml_t {
 	Vec3 origin;          // full float precision
@@ -16,9 +15,7 @@ struct pml_t {
 	// special handling for looking straight up or down
 	float frametime;
 
-	int groundsurfFlags;
-	Plane groundplane;
-	int groundcontents;
+	Vec3 groundplane;
 
 	Vec3 previous_origin;
 	LadderMovement ladder;
@@ -39,16 +36,10 @@ struct pml_t {
 };
 
 constexpr float PM_OVERBOUNCE = 1.01f;
-constexpr float SLIDEMOVE_PLANEINTERACT_EPSILON = 0.05f;
 
-#define SLIDEMOVEFLAG_BLOCKED       	( 1 << 1 )   // it was blocked at some point, doesn't mean it didn't slide along the blocking object
-#define SLIDEMOVEFLAG_TRAPPED       	( 1 << 2 )
-#define SLIDEMOVEFLAG_WALL_BLOCKED  	( 1 << 3 )
-
-
-//shared
+// shared
 float Normalize2D( Vec3 * v );
-void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, int nbTestDir, float maxZnormal, Vec3 * normal, bool z, int ignoreFlags );
+Optional< Vec3 > PlayerTouchWall( const pmove_t * pm, const pml_t * pml, const gs_state_t * pmove_gs, bool z, SolidBits ignoreFlags );
 
 bool StaminaAvailable( SyncPlayerState * ps, pml_t * pml, float need );
 bool StaminaAvailableImmediate( SyncPlayerState * ps, float need );
@@ -62,8 +53,11 @@ void PM_InitPerk( pmove_t * pm, pml_t * pml, PerkType perk,
 
 void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed, bool addvel );
 void Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir, float dash_speed, float dash_upspeed );
+bool Walljump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpupspeed, float dashupspeed, float dashspeed, float wjupspeed, float wjbouncefactor );
 
-//pmove_ files
+
+
+// pmove_ files
 void PM_NinjaInit( pmove_t * pm, pml_t * pml );
 void PM_HooliganInit( pmove_t * pm, pml_t * pml );
 void PM_MidgetInit( pmove_t * pm, pml_t * pml );

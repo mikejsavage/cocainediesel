@@ -34,30 +34,17 @@ float edgeDetect( float center, float up, float down_left, float down_right, flo
 void main() {
 	ivec2 p = ivec2( gl_FragCoord.xy );
 	ivec3 pixel = ivec3( 0, 1, -1 );
-	float edgeness = 0.0;
-	float avg_depth = 0.0;
-#if MSAA
-	for( int i = 0; i < u_Samples; i++ )
-#else
-	const int i = 0;
-#endif
-	{
-		float depth =            ClampedTexelFetch( u_DepthTexture, p, i ).r;
-		float depth_up =         ClampedTexelFetch( u_DepthTexture, p + pixel.xz, i ).r;
-		float depth_down_left =  ClampedTexelFetch( u_DepthTexture, p + pixel.yy, i ).r;
-		float depth_down_right = ClampedTexelFetch( u_DepthTexture, p + pixel.zy, i ).r;
 
-		uint mask = texelFetch( u_CurvedSurfaceMask, p, i ).r;
-		float epsilon = ( mask & MASK_CURVED ) == MASK_CURVED ? 0.005 : 0.00001;
-		edgeness += edgeDetect( depth, depth_up, depth_down_left, depth_down_right, epsilon );
-		avg_depth += depth + depth_up + depth_down_left + depth_down_right;
-	}
-#if MSAA
-	edgeness /= u_Samples;
-	avg_depth /= u_Samples * 4.0;
-#else
-	avg_depth /= 4.0;
-#endif
+	float depth =            ClampedTexelFetch( u_DepthTexture, p, gl_SampleID ).r;
+	float depth_up =         ClampedTexelFetch( u_DepthTexture, p + pixel.xz, gl_SampleID ).r;
+	float depth_down_left =  ClampedTexelFetch( u_DepthTexture, p + pixel.yy, gl_SampleID ).r;
+	float depth_down_right = ClampedTexelFetch( u_DepthTexture, p + pixel.zy, gl_SampleID ).r;
+
+	uint mask = texelFetch( u_CurvedSurfaceMask, p, gl_SampleID ).r;
+	float epsilon = ( mask & MASK_CURVED ) == MASK_CURVED ? 0.005 : 0.00001;
+	float edgeness = edgeDetect( depth, depth_up, depth_down_left, depth_down_right, epsilon );
+	float avg_depth = 0.25 * ( depth + depth_up + depth_down_left + depth_down_right );
+
 	vec2 clamping = clamp( u_ViewportSize - abs( u_ViewportSize - gl_FragCoord.xy * 2.0 ), 1.0, 2.0 ) - 1.0;
 	edgeness *= min( clamping.x, clamping.y );
 	if( edgeness < 0.1 ) {

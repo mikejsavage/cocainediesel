@@ -17,7 +17,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash materia
 	// we should really do this in the shader so it's accurate across the whole beam.
 	// scale width by 8 because our beam textures have their own fade to transparent at the edges.
 	float pixel_scale = tanf( 0.5f * Radians( cg.view.fov_y ) ) / frame_static.viewport.y;
-	Mat4 VP = frame_static.P * frame_static.V;
+	Mat4 VP = frame_static.P * Mat4( frame_static.V );
 
 	float start_w = ( VP * Vec4( start, 1.0f ) ).w;
 	float start_width = Max2( width, 8.0f * start_w * pixel_scale );
@@ -25,31 +25,39 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash materia
 	float end_w = ( VP * Vec4( end, 1.0f ) ).w;
 	float end_width = Max2( width, 8.0f * end_w * pixel_scale );
 
-	Vec3 positions[] = {
-		start + start_width * beam_across * 0.5f,
-		start - start_width * beam_across * 0.5f,
-		end + end_width * beam_across * 0.5f,
-		end - end_width * beam_across * 0.5f,
-	};
-
 	const Material * material = FindMaterial( material_name );
 	float texture_aspect_ratio = float( material->texture->width ) / float( material->texture->height );
 	float beam_aspect_ratio = Length( end - start ) / width;
 	float repetitions = beam_aspect_ratio / texture_aspect_ratio;
-
 	Vec2 half_pixel = HalfPixelSize( material );
-	Vec2 uvs[] = {
-		Vec2( half_pixel.x, half_pixel.y ),
-		Vec2( half_pixel.x, 1.0f - half_pixel.y ),
-		Vec2( repetitions - half_pixel.x, half_pixel.y ),
-		Vec2( repetitions - half_pixel.x, 1.0f - half_pixel.y ),
+
+	struct BeamVertex {
+		Vec3 position;
+		Vec2 uv;
+		RGBA8 color;
 	};
 
-	RGBA8 colors[] = {
-		RGBA8( 255, 255, 255, 255 * width / start_width ),
-		RGBA8( 255, 255, 255, 255 * width / start_width ),
-		RGBA8( 255, 255, 255, 255 * width / end_width ),
-		RGBA8( 255, 255, 255, 255 * width / end_width ),
+	BeamVertex vertices[] = {
+		{
+			.position = start + start_width * beam_across * 0.5f,
+			.uv = Vec2( half_pixel.x, half_pixel.y ),
+			.color = RGBA8( 255, 255, 255, 255 * width / start_width ),
+		},
+		{
+			.position = start - start_width * beam_across * 0.5f,
+			.uv = Vec2( half_pixel.x, 1.0f - half_pixel.y ),
+			.color = RGBA8( 255, 255, 255, 255 * width / start_width ),
+		},
+		{
+			.position = end + end_width * beam_across * 0.5f,
+			.uv = Vec2( repetitions - half_pixel.x, half_pixel.y ),
+			.color = RGBA8( 255, 255, 255, 255 * width / end_width ),
+		},
+		{
+			.position = end - end_width * beam_across * 0.5f,
+			.uv = Vec2( repetitions - half_pixel.x, 1.0f - half_pixel.y ),
+			.color = RGBA8( 255, 255, 255, 255 * width / end_width ),
+		},
 	};
 
 	constexpr u16 indices[] = { 0, 1, 2, 1, 3, 2 };
@@ -60,15 +68,13 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash materia
 	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 
-	DynamicMesh mesh = { };
-	mesh.positions = positions;
-	mesh.uvs = uvs;
-	mesh.colors = colors;
-	mesh.indices = indices;
-	mesh.num_vertices = 4;
-	mesh.num_indices = 6;
+	VertexDescriptor vertex_descriptor = { };
+	vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( BeamVertex, position ) };
+	vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( BeamVertex, uv ) };
+	vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( BeamVertex, color ) };
+	vertex_descriptor.buffer_strides[ 0 ] = sizeof( BeamVertex );
 
-	DrawDynamicMesh( pipeline, mesh );
+	DrawDynamicGeometry( pipeline, StaticSpan( vertices ), StaticSpan( indices ), vertex_descriptor );
 }
 
 struct PersistentBeam {

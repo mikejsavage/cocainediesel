@@ -15,6 +15,14 @@ local function copy( t, extra )
 	return res
 end
 
+local zig
+do
+	local f = assert( io.open( "ggbuild/zig_version.txt", "r" ) )
+	local zig_version = assert( f:read( "*all" ) ):gsub( "%s+$", "" )
+	assert( f:close() )
+	zig = "ggbuild/zig-" .. zig_version .. "/zig"
+end
+
 local configs = { }
 
 configs[ "windows" ] = {
@@ -28,7 +36,10 @@ configs[ "windows" ] = {
 }
 
 configs[ "windows-debug" ] = {
+	-- /Z7 puts debug info in the .obj
+	-- /FC (Full path of source code file in diagnostics)
 	cxxflags = "/MTd /Z7 /FC",
+	-- /FUNCTIONPADMIN /OPT:NOREF /OPT:NOICF are required for Live++
 	ldflags = "/NOLOGO /DEBUG:FULL /FUNCTIONPADMIN /OPT:NOREF /OPT:NOICF",
 }
 configs[ "windows-release" ] = {
@@ -38,10 +49,12 @@ configs[ "windows-release" ] = {
 }
 configs[ "windows-bench" ] = {
 	bin_suffix = "-bench.exe",
-	cxxflags = configs[ "windows-release" ].cxxflags,
-	ldflags = configs[ "windows-release" ].ldflags,
+	cxxflags = configs[ "windows-release" ].cxxflags .. " /Z7",
+	ldflags = configs[ "windows-release" ].ldflags .. " /DEBUG:FULL",
 	prebuilt_lib_dir = "windows-release",
 }
+
+local gcc_common_cxxflags = "-c -ggdb3 -fdiagnostics-color -fno-omit-frame-pointer"
 
 configs[ "linux" ] = {
 	obj_suffix = ".o",
@@ -49,32 +62,27 @@ configs[ "linux" ] = {
 	lib_suffix = ".a",
 
 	toolchain = "gcc",
-	cxx = "g++",
-	ar = "ar",
+	cxx = zig .. " c++",
+	ar = zig .. " ar",
 
-	cxxflags = "-c -g -fdiagnostics-color",
+	cxxflags = gcc_common_cxxflags .. " --target=x86_64-linux-musl",
+	ldflags = "--build-id=sha1",
 }
 
-configs[ "linux-debug" ] = {
-	cxxflags = "-fno-omit-frame-pointer",
-	ldflags = "-fuse-ld=gold -no-pie",
-}
+configs[ "linux-debug" ] = { }
 configs[ "linux-asan" ] = {
 	bin_suffix = "-asan",
-	cxxflags = configs[ "linux-debug" ].cxxflags .. " -fsanitize=address",
-	ldflags = configs[ "linux-debug" ].ldflags .. "-fsanitize=address -static-libasan",
+	cxxflags = "-fsanitize=address",
+	ldflags = configs[ "linux" ].ldflags .. " -fsanitize=address -static-libasan",
 	prebuilt_lib_dir = "linux-debug",
 }
 configs[ "linux-tsan" ] = {
 	bin_suffix = "-tsan",
-	cxxflags = configs[ "linux-debug" ].cxxflags .. " -fsanitize=thread",
-	ldflags = configs[ "linux-debug" ].ldflags .. "-fsanitize=thread -static-libtsan",
+	cxxflags = "-fsanitize=thread",
+	ldflags = configs[ "linux" ].ldflags .. " -fsanitize=thread -static-libtsan",
 	prebuilt_lib_dir = "linux-debug",
 }
 configs[ "linux-release" ] = {
-	cxx = "ggbuild/zig/zig c++",
-	ar = "ggbuild/zig/zig ar",
-
 	cxxflags = "-O2 -DNDEBUG",
 	output_dir = "release/",
 	can_static_link = true,
@@ -82,19 +90,17 @@ configs[ "linux-release" ] = {
 configs[ "linux-bench" ] = {
 	bin_suffix = "-bench",
 	cxxflags = configs[ "linux-release" ].cxxflags,
-	ldflags = configs[ "linux-release" ].ldflags,
 	prebuilt_lib_dir = "linux-release",
 }
 
 configs[ "macos" ] = copy( configs[ "linux" ], {
 	cxx = "clang++",
+	ar = "ar",
 	-- -march=haswell on x86
-	cxxflags = configs[ "linux" ].cxxflags .. " -arch arm64 -mmacosx-version-min=10.15",
+	cxxflags = gcc_common_cxxflags .. " -arch arm64 -mmacosx-version-min=10.15",
 	ldflags = "-arch arm64",
 } )
-configs[ "macos-debug" ] = {
-	cxxflags = "-O0 -g -fno-omit-frame-pointer",
-}
+configs[ "macos-debug" ] = { }
 configs[ "macos-release" ] = {
 	cxxflags = "-O2 -DNDEBUG",
 	ldflags = "-Wl,-dead_strip -Wl,-x",
@@ -320,7 +326,7 @@ function write_ninja_script()
 	printf( "ldflags = %s", ldflags )
 	printf()
 
-	if toolchain == "msvc" then
+	if OS == "windows" then
 
 printf( [[
 rule cpp
@@ -339,16 +345,59 @@ rule lib
 rule rc
     command = rc /fo$out /nologo $in_rc
     description = $in
-
-rule copy
-    command = cmd /c copy /Y $in $out
-    description = $in
 ]] )
 
-	elseif toolchain == "gcc" then
+	else
 
 printf( "cpp = %s", rightmost( "cxx" ) )
 printf( "ar = %s", rightmost( "ar" ) )
+
+		if OS == "macos" then
+
+printf( [[
+rule bin
+    command = g++ -o $out $in $ldflags $extra_ldflags
+    description = $out
+]] )
+
+		else
+			if config ~= "release" then
+
+printf( [[
+rule bin
+    command = %s build-exe -femit-bin=$out $in -lc -lc++ $ldflags $extra_ldflags
+    description = $out
+
+rule bin-static
+    command = %s build-exe -femit-bin=$out $in -lc -lc++ $ldflags $extra_ldflags -target x86_64-linux-musl -static
+    description = $out
+]], zig, zig )
+
+			else
+
+printf( [[
+rule bin
+    command = %s build-exe -femit-bin=%s/$out.fat $in -lc -lc++ $ldflags $extra_ldflags && %s objcopy --only-keep-debug %s/$out.fat $out.debug && %s objcopy --strip-all --add-gnu-debuglink=$out.debug %s/$out.fat $out && chmod +x $out
+    description = $out
+
+rule bin-static
+    command = %s build-exe -femit-bin=%s/$out.fat $in -lc -lc++ $ldflags $extra_ldflags -target x86_64-linux-musl -static && %s objcopy --only-keep-debug %s/$out.fat $out.debug && %s objcopy --strip-all --add-gnu-debuglink=$out.debug %s/$out.fat $out && chmod +x $out
+    description = $out
+]], zig, dir, zig, dir, zig, dir, zig, dir, zig, dir, zig, dir )
+
+			end
+
+printf( [[
+rule zig
+    command = ggbuild/download_zig.sh
+    description = Downloading zig, this can be slow and first time linking is slow, subsequent builds will go fast
+    generator = true
+
+build %s: zig ggbuild/download_zig.sh
+]], zig )
+
+		end
+
 printf( [[
 rule cpp
     command = $cpp -MD -MF $out.d $cxxflags $extra_cxxflags -c -o $out $in
@@ -365,38 +414,8 @@ rule m
 rule lib
     command = $ar cr $out $in
     description = $out
-
-rule copy
-    command = cp $in $out
-    description = $in
 ]] )
 
-		if config ~= "release" then
-
-printf( [[
-rule bin
-    command = g++ -o $out $in $ldflags $extra_ldflags
-    description = $out
-]] )
-
-		else
-
-printf( [[
-rule bin
-    command = g++ -o $out $in -no-pie -static-libstdc++ $ldflags $extra_ldflags && objcopy --only-keep-debug $out $out.debug && strip $out
-    description = $out
-
-rule bin-static
-    command = ggbuild/zig/zig build-exe --name $out $in -lc -lc++ -fno-PIE $ldflags $extra_ldflags -target x86_64-linux-musl -static && objcopy --only-keep-debug $out $out.debug && strip $out
-    description = $out
-
-rule ungzip
-    command = gzip --decompress --force --keep $in
-
-build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
-]] )
-
-		end
 	end
 
 	for _, flag in ipairs( objs_flags ) do
@@ -417,7 +436,7 @@ build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
 
 	for src_name, cfg in sort_by_key( objs ) do
 		local rule = src_name:match( "%.([^.]+)$" ) == "cpp" and "cpp" or "m"
-		printf( "build %s/%s%s: %s %s | %s", dir, src_name, obj_suffix, rule, src_name, can_static_link and "ggbuild/zig/zig" or "" )
+		printf( "build %s/%s%s: %s %s%s", dir, src_name, obj_suffix, rule, src_name, OS == "linux" and ( " | " .. zig ) or "" )
 		if cfg.cxxflags then
 			printf( "    cxxflags = %s", cfg.cxxflags )
 		end
@@ -444,12 +463,23 @@ build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
 		end
 
 		local full_name = output_dir .. bin_name .. bin_suffix
-		printf( "build %s: %s %s %s | %s",
+
+		local implicit_outputs = ""
+		local implicit_dependencies = ""
+		if OS == "linux" then
+			if config == "release" then
+				implicit_outputs = ( " | %s/%s.fat %s.debug" ):format( dir, full_name, full_name )
+			end
+			implicit_dependencies = " | " .. zig
+		end
+
+		printf( "build %s%s: %s %s %s%s",
 			full_name,
+			implicit_outputs,
 			( can_static_link and not cfg.no_static_link ) and "bin-static" or "bin",
 			join_srcs( srcs ),
 			join_libs( cfg.libs ),
-			( can_static_link and not cfg.no_static_link ) and "ggbuild/zig/zig" or ""
+			implicit_dependencies
 		)
 
 		local ldflags_key = OS .. "_ldflags"

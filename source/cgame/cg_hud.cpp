@@ -271,14 +271,14 @@ static char * MakeObituary( Allocator * a, RNG * rng, int type, DamageType damag
 	return ( *a )( "{}{}{}{}", prefix1, prefix2, prefix3, obituaries[ RandomUniform( rng, 0, obituaries.n ) ] );
 }
 
-void CG_SC_Obituary() {
-	int victimNum = atoi( Cmd_Argv( 1 ) );
-	int attackerNum = atoi( Cmd_Argv( 2 ) );
-	int topAssistorNum = atoi( Cmd_Argv( 3 ) );
+void CG_SC_Obituary( const Tokenized & args ) {
+	int victimNum = SpanToInt( args.tokens[ 1 ], 0 );
+	int attackerNum = SpanToInt( args.tokens[ 2 ], 0 );
+	int topAssistorNum = SpanToInt( args.tokens[ 3 ], 0 );
 	DamageType damage_type;
-	damage_type.encoded = atoi( Cmd_Argv( 4 ) );
-	bool wallbang = atoi( Cmd_Argv( 5 ) ) == 1;
-	u64 entropy = SpanToU64( MakeSpan( Cmd_Argv( 6 ) ), 0 );
+	damage_type.encoded = SpanToInt( args.tokens[ 4 ], 0 );
+	bool wallbang = SpanToInt( args.tokens[ 5 ], 0 ) == 1;
+	u64 entropy = SpanToU64( args.tokens[ 6 ], 0 );
 
 	const char * victim = PlayerName( victimNum - 1 );
 	const char * attacker = attackerNum == 0 ? NULL : PlayerName( attackerNum - 1 );
@@ -337,7 +337,7 @@ void CG_SC_Obituary() {
 	}
 
 	if( assistor == NULL ) {
-		CG_AddChat( temp( "{} {}{} {}",
+		CG_AddChat( temp.sv( "{} {}{} {}",
 			attacker_name,
 			ImGuiColorToken( rgba8_diesel_yellow ), obituary,
 			victim_name
@@ -345,7 +345,7 @@ void CG_SC_Obituary() {
 	}
 	else {
 		const char * conjugation = RandomElement( &rng, conjunctions );
-		CG_AddChat( temp( "{} {}{} {} {}{} {}",
+		CG_AddChat( temp.sv( "{} {}{} {} {}{} {}",
 			attacker_name,
 			ImGuiColorToken( 255, 255, 255, 255 ), conjugation,
 			assistor_name,
@@ -355,7 +355,7 @@ void CG_SC_Obituary() {
 	}
 
 	if( ISVIEWERENTITY( attackerNum ) && attacker != victim ) {
-		CG_CenterPrint( temp( "{} {}", obituary, Uppercase( &temp, victim ) ) );
+		CG_CenterPrint( temp.sv( "{} {}", obituary, Uppercase( &temp, victim ) ) );
 	}
 }
 
@@ -417,17 +417,16 @@ void CG_DrawScope() {
 		PipelineState pipeline;
 		pipeline.pass = frame_static.ui_pass;
 		pipeline.shader = &shaders.scope;
-		pipeline.depth_func = DepthFunc_Disabled;
+		pipeline.depth_func = DepthFunc_AlwaysAndDontWrite;
 		pipeline.blend_func = BlendFunc_Blend;
 		pipeline.write_depth = false;
 		pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 		DrawFullscreenMesh( pipeline );
 
 		if( cg.predictedPlayerState.weapon == Weapon_Sniper ) {
-			trace_t trace;
 			Vec3 forward = -frame_static.V.row2().xyz();
 			Vec3 end = cg.view.origin + forward * 10000.0f;
-			CG_Trace( &trace, cg.view.origin, Vec3( 0.0f ), Vec3( 0.0f ), end, cg.predictedPlayerState.POVnum, MASK_SHOT );
+			trace_t trace = CG_Trace( cg.view.origin, MinMax3( 0.0f ), end, cg.predictedPlayerState.POVnum, SolidMask_Shot );
 
 			TempAllocator temp = cls.frame_arena.temp();
 			float offset = Min2( frame_static.viewport_width, frame_static.viewport_height ) * 0.1f;
@@ -916,7 +915,7 @@ static int LuauGetClockTime( lua_State * L ) {
 			clocktime = Max2( curtime - startTime, zero );
 		}
 	}
-	lua_pushnumber( L, clocktime * 0.001 );
+	lua_pushnumber( L, clocktime );
 	return 1;
 }
 
@@ -1532,10 +1531,13 @@ void CG_InitHUD() {
 	hud_L = NULL;
 	show_inspector = false;
 
-	AddCommand( "toggleuiinspector", []() { show_inspector = !show_inspector; } );
+	AddCommand( "toggleuiinspector", []( const Tokenized & args ) {
+		show_inspector = !show_inspector;
+	} );
 
+	Span< const char > src = AssetString( StringHash( "hud/hud.lua" ) );
 	size_t bytecode_size;
-	char * bytecode = luau_compile( AssetString( "hud/hud.lua" ).ptr, AssetBinary( "hud/hud.lua" ).n, NULL, &bytecode_size );
+	char * bytecode = luau_compile( src.ptr, src.n, NULL, &bytecode_size );
 	defer { free( bytecode ); };
 	if( bytecode == NULL ) {
 		Fatal( "luau_compile" );
@@ -1657,7 +1659,7 @@ void CG_DrawHUD() {
 	yoga_arena.clear();
 
 	bool hotload = false;
-	for( const char * path : ModifiedAssetPaths() ) {
+	for( Span< const char > path : ModifiedAssetPaths() ) {
 		if( StartsWith( path, "hud/" ) && EndsWith( path, ".lua" ) ) {
 			hotload = true;
 			break;
@@ -1828,7 +1830,7 @@ void CG_DrawHUD() {
 
 		lua_pushnumber( hud_L, cg.predictedPlayerState.weapons[ i ].weapon );
 		lua_setfield( hud_L, -2, "weapon" );
-		lua_pushstring( hud_L, def->name );
+		lua_pushlstring( hud_L, def->name.ptr, def->name.n );
 		lua_setfield( hud_L, -2, "name" );
 		lua_pushnumber( hud_L, cg.predictedPlayerState.weapons[ i ].ammo );
 		lua_setfield( hud_L, -2, "ammo" );

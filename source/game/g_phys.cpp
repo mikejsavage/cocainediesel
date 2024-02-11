@@ -20,28 +20,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 
-//================================================================================
-
-//pushmove objects do not obey gravity, and do not interact with each other or trigger fields, but block normal movement and push normal objects when they move.
-//
-//onground is set for toss objects when they come to a complete rest.  it is set for steping or walking objects
-//
-//doors, plats, etc are SOLID_BSP, and MOVETYPE_PUSH
-//bonus items are SOLID_TRIGGER touch, and MOVETYPE_TOSS
-//corpses are SOLID_NOT and MOVETYPE_TOSS
-//crates are SOLID_BBOX and MOVETYPE_TOSS
-//walking monsters are SOLID_SLIDEBOX and MOVETYPE_STEP
-//flying/floating monsters are SOLID_SLIDEBOX and MOVETYPE_FLY
-//
-//solid_edge items only clip against bsp models.
-
-
-
 static bool EntityOverlapsAnything( edict_t *ent ) {
-	int mask = ent->r.clipmask ? ent->r.clipmask : MASK_SOLID;
-	trace_t trace;
-	G_Trace4D( &trace, ent->s.origin, ent->r.mins, ent->r.maxs, ent->s.origin, ent, mask, ent->timeDelta );
-	return trace.startsolid;
+	SolidBits solidity = EntitySolidity( ServerCollisionModelStorage(), &ent->s );
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
+	trace_t trace = G_Trace4D( ent->s.origin, bounds, ent->s.origin, ent, solidity, ent->timeDelta );
+	return trace.GotNowhere();
 }
 
 static void SV_CheckVelocity( edict_t *ent ) {
@@ -77,18 +60,16 @@ static void SV_RunThink( edict_t *ent ) {
 *
 * Two entities have touched, so run their touch functions
 */
-void SV_Impact( edict_t *e1, trace_t *trace ) {
-	edict_t *e2;
+void SV_Impact( edict_t * e1, const trace_t & trace ) {
+	if( trace.HitSomething() ) {
+		edict_t * e2 = &game.edicts[ trace.ent ];
 
-	if( trace->ent != -1 ) {
-		e2 = &game.edicts[trace->ent];
-
-		if( e1->r.solid != SOLID_NOT ) {
-			G_CallTouch( e1, e2, &trace->plane, trace->surfFlags );
+		if( EntitySolidity( ServerCollisionModelStorage(), &e1->s ) != Solid_NotSolid ) {
+			G_CallTouch( e1, e2, trace.normal, trace.solidity );
 		}
 
-		if( e2->r.solid != SOLID_NOT ) {
-			G_CallTouch( e2, e1, NULL, 0 );
+		if( EntitySolidity( ServerCollisionModelStorage(), &e2->s ) != Solid_NotSolid ) {
+			G_CallTouch( e2, e1, Vec3( 0.0f ), Solid_NotSolid );
 		}
 	}
 }
@@ -107,32 +88,33 @@ void SV_Impact( edict_t *e1, trace_t *trace ) {
 */
 static trace_t SV_PushEntity( edict_t *ent, Vec3 push ) {
 	trace_t trace;
+	SolidBits solidity;
 
 	Vec3 start = ent->s.origin;
 	Vec3 end = start + push;
 
-	while( true ) {
-		int mask = ent->r.clipmask ? ent->r.clipmask : MASK_SOLID;
+retry:
+	solidity = EntitySolidity( ServerCollisionModelStorage(), &ent->s );
+	if( solidity == Solid_NotSolid ) {
+		solidity = SolidMask_AnySolid;
+	}
 
-		G_Trace4D( &trace, start, ent->r.mins, ent->r.maxs, end, ent, mask, ent->timeDelta );
-		if( ent->movetype == MOVETYPE_PUSH || !trace.startsolid ) {
-			ent->s.origin = trace.endpos;
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
+	trace = G_Trace4D( start, bounds, end, ent, solidity, ent->timeDelta );
+	ent->s.origin = trace.endpos;
+
+	GClip_LinkEntity( ent );
+
+	if( trace.HitSomething() ) {
+		SV_Impact( ent, trace );
+
+		// if the pushed entity went away and the pusher is still there
+		if( !game.edicts[trace.ent].r.inuse && ent->movetype == MOVETYPE_PUSH && ent->r.inuse ) {
+			// move the pusher back and try again
+			ent->s.origin = start;
+			GClip_LinkEntity( ent );
+			goto retry;
 		}
-
-		GClip_LinkEntity( ent );
-
-		if( trace.fraction < 1.0f ) {
-			SV_Impact( ent, &trace );
-
-			// if the pushed entity went away and the pusher is still there
-			if( !game.edicts[trace.ent].r.inuse && ent->movetype == MOVETYPE_PUSH && ent->r.inuse ) {
-				// move the pusher back and try again
-				ent->s.origin = start;
-				GClip_LinkEntity( ent );
-				continue;
-			}
-		}
-		break;
 	}
 
 	if( ent->r.inuse ) {
@@ -146,7 +128,7 @@ static trace_t SV_PushEntity( edict_t *ent, Vec3 push ) {
 struct pushed_t {
 	edict_t *ent;
 	Vec3 origin;
-	Vec3 angles;
+	EulerDegrees3 angles;
 	float yaw;
 	Vec3 pmove_origin;
 };
@@ -161,23 +143,21 @@ static edict_t *obstacle;
 * Objects need to be moved back on a failed push,
 * otherwise riders would continue to slide.
 */
-static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
+static bool SV_Push( edict_t *pusher, Vec3 move, EulerDegrees3 amove ) {
 	TracyZoneScoped;
 
 	int e;
 	edict_t *check;
-	Vec3 mins, maxs;
 	pushed_t *p;
 	mat3_t axis;
-	Vec3 org, org2, move2;
+	Vec3 org2, move2;
 
 	// find the bounding box
-	mins = pusher->r.absmin + move;
-	maxs = pusher->r.absmax + move;
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &pusher->s );
+	bounds += pusher->s.origin + move;
 
 	// we need this for pushing things later
-	org = -amove;
-	AnglesToAxis( org, axis );
+	AnglesToAxis( -amove, axis );
 
 	// save the pusher's original position
 	pushed_p->ent = pusher;
@@ -185,7 +165,7 @@ static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
 	pushed_p->angles = pusher->s.angles;
 	if( pusher->r.client ) {
 		pushed_p->pmove_origin = pusher->r.client->ps.pmove.velocity;
-		pushed_p->yaw = pusher->r.client->ps.viewangles.y;
+		pushed_p->yaw = pusher->r.client->ps.viewangles.yaw;
 	}
 	pushed_p++;
 
@@ -207,14 +187,12 @@ static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
 			continue;
 		}
 
-		if( !check->areagrid[0].prev ) {
-			continue; // not linked in anywhere
-		}
-
 		// if the entity is standing on the pusher, it will definitely be moved
 		if( check->groundentity != pusher ) {
 			// see if the ent needs to be tested
-			if( !BoundsOverlap( check->r.absmin, check->r.absmax, mins, maxs ) ) {
+			MinMax3 check_bounds = EntityBounds( ServerCollisionModelStorage(), &check->s );
+			check_bounds += check->s.origin;
+			if( !BoundsOverlap( check_bounds, bounds ) ) {
 				continue;
 			}
 
@@ -236,11 +214,11 @@ static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
 			if( check->r.client ) {
 				// FIXME: doesn't rotate monsters?
 				check->r.client->ps.pmove.origin = check->r.client->ps.pmove.origin + move;
-				check->r.client->ps.viewangles.y += amove.y;
+				check->r.client->ps.viewangles.yaw += amove.yaw;
 			}
 
 			// figure movement due to the pusher's amove
-			org = check->s.origin - pusher->s.origin;
+			Vec3 org = check->s.origin - pusher->s.origin;
 			Matrix3_TransformVector( axis, org, &org2 );
 			move2 = org2 - org;
 			check->s.origin = check->s.origin + move2;
@@ -284,7 +262,7 @@ static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
 			p->ent->s.angles = p->angles;
 			if( p->ent->r.client ) {
 				p->ent->r.client->ps.pmove.origin = p->pmove_origin;
-				p->ent->r.client->ps.viewangles.y = p->yaw;
+				p->ent->r.client->ps.viewangles.yaw = p->yaw;
 			}
 			GClip_LinkEntity( p->ent );
 		}
@@ -312,7 +290,7 @@ static void SV_Physics_Pusher( edict_t *ent ) {
 
 	bool blocked = false;
 
-	if( ent->velocity != Vec3( 0.0f ) || ent->avelocity != Vec3( 0.0f ) ) {
+	if( ent->velocity != Vec3( 0.0f ) || ent->avelocity != EulerDegrees3( 0.0f, 0.0f, 0.0f ) ) {
 		Vec3 move;
 		if( ent->s.linearMovement ) {
 			GS_LinearMovement( &ent->s, svs.gametime, &move );
@@ -322,7 +300,7 @@ static void SV_Physics_Pusher( edict_t *ent ) {
 			move = ent->velocity * FRAMETIME;
 		}
 
-		Vec3 amove = ent->avelocity * FRAMETIME;
+		EulerDegrees3 amove = ent->avelocity * FRAMETIME;
 
 		blocked = !SV_Push( ent, move, amove );
 	}
@@ -384,7 +362,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 				ent->groundentity = NULL;
 			} else {
 				ent->velocity = Vec3( 0.0f );
-				ent->avelocity = Vec3( 0.0f );
+				ent->avelocity = EulerDegrees3( 0.0f, 0.0f, 0.0f );
 				G_CallStop( ent );
 				return;
 			}
@@ -406,11 +384,10 @@ static void SV_Physics_Toss( edict_t *ent ) {
 	}
 
 	trace_t trace = SV_PushEntity( ent, move );
-	if( trace.fraction < 1.0f ) {
-		float restitution = ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ? 1.0f/(1.0f + ent->gravity_scale) :
-							0.0f;
+	if( trace.HitSomething() ) {
+		float restitution = ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ? ent->restitution : 0.0f;
 
-		Vec3 impulse = -Dot( ent->velocity, trace.plane.normal ) * trace.plane.normal;
+		Vec3 impulse = -Dot( ent->velocity, trace.normal ) * trace.normal;
 		ent->velocity += ( 1.0f + restitution ) * impulse;
 
 		ent->num_bounces++;
@@ -422,26 +399,24 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 			// LA: hopefully will fix grenades bouncing down slopes
 			// method taken from Darkplaces sourcecode
-			if( trace.allsolid ||
-				( ISWALKABLEPLANE( &trace.plane ) &&
-				  Abs( Dot( trace.plane.normal, ent->velocity ) ) < 40
+			if( trace.GotNowhere() ||
+				( ISWALKABLEPLANE( trace.normal ) &&
+				  Abs( Dot( trace.normal, ent->velocity ) ) < 40
 				)
 			) {
 				ent->groundentity = &game.edicts[trace.ent];
-				ent->groundentity_linkcount = ent->groundentity->linkcount;
 				ent->velocity = Vec3( 0.0f );
-				ent->avelocity = Vec3( 0.0f );
+				ent->avelocity = EulerDegrees3( 0.0f, 0.0f, 0.0f );
 				G_CallStop( ent );
 			}
 		} else {
 			// in movetype_toss things stop dead when touching ground
 
 			// walkable or trapped inside solid brush
-			if( trace.allsolid || ISWALKABLEPLANE( &trace.plane ) ) {
-				ent->groundentity = trace.ent < 0 ? world : &game.edicts[trace.ent];
-				ent->groundentity_linkcount = ent->groundentity->linkcount;
+			if( trace.GotNowhere() || ISWALKABLEPLANE( trace.normal ) ) {
+				ent->groundentity = trace.HitNothing() ? world : &game.edicts[trace.ent];
 				ent->velocity = Vec3( 0.0f );
-				ent->avelocity = Vec3( 0.0f );
+				ent->avelocity = EulerDegrees3( 0.0f, 0.0f, 0.0f );
 				G_CallStop( ent );
 			}
 		}
@@ -450,8 +425,8 @@ static void SV_Physics_Toss( edict_t *ent ) {
 	// move angles
 	if( ent->movetype == MOVETYPE_BOUNCEGRENADE ) {
 		if( ent->velocity == Vec3( 0.0f ) ) {
-			ent->s.angles.x = 0.0f;
-			ent->s.angles.z = 0.0f;
+			ent->s.angles.pitch = 0.0f;
+			ent->s.angles.roll = 0.0f;
 		}
 		else {
 			ent->s.angles = VecToAngles( SafeNormalize( ent->velocity ) );
@@ -469,23 +444,23 @@ static void SV_Physics_Toss( edict_t *ent ) {
 static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	TracyZoneScoped;
 
-	Vec3 start, end;
-	int mask;
-	trace_t trace;
-
-	mask = ( ent->r.clipmask ) ? ent->r.clipmask : MASK_SOLID;
+	SolidBits solidity = EntitySolidity( ServerCollisionModelStorage(), &ent->s );
+	if( solidity == Solid_NotSolid ) {
+		solidity = SolidMask_AnySolid;
+	}
 
 	// find its current position given the starting timeStamp
 	float endFlyTime = float( svs.gametime - ent->s.linearMovementTimeStamp ) * 0.001f;
 	float startFlyTime = float( Max2( s64( 0 ), game.prevServerTime - ent->s.linearMovementTimeStamp ) ) * 0.001f;
 
-	start = ent->s.linearMovementBegin + ent->s.linearMovementVelocity * startFlyTime;
-	end = ent->s.linearMovementBegin + ent->s.linearMovementVelocity * endFlyTime;
+	Vec3 start = ent->s.linearMovementBegin + ent->s.linearMovementVelocity * startFlyTime;
+	Vec3 end = ent->s.linearMovementBegin + ent->s.linearMovementVelocity * endFlyTime;
 
-	G_Trace4D( &trace, start, ent->r.mins, ent->r.maxs, end, ent, mask, ent->timeDelta );
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
+	trace_t trace = G_Trace4D( start, bounds, end, ent, solidity, ent->timeDelta );
 	ent->s.origin = trace.endpos;
 	GClip_LinkEntity( ent );
-	SV_Impact( ent, &trace );
+	SV_Impact( ent, trace );
 
 	GClip_TouchTriggers( ent );
 	ent->groundentity = NULL; // projectiles never have ground entity
@@ -500,11 +475,6 @@ void G_RunEntity( edict_t *ent ) {
 
 	if( !level.canSpawnEntities ) { // don't try to think before map entities are spawned
 		return;
-	}
-
-	if( ent->timeDelta && !( ent->s.svflags & SVF_PROJECTILE ) ) {
-		Com_Printf( "Warning: G_RunEntity 'Fixing timeDelta on non projectile entity\n" );
-		ent->timeDelta = 0;
 	}
 
 	SV_RunThink( ent );

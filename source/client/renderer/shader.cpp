@@ -1,5 +1,4 @@
 #include "qcommon/base.h"
-#include "qcommon/array.h"
 #include "qcommon/string.h"
 #include "client/client.h"
 #include "client/assets.h"
@@ -9,27 +8,27 @@
 
 Shaders shaders;
 
-static const char * FindInclude( Span< const char > str ) {
+static Span< const char > FindInclude( Span< const char > str ) {
 	while( true ) {
-		const char * before_hash = ( const char * ) memchr( str.ptr, '#', str.n );
+		const char * before_hash = StrChr( str, '#' );
 		if( before_hash == NULL )
 			break;
 
 		str += before_hash - str.ptr;
 		if( StartsWith( str, "#include" ) )
-			return str.ptr;
+			return str;
 
 		if( str.n == 0 )
 			break;
 		str++;
 	}
 
-	return NULL;
+	return { };
 }
 
-static void BuildShaderSrcs( DynamicString * src, const char * path, const char * variant_switches ) {
+static void BuildShaderSrcs( DynamicString * src, Span< const char > path, Span< const char > variant_switches ) {
 	TracyZoneScoped;
-	TracyZoneText( path, strlen( path ) );
+	TracyZoneSpan( path );
 
 	src->append( "{}", variant_switches );
 
@@ -41,16 +40,16 @@ static void BuildShaderSrcs( DynamicString * src, const char * path, const char 
 	Span< const char > cursor = glsl;
 
 	while( true ) {
-		const char * before_include = FindInclude( cursor );
-		if( before_include == NULL )
+		Span< const char > before_include = FindInclude( cursor );
+		if( before_include.ptr == NULL )
 			break;
 
-		size_t length_to_include = before_include - cursor.ptr;
-		if( length_to_include > 0 ) {
-			src->append( "{}", cursor.slice( 0, length_to_include ) );
+		size_t length_up_to_include = before_include.ptr - cursor.ptr;
+		if( length_up_to_include > 0 ) {
+			src->append( "{}", cursor.slice( 0, length_up_to_include ) );
 		}
 
-		cursor += length_to_include + strlen( "#include" );
+		cursor += length_up_to_include + strlen( "#include" );
 
 		Span< const char > include = ParseToken( &cursor, Parse_StopOnNewLine );
 		StringHash hash = StringHash( Hash64( include.ptr, include.n, Hash64( "glsl/" ) ) );
@@ -68,7 +67,7 @@ static void BuildShaderSrcs( DynamicString * src, const char * path, const char 
 	}
 }
 
-static void LoadShader( Shader * shader, const char * path, const char * variant_switches = "" ) {
+static void LoadShader( Shader * shader, Span< const char > path, Span< const char > variant_switches = "" ) {
 	TracyZoneScoped;
 
 	TempAllocator temp = cls.frame_arena.temp();
@@ -76,14 +75,14 @@ static void LoadShader( Shader * shader, const char * path, const char * variant
 	BuildShaderSrcs( &src, path, variant_switches );
 
 	Shader new_shader;
-	if( !NewShader( &new_shader, src.c_str(), path ) )
+	if( !NewShader( &new_shader, src.span(), path ) )
 		return;
 
 	DeleteShader( *shader );
 	*shader = new_shader;
 }
 
-static void LoadComputeShader( Shader * shader, const char * path, const char * variant_switches = "" ) {
+static void LoadComputeShader( Shader * shader, Span< const char > path, Span< const char > variant_switches = "" ) {
 	TracyZoneScoped;
 
 	TempAllocator temp = cls.frame_arena.temp();
@@ -91,7 +90,7 @@ static void LoadComputeShader( Shader * shader, const char * path, const char * 
 	BuildShaderSrcs( &src, path, variant_switches );
 
 	Shader new_shader;
-	if( !NewComputeShader( &new_shader, src.c_str(), path ) )
+	if( !NewComputeShader( &new_shader, src.span(), path ) )
 		return;
 
 	DeleteShader( *shader );
@@ -115,7 +114,7 @@ static void LoadShaders() {
 	LoadShader( &shaders.standard_shaded_instanced, "glsl/standard.glsl", "#define INSTANCED 1\n#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
 
 	// rest
-	constexpr const char * world_defines =
+	constexpr Span< const char > world_defines =
 		"#define APPLY_DRAWFLAT 1\n"
 		"#define APPLY_FOG 1\n"
 		"#define APPLY_DECALS 1\n"
@@ -123,6 +122,15 @@ static void LoadShaders() {
 		"#define APPLY_SHADOWS 1\n"
 		"#define SHADED 1\n";
 	LoadShader( &shaders.world, "glsl/standard.glsl", world_defines );
+	constexpr Span< const char > world_instanced_defines =
+		"#define APPLY_DRAWFLAT 1\n"
+		"#define APPLY_FOG 1\n"
+		"#define APPLY_DECALS 1\n"
+		"#define APPLY_DLIGHTS 1\n"
+		"#define APPLY_SHADOWS 1\n"
+		"#define SHADED 1\n"
+		"#define INSTANCED 1\n";
+	LoadShader( &shaders.world_instanced, "glsl/standard.glsl", world_instanced_defines );
 
 	LoadShader( &shaders.depth_only, "glsl/depth_only.glsl" );
 	LoadShader( &shaders.depth_only_instanced, "glsl/depth_only.glsl", "#define INSTANCED 1\n" );
@@ -160,7 +168,7 @@ void InitShaders() {
 
 void HotloadShaders() {
 	bool need_hotload = false;
-	for( const char * path : ModifiedAssetPaths() ) {
+	for( Span< const char > path : ModifiedAssetPaths() ) {
 		if( FileExtension( path ) == ".glsl" ) {
 			need_hotload = true;
 			break;

@@ -1,11 +1,9 @@
 #include "qcommon/base.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
-#include "qcommon/string.h"
-
 #include "game/g_local.h"
-
-#include "qcommon/cmodel.h"
+#include "game/g_maps.h"
+#include "gameshared/cdmap.h"
 
 static struct GladiatorState {
 	s64 round_state_start;
@@ -41,7 +39,6 @@ static void BombKill() {
 	}
 }
 
-void G_Aasdf(); // TODO
 static void PickRandomArena() {
 	if( !gladiator_state.randomize_arena )
 		return;
@@ -60,14 +57,14 @@ static void PickRandomArena() {
 		if( name[ 0 ] == '.' || dir )
 			continue;
 
-		if( FileExtension( name ) != ".bsp" && FileExtension( StripExtension( name ) ) != ".bsp" )
+		if( FileExtension( name ) != ".cdmap" && FileExtension( StripExtension( name ) ) != ".cdmap" )
 			continue;
 
 		maps.add( temp( "gladiator/{}", StripExtension( StripExtension( name ) ) ) );
 	}
 
-	G_LoadMap( RandomElement( &svs.rng, maps.begin(), maps.size() ) );
-	G_Aasdf();
+	// TODO: need to reimplement this
+	// G_LoadMap( RandomElement( &svs.rng, maps.begin(), maps.size() ) );
 }
 
 static void NewRound() {
@@ -318,7 +315,6 @@ static void Gladiator_PlayerRespawned( edict_t * ent, Team old_team, Team new_te
 	}
 	else {
 		ent->r.client->ps.can_change_loadout = true;
-		G_RespawnEffect( ent );
 	}
 }
 
@@ -356,7 +352,7 @@ static void Gladiator_Init() {
 	server_gs.gameState.gametype = Gametype_Gladiator;
 
 	gladiator_state = { };
-	gladiator_state.randomize_arena = G_GetWorldspawnKey( "randomize_arena" ) != "";
+	gladiator_state.randomize_arena = GetWorldspawnKey( FindServerMap( server_gs.gameState.map ), "randomize_arena" ) != "";
 
 	InitRespawnQueues( &gladiator_state.respawn_queues );
 
@@ -373,8 +369,7 @@ static void Gladiator_Init() {
 
 static void Gladiator_Shutdown() {
 	if( gladiator_state.randomize_arena ) {
-		G_LoadMap( "gladiator" );
-		G_Aasdf();
+		// TODO: go back to the dispatcher map so the gt randomizes after reloading
 	}
 }
 

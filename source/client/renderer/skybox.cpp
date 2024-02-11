@@ -1,6 +1,4 @@
 #include "qcommon/base.h"
-#include "qcommon/qcommon.h"
-#include "qcommon/array.h"
 #include "qcommon/time.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/material.h"

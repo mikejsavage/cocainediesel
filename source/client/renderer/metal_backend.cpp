@@ -188,8 +188,6 @@ static MTL::PixelFormat TextureFormatToMetal( TextureFormat format ) {
 
 		case TextureFormat_A_U8: return MTL::PixelFormatA8Unorm;
 
-		case TextureFormat_RG_Half: return MTL::PixelFormatRG16Float;
-
 		case TextureFormat_RA_U8: return MTL::PixelFormatRG8Unorm;
 
 		case TextureFormat_RGBA_U8: return MTL::PixelFormatRGBA8Unorm;
@@ -201,9 +199,6 @@ static MTL::PixelFormat TextureFormatToMetal( TextureFormat format ) {
 		case TextureFormat_BC5: return MTL::PixelFormatBC5_RGUnorm;
 
 		case TextureFormat_Depth: return MTL::PixelFormatDepth32Float;
-		case TextureFormat_Shadow: return MTL::PixelFormatDepth32Float;
-
-		default: Fatal( "lol" ); return { };
 	}
 }
 
@@ -382,7 +377,7 @@ void DeleteRenderTargetAndTextures( RenderTarget rt ) {
 	DeleteTexture( rt.depth_attachment );
 }
 
-static Shader NewShader( MTL::Device * gpu, const ShaderConfig & config ) {
+Shader NewGraphicsShader( const GraphicsShaderDescriptor & config ) {
 	MTL::Library * library;
 	{
 		NS::Error * error = NULL;

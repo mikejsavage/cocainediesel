@@ -26,16 +26,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * Teleports client to specified position
 * If client is not spectator teleporting is only done if position is free and teleport effects are drawn.
 */
-static bool G_Teleport( edict_t * ent, Vec3 origin, Vec3 angles ) {
+static bool G_Teleport( edict_t * ent, Vec3 origin, EulerDegrees3 angles ) {
 	if( !ent->r.inuse || !ent->r.client ) {
 		return false;
 	}
 
 	if( ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
-		trace_t tr;
-
-		G_Trace( &tr, origin, ent->r.mins, ent->r.maxs, origin, ent, MASK_PLAYERSOLID );
-		if( ( tr.fraction != 1.0f || tr.startsolid ) && game.edicts[ tr.ent ].s.team != ent->s.team ) {
+		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
+		trace_t trace = G_Trace( origin, bounds, origin, ent, SolidMask_AnySolid );
+		if( trace.HitSomething() && game.edicts[ trace.ent ].s.team != ent->s.team ) {
 			return false;
 		}
 
@@ -47,8 +46,6 @@ static bool G_Teleport( edict_t * ent, Vec3 origin, Vec3 angles ) {
 	ent->s.teleported = true;
 
 	ent->velocity = Vec3( 0.0f );
-	ent->r.client->ps.pmove.pm_time = 1;
-	ent->r.client->ps.pmove.pm_flags |= PMF_TIME_TELEPORT;
 
 	if( ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
 		G_TeleportEffect( ent, true );
@@ -57,11 +54,7 @@ static bool G_Teleport( edict_t * ent, Vec3 origin, Vec3 angles ) {
 	// set angles
 	ent->s.angles = angles;
 	ent->r.client->ps.viewangles = angles;
-
-	// set the delta angle
-	ent->r.client->ps.pmove.delta_angles[ 0 ] = ANGLE2SHORT( ent->r.client->ps.viewangles.x ) - ent->r.client->ucmd.angles[ 0 ];
-	ent->r.client->ps.pmove.delta_angles[ 1 ] = ANGLE2SHORT( ent->r.client->ps.viewangles.y ) - ent->r.client->ucmd.angles[ 1 ];
-	ent->r.client->ps.pmove.delta_angles[ 2 ] = ANGLE2SHORT( ent->r.client->ps.viewangles.z ) - ent->r.client->ucmd.angles[ 2 ];
+	ent->r.client->ps.pmove.angles = angles;
 
 	return true;
 }
@@ -88,7 +81,7 @@ static void Cmd_Noclip_f( edict_t * ent, msg_t args ) {
 }
 
 static void Cmd_Suicide_f( edict_t * ent, msg_t args ) {
-	if( ent->r.solid == SOLID_NOT ) {
+	if( G_ISGHOSTING( ent ) ) {
 		return;
 	}
 
@@ -104,7 +97,7 @@ void Cmd_ChasePrev_f( edict_t * ent, msg_t args ) {
 	G_ChaseStep( ent, -1 );
 }
 
-static void Cmd_Position_f( edict_t * ent, msg_t args ) {
+static void Cmd_Position_f( edict_t * ent, msg_t msg ) {
 	if( !sv_cheats->integer && server_gs.gameState.match_state > MatchState_Warmup &&
 		ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
 		G_PrintMsg( ent, "Position command is only available in warmup and in spectator mode.\n" );
@@ -117,42 +110,60 @@ static void Cmd_Position_f( edict_t * ent, msg_t args ) {
 	}
 	ent->r.client->teamstate.position_lastcmd = svs.realtime;
 
-	Cmd_TokenizeString( MSG_ReadString( &args ) );
+	TempAllocator temp = svs.frame_arena.temp();
+	Tokenized args = Tokenize( &temp, MakeSpan( MSG_ReadString( &msg ) ) );
 
-	const char * action = Cmd_Argv( 0 );
-
-	if( StrCaseEqual( action, "save" ) ) {
-		ent->r.client->teamstate.position_saved = true;
-		ent->r.client->teamstate.position_origin = ent->s.origin;
-		ent->r.client->teamstate.position_angles = ent->s.angles;
-		G_PrintMsg( ent, "Position saved.\n" );
-	} else if( StrCaseEqual( action, "load" ) ) {
-		if( !ent->r.client->teamstate.position_saved ) {
-			G_PrintMsg( ent, "No position saved.\n" );
-		} else {
-			if( G_Teleport( ent, ent->r.client->teamstate.position_origin, ent->r.client->teamstate.position_angles ) ) {
-				G_PrintMsg( ent, "Position loaded.\n" );
-			} else {
-				G_PrintMsg( ent, "Position not available.\n" );
-			}
-		}
-	} else if( StrCaseEqual( action, "set" ) && Cmd_Argc() == 6 ) {
-		Vec3 origin = Vec3( atof( Cmd_Argv( 1 ) ), atof( Cmd_Argv( 2 ) ), atof( Cmd_Argv( 3 ) ) );
-		Vec3 angles = Vec3( atof( Cmd_Argv( 4 ) ), atof( Cmd_Argv( 5 ) ), 0.0f );
-
-		if( G_Teleport( ent, origin, angles ) ) {
-			G_PrintMsg( ent, "Position set.\n" );
-		} else {
-			G_PrintMsg( ent, "Position not available.\n" );
-		}
-	} else {
+	if( args.tokens.n == 0 ) {
 		G_PrintMsg( ent,
 			"Usage:\n"
 			"position save - Save current position\n"
 			"position load - Teleport to saved position\n"
 			"position set <x> <y> <z> <pitch> <yaw> - Teleport to specified position\n"
 			"Current position: %.4f %.4f %.4f %.4f %.4f\n",
-			ent->s.origin.x, ent->s.origin.y, ent->s.origin.z, ent->s.angles.x, ent->s.angles.y );
+			ent->s.origin.x, ent->s.origin.y, ent->s.origin.z, ent->s.angles.pitch, ent->s.angles.yaw );
+		return;
+	}
+
+	Span< const char > action = args.tokens[ 0 ];
+
+	if( action == "save" && args.tokens.n == 1 ) {
+		ent->r.client->teamstate.position_saved = true;
+		ent->r.client->teamstate.position_origin = ent->s.origin;
+		ent->r.client->teamstate.position_angles = ent->s.angles;
+		G_PrintMsg( ent, "Position saved.\n" );
+	}
+	else if( action == "load" && args.tokens.n == 1 ) {
+		if( !ent->r.client->teamstate.position_saved ) {
+			G_PrintMsg( ent, "No position saved.\n" );
+		}
+		else {
+			if( G_Teleport( ent, ent->r.client->teamstate.position_origin, ent->r.client->teamstate.position_angles ) ) {
+				G_PrintMsg( ent, "Position loaded.\n" );
+			}
+			else {
+				G_PrintMsg( ent, "Position not available.\n" );
+			}
+		}
+	}
+	else if( action == "set" && args.tokens.n == 6 ) {
+		Vec3 origin = Vec3( SpanToFloat( args.tokens[ 1 ], 0.0f ), SpanToFloat( args.tokens[ 2 ], 0.0f ), SpanToFloat( args.tokens[ 3 ], 0.0f ) );
+		EulerDegrees3 angles = EulerDegrees3( SpanToFloat( args.tokens[ 4 ], 0.0f ), SpanToFloat( args.tokens[ 5 ], 0.0f ), 0.0f );
+
+		if( G_Teleport( ent, origin, angles ) ) {
+			G_PrintMsg( ent, "Position set.\n" );
+		}
+		else {
+			G_PrintMsg( ent, "Position not available.\n" );
+		}
+	}
+	else {
+		G_PrintMsg( ent,
+			"Usage:\n"
+			"position save - Save current position\n"
+			"position load - Teleport to saved position\n"
+			"position set <x> <y> <z> <pitch> <yaw> - Teleport to specified position\n"
+			"Current position: %.4f %.4f %.4f %.4f %.4f\n",
+			ent->s.origin.x, ent->s.origin.y, ent->s.origin.z, ent->s.angles.pitch, ent->s.angles.yaw );
 	}
 }
 
@@ -260,7 +271,7 @@ static void Say( edict_t * ent, const char * message, bool teamonly, bool checkf
 		return;
 	}
 	TypewriterSound( ent, "sounds/typewriter/return" );
-	G_ChatMsg( NULL, ent, teamonly, "%s", message );
+	G_ChatMsg( NULL, ent, teamonly, MakeSpan( message ) );
 }
 
 static void Cmd_SayCmd_f( edict_t * ent, msg_t args ) {
@@ -271,11 +282,11 @@ static void Cmd_SayTeam_f( edict_t * ent, msg_t args ) {
 	Say( ent, MSG_ReadString( &args ), true, true );
 }
 
-static void Cmd_Clack_f( edict_t * ent, msg_t args ) {
+static void Cmd_TypewriterClack_f( edict_t * ent, msg_t args ) {
 	TypewriterSound( ent, "sounds/typewriter/clack" );
 }
 
-static void Cmd_ClackSpace_f( edict_t * ent, msg_t args ) {
+static void Cmd_TypewriterSpace_f( edict_t * ent, msg_t args ) {
 	TypewriterSound( ent, "sounds/typewriter/space" );
 }
 
@@ -293,10 +304,12 @@ static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 	Vec3 start = ent->s.origin + Vec3( 0.0f, 0.0f, ent->r.client->ps.viewheight );
 	Vec3 end = start + forward * range;
 
-	trace_t trace;
-	G_Trace( &trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ent, MASK_OPAQUE );
+	trace_t trace = G_Trace( start, MinMax3( 0.0f ), end, ent, SolidMask_Opaque );
+	if( trace.ent == -1 )
+		return;
 
-	if( trace.ent != 0 )
+	const edict_t * target = &game.edicts[ trace.ent ];
+	if( target->s.type != ET_MAPMODEL && target != world )
 		return;
 
 	ent->r.client->level.last_spray = svs.realtime;
@@ -304,7 +317,7 @@ static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 	edict_t * event = G_SpawnEvent( EV_SPRAY, Random64( &svs.rng ), &trace.endpos );
 	event->s.angles = ent->r.client->ps.viewangles;
 	event->s.scale = ent->s.scale;
-	event->s.origin2 = trace.plane.normal;
+	event->s.origin2 = trace.normal;
 }
 
 struct g_vsays_t {
@@ -350,7 +363,6 @@ static void G_vsay_f( edict_t * ent, msg_t args ) {
 		u64 parm = u64( vsay.id ) | ( entropy << 16 );
 
 		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NULL );
-		event->s.svflags |= SVF_BROADCAST; // force sending even when not in PVS
 		event->s.ownerNum = ent->s.number;
 
 		return;
@@ -451,16 +463,16 @@ void G_InitGameCommands() {
 	G_AddCommand( ClientCommand_Spectate, []( edict_t * ent, msg_t args ) { Cmd_Spectate( ent ); } );
 	G_AddCommand( ClientCommand_ChaseNext, Cmd_ChaseNext_f );
 	G_AddCommand( ClientCommand_ChasePrev, Cmd_ChasePrev_f );
-	G_AddCommand( ClientCommand_ToggleFreeFly, []( edict_t * ent, msg_t args ) { Cmd_ToggleFreeFly( ent ); } );
+	G_AddCommand( ClientCommand_ToggleFreeFly, Cmd_ToggleFreeFly );
 	G_AddCommand( ClientCommand_Timeout, Cmd_Timeout_f );
 	G_AddCommand( ClientCommand_Timein, Cmd_Timein_f );
-	G_AddCommand( ClientCommand_DemoList, []( edict_t * ent, msg_t args ) { SV_DemoList_f( ent ); } );
+	G_AddCommand( ClientCommand_DemoList, SV_DemoList_f );
 	G_AddCommand( ClientCommand_DemoGetURL, SV_DemoGetUrl_f );
 
 	// callvotes commands
 	G_AddCommand( ClientCommand_Callvote, G_CallVote_Cmd );
-	G_AddCommand( ClientCommand_VoteYes, G_CallVotes_VoteYes );
-	G_AddCommand( ClientCommand_VoteNo, G_CallVotes_VoteNo );
+	G_AddCommand( ClientCommand_VoteYes, []( edict_t * ent, msg_t args ) { G_CallVotes_VoteYes( ent ); } );
+	G_AddCommand( ClientCommand_VoteNo, []( edict_t * ent, msg_t args ) { G_CallVotes_VoteNo( ent ); } );
 
 	// teams commands
 	G_AddCommand( ClientCommand_Ready, []( edict_t * ent, msg_t args ) { G_Match_Ready( ent ); } );
@@ -468,8 +480,8 @@ void G_InitGameCommands() {
 	G_AddCommand( ClientCommand_ToggleReady, []( edict_t * ent, msg_t args ) { G_Match_ToggleReady( ent ); } );
 	G_AddCommand( ClientCommand_Join, Cmd_Join_f );
 
-	G_AddCommand( ClientCommand_TypewriterClack, Cmd_Clack_f );
-	G_AddCommand( ClientCommand_TypewriterSpace, Cmd_ClackSpace_f );
+	G_AddCommand( ClientCommand_TypewriterClack, Cmd_TypewriterClack_f );
+	G_AddCommand( ClientCommand_TypewriterSpace, Cmd_TypewriterSpace_f );
 
 	G_AddCommand( ClientCommand_Spray, Cmd_Spray_f );
 

@@ -54,14 +54,9 @@ void ShutdownDownloads() {
 	curl_global_cleanup();
 }
 
-template< typename S, typename T >
-struct SameType { static constexpr bool value = false; };
-template< typename T >
-struct SameType< T, T > { static constexpr bool value = true; };
-
 template< typename T >
 static void CheckedEasyOpt( CURL * request, CURLoption opt, T val ) {
-	STATIC_ASSERT( ( !SameType< T, int >::value || SameType< int, long >::value ) );
+	STATIC_ASSERT( ( !SameType< T, int > || SameType< int, long > ) );
 	CheckEasyError( "curl_easy_setopt", curl_easy_setopt( request, opt, val ) );
 }
 

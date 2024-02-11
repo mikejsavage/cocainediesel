@@ -1,4 +1,4 @@
-/ggbuild/zig/zig
+/ggbuild/zig-*
 /build
 /release
 /build.ninja
@@ -24,8 +24,6 @@
 /maps/*.prt
 /maps/*.srf
 /screenshots
-
-/listip.cfg
 
 .vs/
 .vscode/

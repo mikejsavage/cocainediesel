@@ -1,4 +1,5 @@
 #include "cgame/cg_local.h"
+#include "client/audio/api.h"
 #include "client/renderer/renderer.h"
 
 static float RandomRadians() {
@@ -31,10 +32,13 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 
 	int count = Min2( damage * 3 / 2, 60 );
 
-	float player_radius = playerbox_stand_maxs.x;
+	float player_radius = playerbox_stand.maxs.x;
 
-	const Model * model = FindModel( "models/gibs/gib" );
-	float gib_radius = model->bounds.maxs.x;
+	const GLTFRenderData * model = FindGLTFRenderData( "models/gibs/gib" );
+	if( model == NULL )
+		return;
+
+	float gib_radius = Max2( Max2( model->bounds.maxs.x, model->bounds.maxs.y ), model->bounds.maxs.z );
 
 	constexpr float epsilon = 0.1f;
 	float radius = player_radius - gib_radius - epsilon;
@@ -87,7 +91,7 @@ void DrawGibs() {
 
 	float dt = cls.frametime * 0.001f;
 
-	const Model * model = FindModel( "models/gibs/gib" );
+	const GLTFRenderData * model = FindGLTFRenderData( "models/gibs/gib" );
 	Vec3 gravity = Vec3( 0, 0, -GRAVITY );
 
 	for( u32 i = 0; i < num_gibs; i++ ) {
@@ -99,16 +103,15 @@ void DrawGibs() {
 		float size = 0.5f * gib->scale;
 		MinMax3 bounds = model->bounds * size;
 
-		trace_t trace;
-		CG_Trace( &trace, gib->origin, bounds.mins, bounds.maxs, next_origin, 0, MASK_SOLID );
+		trace_t trace = CG_Trace( gib->origin, bounds, next_origin, 0, SolidMask_AnySolid );
 
-		if( trace.startsolid ) {
+		if( trace.GotNowhere() ) {
 			gib->lifetime = 0;
 		}
-		else if( trace.fraction != 1.0f ) {
+		else if( trace.HitSomething() ) {
 			gib->lifetime = 0;
 
-			GibImpact( trace.endpos, trace.plane.normal, gib->color, gib->scale );
+			GibImpact( trace.endpos, trace.normal, gib->color, gib->scale );
 		}
 
 		gib->lifetime -= dt;
@@ -119,11 +122,11 @@ void DrawGibs() {
 			continue;
 		}
 
-		Mat4 transform = Mat4Translation( gib->origin ) * Mat4Scale( size );
+		Mat3x4 transform = Mat4Translation( gib->origin ) * Mat4Scale( size );
 		DrawModelConfig config = { };
 		config.draw_model.enabled = true;
 		config.draw_shadows.enabled = true;
-		DrawModel( config, model, transform, gib->color );
+		DrawGLTFModel( config, model, transform, gib->color );
 
 		gib->origin = next_origin;
 	}

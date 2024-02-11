@@ -89,7 +89,7 @@ class DynamicString {
 	DynamicArray< char > buf;
 
 public:
-	DynamicString( Allocator * a ) : buf( a ) { }
+	DynamicString( Allocator * a, SourceLocation src_loc = CurrentSourceLocation() ) : buf( a, 0, src_loc ) { }
 
 	template< typename... Rest >
 	DynamicString( Allocator * a, const char * fmt, const Rest & ... rest ) : buf( a ) {

@@ -1,8 +1,15 @@
 #include "../../../source/client/renderer/shader_shared.h"
 
+// mat4x3 is what we actually want but even in std430 that gets aligned like
+// vec4[4] so we can't use it. do this funny looking swizzle instead, which you
+// can derive by checking renderdoc's ssbo viewer
+struct AffineTransform {
+	mat3x4 m;
+};
+
 layout( std140, set = DescriptorSet_RenderPass ) uniform u_View {
-	mat4 u_V;
-	mat4 u_InverseV;
+	AffineTransform u_V;
+	AffineTransform u_InverseV;
 	mat4 u_P;
 	mat4 u_InverseP;
 	vec3 u_CameraPos;
@@ -14,7 +21,7 @@ layout( std140, set = DescriptorSet_RenderPass ) uniform u_View {
 
 #ifndef INSTANCED
 layout( std140, set = DescriptorSet_DrawCall ) uniform u_Model {
-	mat4 u_M;
+	AffineTransform u_M;
 };
 #endif
 
@@ -33,7 +40,7 @@ layout( std140, set = DescriptorSet_DrawCall ) uniform u_MaterialDynamic {
 
 layout( std140, set = DescriptorSet_RenderPass ) uniform u_ShadowMaps {
 	int u_ShadowCascades;
-	mat4 u_ShadowMatrix;
+	AffineTransform u_ShadowMatrix;
 
 	float u_CascadePlaneA;
 	float u_CascadePlaneB;

@@ -230,9 +230,9 @@ void AllocateDecalBuffers() {
 	u32 rows = PixelsToTiles( frame_static.viewport_height );
 	u32 cols = PixelsToTiles( frame_static.viewport_width );
 
-	decal_tiles_buffer = NewGPUBuffer( rows * cols * sizeof( GPUDecalTile ), "Decal tile indices" );
-	dlight_tiles_buffer = NewGPUBuffer( rows * cols * sizeof( GPUDynamicLightTile ), "Dynamic light tile indices" );
-	dynamic_count = NewGPUBuffer( rows * cols * sizeof( GPUDynamicCount ), "Dynamics tile counts" );
+	decal_tiles_buffer = NewGPUBuffer( NULL, rows * cols * sizeof( GPUDecalTile ), "Decal tile indices" );
+	dlight_tiles_buffer = NewGPUBuffer( NULL, rows * cols * sizeof( GPUDynamicLightTile ), "Dynamic light tile indices" );
+	dynamic_count = NewGPUBuffer( NULL, rows * cols * sizeof( GPUDynamicCount ), "Dynamics tile counts" );
 }
 
 void UploadDecalBuffers() {
@@ -241,8 +241,8 @@ void UploadDecalBuffers() {
 	u32 rows = PixelsToTiles( frame_static.viewport_height );
 	u32 cols = PixelsToTiles( frame_static.viewport_width );
 
-	WriteAndFlushStreamingBuffer( decals_buffer, decals, num_decals );
-	WriteAndFlushStreamingBuffer( dlights_buffer, dlights, num_dlights );
+	memcpy( GetStreamingBufferMemory( decals_buffer ), decals, num_decals * sizeof( Decal ) );
+	memcpy( GetStreamingBufferMemory( dlights_buffer ), dlights, num_dlights * sizeof( DynamicLight ) );
 
 	PipelineState pipeline;
 	pipeline.pass = frame_static.tile_culling_pass;

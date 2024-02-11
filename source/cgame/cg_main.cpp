@@ -37,22 +37,14 @@ Cvar *cg_showClamp;
 
 Cvar *cg_showServerDebugPrints;
 
-void CG_LocalPrint( const char *format, ... ) {
-	va_list argptr;
-	char msg[ 1024 ];
-
-	va_start( argptr, format );
-	vsnprintf( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	Con_Print( msg );
-
-	CG_AddChat( msg );
+void CG_LocalPrint( Span< const char > str ) {
+	Con_Print( str );
+	CG_AddChat( str );
 }
 
-static void CG_GS_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, int timeDelta ) {
-	Assert( !timeDelta );
-	CG_Trace( t, start, mins, maxs, end, ignore, contentmask );
+static trace_t CG_GS_Trace( Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask, int timeDelta ) {
+	Assert( timeDelta == 0 );
+	return CG_Trace( start, bounds, end, ignore, solid_mask );
 }
 
 static void CG_InitGameShared( int max_clients ) {
@@ -114,7 +106,7 @@ void CG_Reset() {
 	memset( cg_entities, 0, sizeof( cg_entities ) );
 }
 
-static void PrintMap() {
+static void PrintMap( const Tokenized & args ) {
 	Com_Printf( "Current map: %s\n", cl.map == NULL ? "null" : cl.map->name );
 }
 

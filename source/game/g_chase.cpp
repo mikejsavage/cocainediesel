@@ -241,7 +241,7 @@ void Cmd_Spectate( edict_t * ent ) {
 	}
 }
 
-void Cmd_ToggleFreeFly( edict_t * ent ) {
+void Cmd_ToggleFreeFly( edict_t * ent, msg_t args ) {
 	if( ent->s.team == Team_None ) {
 		if( ent->r.client->resp.chase.active ) {
 			G_Chase_SetChaseActive( ent, false );

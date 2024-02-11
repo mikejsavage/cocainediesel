@@ -15,7 +15,7 @@ namespace std {
 	class initializer_list {
 	public:
 
-#if _MSC_VER
+#if COMPILER_MSVC
 		constexpr initializer_list( const T * first_, const T * one_after_end_ ) : first( first_ ), one_after_end( one_after_end_ ) { }
 #else
 		constexpr initializer_list( const T * first_, size_t n ) : first( first_ ), one_after_end( first_ + n ) { }

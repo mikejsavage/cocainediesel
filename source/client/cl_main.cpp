@@ -21,8 +21,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "client/client.h"
 #include "client/assets.h"
+#include "client/audio/api.h"
 #include "client/discord.h"
 #include "client/downloads.h"
+#include "client/gltf.h"
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
 #include "client/livepp.h"
@@ -100,18 +102,9 @@ static void SerializeReliableCommands( msg_t * msg ) {
 	cls.reliableSent = cls.reliableSequence;
 }
 
-void CL_ServerDisconnect_f() {
-	char menuparms[MAX_STRING_CHARS];
-	char reason[MAX_STRING_CHARS];
-
-	SafeStrCpy( reason, Cmd_Argv( 1 ), sizeof( reason ) );
-
-	CL_Disconnect_f();
-
-	Com_Printf( "Connection was closed by server: %s\n", reason );
-	snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed rejectmessage \"%s\"", reason );
-
-	Cbuf_ExecuteLine( menuparms );
+void CL_ServerDisconnect_f( const Tokenized & args ) {
+	CL_Disconnect( NULL );
+	Com_GGPrint( "Connection was closed by server: {}", args.tokens[ 1 ] );
 }
 
 /*
@@ -174,31 +167,28 @@ void CL_Connect( const NetAddress & address ) {
 	cls.lastPacketReceivedTime = cls.realtime; // reset the timeout limit
 }
 
-static void CL_Connect_f() {
-	if( Cmd_Argc() < 2 ) {
-		Com_Printf( "Usage: %s <server>\n", Cmd_Argv( 0 ) );
+static void CL_Connect_f( const Tokenized & args ) {
+	if( args.tokens.n < 2 ) {
+		Com_Printf( "Usage: connect <address>\n" );
 		return;
 	}
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	const char * arg = Cmd_Argv( 1 );
-	if( StartsWith( arg, APP_URI_SCHEME ) ) {
-		arg += strlen( APP_URI_SCHEME );
-	}
+	Span< const char > arg = StripPrefix( args.tokens[ 1 ], APP_URI_SCHEME );
 
-	const char * at = strchr( arg, '@' );
+	const char * at = StrChr( arg, '@' );
 	if( at != NULL ) {
-		Span< const char > password = Span< const char >( arg, at - arg );
-		Cvar_Set( "password", temp( "{}", password ) );
+		Span< const char > password = arg.slice( 0, at - arg.ptr );
+		Cvar_Set( "password", temp.sv( "{}", password ) );
 		arg += password.n + 1;
 	}
 
 	u16 port;
-	const char * hostname = SplitIntoHostnameAndPort( &temp, arg, &port );
+	Span< const char > hostname = SplitIntoHostnameAndPort( arg, &port );
 
 	NetAddress address;
-	if( !DNS( hostname, &address ) ) {
+	if( !DNS( temp( "{}", hostname ), &address ) ) {
 		Com_Printf( "Bad server address\n" );
 		return;
 	}
@@ -292,15 +282,9 @@ void CL_Disconnect( const char *message ) {
 	CL_SetClientState( CA_DISCONNECTED );
 
 	if( message != NULL ) {
-		char menuparms[MAX_STRING_CHARS];
-		snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed rejectmessage \"%s\"", message );
-
-		Cbuf_ExecuteLine( menuparms );
+		TempAllocator temp = cls.frame_arena.temp();
+		Cmd_Execute( &temp, "menu_open connfailed rejectmessage \"{}\"", message );
 	}
-}
-
-void CL_Disconnect_f() {
-	CL_Disconnect( NULL );
 }
 
 /*
@@ -382,10 +366,15 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 		return;
 	}
 
-	Cmd_TokenizeString( s );
-	const char * c = Cmd_Argv( 0 );
+	TempAllocator temp = cls.frame_arena.temp();
+	Tokenized args = Tokenize( &temp, MakeSpan( s ) );
 
-	if( StrEqual( c, "info" ) ) {
+	if( args.tokens.n == 0 ) {
+		Assert( is_public_build );
+		return;
+	}
+
+	if( args.tokens[ 0 ] == "info" ) {
 		ParseGameServerResponse( msg, address );
 		return;
 	}
@@ -395,7 +384,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 	}
 
 	// server connection
-	if( StrEqual( c, "client_connect" ) ) {
+	if( args.tokens[ 0 ] == "client_connect" ) {
 		if( cls.state == CA_CONNECTED ) {
 			Com_Printf( "Dup connect received. Ignored.\n" );
 			return;
@@ -419,7 +408,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 	}
 
 	// reject packet, used to inform the client that connection attemp didn't succeed
-	if( StrEqual( c, "reject" ) ) {
+	if( args.tokens[ 0 ] == "reject" ) {
 		int rejectflag;
 
 		if( cls.state != CA_CONNECTING ) {
@@ -445,33 +434,31 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 		Com_Printf( "Connection refused: %s\n", cls.rejectmessage );
 		if( rejectflag & DROP_FLAG_AUTORECONNECT ) {
 			Com_Printf( "Automatic reconnecting allowed.\n" );
-		} else {
-			char menuparms[MAX_STRING_CHARS];
-
+		}
+		else {
 			Com_Printf( "Automatic reconnecting not allowed.\n" );
 
 			CL_Disconnect( NULL );
-			snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed rejectmessage \"%s\"", cls.rejectmessage );
-
-			Cbuf_ExecuteLine( menuparms );
+			Cmd_Execute( &temp, "menu_open connfailed rejectmessage \"{}\"", cls.rejectmessage );
 		}
 
 		return;
 	}
 
 	// challenge from the server we are connecting to
-	if( StrEqual( c, "challenge" ) ) {
+	if( args.tokens[ 0 ] == "challenge" ) {
 		// these two are from Q3
 		if( cls.state != CA_CONNECTING ) {
 			Com_Printf( "challenge packet while not connecting, ignored\n" );
+			Assert( is_public_build );
 			return;
 		}
-		if( address != cls.serveraddress ) {
+		if( args.tokens.n != 2 || address != cls.serveraddress ) {
 			Assert( is_public_build );
 			return;
 		}
 
-		cls.challenge = atoi( Cmd_Argv( 1 ) );
+		cls.challenge = SpanToInt( args.tokens[ 1 ], 0 );
 		//wsw : r1q2[start]
 		//r1: reset the timer so we don't send dup. getchallenges
 		cls.connect_time = cls.monotonicTime;
@@ -580,14 +567,14 @@ static bool AddDownloadedMap( const char * filename, Span< const u8 > compressed
 	Span< u8 > data;
 	defer { Free( sys_allocator, data.ptr ); };
 
-	if( !Decompress( filename, sys_allocator, compressed, &data ) ) {
+	if( !Decompress( MakeSpan( filename ), sys_allocator, compressed, &data ) ) {
 		Com_Printf( "Downloaded map is corrupt.\n" );
 		return false;
 	}
 
 	TempAllocator temp = cls.frame_arena.temp();
 	Span< const char > clean_filename = StripPrefix( StripExtension( filename ), "base/" );
-	if( !AddMap( data, temp( "{}", clean_filename ) ) ) {
+	if( !AddMap( data, clean_filename ) ) {
 		Com_Printf( "Downloaded map is corrupt.\n" );
 		return false;
 	}
@@ -601,7 +588,7 @@ static bool AddDownloadedMap( const char * filename, Span< const u8 > compressed
 * The server will send this command right
 * before allowing the client into the server
 */
-void CL_Precache_f() {
+void CL_Precache_f( const Tokenized & args ) {
 	if( CL_DemoPlaying() ) {
 		if( !CL_DemoSeeking() ) {
 			CL_GameModule_Init();
@@ -614,14 +601,12 @@ void CL_Precache_f() {
 		return;
 	}
 
-	precache_spawncount = atoi( Cmd_Argv( 1 ) );
-
-	const char * mapname = Cmd_Argv( 2 );
-	cl.map = FindMap( StringHash( Hash64( mapname ) ) );
+	precache_spawncount = SpanToInt( args.tokens[ 1 ], 0 );
+	cl.map = FindMap( StringHash( Hash64( args.tokens[ 2 ] ) ) );
 
 	if( cl.map == NULL ) {
 		TempAllocator temp = cls.frame_arena.temp();
-		CL_DownloadFile( temp( "base/maps/{}.bsp.zst", Cmd_Argv( 2 ) ), []( const char * filename, Span< const u8 > data ) {
+		CL_DownloadFile( temp.sv( "base/maps/{}.cdmap.zst", args.tokens[ 2 ] ), []( const char * filename, Span< const u8 > data ) {
 			if( AddDownloadedMap( filename, data ) ) {
 				CL_FinishConnect();
 			}
@@ -643,12 +628,12 @@ static void CL_WriteConfiguration() {
 
 	Key_WriteBindings( &config );
 	config += "\r\n";
-	Cvar_WriteVariables( &config );
+	config += Cvar_MakeConfig( &temp );
 
 	const char * fmt = is_public_build ? "{}/config.cfg" : "{}/base/config.cfg";
-	DynamicString path( &temp, fmt, HomeDirPath() );
-	if( !WriteFile( &temp, path.c_str(), config.c_str(), config.length() ) ) {
-		Com_Printf( "Couldn't write %s.\n", path.c_str() );
+	const char * path = temp( fmt, HomeDirPath() );
+	if( !WriteFile( &temp, path, config.c_str(), config.length() ) ) {
+		Com_Printf( "Couldn't write %s.\n", path );
 	}
 }
 
@@ -681,12 +666,8 @@ void CL_SetClientState( connstate_t state ) {
 	}
 }
 
-static Span< const char * > TabCompleteDemo( TempAllocator * a, const char * partial ) {
+static Span< Span< const char > > TabCompleteDemo( TempAllocator * a, Span< const char > partial ) {
 	return TabCompleteFilenameHomeDir( a, partial, "demos", APP_DEMO_EXTENSION_STR );
-}
-
-static void CL_Stop_f() {
-	CL_StopRecording( false );
 }
 
 static void CL_InitLocal() {
@@ -716,7 +697,7 @@ static void CL_InitLocal() {
 
 	Cvar * name = NewCvar( "name", "", CvarFlag_UserInfo | CvarFlag_Archive );
 	if( StrEqual( name->value, "" ) ) {
-		Cvar_Set( name->name, temp( "user{06}", RandomUniform( &cls.rng, 0, 1000000 ) ) );
+		Cvar_Set( "name", temp.sv( "user{06}", RandomUniform( &cls.rng, 0, 1000000 ) ) );
 	}
 
 	//avoid the game from crashing in the menu
@@ -736,13 +717,13 @@ static void CL_InitLocal() {
 	NewCvar( "m_invertY", "0", CvarFlag_Archive );
 
 	AddCommand( "connect", CL_Connect_f );
-	AddCommand( "reconnect", CL_Reconnect_f );
-	AddCommand( "disconnect", CL_Disconnect_f );
+	AddCommand( "reconnect", []( const Tokenized & args ) { CL_Reconnect_f(); } );
+	AddCommand( "disconnect", []( const Tokenized & args ) { CL_Disconnect( NULL ); } );
 	AddCommand( "demo", CL_PlayDemo_f );
 	AddCommand( "record", CL_Record_f );
-	AddCommand( "stop", CL_Stop_f );
+	AddCommand( "stop", []( const Tokenized & args ) { CL_StopRecording( false ); } );
 	AddCommand( "yolodemo", CL_YoloDemo_f );
-	AddCommand( "demopause", CL_PauseDemo_f );
+	AddCommand( "demopause", []( const Tokenized & args ) { CL_PauseDemo_f(); } );
 	AddCommand( "demojump", CL_DemoJump_f );
 
 	SetTabCompletionCallback( "demo", TabCompleteDemo );
@@ -849,13 +830,10 @@ int CL_SmoothTimeDeltas() {
 static void CL_UpdateSnapshot() {
 	TracyZoneScoped;
 
-	snapshot_t  *snap;
-	int i;
-
 	// see if there is any pending snap to be fired
 	if( !cl.pendingSnapNum && ( cl.currentSnapNum != cl.receivedSnapNum ) ) {
-		snap = NULL;
-		for( i = cl.currentSnapNum + 1; i <= cl.receivedSnapNum; i++ ) {
+		snapshot_t * snap = NULL;
+		for( int i = cl.currentSnapNum + 1; i <= cl.receivedSnapNum; i++ ) {
 			if( cl.snapShots[ i % ARRAY_COUNT( cl.snapShots ) ].valid && ( cl.snapShots[ i % ARRAY_COUNT( cl.snapShots ) ].serverFrame > cl.currentSnapNum ) ) {
 				snap = &cl.snapShots[ i % ARRAY_COUNT( cl.snapShots ) ];
 				//torbenh: this break was the source of the lag bug at cl_fps < sv_pps
@@ -1140,22 +1118,29 @@ void CL_Init() {
 
 	InitThreadPool();
 
-	ThreadPoolDo( []( TempAllocator * temp, void * data ) {
-		InitAssets( temp );
-	} );
+	{
+#if PLATFORM_WINDOWS
+		// both VID_Init and InitAssets need to run on the main thread on Windows
+		VID_Init();
+		TempAllocator temp = cls.frame_arena.temp();
+		InitAssets( &temp );
+#else
+		// overlap loading assets and creating a window
+		ThreadPoolDo( []( TempAllocator * temp, void * data ) {
+			InitAssets( temp );
+		} );
+		VID_Init();
 
-	VID_Init();
-
-	ThreadPoolFinish();
+		ThreadPoolFinish();
+#endif
+	}
 
 	InitRenderer();
+	InitGLTFModels();
 	InitMaps();
+	InitSound();
 
 	cls.white_material = FindMaterial( "$whiteimage" );
-
-	if( !InitSound() ) {
-		Com_Printf( S_COLOR_RED "Couldn't initialise audio engine\n" );
-	}
 
 	CL_ClearState();
 
@@ -1199,6 +1184,7 @@ void CL_Shutdown() {
 	CL_GameModule_Shutdown();
 	ShutdownSound();
 	ShutdownMaps();
+	ShutdownGLTFModels();
 	ShutdownRenderer();
 	DestroyWindow();
 

@@ -21,8 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 #include <stdarg.h>
-#include <stdint.h>
-#include <inttypes.h>
+#include "qcommon/types.h"
 
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
@@ -33,12 +32,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/cmd.h"
 #include "qcommon/cvar.h"
 
-inline Vec3 FromQFAxis( const mat3_t m, int axis ) {
+constexpr Vec3 FromQFAxis( const mat3_t m, int axis ) {
 	return Vec3( m[ axis + 0 ], m[ axis + 1 ], m[ axis + 2 ] );
 }
 
-inline Mat4 FromAxisAndOrigin( const mat3_t axis, Vec3 origin ) {
-	Mat4 rotation = Mat4::Identity();
+constexpr Mat3x4 FromAxisAndOrigin( const mat3_t axis, Vec3 origin ) {
+	Mat3x4 rotation = Mat3x4::Identity();
 	rotation.col0.x = axis[ 0 ];
 	rotation.col0.y = axis[ 1 ];
 	rotation.col0.z = axis[ 2 ];
@@ -49,15 +48,11 @@ inline Mat4 FromAxisAndOrigin( const mat3_t axis, Vec3 origin ) {
 	rotation.col2.y = axis[ 7 ];
 	rotation.col2.z = axis[ 8 ];
 
-	Mat4 translation = Mat4::Identity();
-	translation.col3 = Vec4( origin, 1.0f );
+	Mat3x4 translation = Mat3x4::Identity();
+	translation.col3 = Vec3( origin );
 
 	return translation * rotation;
 }
-
-//============================================================================
-
-struct CollisionModel;
 
 //============================================================================
 
@@ -91,7 +86,8 @@ void MSG_WriteInt64( msg_t * msg, s64 x );
 void MSG_WriteUint64( msg_t * msg, u64 x );
 void MSG_WriteUintBase128( msg_t * msg, uint64_t c );
 void MSG_WriteIntBase128( msg_t * msg, int64_t c );
-void MSG_WriteString( msg_t * msg, const char *s );
+void MSG_WriteString( msg_t * msg, Span< const char > str );
+void MSG_WriteString( msg_t * msg, const char * str );
 void MSG_WriteDeltaUsercmd( msg_t * msg, const UserCommand * baseline , const UserCommand * cmd );
 void MSG_WriteEntityNumber( msg_t * msg, int number, bool remove );
 void MSG_WriteDeltaEntity( msg_t * msg, const SyncEntityState * baseline, const SyncEntityState * ent, bool force );
@@ -110,8 +106,8 @@ s64 MSG_ReadInt64( msg_t * msg );
 u64 MSG_ReadUint64( msg_t * msg );
 uint64_t MSG_ReadUintBase128( msg_t * msg );
 int64_t MSG_ReadIntBase128( msg_t * msg );
-char *MSG_ReadString( msg_t * msg );
-char *MSG_ReadStringLine( msg_t * msg );
+const char * MSG_ReadString( msg_t * msg );
+const char * MSG_ReadStringLine( msg_t * msg );
 void MSG_ReadDeltaUsercmd( msg_t * msg, const UserCommand * baseline, UserCommand * cmd );
 int MSG_ReadEntityNumber( msg_t * msg, bool * remove );
 void MSG_ReadDeltaEntity( msg_t * msg, const SyncEntityState * baseline, SyncEntityState * ent );
@@ -139,7 +135,7 @@ constexpr s64 UPDATE_BACKUP = 32;  // copies of SyncEntityState to keep buffered
 // the svc_strings[] array in snap_read should mirror this
 //==================
 extern const char * const svc_strings[256];
-void _SHOWNET( msg_t *msg, const char *s, int shownet );
+void _SHOWNET( msg_t * msg, const char * s, int shownet );
 
 //
 // server to client
@@ -201,25 +197,6 @@ MISC
 ==============================================================
 */
 
-[[gnu::format( printf, 1, 2 )]] void Com_Printf( const char *format, ... );
-[[gnu::format( printf, 1, 2 )]] void Com_Error( const char *format, ... );
-
-template< typename... Rest >
-void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {
-	char buf[ 4096 ];
-	ggformat( buf, sizeof( buf ), fmt, rest... );
-	Com_Printf( "%s", buf );
-}
-
-#define Com_GGPrint( fmt, ... ) Com_GGPrintNL( fmt "\n", ##__VA_ARGS__ )
-
-template< typename... Rest >
-void Com_GGError( const char * fmt, const Rest & ... rest ) {
-	char buf[ 4096 ];
-	ggformat( buf, sizeof( buf ), fmt, rest... );
-	Com_Error( "%s", buf );
-}
-
 void Com_DeferQuit();
 
 connstate_t Com_ClientState();
@@ -271,7 +248,7 @@ void CL_Frame( int realMsec, int gameMsec );
 void CL_Disconnect( const char *message );
 bool CL_DemoPlaying();
 
-void Con_Print( const char *text );
+void Con_Print( Span< const char > str );
 
 void SV_Init();
 void SV_Shutdown( const char *finalmsg );

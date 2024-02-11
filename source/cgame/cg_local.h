@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_particles.h"
 #include "cgame/cg_sprays.h"
 
-#include "client/sound.h"
+#include "client/audio/types.h"
 #include "client/renderer/types.h"
 
 #define VSAY_TIMEOUT 2500
@@ -86,6 +86,7 @@ struct centity_t {
 	bool jetpack_boost;
 	PlayingSFXHandle jetpack_sound;
 
+	PlayingSFXHandle playing_idle_sound;
 	PlayingSFXHandle playing_body_sound;
 	PlayingSFXHandle playing_vsay;
 	PlayingSFXHandle playing_reload;
@@ -130,7 +131,7 @@ struct cg_viewdef_t {
 	float fov_x, fov_y;
 	float fracDistFOV;
 	Vec3 origin;
-	Vec3 angles;
+	EulerDegrees3 angles;
 	mat3_t axis;
 	Vec3 velocity;
 };
@@ -235,9 +236,6 @@ extern centity_t cg_entities[MAX_EDICTS];
 //
 bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe );
 
-struct cmodel_t;
-const cmodel_t *CG_CModelForEntity( int entNum );
-
 void CG_SoundEntityNewState( centity_t *cent );
 void DrawEntities();
 void CG_LerpEntities();
@@ -273,9 +271,9 @@ void CG_PredictedAltFireWeapon( int entNum, u64 parm );
 void CG_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead );
 void CG_PredictMovement();
 void CG_CheckPredictionError();
-void CG_BuildSolidList();
-void CG_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask );
-void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin );
+void CG_BuildSolidList( const snapshot_t * frame );
+trace_t CG_Trace( Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask );
+void CG_Predict_TouchTriggers( const pmove_t * pm, Vec3 previous_origin );
 
 //
 // cg_screen.c
@@ -285,7 +283,7 @@ extern Cvar *cg_showFPS;
 void CG_ScreenInit();
 void CG_DrawScope();
 void CG_Draw2D();
-void CG_CenterPrint( const char *str );
+void CG_CenterPrint( Span< const char > str );
 
 void CG_EscapeKey();
 
@@ -314,7 +312,7 @@ void AddDamageEffect( float x = 0.0f );
 void CG_InitHUD();
 void CG_ShutdownHUD();
 void CG_SC_ResetObituaries();
-void CG_SC_Obituary();
+void CG_SC_Obituary( const Tokenized & args );
 void CG_DrawHUD();
 
 //
@@ -339,7 +337,7 @@ extern Cvar *cg_showServerDebugPrints;
 void CG_Init( unsigned int playerNum, int max_clients, bool demoplaying, const char *demoName, unsigned snapFrameTime );
 void CG_Shutdown();
 
-[[gnu::format( printf, 1, 2 )]] void CG_LocalPrint( const char *format, ... );
+void CG_LocalPrint( Span< const char > str );
 
 void CG_Reset();
 void CG_Precache();
@@ -446,7 +444,7 @@ void CG_LaserBeamEffect( centity_t *cent );
 //
 void CG_InitChat();
 void CG_ShutdownChat();
-void CG_AddChat( const char * str );
+void CG_AddChat( Span< const char > str );
 void CG_DrawChat();
 
 //
@@ -459,7 +457,7 @@ void CG_ClearInputState();
 void CG_MouseMove( Vec2 m );
 UserCommandButton CG_GetButtonBits();
 UserCommandButton CG_GetButtonDownEdges();
-Vec3 CG_GetDeltaViewAngles();
+EulerDegrees2 CG_GetDeltaViewAngles();
 Vec2 CG_GetMovement();
 
 /*

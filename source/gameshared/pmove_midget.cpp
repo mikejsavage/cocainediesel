@@ -1,14 +1,24 @@
 #include "gameshared/movement.h"
 
-static constexpr float wallclimbspeed = 200.0f;
+static constexpr float dashupspeed = 160.0f;
+static constexpr float dashspeed = 550.0f;
 
-static constexpr float jumpspeed = 280.0f;
+static constexpr float wjupspeed = 371.875f;
+static constexpr float wjbouncefactor = 0.4f;
 
-static constexpr float climbfriction = 10.0f;
+
+
+static constexpr float wallclimbspeed = 450.0f;
+
+static constexpr float jumpupspeed = 280.0f;
+
+static constexpr float climbfriction = 5.0f;
 
 static constexpr float stamina_use = 0.15f;
 static constexpr float stamina_use_moving = 0.3f;
 static constexpr float stamina_recover = 1.0f;
+
+static constexpr float wj_cooldown = 0.05f;
 
 static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
 	if( !StaminaAvailable( ps, pml, stamina_use ) ) {
@@ -20,9 +30,8 @@ static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Sy
 	spots[ 1 ] = pml->origin + pml->forward + pml->right * 2;
 
 	for( Vec3 spot : spots ) {
-		trace_t trace;
-		pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->contentmask, 0 );
-		if( trace.fraction < 1 && !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) {
+		trace_t trace = pmove_gs->api.Trace( pml->origin, pm->bounds, spot, pm->playerState->POVnum, pm->solid_mask, 0 );
+		if( trace.HitSomething() && !ISWALKABLEPLANE( trace.normal ) && trace.GotSomewhere() ) {
 			return true;
 		}
 	}
@@ -31,17 +40,27 @@ static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Sy
 }
 
 static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( pm->groundentity == -1 ) {
-		return;
-	}
+	ps->pmove.jump_buffering = Max2( 0.0f, ps->pmove.jump_buffering - pml->frametime );
 
-	ps->pmove.stamina_state = Stamina_Normal;
+	if( pm->groundentity != -1 ) {
+		ps->pmove.stamina_state = Stamina_Normal;
+	}
 
 	if( !pressed ) {
+		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;
 		return;
 	}
 
-	Jump( pm, pml, pmove_gs, ps, jumpspeed, true );
+	if( pm->groundentity == -1 ) {
+		if( (ps->pmove.pm_flags & PMF_ABILITY2_HELD) && !(ps->pmove.pm_flags & PMF_ABILITY1_HELD) ) {
+			Walljump( pm, pml, pmove_gs, ps, jumpupspeed, dashupspeed, dashspeed, wjupspeed, wjbouncefactor );
+			ps->pmove.jump_buffering = wj_cooldown;
+			ps->pmove.pm_flags |= PMF_ABILITY1_HELD;
+		}
+	} else {
+		Jump( pm, pml, pmove_gs, ps, jumpupspeed, true );
+		ps->pmove.pm_flags |= PMF_ABILITY1_HELD;
+	}
 }
 
 static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
@@ -57,7 +76,7 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 		return;
 	}
 
-	if( pressed && CanClimb( pm, pml, pmove_gs, ps ) ) {
+	if( pressed && CanClimb( pm, pml, pmove_gs, ps ) && ps->pmove.jump_buffering == 0.f ) {
 		pml->ladder = Ladder_Fake;
 		pml->groundFriction = climbfriction;
 
@@ -75,7 +94,7 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 		wishvel = Normalize( wishvel );
 
 		if( pml->forwardPush > 0 ) {
-			wishvel.z = Lerp( -1.0f, Unlerp01( 15.0f, ps->viewangles[ PITCH ], -15.0f ), 1.0f );
+			wishvel.z = Lerp( -1.0f, Unlerp01( 15.0f, ps->viewangles.pitch, -15.0f ), 1.0f );
 		}
 
 		StaminaUse( ps, pml, Length( wishvel ) * stamina_use_moving );

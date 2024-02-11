@@ -22,8 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client/client.h"
 #include "client/downloads.h"
-#include "qcommon/fs.h"
-#include "qcommon/string.h"
 #include "qcommon/version.h"
 
 struct DownloadInProgress {
@@ -42,21 +40,21 @@ static void OnDownloadDone( int http_status, Span< const u8 > data ) {
 	download.path = NULL;
 }
 
-bool CL_DownloadFile( const char * filename, DownloadCompleteCallback callback ) {
+bool CL_DownloadFile( Span< const char > filename, DownloadCompleteCallback callback ) {
 	if( download.path ) {
 		Com_Printf( "Already downloading something.\n" );
 		return false;
 	}
 
 	if( !COM_ValidateRelativeFilename( filename ) ) {
-		Com_Printf( "Can't download: %s. Invalid filename.\n", filename );
+		Com_GGPrint( "Can't download: {}, invalid filename.", filename );
 		return false;
 	}
 
-	Com_Printf( "Asking to download: %s\n", filename );
+	Com_GGPrint( "Asking to download: {}", filename );
 
 	download = { };
-	download.path = CopyString( sys_allocator, filename );
+	download.path = ( *sys_allocator )( "{}", filename );
 	download.callback = callback;
 
 	TempAllocator temp = cls.frame_arena.temp();
@@ -103,7 +101,7 @@ static void CL_ParseServerData( msg_t *msg ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	// set extrapolation time to half snapshot time
-	Cvar_ForceSet( "cl_extrapolationTime", temp( "{}", cl.snapFrameTime / 2 ) );
+	Cvar_ForceSet( "cl_extrapolationTime", temp.sv( "{}", cl.snapFrameTime / 2 ) );
 	cl_extrapolationTime->modified = false;
 
 	cl.max_clients = MSG_ReadUint8( msg );
@@ -163,64 +161,53 @@ static void CL_ParseFrame( msg_t *msg ) {
 	}
 }
 
-static void CL_RequestMore( ClientCommandType command ) {
+static void CL_RequestMoreBaselines( const Tokenized & args ) {
 	if( CL_DemoPlaying() ) {
 		return;
 	}
 
 	if( cls.state != CA_CONNECTED && cls.state != CA_ACTIVE ) {
-		Com_Printf( "Can't \"%s\", not connected\n", Cmd_Argv( 0 ) );
+		Com_Printf( "Can't rqeuest more baselines, not connected\n" );
 		return;
 	}
 
-	msg_t * args = CL_AddReliableCommand( command );
-	MSG_WriteInt32( args, atoi( Cmd_Argv( 1 ) ) );
-	MSG_WriteUint32( args, atoi( Cmd_Argv( 2 ) ) );
+	msg_t * msg = CL_AddReliableCommand( ClientCommand_Baselines );
+	MSG_WriteInt32( msg, SpanToInt( args.tokens[ 1 ], 0 ) );
+	MSG_WriteUint32( msg, SpanToInt( args.tokens[ 2 ], 0 ) );
 }
 
-static void CL_RequestMoreBaselines() {
-	CL_RequestMore( ClientCommand_Baselines );
-}
-
-typedef struct {
-	const char *name;
-	void ( *func )();
-} svcmd_t;
-
-static svcmd_t svcmds[] = {
-	{ "forcereconnect", CL_Reconnect_f },
-	{ "reconnect", CL_ServerReconnect_f },
-	{ "changing", CL_Changing_f },
-	{ "precache", CL_Precache_f },
-	{ "baselines", CL_RequestMoreBaselines },
-	{ "disconnect", CL_ServerDisconnect_f },
-
-	{ NULL, NULL }
+static const struct {
+	const char * name;
+	void ( *func )( const Tokenized & args );
+	size_t num_args;
+} svcmds[] = {
+	{ "forcereconnect", []( const Tokenized & args ) { CL_Reconnect_f(); } },
+	{ "reconnect", []( const Tokenized & args ) { CL_ServerReconnect_f(); }, 0 },
+	{ "changing", []( const Tokenized & args ) { CL_Changing_f(); }, 0 },
+	{ "precache", CL_Precache_f, 2 },
+	{ "baselines", CL_RequestMoreBaselines, 2 },
+	{ "disconnect", CL_ServerDisconnect_f, 1 },
 };
 
-static void CL_ParseServerCommand( msg_t *msg ) {
-	const char *s;
-	char *text;
-	svcmd_t *cmd;
+static void CL_ParseServerCommand( msg_t * msg ) {
+	TempAllocator temp = cls.frame_arena.temp();
 
-	text = MSG_ReadString( msg );
-
-	Cmd_TokenizeString( text );
-	s = Cmd_Argv( 0 );
+	const char * text = MSG_ReadString( msg );
+	Tokenized args = Tokenize( &temp, MakeSpan( text ) );
 
 	if( cl_debug_serverCmd->integer && ( cls.state < CA_ACTIVE || CL_DemoPlaying() ) ) {
 		Com_Printf( "CL_ParseServerCommand: \"%s\"\n", text );
 	}
 
-	// filter out these server commands to be called from the client
-	for( cmd = svcmds; cmd->name; cmd++ ) {
-		if( StrEqual( s, cmd->name ) ) {
-			cmd->func();
+	for( auto cmd : svcmds ) {
+		if( StrEqual( cmd.name, args.tokens[ 0 ] ) && args.tokens.n == cmd.num_args + 1 ) {
+			cmd.func( args );
 			return;
 		}
 	}
 
-	Com_Printf( "Unknown server command: %s\n", s );
+	Assert( is_public_build );
+	Com_GGPrint( "Unknown server command: {}", args.tokens[ 0 ] );
 }
 
 /*
@@ -281,7 +268,6 @@ void CL_ParseServerMessage( msg_t *msg ) {
 
 			case svc_serverdata:
 				if( cls.state == CA_HANDSHAKE ) {
-					Cbuf_Execute(); // make sure any stuffed commands are done
 					CL_ParseServerData( msg );
 				} else {
 					return; // ignore rest of the packet (serverdata is always sent alone)
@@ -313,6 +299,7 @@ void CL_ParseServerMessage( msg_t *msg ) {
 	}
 
 	if( msg->readcount > msg->cursize ) {
+		Assert( is_public_build );
 		Com_Error( "CL_ParseServerMessage: Bad server message" );
 		return;
 	}

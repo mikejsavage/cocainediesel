@@ -29,7 +29,6 @@ Vec3 knockbackOfDeath;
 int damageFlagsOfDeath;
 
 Cvar *sv_password;
-Cvar *g_select_empty;
 
 Cvar *g_maxvelocity;
 
@@ -53,16 +52,13 @@ Cvar *g_autorecord_maxdemos;
 
 Cvar *g_allow_spectator_voting;
 
-/*
-* G_GS_Trace - Used only for gameshared linking
-*/
-static void G_GS_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, int timeDelta ) {
-	edict_t *passent = NULL;
+static trace_t G_GS_Trace( Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask, int timeDelta ) {
+	edict_t * passent = NULL;
 	if( ignore >= 0 && ignore < MAX_EDICTS ) {
-		passent = &game.edicts[ignore];
+		passent = &game.edicts[ ignore ];
 	}
 
-	G_Trace4D( tr, start, mins, maxs, end, passent, contentmask, timeDelta );
+	return G_Trace4D( start, bounds, end, passent, solid_mask, timeDelta );
 }
 
 /*
@@ -112,7 +108,7 @@ void G_Init( unsigned int framemsec ) {
 
 	sv_password = NewCvar( "sv_password", "" );
 
-	g_projectile_prestep = NewCvar( "g_projectile_prestep", temp( "{}", PROJECTILE_PRESTEP ), CvarFlag_Developer );
+	g_projectile_prestep = NewCvar( "g_projectile_prestep", temp.sv( "{}", PROJECTILE_PRESTEP ), CvarFlag_Developer );
 	g_numbots = NewCvar( "g_numbots", "0", CvarFlag_Archive );
 	g_maxtimeouts = NewCvar( "g_maxtimeouts", "2", CvarFlag_Archive );
 	g_antilag_maxtimedelta = NewCvar( "g_antilag_maxtimedelta", "200", CvarFlag_Archive );
@@ -181,7 +177,7 @@ void G_ExitLevel() {
 
 	level.exitNow = false;
 
-	const char *nextmapname = G_NextMap();
+	const char * nextmapname = G_NextMap();
 
 	// if it's the same map see if we can restart without loading
 	if( StrEqual( nextmapname, sv.mapname ) ) {
@@ -191,7 +187,7 @@ void G_ExitLevel() {
 
 	if( loadmap ) {
 		TempAllocator temp = svs.frame_arena.temp();
-		Cbuf_ExecuteLine( temp( "map \"{}\"", nextmapname ) );
+		Cmd_Execute( &temp, "map \"{}\"", nextmapname );
 	}
 
 	G_SnapClients();

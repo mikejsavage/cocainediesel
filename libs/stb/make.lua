@@ -2,7 +2,10 @@ lib( "stb_image", { "libs/stb/stb_image.cpp" } )
 obj_cxxflags( "libs/stb/stb_image.cpp", "-DSTBI_NO_BMP -DSTBI_NO_GIF -DSTBI_NO_HDR -DSTBI_NO_LINEAR -DSTBI_NO_PIC -DSTBI_NO_PNM -DSTBI_NO_PSD -DSTBI_NO_TGA" )
 msvc_obj_cxxflags( "libs/stb/stb_image.cpp", "/O2 /wd4244 /wd4456" )
 
-lib( "stb_image_resize", { "libs/stb/stb_image_resize.cpp" } )
+-- we only use stb_image_resize in bc4 so go hard on the CPU features
+lib( "stb_image_resize", { "libs/stb/stb_image_resize2.cpp" } )
+gcc_obj_cxxflags( "libs/stb/stb_image_resize2.cpp", "-mavx2 -mf16c -mfma -DSTBIR_USE_FMA" )
+msvc_obj_cxxflags( "libs/stb/stb_image_resize2.cpp", "/arch:AVX2 -DSTBIR_USE_FMA /wd4456" )
 
 lib( "stb_image_write", { "libs/stb/stb_image_write.cpp" } )
 

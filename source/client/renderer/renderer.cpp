@@ -4,8 +4,11 @@
 #include "qcommon/string.h"
 #include "qcommon/time.h"
 #include "client/client.h"
+#include "client/gltf.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/blue_noise.h"
+#include "client/renderer/cdmap.h"
+#include "client/renderer/gltf.h"
 #include "client/renderer/skybox.h"
 #include "client/renderer/text.h"
 
@@ -17,8 +20,6 @@
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
 
-#include "tracy/tracy/Tracy.hpp"
-
 FrameStatic frame_static;
 static u64 frame_counter;
 
@@ -27,16 +28,10 @@ static Texture blue_noise;
 static Mesh fullscreen_mesh;
 
 struct DynamicGeometry {
-	static constexpr size_t MaxVerts = U16_MAX;
+	static constexpr size_t BufferSize = 1024 * 1024; // 1MB
 
-	StreamingBuffer positions_buffer;
-	StreamingBuffer uvs_buffer;
-	StreamingBuffer colors_buffer;
-	StreamingBuffer index_buffer;
-
-	Mesh mesh;
-	u16 num_vertices;
-	u16 num_indices;
+	StreamingBuffer buffer;
+	size_t cursor;
 };
 
 static DynamicGeometry dynamic_geometry;
@@ -117,8 +112,10 @@ void InitRenderer() {
 
 	InitRenderBackend();
 
+	TempAllocator temp = cls.frame_arena.temp();
+
 	r_samples = NewCvar( "r_samples", "0", CvarFlag_Archive );
-	r_shadow_quality = NewCvar( "r_shadow_quality", "1", CvarFlag_Archive );
+	r_shadow_quality = NewCvar( "r_shadow_quality", temp.sv( "{}", ShadowQuality_Ultra ), CvarFlag_Archive );
 
 	frame_static = { };
 	frame_counter = 0;
@@ -156,22 +153,9 @@ void InitRenderer() {
 		fullscreen_mesh = NewMesh( config );
 	}
 
-	{
-		dynamic_geometry.positions_buffer = NewStreamingBuffer( sizeof( Vec3 ) * DynamicGeometry::MaxVerts, "Dynamic geometry positions" );
-		dynamic_geometry.uvs_buffer = NewStreamingBuffer( sizeof( Vec2 ) * DynamicGeometry::MaxVerts, "Dynamic geometry uvs" );
-		dynamic_geometry.colors_buffer = NewStreamingBuffer( sizeof( RGBA8 ) * DynamicGeometry::MaxVerts, "Dynamic geometry colors" );
-		dynamic_geometry.index_buffer = NewStreamingBuffer( sizeof( u16 ) * DynamicGeometry::MaxVerts, "Dynamic geometry indices" );
+	dynamic_geometry.buffer = NewStreamingBuffer( DynamicGeometry::BufferSize, "Dynamic geometry buffer" );
 
-		MeshConfig config = { };
-		config.name = "Dynamic geometry";
-		config.set_attribute( VertexAttribute_Position, dynamic_geometry.positions_buffer.buffer );
-		config.set_attribute( VertexAttribute_TexCoord, dynamic_geometry.uvs_buffer.buffer );
-		config.set_attribute( VertexAttribute_Color, dynamic_geometry.colors_buffer.buffer );
-		config.index_buffer = dynamic_geometry.index_buffer.buffer;
-		dynamic_geometry.mesh = NewMesh( config );
-	}
-
-	AddCommand( "screenshot", TakeScreenshot );
+	AddCommand( "screenshot", []( const Tokenized & args ) { TakeScreenshot(); } );
 	strcpy( last_screenshot_date, "" );
 	same_date_count = 0;
 
@@ -179,7 +163,6 @@ void InitRenderer() {
 	InitMaterials();
 	InitText();
 	InitSkybox();
-	InitModels();
 	InitVisualEffects();
 }
 
@@ -206,7 +189,6 @@ void ShutdownRenderer() {
 	FlushRenderBackend();
 
 	ShutdownVisualEffects();
-	ShutdownModels();
 	ShutdownSkybox();
 	ShutdownText();
 	ShutdownMaterials();
@@ -216,18 +198,7 @@ void ShutdownRenderer() {
 	DeleteMesh( fullscreen_mesh );
 	DeleteRenderTargets();
 
-	DeleteStreamingBuffer( dynamic_geometry.positions_buffer );
-	DeleteStreamingBuffer( dynamic_geometry.uvs_buffer );
-	DeleteStreamingBuffer( dynamic_geometry.colors_buffer );
-	DeleteStreamingBuffer( dynamic_geometry.index_buffer );
-
-	// this is a hack, ordinarily Mesh owns its vertex buffers but not here
-	for( GPUBuffer & buffer : dynamic_geometry.mesh.vertex_buffers ) {
-		buffer = { };
-	}
-	dynamic_geometry.mesh.index_buffer = { };
-
-	DeleteMesh( dynamic_geometry.mesh );
+	DeleteStreamingBuffer( dynamic_geometry.buffer );
 
 	RemoveCommand( "screenshot" );
 
@@ -300,7 +271,7 @@ static Mat4 InvertPerspectiveProjection( const Mat4 & P ) {
 	);
 }
 
-static Mat4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
+static Mat3x4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
 	float pitch = Radians( angles.pitch );
 	float sp = sinf( pitch );
 	float cp = cosf( pitch );
@@ -323,39 +294,37 @@ static Mat4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
 		cp * cr
 	);
 
-	Mat4 rotation(
+	Mat3x4 rotation(
 		right.x, right.y, right.z, 0,
 		up.x, up.y, up.z, 0,
-		-forward.x, -forward.y, -forward.z, 0,
-		0, 0, 0, 1
+		-forward.x, -forward.y, -forward.z, 0
 	);
 	return rotation * Mat4Translation( -position );
 }
 
-static Mat4 ViewMatrix( Vec3 position, Vec3 forward ) {
+static Mat3x4 ViewMatrix( Vec3 position, Vec3 forward ) {
 	Vec3 right, up;
 	ViewVectors( forward, &right, &up );
-	Mat4 rotation(
+	Mat3x4 rotation(
 		right.x, right.y, right.z, 0,
 		up.x, up.y, up.z, 0,
-		-forward.x, -forward.y, -forward.z, 0,
-		0, 0, 0, 1
+		-forward.x, -forward.y, -forward.z, 0
 	);
 	return rotation * Mat4Translation( -position );
 }
 
-static Mat4 InvertViewMatrix( const Mat4 & V, Vec3 position ) {
-	return Mat4(
+static Mat3x4 InvertViewMatrix( const Mat3x4 & V, Vec3 position ) {
+	return Mat3x4(
 		// transpose rotation part
-		Vec4( V.row0().xyz(), 0.0f ),
-		Vec4( V.row1().xyz(), 0.0f ),
-		Vec4( V.row2().xyz(), 0.0f ),
+		Vec3( V.row0().xyz() ),
+		Vec3( V.row1().xyz() ),
+		Vec3( V.row2().xyz() ),
 
-		Vec4( position, 1.0f )
+		Vec3( position )
 	);
 }
 
-static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & inverse_V, const Mat4 & P, const Mat4 & inverse_P, Vec3 camera_pos, Vec2 viewport_size, float near_plane, int samples, Vec3 light_dir ) {
+static UniformBlock UploadViewUniforms( const Mat3x4 & V, const Mat3x4 & inverse_V, const Mat4 & P, const Mat4 & inverse_P, Vec3 camera_pos, Vec2 viewport_size, float near_plane, int samples, Vec3 light_dir ) {
 	return UploadUniformBlock( V, inverse_V, P, inverse_P, camera_pos, viewport_size, near_plane, samples, light_dir );
 }
 
@@ -462,7 +431,7 @@ static void CreateRenderTargets() {
 
 	{
 		Texture shadowmap = NewTexture( TextureConfig {
-			.format = TextureFormat_Shadow,
+			.format = TextureFormat_Depth,
 			.width = frame_static.shadow_parameters.resolution,
 			.height = frame_static.shadow_parameters.resolution,
 			.num_layers = frame_static.shadow_parameters.num_cascades,
@@ -476,7 +445,6 @@ static void CreateRenderTargets() {
 	}
 }
 
-#if !TRACY_ENABLE
 namespace tracy {
 struct SourceLocationData {
 	const char * name;
@@ -486,12 +454,11 @@ struct SourceLocationData {
 	uint32_t color;
 };
 }
-#endif
 
 void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadShaders();
 	HotloadMaterials();
-	HotloadModels();
+	HotloadGLTFModels();
 	HotloadMaps();
 	HotloadVisualEffects();
 
@@ -499,8 +466,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	RenderBackendBeginFrame();
 
-	dynamic_geometry.num_vertices = 0;
-	dynamic_geometry.num_indices = 0;
+	dynamic_geometry.cursor = 0;
 
 	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer > 16 || r_samples->integer == 1 ) {
 		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
@@ -530,8 +496,8 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	last_msaa = frame_static.msaa_samples;
 	last_shadow_quality = frame_static.shadow_quality;
 
-	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples, Vec3() );
-	frame_static.identity_model_uniforms = UploadModelUniforms( Mat4::Identity() );
+	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat3x4::Identity(), Mat3x4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples, Vec3() );
+	frame_static.identity_model_uniforms = UploadModelUniforms( Mat3x4::Identity() );
 	frame_static.identity_material_static_uniforms = UploadMaterialStaticUniforms( 0.0f, 64.0f );
 	frame_static.identity_material_dynamic_uniforms = UploadMaterialDynamicUniforms( vec4_white );
 
@@ -663,7 +629,7 @@ void SetupShadowCascades() {
 
 	Vec3 frustum_directions[ num_corners ];
 	for( u32 i = 0; i < num_corners; i++ ) {
-		Vec4 corner = frame_static.inverse_V * frame_static.inverse_P * frustum_direction_corners[ i ];
+		Vec4 corner = Mat4( frame_static.inverse_V ) * frame_static.inverse_P * frustum_direction_corners[ i ];
 		frustum_directions[ i ] = Normalize( frame_static.position - corner.xyz() / corner.w );
 	}
 
@@ -682,7 +648,7 @@ void SetupShadowCascades() {
 	}
 
 	Vec3 shadow_camera_positions[ num_planes ];
-	Mat4 shadow_views[ num_planes ];
+	Mat3x4 shadow_views[ num_planes ];
 	Mat4 shadow_projections[ num_planes ];
 	for( u32 i = 0; i < num_planes; i++ ) {
 		frustum_centers[ i ] /= num_corners * 2;
@@ -704,9 +670,9 @@ void SetupShadowCascades() {
 	Vec3 cascade_scales[ num_cascades ];
 	for( u32 i = 0; i < num_cascades; i++ ) {
 		Mat4 & shadow_projection = shadow_projections[ i + 1 ];
-		Mat4 & shadow_view = shadow_views[ i + 1 ];
-		Vec3 & shadow_camera_position = shadow_camera_positions[ i + 1 ];
-		Mat4 shadow_matrix = shadow_projection * shadow_view;
+		const Mat3x4 & shadow_view = shadow_views[ i + 1 ];
+		const Vec3 & shadow_camera_position = shadow_camera_positions[ i + 1 ];
+		Mat4 shadow_matrix = shadow_projection * Mat4( shadow_view );
 
 		{
 			u32 shadowmap_size = frame_static.shadow_parameters.resolution;
@@ -718,15 +684,15 @@ void SetupShadowCascades() {
 			shadow_projection.col3.y += rounded_offset.y;
 		}
 
-		frame_static.shadowmap_view_uniforms[ i ] = UploadViewUniforms( shadow_view, Mat4::Identity(), shadow_projection, Mat4::Identity(), shadow_camera_position, Vec2(), cascade_dist[ i ], 0, frame_static.light_direction );
+		Mat3x4 inv_shadow_view = InvertViewMatrix( shadow_view, shadow_camera_position );
+		frame_static.shadowmap_view_uniforms[ i ] = UploadViewUniforms( shadow_view, Mat3x4::Identity(), shadow_projection, Mat4::Identity(), shadow_camera_position, Vec2(), cascade_dist[ i ], 0, frame_static.light_direction );
 
-		Mat4 inv_shadow_view = InvertViewMatrix( shadow_view, shadow_camera_position );
 		Mat4 inv_shadow_projection = InverseScaleTranslation( shadow_projection );
 
-		Mat4 tex_scale_bias = Mat4Translation( 0.5f, 0.5f, 0.0f ) * Mat4Scale( 0.5f, 0.5f, 1.0f );
+		Mat4 tex_scale_bias = Mat4( Mat4Translation( 0.5f, 0.5f, 0.0f ) * Mat4Scale( 0.5f, 0.5f, 1.0f ) );
 		Mat4 inv_tex_scale_bias = InverseScaleTranslation( tex_scale_bias );
 
-		Mat4 inv_cascade = shadow_views[ 0 ] * inv_shadow_view * inv_shadow_projection * inv_tex_scale_bias;
+		Mat4 inv_cascade = Mat4( shadow_views[ 0 ] * inv_shadow_view ) * inv_shadow_projection * inv_tex_scale_bias;
 		Vec3 cascade_corner = ( inv_cascade * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xyz();
 		Vec3 other_corner = ( inv_cascade * Vec4( 1.0f, 1.0f, 1.0f, 1.0f ) ).xyz();
 
@@ -757,7 +723,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	if( client_gs.gameState.sun_moved_from != client_gs.gameState.sun_moved_to ) {
 		t = Unlerp01( client_gs.gameState.sun_moved_from, cls.gametime, client_gs.gameState.sun_moved_to );
 	}
-	Vec3 sun_angles = LerpAngles( client_gs.gameState.sun_angles_from, t, client_gs.gameState.sun_angles_to );
+	EulerDegrees3 sun_angles = LerpAngles( client_gs.gameState.sun_angles_from, t, client_gs.gameState.sun_angles_to );
 	AngleVectors( sun_angles, &frame_static.light_direction, NULL, NULL );
 
 	SetupShadowCascades();
@@ -782,23 +748,54 @@ void DrawFullscreenMesh( const PipelineState & pipeline ) {
 	DrawMesh( fullscreen_mesh, pipeline );
 }
 
-void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh ) {
-	if( dynamic_geometry.num_vertices + mesh.num_vertices > DynamicGeometry::MaxVerts ) {
+static size_t AlignNonPow2( size_t x, size_t alignment ) {
+	return ( ( x + alignment - 1 ) / alignment ) * alignment;
+}
+
+template< typename T >
+static size_t FillDynamicGeometryBuffer( Span< const T > data, size_t alignment ) {
+	size_t frame_offset = dynamic_geometry.buffer.size * FrameSlot();
+	size_t aligned_offset = AlignNonPow2( frame_offset + dynamic_geometry.cursor, alignment );
+	memcpy( ( ( char * ) dynamic_geometry.buffer.ptr ) + aligned_offset, data.ptr, data.num_bytes() );
+	dynamic_geometry.cursor = aligned_offset + data.num_bytes() - frame_offset;
+	if( dynamic_geometry.cursor >= DynamicGeometry::BufferSize ) Breakpoint();
+	return aligned_offset / alignment;
+}
+
+DynamicDrawData UploadDynamicGeometry( Span< const u8 > vertices, Span< const u16 > indices, const VertexDescriptor & vertex_descriptor ) {
+	for( Optional< VertexAttribute > attr : vertex_descriptor.attributes ) {
+		Assert( !attr.exists || attr.value.buffer == 0 );
+	}
+
+	size_t vertex_size = vertex_descriptor.buffer_strides[ 0 ];
+	size_t frame_offset = dynamic_geometry.buffer.size * FrameSlot();
+	size_t required_size = AlignNonPow2( AlignNonPow2( frame_offset + dynamic_geometry.cursor, vertex_size ) + vertices.num_bytes(), sizeof( u16 ) ) + indices.num_bytes() - frame_offset;
+	if( required_size > DynamicGeometry::BufferSize ) {
 		Com_Printf( S_COLOR_YELLOW "Too much dynamic geometry!\n" );
+		Assert( is_public_build );
+		return { };
+	}
+
+	size_t base_vertex = FillDynamicGeometryBuffer( vertices, vertex_size );
+	size_t first_index = FillDynamicGeometryBuffer( indices, sizeof( u16 ) );
+
+	return { vertex_descriptor, base_vertex, first_index, indices.n };
+}
+
+void DrawDynamicGeometry( const PipelineState & pipeline, const DynamicDrawData & data, Optional< size_t > override_num_vertices, size_t extra_first_index ) {
+	if( data.num_vertices == 0 ) {
 		return;
 	}
 
-	WriteAndFlushStreamingBuffer( dynamic_geometry.positions_buffer, mesh.positions, mesh.num_vertices, dynamic_geometry.num_vertices );
-	WriteAndFlushStreamingBuffer( dynamic_geometry.uvs_buffer, mesh.uvs, mesh.num_vertices, dynamic_geometry.num_vertices );
-	WriteAndFlushStreamingBuffer( dynamic_geometry.colors_buffer, mesh.colors, mesh.num_vertices, dynamic_geometry.num_vertices );
-	WriteAndFlushStreamingBuffer( dynamic_geometry.index_buffer, mesh.indices, mesh.num_indices, dynamic_geometry.num_indices );
+	Mesh mesh = NewMesh( MeshConfig {
+		.vertex_descriptor = data.vertex_descriptor,
+		.vertex_buffers = { dynamic_geometry.buffer.buffer },
+		.index_format = IndexFormat_U16,
+		.index_buffer = dynamic_geometry.buffer.buffer,
+	} );
 
-	size_t first_index = dynamic_geometry.num_indices + FrameSlot() * DynamicGeometry::MaxVerts;
-	size_t base_vertex = dynamic_geometry.num_vertices + FrameSlot() * DynamicGeometry::MaxVerts;
-	DrawMesh( dynamic_geometry.mesh, pipeline, mesh.num_indices, first_index, base_vertex );
-
-	dynamic_geometry.num_vertices += mesh.num_vertices;
-	dynamic_geometry.num_indices += mesh.num_indices;
+	size_t num_vertices = Default( override_num_vertices, data.num_vertices );
+	DrawMesh( mesh, pipeline, num_vertices, data.first_index + extra_first_index, data.base_vertex );
 }
 
 void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color ) {
@@ -819,7 +816,7 @@ void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bott
 	bg->PopTextureID();
 }
 
-UniformBlock UploadModelUniforms( const Mat4 & M ) {
+UniformBlock UploadModelUniforms( const Mat3x4 & M ) {
 	return UploadUniformBlock( M );
 }
 
@@ -829,4 +826,35 @@ UniformBlock UploadMaterialStaticUniforms( float specular, float shininess, floa
 
 UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0, Vec3 tcmod_row1 ) {
 	return UploadUniformBlock( color, tcmod_row0, tcmod_row1 );
+}
+
+Optional< ModelRenderData > FindModelRenderData( StringHash name ) {
+	const GLTFRenderData * gltf = FindGLTFRenderData( name );
+	if( gltf != NULL ) {
+		return ModelRenderData {
+			.type = ModelType_GLTF,
+			.gltf = gltf,
+		};
+	}
+
+	const MapSubModelRenderData * map = FindMapSubModelRenderData( name );
+	if( map != NULL ) {
+		return ModelRenderData {
+			.type = ModelType_Map,
+			.map = map,
+		};
+	}
+
+	return NONE;
+}
+
+Optional< ModelRenderData > FindModelRenderData( const char * name ) {
+	return FindModelRenderData( StringHash( name ) );
+}
+
+void DrawModel( DrawModelConfig config, ModelRenderData render_data, const Mat3x4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
+	switch( render_data.type ) {
+		case ModelType_GLTF: DrawGLTFModel( config, render_data.gltf, transform, color, palettes ); break;
+		case ModelType_Map: DrawMapModel( config, render_data.map, transform, color ); break;
+	}
 }

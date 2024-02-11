@@ -18,8 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "qcommon/qcommon.h"
-#include "qcommon/qfiles.h"
+#include "qcommon/base.h"
 #include "gameshared/movement.h"
 
 static constexpr float pm_ladderspeed = 300.0f;
@@ -47,9 +46,11 @@ constexpr float pm_specspeed = 450.0f;
 constexpr float pm_aircontrol = 4440.0f; // aircontrol multiplier (intertia velocity to forward velocity conversion)
 constexpr float pm_wishspeed = 30;
 
-//
-//  walking up a step should kill some velocity
-//
+constexpr float SLIDEMOVE_PLANEINTERACT_EPSILON = 0.05f;
+
+#define SLIDEMOVEFLAG_BLOCKED       	( 1 << 0 )   // it was blocked at some point, doesn't mean it didn't slide along the blocking object
+#define SLIDEMOVEFLAG_TRAPPED       	( 1 << 1 )
+#define SLIDEMOVEFLAG_WALL_BLOCKED  	( 1 << 2 )
 
 /*
 * PM_SlideMove
@@ -86,12 +87,11 @@ static int PM_SlideMove() {
 	float remainingTime = pml.frametime;
 	int blockedmask = 0;
 
-	Vec3 old_velocity = pml.velocity;
 	Vec3 last_valid_origin = pml.origin;
 
 	if( pm->groundentity != -1 ) { // clip velocity to ground, no need to wait
 		// if the ground is not horizontal (a ramp) clipping will slow the player down
-		if( pml.groundplane.normal.z == 1.0f && pml.velocity.z < 0.0f ) {
+		if( pml.groundplane.z == 1.0f && pml.velocity.z < 0.0f ) {
 			pml.velocity.z = 0.0f;
 		}
 	}
@@ -101,19 +101,18 @@ static int PM_SlideMove() {
 	for( int moves = 0; moves < maxmoves; moves++ ) {
 		Vec3 end = pml.origin + pml.velocity * remainingTime;
 
-		trace_t trace;
-		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, end, pm->playerState->POVnum, pm->contentmask, 0 );
-		if( trace.allsolid ) { // trapped into a solid
+		trace_t trace = pmove_gs->api.Trace( pml.origin, pm->bounds, end, pm->playerState->POVnum, pm->solid_mask, 0 );
+		if( trace.GotNowhere() ) { // trapped into a solid
 			pml.origin = last_valid_origin;
 			return SLIDEMOVEFLAG_TRAPPED;
 		}
 
-		if( trace.fraction > 0 ) { // actually covered some distance
+		if( trace.GotSomewhere() ) {
 			pml.origin = trace.endpos;
 			last_valid_origin = trace.endpos;
 		}
 
-		if( trace.fraction == 1 ) {
+		if( trace.HitNothing() ) {
 			break; // move done
 		}
 
@@ -123,7 +122,7 @@ static int PM_SlideMove() {
 		// at this point we are blocked but not trapped.
 
 		blockedmask |= SLIDEMOVEFLAG_BLOCKED;
-		if( trace.plane.normal.z < SLIDEMOVE_PLANEINTERACT_EPSILON ) { // is it a vertical wall?
+		if( trace.normal.z < SLIDEMOVE_PLANEINTERACT_EPSILON ) { // is it a vertical wall?
 			blockedmask |= SLIDEMOVEFLAG_WALL_BLOCKED;
 		}
 
@@ -136,8 +135,8 @@ static int PM_SlideMove() {
 		{
 			int i;
 			for( i = 0; i < numplanes; i++ ) {
-				if( Dot( trace.plane.normal, planes[i] ) > ( 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) ) {
-					pml.velocity = trace.plane.normal + pml.velocity;
+				if( Dot( trace.normal, planes[i] ) > ( 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) ) {
+					pml.velocity = trace.normal + pml.velocity;
 					break;
 				}
 			}
@@ -153,7 +152,7 @@ static int PM_SlideMove() {
 		}
 
 		// put the actual plane in the list
-		planes[numplanes] = trace.plane.normal;
+		planes[numplanes] = trace.normal;
 		numplanes++;
 
 		//
@@ -203,10 +202,6 @@ static int PM_SlideMove() {
 		}
 	}
 
-	if( pm->playerState->pmove.pm_time ) {
-		pml.velocity = old_velocity;
-	}
-
 	return blockedmask;
 }
 
@@ -219,8 +214,6 @@ static int PM_SlideMove() {
 static void PM_StepSlideMove() {
 	TracyZoneScoped;
 
-	trace_t trace;
-
 	Vec3 start_o = pml.origin;
 	Vec3 start_v = pml.velocity;
 
@@ -231,10 +224,9 @@ static void PM_StepSlideMove() {
 
 	Vec3 up = start_o + Vec3( 0.0f, 0.0f, STEPSIZE );
 
-	pmove_gs->api.Trace( &trace, up, pm->mins, pm->maxs, up, pm->playerState->POVnum, pm->contentmask, 0 );
-	if( trace.allsolid ) {
-		return; // can't step up
-	}
+	trace_t trace = pmove_gs->api.Trace( up, pm->bounds, up, pm->playerState->POVnum, pm->solid_mask, 0 );
+	if( trace.GotNowhere() ) // can't step up
+		return;
 
 	// try sliding above
 	pml.origin = up;
@@ -244,10 +236,9 @@ static void PM_StepSlideMove() {
 
 	// push down the final amount
 	Vec3 down = pml.origin - Vec3( 0.0f, 0.0f, STEPSIZE );
-	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, down, pm->playerState->POVnum, pm->contentmask, 0 );
-	if( !trace.allsolid ) {
+	trace = pmove_gs->api.Trace( pml.origin, pm->bounds, down, pm->playerState->POVnum, pm->solid_mask, 0 );
+	if( trace.GotSomewhere() )
 		pml.origin = trace.endpos;
-	}
 
 	up = pml.origin;
 
@@ -255,21 +246,21 @@ static void PM_StepSlideMove() {
 	float down_dist = LengthSquared( down_o.xy() - start_o.xy() );
 	float up_dist = LengthSquared( up.xy() - start_o.xy() );
 
-	if( down_dist >= up_dist || trace.allsolid || ( trace.fraction != 1.0f && !ISWALKABLEPLANE( &trace.plane ) ) ) {
+	if( down_dist >= up_dist || trace.GotNowhere() || ( trace.HitSomething() && !ISWALKABLEPLANE( trace.normal ) ) ) {
 		pml.origin = down_o;
 		pml.velocity = down_v;
 		return;
 	}
 
 	// only add the stepping output when it was a vertical step (second case is at the exit of a ramp)
-	if( ( blocked & SLIDEMOVEFLAG_WALL_BLOCKED ) || trace.plane.normal.z == 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+	if( ( blocked & SLIDEMOVEFLAG_WALL_BLOCKED ) || trace.normal.z == 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
 		pm->step = pml.origin.z - pml.previous_origin.z;
 	}
 
 	// Preserve speed when sliding up ramps
 	float hspeed = Length( start_v.xy() );
-	if( hspeed && ISWALKABLEPLANE( &trace.plane ) ) {
-		if( trace.plane.normal.z >= 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+	if( hspeed && ISWALKABLEPLANE( trace.normal ) ) {
+		if( trace.normal.z >= 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
 			pml.velocity = start_v;
 		} else {
 			Normalize2D( &pml.velocity );
@@ -367,7 +358,7 @@ static Vec3 PM_LadderMove( Vec3 wishvel ) {
 			wishvel.z = pm_ladderspeed;
 		}
 		else if( pml.forwardPush > 0 ) {
-			wishvel.z = Lerp( -float( pm_ladderspeed ), Unlerp01( 15.0f, pm->playerState->viewangles[PITCH], -15.0f ), float( pm_ladderspeed ) );
+			wishvel.z = Lerp( -float( pm_ladderspeed ), Unlerp01( 15.0f, pm->playerState->viewangles.pitch, -15.0f ), float( pm_ladderspeed ) );
 		}
 		else {
 			wishvel.z = 0;
@@ -406,7 +397,7 @@ static void PM_Move() {
 		wishspeed = maxspeed;
 	}
 
-	if( pml.ladder ) {
+	if( pml.ladder != Ladder_Off ) {
 		PM_Accelerate( wishdir, wishspeed, pml.groundAccel );
 
 		if( wishvel.z == 0.0f ) {
@@ -472,18 +463,12 @@ static void PM_Move() {
 *
 * If the player hull point one-quarter unit down is solid, the player is on ground
 */
-static void PM_GroundTrace( trace_t *trace ) {
+static trace_t PM_GroundTrace() {
 	Vec3 point = pml.origin - Vec3( 0.0f, 0.0f, 0.25f );
-	pmove_gs->api.Trace( trace, pml.origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->contentmask, 0 );
+	return pmove_gs->api.Trace( pml.origin, pm->bounds, point, pm->playerState->POVnum, pm->solid_mask, 0 );
 }
 
-static bool PM_GoodPosition( Vec3 origin, trace_t *trace ) {
-	pmove_gs->api.Trace( trace, origin, pm->mins, pm->maxs, origin, pm->playerState->POVnum, pm->contentmask, 0 );
-
-	return !trace->allsolid;
-}
-
-static void PM_UnstickPosition( trace_t *trace ) {
+static Optional< trace_t > PM_UnstickPosition() {
 	TracyZoneScoped;
 
 	Vec3 origin = pml.origin;
@@ -496,15 +481,16 @@ static void PM_UnstickPosition( trace_t *trace ) {
 		origin.y += ( j & 2 ) ? -1.0f : 1.0f;
 		origin.z += ( j & 4 ) ? -1.0f : 1.0f;
 
-		if( PM_GoodPosition( origin, trace ) ) {
+		trace_t inside_solid_trace = pmove_gs->api.Trace( origin, pm->bounds, origin, pm->playerState->POVnum, pm->solid_mask, 0 );
+		if( inside_solid_trace.GotSomewhere() ) {
 			pml.origin = origin;
-			PM_GroundTrace( trace );
-			return;
+			return PM_GroundTrace();
 		}
 	}
 
 	// go back to the last position
 	pml.origin = pml.previous_origin;
+	return NONE;
 }
 
 static void PM_CategorizePosition() {
@@ -515,21 +501,17 @@ static void PM_CategorizePosition() {
 		pm->groundentity = -1;
 	}
 	else {
-		trace_t trace;
-
 		// see if standing on something solid
-		PM_GroundTrace( &trace );
+		trace_t trace = PM_GroundTrace();
 
-		if( trace.allsolid ) {
+		if( trace.GotNowhere() ) {
 			// try to unstick position
-			PM_UnstickPosition( &trace );
+			trace = Default( PM_UnstickPosition(), trace );
 		}
 
-		pml.groundplane = trace.plane;
-		pml.groundsurfFlags = trace.surfFlags;
-		pml.groundcontents = trace.contents;
+		pml.groundplane = trace.normal;
 
-		if( trace.fraction == 1 || ( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
+		if( trace.HitNothing() || !ISWALKABLEPLANE( trace.normal ) ) {
 			pm->groundentity = -1;
 			pm->playerState->pmove.pm_flags &= ~PMF_ON_GROUND;
 		}
@@ -541,7 +523,7 @@ static void PM_CategorizePosition() {
 			}
 		}
 
-		if( pm->numtouch < MAXTOUCH && trace.fraction < 1.0f ) {
+		if( pm->numtouch < MAXTOUCH && trace.HitSomething() ) {
 			pm->touchents[pm->numtouch] = trace.ent;
 			pm->numtouch++;
 		}
@@ -549,17 +531,12 @@ static void PM_CategorizePosition() {
 }
 
 static void PM_CheckSpecialMovement() {
-	if( pm->playerState->pmove.pm_time ) {
-		return;
-	}
-
 	pml.ladder = Ladder_Off;
 
 	// check for ladder
 	Vec3 spot = pml.origin + pml.forward;
-	trace_t trace;
-	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->contentmask, 0 );
-	if( trace.fraction < 1 && ( trace.surfFlags & SURF_LADDER ) ) {
+	trace_t trace = pmove_gs->api.Trace( pml.origin, pm->bounds, spot, pm->playerState->POVnum, pm->solid_mask, 0 );
+	if( trace.HitSomething() && ( trace.solidity & Solid_Ladder ) ) {
 		pml.ladder = Ladder_On;
 	}
 }
@@ -596,8 +573,7 @@ static void PM_AdjustBBox() {
 		return;
 	}
 
-	pm->mins = pm->scale * playerbox_stand_mins;
-	pm->maxs = pm->scale * playerbox_stand_maxs;
+	pm->bounds = playerbox_stand * pm->scale;
 	pm->playerState->viewheight = pm->scale.z * playerbox_stand_viewheight;
 }
 
@@ -606,27 +582,12 @@ static void PM_UpdateDeltaAngles() {
 		return;
 	}
 
-	for( int i = 0; i < 3; i++ ) {
-		pm->playerState->pmove.delta_angles[ i ] = ANGLE2SHORT( pm->playerState->viewangles[ i ] ) - pm->cmd.angles[ i ];
-	}
+	pm->playerState->pmove.angles = EulerDegrees3( pm->cmd.angles );
 }
 
 static void PM_ApplyMouseAnglesClamp() {
-	for( int i = 0; i < 3; i++ ) {
-		s16 temp = pm->cmd.angles[i] + pm->playerState->pmove.delta_angles[i];
-		if( i == PITCH ) {
-			// don't let the player look up or down more than 90 degrees
-			if( temp > (short)ANGLE2SHORT( 90 ) - 1 ) {
-				pm->playerState->pmove.delta_angles[i] = ( ANGLE2SHORT( 90 ) - 1 ) - pm->cmd.angles[i];
-				temp = (short)ANGLE2SHORT( 90 ) - 1;
-			} else if( temp < (short)ANGLE2SHORT( -90 ) + 1 ) {
-				pm->playerState->pmove.delta_angles[i] = ( ANGLE2SHORT( -90 ) + 1 ) - pm->cmd.angles[i];
-				temp = (short)ANGLE2SHORT( -90 ) + 1;
-			}
-		}
-
-		pm->playerState->viewangles[i] = SHORT2ANGLE( (short)temp );
-	}
+	pm->playerState->viewangles = EulerDegrees3( pm->cmd.angles );
+	pm->playerState->viewangles.pitch = Clamp( -90.0f, pm->playerState->viewangles.pitch, 90.0f );
 
 	AngleVectors( pm->playerState->viewangles, &pml.forward, &pml.right, &pml.up );
 
@@ -690,21 +651,21 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 
 	PM_InitPerk();
 
-	// assign a contentmask for the movement type
+	// assign a solidity for the movement type
 	switch( ps->pmove.pm_type ) {
 		case PM_FREEZE:
 		case PM_CHASECAM:
 			if( pmove_gs->module == GS_MODULE_GAME ) {
 				ps->pmove.pm_flags |= PMF_NO_PREDICTION;
 			}
-			pm->contentmask = 0;
+			pm->solid_mask = Solid_NotSolid;
 			break;
 
 		case PM_SPECTATOR:
 			if( pmove_gs->module == GS_MODULE_GAME ) {
 				ps->pmove.pm_flags &= ~PMF_NO_PREDICTION;
 			}
-			pm->contentmask = MASK_DEADSOLID;
+			pm->solid_mask = Solid_NotSolid;
 			break;
 
 		default:
@@ -712,30 +673,13 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 			if( pmove_gs->module == GS_MODULE_GAME ) {
 				ps->pmove.pm_flags &= ~PMF_NO_PREDICTION;
 			}
-			pm->contentmask = MASK_PLAYERSOLID;
-			if( ps->team >= Team_One ) {
-				pm->contentmask |= CONTENTS_TEAM_ONE << ( ps->team - Team_One );
-			}
+
+			SolidBits inverse_team_solidity = SolidBits( ~( Solid_PlayerTeamOne << ( pm->team - Team_One ) ) & SolidMask_Player );
+			pm->solid_mask = SolidBits( Solid_PlayerClip | inverse_team_solidity );
 			break;
 	}
 
 	if( !pmove_gs->gameState.paused ) {
-		// drop timing counters
-		if( ps->pmove.pm_time ) {
-			int msec;
-
-			msec = pm->cmd.msec >> 3;
-			if( !msec ) {
-				msec = 1;
-			}
-			if( msec >= ps->pmove.pm_time ) {
-				ps->pmove.pm_flags &= ~PMF_TIME_TELEPORT;
-				ps->pmove.pm_time = 0;
-			} else {
-				ps->pmove.pm_time -= msec;
-			}
-		}
-
 		ps->pmove.no_shooting_time = Max2( 0, ps->pmove.no_shooting_time - pm->cmd.msec );
 		ps->pmove.knockback_time = Max2( 0, ps->pmove.knockback_time - pm->cmd.msec );
 	}
@@ -743,7 +687,6 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 	if( ps->pmove.pm_type != PM_NORMAL ) { // includes dead, freeze, chasecam...
 		if( !pmove_gs->gameState.paused ) {
 			ps->pmove.knockback_time = 0;
-			ps->pmove.pm_flags &= ~PMF_TIME_TELEPORT;
 
 			PM_AdjustBBox();
 		}
@@ -773,43 +716,35 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 
 	PM_CheckSpecialMovement();
 
-	if( ps->pmove.pm_flags & PMF_TIME_TELEPORT ) {
-		// teleport pause stays exactly in place
-	} else {
-		if( pm->groundentity != -1 ) {
-			pm->playerState->last_touch.entnum = 0;
-			pm->playerState->last_touch.type = Weapon_None;
-		}
-
-		// Kurim
-		// Keep this order !
-		if( ps->pmove.pm_type == PM_NORMAL && ( pm->playerState->pmove.features & PMFEAT_ABILITIES ) ) {
-			pml.ability1Callback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & Button_Ability1 );
-			pml.ability2Callback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & Button_Ability2 );
-		}
-
-		PM_Friction();
-
-		Vec3 angles = ps->viewangles;
-		if( angles.x > 180 ) {
-			angles.x -= 360;
-		}
-		angles.x /= 3;
-
-		AngleVectors( angles, &pml.forward, &pml.right, &pml.up );
-
-		// hack to work when looking straight up and straight down
-		if( pml.forward.z == -1.0f ) {
-			pml.forward = pml.up;
-		} else if( pml.forward.z == 1.0f ) {
-			pml.forward = -pml.up;
-		} else {
-			pml.forward = pml.forward;
-		}
-		pml.forward.z = 0.0f;
-		pml.forward = SafeNormalize( pml.forward );
-		PM_Move();
+	if( pm->groundentity != -1 ) {
+		pm->playerState->last_touch.entnum = 0;
+		pm->playerState->last_touch.type = Weapon_None;
 	}
+
+	// Kurim
+	// Keep this order !
+	if( ps->pmove.pm_type == PM_NORMAL && ( pm->playerState->pmove.features & PMFEAT_ABILITIES ) ) {
+		pml.ability1Callback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & Button_Ability1 );
+		pml.ability2Callback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & Button_Ability2 );
+	}
+
+	PM_Friction();
+
+	EulerDegrees3 angles = ps->viewangles;
+	angles.pitch = AngleNormalize180( angles.pitch ) / 3.0f;
+	AngleVectors( angles, &pml.forward, &pml.right, &pml.up );
+
+	// hack to work when looking straight up and straight down
+	if( pml.forward.z == -1.0f ) {
+		pml.forward = pml.up;
+	} else if( pml.forward.z == 1.0f ) {
+		pml.forward = -pml.up;
+	} else {
+		pml.forward = pml.forward;
+	}
+	pml.forward.z = 0.0f;
+	pml.forward = SafeNormalize( pml.forward );
+	PM_Move();
 
 	// set groundentity for final spot
 	PM_CategorizePosition();

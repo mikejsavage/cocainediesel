@@ -19,9 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "server/server.h"
-#include "qcommon/cmodel.h"
 #include "qcommon/csprng.h"
-#include "qcommon/hash.h"
+#include "game/g_maps.h"
 
 server_constant_t svc;              // constant server info (trully persistant since sv_init)
 server_static_t svs;                // persistant server info
@@ -63,6 +62,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 
 	// wipe the entire per-level structure
 	memset( &sv, 0, sizeof( sv ) );
+	SafeStrCpy( sv.mapname, mapname, sizeof( sv.mapname ) );
 
 	SV_ResetClientFrameCounters();
 	svs.realtime = Sys_Milliseconds();
@@ -70,9 +70,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 
 	sv.nextSnapTime = 1000;
 
-	G_LoadMap( mapname );
-
-	Cvar_ForceSet( "mapname", sv.mapname );
+	Cvar_ForceSet( "mapname", MakeSpan( sv.mapname ) );
 
 	//
 	// spawn the rest of the entities on the map
@@ -102,7 +100,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 * SV_InitGame
 * A brand new game has been started
 */
-void SV_InitGame() {
+static void SV_InitGame() {
 	// make sure the client is down
 	CL_Disconnect( NULL );
 
@@ -112,6 +110,7 @@ void SV_InitGame() {
 	}
 
 	InitWebServer();
+	InitServerCollisionModels();
 
 	u64 entropy[ 2 ];
 	CSPRNG( entropy, sizeof( entropy ) );
@@ -193,18 +192,10 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 
 	CloseSocket( svs.socket );
 
-	for( int i = 0; i < sv_maxclients->integer; i++ ) {
-		SNAP_FreeClientFrames( &svs.clients[ i ] );
-	}
-
 	Free( sys_allocator, svs.clients );
 	Free( sys_allocator, svs.client_entities.entities );
 
-	if( svs.cms ) {
-		CM_Free( CM_Server, svs.cms );
-		svs.cms = NULL;
-	}
-
+	ShutdownServerCollisionModels();
 	ShutdownWebServer();
 
 	Com_SetServerState( ss_dead );

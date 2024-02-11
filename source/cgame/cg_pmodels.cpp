@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
+#include "gameshared/collision.h"
 
 constexpr u32 MAX_PLAYER_MODELS = 128;
 
@@ -33,33 +34,18 @@ static PlayerModelMetadata player_model_metadatas[ MAX_PLAYER_MODELS ];
 static u32 num_player_models;
 static Hashtable< MAX_PLAYER_MODELS * 2 > player_models_hashtable;
 
-static Mat4 EulerAnglesToMat4( float pitch, float yaw, float roll ) {
-	mat3_t axis;
-	AnglesToAxis( Vec3( pitch, yaw, roll ), axis );
-
-	Mat4 m = Mat4::Identity();
-
-	m.col0.x = axis[ 0 ];
-	m.col0.y = axis[ 1 ];
-	m.col0.z = axis[ 2 ];
-	m.col1.x = axis[ 3 ];
-	m.col1.y = axis[ 4 ];
-	m.col1.z = axis[ 5 ];
-	m.col2.x = axis[ 6 ];
-	m.col2.y = axis[ 7 ];
-	m.col2.z = axis[ 8 ];
-
-	return m;
-}
-
-static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * filename ) {
+static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, Span< const char > filename ) {
 	int num_clips = 1;
 
 	Span< const char > cursor = AssetString( filename );
 	if( cursor.ptr == NULL ) {
-		Com_Printf( "Couldn't find animation script: %s\n", filename );
+		Com_GGPrint( "Couldn't find animation script: {}", filename );
 		return false;
 	}
+
+	const GLTFRenderData * model = FindGLTFRenderData( meta->model );
+	if( model == NULL )
+		return false;
 
 	while( true ) {
 		Span< const char > cmd = ParseToken( &cursor, Parse_DontStopOnNewLine );
@@ -68,23 +54,23 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 
 		if( cmd == "upper_rotator_joints" ) {
 			Span< const char > node_name0 = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindNodeByName( meta->model, Hash32( node_name0 ), &meta->upper_rotator_nodes[ 0 ] );
+			FindNodeByName( model, StringHash( node_name0 ), &meta->upper_rotator_nodes[ 0 ] );
 
 			Span< const char > node_name1 = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindNodeByName( meta->model, Hash32( node_name1 ), &meta->upper_rotator_nodes[ 1 ] );
+			FindNodeByName( model, StringHash( node_name1 ), &meta->upper_rotator_nodes[ 1 ] );
 		}
 		else if( cmd == "head_rotator_joint" ) {
 			Span< const char > node_name = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindNodeByName( meta->model, Hash32( node_name ), &meta->head_rotator_node );
+			FindNodeByName( model, StringHash( node_name ), &meta->head_rotator_node );
 		}
 		else if( cmd == "upper_root_joint" ) {
 			Span< const char > node_name = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindNodeByName( meta->model, Hash32( node_name ), &meta->upper_root_node );
+			FindNodeByName( model, StringHash( node_name ), &meta->upper_root_node );
 		}
 		else if( cmd == "tag" ) {
 			Span< const char > node_name = ParseToken( &cursor, Parse_StopOnNewLine );
 			u8 node_idx;
-			if( FindNodeByName( meta->model, Hash32( node_name ), &node_idx ) ) {
+			if( FindNodeByName( model, StringHash( node_name ), &node_idx ) ) {
 				Span< const char > tag_name = ParseToken( &cursor, Parse_StopOnNewLine );
 				PlayerModelMetadata::Tag * tag = &meta->tag_bomb;
 				if( tag_name == "tag_hat" )
@@ -104,17 +90,18 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 				float roll = ParseFloat( &cursor, 0.0f, Parse_StopOnNewLine );
 
 				tag->node_idx = node_idx;
-				tag->transform = Mat4Translation( forward, right, up ) * EulerAnglesToMat4( pitch, yaw, roll );
+				tag->transform = Mat4Translation( forward, right, up ) * Mat4Rotation( EulerDegrees3( pitch, yaw, roll ) );
 			}
 			else {
 				Com_GGPrint( "{}: Unknown node name: {}", filename, node_name );
-				for( int i = 0; i < 7; i++ )
+				for( int i = 0; i < 7; i++ ) {
 					ParseToken( &cursor, Parse_StopOnNewLine );
+				}
 			}
 		}
 		else if( cmd == "clip" ) {
 			if( num_clips == PMODEL_TOTAL_ANIMATIONS ) {
-				Com_Printf( "%s: Too many animations\n", filename );
+				Com_GGPrint( "{}: Too many animations", filename );
 				break;
 			}
 
@@ -137,7 +124,7 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 	}
 
 	if( num_clips < PMODEL_TOTAL_ANIMATIONS ) {
-		Com_Printf( "%s: Not enough animations (%i)\n", filename, num_clips );
+		Com_GGPrint( "{}: Not enough animations ({})", filename, num_clips );
 		return false;
 	}
 
@@ -148,30 +135,34 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 	return true;
 }
 
-static bool FindTag( const Model * model, PlayerModelMetadata::Tag * tag, const char * node_name, const char * model_name ) {
+static bool FindTag( const GLTFRenderData * model, PlayerModelMetadata::Tag * tag, StringHash node_name, Span< const char > model_name ) {
 	u8 idx;
-	if( !FindNodeByName( model, Hash32( node_name ), &idx ) ) {
-		Com_Printf( S_COLOR_YELLOW "Can't find node %s in %s\n", node_name, model_name );
+	if( !FindNodeByName( model, node_name, &idx ) ) {
+		Com_GGPrint( S_COLOR_YELLOW "Can't find node {} in {}", node_name, model_name );
 		return false;
 	}
 
 	tag->node_idx = idx;
-	tag->transform = Mat4::Identity();
+	tag->transform = Mat3x4::Identity();
 
 	return true;
 }
 
-static bool LoadPlayerModelMetadata( PlayerModelMetadata * meta, const char * model_name ) {
+static bool LoadPlayerModelMetadata( PlayerModelMetadata * meta, Span< const char > model_name ) {
+	const GLTFRenderData * model = FindGLTFRenderData( meta->model );
+	if( model == NULL )
+		return false;
+
 	bool ok = true;
-	ok = ok && FindTag( meta->model, &meta->tag_bomb, "bomb", model_name );
-	ok = ok && FindTag( meta->model, &meta->tag_hat, "hat", model_name );
-	ok = ok && FindTag( meta->model, &meta->tag_mask, "mask", model_name );
-	ok = ok && FindTag( meta->model, &meta->tag_weapon, "weapon", model_name );
-	ok = ok && FindTag( meta->model, &meta->tag_gadget, "gadget", model_name );
+	ok = ok && FindTag( model, &meta->tag_bomb, "bomb", model_name );
+	ok = ok && FindTag( model, &meta->tag_hat, "hat", model_name );
+	ok = ok && FindTag( model, &meta->tag_mask, "mask", model_name );
+	ok = ok && FindTag( model, &meta->tag_weapon, "weapon", model_name );
+	ok = ok && FindTag( model, &meta->tag_gadget, "gadget", model_name );
 	return ok;
 }
 
-static constexpr const char * PLAYER_SOUND_NAMES[] = {
+static constexpr Span< const char > PLAYER_SOUND_NAMES[] = {
 	"death",
 	"void_death",
 	"smackdown",
@@ -186,7 +177,7 @@ STATIC_ASSERT( ARRAY_COUNT( PLAYER_SOUND_NAMES ) == PlayerSound_Count );
 static void FindPlayerSounds( PlayerModelMetadata * meta, Span< const char > dir ) {
 	for( size_t i = 0; i < ARRAY_COUNT( meta->sounds ); i++ ) {
 		TempAllocator temp = cls.frame_arena.temp();
-		const char * path = temp( "{}/{}", dir, PLAYER_SOUND_NAMES[ i ] );
+		Span< const char > path = temp.sv( "{}/{}", dir, PLAYER_SOUND_NAMES[ i ] );
 		meta->sounds[ i ] = StringHash( path );
 	}
 }
@@ -194,7 +185,7 @@ static void FindPlayerSounds( PlayerModelMetadata * meta, Span< const char > dir
 void InitPlayerModels() {
 	num_player_models = 0;
 
-	for( const char * path : AssetPaths() ) {
+	for( Span< const char > path : AssetPaths() ) {
 		if( num_player_models == ARRAY_COUNT( player_model_metadatas ) ) {
 			Com_Printf( S_COLOR_RED "Too many player models!\n" );
 			break;
@@ -207,10 +198,10 @@ void InitPlayerModels() {
 
 			PlayerModelMetadata * meta = &player_model_metadatas[ num_player_models ];
 			*meta = { };
-			meta->model = FindModel( StringHash( hash ) );
+			meta->model = StringHash( hash );
 
 			TempAllocator temp = cls.frame_arena.temp();
-			const char * config_path = temp( "{}/model.cfg", dir );
+			Span< const char > config_path = temp.sv( "{}/model.cfg", dir );
 			if( AssetString( config_path ).ptr == NULL ) {
 				if( !LoadPlayerModelMetadata( meta, path ) ) {
 					continue;
@@ -363,13 +354,12 @@ static int CG_MoveFlagsToLowerAnimation( uint32_t moveflags ) {
 	return LEGS_STAND_IDLE;
 }
 
-static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, Vec3 velocity ) {
+static PlayerModelAnimationSet CG_GetBaseAnims( const SyncEntityState * state, Vec3 velocity ) {
 	constexpr float MOVEDIREPSILON = 0.3f;
 	constexpr float WALKEPSILON = 5.0f;
 	constexpr float RUNEPSILON = 220.0f;
 
-	uint32_t moveflags = 0;
-	trace_t trace;
+	u32 moveflags = 0;
 
 	if( state->type == ET_CORPSE ) {
 		PlayerModelAnimationSet a;
@@ -379,16 +369,15 @@ static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, Vec3 vel
 		return a;
 	}
 
-	Vec3 mins = state->bounds.mins;
-	Vec3 maxs = state->bounds.maxs;
+	MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), state );
 
 	// determine if player is at ground, for walking or falling
 	// this is not like having groundEntity, we are more generous with
 	// the tracing size here to include small steps
 	Vec3 point = state->origin;
 	point.z -= 1.6f * STEPSIZE;
-	client_gs.api.Trace( &trace, state->origin, mins, maxs, point, state->number, MASK_PLAYERSOLID, 0 );
-	if( trace.ent == -1 || ( trace.fraction < 1.0f && !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
+	trace_t trace = client_gs.api.Trace( state->origin, bounds, point, state->number, Solid_PlayerClip, 0 );
+	if( trace.HitNothing() || ( trace.HitSomething() && !ISWALKABLEPLANE( trace.normal ) ) ) {
 		moveflags |= ANIMMOVE_AIR;
 	}
 
@@ -404,7 +393,7 @@ static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, Vec3 vel
 	Vec3 movedir = Vec3( SafeNormalize( hvel ), 0.0f );
 	if( xyspeedcheck > WALKEPSILON ) {
 		mat3_t viewaxis;
-		Matrix3_FromAngles( Vec3( 0, state->angles.y, 0 ), viewaxis );
+		Matrix3_FromAngles( state->angles.yaw_only(), viewaxis );
 
 		// if it's moving to where is looking, it's moving forward
 		if( Dot( movedir, FromQFAxis( viewaxis, AXIS_RIGHT ) ) > MOVEDIREPSILON ) {
@@ -526,7 +515,7 @@ void CG_PModel_AddAnimation( int entNum, int loweranim, int upperanim, int heada
 void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 	mat3_t axis;
 	float speed;
-	Vec3 leanAngles[PMODEL_PARTS];
+	EulerDegrees3 leanAngles[PMODEL_PARTS];
 
 	memset( leanAngles, 0, sizeof( leanAngles ) );
 
@@ -536,46 +525,46 @@ void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 	float scale = 0.04f;
 
 	if( ( speed = Length( hvelocity ) ) * scale > 1.0f ) {
-		AnglesToAxis( Vec3( 0, cent->current.angles.y, 0 ), axis );
+		AnglesToAxis( cent->current.angles.yaw_only(), axis );
 
 		float front = scale * Dot( hvelocity, FromQFAxis( axis, AXIS_FORWARD ) );
 		if( front < -0.1f || front > 0.1f ) {
-			leanAngles[LOWER].x += front;
-			leanAngles[UPPER].x -= front * 0.25f;
-			leanAngles[HEAD].x -= front * 0.5f;
+			leanAngles[LOWER].pitch += front;
+			leanAngles[UPPER].pitch -= front * 0.25f;
+			leanAngles[HEAD].pitch -= front * 0.5f;
 		}
 
 		float aside = ( front * 0.001f ) * cent->yawVelocity;
 
 		if( aside ) {
 			float asidescale = 75;
-			leanAngles[LOWER].z -= aside * 0.5f * asidescale;
-			leanAngles[UPPER].z += aside * 1.75f * asidescale;
-			leanAngles[HEAD].z -= aside * 0.35f * asidescale;
+			leanAngles[LOWER].roll -= aside * 0.5f * asidescale;
+			leanAngles[UPPER].roll += aside * 1.75f * asidescale;
+			leanAngles[HEAD].roll -= aside * 0.35f * asidescale;
 		}
 
 		float side = scale * Dot( hvelocity, FromQFAxis( axis, AXIS_RIGHT ) );
 
 		if( side < -1 || side > 1 ) {
-			leanAngles[LOWER].z -= side * 0.5f;
-			leanAngles[UPPER].z += side * 0.5f;
-			leanAngles[HEAD].z += side * 0.25f;
+			leanAngles[LOWER].roll -= side * 0.5f;
+			leanAngles[UPPER].roll += side * 0.5f;
+			leanAngles[HEAD].roll += side * 0.25f;
 		}
 
-		leanAngles[LOWER].x = Clamp( -45.0f, leanAngles[LOWER].x, 45.0f );
-		leanAngles[LOWER].z = Clamp( -15.0f, leanAngles[LOWER].z, 15.0f );
+		leanAngles[LOWER].pitch = Clamp( -45.0f, leanAngles[LOWER].pitch, 45.0f );
+		leanAngles[LOWER].roll = Clamp( -15.0f, leanAngles[LOWER].roll, 15.0f );
 
-		leanAngles[UPPER].x = Clamp( -45.0f, leanAngles[UPPER].x, 45.0f );
-		leanAngles[UPPER].z = Clamp( -20.0f, leanAngles[UPPER].z, 20.0f );
+		leanAngles[UPPER].pitch = Clamp( -45.0f, leanAngles[UPPER].pitch, 45.0f );
+		leanAngles[UPPER].roll = Clamp( -20.0f, leanAngles[UPPER].roll, 20.0f );
 
-		leanAngles[HEAD].x = Clamp( -45.0f, leanAngles[HEAD].x, 45.0f );
-		leanAngles[HEAD].z = Clamp( -20.0f, leanAngles[HEAD].z, 20.0f );
+		leanAngles[HEAD].pitch = Clamp( -45.0f, leanAngles[HEAD].pitch, 45.0f );
+		leanAngles[HEAD].roll = Clamp( -20.0f, leanAngles[HEAD].roll, 20.0f );
 	}
 
 	for( int i = LOWER; i < PMODEL_PARTS; i++ ) {
-		pmodel->angles[i].x = AngleNormalize180( pmodel->angles[i].x + leanAngles[i].x );
-		pmodel->angles[i].y = AngleNormalize180( pmodel->angles[i].y + leanAngles[i].y );
-		pmodel->angles[i].z = AngleNormalize180( pmodel->angles[i].z + leanAngles[i].z );
+		pmodel->angles[i].pitch = AngleNormalize180( pmodel->angles[i].pitch + leanAngles[i].pitch );
+		pmodel->angles[i].yaw = AngleNormalize180( pmodel->angles[i].yaw + leanAngles[i].yaw );
+		pmodel->angles[i].roll = AngleNormalize180( pmodel->angles[i].roll + leanAngles[i].roll );
 	}
 }
 
@@ -602,8 +591,9 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	}
 
 	// update parts rotation angles
-	for( int i = LOWER; i < PMODEL_PARTS; i++ )
+	for( int i = LOWER; i < PMODEL_PARTS; i++ ) {
 		pmodel->oldangles[i] = pmodel->angles[i];
+	}
 
 	if( cent->current.type == ET_CORPSE ) {
 		cent->animVelocity = Vec3( 0.0f );
@@ -611,20 +601,20 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	} else {
 		// update smoothed velocities used for animations and leaning angles
 		// rotational yaw velocity
-		float adelta = AngleDelta( cent->current.angles.y, cent->prev.angles.y );
+		float adelta = AngleDelta( cent->current.angles.yaw, cent->prev.angles.yaw );
 		adelta = Clamp( -35.0f, adelta, 35.0f );
 
 		// smooth a velocity vector between the last snaps
-		cent->lastVelocities[cg.frame.serverFrame & 3] = Vec4( cent->velocity.xy(), 0.0f, adelta );
-		cent->lastVelocitiesFrames[cg.frame.serverFrame & 3] = cg.frame.serverFrame;
+		cent->lastVelocities[cg.frame.serverFrame % ARRAY_COUNT( cent->lastVelocities )] = Vec4( cent->velocity.xy(), 0.0f, adelta );
+		cent->lastVelocitiesFrames[cg.frame.serverFrame % ARRAY_COUNT( cent->lastVelocitiesFrames )] = cg.frame.serverFrame;
 
 		int count = 0;
 		cent->animVelocity = Vec3( 0.0f );
 		cent->yawVelocity = 0;
-		for( int i = cg.frame.serverFrame; ( i >= 0 ) && ( count < 3 ) && ( i == cent->lastVelocitiesFrames[i & 3] ); i-- ) {
+		for( int i = cg.frame.serverFrame; ( i >= 0 ) && ( count < 3 ) && ( i == cent->lastVelocitiesFrames[i % ARRAY_COUNT( cent->lastVelocitiesFrames )] ); i-- ) {
 			count++;
-			cent->animVelocity += cent->lastVelocities[i & 3].xyz();
-			cent->yawVelocity += cent->lastVelocities[i & 3].w;
+			cent->animVelocity += cent->lastVelocities[i % ARRAY_COUNT( cent->lastVelocities )].xyz();
+			cent->yawVelocity += cent->lastVelocities[i % ARRAY_COUNT( cent->lastVelocities )].w;
 		}
 
 		// safety/static code analysis check
@@ -640,30 +630,9 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 		// Calculate angles for each model part
 		//
 
-		// lower has horizontal direction, and zeroes vertical
-		pmodel->angles[LOWER].x = 0;
-		pmodel->angles[LOWER].y = cent->current.angles.y;
-		pmodel->angles[LOWER].z = 0;
-
-		// upper marks vertical direction (total angle, so it fits aim)
-		if( cent->current.angles.x > 180 ) {
-			pmodel->angles[UPPER].x = ( -360 + cent->current.angles.x );
-		} else {
-			pmodel->angles[UPPER].x = cent->current.angles.x;
-		}
-
-		pmodel->angles[UPPER].y = 0;
-		pmodel->angles[UPPER].z = 0;
-
-		// head adds a fraction of vertical angle again
-		if( cent->current.angles.x > 180 ) {
-			pmodel->angles[HEAD].x = ( -360 + cent->current.angles.x ) / 3;
-		} else {
-			pmodel->angles[HEAD].x = cent->current.angles.x / 3;
-		}
-
-		pmodel->angles[HEAD].y = 0;
-		pmodel->angles[HEAD].z = 0;
+		pmodel->angles[LOWER] = cent->current.angles.yaw_only();
+		pmodel->angles[UPPER] = EulerDegrees3( AngleNormalize180( cent->current.angles.pitch ), 0.0f, 0.0f );
+		pmodel->angles[HEAD] = EulerDegrees3( AngleNormalize180( cent->current.angles.pitch ) / 3.0f, 0.0f, 0.0f );
 
 		CG_PModel_LeanAngles( cent, pmodel );
 	}
@@ -671,8 +640,9 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 
 	// Spawning (teleported bit) forces nobacklerp and the interruption of EVENT_CHANNEL animations
 	if( cent->current.teleported ) {
-		for( int i = LOWER; i < PMODEL_PARTS; i++ )
+		for( int i = LOWER; i < PMODEL_PARTS; i++ ) {
 			pmodel->oldangles[i] = pmodel->angles[i];
+		}
 	}
 
 	CG_UpdatePModelAnimations( cent );
@@ -694,7 +664,7 @@ static Quaternion EulerAnglesToQuaternion( EulerDegrees3 angles ) {
 	);
 }
 
-static Mat4 TransformTag( const Model * model, const Mat4 & transform, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
+static Mat3x4 TransformTag( const GLTFRenderData * model, const Mat3x4 & transform, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
 	if( pose.node_transforms.ptr != NULL ) {
 		return transform * model->transform * pose.node_transforms[ tag.node_idx ] * tag.transform;
 	}
@@ -731,23 +701,22 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 	TempAllocator temp = cls.frame_arena.temp();
 
+	const GLTFRenderData * model = FindGLTFRenderData( meta->model );
 	bool corpse = cent->current.type == ET_CORPSE;
 	MatrixPalettes pose = { };
 
-	if( meta->model->num_animations > 0 ) {
+	if( model->animations.n > 0 ) {
 		float lower_time, upper_time;
 		CG_GetAnimationTimes( meta, pmodel, cl.serverTime, &lower_time, &upper_time );
-		Span< TRS > lower = SampleAnimation( &temp, meta->model, lower_time );
-		Span< TRS > upper = SampleAnimation( &temp, meta->model, upper_time );
-		MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_node );
+		Span< Transform > lower = SampleAnimation( &temp, model, lower_time );
+		Span< Transform > upper = SampleAnimation( &temp, model, upper_time );
+		MergeLowerUpperPoses( lower, upper, model, meta->upper_root_node );
 
 		if( !corpse ) {
-			Vec3 tmpangles;
+			EulerDegrees3 tmpangles;
 			// if it's our client use the predicted angles
 			if( cg.view.playerPrediction && ISVIEWERENTITY( cent->current.number ) ) {
-				tmpangles.y = cg.predictedPlayerState.viewangles.y;
-				tmpangles.x = 0;
-				tmpangles.z = 0;
+				tmpangles = cg.predictedPlayerState.viewangles.yaw_only();
 			}
 			else {
 				// apply interpolated LOWER angles to entity
@@ -773,14 +742,14 @@ void CG_DrawPlayer( centity_t * cent ) {
 			}
 		}
 
-		pose = ComputeMatrixPalettes( &temp, meta->model, lower );
+		pose = ComputeMatrixPalettes( &temp, model, lower );
 	}
 
-	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->interpolated.scale );
+	Mat3x4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->interpolated.scale );
 
 	Vec4 color = CG_TeamColorVec4( cent->current.team );
 	if( corpse ) {
-		color *= Vec4( 0.25f, 0.25f, 0.25f, 1.0 );
+		color *= Vec4( 0.25f, 0.25f, 0.25f, 1.0f );
 	}
 
 	bool draw_model = !ISVIEWERENTITY( cent->current.number ) || cg.view.thirdperson;
@@ -805,56 +774,48 @@ void CG_DrawPlayer( centity_t * cent ) {
 			}
 		}
 
-		DrawModel( config, meta->model, transform, color, pose );
+		DrawGLTFModel( config, model, transform, color, pose );
 	}
 
-	Mat4 inverse_scale = Mat4Scale( 1.0f / cent->interpolated.scale );
+	Mat3x4 inverse_scale = Mat4Scale( 1.0f / cent->interpolated.scale );
 
 	// add weapon model
 	{
-		if( cent->current.weapon != Weapon_None || cent->current.gadget != Gadget_None ) {
-			const Model * model;
-			bool gadget = cent->current.gadget != Gadget_None;
-			if( gadget ) {
-				model = GetGadgetModelMetadata( cent->current.gadget )->model;
-			} else {
-				model = GetWeaponModelMetadata( cent->current.weapon )->model;
+		const GLTFRenderData * weapon_model = GetEquippedItemRenderData( &cent->current );
+		if( weapon_model != NULL ) {
+			PlayerModelMetadata::Tag tag = cent->current.gadget == Gadget_None ? meta->tag_weapon : meta->tag_gadget;
+			Mat3x4 tag_transform = TransformTag( weapon_model, transform, pose, tag ) * inverse_scale;
+
+			DrawModelConfig config = { };
+			config.draw_model.enabled = draw_model;
+			config.draw_shadows.enabled = true;
+
+			if( draw_silhouette ) {
+				config.draw_silhouette.enabled = true;
+				config.draw_silhouette.silhouette_color = color;
 			}
 
-			if( model != NULL ) {
-				Mat4 tag_transform = TransformTag( meta->model, transform, pose, gadget ? meta->tag_gadget : meta->tag_weapon ) * inverse_scale;
+			DrawGLTFModel( config, weapon_model, tag_transform, color );
 
-				DrawModelConfig config = { };
-				config.draw_model.enabled = draw_model;
-				config.draw_shadows.enabled = true;
-
-				if( draw_silhouette ) {
-					config.draw_silhouette.enabled = true;
-					config.draw_silhouette.silhouette_color = color;
-				}
-
-				DrawModel( config, model, tag_transform, color );
-
-				u8 muzzle;
-				if( FindNodeByName( model, Hash32( "muzzle" ), &muzzle ) ) {
-					pmodel->muzzle_transform = tag_transform * model->transform * model->nodes[ muzzle ].global_transform;
-				}
-				else {
-					pmodel->muzzle_transform = tag_transform;
-				}
+			u8 muzzle;
+			if( FindNodeByName( weapon_model, "muzzle", &muzzle ) ) {
+				pmodel->muzzle_transform = tag_transform * weapon_model->transform * weapon_model->nodes[ muzzle ].global_transform;
+			}
+			else {
+				pmodel->muzzle_transform = tag_transform;
 			}
 		}
 	}
 
 	// add bomb/hat
 	{
-		const Model * hat_model = FindModel( cent->current.model2 );
-		if( hat_model != NULL ) {
+		const GLTFRenderData * attached_model = FindGLTFRenderData( cent->current.model2 );
+		if( attached_model != NULL ) {
 			PlayerModelMetadata::Tag tag = meta->tag_bomb;
 			if( cent->current.effects & EF_HAT )
 				tag = meta->tag_hat;
 
-			Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag ) * inverse_scale;
+			Mat3x4 tag_transform = TransformTag( attached_model, transform, pose, tag ) * inverse_scale;
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -862,14 +823,17 @@ void CG_DrawPlayer( centity_t * cent ) {
 			config.draw_silhouette.enabled = draw_silhouette;
 			config.draw_silhouette.silhouette_color = color;
 
-			DrawModel( config, hat_model, tag_transform, vec4_white );
+			DrawGLTFModel( config, attached_model, tag_transform, vec4_white );
 		}
+	}
 
-		const Model * mask_model = FindModel( cent->current.mask );
+	// add mask
+	{
+		const GLTFRenderData * mask_model = FindGLTFRenderData( cent->current.mask );
 		if( mask_model != NULL ) {
 			PlayerModelMetadata::Tag tag = meta->tag_mask;
 
-			Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag );
+			Mat3x4 tag_transform = TransformTag( mask_model, transform, pose, tag ) * inverse_scale;
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -877,7 +841,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			config.draw_silhouette.enabled = draw_silhouette;
 			config.draw_silhouette.silhouette_color = color;
 
-			DrawModel( config, mask_model, tag_transform, vec4_white );
+			DrawGLTFModel( config, mask_model, tag_transform, vec4_white );
 		}
 	}
 }

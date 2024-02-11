@@ -23,12 +23,7 @@
 
 #include <new>
 
-template< typename S, typename T >
-struct SameType { static constexpr bool value = false; };
-template< typename T >
-struct SameType< T, T > { static constexpr bool value = true; };
-
-STATIC_ASSERT( ( SameType< u32, GLuint >::value ) );
+STATIC_ASSERT( ( SameType< u32, GLuint > ) );
 
 static const u32 UNIFORM_BUFFER_SIZE = 64 * 1024;
 
@@ -63,7 +58,6 @@ static GLsync fences[ MAX_FRAMES_IN_FLIGHT ];
 static NonRAIIDynamicArray< RenderPass > render_passes;
 static u8 num_render_passes;
 
-static NonRAIIDynamicArray< Mesh > deferred_mesh_deletes;
 static NonRAIIDynamicArray< GPUBuffer > deferred_buffer_deletes;
 static NonRAIIDynamicArray< StreamingBuffer > deferred_streaming_buffer_deletes;
 
@@ -105,8 +99,7 @@ static GLenum DepthFuncToGL( DepthFunc depth_func ) {
 		case DepthFunc_Equal:
 			return GL_EQUAL;
 		case DepthFunc_Always:
-			return GL_ALWAYS;
-		case DepthFunc_Disabled:
+		case DepthFunc_AlwaysAndDontWrite:
 			return GL_ALWAYS;
 	}
 
@@ -114,64 +107,35 @@ static GLenum DepthFuncToGL( DepthFunc depth_func ) {
 	return GL_INVALID_ENUM;
 }
 
-static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum * channels, GLenum * type ) {
+struct GLTextureFormat {
+	GLenum internal;
+	GLenum channels;
+	GLenum type;
+	GLint swizzle[ 4 ] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
+};
+
+static GLTextureFormat TextureFormatToGL( TextureFormat format ) {
 	switch( format ) {
-		case TextureFormat_R_U8:
-		case TextureFormat_R_S8:
-		case TextureFormat_A_U8:
-			*internal = format == TextureFormat_R_S8 ? GL_R8_SNORM : GL_R8;
-			*channels = GL_RED;
-			*type = GL_UNSIGNED_BYTE;
-			return;
-		case TextureFormat_R_UI8:
-			*internal = GL_R8UI;
-			*channels = GL_RED;
-			*type = GL_UNSIGNED_BYTE;
-			return;
+		case TextureFormat_R_U8: return { GL_R8, GL_RED, GL_UNSIGNED_BYTE, { GL_RED, GL_RED, GL_RED, GL_ONE } };
+		case TextureFormat_R_S8: return { GL_R8_SNORM, GL_RED, GL_UNSIGNED_BYTE, { GL_RED, GL_RED, GL_RED, GL_ONE } };
+		case TextureFormat_A_U8: return { GL_R8, GL_RED, GL_UNSIGNED_BYTE, { GL_ONE, GL_ONE, GL_ONE, GL_RED } };
+		case TextureFormat_R_UI8: return { GL_R8UI, GL_RED, GL_UNSIGNED_BYTE, { GL_RED, GL_RED, GL_RED, GL_ONE } };
 
-		case TextureFormat_RA_U8:
-			*internal = GL_RG8;
-			*channels = GL_RG;
-			*type = GL_UNSIGNED_BYTE;
-			return;
-		case TextureFormat_RG_Half:
-			*internal = GL_RG16F;
-			*channels = GL_RG;
-			*type = GL_HALF_FLOAT;
-			return;
+		case TextureFormat_RA_U8: return { GL_RG8, GL_RG, GL_UNSIGNED_BYTE, { GL_RED, GL_RED, GL_RED, GL_GREEN } };
 
-		case TextureFormat_RGBA_U8:
-		case TextureFormat_RGBA_U8_sRGB:
-			*internal = format == TextureFormat_RGBA_U8 ? GL_RGBA8 : GL_SRGB8_ALPHA8;
-			*channels = GL_RGBA;
-			*type = GL_UNSIGNED_BYTE;
-			return;
+		case TextureFormat_RGBA_U8: return { GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE };
+		case TextureFormat_RGBA_U8_sRGB: return { GL_SRGB8_ALPHA8, GL_RGBA, GL_UNSIGNED_BYTE };
 
-		case TextureFormat_BC1_sRGB:
-			*internal = GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
-			return;
+		case TextureFormat_BC1_sRGB: return { GL_COMPRESSED_SRGB_S3TC_DXT1_EXT };
+		case TextureFormat_BC3_sRGB: return { GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT };
+		case TextureFormat_BC4: return { GL_COMPRESSED_RED_RGTC1, 0, 0, { GL_ONE, GL_ONE, GL_ONE, GL_RED } };
+		case TextureFormat_BC5: return { GL_COMPRESSED_RG_RGTC2 };
 
-		case TextureFormat_BC3_sRGB:
-			*internal = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
-			return;
-
-		case TextureFormat_BC4:
-			*internal = GL_COMPRESSED_RED_RGTC1;
-			return;
-
-		case TextureFormat_BC5:
-			*internal = GL_COMPRESSED_RG_RGTC2;
-			return;
-
-		case TextureFormat_Depth:
-		case TextureFormat_Shadow:
-			*internal = GL_DEPTH_COMPONENT24;
-			*channels = GL_DEPTH_COMPONENT;
-			*type = GL_FLOAT;
-			return;
+		case TextureFormat_Depth: return { GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT, GL_FLOAT };
 	}
 
 	Assert( false );
+	return { };
 }
 
 static GLenum SamplerWrapToGL( SamplerWrap wrap ) {
@@ -186,92 +150,48 @@ static GLenum SamplerWrapToGL( SamplerWrap wrap ) {
 	return GL_INVALID_ENUM;
 }
 
-static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_components, bool * integral, GLboolean * normalized ) {
-	*integral = false;
-	*normalized = false;
+enum GLVertexFormatType {
+	GLVertexFormat_Float,
+	GLVertexFormat_Int,
+	GLVertexFormat_Normalized,
+};
 
+struct GLVertexFormat {
+	GLenum type;
+	int num_components;
+	size_t component_size;
+	GLVertexFormatType kind;
+};
+
+static GLVertexFormat VertexFormatToGL( VertexFormat format ) {
 	switch( format ) {
-		case VertexFormat_U8x2:
-		case VertexFormat_U8x2_Norm:
-			*type = GL_UNSIGNED_BYTE;
-			*num_components = 2;
-			*integral = true;
-			*normalized = format == VertexFormat_U8x2_Norm;
-			break;
-		case VertexFormat_U8x3:
-		case VertexFormat_U8x3_Norm:
-			*type = GL_UNSIGNED_BYTE;
-			*num_components = 3;
-			*integral = true;
-			*normalized = format == VertexFormat_U8x3_Norm;
-			break;
-		case VertexFormat_U8x4:
-		case VertexFormat_U8x4_Norm:
-			*type = GL_UNSIGNED_BYTE;
-			*num_components = 4;
-			*integral = true;
-			*normalized = format == VertexFormat_U8x4_Norm;
-			break;
+		case VertexFormat_U8x2:    return { GL_UNSIGNED_BYTE, 2, sizeof( u8 ), GLVertexFormat_Int };
+		case VertexFormat_U8x2_01: return { GL_UNSIGNED_BYTE, 2, sizeof( u8 ), GLVertexFormat_Normalized };
+		case VertexFormat_U8x3:    return { GL_UNSIGNED_BYTE, 3, sizeof( u8 ), GLVertexFormat_Int };
+		case VertexFormat_U8x3_01: return { GL_UNSIGNED_BYTE, 3, sizeof( u8 ), GLVertexFormat_Normalized };
+		case VertexFormat_U8x4:    return { GL_UNSIGNED_BYTE, 4, sizeof( u8 ), GLVertexFormat_Int };
+		case VertexFormat_U8x4_01: return { GL_UNSIGNED_BYTE, 4, sizeof( u8 ), GLVertexFormat_Normalized };
 
-		case VertexFormat_U16x2:
-		case VertexFormat_U16x2_Norm:
-			*type = GL_UNSIGNED_SHORT;
-			*num_components = 2;
-			*integral = true;
-			*normalized = format == VertexFormat_U16x2_Norm;
-			break;
-		case VertexFormat_U16x3:
-		case VertexFormat_U16x3_Norm:
-			*type = GL_UNSIGNED_SHORT;
-			*num_components = 3;
-			*integral = true;
-			*normalized = format == VertexFormat_U16x3_Norm;
-			break;
-		case VertexFormat_U16x4:
-		case VertexFormat_U16x4_Norm:
-			*type = GL_UNSIGNED_SHORT;
-			*num_components = 4;
-			*integral = true;
-			*normalized = format == VertexFormat_U16x4_Norm;
-			break;
+		case VertexFormat_U16x2:    return { GL_UNSIGNED_SHORT, 2, sizeof( u16 ), GLVertexFormat_Int };
+		case VertexFormat_U16x2_01: return { GL_UNSIGNED_SHORT, 2, sizeof( u16 ), GLVertexFormat_Normalized };
+		case VertexFormat_U16x3:    return { GL_UNSIGNED_SHORT, 3, sizeof( u16 ), GLVertexFormat_Int };
+		case VertexFormat_U16x3_01: return { GL_UNSIGNED_SHORT, 3, sizeof( u16 ), GLVertexFormat_Normalized };
+		case VertexFormat_U16x4:    return { GL_UNSIGNED_SHORT, 4, sizeof( u16 ), GLVertexFormat_Int };
+		case VertexFormat_U16x4_01: return { GL_UNSIGNED_SHORT, 4, sizeof( u16 ), GLVertexFormat_Normalized };
 
-		case VertexFormat_Floatx2:
-			*type = GL_FLOAT;
-			*num_components = 2;
-			break;
-		case VertexFormat_Floatx3:
-			*type = GL_FLOAT;
-			*num_components = 3;
-			break;
-		case VertexFormat_Floatx4:
-			*type = GL_FLOAT;
-			*num_components = 4;
-			break;
+		case VertexFormat_Floatx2: return { GL_FLOAT, 2, sizeof( float ), GLVertexFormat_Float };
+		case VertexFormat_Floatx3: return { GL_FLOAT, 3, sizeof( float ), GLVertexFormat_Float };
+		case VertexFormat_Floatx4: return { GL_FLOAT, 4, sizeof( float ), GLVertexFormat_Float };
 
 		default:
 			Assert( false );
+			return { };
 	}
 }
 
 static u32 VertexFormatDefaultStride( VertexFormat format ) {
-	GLenum type;
-	int num_components;
-	bool integral;
-	GLboolean normalized;
-	VertexFormatToGL( format, &type, &num_components, &integral, &normalized );
-
-	u32 component_size = 0;
-	if( type == GL_UNSIGNED_BYTE ) {
-		component_size = 1;
-	}
-	else if( type == GL_UNSIGNED_SHORT ) {
-		component_size = 2;
-	}
-	else if( type == GL_FLOAT ) {
-		component_size = 4;
-	}
-
-	return component_size * num_components;
+	GLVertexFormat gl = VertexFormatToGL( format );
+	return gl.num_components * gl.component_size;
 }
 
 static const char * DebugTypeString( GLenum type ) {
@@ -341,9 +261,9 @@ static void DebugOutputCallback(
 	}
 }
 
-static void DebugLabel( GLenum type, GLuint object, const char * label ) {
-	Assert( label != NULL );
-	glObjectLabel( type, object, -1, label );
+static void DebugLabel( GLenum type, GLuint object, Span< const char > label ) {
+	Assert( label.ptr != NULL );
+	glObjectLabel( type, object, checked_cast< GLsizei >( label.n ), label.ptr );
 }
 
 static void PlotVRAMUsage() {
@@ -361,11 +281,6 @@ static void PlotVRAMUsage() {
 static void RunDeferredDeletes() {
 	TracyZoneScoped;
 
-	for( const Mesh & mesh : deferred_mesh_deletes ) {
-		DeleteMesh( mesh );
-	}
-	deferred_mesh_deletes.clear();
-
 	for( const GPUBuffer & buffer : deferred_buffer_deletes ) {
 		DeleteGPUBuffer( buffer );
 	}
@@ -382,7 +297,7 @@ void InitRenderBackend() {
 
 	{
 		TracyZoneScopedN( "Load OpenGL" );
-		if( gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) != 1 ) {
+		if( gladLoadGLLoader( GLADloadproc( glfwGetProcAddress ) ) != 1 ) {
 			Fatal( "Couldn't load GL" );
 		}
 	}
@@ -442,7 +357,6 @@ void InitRenderBackend() {
 	render_passes.init( sys_allocator );
 	num_render_passes = 0;
 
-	deferred_mesh_deletes.init( sys_allocator );
 	deferred_buffer_deletes.init( sys_allocator );
 	deferred_streaming_buffer_deletes.init( sys_allocator );
 
@@ -476,7 +390,7 @@ void InitRenderBackend() {
 
 	for( size_t i = 0; i < ARRAY_COUNT( ubos ); i++ ) {
 		TempAllocator temp = cls.frame_arena.temp();
-		ubos[ i ].stream = NewStreamingBuffer( UNIFORM_BUFFER_SIZE, temp( "UBO {}", i ) );
+		ubos[ i ].stream = NewStreamingBuffer( UNIFORM_BUFFER_SIZE, temp.sv( "UBO {}", i ) );
 	}
 
 	in_frame = false;
@@ -514,7 +428,6 @@ void ShutdownRenderBackend() {
 	}
 	render_passes.shutdown();
 
-	deferred_mesh_deletes.shutdown();
 	deferred_buffer_deletes.shutdown();
 	deferred_streaming_buffer_deletes.shutdown();
 }
@@ -726,11 +639,11 @@ static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) 
 
 	// depth testing
 	if( pipeline.depth_func != prev_pipeline.depth_func ) {
-		if( pipeline.depth_func == DepthFunc_Disabled ) {
+		if( pipeline.depth_func == DepthFunc_AlwaysAndDontWrite ) {
 			glDisable( GL_DEPTH_TEST );
 		}
 		else {
-			if( prev_pipeline.depth_func == DepthFunc_Disabled ) {
+			if( prev_pipeline.depth_func == DepthFunc_AlwaysAndDontWrite ) {
 				glEnable( GL_DEPTH_TEST );
 			}
 			glDepthFunc( DepthFuncToGL( pipeline.depth_func ) );
@@ -830,27 +743,21 @@ static void BindVertexDescriptorAndBuffers( const Mesh & mesh ) {
 
 		if( opt_attr.exists ) {
 			const VertexAttribute & attr = opt_attr.value;
-
-			GLenum type;
-			int num_components;
-			bool integral;
-			GLboolean normalized;
-			VertexFormatToGL( attr.format, &type, &num_components, &integral, &normalized );
-
-			if( integral && !normalized ) {
+			GLVertexFormat gl = VertexFormatToGL( attr.format );
+			if( gl.kind == GLVertexFormat_Int ) {
 				/*
 				 * wintel driver ignores the type and treats everything as u32
 				 * non-DSA call works fine so fall back to that here
 				 *
 				 * see also https://doc.magnum.graphics/magnum/opengl-workarounds.html
 				 *
-				 * glVertexArrayAttribIFormat( vao, attr, num_components, type, attr.offset );
+				 * glVertexArrayAttribIFormat( vao, attr, gl.num_components, gl.type, attr.offset );
 				 */
 
-				glVertexAttribIFormat( i, num_components, type, attr.offset );
+				glVertexAttribIFormat( i, gl.num_components, gl.type, attr.offset );
 			}
 			else {
-				glVertexArrayAttribFormat( vao, i, num_components, type, normalized, attr.offset );
+				glVertexArrayAttribFormat( vao, i, gl.num_components, gl.type, gl.kind == GLVertexFormat_Normalized ? GL_TRUE : GL_FALSE, attr.offset );
 			}
 		}
 	}
@@ -1072,7 +979,7 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 	u32 offset = 0;
 
 	for( size_t i = 0; i < ARRAY_COUNT( ubos ); i++ ) {
-		offset = AlignPow2( ubos[ i ].bytes_used, ubo_offset_alignment );
+		offset = checked_cast< u32 >( AlignPow2( ubos[ i ].bytes_used, ubo_offset_alignment ) );
 		if( UNIFORM_BUFFER_SIZE - offset >= size ) {
 			ubo = &ubos[ i ];
 			break;
@@ -1085,7 +992,7 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 	UniformBlock block;
 	block.ubo = ubo->stream.buffer.buffer;
 	block.offset = offset + ubo->stream.size * FrameSlot();
-	block.size = AlignPow2( checked_cast< u32 >( size ), u32( 16 ) );
+	block.size = checked_cast< u32 >( AlignPow2( size, 16 ) );
 
 	u8 * mapping = ( u8 * ) GetStreamingBufferMemory( ubo->stream );
 	memcpy( mapping + offset, data, size );
@@ -1094,25 +1001,25 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 	return block;
 }
 
-GPUBuffer NewGPUBuffer( const void * data, u32 size, const char * name ) {
+static GPUBuffer NewGPUBuffer( const void * data, u32 size, bool coherent, Span< const char > name ) {
+	GLbitfield flags = coherent ? GL_MAP_COHERENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT : 0;
 	GPUBuffer buf = { };
 	glCreateBuffers( 1, &buf.buffer );
-	glNamedBufferStorage( buf.buffer, size, data, data == NULL ? GL_DYNAMIC_STORAGE_BIT : 0 );
+	glNamedBufferStorage( buf.buffer, size, data, flags );
 
-	if( name != NULL ) {
+	if( name.ptr != NULL ) {
 		DebugLabel( GL_BUFFER, buf.buffer, name );
 	}
 
 	return buf;
 }
 
-GPUBuffer NewGPUBuffer( u32 size, const char * name ) {
-	return NewGPUBuffer( NULL, size, name );
+GPUBuffer NewGPUBuffer( const void * data, u32 size, Span< const char > name ) {
+	return NewGPUBuffer( data, size, false, name );
 }
 
-void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 size, u32 offset ) {
-	// TODO: remove GL_DYNAMIC_STORAGE_BIT when we delete this
-	glNamedBufferSubData( buf.buffer, offset, size, data );
+GPUBuffer NewGPUBuffer( u32 size, Span< const char > name ) {
+	return NewGPUBuffer( NULL, size, name );
 }
 
 void DeleteGPUBuffer( GPUBuffer buf ) {
@@ -1125,31 +1032,21 @@ void DeferDeleteGPUBuffer( GPUBuffer buf ) {
 	deferred_buffer_deletes.add( buf );
 }
 
-StreamingBuffer NewStreamingBuffer( u32 size, const char * name ) {
+StreamingBuffer NewStreamingBuffer( u32 size, Span< const char > name ) {
 	StreamingBuffer stream = { };
+	stream.buffer = NewGPUBuffer( NULL, size * MAX_FRAMES_IN_FLIGHT, true, name );
+	stream.ptr = glMapNamedBufferRange( stream.buffer.buffer, 0, size * MAX_FRAMES_IN_FLIGHT, GL_MAP_COHERENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT );
+	stream.size = size;
 
-	GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT;
-	glCreateBuffers( 1, &stream.buffer.buffer );
-	glNamedBufferStorage( stream.buffer.buffer, size * MAX_FRAMES_IN_FLIGHT, NULL, flags );
-
-	if( name != NULL ) {
+	if( name.ptr != NULL ) {
 		DebugLabel( GL_BUFFER, stream.buffer.buffer, name );
 	}
-
-	stream.ptr = glMapNamedBufferRange( stream.buffer.buffer, 0, size * MAX_FRAMES_IN_FLIGHT, flags | GL_MAP_FLUSH_EXPLICIT_BIT );
-	stream.size = size;
 
 	return stream;
 }
 
 void * GetStreamingBufferMemory( StreamingBuffer stream ) {
-	return ( ( u8 * ) stream.ptr ) + stream.size * FrameSlot();
-}
-
-void FlushStreamingBuffer( StreamingBuffer stream, u32 offset, u32 length ) {
-	glFlushMappedNamedBufferRange( stream.buffer.buffer,
-		checked_cast< GLintptr >( offset + stream.size * FrameSlot() ),
-		checked_cast< GLsizeiptr >( length ) );
+	return ( ( char * ) stream.ptr ) + stream.size * FrameSlot();
 }
 
 void DeleteStreamingBuffer( StreamingBuffer stream ) {
@@ -1207,61 +1104,44 @@ Texture NewTexture( const TextureConfig & config ) {
 	}
 	glCreateTextures( target, 1, &texture.texture );
 
-	GLenum internal_format, channels, type;
-	TextureFormatToGL( config.format, &internal_format, &channels, &type );
+	GLTextureFormat gl = TextureFormatToGL( config.format );
 
 	if( config.msaa_samples != 0 ) {
 		Assert( config.data == NULL );
 		if( config.num_layers == 0 ) {
 			glTextureStorage2DMultisample( texture.texture, config.msaa_samples,
-				internal_format, config.width, config.height, GL_TRUE );
+				gl.internal, config.width, config.height, GL_TRUE );
 		}
 		else {
 			glTextureStorage3DMultisample( texture.texture, config.msaa_samples,
-				internal_format, config.width, config.height, config.num_layers, GL_TRUE );
+				gl.internal, config.width, config.height, config.num_layers, GL_TRUE );
 		}
 		return texture;
 	}
 
 	if( config.num_layers == 0 ) {
-		glTextureStorage2D( texture.texture, config.num_mipmaps, internal_format, config.width, config.height );
+		glTextureStorage2D( texture.texture, config.num_mipmaps, gl.internal, config.width, config.height );
 	}
 	else {
-		glTextureStorage3D( texture.texture, config.num_mipmaps, internal_format, config.width, config.height, config.num_layers );
+		glTextureStorage3D( texture.texture, config.num_mipmaps, gl.internal, config.width, config.height, config.num_layers );
 	}
+
+	glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_R, gl.swizzle[ 0 ] );
+	glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_G, gl.swizzle[ 1 ] );
+	glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_B, gl.swizzle[ 2 ] );
+	glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_A, gl.swizzle[ 3 ] );
 
 	if( !CompressedTextureFormat( config.format ) ) {
 		Assert( config.num_mipmaps == 1 );
 
-		if( channels == GL_RED ) {
-			if( config.format == TextureFormat_A_U8 ) {
-				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_A, GL_RED );
-			}
-			else {
-				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_R, GL_RED );
-				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_G, GL_RED );
-				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_B, GL_RED );
-				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_A, GL_ONE );
-			}
-		}
-		else if( channels == GL_RG && config.format == TextureFormat_RA_U8 ) {
-			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_R, GL_RED );
-			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_G, GL_RED );
-			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_B, GL_RED );
-			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
-		}
-
 		if( config.data != NULL ) {
 			if( config.num_layers == 0 ) {
 				glTextureSubImage2D( texture.texture, 0, 0, 0,
-					config.width, config.height, channels, type, config.data );
+					config.width, config.height, gl.channels, gl.type, config.data );
 			}
 			else {
 				glTextureSubImage3D( texture.texture, 0, 0, 0, 0,
-					config.width, config.height, config.num_layers, channels, type, config.data );
+					config.width, config.height, config.num_layers, gl.channels, gl.type, config.data );
 			}
 		}
 	}
@@ -1287,11 +1167,11 @@ Texture NewTexture( const TextureConfig & config ) {
 
 			if( config.num_layers == 0 ) {
 				glCompressedTextureSubImage2D( texture.texture, i, 0, 0,
-					w, h, internal_format, size, cursor );
+					w, h, gl.internal, size, cursor );
 			}
 			else {
 				glCompressedTextureSubImage3D( texture.texture, i, 0, 0, 0,
-					w, h, config.num_layers, internal_format, size, cursor );
+					w, h, config.num_layers, gl.internal, size, cursor );
 			}
 
 			cursor += size;
@@ -1372,15 +1252,15 @@ void DeleteRenderTargetAndTextures( RenderTarget rt ) {
 	DeleteTexture( rt.depth_attachment );
 }
 
-static GLuint CompileShader( GLenum type, const char * body, const char * name ) {
+static GLuint CompileShader( GLenum type, Span< const char > body, Span< const char > name ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	DynamicString src( &temp, "#version 450 core\n" );
 	if( type == GL_VERTEX_SHADER || type == GL_FRAGMENT_SHADER ) {
-		constexpr const char * vertex_shader_prelude =
+		constexpr Span< const char > vertex_shader_prelude =
 			"#define VERTEX_SHADER 1\n"
 			"#define v2f out\n";
-		constexpr const char * fragment_shader_prelude =
+		constexpr Span< const char > fragment_shader_prelude =
 			"#define FRAGMENT_SHADER 1\n"
 			"#define v2f in\n";
 
@@ -1400,7 +1280,7 @@ static GLuint CompileShader( GLenum type, const char * body, const char * name )
 	if( status == GL_FALSE ) {
 		char buf[ 1024 ];
 		glGetShaderInfoLog( shader, sizeof( buf ), NULL, buf );
-		Com_Printf( S_COLOR_YELLOW "Shader compilation failed %s: %s\n", name, buf );
+		Com_GGPrint( S_COLOR_YELLOW "Shader compilation failed {}: {}", name, buf );
 		glDeleteShader( shader );
 
 		// static char src[ 65536 ];
@@ -1413,7 +1293,7 @@ static GLuint CompileShader( GLenum type, const char * body, const char * name )
 	return shader;
 }
 
-static bool LinkShader( Shader * shader, GLuint program ) {
+static bool LinkShader( Shader * shader, GLuint program, Span< const char > shader_name ) {
 	glLinkProgram( program );
 
 	GLint status;
@@ -1447,7 +1327,7 @@ static bool LinkShader( Shader * shader, GLuint program ) {
 		if( is_texture ) {
 			if( num_textures == ARRAY_COUNT( shader->textures ) ) {
 				glDeleteProgram( program );
-				Com_Printf( S_COLOR_YELLOW "Too many samplers in shader\n" );
+				Com_GGPrint( S_COLOR_YELLOW "Too many textures in shader {}", shader_name );
 				return false;
 			}
 
@@ -1458,6 +1338,11 @@ static bool LinkShader( Shader * shader, GLuint program ) {
 	}
 
 	glGetProgramInterfaceiv( program, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &count );
+	if( count > checked_cast< GLint >( ARRAY_COUNT( shader->uniforms ) ) ) {
+		glDeleteProgram( program );
+		Com_GGPrint( S_COLOR_YELLOW "Too many uniforms in shader {}", shader_name );
+		return false;
+	}
 	for( GLint i = 0; i < count; i++ ) {
 		char name[ 128 ];
 		GLint len;
@@ -1467,6 +1352,11 @@ static bool LinkShader( Shader * shader, GLuint program ) {
 	}
 
 	glGetProgramInterfaceiv( program, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &count );
+	if( count > checked_cast< GLint >( ARRAY_COUNT( shader->uniforms ) ) ) {
+		glDeleteProgram( program );
+		Com_GGPrint( S_COLOR_YELLOW "Too many buffers in shader {}", shader_name );
+		return false;
+	}
 	for( GLint i = 0; i < count; i++ ) {
 		char name[ 128 ];
 		GLint len;
@@ -1478,19 +1368,19 @@ static bool LinkShader( Shader * shader, GLuint program ) {
 	return true;
 }
 
-bool NewShader( Shader * shader, const char * src, const char * name ) {
+bool NewShader( Shader * shader, Span< const char > src, Span< const char > name ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	*shader = { };
 
-	const char * vertex_shader_name = temp( "{} [VS]", name );
+	Span< const char > vertex_shader_name = temp.sv( "{} [VS]", name );
 	GLuint vertex_shader = CompileShader( GL_VERTEX_SHADER, src, vertex_shader_name );
 	if( vertex_shader == 0 )
 		return false;
 	DebugLabel( GL_SHADER, vertex_shader, vertex_shader_name );
 	defer { glDeleteShader( vertex_shader ); };
 
-	const char * fragment_shader_name = temp( "{} [FS]", name );
+	Span< const char > fragment_shader_name = temp.sv( "{} [FS]", name );
 	GLuint fragment_shader = CompileShader( GL_FRAGMENT_SHADER, src, fragment_shader_name );
 	if( fragment_shader == 0 )
 		return false;
@@ -1502,10 +1392,10 @@ bool NewShader( Shader * shader, const char * src, const char * name ) {
 	glAttachShader( shader->program, vertex_shader );
 	glAttachShader( shader->program, fragment_shader );
 
-	return LinkShader( shader, shader->program );
+	return LinkShader( shader, shader->program, name );
 }
 
-bool NewComputeShader( Shader * shader, const char * src, const char * name ) {
+bool NewComputeShader( Shader * shader, Span< const char > src, Span< const char > name ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	*shader = { };
@@ -1513,14 +1403,14 @@ bool NewComputeShader( Shader * shader, const char * src, const char * name ) {
 	GLuint cs = CompileShader( GL_COMPUTE_SHADER, src, name );
 	if( cs == 0 )
 		return false;
-	DebugLabel( GL_SHADER, cs, temp( "{} [CS]", name ) );
+	DebugLabel( GL_SHADER, cs, temp.sv( "{} [CS]", name ) );
 	defer { glDeleteShader( cs ); };
 
 	shader->program = glCreateProgram();
 	DebugLabel( GL_PROGRAM, shader->program, name );
 	glAttachShader( shader->program, cs );
 
-	return LinkShader( shader, shader->program );
+	return LinkShader( shader, shader->program, name );
 }
 
 void DeleteShader( Shader shader ) {
@@ -1555,10 +1445,6 @@ void DeleteMesh( const Mesh & mesh ) {
 		DeleteGPUBuffer( buffer );
 	}
 	DeleteGPUBuffer( mesh.index_buffer );
-}
-
-void DeferDeleteMesh( const Mesh & mesh ) {
-	deferred_mesh_deletes.add( mesh );
 }
 
 u8 AddRenderPass( const RenderPassConfig & config ) {

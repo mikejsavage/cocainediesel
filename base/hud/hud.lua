@@ -6,6 +6,14 @@ local function hotkeys( state )
 	return state.show_hotkeys and state.chasing == NOT_CHASING
 end
 
+local function Override( t, overrides )
+	local t2 = table.clone( t ) -- note that this is a shallow copy
+	for k, v in pairs( overrides ) do
+		t2[ k ] = v
+	end
+	return t2
+end
+
 local function DrawTopInfo( state )
 	local options = {
 		color = "#ffff",
@@ -39,10 +47,11 @@ local function DrawTopInfo( state )
 			end
 		end
 	elseif state.match_state == MatchState_Playing then
-
 		options.font_size = state.viewport_height / 25
 
-		local seconds = cd.getClockTime()
+		local time = cd.getClockTime()
+		local seconds = time * 0.001
+		local milliseconds = time % 1000
 		if seconds >= 0 then
 			local minutes = seconds / 60
 			seconds = seconds % 60
@@ -50,7 +59,15 @@ local function DrawTopInfo( state )
 			if minutes < 1 and seconds < 11 and seconds ~= 0 then
 				options.color = "#f00" -- TODO: attention getting red
 			end
-			cd.text( options, posX, state.viewport_height * 0.012, string.format( "%d:%02i", minutes, seconds ) )
+
+			local testPosY = state.viewport_height * 0.012
+
+			options.alignment = "right top"
+			cd.text( options, posX + posX * 0.028, testPosY, string.format( "%d:%02i", minutes, seconds ) )
+
+			options.alignment = "left top"
+			local ms_options = Override( options, { font_size = options.font_size / 2 } )
+			cd.text( ms_options, posX + posX * 0.032, testPosY + options.font_size * 0.3, string.format( ".%03i", milliseconds ))
 		elseif state.gametype == Gametype_Bomb then
 			local size = state.viewport_height * 0.055
 			cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, "#fff", assets.bomb )

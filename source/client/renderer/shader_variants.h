@@ -29,29 +29,29 @@ struct ShaderDescriptors {
 template< typename R, typename F, typename... Rest >
 R VisitShaderDescriptors( F f, Rest... rest ) {
 	VertexDescriptor pos_normal = { };
-	pos_normal.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_U16x3_Norm, 0, 0 };
-	pos_normal.attributes[ VertexAttribute_Normal ] = VertexAttribute { VertexFormat_U10x3_U2x1_Norm, 1, 0 };
+	pos_normal.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_U16x3_01, 0, 0 };
+	pos_normal.attributes[ VertexAttribute_Normal ] = VertexAttribute { VertexFormat_U10x3_U2x1_01, 1, 0 };
 	pos_normal.buffer_strides[ 0 ] = sizeof( u16 ) * 3;
 	pos_normal.buffer_strides[ 1 ] = sizeof( u16 ) * 2;
 
 	VertexDescriptor pos_normal_uv = { };
-	pos_normal_uv.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_U16x3_Norm, 0, 0 };
-	pos_normal_uv.attributes[ VertexAttribute_Normal ] = VertexAttribute { VertexFormat_U10x3_U2x1_Norm, 1, 0 };
-	pos_normal_uv.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_U16x2_Norm, 1, sizeof( u16 ) * 2 };
+	pos_normal_uv.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_U16x3_01, 0, 0 };
+	pos_normal_uv.attributes[ VertexAttribute_Normal ] = VertexAttribute { VertexFormat_U10x3_U2x1_01, 1, 0 };
+	pos_normal_uv.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_U16x2_01, 1, sizeof( u16 ) * 2 };
 	pos_normal_uv.buffer_strides[ 0 ] = sizeof( u16 ) * 3;
 	pos_normal_uv.buffer_strides[ 1 ] = sizeof( u16 ) * 4;
 
 	VertexDescriptor pos_uv = { };
-	pos_uv.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_U16x3_Norm, 0, 0 };
-	pos_uv.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_U16x2_Norm, 0, sizeof( u16 ) * 2 };
+	pos_uv.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_U16x3_01, 0, 0 };
+	pos_uv.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_U16x2_01, 0, sizeof( u16 ) * 2 };
 	pos_uv.buffer_strides[ 0 ] = sizeof( u16 ) * 5;
 
 	VertexDescriptor pos_normal_uv_skinned = { };
-	pos_normal_uv_skinned.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_U16x3_Norm, 0, 0 };
-	pos_normal_uv_skinned.attributes[ VertexAttribute_Normal ] = VertexAttribute { VertexFormat_U10x3_U2x1_Norm, 1, 0 };
-	pos_normal_uv_skinned.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_U16x2_Norm, 1, sizeof( u16 ) * 2 };
+	pos_normal_uv_skinned.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_U16x3_01, 0, 0 };
+	pos_normal_uv_skinned.attributes[ VertexAttribute_Normal ] = VertexAttribute { VertexFormat_U10x3_U2x1_01, 1, 0 };
+	pos_normal_uv_skinned.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_U16x2_01, 1, sizeof( u16 ) * 2 };
 	pos_normal_uv_skinned.attributes[ VertexAttribute_JointIndices ] = VertexAttribute { VertexFormat_U8x4, 1, sizeof( u8 ) * 4 };
-	pos_normal_uv_skinned.attributes[ VertexAttribute_JointWeights ] = VertexAttribute { VertexFormat_U16x4_Norm, 1, sizeof( u16 ) * 4 };
+	pos_normal_uv_skinned.attributes[ VertexAttribute_JointWeights ] = VertexAttribute { VertexFormat_U16x4_01, 1, sizeof( u16 ) * 4 };
 	pos_normal_uv_skinned.buffer_strides[ 0 ] = sizeof( u16 ) * 3;
 	pos_normal_uv_skinned.buffer_strides[ 1 ] = sizeof( u16 ) * 2 + sizeof( u16 ) * 2 + sizeof( u8 ) * 4 + sizeof( u16 ) * 4;
 

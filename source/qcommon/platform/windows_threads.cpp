@@ -31,8 +31,7 @@ Thread * NewThread( void ( *callback )( void * ), void * data ) {
 	tsd->callback = callback;
 	tsd->data = data;
 
-	DWORD id;
-	HANDLE handle = CreateThread( 0, 0, ThreadWrapper, tsd, 0, &id );
+	HANDLE handle = CreateThread( NULL, 0, ThreadWrapper, tsd, 0, NULL );
 	if( handle == NULL ) {
 		FatalGLE( "CreateThread" );
 	}

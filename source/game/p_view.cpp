@@ -25,12 +25,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // DEAD VIEW
 //====================================================================
 
-static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t *passent ) {
+static void G_ProjectThirdPersonView( Vec3 * vieworg, EulerDegrees3 * viewangles, edict_t *passent ) {
 	float thirdPersonRange = 60;
 	float thirdPersonAngle = 0;
-	trace_t trace;
-	Vec3 mins( -4.0f );
-	Vec3 maxs( 4.0f);
 	Vec3 v_forward, v_right, v_up;
 
 	AngleVectors( *viewangles, &v_forward, &v_right, &v_up );
@@ -46,7 +43,7 @@ static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t
 
 	// find the spot the player is looking at
 	Vec3 dest = *vieworg + v_forward * 512.0f;
-	G_Trace( &trace, *vieworg, mins, maxs, dest, passent, MASK_SOLID );
+	trace_t trace = G_Trace( *vieworg, MinMax3( 4.0f ), dest, passent, SolidMask_Opaque );
 
 	// calculate pitch to look at the same spot from camera
 	Vec3 stop = trace.endpos - *vieworg;
@@ -54,17 +51,17 @@ static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t
 	if( dist < 1 ) {
 		dist = 1;
 	}
-	viewangles->x = Degrees( -atan2f( stop.z, dist ) );
-	viewangles->y -= thirdPersonAngle;
+	viewangles->pitch = Degrees( -atan2f( stop.z, dist ) );
+	viewangles->yaw -= thirdPersonAngle;
 	AngleVectors( *viewangles, &v_forward, &v_right, &v_up );
 
 	// move towards destination
-	G_Trace( &trace, *vieworg, mins, maxs, chase_dest, passent, MASK_SOLID );
+	trace = G_Trace( *vieworg, MinMax3( 4.0f ), chase_dest, passent, SolidMask_Opaque );
 
-	if( trace.fraction != 1.0f ) {
+	if( trace.HitSomething() ) {
 		stop = trace.endpos;
 		stop.z += ( 1.0f - trace.fraction ) * 32;
-		G_Trace( &trace, *vieworg, mins, maxs, stop, passent, MASK_SOLID );
+		trace = G_Trace( *vieworg, MinMax3( 4.0f ), stop, passent, SolidMask_Opaque );
 		chase_dest = trace.endpos;
 	}
 
@@ -82,17 +79,16 @@ static void G_Client_DeadView( edict_t *ent ) {
 	// move us to body position
 	ent->s.origin = body->s.origin;
 	ent->s.teleported = true;
-	client->ps.viewangles.z = 0;
-	client->ps.viewangles.x = 0;
+	client->ps.viewangles.roll = 0;
+	client->ps.viewangles.pitch = 0;
 
 	// see if our killer is still in view
 	if( body->enemy && ( body->enemy != ent ) ) {
-		trace_t trace;
-		G_Trace( &trace, ent->s.origin, Vec3( 0.0f ), Vec3( 0.0f ), body->enemy->s.origin, body, MASK_OPAQUE );
-		if( trace.fraction != 1.0f ) {
+		trace_t trace = G_Trace( ent->s.origin, MinMax3( 0.0f ), body->enemy->s.origin, body, SolidMask_Opaque );
+		if( trace.HitSomething() ) {
 			body->enemy = NULL;
 		} else {
-			client->ps.viewangles.y = LookAtKillerYAW( ent, NULL, body->enemy );
+			client->ps.viewangles.yaw = LookAtKillerYAW( ent, NULL, body->enemy );
 		}
 	} else {   // nobody killed us, so just circle around the body ?
 
@@ -119,9 +115,9 @@ void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, const Vec3
 
 	Vec3 dir = SafeNormalize( basedir );
 
-	float frac = (float)damage / ( damage + client->resp.snap.damageTaken );
-	client->resp.snap.damageTakenDir = Lerp( client->resp.snap.damageTakenDir, frac, dir );
-	client->resp.snap.damageTaken += damage;
+	float frac = (float)damage / ( damage + client->snap.damageTaken );
+	client->snap.damageTakenDir = Lerp( client->snap.damageTakenDir, frac, dir );
+	client->snap.damageTaken += damage;
 }
 
 /*
@@ -130,9 +126,9 @@ void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, const Vec3
 * Adds color blends, hitsounds, etc
 */
 void G_ClientDamageFeedback( edict_t *ent ) {
-	if( ent->r.client->resp.snap.damageTaken ) {
-		int damage = ent->r.client->resp.snap.damageTaken;
-		u64 parm = DirToU64( ent->r.client->resp.snap.damageTakenDir );
+	if( ent->r.client->snap.damageTaken ) {
+		int damage = ent->r.client->snap.damageTaken;
+		u64 parm = DirToU64( ent->r.client->snap.damageTakenDir );
 
 		if( damage <= 10 ) {
 			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_10, parm );
@@ -146,15 +142,15 @@ void G_ClientDamageFeedback( edict_t *ent ) {
 	}
 
 	// add hitsounds from given damage
-	if( ent->snap.kill ) { //kill
+	if( ent->r.client->snap.kill ) { //kill
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 4 );
-	} else if( ent->snap.damage_given >= 35 ) {
+	} else if( ent->r.client->snap.damage_given >= 35 ) {
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 0 );
-	} else if( ent->snap.damage_given >= 20 ) {
+	} else if( ent->r.client->snap.damage_given >= 20 ) {
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 1 );
-	} else if( ent->snap.damage_given >= 10 ) {
+	} else if( ent->r.client->snap.damage_given >= 10 ) {
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 2 );
-	} else if( ent->snap.damage_given ) {
+	} else if( ent->r.client->snap.damage_given ) {
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 3 );
 	}
 }
@@ -199,10 +195,7 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 
 	G_ReleaseClientPSEvent( client );
 
-	// set the delta angle
-	for( int i = 0; i < 3; i++ ) {
-		client->ps.pmove.delta_angles[i] = ANGLE2SHORT( client->ps.viewangles[i] ) - client->ucmd.angles[i];
-	}
+	client->ps.pmove.angles = EulerDegrees3( client->ucmd.angles );
 
 	// this is pretty hackish
 	if( !G_ISGHOSTING( ent ) ) {

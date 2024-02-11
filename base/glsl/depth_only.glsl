@@ -11,21 +11,19 @@ layout( std430 ) readonly buffer b_Instances {
 #if VERTEX_SHADER
 
 layout( location = VertexAttribute_Position ) in vec4 a_Position;
-layout( location = VertexAttribute_Normal ) in vec3 a_Normal;
 
 void main() {
 #if INSTANCED
-	mat4 u_M = AffineToMat4( instances[ gl_InstanceIndex ] );
+	AffineTransform u_M = instances[ gl_InstanceIndex ];
 #endif
 
 	vec4 Position = a_Position;
-	vec3 Normal = a_Normal;
 
 #if SKINNED
-	Skin( Position, Normal );
+	Skin( Position );
 #endif
 
-	gl_Position = u_P * u_V * u_M * Position;
+	gl_Position = u_P * AffineToMat4( u_V ) * AffineToMat4( u_M ) * Position;
 }
 
 #else

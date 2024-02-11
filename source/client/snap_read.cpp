@@ -34,17 +34,17 @@ const char * const svc_strings[256] = {
 	"svc_frame",
 };
 
-void _SHOWNET( msg_t *msg, const char *s, int shownet ) {
+void _SHOWNET( msg_t * msg, const char * s, int shownet ) {
 	if( shownet >= 2 ) {
 		Com_Printf( "%3i:%s\n", (int)(msg->readcount - 1), s );
 	}
 }
 
-static void SNAP_ParseDeltaGameState( msg_t *msg, snapshot_t *oldframe, snapshot_t *newframe ) {
+static void SNAP_ParseDeltaGameState( msg_t * msg, const snapshot_t * oldframe, snapshot_t * newframe ) {
 	MSG_ReadDeltaGameState( msg, oldframe ? &oldframe->gameState : NULL, &newframe->gameState );
 }
 
-static void SNAP_ParsePlayerstate( msg_t *msg, const SyncPlayerState *oldstate, SyncPlayerState *state ) {
+static void SNAP_ParsePlayerstate( msg_t * msg, const SyncPlayerState * oldstate, SyncPlayerState * state ) {
 	MSG_ReadDeltaPlayerState( msg, oldstate, state );
 }
 
@@ -53,14 +53,14 @@ static void SNAP_ParsePlayerstate( msg_t *msg, const SyncPlayerState *oldstate, 
 *
 * Parses deltas from the given base and adds the resulting entity to the current frame
 */
-static void SNAP_ParseDeltaEntity( msg_t *msg, snapshot_t *frame, int newnum, SyncEntityState *old ) {
+static void SNAP_ParseDeltaEntity( msg_t * msg, snapshot_t * frame, int newnum, const SyncEntityState * old ) {
 	SyncEntityState * state = &frame->parsedEntities[ frame->numEntities % ARRAY_COUNT( frame->parsedEntities ) ];
 	frame->numEntities++;
 	MSG_ReadDeltaEntity( msg, old, state );
 	state->number = newnum;
 }
 
-void SNAP_ParseBaseline( msg_t *msg, SyncEntityState *baselines ) {
+void SNAP_ParseBaseline( msg_t * msg, SyncEntityState * baselines ) {
 	bool remove;
 	int newnum = MSG_ReadEntityNumber( msg, &remove );
 	Assert( !remove );
@@ -79,15 +79,13 @@ void SNAP_ParseBaseline( msg_t *msg, SyncEntityState *baselines ) {
 * rest of the data stream.
 */
 static void SNAP_ParsePacketEntities( msg_t *msg, snapshot_t *oldframe, snapshot_t *newframe, SyncEntityState *baselines, int shownet ) {
-	int newnum;
-	bool remove;
-	SyncEntityState *oldstate = NULL;
-	int oldindex, oldnum;
+	const SyncEntityState * oldstate = NULL;
+	int oldnum;
 
 	newframe->numEntities = 0;
 
 	// delta from the entities present in oldframe
-	oldindex = 0;
+	int oldindex = 0;
 	if( !oldframe ) {
 		oldnum = 99999;
 	} else if( oldindex >= oldframe->numEntities ) {
@@ -98,16 +96,16 @@ static void SNAP_ParsePacketEntities( msg_t *msg, snapshot_t *oldframe, snapshot
 	}
 
 	while( true ) {
-		newnum = MSG_ReadEntityNumber( msg, &remove );
-		if( newnum >= MAX_EDICTS ) {
+		bool remove;
+		int newnum = MSG_ReadEntityNumber( msg, &remove );
+		if( newnum == MAX_EDICTS ) {
+			break;
+		}
+		if( newnum > MAX_EDICTS ) {
 			Com_Error( "CL_ParsePacketEntities: bad number:%i", newnum );
 		}
 		if( msg->readcount > msg->cursize ) {
 			Com_Error( "CL_ParsePacketEntities: end of message" );
-		}
-
-		if( !newnum ) {
-			break;
 		}
 
 		while( oldnum < newnum ) {
@@ -255,12 +253,11 @@ static snapshot_t *SNAP_ParseFrameHeader( msg_t *msg, snapshot_t *newframe, snap
 }
 
 snapshot_t *SNAP_ParseFrame( msg_t *msg, const snapshot_t *lastFrame, snapshot_t *backup, SyncEntityState *baselines, int showNet ) {
-	snapshot_t  *deltaframe;
+	snapshot_t *deltaframe;
 	int numplayers;
-	char *text;
 	int framediff;
 	gcommand_t *gcmd;
-	snapshot_t  *newframe;
+	snapshot_t *newframe;
 
 	// read header
 	newframe = SNAP_ParseFrameHeader( msg, NULL, backup );
@@ -285,7 +282,7 @@ snapshot_t *SNAP_ParseFrame( msg_t *msg, const snapshot_t *lastFrame, snapshot_t
 
 	size_t numtargets = 0;
 	while( ( framediff = MSG_ReadInt16( msg ) ) != -1 ) {
-		text = MSG_ReadString( msg );
+		const char * text = MSG_ReadString( msg );
 
 		// see if it's valid and not yet handled
 		if( newframe->valid &&

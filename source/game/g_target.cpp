@@ -37,7 +37,9 @@ static void target_laser_think( edict_t *self ) {
 
 	if( self->enemy ) {
 		last_movedir = self->moveinfo.movedir;
-		point = self->enemy->r.absmin + self->enemy->r.size * 0.5f;
+
+		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &self->enemy->s );
+		point = self->enemy->s.origin + Center( bounds );
 		self->moveinfo.movedir = point - self->s.origin;
 		self->moveinfo.movedir = Normalize( self->moveinfo.movedir );
 		if( self->moveinfo.movedir != last_movedir ) {
@@ -45,12 +47,12 @@ static void target_laser_think( edict_t *self ) {
 		}
 	}
 
-	edict_t *ignore = self;
+	const edict_t * ignore = self;
 	Vec3 start = self->s.origin;
 	Vec3 end = start + self->moveinfo.movedir * 2048.0f;
 	while( true ) {
-		G_Trace( &tr, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ignore, MASK_SHOT );
-		if( tr.fraction == 1 ) {
+		tr = G_Trace( start, MinMax3( 0.0f ), end, ignore, SolidMask_Shot );
+		if( tr.HitNothing() ) {
 			break;
 		}
 
@@ -79,7 +81,15 @@ static void target_laser_think( edict_t *self ) {
 	}
 
 	self->s.origin2 = tr.endpos;
-	G_SetBoundsForSpanEntity( self, 8 );
+
+	MinMax3 bounds = MinMax3::Empty();
+	constexpr Vec3 size = Vec3( 8.0f );
+	bounds = Union( bounds, self->s.origin - size );
+	bounds = Union( bounds, self->s.origin + size );
+	bounds = Union( bounds, self->s.origin2 - size );
+	bounds = Union( bounds, self->s.origin2 + size );
+
+	self->s.override_collision_model = CollisionModelAABB( bounds );
 
 	GClip_LinkEntity( self );
 
@@ -113,9 +123,9 @@ static void target_laser_use( edict_t *self, edict_t *other, edict_t *activator 
 
 static void target_laser_start( edict_t *self ) {
 	self->movetype = MOVETYPE_NONE;
-	self->r.solid = SOLID_NOT;
+	self->s.solidity = Solid_NotSolid;
 	self->s.type = ET_LASER;
-	self->s.svflags = 0;
+	self->s.svflags = EntityFlags( 0 );
 	self->s.sound = "sounds/gladiator/laser_hum";
 
 	if( !self->enemy ) {

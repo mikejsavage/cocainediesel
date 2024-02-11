@@ -36,6 +36,7 @@ static void CL_UpdateGameInput( Vec2 movement, int frameTime ) {
 	if( cls.state == CA_ACTIVE ) {
 		CL_GameModule_MouseMove( movement );
 		cl.viewangles += CG_GetDeltaViewAngles();
+		cl.viewangles.pitch = Clamp( -90.0f, cl.viewangles.pitch, 90.0f );
 	}
 }
 
@@ -49,9 +50,6 @@ void CL_UserInputFrame( int realMsec ) {
 
 	// create a new UserCommand structure for this frame
 	CL_CreateNewUserCommand( realMsec );
-
-	// process console commands
-	Cbuf_Execute();
 }
 
 void CL_InitInput() {
@@ -65,11 +63,6 @@ void CL_InitInput() {
 //
 //===============================================================================
 
-/*
-* CL_RefreshUcmd
-*
-* Updates ucmd to use the most recent viewangles.
-*/
 static void CL_RefreshUcmd( UserCommand *ucmd, int msec, bool ready ) {
 	ucmd->msec += msec;
 
@@ -99,9 +92,7 @@ static void CL_RefreshUcmd( UserCommand *ucmd, int msec, bool ready ) {
 		}
 	}
 
-	ucmd->angles[0] = ANGLE2SHORT( cl.viewangles.x );
-	ucmd->angles[1] = ANGLE2SHORT( cl.viewangles.y );
-	ucmd->angles[2] = ANGLE2SHORT( cl.viewangles.z );
+	ucmd->angles = cl.viewangles;
 }
 
 void CL_WriteUcmdsToMessage( msg_t *msg ) {

@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
+#include "gameshared/collision.h"
 
 void ThrowSmallPileOfGibs( edict_t *self, Vec3 knockback, int damage ) {
 	Vec3 origin = self->s.origin;
@@ -29,7 +30,7 @@ void ThrowSmallPileOfGibs( edict_t *self, Vec3 knockback, int damage ) {
 	event->s.origin2 = self->velocity + knockback;
 }
 
-static void path_corner_touch( edict_t *self, edict_t *other, const Plane *plane, int surfFlags ) {
+static void path_corner_touch( edict_t *self, edict_t *other, Vec3 normal, SolidBits solid_mask ) {
 	Vec3 v;
 	edict_t *next;
 
@@ -56,8 +57,10 @@ static void path_corner_touch( edict_t *self, edict_t *other, const Plane *plane
 
 	if( next && ( next->spawnflags & 1 ) ) {
 		v = next->s.origin;
-		v.z += next->r.mins.z;
-		v.z -= other->r.mins.z;
+		MinMax3 next_bounds = EntityBounds( ServerCollisionModelStorage(), &next->s );
+		v.z += next_bounds.mins.z;
+		MinMax3 other_bounds = EntityBounds( ServerCollisionModelStorage(), &other->s );
+		v.z -= other_bounds.mins.z;
 		other->s.origin = v;
 		next = G_PickTarget( next->target );
 		other->s.teleported = true;
@@ -75,16 +78,17 @@ void SP_path_corner( edict_t * self, const spawn_temp_t * st ) {
 		return;
 	}
 
-	self->r.solid = SOLID_TRIGGER;
+	self->s.override_collision_model = CollisionModelAABB( MinMax3( Vec3( -8.0f ), Vec3( 8.0f ) ) );
+	self->s.solidity = Solid_Trigger;
 	self->touch = path_corner_touch;
-	self->r.mins = Vec3( -8.0f );
-	self->r.maxs = Vec3( 8.0f );
 	self->s.svflags |= SVF_NOCLIENT;
 	GClip_LinkEntity( self );
 }
 
 void SP_model( edict_t * ent, const spawn_temp_t * st ) {
 	ent->s.svflags &= ~SVF_NOCLIENT;
+	ent->s.type = ET_MAPMODEL;
+	ent->s.solidity = SolidMask_AnySolid;
 	GClip_LinkEntity( ent );
 }
 

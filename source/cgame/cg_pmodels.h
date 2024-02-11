@@ -95,10 +95,10 @@ enum {
 };
 
 struct WeaponModelMetadata {
-	const Model * model;
+	StringHash model;
 
 	Vec3 handpositionOrigin;
-	Vec3 handpositionAngles;
+	EulerDegrees3 handpositionAngles;
 
 	StringHash fire_sound;
 	StringHash reload_sound;
@@ -108,7 +108,7 @@ struct WeaponModelMetadata {
 };
 
 struct GadgetModelMetadata {
-	const Model * model;
+	StringHash model;
 
 	StringHash use_sound;
 	StringHash switch_in_sound;
@@ -153,7 +153,7 @@ enum PlayerSound {
 struct PlayerModelMetadata {
 	struct Tag {
 		u8 node_idx;
-		Mat4 transform;
+		Mat3x4 transform;
 	};
 
 	struct AnimationClip {
@@ -162,7 +162,7 @@ struct PlayerModelMetadata {
 		float loop_from; // we only loop the last part of the animation
 	};
 
-	const Model * model;
+	StringHash model;
 	StringHash sounds[ PlayerSound_Count ];
 
 	u8 upper_rotator_nodes[ 2 ];
@@ -181,10 +181,10 @@ struct PlayerModelMetadata {
 struct pmodel_t {
 	pmodel_animationstate_t animState;
 
-	Vec3 angles[PMODEL_PARTS];                // for rotations
-	Vec3 oldangles[PMODEL_PARTS];             // for rotations
+	EulerDegrees3 angles[PMODEL_PARTS];                // for rotations
+	EulerDegrees3 oldangles[PMODEL_PARTS];             // for rotations
 
-	Mat4 muzzle_transform;
+	Mat3x4 muzzle_transform;
 };
 
 extern pmodel_t cg_entPModels[MAX_EDICTS];      //a pmodel handle for each cg_entity
@@ -209,7 +209,10 @@ void CG_PModel_ClearEventAnimations( int entNum );
 void InitWeaponModels();
 const WeaponModelMetadata * GetWeaponModelMetadata( WeaponType weapon );
 const GadgetModelMetadata * GetGadgetModelMetadata( GadgetType gadget );
-const Model * GetEquippedModelMetadata( const SyncPlayerState * ps );
+
+struct GLTFRenderData;
+const GLTFRenderData * GetEquippedItemRenderData( const SyncEntityState * ent );
+const GLTFRenderData * GetEquippedItemRenderData( const SyncPlayerState * ps );
 
 //=================================================
 //				VIEW WEAPON
@@ -224,5 +227,5 @@ struct cg_viewweapon_t {
 	StringHash eventAnim;
 	int64_t eventAnimStartTime;
 
-	Mat4 muzzle_transform;
+	Mat3x4 muzzle_transform;
 };

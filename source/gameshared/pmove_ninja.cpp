@@ -1,15 +1,13 @@
 #include "gameshared/movement.h"
-#include "gameshared/gs_weapons.h"
 
 static constexpr float pm_wallclimbspeed = 200.0f;
 
 static constexpr float pm_dashspeed = 550.0f;
-static constexpr float pm_dashupspeed = ( 180.0f * GRAVITY_COMPENSATE );
+static constexpr float pm_dashupspeed = 191.25f;
 
 static constexpr float stamina_use = 0.2f;
 static constexpr float stamina_use_moving = 0.3f;
 static constexpr float stamina_recover = 1.0f;
-
 
 static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
 	if( !StaminaAvailable( ps, pml, stamina_use ) ) {
@@ -17,11 +15,9 @@ static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Sy
 	}
 
 	Vec3 spot = pml->origin + pml->forward;
-	trace_t trace;
-	pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->contentmask, 0 );
-	return trace.fraction < 1;
+	trace_t trace = pmove_gs->api.Trace( pml->origin, pm->bounds, spot, pm->playerState->POVnum, pm->solid_mask, 0 );
+	return trace.HitSomething();
 }
-
 
 static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( pm->groundentity == -1 ) {
@@ -43,8 +39,6 @@ static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 
 	Dash( pm, pml, pmove_gs, dashdir, pm_dashspeed, pm_dashupspeed );
 }
-
-
 
 static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( ps->pmove.stamina_state == Stamina_Normal && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
@@ -73,7 +67,7 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		wishvel = Normalize( wishvel );
 
 		if( pml->forwardPush > 0 ) {
-			wishvel.z = Lerp( -1.0f, Unlerp01( 15.0f, ps->viewangles[ PITCH ], -15.0f ), 1.0f );
+			wishvel.z = Lerp( -1.0f, Unlerp01( 15.0f, ps->viewangles.pitch, -15.0f ), 1.0f );
 		}
 
 		ps->pmove.stamina_state = Stamina_UsingAbility;
@@ -85,7 +79,6 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 	}
 }
-
 
 void PM_NinjaInit( pmove_t * pm, pml_t * pml ) {
 	PM_InitPerk( pm, pml, Perk_Ninja, PM_NinjaJump, PM_NinjaSpecial );

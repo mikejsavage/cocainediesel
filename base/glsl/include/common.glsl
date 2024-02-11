@@ -60,13 +60,6 @@ float Unlerp( float lo, float x, float hi ) {
 	return ( x - lo ) / ( hi - lo );
 }
 
-// mat4x3 is what we actually want but even in std430 that gets aligned like
-// vec4[4] so we can't use it. do this funny looking swizzle instead, which you
-// can derive by checking renderdoc's ssbo viewer
-struct AffineTransform {
-	mat3x4 m;
-};
-
 mat4 AffineToMat4( AffineTransform t ) {
 	return mat4(
 		t.m[ 0 ][ 0 ], t.m[ 0 ][ 1 ], t.m[ 0 ][ 2 ], 0.0,

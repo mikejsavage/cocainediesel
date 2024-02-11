@@ -27,7 +27,7 @@ extern Cvar * vid_mode;
 
 static void UpdateVidModeCvar() {
 	TempAllocator temp = cls.frame_arena.temp();
-	Cvar_Set( "vid_mode", temp( "{}", GetWindowMode() ) );
+	Cvar_Set( "vid_mode", temp.sv( "{}", GetWindowMode() ) );
 	vid_mode->modified = false;
 }
 
@@ -531,10 +531,10 @@ static void InputFrame() {
 	last_mouse_y = mouse_y;
 
 	// break bools
-	break1 = glfwGetKey( window, GLFW_KEY_F1 );
-	break2 = glfwGetKey( window, GLFW_KEY_F2 );
-	break3 = glfwGetKey( window, GLFW_KEY_F3 );
-	break4 = glfwGetKey( window, GLFW_KEY_F4 );
+	break1 = glfwGetKey( window, GLFW_KEY_F1 ) == GLFW_PRESS;
+	break2 = glfwGetKey( window, GLFW_KEY_F2 ) == GLFW_PRESS;
+	break3 = glfwGetKey( window, GLFW_KEY_F3 ) == GLFW_PRESS;
+	break4 = glfwGetKey( window, GLFW_KEY_F4 ) == GLFW_PRESS;
 }
 
 void SwapBuffers() {

@@ -9,7 +9,7 @@ static constexpr int WEAPONUP_TIME_SLOW = 750;
 static constexpr int WEAPONUP_TIME_VERY_SLOW = 1000;
 static constexpr int HITSCAN_RANGE = 9001;
 
-const WeaponDef weapon_defs[] = {
+static constexpr WeaponDef weapon_defs[] = {
 	// Weapon_None
 	WeaponDef {
 		.name = "",
@@ -567,6 +567,7 @@ const WeaponDef weapon_defs[] = {
 		.knockback = 100,
 
 		.speed = 2000,
+		.gravity_scale = 0.0f,
 	},
 
 #if 0
@@ -671,6 +672,7 @@ const GadgetDef gadget_defs[] = {
 		.knockback = 60,
 		.timeout = 5000,
 		.speed = 4000,
+		.gravity_scale = 0.0f,
 	},
 };
 
@@ -690,9 +692,9 @@ const PerkDef perk_defs[] = {
 		.health = 100,
 		.scale = Vec3( 1 ),
 		.weight = 1.0f,
-		.max_speed = 320.0f,
-		.side_speed = 320.0f,
-		.ground_accel = 16.0f,
+		.max_speed = 400.0f,
+		.side_speed = 400.0f,
+		.ground_accel = 24.0f,
 		.air_accel = 0.5f,
 		.ground_friction = 16.0f,
 	},
@@ -701,10 +703,10 @@ const PerkDef perk_defs[] = {
 		.name = "MIDGET",
 		.short_name = "midget",
 		.health = 70,
-		.scale = Vec3( 0.8f, 0.8f, 0.6f ),
-		.weight = 0.7f,
-		.max_speed = 400.0f,
-		.side_speed = 500.0f,
+		.scale = Vec3( 0.8f, 0.8f, 0.75f ),
+		.weight = 0.6f,
+		.max_speed = 420.0f,
+		.side_speed = 420.0f,
 		.ground_accel = 18.0f,
 		.air_accel = 0.5f,
 		.ground_friction = 16.0f,
@@ -729,11 +731,11 @@ const PerkDef perk_defs[] = {
 		.health = 80,
 		.scale = Vec3( 1 ),
 		.weight = 1.0f,
-		.max_speed = 320.0f,
-		.side_speed = 320.0f,
+		.max_speed = 300.0f,
+		.side_speed = 300.0f,
 		.ground_accel = 6.0f,
 		.air_accel = 0.5f,
-		.ground_friction = 6.0f,
+		.ground_friction = 4.5f,
 	},
 
 	PerkDef {

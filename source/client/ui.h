@@ -1,7 +1,6 @@
 #pragma once
 
 #include "qcommon/types.h"
-#include "gameshared/gs_synctypes.h"
 
 void UI_Init();
 void UI_Shutdown();
@@ -16,7 +15,7 @@ void UI_ShowDemoMenu();
 void UI_HideMenu();
 
 struct ImGuiColorToken {
-	u8 token[ 6 ];
+	u8 token[ 5 ];
 	ImGuiColorToken( u8 r, u8 g, u8 b, u8 a );
 	ImGuiColorToken( RGB8 rgb );
 	ImGuiColorToken( RGBA8 rgba );
@@ -24,13 +23,13 @@ struct ImGuiColorToken {
 
 void format( FormatBuffer * fb, const ImGuiColorToken & token, const FormatOpts & opts );
 
-void CenterTextY( const char * str, float height );
+void CenterTextY( Span< const char > str, float height );
 
 void CellCenter( float item_width );
-void CellCenterText( const char * str );
-void ColumnCenterText( const char * str );
-void ColumnRightText( const char * str );
-void WindowCenterTextXY( const char * str );
+void CellCenterText( Span< const char > str );
+void ColumnCenterText( Span< const char > str );
+void ColumnRightText( Span< const char > str );
+void WindowCenterTextXY( Span< const char > str );
 
 Vec4 CustomAttentionGettingColor( Vec4 from, Vec4 to, Time period );
 Vec4 AttentionGettingColor();

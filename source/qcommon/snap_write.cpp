@@ -19,19 +19,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/qcommon.h"
-#include "qcommon/cmodel.h"
 #include "server/server.h"
-
-#if PLATFORM_WINDOWS
-#include <malloc.h> // alloca
-#endif
 
 /*
 * SNAP_EmitPacketEntities
 *
 * Writes a delta update of an SyncEntityState list to the message.
 */
-static void SNAP_EmitPacketEntities( ginfo_t *gi, client_snapshot_t *from, client_snapshot_t *to, msg_t *msg, const SyncEntityState *baselines, const SyncEntityState *client_entities, int num_client_entities ) {
+static void SNAP_EmitPacketEntities( const ginfo_t * gi, const client_snapshot_t * from, const client_snapshot_t * to, msg_t * msg, const SyncEntityState * baselines, const SyncEntityState * client_entities, int num_client_entities ) {
 	MSG_WriteUint8( msg, svc_packetentities );
 
 	int from_num_entities = from == NULL ? 0 : from->num_entities;
@@ -84,20 +79,20 @@ static void SNAP_EmitPacketEntities( ginfo_t *gi, client_snapshot_t *from, clien
 		}
 	}
 
-	MSG_WriteEntityNumber( msg, 0, false ); // end of packetentities
+	MSG_WriteEntityNumber( msg, MAX_EDICTS, false ); // end of packetentities
 }
 
-static void SNAP_WriteDeltaGameStateToClient( const client_snapshot_t *from, client_snapshot_t *to, msg_t *msg ) {
+static void SNAP_WriteDeltaGameStateToClient( const client_snapshot_t * from, const client_snapshot_t * to, msg_t * msg ) {
 	MSG_WriteUint8( msg, svc_match );
 	MSG_WriteDeltaGameState( msg, from ? &from->gameState : NULL, &to->gameState );
 }
 
-static void SNAP_WritePlayerstateToClient( msg_t *msg, const SyncPlayerState *ops, SyncPlayerState *ps ) {
+static void SNAP_WritePlayerstateToClient( msg_t * msg, const SyncPlayerState * ops, const SyncPlayerState * ps ) {
 	MSG_WriteUint8( msg, svc_playerinfo );
 	MSG_WriteDeltaPlayerState( msg, ops, ps );
 }
 
-static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, const client_t *client, msg_t *msg, int64_t frameNum ) {
+static void SNAP_WriteMultiPOVCommands( const ginfo_t * gi, const client_t * client, msg_t * msg, int64_t frameNum ) {
 	int positions[MAX_CLIENTS];
 
 	// find the first command to send from every client
@@ -197,8 +192,8 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, const client_t *client, msg
 	}
 }
 
-void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
-								  const SyncEntityState *baselines, const client_entities_t *client_entities ) {
+void SNAP_WriteFrameSnapToClient( const ginfo_t * gi, client_t * client, msg_t * msg, int64_t frameNum, int64_t gameTime,
+								  const SyncEntityState * baselines, const client_entities_t * client_entities ) {
 	// this is the frame we are creating
 	client_snapshot_t * frame = &client->snapShots[ frameNum % ARRAY_COUNT( client->snapShots ) ];
 
@@ -300,39 +295,6 @@ Build a client frame structure
 =============================================================================
 */
 
-/*
-* SNAP_FatPVS
-*
-* The client will interpolate the view position,
-* so we can't use a single PVS point
-*/
-static void SNAP_FatPVS( const CollisionModel *cms, Vec3 org, uint8_t *fatpvs ) {
-	memset( fatpvs, 0, CM_ClusterRowSize( cms ) );
-	CM_MergePVS( cms, org, fatpvs );
-}
-
-static bool SNAP_PVSCullEntity( const CollisionModel *cms, const edict_t *ent, const uint8_t *bits ) {
-	// too many leafs for individual check, go by headnode
-	if( ent->r.num_clusters == -1 ) {
-		if( !CM_HeadnodeVisible( cms, ent->r.headnode, bits ) ) {
-			return true;
-		}
-		return false;
-	}
-
-	// check individual leafs
-	for( int i = 0; i < ent->r.num_clusters; i++ ) {
-		int l = ent->r.clusternums[i];
-		if( bits[l >> 3] & ( 1 << ( l & 7 ) ) ) {
-			return false;
-		}
-	}
-
-	return true;    // not visible/audible
-}
-
-//=====================================================================
-
 #define MAX_SNAPSHOT_ENTITIES   1024
 typedef struct {
 	int numSnapshotEntities;
@@ -361,8 +323,7 @@ static bool SNAP_AddEntNumToSnapList( int entNum, snapshotEntityNumbers_t *entLi
 static void SNAP_SortSnapList( snapshotEntityNumbers_t *entsList ) {
 	entsList->numSnapshotEntities = 0;
 
-	// avoid adding world to the list by all costs
-	for( int i = 1; i < MAX_EDICTS; i++ ) {
+	for( int i = 0; i < MAX_EDICTS; i++ ) {
 		if( entsList->entityAddedToSnapList[i >> 3] & (1 << (i & 7)) ) {
 			entsList->snapshotEntities[entsList->numSnapshotEntities++] = i;
 		}
@@ -370,20 +331,18 @@ static void SNAP_SortSnapList( snapshotEntityNumbers_t *entsList ) {
 }
 
 static float SNAP_GainForAttenuation( float dist ) {
-	dist = Max2( dist, S_DEFAULT_ATTENUATION_REFDISTANCE );
-	dist = Min2( dist, S_DEFAULT_ATTENUATION_MAXDISTANCE );
+	dist = Clamp( S_DEFAULT_ATTENUATION_REFDISTANCE, dist, S_DEFAULT_ATTENUATION_MAXDISTANCE );
 	return S_DEFAULT_ATTENUATION_REFDISTANCE / ( S_DEFAULT_ATTENUATION_REFDISTANCE + ATTN_DISTANT * ( dist - S_DEFAULT_ATTENUATION_REFDISTANCE ) );
 }
 
-static bool SNAP_SnapCullSoundEntity( const CollisionModel *cms, const edict_t *ent, Vec3 listener_origin ) {
+static bool SNAP_SnapCullSoundEntity( const edict_t * ent, Vec3 listener_origin ) {
 	// extend the influence sphere cause the player could be moving
 	float dist = Length( listener_origin - ent->s.origin ) - 128;
 	float gain = SNAP_GainForAttenuation( dist < 0 ? 0 : dist );
 	return gain <= 0.05f;
 }
 
-static bool SNAP_SnapCullEntity( const CollisionModel *cms, const edict_t *ent, const edict_t *clent, const client_snapshot_t *frame,
-								Vec3 vieworg, int viewarea, const uint8_t *fatpvs ) {
+static bool SNAP_SnapCullEntity( const edict_t * ent, const edict_t * clent, const client_snapshot_t * frame, Vec3 vieworg ) {
 	// filters: this entity has been disabled for comunication
 	if( ent->s.svflags & SVF_NOCLIENT ) {
 		return true;
@@ -424,65 +383,22 @@ static bool SNAP_SnapCullEntity( const CollisionModel *cms, const edict_t *ent, 
 		return false;
 	}
 
-	if( ent->r.areanum < 0 ) {
-		return true;
-	}
-
-	if( viewarea >= 0 ) {
-		// this is the same as CM_AreasConnected but portal's visibility included
-		uint8_t * areabits = frame->areabits + viewarea * CM_AreaRowSize( cms );
-		if( !( areabits[ent->r.areanum >> 3] & ( 1 << ( ent->r.areanum & 7 ) ) ) ) {
-			// doors can legally straddle two areas, so we may need to check another one
-			if( ent->r.areanum2 < 0 || !( areabits[ent->r.areanum2 >> 3] & ( 1 << ( ent->r.areanum2 & 7 ) ) ) ) {
-				return true; // blocked by a door
-			}
-		}
-	}
-
-	bool snd_cull_only = false;
-	bool snd_culled = true;
-
 	// sound entities culling
 	if( ent->s.svflags & SVF_SOUNDCULL ) {
-		snd_cull_only = true;
+		return SNAP_SnapCullSoundEntity( ent, vieworg );
 	}
 
-	// if not a sound entity but the entity is only a sound
-	else if( ent->s.model == EMPTY_HASH && !ent->s.events[0].type && !ent->s.effects && ent->s.sound != EMPTY_HASH ) {
-		snd_cull_only = true;
-	}
-
-	// PVS culling alone may not be used on pure sounds, entities with
-	// events and regular entities emitting sounds
-	if( snd_cull_only || ent->s.events[0].type || ent->s.sound != EMPTY_HASH ) {
-		snd_culled = SNAP_SnapCullSoundEntity( cms, ent, vieworg );
-	}
-
-	// pure sound emitters don't use PVS culling at all
-	if( snd_cull_only && snd_culled ) {
-		return true;
-	}
-
-	return snd_culled && SNAP_PVSCullEntity( cms, ent, fatpvs );    // cull by PVS
+	return false;
 }
 
-static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, const ginfo_t *gi, const edict_t *clent, Vec3 vieworg,
-											int viewarea, const client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
-	uint8_t * pvs = ( uint8_t * ) alloca( CM_ClusterRowSize( cms ) );
-	SNAP_FatPVS( cms, vieworg, pvs );
-
+static void SNAP_AddEntitiesVisibleAtOrigin( const ginfo_t * gi, const edict_t * clent, Vec3 vieworg, const client_snapshot_t * frame, snapshotEntityNumbers_t * entList ) {
 	// add the entities to the list
-	for( int entNum = 1; entNum < gi->num_edicts; entNum++ ) {
-		edict_t * ent = EDICT_NUM( entNum );
-
-		// fix number if broken
-		if( ent->s.number != entNum ) {
-			Com_Printf( "FIXING ENT->S.NUMBER: %i %i!!!\n", ent->s.number, entNum );
-			ent->s.number = entNum;
-		}
+	for( int entNum = 0; entNum < gi->num_edicts; entNum++ ) {
+		const edict_t * ent = EDICT_NUM( entNum );
+		Assert( ent->s.number == entNum );
 
 		// always add the client entity, even if SVF_NOCLIENT
-		if( ent != clent && SNAP_SnapCullEntity( cms, ent, clent, frame, vieworg, viewarea, pvs ) ) {
+		if( ent != clent && SNAP_SnapCullEntity( ent, clent, frame, vieworg ) ) {
 			continue;
 		}
 
@@ -492,27 +408,15 @@ static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, const ginfo_t 
 		}
 
 		if( ent->s.svflags & SVF_FORCEOWNER ) {
-			// make sure owner number is valid too
-			if( ent->s.ownerNum > 0 && ent->s.ownerNum < gi->num_edicts ) {
-				SNAP_AddEntNumToSnapList( ent->s.ownerNum, entList );
-			} else {
-				Com_Printf( "FIXING ENT->S.OWNERNUM: %i %i!!!\n", ent->s.type, ent->s.ownerNum );
-				ent->s.ownerNum = 0;
-			}
+			Assert( ent->s.ownerNum > 0 && ent->s.ownerNum < gi->num_edicts );
+			SNAP_AddEntNumToSnapList( ent->s.ownerNum, entList );
 		}
 	}
 }
 
-static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, const ginfo_t *gi, const edict_t *clent, Vec3 vieworg,
-										const client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
+static void SNAP_BuildSnapEntitiesList( const ginfo_t * gi, const edict_t * clent, Vec3 vieworg, const client_snapshot_t * frame, snapshotEntityNumbers_t * entList ) {
 	entList->numSnapshotEntities = 0;
 	memset( entList->entityAddedToSnapList, 0, sizeof( entList->entityAddedToSnapList ) );
-
-	// find the client's PVS
-	int leafnum = CM_PointLeafnum( cms, vieworg );
-	int clientarea = CM_LeafArea( cms, leafnum );
-
-	CM_WriteAreaBits( cms, frame->areabits );
 
 	// always add the client entity
 	if( clent ) {
@@ -523,7 +427,7 @@ static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, const ginfo_t *gi, 
 		SNAP_AddEntNumToSnapList( entNum, entList );
 	}
 
-	SNAP_AddEntitiesVisibleAtOrigin( cms, gi, clent, vieworg, clientarea, frame, entList );
+	SNAP_AddEntitiesVisibleAtOrigin( gi, clent, vieworg, frame, entList );
 
 	SNAP_SortSnapList( entList );
 }
@@ -534,9 +438,9 @@ static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, const ginfo_t *gi, 
 * Decides which entities are going to be visible to the client, and
 * copies off the playerstat and areabits.
 */
-void SNAP_BuildClientFrameSnap( CollisionModel *cms, const ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
-	client_t *client,
-	const SyncGameState *gameState, client_entities_t *client_entities
+void SNAP_BuildClientFrameSnap( const ginfo_t * gi, int64_t frameNum, int64_t timeStamp,
+	client_t * client,
+	const SyncGameState * gameState, client_entities_t * client_entities
 ) {
 	Assert( gameState );
 
@@ -564,19 +468,6 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, const ginfo_t *gi, int64_t 
 	} else {
 		frame->multipov = false;
 		frame->allentities = false;
-	}
-
-	// areaportals matrix
-	int numareas = CM_NumAreas( cms );
-	if( frame->numareas < numareas ) {
-		frame->numareas = numareas;
-
-		numareas *= CM_AreaRowSize( cms );
-		if( frame->areabits ) {
-			Free( sys_allocator, frame->areabits );
-			frame->areabits = NULL;
-		}
-		frame->areabits = AllocMany< uint8_t >( sys_allocator, numareas );
 	}
 
 	// grab the current SyncPlayerState
@@ -609,7 +500,7 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, const ginfo_t *gi, int64_t 
 
 	// build up the list of visible entities
 	snapshotEntityNumbers_t entsList;
-	SNAP_BuildSnapEntitiesList( cms, gi, clent, org, frame, &entsList );
+	SNAP_BuildSnapEntitiesList( gi, clent, org, frame, &entsList );
 
 	// store current match state information
 	frame->gameState = *gameState;
@@ -633,23 +524,4 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, const ginfo_t *gi, int64_t 
 	}
 
 	client_entities->next_entities = ne;
-}
-
-/*
-* SNAP_FreeClientFrame
-*
-* Free structs and arrays we allocated in SNAP_BuildClientFrameSnap
-*/
-static void SNAP_FreeClientFrame( client_snapshot_t *frame ) {
-	if( frame->areabits ) {
-		Free( sys_allocator, frame->areabits );
-		frame->areabits = NULL;
-	}
-	frame->numareas = 0;
-}
-
-void SNAP_FreeClientFrames( client_t *client ) {
-	for( client_snapshot_t & frame : client->snapShots ) {
-		SNAP_FreeClientFrame( &frame );
-	}
 }

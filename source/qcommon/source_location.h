@@ -6,10 +6,10 @@ struct SourceLocation {
 	const char * function;
 };
 
-constexpr SourceLocation CurrentSourceLocation( const char * file_ = __builtin_FILE(), int line_ = __builtin_LINE(), const char * function_ = __builtin_FUNCTION() ) {
+constexpr SourceLocation CurrentSourceLocation( const char * file = __builtin_FILE(), int line = __builtin_LINE(), const char * function = __builtin_FUNCTION() ) {
 	return {
-		.file = file_,
-		.line = line_,
-		.function = function_,
+		.file = file,
+		.line = line,
+		.function = function,
 	};
 }

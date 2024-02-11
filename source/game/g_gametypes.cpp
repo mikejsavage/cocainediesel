@@ -19,8 +19,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
-#include "qcommon/cmodel.h"
 #include "qcommon/time.h"
+#include "game/g_maps.h"
+#include "gameshared/cdmap.h"
 
 Cvar *g_warmup_timelimit;
 Cvar *g_scorelimit;
@@ -49,18 +50,14 @@ void G_Match_Autorecord_Start() {
 	char date[ 128 ];
 	FormatCurrentTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
 
-	snprintf( level.autorecord_name, sizeof( level.autorecord_name ), "%s_%s_auto%04i", date, sv.mapname, RandomUniform( &svs.rng, 1, 10000 ) );
-
-	Cbuf_Add( "serverrecord {}", level.autorecord_name );
+	TempAllocator temp = svs.frame_arena.temp();
+	SV_Demo_Record( temp.sv( "{}_{}_auto{04}", date, sv.mapname, RandomUniform( &svs.rng, 1, 10000 ) ) );
 }
 
 void G_Match_Autorecord_Stop() {
 	if( g_autorecord->integer ) {
-		Cbuf_Add( "{}", "serverrecordstop 1" );
-
-		if( g_autorecord_maxdemos->integer > 0 ) {
-			Cbuf_Add( "{}", "serverrecordpurge" );
-		}
+		SV_Demo_Stop( true );
+		SV_DeleteOldDemos();
 	}
 }
 
@@ -387,10 +384,6 @@ void G_RunGametype() {
 	}
 }
 
-Span< const char > G_GetWorldspawnKey( const char * key ) {
-	return ParseWorldspawnKey( MakeSpan( CM_EntityString( svs.cms ) ), key );
-}
-
 void GT_CallMatchStateStarted() {
 	if( server_gs.gameState.match_state == MatchState_Playing ) {
 		for( int i = 0; i < server_gs.maxclients; i++ ) {
@@ -433,7 +426,7 @@ const edict_t * GT_CallSelectDeadcam() {
 }
 
 static bool IsGladiatorMap() {
-	return G_GetWorldspawnKey( "gametype" ) == "gladiator";
+	return GetWorldspawnKey( FindServerMap( server_gs.gameState.map ), "gametype" ) == "gladiator";
 }
 
 void InitGametype() {

@@ -144,18 +144,6 @@ static constexpr int DOOR_START_OPEN = 1;
 static constexpr int DOOR_CRUSHER = 4;
 static constexpr int DOOR_TOGGLE = 32;
 
-static void door_use_areaportals( edict_t *self, bool open ) {
-	int iopen = open ? 1 : 0;
-
-	// make sure we don't open the same areaportal twice
-	if( self->style == iopen ) {
-		return;
-	}
-
-	self->style = iopen;
-	GClip_SetAreaPortalState( self, open );
-}
-
 static void door_go_down( edict_t *self );
 
 static void door_hit_top( edict_t *self ) {
@@ -171,7 +159,6 @@ static void door_hit_top( edict_t *self ) {
 
 static void door_hit_bottom( edict_t *self ) {
 	self->moveinfo.state = STATE_BOTTOM;
-	door_use_areaportals( self, false );
 }
 
 void door_go_down( edict_t *self ) {
@@ -211,7 +198,6 @@ static void door_go_up( edict_t *self, edict_t *activator ) {
 	Move_Calc( self, self->moveinfo.end_origin, door_hit_top );
 
 	G_UseTargets( self, activator );
-	door_use_areaportals( self, true );
 }
 
 static void door_use( edict_t *self, edict_t *other, edict_t *activator ) {
@@ -229,7 +215,7 @@ static void door_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	door_go_up( self, activator );
 }
 
-static void Touch_DoorTrigger( edict_t *self, edict_t *other, const Plane *plane, int surfFlags ) {
+static void Touch_DoorTrigger( edict_t *self, edict_t *other, Vec3 normal, SolidBits solid_mask ) {
 	if( G_IsDead( other ) ) {
 		return;
 	}
@@ -244,29 +230,20 @@ static void Touch_DoorTrigger( edict_t *self, edict_t *other, const Plane *plane
 }
 
 static void Think_SpawnDoorTrigger( edict_t *ent ) {
-	edict_t *other;
-	float expand_size = 80;     // was 60
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
+	Vec3 center = ent->s.origin + Center( bounds );
+	bounds -= center;
+	bounds = Expand( bounds, Vec3( 80.0f, 80.0f, 0.0f ) );
 
-	Vec3 mins = ent->r.absmin;
-	Vec3 maxs = ent->r.absmax;
-
-	// expand
-	mins.x -= expand_size;
-	mins.y -= expand_size;
-	maxs.x += expand_size;
-	maxs.y += expand_size;
-
-	other = G_Spawn();
-	other->r.mins = mins;
-	other->r.maxs = maxs;
-	other->r.owner = ent;
-	other->s.team = ent->s.team;
-	other->r.solid = SOLID_TRIGGER;
-	other->movetype = MOVETYPE_NONE;
-	other->touch = Touch_DoorTrigger;
-	GClip_LinkEntity( other );
-
-	door_use_areaportals( ent, ( ent->spawnflags & DOOR_START_OPEN ) != 0 );
+	edict_t * trigger = G_Spawn();
+	trigger->s.origin = center;
+	trigger->s.override_collision_model = CollisionModelAABB( bounds );
+	trigger->r.owner = ent;
+	trigger->s.team = ent->s.team;
+	trigger->s.solidity = Solid_Trigger;
+	trigger->movetype = MOVETYPE_NONE;
+	trigger->touch = Touch_DoorTrigger;
+	GClip_LinkEntity( trigger );
 }
 
 static void door_blocked( edict_t *self, edict_t *other ) {
@@ -318,15 +295,14 @@ void SP_func_door( edict_t * ent, const spawn_temp_t * st ) {
 		}
 	}
 
-	ent->s.effects = EF_WORLD_MODEL;
-
 	// calculate second position
 	ent->moveinfo.start_origin = ent->s.origin;
 	Vec3 abs_movedir;
 	abs_movedir.x = Abs( ent->moveinfo.movedir.x );
 	abs_movedir.y = Abs( ent->moveinfo.movedir.y );
 	abs_movedir.z = Abs( ent->moveinfo.movedir.z );
-	ent->moveinfo.distance = Dot( abs_movedir, ent->r.size ) - lip;
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
+	ent->moveinfo.distance = Dot( abs_movedir, Dimensions( bounds ) ) - lip;
 	ent->moveinfo.end_origin = ent->moveinfo.start_origin + ent->moveinfo.movedir * ent->moveinfo.distance;
 
 	// if it starts open, switch the positions
@@ -346,9 +322,6 @@ void SP_func_door( edict_t * ent, const spawn_temp_t * st ) {
 
 	GClip_LinkEntity( ent );
 
-	ent->style = -1;
-	door_use_areaportals( ent, ( ent->spawnflags & DOOR_START_OPEN ) != 0 );
-
 	if( ent->name == EMPTY_HASH ) {
 		ent->nextThink = level.time + 1;
 		ent->think = Think_SpawnDoorTrigger;
@@ -364,21 +337,21 @@ static void rotating_blocked( edict_t *self, edict_t *other ) {
 	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, WorldDamage_Crush );
 }
 
-static void rotating_touch( edict_t *self, edict_t *other, const Plane *plane, int surfFlags ) {
-	if( self->avelocity != Vec3( 0.0f ) ) {
+static void rotating_touch( edict_t *self, edict_t *other, Vec3 normal, SolidBits solid_mask ) {
+	if( self->avelocity != EulerDegrees3( 0.0f, 0.0f, 0.0f ) ) {
 		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, WorldDamage_Crush );
 	}
 }
 
 static void rotating_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	if( self->moveinfo.state == STATE_FULLSPEED ) {
-		self->avelocity = Vec3( 0.0f );
+		self->avelocity = EulerDegrees3( 0.0f, 0.0f, 0.0f );
 		self->touch = NULL;
 		self->think = NULL;
 		self->moveinfo.state = STATE_STOPPED;
 	} else {
 		self->s.sound = self->moveinfo.sound_middle;
-		self->avelocity = self->moveinfo.movedir * self->speed;
+		self->avelocity = EulerDegrees3( self->moveinfo.movedir * self->speed );
 		self->moveinfo.state = STATE_FULLSPEED;
 	}
 
@@ -509,7 +482,7 @@ again:
 
 	ent = G_PickTarget( self->target );
 	if( !ent ) {
-		Com_GGPrint( "train_next: bad target {}\n", self->target );
+		Com_GGPrint( "train_next: bad target {}", self->target );
 		return;
 	}
 
@@ -524,7 +497,8 @@ again:
 		}
 
 		first = false;
-		self->s.origin = ent->s.origin - self->r.mins;
+		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &self->s );
+		self->s.origin = ent->s.origin - bounds.mins;
 		self->olds.origin = self->s.origin;
 		GClip_LinkEntity( self );
 		self->s.teleported = true;
@@ -539,7 +513,8 @@ again:
 	}
 	self->s.sound = self->moveinfo.sound_middle;
 
-	Vec3 dest = ent->s.origin - self->r.mins;
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &self->s );
+	Vec3 dest = ent->s.origin - bounds.mins;
 	self->moveinfo.state = STATE_TOP;
 	self->moveinfo.start_origin = self->s.origin;
 	self->moveinfo.end_origin = dest;
@@ -550,7 +525,8 @@ again:
 static void train_resume( edict_t *self ) {
 	edict_t * ent = self->target_ent;
 
-	Vec3 dest = ent->s.origin - self->r.mins;
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &self->s );
+	Vec3 dest = ent->s.origin - bounds.mins;
 	self->moveinfo.state = STATE_TOP;
 	self->moveinfo.start_origin = self->s.origin;
 	self->moveinfo.end_origin = dest;
@@ -568,13 +544,14 @@ static void func_train_find( edict_t *self ) {
 
 	ent = G_PickTarget( self->target );
 	if( !ent ) {
-		Com_GGPrint( "train_find: target {} not found\n", self->target );
+		Com_GGPrint( "train_find: target {} not found", self->target );
 		return;
 	}
 
 	self->target = ent->target;
 
-	self->s.origin = ent->s.origin - self->r.mins;
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &self->s );
+	self->s.origin = ent->s.origin - bounds.mins;
 	GClip_LinkEntity( self );
 
 	// if not triggered, start immediately
@@ -611,7 +588,7 @@ static void train_use( edict_t *self, edict_t *other, edict_t *activator ) {
 void SP_func_train( edict_t * self, const spawn_temp_t * st ) {
 	G_InitMover( self );
 
-	self->s.angles = Vec3( 0.0f );
+	self->s.angles = EulerDegrees3( 0.0f, 0.0f, 0.0f );
 	self->moveinfo.blocked = train_blocked;
 	if( self->spawnflags & TRAIN_BLOCK_STOPS ) {
 		self->dmg = 0;

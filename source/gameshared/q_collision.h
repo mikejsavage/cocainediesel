@@ -1,61 +1,45 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-
 #pragma once
 
-#include "gameshared/q_math.h"
+#include "qcommon/types.h"
 
-// lower bits are stronger, and will eat weaker brushes completely
-#define CONTENTS_SOLID          1           // an eye is never valid in a solid
+enum SolidBits : u16 {
+	Solid_NotSolid = 0,
 
-#define CONTENTS_WALLBANGABLE   0x4000
+	// useful to stop the bomb etc falling through the floor without also blocking movement/shots
+	Solid_World = 1 << 0,
 
-#define CONTENTS_PLAYERCLIP     0x10000
-#define CONTENTS_WEAPONCLIP     0x20000
+	Solid_PlayerClip = 1 << 1,
+	Solid_WeaponClip = 1 << 2,
+	Solid_Wallbangable = 1 << 3,
+	Solid_Ladder = 1 << 4,
+	Solid_Trigger = 1 << 5,
 
-#define CONTENTS_TEAM_ONE       0x100000
-#define CONTENTS_TEAM_TWO       0x200000
-#define CONTENTS_TEAM_THREE     0x400000
-#define CONTENTS_TEAM_FOUR      0x800000
+	Solid_PlayerTeamOne = 1 << 6,
+	Solid_PlayerTeamTwo = 1 << 7,
+	Solid_PlayerTeamThree = 1 << 8,
+	Solid_PlayerTeamFour = 1 << 9,
 
-#define CONTENTS_BODY           0x2000000   // should never be on a brush, only in game
-#define CONTENTS_CORPSE         0x4000000
-#define CONTENTS_TRIGGER        0x40000000
+	Solid_MaskGenerator
+};
 
-// content masks
-#define MASK_ALL            ( -1 )
-#define MASK_SOLID          ( CONTENTS_SOLID | CONTENTS_WEAPONCLIP | CONTENTS_WALLBANGABLE )
-#define MASK_PLAYERSOLID    ( CONTENTS_SOLID | CONTENTS_PLAYERCLIP | CONTENTS_BODY | CONTENTS_WALLBANGABLE )
-#define MASK_DEADSOLID      ( CONTENTS_SOLID | CONTENTS_PLAYERCLIP | CONTENTS_WALLBANGABLE )
-#define MASK_OPAQUE         ( CONTENTS_SOLID | CONTENTS_WALLBANGABLE )
-#define MASK_SHOT           ( CONTENTS_SOLID | CONTENTS_WEAPONCLIP | CONTENTS_BODY | CONTENTS_CORPSE | CONTENTS_WALLBANGABLE )
-#define MASK_WALLBANG       ( CONTENTS_SOLID | CONTENTS_WEAPONCLIP | CONTENTS_BODY | CONTENTS_CORPSE )
+constexpr SolidBits SolidMask_Player = SolidBits( Solid_PlayerTeamOne | Solid_PlayerTeamTwo | Solid_PlayerTeamThree | Solid_PlayerTeamFour );
+constexpr SolidBits SolidMask_AnySolid = SolidBits( Solid_World | Solid_PlayerClip | Solid_WeaponClip | Solid_Wallbangable | SolidMask_Player );
+constexpr SolidBits SolidMask_Opaque = SolidBits( Solid_World | Solid_WeaponClip | Solid_Wallbangable );
+constexpr SolidBits SolidMask_WallbangShot = SolidBits( Solid_WeaponClip | SolidMask_Player );
+constexpr SolidBits SolidMask_Shot = SolidBits( SolidMask_WallbangShot | Solid_Wallbangable );
 
-// a trace is returned when a box is swept through the world
-typedef struct {
-	bool allsolid;          // if true, plane is not valid
-	bool startsolid;        // if true, the initial point was in a solid area
-	float fraction;             // time completed, 1.0 = didn't hit anything
-	Vec3 endpos;              // final position
-	Plane plane;             // surface normal at impact
-	int surfFlags;              // surface hit
-	int contents;               // contents on other side of surface hit
-	int ent;                    // not set by CM_*() functions
-} trace_t;
+constexpr SolidBits SolidMask_Everything = SolidBits( ( Solid_MaskGenerator - 1 ) * 2 - 1 );
+
+struct trace_t {
+	float fraction;
+	Vec3 endpos;
+	Vec3 contact;
+	Vec3 normal;
+	SolidBits solidity;
+	int ent;
+
+	bool HitSomething() const { return ent > -1; }
+	bool HitNothing() const { return ent == -1; }
+	bool GotSomewhere() const { return fraction > 0.0f; }
+	bool GotNowhere() const { return fraction == 0.0f; }
+};

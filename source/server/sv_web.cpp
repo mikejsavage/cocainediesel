@@ -9,8 +9,6 @@
 
 #include "picohttpparser/picohttpparser.h"
 
-#include "tracy/tracy/Tracy.hpp"
-
 #include <atomic>
 
 static constexpr Time REQUEST_TIMEOUT = Seconds( 10 );
@@ -108,19 +106,18 @@ static HTTPResponseCode RouteRequest( HTTPConnection * con, Span< const char > m
 	TempAllocator temp = web_server_arena.temp();
 
 	Span< const char > path = path_with_leading_slash + 1;
-	char * null_terminated_path = temp( "{}", path );
 
 	// check for malicious URLs
-	if( !COM_ValidateRelativeFilename( null_terminated_path ) ) {
+	if( !COM_ValidateRelativeFilename( path ) ) {
 		return HTTPResponseCode_Forbidden;
 	}
 
-	if( !EndsWith( path, ".bsp.zst" ) && !EndsWith( path, APP_DEMO_EXTENSION_STR ) ) {
+	if( !EndsWith( path, ".cdmap.zst" ) && !EndsWith( path, APP_DEMO_EXTENSION_STR ) ) {
 		return HTTPResponseCode_Forbidden;
 	}
 
 	HTTPResponse * response = &con->response;
-	response->file = OpenFile( sys_allocator, null_terminated_path, OpenFile_Read );
+	response->file = OpenFile( sys_allocator, temp( "{}", path ), OpenFile_Read );
 	if( response->file == NULL ) {
 		return HTTPResponseCode_NotFound;
 	}
@@ -377,9 +374,7 @@ static void WebServerFrame() {
 }
 
 static void WebServerThread( void * param ) {
-#if TRACY_ENABLE
-	tracy::SetThreadName( "Web server thread" );
-#endif
+	TracyCSetThreadName( "Web server thread" );
 
 	while( web_server_running ) {
 		WebServerFrame();

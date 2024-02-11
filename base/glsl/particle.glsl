@@ -48,14 +48,14 @@ void main() {
 	float scale = mix( particle.start_size, particle.end_size, fage );
 
 #if MODEL
-	vec3 position = particle.position + ( u_M * vec4( a_Position * scale, 1.0 ) ).xyz;
+	vec3 position = particle.position + ( AffineToMat4( u_M ) * vec4( a_Position * scale, 1.0 ) ).xyz;
 
 	v_Position = position;
-	gl_Position = u_P * u_V * vec4( position, 1.0 );
+	gl_Position = u_P * AffineToMat4( u_V ) * vec4( position, 1.0 );
 #else
 	// stretched billboards based on
 	// https://github.com/turanszkij/WickedEngine/blob/master/WickedEngine/emittedparticleVS.hlsl
-	vec3 view_velocity = ( u_V * vec4( particle.velocity * 0.01, 0.0 ) ).xyz;
+	vec3 view_velocity = ( AffineToMat4( u_V ) * vec4( particle.velocity * 0.01, 0.0 ) ).xyz;
 	vec3 quadPos = vec3( scale * position, 0.0 );
 	float angle = particle.angle;
 	if ( ( particle.flags & ParticleFlag_Rotate ) != 0u ) {
@@ -70,7 +70,7 @@ void main() {
 		quadPos += normalize( stretch ) * clamp( length( stretch ), 0.0, scale );
 	}
 	v_Position = particle.position;
-	gl_Position = u_P * ( u_V * vec4( particle.position, 1.0 ) + vec4( quadPos, 0.0 ) );
+	gl_Position = u_P * ( AffineToMat4( u_V ) * vec4( particle.position, 1.0 ) + vec4( quadPos, 0.0 ) );
 #endif
 }
 

@@ -30,34 +30,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * map: restart game, and start map
 * devmap: restart game, enable cheats, and start map
 */
-static void SV_Map_f() {
-	if( Cmd_Argc() < 2 ) {
-		Com_Printf( "Usage: %s <map>\n", Cmd_Argv( 0 ) );
+static void SV_Map_f( const Tokenized & args ) {
+	if( args.tokens.n < 2 ) {
+		Com_GGPrint( "Usage: {} <map>", args.tokens[ 0 ] );
 		return;
 	}
 
 	TempAllocator temp = svs.frame_arena.temp();
 
-	const char * map = Cmd_Argv( 1 );
-	const char * bsp_path = temp( "{}/base/maps/{}.bsp", RootDirPath(), map );
-	const char * zst_path = temp( "{}.zst", bsp_path );
+	Span< const char > map = args.tokens[ 1 ];
+	const char * cdmap_path = temp( "{}/base/maps/{}.cdmap", RootDirPath(), map );
+	const char * zst_path = temp( "{}.zst", cdmap_path );
 
-	if( !FileExists( &temp, bsp_path ) && !FileExists( &temp, zst_path ) ) {
-		Com_Printf( "Couldn't find map: %s\n", map );
+	if( !FileExists( &temp, cdmap_path ) && !FileExists( &temp, zst_path ) ) {
+		Com_GGPrint( "Couldn't find map: {}", map );
 		return;
 	}
 
-	if( StrCaseEqual( Cmd_Argv( 0 ), "map" ) || StrCaseEqual( Cmd_Argv( 0 ), "devmap" ) ) {
-		sv.state = ss_dead; // don't save current level when changing
-	}
+	sv.state = ss_dead; // don't save current level when changing
 
 	SV_UpdateMaster();
-
-	// start up the next map
-	SV_Map( map, StrCaseEqual( Cmd_Argv( 0 ), "devmap" ) );
+	SV_Map( temp( "{}", map ), StrCaseEqual( args.tokens[ 0 ], "devmap" ) );
 }
-
-//===============================================================
 
 void SV_Status_f() {
 	if( !svs.clients ) {
@@ -76,7 +70,7 @@ void SV_Status_f() {
 			continue;
 		}
 		Com_Printf( "%3i ", i );
-		Com_Printf( "%5i ", cl->edict->r.client->r.frags );
+		Com_Printf( "%5i ", cl->edict->r.client->frags );
 
 		if( cl->state == CS_CONNECTED ) {
 			Com_Printf( "CNCT " );
@@ -96,24 +90,22 @@ void SV_Status_f() {
 	Com_Printf( "\n" );
 }
 
-static void SV_Heartbeat_f() {
+static void SV_Heartbeat_f( const Tokenized & args ) {
 	svc.nextHeartbeat = Now();
 }
 
-//===========================================================
-
 void SV_InitOperatorCommands() {
 	AddCommand( "heartbeat", SV_Heartbeat_f );
-	AddCommand( "status", SV_Status_f );
+	AddCommand( "status", []( const Tokenized & args ) { SV_Status_f(); } );
 
 	AddCommand( "map", SV_Map_f );
 	AddCommand( "devmap", SV_Map_f );
 
 	AddCommand( "serverrecord", SV_Demo_Start_f );
-	AddCommand( "serverrecordstop", SV_Demo_Stop_f );
+	AddCommand( "serverrecordstop", []( const Tokenized & args ) { SV_Demo_Stop( false ); } );
 
 	if( is_dedicated_server ) {
-		AddCommand( "serverrecordpurge", SV_Demo_Purge_f );
+		AddCommand( "serverrecordpurge", []( const Tokenized & args ) { SV_DeleteOldDemos(); } );
 	}
 
 	SetTabCompletionCallback( "map", CompleteMapName );

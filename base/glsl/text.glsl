@@ -5,7 +5,6 @@ layout( set = DescriptorSet_Material ) uniform sampler2D u_BaseTexture;
 layout( std140, set = DescriptorSet_DrawCall ) uniform u_Text {
 	vec4 u_TextColor;
 	vec4 u_BorderColor;
-	vec2 u_AtlasSize;
 	float u_dSDF_dTexel;
 	int u_HasBorder;
 };
@@ -51,7 +50,7 @@ vec4 SampleMSDF( vec2 uv, float half_pixel_size ) {
 
 void main() {
 	vec2 fw = fwidth( v_TexCoord );
-	float half_pixel_size = 0.5 * u_dSDF_dTexel * dot( fw, u_AtlasSize );
+	float half_pixel_size = 0.5 * u_dSDF_dTexel * dot( fw, textureSize( u_BaseTexture, 0 ) );
 
 	float supersample_offset = 0.354; // rsqrt( 2 ) / 2
 	vec2 ssx = vec2( supersample_offset * fw.x, 0.0 );

@@ -2,7 +2,7 @@
 
 #include "qcommon/platform.h"
 
-#if __SANITIZE_ADDRESS__
+#if __has_feature( address_sanitizer ) || __SANITIZE_ADDRESS__
 #include <sanitizer/asan_interface.h>
 #else
 #define ASAN_POISON_MEMORY_REGION( mem, size )

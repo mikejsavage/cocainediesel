@@ -70,16 +70,10 @@ configs[ "linux" ] = {
 }
 
 configs[ "linux-debug" ] = { }
-configs[ "linux-asan" ] = {
-	bin_suffix = "-asan",
-	cxxflags = "-fsanitize=address",
-	ldflags = configs[ "linux" ].ldflags .. " -fsanitize=address -static-libasan",
-	prebuilt_lib_dir = "linux-debug",
-}
 configs[ "linux-tsan" ] = {
 	bin_suffix = "-tsan",
 	cxxflags = "-fsanitize=thread",
-	ldflags = configs[ "linux" ].ldflags .. " -fsanitize=thread -static-libtsan",
+	ldflags = "-fsanitize=thread -static-libtsan",
 	prebuilt_lib_dir = "linux-debug",
 }
 configs[ "linux-release" ] = {
@@ -101,6 +95,18 @@ configs[ "macos" ] = copy( configs[ "linux" ], {
 	ldflags = "-arch arm64",
 } )
 configs[ "macos-debug" ] = { }
+configs[ "macos-asan" ] = {
+	bin_suffix = "-asan",
+	cxxflags = "-fsanitize=address",
+	ldflags = "-fsanitize=address -static-libsan",
+	prebuilt_lib_dir = "macos-debug",
+}
+configs[ "macos-tsan" ] = {
+	bin_suffix = "-tsan",
+	cxxflags = "-fsanitize=thread",
+	ldflags = "-fsanitize=thread -static-libsan",
+	prebuilt_lib_dir = "macos-debug",
+}
 configs[ "macos-release" ] = {
 	cxxflags = "-O2 -DNDEBUG",
 	ldflags = "-Wl,-dead_strip -Wl,-x",

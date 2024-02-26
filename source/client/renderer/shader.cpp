@@ -158,6 +158,8 @@ static void LoadShaders() {
 	LoadShader( &shaders.postprocess_world_gbuffer, "glsl/postprocess_world_gbuffer.glsl" );
 	LoadShader( &shaders.postprocess_world_gbuffer_msaa, "glsl/postprocess_world_gbuffer.glsl", "#define MSAA 1\n" );
 
+	LoadShader( &shaders.hbao, "glsl/hbao.glsl" );
+
 	LoadShader( &shaders.write_silhouette_gbuffer, "glsl/write_silhouette_gbuffer.glsl" );
 	LoadShader( &shaders.write_silhouette_gbuffer_instanced, "glsl/write_silhouette_gbuffer.glsl", "#define INSTANCED 1\n" );
 	LoadShader( &shaders.write_silhouette_gbuffer_skinned, "glsl/write_silhouette_gbuffer.glsl", "#define SKINNED 1\n" );
@@ -232,7 +234,6 @@ void ShutdownShaders() {
 	DeleteShader( shaders.particle_setup_indirect );
 
 	DeleteShader( shaders.particle );
-	DeleteShader( shaders.particle_model );
 
 	DeleteShader( shaders.tile_culling );
 

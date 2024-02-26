@@ -174,7 +174,6 @@ struct ParticleEmitter {
 
 	u8 num_materials;
 	StringHash materials[ MAX_PARTICLE_EMITTER_MATERIALS ];
-	StringHash model;
 
 	BlendFunc blend_func = BlendFunc_Add;
 
@@ -376,10 +375,6 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
 				emitter->materials[ emitter->num_materials ] = StringHash( Hash64( value.ptr, value.n ) );
 				emitter->num_materials++;
-			}
-			else if( key == "model" ) {
-				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				emitter->model = StringHash( Hash64( value.ptr, value.n ) );
 			}
 			else if( key == "blendfunc" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );

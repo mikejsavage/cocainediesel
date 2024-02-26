@@ -79,7 +79,7 @@ bool TryFindMaterial( StringHash name, const Material ** material );
 
 Sampler GetSampler( SamplerType sampler );
 
-bool TryFindDecal( StringHash name, Vec4 * uvwh );
+bool TryFindDecal( StringHash name, Vec4 * uvwh, Vec4 * trim );
 const Texture * DecalAtlasTextureArray();
 
 Vec2 HalfPixelSize( const Material * material );

@@ -34,6 +34,7 @@ struct GPUParticle {
 	float restitution;
 	float PADDING;
 	Vec4 uvwh;
+	Vec4 trim;
 	RGBA8 start_color;
 	RGBA8 end_color;
 	float start_size;
@@ -938,7 +939,7 @@ void DrawParticles() {
 	TracyPlotSample( "New Particles", total_new_particles );
 }
 
-static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float angle, float angular_velocity, float acceleration, float drag, float restitution, Vec4 uvwh, Vec4 start_color, Vec4 end_color, float start_size, float end_size, ParticleFlags flags ) {
+static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float angle, float angular_velocity, float acceleration, float drag, float restitution, Vec4 uvwh, Vec4 trim, Vec4 start_color, Vec4 end_color, float start_size, float end_size, ParticleFlags flags ) {
 	TracyZoneScopedN( "Store Particle" );
 	if( ps->num_new_particles == ps->max_particles )
 		return;
@@ -953,6 +954,7 @@ static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Ve
 		.drag = drag,
 		.restitution = restitution,
 		.uvwh = uvwh,
+		.trim = trim,
 		.start_color = LinearTosRGB( start_color ),
 		.end_color = LinearTosRGB( end_color ),
 		.start_size = start_size,
@@ -1019,8 +1021,9 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 
 	if( emitter->num_materials ) {
 		Vec4 uvwh = Vec4( 0.0f );
-		if( TryFindDecal( emitter->materials[ RandomUniform( &cls.rng, 0, emitter->num_materials - 1 ) ], &uvwh ) ) {
-			EmitParticle( ps, lifetime, position, dir * speed, angle, angular_velocity, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, start_color, end_color, size, emitter->end_size, emitter->flags );
+		Vec4 trim = Vec4( 0.0f, 0.0f, 1.0f, 1.0f );
+		if( TryFindDecal( emitter->materials[ RandomUniform( &cls.rng, 0, emitter->num_materials - 1 ) ], &uvwh, &trim ) ) {
+			EmitParticle( ps, lifetime, position, dir * speed, angle, angular_velocity, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, trim, start_color, end_color, size, emitter->end_size, emitter->flags );
 		}
 	}
 }

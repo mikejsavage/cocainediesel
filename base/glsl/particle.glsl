@@ -3,6 +3,8 @@
 #include "include/fog.glsl"
 #include "include/particles.glsl"
 
+#define TRIM 1
+
 v2f vec3 v_Position;
 v2f vec2 v_TexCoord;
 flat v2f float v_Layer;
@@ -33,9 +35,15 @@ void main() {
 	float fage = particle.age / particle.lifetime;
 
 	v_Color = mix( sRGBToLinear( particle.start_color ), sRGBToLinear( particle.end_color ), fage );
-
 	vec2 position = quad_positions[ index_buffer[ gl_VertexID ] ];
-	v_TexCoord = PositionToTexCoord( position ) * particle.uvwh.zw + particle.uvwh.xy;
+	v_TexCoord = PositionToTexCoord( position );
+#if TRIM
+	position += 0.5;
+	position = position * particle.trim.zw + particle.trim.xy;
+	position -= 0.5;
+	v_TexCoord = v_TexCoord * particle.trim.zw + particle.trim.xy;
+#endif
+	v_TexCoord = v_TexCoord * particle.uvwh.zw + particle.uvwh.xy;
 	v_Layer = floor( particle.uvwh.x );
 	float scale = mix( particle.start_size, particle.end_size, fage );
 

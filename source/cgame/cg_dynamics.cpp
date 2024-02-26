@@ -107,7 +107,7 @@ void DrawDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash 
 	Decal * decal = &decals[ num_decals ];
 
 	Vec4 uvwh;
-	if( !TryFindDecal( name, &uvwh ) ) {
+	if( !TryFindDecal( name, &uvwh, NULL ) ) {
 		Com_GGPrint( S_COLOR_YELLOW "Material {} should have decal key", name );
 		return;
 	}
@@ -129,7 +129,7 @@ void AddPersistentDecal( Vec3 origin, Vec3 normal, float radius, float angle, St
 	PersistentDecal * decal = &persistent_decals[ num_persistent_decals ];
 
 	Vec4 uvwh;
-	if( !TryFindDecal( name, &uvwh ) ) {
+	if( !TryFindDecal( name, &uvwh, NULL ) ) {
 		Com_GGPrint( S_COLOR_YELLOW "Material {} should have decal key", name );
 		return;
 	}

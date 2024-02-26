@@ -175,7 +175,6 @@ static void LoadShaders() {
 	LoadComputeShader( &shaders.particle_compute, "glsl/particle_compute.glsl" );
 	LoadComputeShader( &shaders.particle_setup_indirect, "glsl/particle_setup_indirect.glsl" );
 	LoadShader( &shaders.particle, "glsl/particle.glsl" );
-	LoadShader( &shaders.particle_model, "glsl/particle.glsl", "#define MODEL 1\n" );
 
 	LoadComputeShader( &shaders.tile_culling, "glsl/tile_culling.glsl" );
 }

@@ -64,7 +64,7 @@ void AI_Respawn( edict_t * ent ) {
 }
 
 void AI_Think( edict_t * self ) {
-	if( G_ISGHOSTING( self ) ) {
+	if( self->r.client->team == Team_None ) {
 		G_Teams_JoinAnyTeam( self, false );
 	}
 	else if( server_gs.gameState.match_state == MatchState_Warmup ) {

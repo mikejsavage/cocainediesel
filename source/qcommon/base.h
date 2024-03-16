@@ -112,10 +112,10 @@ bool operator!=( const Optional< T > & a, const Optional< T > & b ) {
  * debug stuff
  */
 
-extern bool break1;
-extern bool break2;
-extern bool break3;
-extern bool break4;
+inline bool break1 = false;
+inline bool break2 = false;
+inline bool break3 = false;
+inline bool break4 = false;
 
 #if COMPILER_MSVC
 #define Breakpoint() __debugbreak()

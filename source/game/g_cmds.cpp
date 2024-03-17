@@ -42,7 +42,6 @@ static bool G_Teleport( edict_t * ent, Vec3 origin, EulerDegrees3 angles ) {
 	}
 
 	ent->s.origin = origin;
-	ent->olds.origin = origin;
 	ent->s.teleported = true;
 
 	ent->velocity = Vec3( 0.0f );

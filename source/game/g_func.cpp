@@ -499,7 +499,6 @@ again:
 		first = false;
 		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &self->s );
 		self->s.origin = ent->s.origin - bounds.mins;
-		self->olds.origin = self->s.origin;
 		GClip_LinkEntity( self );
 		self->s.teleported = true;
 		goto again;

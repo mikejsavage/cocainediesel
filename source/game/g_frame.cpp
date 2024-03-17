@@ -268,9 +268,6 @@ static void G_RunEntities() {
 		}
 		level.current_entity = ent;
 
-		// backup oldstate ( for world frame ).
-		ent->olds = ent->s;
-
 		// if the ground entity moved, make sure we are still on it
 		if( !ent->r.client ) {
 			if( ent->groundentity ) {

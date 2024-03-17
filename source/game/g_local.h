@@ -604,8 +604,6 @@ struct edict_t {
 
 	//================================
 
-	SyncEntityState olds; // state in the last sent frame snap
-
 	int movetype;
 
 	int64_t freetime;          // time when the object was freed

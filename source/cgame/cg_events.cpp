@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 #include "client/audio/api.h"
 #include "gameshared/collision.h"
+#include "gameshared/vsays.h"
 
 static void RailgunImpact( Vec3 pos, Vec3 dir, Vec4 color ) {
 	DoVisualEffect( "weapons/eb/hit", pos, dir, 1.0f, color );
@@ -372,7 +373,7 @@ static void CG_StartVsay( int entNum, u64 parm ) {
 	u32 vsay = parm & 0xffff;
 	u32 entropy = parm >> 16;
 
-	if( vsay >= Vsay_Count ) {
+	if( vsay >= ARRAY_COUNT( vsays ) ) {
 		return;
 	}
 
@@ -386,7 +387,7 @@ static void CG_StartVsay( int entNum, u64 parm ) {
 
 	cent->localEffects[ LOCALEFFECT_VSAY_TIMEOUT ] = cl.serverTime + VSAY_TIMEOUT;
 
-	StringHash sound = cgs.media.sfxVSaySounds[ vsay ];
+	StringHash sound = vsays[ vsay ].sfx;
 
 	PlaySFXConfig config = PlaySFXConfigGlobal();
 	config.entropy = entropy;

@@ -11,6 +11,7 @@
 #include "qcommon/maplist.h"
 #include "qcommon/time.h"
 #include "qcommon/version.h"
+#include "gameshared/vsays.h"
 
 #include "cgame/cg_local.h"
 
@@ -397,18 +398,9 @@ static void SettingsControls() {
 		}
 
 		if( ImGui::BeginTabItem( "Voices" ) ) {
-			KeyBindButton( "Acne pack", "vsay acne" );
-			KeyBindButton( "Fart pack", "vsay fart" );
-			KeyBindButton( "Guyman pack", "vsay guyman" );
-			KeyBindButton( "Dodonga pack", "vsay dodonga" );
-			KeyBindButton( "Helena pack", "vsay helena" );
-			KeyBindButton( "Larp pack", "vsay larp" );
-			KeyBindButton( "Fam pack", "vsay fam" );
-			KeyBindButton( "Mike pack", "vsay mike" );
-			KeyBindButton( "User pack", "vsay user" );
-			KeyBindButton( "Valley pack", "vsay valley" );
-			KeyBindButton( "Zombie pack", "vsay zombie" );
-
+			for( Vsay vsay : vsays ) {
+				KeyBindButton( vsay.description, temp( "vsay {}", vsay.short_name ) );
+			}
 			ImGui::EndTabItem();
 		}
 

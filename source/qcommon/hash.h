@@ -45,6 +45,11 @@ constexpr u64 Hash64_CT( const char * data, size_t n, u64 hash = FNV1A_BASIS_64 
 	return hash;
 }
 
+template< size_t N >
+constexpr u64 Hash64_CT( const char ( &s )[ N ] ) {
+	return Hash64_CT( s, N - 1 );
+}
+
 struct StringHash {
 	u64 hash;
 

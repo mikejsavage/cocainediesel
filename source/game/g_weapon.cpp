@@ -656,7 +656,7 @@ static void LaserImpact( const trace_t & trace, Vec3 dir, int damage, int knockb
 static edict_t * FindOrSpawnLaser( edict_t * owner ) {
 	int ownerNum = ENTNUM( owner );
 
-	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
+	for( size_t i = server_gs.maxclients + 1; i < ARRAY_COUNT( game.edicts ); i++ ) {
 		edict_t * e = &game.edicts[ i ];
 		if( !e->r.inuse ) {
 			continue;

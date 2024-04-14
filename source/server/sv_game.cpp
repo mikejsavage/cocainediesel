@@ -67,10 +67,9 @@ void PF_GameCmd( edict_t * ent, const char * cmd ) {
 	}
 }
 
-void SV_LocateEntities( edict_t *edicts, int num_edicts, int max_edicts ) {
+void SV_LocateEntities( edict_t *edicts, int num_edicts ) {
 	sv.gi.edicts = edicts;
 	sv.gi.clients = svs.clients;
 	sv.gi.num_edicts = num_edicts;
-	sv.gi.max_edicts = max_edicts;
 	sv.gi.max_clients = Min2( num_edicts, sv_maxclients->integer );
 }

@@ -690,7 +690,6 @@ struct game_locals_t {
 	gclient_t clients[ MAX_CLIENTS ];
 
 	// store latched cvars here that we want to get at often
-	int maxentities;
 	int numentities;
 
 	// cross level triggers

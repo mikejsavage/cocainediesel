@@ -239,10 +239,10 @@ edict_t * G_Spawn() {
 		Com_Printf( "WARNING: Spawning entity before map entities have been spawned\n" );
 	}
 
-	int i;
+	size_t i;
 	edict_t * freed = NULL;
-	edict_t * e = &game.edicts[server_gs.maxclients + 1];
-	for( i = server_gs.maxclients + 1; i < game.numentities; i++, e++ ) {
+	for( i = server_gs.maxclients + 1; i < game.numentities; i++ ) {
+		edict_t * e = &game.edicts[ i ];
 		if( e->r.inuse ) {
 			continue;
 		}
@@ -256,22 +256,23 @@ edict_t * G_Spawn() {
 
 		// this is going to be our second chance to spawn an entity in case all free
 		// entities have been freed only recently
-		if( !freed ) {
+		if( freed == NULL ) {
 			freed = e;
 		}
 	}
 
-	if( i == game.maxentities ) {
-		if( freed ) {
+	if( i == ARRAY_COUNT( game.edicts ) ) {
+		if( freed != NULL ) {
 			G_InitEdict( freed );
 			return freed;
 		}
 		Fatal( "G_Spawn: no free edicts" );
 	}
 
+	edict_t * e = &game.edicts[ game.numentities ];
 	game.numentities++;
 
-	SV_LocateEntities( game.edicts, game.numentities, game.maxentities );
+	SV_LocateEntities( game.edicts, game.numentities );
 
 	G_InitEdict( e );
 

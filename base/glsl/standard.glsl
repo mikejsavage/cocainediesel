@@ -135,11 +135,6 @@ void main() {
 	vec4 diffuse = texture( u_BaseTexture, v_TexCoord, u_LodBias ) * color;
 #endif
 
-#if ALPHA_TEST
-	if( diffuse.a < u_AlphaCutoff )
-		discard;
-#endif
-
 #if APPLY_DECALS || APPLY_DLIGHTS
 	float tile_size = float( FORWARD_PLUS_TILE_SIZE );
 	int tile_row = int( ( u_ViewportSize.y - gl_FragCoord.y - 1.0 ) / tile_size );

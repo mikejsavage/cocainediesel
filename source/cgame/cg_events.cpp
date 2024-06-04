@@ -385,7 +385,7 @@ static void CG_StartVsay( int entNum, u64 parm ) {
 		return;
 	}
 
-	cent->localEffects[ LOCALEFFECT_VSAY_TIMEOUT ] = cl.serverTime + VSAY_TIMEOUT;
+	cent->localEffects[ LOCALEFFECT_VSAY_TIMEOUT ] = cl.serverTime + 2500;
 
 	StringHash sound = vsays[ vsay ].sfx;
 

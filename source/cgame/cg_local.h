@@ -32,8 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/audio/types.h"
 #include "client/renderer/types.h"
 
-#define VSAY_TIMEOUT 2500
-
 constexpr float FOV = 107.9f; // chosen to upset everyone equally
 
 enum {

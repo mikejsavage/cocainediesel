@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
+#include "gameshared/vsays.h"
 
 /*
 * G_Teleport
@@ -42,7 +43,6 @@ static bool G_Teleport( edict_t * ent, Vec3 origin, EulerDegrees3 angles ) {
 	}
 
 	ent->s.origin = origin;
-	ent->olds.origin = origin;
 	ent->s.teleported = true;
 
 	ent->velocity = Vec3( 0.0f );
@@ -320,29 +320,6 @@ static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 	event->s.origin2 = trace.normal;
 }
 
-struct g_vsays_t {
-	const char *name;
-	int id;
-};
-
-static const g_vsays_t g_vsays[] = {
-	{ "sorry", Vsay_Sorry },
-	{ "thanks", Vsay_Thanks },
-	{ "goodgame", Vsay_GoodGame },
-	{ "boomstick", Vsay_BoomStick },
-	{ "acne", Vsay_Acne },
-	{ "valley", Vsay_Valley },
-	{ "fam", Vsay_Fam },
-	{ "mike", Vsay_Mike },
-	{ "user", Vsay_User },
-	{ "guyman", Vsay_Guyman },
-	{ "dodonga", Vsay_Dodonga },
-	{ "helena", Vsay_Helena },
-	{ "fart", Vsay_Fart },
-	{ "zombie", Vsay_Zombie },
-	{ "larp", Vsay_Larp },
-};
-
 static void G_vsay_f( edict_t * ent, msg_t args ) {
 	if( G_ISGHOSTING( ent ) && server_gs.gameState.match_state < MatchState_PostMatch ) {
 		return;
@@ -355,12 +332,12 @@ static void G_vsay_f( edict_t * ent, msg_t args ) {
 
 	const char * arg = MSG_ReadString( &args );
 
-	for( auto vsay : g_vsays ) {
-		if( !StrCaseEqual( arg, vsay.name ) )
+	for( size_t i = 0; i < ARRAY_COUNT( vsays ); i++ ) {
+		if( !StrCaseEqual( arg, vsays[ i ].short_name ) )
 			continue;
 
 		u64 entropy = Random32( &svs.rng );
-		u64 parm = u64( vsay.id ) | ( entropy << 16 );
+		u64 parm = u64( i ) | ( entropy << 16 );
 
 		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NULL );
 		event->s.ownerNum = ent->s.number;

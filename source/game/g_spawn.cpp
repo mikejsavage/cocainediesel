@@ -210,11 +210,11 @@ static void ParseEntityKeyValue( Span< const char > key, Span< const char > valu
 
 static void G_FreeEntities() {
 	if( !level.time ) {
-		memset( game.edicts, 0, game.maxentities * sizeof( game.edicts[0] ) );
+		memset( game.edicts, 0, sizeof( game.edicts ) );
 	}
 	else {
 		G_FreeEdict( world );
-		for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
+		for( size_t i = server_gs.maxclients + 1; i < ARRAY_COUNT( game.edicts ); i++ ) {
 			if( game.edicts[i].r.inuse ) {
 				G_FreeEdict( game.edicts + i );
 			}
@@ -268,7 +268,7 @@ static void SpawnMapEntities() {
 	}
 
 	// make sure server got the edicts data
-	SV_LocateEntities( game.edicts, game.numentities, game.maxentities );
+	SV_LocateEntities( game.edicts, game.numentities );
 }
 
 /*
@@ -329,7 +329,7 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 
 void G_ResetLevel() {
 	G_FreeEdict( world );
-	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
+	for( size_t i = server_gs.maxclients + 1; i < ARRAY_COUNT( game.edicts ); i++ ) {
 		G_FreeEdict( game.edicts + i );
 	}
 

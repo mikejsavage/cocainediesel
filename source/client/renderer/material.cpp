@@ -47,6 +47,7 @@ Material world_material;
 Material wallbang_material;
 
 static Vec4 decal_uvwhs[ MAX_DECALS ];
+static Vec4 decal_trims[ MAX_DECALS ];
 static u32 num_decals;
 static Hashtable< MAX_DECALS * 2 > decals_hashtable;
 static Texture decals_atlases;
@@ -613,6 +614,39 @@ static Span2D< const BC4Block > GetMipmap( const Material * material, u32 mipmap
 	return Span2D< const BC4Block >( cursor.slice( 0, mip_w * mip_h ).ptr, mip_w, mip_h );
 }
 
+static Vec4 TrimTexture( Span2D< const BC4Block > bc4, const Material * material ) {
+	TracyZoneScoped;
+
+	u32 min_x = bc4.w;
+	u32 min_y = bc4.h;
+	u32 max_x = 0;
+	u32 max_y = 0;
+
+	for( u32 y = 0; y < bc4.h; y++ ) {
+		for( u32 x = 0; x < bc4.w; x++ ) {
+			const BC4Block & block = bc4( x, y );
+			if( block.endpoints[ 0 ] == 0 && block.endpoints[ 1 ] == 0 )
+				continue;
+
+			min_x = Min2( min_x, x );
+			min_y = Min2( min_y, y );
+			max_x = Max2( max_x, x );
+			max_y = Max2( max_y, y );
+		}
+	}
+
+	Vec4 trim = Vec4(
+		float( min_x ) / float( bc4.w ),
+		float( min_y ) / float( bc4.h ),
+		float( max_x - min_x + 1 ) / float( bc4.w ),
+		float( max_y - min_y + 1 ) / float( bc4.h )
+	);
+
+	// Com_GGPrint( "{} : {}", material->name, trim );
+	
+	return trim;
+}
+
 static void PackDecalAtlas() {
 	TracyZoneScoped;
 
@@ -748,6 +782,9 @@ static void PackDecalAtlas() {
 			Span2D< BC4Block > layer( layer_mipmap + mipmap_dim * mipmap_dim * layer_idx, mipmap_dim, mipmap_dim );
 
 			Span2D< const BC4Block > bc4 = GetMipmap( material, mipmap_idx );
+
+			if( mipmap_idx == 0 )
+				decal_trims[ decal_idx ] = TrimTexture( bc4, material );
 
 			u32 mipped_x = rects[ i ].x >> mipmap_idx;
 			u32 mipped_y = rects[ i ].y >> mipmap_idx;
@@ -970,11 +1007,13 @@ const Material * FindMaterial( const char * name, const Material * def ) {
 	return FindMaterial( StringHash( name ), def );
 }
 
-bool TryFindDecal( StringHash name, Vec4 * uvwh ) {
+bool TryFindDecal( StringHash name, Vec4 * uvwh, Vec4 * trim ) {
 	u64 idx;
 	if( !decals_hashtable.get( name.hash, &idx ) )
 		return false;
 	*uvwh = decal_uvwhs[ idx ];
+	if( trim != NULL )
+		*trim = decal_trims[ idx ];
 	return true;
 }
 

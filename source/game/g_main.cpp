@@ -134,13 +134,12 @@ void G_Init( unsigned int framemsec ) {
 	// helper cvars to show current status in serverinfo reply
 	NewCvar( "g_needpass", "", CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 
-	game.maxentities = MAX_EDICTS;
 	memset( game.edicts, 0, sizeof( game.edicts ) );
 	memset( game.clients, 0, sizeof( game.clients ) );
 
 	game.numentities = server_gs.maxclients + 1;
 
-	SV_LocateEntities( game.edicts, game.numentities, game.maxentities );
+	SV_LocateEntities( game.edicts, game.numentities );
 
 	// server console commands
 	G_AddServerCommands();

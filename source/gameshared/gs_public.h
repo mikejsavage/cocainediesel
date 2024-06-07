@@ -150,28 +150,6 @@ enum {
 	PAIN_TOTAL
 };
 
-// vsay tokens list
-enum {
-	Vsay_Sorry,
-	Vsay_Thanks,
-	Vsay_GoodGame,
-	Vsay_BoomStick,
-
-	Vsay_Acne,
-	Vsay_Valley,
-	Vsay_Fam,
-	Vsay_Mike,
-	Vsay_User,
-	Vsay_Guyman,
-	Vsay_Dodonga,
-	Vsay_Helena,
-	Vsay_Fart,
-	Vsay_Zombie,
-	Vsay_Larp,
-
-	Vsay_Count
-};
-
 // SyncEntityState->event values
 #define PREDICTABLE_EVENTS_MAX 32
 enum EventType {

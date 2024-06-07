@@ -33,7 +33,6 @@ struct ginfo_t {
 	client_t * clients;
 
 	int num_edicts;         // current number, <= max_edicts
-	int max_edicts;
 	int max_clients;        // <= sv_maxclients, <= max_edicts
 };
 
@@ -271,7 +270,7 @@ void SV_BuildClientFrameSnap( client_t * client );
 void PF_DropClient( edict_t * ent, const char * message );
 int PF_GetClientState( int numClient );
 void PF_GameCmd( edict_t * ent, const char * cmd );
-void SV_LocateEntities( edict_t * edicts, int num_edicts, int max_edicts );
+void SV_LocateEntities( edict_t * edicts, int num_edicts );
 
 //
 // sv_demos.c

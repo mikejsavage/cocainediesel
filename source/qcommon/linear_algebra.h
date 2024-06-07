@@ -222,31 +222,24 @@ constexpr Vec4 Clamp( Vec4 lo, Vec4 v, Vec4 hi ) {
  * Mat4
  */
 
-constexpr Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
-	return Mat4(
-		Dot( lhs.row0(), rhs.col0 ),
-		Dot( lhs.row0(), rhs.col1 ),
-		Dot( lhs.row0(), rhs.col2 ),
-		Dot( lhs.row0(), rhs.col3 ),
+// the naive -O0 Mat4 * Mat4 is ~30x slower than SIMD -O2 Mat4 * Mat4, which is
+// slow enough to be problematic, so put it in its own optimised TU in debug
+// builds and inline it in release builds
 
-		Dot( lhs.row1(), rhs.col0 ),
-		Dot( lhs.row1(), rhs.col1 ),
-		Dot( lhs.row1(), rhs.col2 ),
-		Dot( lhs.row1(), rhs.col3 ),
+#if !PUBLIC_BUILD
 
-		Dot( lhs.row2(), rhs.col0 ),
-		Dot( lhs.row2(), rhs.col1 ),
-		Dot( lhs.row2(), rhs.col2 ),
-		Dot( lhs.row2(), rhs.col3 ),
+Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs );
 
-		Dot( lhs.row3(), rhs.col0 ),
-		Dot( lhs.row3(), rhs.col1 ),
-		Dot( lhs.row3(), rhs.col2 ),
-		Dot( lhs.row3(), rhs.col3 )
-	);
-}
+#else
 
-constexpr void operator*=( Mat4 & lhs, const Mat4 & rhs ) {
+#undef PUBLIC_BUILD
+#define KERNEL_MAYBE_INLINE inline
+#include "linear_algebra_kernels.cpp"
+#define PUBLIC_BUILD 1
+
+#endif
+
+inline void operator*=( Mat4 & lhs, const Mat4 & rhs ) {
 	lhs = lhs * rhs;
 }
 

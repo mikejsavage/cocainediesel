@@ -37,7 +37,6 @@ struct Shaders {
 	Shader particle_setup_indirect;
 
 	Shader particle;
-	Shader particle_model;
 
 	Shader tile_culling;
 

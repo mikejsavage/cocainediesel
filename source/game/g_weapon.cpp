@@ -137,7 +137,6 @@ static void G_ProjectileDistancePrestep( edict_t * projectile, float distance ) 
 	trace_t trace = G_Trace4D( projectile->s.origin, bounds, dest, projectile->r.owner, solid_mask, projectile->timeDelta );
 
 	projectile->s.origin = trace.endpos;
-	projectile->olds.origin = trace.endpos;
 
 	GClip_LinkEntity( projectile );
 	SV_Impact( projectile, trace );
@@ -204,7 +203,6 @@ static ProjectileStats GadgetProjectileStats( GadgetType gadget ) {
 static edict_t * GenEntity( edict_t * owner, Vec3 pos, EulerDegrees3 angles, int timeout ) {
 	edict_t * ent = G_Spawn();
 	ent->s.origin = pos;
-	ent->olds.origin = pos;
 	ent->s.angles = angles;
 
 	ent->s.solidity = Solid_NotSolid;
@@ -658,7 +656,7 @@ static void LaserImpact( const trace_t & trace, Vec3 dir, int damage, int knockb
 static edict_t * FindOrSpawnLaser( edict_t * owner ) {
 	int ownerNum = ENTNUM( owner );
 
-	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
+	for( size_t i = server_gs.maxclients + 1; i < ARRAY_COUNT( game.edicts ); i++ ) {
 		edict_t * e = &game.edicts[ i ];
 		if( !e->r.inuse ) {
 			continue;

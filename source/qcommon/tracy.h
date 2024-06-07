@@ -3,7 +3,7 @@
 
 #include "tracy/tracy/TracyC.h"
 
-extern bool tracy_is_active;
+inline bool tracy_is_active = true;
 
 #define TracyZoneScoped TracyCZone( ___tracy_scoped_zone, tracy_is_active ? 1 : 0 ); defer { TracyCZoneEnd( ___tracy_scoped_zone ); }
 #define TracyZoneScopedN( name ) TracyCZoneN( ___tracy_scoped_zone, name, tracy_is_active ? 1 : 0 ); defer { TracyCZoneEnd( ___tracy_scoped_zone ); }

@@ -85,7 +85,6 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 
 	//copy player position and box size
 	body->s.origin = ent->s.origin;
-	body->olds.origin = ent->s.origin;
 	body->velocity = ent->velocity;
 
 	body->s.override_collision_model = ent->s.override_collision_model;
@@ -422,7 +421,6 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 	// update the entity from the pmove
 	player->s.angles = client->ps.viewangles;
 	player->s.origin = client->ps.pmove.origin;
-	player->olds.origin = client->ps.pmove.origin;
 	player->velocity = client->ps.pmove.velocity;
 
 	// unlink to make sure it can't possibly interfere with KillBox

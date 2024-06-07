@@ -9,9 +9,6 @@ msvc_global_cxxflags( "/wd4611" ) -- setjmp warning
 msvc_global_cxxflags( "/wd5030" ) -- unrecognized [[gnu::...]] attribute
 msvc_global_cxxflags( "/we4130" ) -- warning C4130: '!=': logical operation on address of string constant
 msvc_global_cxxflags( "/GR- /EHs-c-" )
-if config == "debug" then
-	msvc_obj_cxxflags( "source/*", "/RTC1" )
-end
 
 gcc_global_cxxflags( "-std=c++20 -fno-exceptions -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fno-math-errno -fvisibility=hidden" )
 gcc_global_cxxflags( "-Wall -Wextra -Wcast-align -Wvla -Wformat-security -Wimplicit-fallthrough" ) -- -Wconversion
@@ -60,6 +57,7 @@ local platform_curl_libs = {
 }
 
 obj_cxxflags( "source/client/audio/linux.cpp", "-Ilibs/alsa-headers -Ilibs/pulseaudio-headers" )
+obj_cxxflags( "source/qcommon/linear_algebra_kernels.cpp", "-O2" )
 
 do
 	bin( "client", {

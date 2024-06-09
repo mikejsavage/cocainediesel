@@ -233,7 +233,7 @@ Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs );
 #else
 
 #undef PUBLIC_BUILD
-#define KERNEL_MAYBE_INLINE inline
+#define INLINE_IN_RELEASE_BUILDS inline
 #include "linear_algebra_kernels.cpp"
 #define PUBLIC_BUILD 1
 

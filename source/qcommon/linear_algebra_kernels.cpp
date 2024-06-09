@@ -1,7 +1,7 @@
 // this is a hack, see linear_algebra.h for the explanation
 
-#ifndef KERNEL_MAYBE_INLINE
-#define KERNEL_MAYBE_INLINE
+#ifndef INLINE_IN_RELEASE_BUILDS
+#define INLINE_IN_RELEASE_BUILDS
 #endif
 
 #if !PUBLIC_BUILD
@@ -14,7 +14,7 @@
 
 // https://stackoverflow.com/a/18508113
 // need to swap the args because their implementation is row major
-KERNEL_MAYBE_INLINE Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
+INLINE_IN_RELEASE_BUILDS Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
 	Mat4 result;
 
 	__m128 row1 = _mm_load_ps( &lhs.col0.x );
@@ -42,7 +42,7 @@ KERNEL_MAYBE_INLINE Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
 
 #include <arm_neon.h>
 
-KERNEL_MAYBE_INLINE Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
+INLINE_IN_RELEASE_BUILDS Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
 	Mat4 result;
 
 	float32x4_t row1 = vld1q_f32( &lhs.col0.x );

@@ -123,7 +123,7 @@ ListDirHandle BeginListDir( Allocator * a, const char * path ) {
 	wchar_t * wide = UTF8ToWide( a, path_and_wildcard );
 	defer { Free( a, wide ); };
 
-	handle.handle = FindFirstFileW( wide, handle.ffd );
+	handle.handle = FindFirstFileExW( wide, FindExInfoBasic, handle.ffd, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH );
 	if( handle.handle == INVALID_HANDLE_VALUE ) {
 		Free( handle.a, handle.ffd );
 		handle.handle = NULL;

@@ -229,7 +229,7 @@ bool CG_GetBoundKeysString( const char * cmd, char * keys, size_t keysSize ) {
 int CG_GetBoundKeycodes( const char * cmd, int keys[ 2 ] ) {
 	int numKeys = 0;
 
-	for( int key = 0; key < 256; key++ ) {
+	for( int key = 0; key < Key_Count; key++ ) {
 		Span< const char > bind = Key_GetBindingBuf( key );
 		if( bind == "" || !StrCaseEqual( bind, cmd ) ) {
 			continue;

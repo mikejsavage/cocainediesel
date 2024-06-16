@@ -211,6 +211,58 @@ local function DrawUtility( state, options, x, y, size, outline_size )
 	end
 end
 
+local function DrawWeapon( state, options, x, y, width, height, padding, weaponID, weaponInfo, show_bind )
+	local h = height
+	local ammo = weaponInfo.ammo
+	local max_ammo = weaponInfo.max_ammo
+	local selected = state.weapon == weaponInfo.weapon
+	local whiteBarHeight = height * 0.0125
+
+	if show_bind then
+		options.color = "#fff"
+		options.alignment = "center middle"
+		options.font_size = width * 0.2
+		cd.text( options, x + width/2, y - options.font_size, cd.getBind( string.format("weapon %d", weaponID) ) )
+	end
+
+
+	if selected then
+		h += whiteBarHeight * 2
+	end
+
+	local frac = -1
+	if max_ammo ~= 0 then
+		frac = ammo/max_ammo
+	end
+
+	if state.weapon == weaponInfo.weapon then
+		h *= 1.05
+		if state.weapon_state == WeaponState_Reloading or state.weapon_state == WeaponState_StagedReloading then
+			frac = state.weapon_state_time/cd.getWeaponReloadTime( weaponInfo.weapon )
+		end
+	end
+
+	DrawBoxOutline( x, y, width, h, padding )
+
+	options.font_size = width * 0.22
+	options.alignment = "left top"
+
+	DrawAmmoFrac( options, x, y, width, ammo, frac, cd.getWeaponIcon( weaponInfo.weapon ) )
+	if selected then
+		cd.box( x, y + width + padding, width, whiteBarHeight, "#fff" )
+		cd.box( x, y + h, width, whiteBarHeight, "#fff" )
+	end
+
+	if selected then
+		options.color = "#fff"
+	else
+		options.color = "#999"
+	end
+	options.alignment = "center middle"
+	options.font_size = width * 0.18
+	cd.text( options, x + width/2, y + width + (h - width + padding)/2, weaponInfo.name )
+end
+
 local function DrawWeaponBar( state, options, x, y, width, height, padding )
 	x += padding
 	y += padding
@@ -219,46 +271,7 @@ local function DrawWeaponBar( state, options, x, y, width, height, padding )
 	local show_bind = hotkeys( state )
 
 	for k, v in ipairs( state.weapons ) do
-		local h = height
-		local ammo = v.ammo
-		local max_ammo = v.max_ammo
-
-		if show_bind then
-			options.color = "#fff"
-			options.alignment = "center middle"
-			options.font_size = width * 0.2
-			cd.text( options, x + width/2, y - options.font_size, cd.getBind( string.format("weapon %d", k) ) )
-		end
-
-
-		if state.weapon == v.weapon then
-			h *= 1.05
-		end
-
-		local frac = -1
-		if max_ammo ~= 0 then
-			frac = ammo/max_ammo
-		end
-
-		if state.weapon == v.weapon then
-			h *= 1.05
-			if state.weapon_state == WeaponState_Reloading or state.weapon_state == WeaponState_StagedReloading then
-				frac = state.weapon_state_time/cd.getWeaponReloadTime( v.weapon )
-			end
-		end
-
-		DrawBoxOutline( x, y, width, h, padding )
-
-		options.font_size = width * 0.22
-		options.alignment = "left top"
-
-		DrawAmmoFrac( options, x, y, width, ammo, frac, cd.getWeaponIcon( v.weapon ) )
-
-		options.color = "#fff"
-		options.alignment = "center middle"
-		options.font_size = width * 0.18
-		cd.text( options, x + width/2, y + width + (h - width + padding)/2, v.name )
-
+		DrawWeapon( state, options, x, y, width, height, padding, k, v, show_bind )
 		x += width + padding * 3
 	end
 
@@ -277,7 +290,7 @@ local function DrawStaminaBar( state, x, y, width, height, padding, bg_color )
 	local stamina_color = cd.allyColor()
 
 	if state.perk == Perk_Hooligan then
-		cd.box( x, y, width, height, bg_color )
+		DrawBoxOutline( x, y, width, height, padding )
 
 		local steps = 2
 		local cell_width = width/steps
@@ -331,18 +344,18 @@ local function DrawPlayerBar( state )
 	end
 
 	local offset = state.viewport_width * 0.01
-	local stamina_bar_height = state.viewport_width * 0.012
+	local stamina_bar_height = state.viewport_width * 0.015
 	local health_bar_height = state.viewport_width * 0.022
 	local empty_bar_height = state.viewport_width * 0.019
 	local padding = math.floor( offset * 0.3 );
 
-	local width = state.viewport_width * 0.21
+	local width = state.viewport_width * 0.25
 	local height = stamina_bar_height + health_bar_height + empty_bar_height + padding * 4
 
 	local x = offset
 	local y = state.viewport_height - offset - height
 
-	local perks_utility_size = state.viewport_width * 0.035
+	local perks_utility_size = state.viewport_width * 0.03
 	local perkX = x + padding
 	local perkY = y - perks_utility_size - padding * 2
 	local weapons_options = {

@@ -634,7 +634,7 @@ float LookAtKillerYAW( edict_t * self, edict_t * inflictor, edict_t * attacker )
 //
 //==============================================================================
 
-static void G_SpawnTeleportEffect( edict_t * ent, bool respawn, bool in ) {
+static void G_SpawnTeleportEffect( edict_t * ent, bool in ) {
 	constexpr StringHash tele_in = "sounds/world/tele_in";
 	constexpr StringHash tele_out = "sounds/world/tele_in";
 
@@ -651,11 +651,11 @@ static void G_SpawnTeleportEffect( edict_t * ent, bool respawn, bool in ) {
 }
 
 void G_TeleportEffect( edict_t * ent, bool in ) {
-	G_SpawnTeleportEffect( ent, false, in );
+	G_SpawnTeleportEffect( ent, in );
 }
 
 void G_RespawnEffect( edict_t * ent ) {
-	G_SpawnTeleportEffect( ent, true, false );
+	G_SpawnTeleportEffect( ent, false );
 }
 
 void G_CheckGround( edict_t * ent ) {

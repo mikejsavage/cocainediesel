@@ -202,6 +202,7 @@ static void ParseEntityKeyValue( Span< const char > key, Span< const char > valu
 	used = used || DoField( "size", &st->size, key, value );
 	used = used || DoField( "spawn_probability", &st->spawn_probability, key, value );
 	used = used || DoField( "power", &st->power, key, value );
+	used = used || key == "gametype";
 
 	if( !used && key.n > 0 && key[ 0 ] != '_' ) {
 		Com_GGPrint( "{} is not a valid entity key", key );

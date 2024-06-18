@@ -106,7 +106,7 @@ bool LoadServerMap( Span< const char > name ) {
 		Span< u8 > compressed = ReadFileBinary( sys_allocator, zst_path );
 		defer { Free( sys_allocator, compressed.ptr ); };
 		if( compressed.ptr == NULL ) {
-			Com_Printf( "Couldn't find map %s\n", name );
+			Com_Printf( "Couldn't find map %s\n", name.begin() );
 			return false;
 		}
 
@@ -120,7 +120,7 @@ bool LoadServerMap( Span< const char > name ) {
 	MapData decoded;
 	DecodeMapResult res = DecodeMap( &decoded, map.data );
 	if( res != DecodeMapResult_Ok ) {
-		Com_Printf( "Can't decode map %s\n", name );
+		Com_Printf( "Can't decode map %s\n", name.begin() );
 		Free( sys_allocator, map.data.ptr );
 		return false;
 	}

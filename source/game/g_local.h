@@ -461,7 +461,7 @@ void G_SnapFrame();
 //
 void G_RespawnLevel();
 void G_ResetLevel();
-void G_InitLevel( const char * mapname, int64_t levelTime );
+void G_InitLevel( Span< const char > mapname, int64_t levelTime );
 
 //============================================================================
 

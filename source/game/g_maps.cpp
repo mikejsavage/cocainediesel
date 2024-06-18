@@ -92,7 +92,7 @@ void ShutdownServerCollisionModels() {
 	}
 }
 
-bool LoadServerMap( const char * name ) {
+bool LoadServerMap( Span< const char > name ) {
 	TempAllocator temp = svs.frame_arena.temp();
 
 	const char * path = temp( "{}/base/maps/{}.cdmap", RootDirPath(), name );

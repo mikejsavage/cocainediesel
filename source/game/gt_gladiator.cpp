@@ -22,6 +22,8 @@ static constexpr int countdown_seconds = 2;
 static constexpr u32 bomb_explosion_effect_radius = 1024;
 static Cvar * g_glad_bombtimer;
 
+static NonRAIIDynamicArray< StringHash > arenas;
+
 static void BombExplode() {
 	server_gs.gameState.exploding = true;
 	server_gs.gameState.exploded_at = svs.gametime;
@@ -40,31 +42,8 @@ static void BombKill() {
 }
 
 static void PickRandomArena() {
-	if( !gladiator_state.randomize_arena )
-		return;
-
-	TempAllocator temp = svs.frame_arena.temp();
-
-	const char * maps_dir = temp( "{}/base/maps/gladiator", RootDirPath() );
-	DynamicArray< const char * > maps( &temp );
-
-	ListDirHandle scan = BeginListDir( sys_allocator, maps_dir );
-
-	const char * name;
-	bool dir;
-	while( ListDirNext( &scan, &name, &dir ) ) {
-		// skip ., .., .git, etc
-		if( name[ 0 ] == '.' || dir )
-			continue;
-
-		if( FileExtension( name ) != ".cdmap" && FileExtension( StripExtension( name ) ) != ".cdmap" )
-			continue;
-
-		maps.add( temp( "gladiator/{}", StripExtension( StripExtension( name ) ) ) );
-	}
-
-	// TODO: need to reimplement this
-	// G_LoadMap( RandomElement( &svs.rng, maps.begin(), maps.size() ) );
+	server_gs.gameState.map = RandomElement( &svs.rng, arenas.ptr(), arenas.size() );
+	G_ResetLevel();
 }
 
 static void NewRound() {
@@ -353,6 +332,7 @@ static void Gladiator_Init() {
 
 	gladiator_state = { };
 	gladiator_state.randomize_arena = GetWorldspawnKey( FindServerMap( server_gs.gameState.map ), "randomize_arena" ) != "";
+	arenas.init( sys_allocator );
 
 	InitRespawnQueues( &gladiator_state.respawn_queues );
 
@@ -364,13 +344,44 @@ static void Gladiator_Init() {
 
 	g_glad_bombtimer = NewCvar( "g_glad_bombtimer", "40", CvarFlag_Archive );
 
+	if( gladiator_state.randomize_arena ) {
+		TempAllocator temp = svs.frame_arena.temp();
+
+		const char * maps_dir = temp( "{}/base/maps/gladiator", RootDirPath() );
+		DynamicArray< const char * > maps( &temp );
+
+		ListDirHandle scan = BeginListDir( sys_allocator, maps_dir );
+
+		const char * name;
+		bool dir;
+		while( ListDirNext( &scan, &name, &dir ) ) {
+			// skip ., .., .git, etc
+			if( name[ 0 ] == '.' || dir )
+				continue;
+
+			if( FileExtension( name ) != ".cdmap" && FileExtension( StripExtension( name ) ) != ".cdmap" )
+				continue;
+
+			Span< const char > arena = temp.sv( "gladiator/{}", StripExtension( StripExtension( name ) ) );
+			if( LoadServerMap( arena ) ) {
+				arenas.add( StringHash( arena ) );
+			}
+		}
+	}
+	else {
+		arenas.add( server_gs.gameState.map );
+	}
+
 	PickRandomArena();
 }
 
 static void Gladiator_Shutdown() {
 	if( gladiator_state.randomize_arena ) {
-		// TODO: go back to the dispatcher map so the gt randomizes after reloading
+		// go back to the dispatcher map so the gt randomizes after reloading
+		server_gs.gameState.map = "gladiator";
 	}
+
+	arenas.shutdown();
 }
 
 static bool Gladiator_SpawnEntity( StringHash classname, edict_t * ent ) {

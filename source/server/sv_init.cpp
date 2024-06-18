@@ -82,7 +82,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	Com_SetServerState( sv.state );
 
 	// load and spawn all other entities
-	G_InitLevel( sv.mapname, 0 );
+	G_InitLevel( MakeSpan( sv.mapname ), 0 );
 	G_CallVotes_Init();
 
 	// run two frames to allow everything to settle

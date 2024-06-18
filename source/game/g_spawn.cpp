@@ -277,7 +277,7 @@ static void SpawnMapEntities() {
 * Creates a server's entity / program execution context by
 * parsing textual entity definitions out of an ent file.
 */
-void G_InitLevel( const char *mapname, int64_t levelTime ) {
+void G_InitLevel( Span< const char > mapname, int64_t levelTime ) {
 	ResetEntityIDSequence();
 
 	memset( &level, 0, sizeof( level_locals_t ) );
@@ -338,7 +338,7 @@ void G_ResetLevel() {
 
 void G_RespawnLevel() {
 	ShutdownGametype();
-	G_InitLevel( sv.mapname, level.time );
+	G_InitLevel( MakeSpan( sv.mapname ), level.time );
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = &game.edicts[ i + 1 ];
@@ -351,7 +351,7 @@ void G_RespawnLevel() {
 void G_HotloadMap() {
 	ShutdownServerCollisionModels();
 	InitServerCollisionModels();
-	LoadServerMap( sv.mapname );
+	LoadServerMap( MakeSpan( sv.mapname ) );
 
 	G_ResetLevel();
 

@@ -52,6 +52,7 @@ struct AlsaAPI {
 	decltype( snd_pcm_prepare ) * prepare;
 	decltype( snd_pcm_writei ) * writei;
 	decltype( snd_pcm_drain ) * drain;
+	decltype( snd_pcm_drop ) * drop;
 };
 
 struct AlsaBackend {
@@ -220,6 +221,7 @@ static Optional< AlsaAPI > LoadAlsaAPI() {
 	ok = ok && LoadFunction( alsa, &api.prepare, "snd_pcm_prepare" );
 	ok = ok && LoadFunction( alsa, &api.writei, "snd_pcm_writei" );
 	ok = ok && LoadFunction( alsa, &api.drain, "snd_pcm_drain" );
+	ok = ok && LoadFunction( alsa, &api.drop, "snd_pcm_drop" );
 
 	if( !ok ) {
 		CloseLib( alsa );
@@ -267,7 +269,7 @@ static bool AlsaChecked( int ret, const char * name ) {
 static void ShutdownAlsa() {
 	if( alsa.thread != NULL ) {
 		JoinThread( alsa.thread );
-		alsa.api.drain( alsa.device );
+		alsa.api.drop( alsa.device );
 	}
 
 	if( alsa.api.lib != NULL ) {

@@ -878,6 +878,13 @@ static int LuauGetWeaponReloadTime( lua_State * L ) {
 	return 1;
 }
 
+static int LuauGetWeaponStagedReload( lua_State * L ) {
+	u8 w = luaL_checknumber( L, 1 );
+	lua_newtable( L );
+	lua_pushboolean( L, GS_GetWeaponDef( WeaponType( w ) )->staged_reload );
+	return 1;
+}
+
 static int LuauGetGadgetAmmo( lua_State * L ) {
 	u8 g = luaL_checknumber( L, 1 );
 	lua_newtable( L );
@@ -1568,6 +1575,7 @@ void CG_InitHUD() {
 		{ "getPerkIcon", LuauGetPerkIcon },
 
 		{ "getWeaponReloadTime", LuauGetWeaponReloadTime },
+		{ "getWeaponStagedReload", LuauGetWeaponStagedReload },
 
 		{ "getGadgetAmmo", LuauGetGadgetAmmo },
 

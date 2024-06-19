@@ -238,7 +238,8 @@ local function DrawWeapon( state, options, x, y, width, height, padding, weaponI
 	if state.weapon == weaponInfo.weapon then
 		h *= 1.05
 		if state.weapon_state == WeaponState_Reloading or state.weapon_state == WeaponState_StagedReloading then
-			frac = state.weapon_state_time/cd.getWeaponReloadTime( weaponInfo.weapon )
+			local reload_frac = state.weapon_state_time/cd.getWeaponReloadTime( weaponInfo.weapon )
+			frac = cd.getWeaponStagedReload( weaponInfo.weapon ) and frac + reload_frac / max_ammo or reload_frac
 		end
 	end
 

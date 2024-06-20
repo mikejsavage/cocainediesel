@@ -327,22 +327,8 @@ static void Gladiator_MatchStateStarted() {
 	}
 }
 
-static void Gladiator_Init() {
-	server_gs.gameState.gametype = Gametype_Gladiator;
-
-	gladiator_state = { };
-	gladiator_state.randomize_arena = GetWorldspawnKey( FindServerMap( server_gs.gameState.map ), "randomize_arena" ) != "";
-	arenas.init( sys_allocator );
-
-	InitRespawnQueues( &gladiator_state.respawn_queues );
-
-	G_AddCommand( ClientCommand_LoadoutMenu, ShowShop );
-
-	G_AddCommand( ClientCommand_SetLoadout, []( edict_t * ent, msg_t args ) {
-		SetLoadout( ent, MSG_ReadString( &args ), false );
-	} );
-
-	g_glad_bombtimer = NewCvar( "g_glad_bombtimer", "40", CvarFlag_Archive );
+static void LoadArenas() {
+	arenas.clear();
 
 	if( gladiator_state.randomize_arena ) {
 		TempAllocator temp = svs.frame_arena.temp();
@@ -371,7 +357,26 @@ static void Gladiator_Init() {
 	else {
 		arenas.add( server_gs.gameState.map );
 	}
+}
 
+static void Gladiator_Init() {
+	server_gs.gameState.gametype = Gametype_Gladiator;
+
+	gladiator_state = { };
+	gladiator_state.randomize_arena = GetWorldspawnKey( FindServerMap( server_gs.gameState.map ), "randomize_arena" ) != "";
+	arenas.init( sys_allocator );
+
+	InitRespawnQueues( &gladiator_state.respawn_queues );
+
+	G_AddCommand( ClientCommand_LoadoutMenu, ShowShop );
+
+	G_AddCommand( ClientCommand_SetLoadout, []( edict_t * ent, msg_t args ) {
+		SetLoadout( ent, MSG_ReadString( &args ), false );
+	} );
+
+	g_glad_bombtimer = NewCvar( "g_glad_bombtimer", "40", CvarFlag_Archive );
+
+	LoadArenas();
 	PickRandomArena();
 }
 
@@ -404,6 +409,7 @@ GametypeDef GetGladiatorGametype() {
 	gt.PlayerKilled = Gladiator_PlayerKilled;
 	gt.SelectSpawnPoint = Gladiator_SelectSpawnPoint;
 	gt.Shutdown = Gladiator_Shutdown;
+	gt.MapHotloading = LoadArenas;
 	gt.SpawnEntity = Gladiator_SpawnEntity;
 
 	gt.numTeams = 4;

@@ -354,6 +354,10 @@ void G_HotloadMap() {
 	InitServerCollisionModels();
 	LoadServerMap( MakeSpan( sv.mapname ) );
 
+	if( level.gametype.MapHotloading != NULL ) {
+		level.gametype.MapHotloading();
+	}
+
 	G_ResetLevel();
 
 	if( level.gametype.MapHotloaded != NULL ) {

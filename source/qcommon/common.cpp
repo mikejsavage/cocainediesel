@@ -286,11 +286,9 @@ void Qcommon_Init( int argc, char ** argv ) {
 }
 
 bool Qcommon_Frame( unsigned int realMsec ) {
-	if( IFDEF( TRACY_ENABLE ) ) {
+	if( IFDEF( TRACY_ENABLE ) && tracy_is_active ) {
 		if( Now() - disable_tracy_start_time > Minutes( 10 ) ) {
-			if( tracy_is_active ) {
-				Com_Printf( "Disabled Tracy to conserve memory\n" );
-			}
+			Com_Printf( "Disabled Tracy to conserve memory\n" );
 			tracy_is_active = false;
 		}
 	}

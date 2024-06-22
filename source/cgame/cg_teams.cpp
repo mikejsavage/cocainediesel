@@ -2,6 +2,8 @@
 #include "qcommon/srgb.h"
 
 static constexpr RGB8 TEAM_COLORS[] = {
+	RGB8( 255, 255, 255 ), // Team_None
+
 	RGB8( 40, 204, 255 ), //blue
 	RGB8( 255, 24, 96 ), //red
 	RGB8( 100, 255, 100 ), //green
@@ -13,6 +15,8 @@ static constexpr RGB8 TEAM_COLORS[] = {
 };
 
 static constexpr RGB8 COLORBLIND_TEAM_COLORS[] = {
+	RGB8( 255, 255, 255 ), // Team_None
+
 	RGB8( 40, 204, 255 ),
 	RGB8( 255, 150, 40 ), //orange
 	RGB8( 100, 255, 100 ),
@@ -32,18 +36,18 @@ static bool IsAlly( Team team ) {
 
 RGB8 CG_TeamColor( Team team ) {
 	if( cg.frame.gameState.gametype == Gametype_Gladiator )
-		return Cvar_Bool( "cg_colorBlind" ) ? COLORBLIND_TEAM_COLORS[ team - Team_One ] : TEAM_COLORS[ team - Team_One ];
+		return Cvar_Bool( "cg_colorBlind" ) ? COLORBLIND_TEAM_COLORS[ team ] : TEAM_COLORS[ team ];
 	return IsAlly( team ) ? AllyColor() : EnemyColor();
 }
 
 RGB8 AllyColor() {
 	const RGB8 * colors = Cvar_Bool( "cg_colorBlind" ) ? COLORBLIND_TEAM_COLORS : TEAM_COLORS;
-	return colors[ 0 ];
+	return colors[ Team_One ];
 }
 
 RGB8 EnemyColor() {
 	const RGB8 * colors = Cvar_Bool( "cg_colorBlind" ) ? COLORBLIND_TEAM_COLORS : TEAM_COLORS;
-	return colors[ 1 ];
+	return colors[ Team_Two ];
 }
 
 static Vec4 RGB8ToVec4( RGB8 rgb ) {

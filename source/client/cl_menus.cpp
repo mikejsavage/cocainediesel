@@ -1207,7 +1207,7 @@ static void GameMenu() {
 		ImGui::SetColumnWidth( 0, half );
 		ImGui::SetColumnWidth( 1, half );
 
-		GameMenuButton( "Disconnect", "disconnect", &should_close, 0 );
+		GameMenuButton( "Disconnect", "disconnect", NULL, 0 );
 		ImGui::NextColumn();
 		GameMenuButton( "Exit game", "quit", &should_close, 1 );
 		ImGui::NextColumn();
@@ -1305,7 +1305,7 @@ static void DemoMenu() {
 			demomenu_state = DemoMenuState_Settings;
 		}
 
-		GameMenuButton( "Disconnect to main menu", "disconnect", &should_close );
+		GameMenuButton( "Disconnect to main menu", "disconnect", NULL );
 		GameMenuButton( "Exit to desktop", "quit", &should_close );
 	} else if( demomenu_state == DemoMenuState_Settings ) {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );

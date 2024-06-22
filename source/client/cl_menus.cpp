@@ -1324,10 +1324,6 @@ static void DemoMenu() {
 void UI_Refresh() {
 	TracyZoneScoped;
 
-	if( uistate == UIState_Hidden && !Con_IsVisible() ) {
-		return;
-	}
-
 	if( uistate == UIState_GameMenu ) {
 		GameMenu();
 	}

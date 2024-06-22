@@ -129,14 +129,11 @@ static void Refresh() {
 
 void UI_Init() {
 	masks.init( sys_allocator );
-	ResetServerBrowser();
 	RefreshMasksList();
 	yolodemo = false;
 	// InitParticleMenuEffect();
 
-	uistate = UIState_MainMenu;
-	mainmenu_state = MainMenuState_ServerBrowser;
-
+	UI_ShowMainMenu();
 	reset_video_settings = true;
 }
 

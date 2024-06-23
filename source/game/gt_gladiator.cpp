@@ -48,7 +48,12 @@ static constexpr int countdown_seconds = 4;
 static constexpr u32 bomb_explosion_effect_radius = 1024;
 static Cvar * g_glad_bombtimer;
 
-static NonRAIIDynamicArray< StringHash > arenas;
+struct GladiatorArena {
+	StringHash hash;
+	PerkType perk;
+};
+
+static NonRAIIDynamicArray< GladiatorArena > arenas;
 
 static void BombExplode() {
 	server_gs.gameState.exploding = true;
@@ -68,20 +73,16 @@ static void BombKill() {
 }
 
 static void PickRandomArena() {
-	server_gs.gameState.map = RandomElement( &svs.rng, arenas.ptr(), arenas.size() );
+	const GladiatorArena& arena = RandomElement( &svs.rng, arenas.ptr(), arenas.size() );
+	server_gs.gameState.map = arena.hash;
 
 	constexpr auto PickRandomPerk = [](RNG * rng) {
 		PerkType perk = Perk_None;
 		while(GetPerkDef(perk = PerkType(RandomUniform(rng, Perk_None + 1, Perk_Count)))->disabled);
 		return perk;
 	};
-	Span<const char> perk_key = GetWorldspawnKey( FindServerMap( server_gs.gameState.map ), "perk" );
-	
-	gladiator_state.perk =	StrEqual( perk_key, "hooligan" ) ? Perk_Hooligan :
-							StrEqual( perk_key, "midget" ) ? Perk_Midget :
-							StrEqual( perk_key, "wheel" ) ? Perk_Wheel :
-							StrEqual( perk_key, "jetpack" ) ? Perk_Jetpack :
-							PickRandomPerk( &svs.rng );
+
+	gladiator_state.perk = arena.perk != Perk_None ? arena.perk : PickRandomPerk( &svs.rng );
 
 	gladiator_state.gadget = GadgetType(RandomUniform( &svs.rng, Gadget_None + 1, Gadget_Count ));
 	gladiator_state.melee.randomize();
@@ -417,35 +418,40 @@ static void Gladiator_MatchStateStarted() {
 	}
 }
 
+static void LoadPerkFolder( const char * folder, PerkType perk, TempAllocator & temp ) {
+	const char * maps_dir = temp( "{}/base/maps/gladiator/{}", RootDirPath(), folder );
+	ListDirHandle scan = BeginListDir( sys_allocator, maps_dir );
+
+	const char * name;
+	bool dir;
+	while( ListDirNext( &scan, &name, &dir ) ) {
+		// skip ., .., .git, etc
+		if( name[ 0 ] == '.' || dir )
+			continue;
+
+		if( FileExtension( name ) != ".cdmap" && FileExtension( StripExtension( name ) ) != ".cdmap" )
+			continue;
+
+		Span< const char > arena = temp.sv( "gladiator/{}/{}", folder, StripExtension( StripExtension( name ) ) );
+		if( LoadServerMap( arena ) ) {
+			arenas.add( { StringHash( arena ), perk } );
+		}
+	}
+}
+
 static void LoadArenas() {
 	arenas.clear();
 
 	if( gladiator_state.randomize_arena ) {
 		TempAllocator temp = svs.frame_arena.temp();
-
-		const char * maps_dir = temp( "{}/base/maps/gladiator", RootDirPath() );
-		DynamicArray< const char * > maps( &temp );
-
-		ListDirHandle scan = BeginListDir( sys_allocator, maps_dir );
-
-		const char * name;
-		bool dir;
-		while( ListDirNext( &scan, &name, &dir ) ) {
-			// skip ., .., .git, etc
-			if( name[ 0 ] == '.' || dir )
-				continue;
-
-			if( FileExtension( name ) != ".cdmap" && FileExtension( StripExtension( name ) ) != ".cdmap" )
-				continue;
-
-			Span< const char > arena = temp.sv( "gladiator/{}", StripExtension( StripExtension( name ) ) );
-			if( LoadServerMap( arena ) ) {
-				arenas.add( StringHash( arena ) );
-			}
-		}
+		LoadPerkFolder( "hooligan", Perk_Hooligan, temp );
+		LoadPerkFolder( "midget", Perk_Midget, temp );
+		LoadPerkFolder( "wheel", Perk_Wheel, temp );
+		LoadPerkFolder( "jetpack", Perk_Jetpack, temp );
+		LoadPerkFolder( "random", Perk_None, temp );
 	}
 	else {
-		arenas.add( server_gs.gameState.map );
+		arenas.add( { server_gs.gameState.map, Perk_None } );
 	}
 }
 

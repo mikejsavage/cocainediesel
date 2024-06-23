@@ -718,6 +718,9 @@ void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead ) 
 }
 
 void G_GiveWeapon( edict_t * ent, WeaponType weapon ) {
+	if( weapon == Weapon_None )
+		return;
+
 	SyncPlayerState * ps = &ent->r.client->ps;
 
 	for( size_t i = 0; i < ARRAY_COUNT( ps->weapons ); i++ ) {

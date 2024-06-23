@@ -253,6 +253,10 @@ enum Team : u8 {
 	Team_Two,
 	Team_Three,
 	Team_Four,
+	Team_Five,
+	Team_Six,
+	Team_Seven,
+	Team_Eight,
 
 	Team_Count
 };

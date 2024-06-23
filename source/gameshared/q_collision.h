@@ -14,15 +14,21 @@ enum SolidBits : u16 {
 	Solid_Ladder = 1 << 4,
 	Solid_Trigger = 1 << 5,
 
-	Solid_PlayerTeamOne = 1 << 6,
+	//this should be changed so that only Team enum stays
+	Solid_PlayerTeamOne = 1 << 5,
 	Solid_PlayerTeamTwo = 1 << 7,
 	Solid_PlayerTeamThree = 1 << 8,
 	Solid_PlayerTeamFour = 1 << 9,
+	Solid_PlayerTeamFive = 1 << 10,
+	Solid_PlayerTeamSix = 1 << 11,
+	Solid_PlayerTeamSeven = 1 << 12,
+	Solid_PlayerTeamEight = 1 << 13,
+
 
 	Solid_MaskGenerator
 };
 
-constexpr SolidBits SolidMask_Player = SolidBits( Solid_PlayerTeamOne | Solid_PlayerTeamTwo | Solid_PlayerTeamThree | Solid_PlayerTeamFour );
+constexpr SolidBits SolidMask_Player = SolidBits( Solid_PlayerTeamOne | Solid_PlayerTeamTwo | Solid_PlayerTeamThree | Solid_PlayerTeamFour | Solid_PlayerTeamFive | Solid_PlayerTeamSix | Solid_PlayerTeamSeven | Solid_PlayerTeamEight );
 constexpr SolidBits SolidMask_AnySolid = SolidBits( Solid_World | Solid_PlayerClip | Solid_WeaponClip | Solid_Wallbangable | SolidMask_Player );
 constexpr SolidBits SolidMask_Opaque = SolidBits( Solid_World | Solid_WeaponClip | Solid_Wallbangable );
 constexpr SolidBits SolidMask_WallbangShot = SolidBits( Solid_WeaponClip | SolidMask_Player );

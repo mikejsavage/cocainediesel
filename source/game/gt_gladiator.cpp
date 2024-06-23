@@ -418,7 +418,7 @@ static void Gladiator_MatchStateStarted() {
 	}
 }
 
-static void LoadPerkFolder( const char * folder, PerkType perk, TempAllocator & temp ) {
+static void LoadArenaFolder( const char * folder, PerkType perk, TempAllocator & temp ) {
 	const char * maps_dir = temp( "{}/base/maps/gladiator/{}", RootDirPath(), folder );
 	ListDirHandle scan = BeginListDir( sys_allocator, maps_dir );
 
@@ -444,11 +444,11 @@ static void LoadArenas() {
 
 	if( gladiator_state.randomize_arena ) {
 		TempAllocator temp = svs.frame_arena.temp();
-		LoadPerkFolder( "hooligan", Perk_Hooligan, temp );
-		LoadPerkFolder( "midget", Perk_Midget, temp );
-		LoadPerkFolder( "wheel", Perk_Wheel, temp );
-		LoadPerkFolder( "jetpack", Perk_Jetpack, temp );
-		LoadPerkFolder( "random", Perk_None, temp );
+		LoadArenaFolder( "hooligan", Perk_Hooligan, temp );
+		LoadArenaFolder( "midget", Perk_Midget, temp );
+		LoadArenaFolder( "wheel", Perk_Wheel, temp );
+		LoadArenaFolder( "jetpack", Perk_Jetpack, temp );
+		LoadArenaFolder( "random", Perk_None, temp );
 	}
 	else {
 		arenas.add( { server_gs.gameState.map, Perk_None } );

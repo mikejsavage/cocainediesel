@@ -65,6 +65,10 @@ static const LuauConst<int> numeric_constants[] = {
 	{ "Team_Two", Team_Two },
 	{ "Team_Three", Team_Three },
 	{ "Team_Four", Team_Four },
+	{ "Team_Five", Team_Five },
+	{ "Team_Six", Team_Six },
+	{ "Team_Sevent", Team_Seven },
+	{ "Team_Eight", Team_Eight },
 
 	{ "WeaponState_Reloading", WeaponState_Reloading },
 	{ "WeaponState_StagedReloading", WeaponState_StagedReloading },
@@ -1849,6 +1853,48 @@ void CG_DrawHUD() {
 
 	}
 	lua_setfield( hud_L, -2, "weapons" );
+
+	lua_createtable( hud_L, Team_Count, 0 );
+	for( int i = Team_One; i < Team_Count; i++ ) {
+		lua_pushnumber( hud_L, i );
+		lua_createtable( hud_L, 0, 2 );
+
+		const SyncTeamState & team = client_gs.gameState.teams[ i ];
+		lua_pushnumber( hud_L, team.score );
+		lua_setfield( hud_L, -2, "score" );
+
+		lua_createtable( hud_L, 0, team.num_players );
+		for( u8 p = 0; p < team.num_players; p++ ) {
+			lua_pushnumber( hud_L, p + 1 );
+
+			lua_createtable( hud_L, 0, 7 );
+
+			const SyncScoreboardPlayer & player = client_gs.gameState.players[ team.player_indices[ p ] - 1 ];
+			lua_pushlstring( hud_L, player.name, strlen( player.name ) );
+			lua_setfield( hud_L, -2, "name" );
+			lua_pushnumber( hud_L, player.ping );
+			lua_setfield( hud_L, -2, "ping" );
+			lua_pushnumber( hud_L, player.score );
+			lua_setfield( hud_L, -2, "score" );
+			lua_pushnumber( hud_L, player.kills );
+			lua_setfield( hud_L, -2, "kills" );
+			lua_pushboolean( hud_L, player.ready );
+			lua_setfield( hud_L, -2, "ready" );
+			lua_pushboolean( hud_L, player.carrier );
+			lua_setfield( hud_L, -2, "carrier" );
+			lua_pushboolean( hud_L, player.alive );
+			lua_setfield( hud_L, -2, "alive" );
+
+			lua_settable( hud_L, -3 );
+		}
+		lua_setfield( hud_L, -2, "players" );
+
+		lua_settable( hud_L, -3 );
+	}
+	lua_setfield( hud_L, -2, "teams" );
+
+	lua_pushboolean( hud_L, CG_ScoreboardShown() );
+	lua_setfield( hud_L, -2, "scoreboard" );
 
 	bool still_showing_inspector = show_inspector;
 	ImGuiStyle old_style = ImGui::GetStyle();

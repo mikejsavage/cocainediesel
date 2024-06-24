@@ -481,10 +481,7 @@ void CG_Draw2DView() {
 	CG_SCRDrawViewBlend();
 
 	scr_centertime_off -= cls.frametime;
-	if( CG_ScoreboardShown() ) {
-		CG_DrawScoreboard();
-	}
-	else if( scr_centertime_off > 0 ) {
+	if( scr_centertime_off > 0 ) {
 		CG_DrawCenterString();
 	}
 

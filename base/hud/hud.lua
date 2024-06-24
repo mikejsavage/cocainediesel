@@ -348,7 +348,7 @@ local function DrawPlayerBar( state )
 	local stamina_bar_height = state.viewport_width * 0.015
 	local health_bar_height = state.viewport_width * 0.022
 	local empty_bar_height = state.viewport_width * 0.019
-	local padding = math.floor( offset * 0.3 );
+	local padding = math.floor( offset * 0.3 )
 
 	local width = state.viewport_width * 0.25
 	local height = stamina_bar_height + health_bar_height + empty_bar_height + padding * 4
@@ -449,6 +449,150 @@ local function DrawLagging( state )
 	if state.lagging then
 		local width = state.viewport_width * 0.05
 		cd.box( width, width, width, width, "#fff", assets.net )
+	end
+end
+
+local function DrawScoreboardPlayer( options, Y, nameX, scoreX, killsX, pingX, player, teamColor )
+	options.color = teamColor
+	if not player.alive then
+		options.color.a = 0.2
+	end
+
+	options.alignment = "left middle"
+	cd.text( options, nameX, Y, player.name )
+	options.color.a = 1.0 -- hack because teamcolor seems to be a reference
+
+	options.color = RGBALinear( 1, 1, 1, 1 )
+	options.alignment = "center middle"
+	cd.text( options, scoreX, Y, player.score )
+	cd.text( options, killsX, Y, player.kills )
+	options.color.g = math.max(0.0, 1.0 - player.ping * 0.002)
+	options.color.b = math.max(0.0, 1.0 - player.ping * 0.01)
+	cd.text( options, pingX, Y, player.ping )
+end
+
+local function DrawScoreboardTeam( state, X, Y, width, outline, numPlayersTeam, numLines, team, lineHeight, options )
+	local tabHeight = lineHeight * (numLines + 1) + outline * numLines -- add one line for description
+	local teamColor = cd.getTeamColor( team )
+	local teamState = state.teams[ team ]
+
+	local nameX = X + outline
+	local scoreX = X + width * 0.58
+	local killsX = X + width * 0.76
+	local pingX = X + width * 0.92
+
+	DrawBoxOutline( X, Y, width, tabHeight, outline )
+	cd.box( X, Y, width, lineHeight, teamColor )
+
+	options.color = dark_grey
+	options.alignment = "left middle"
+	local team_text = "DEFENDING"
+	if state.attacking_team == team then
+		team_text = "ATTACKING"
+	end
+	cd.text( options, nameX, Y + lineHeight/2, team_text )
+	options.alignment = "center middle"
+	cd.text( options, scoreX, Y + lineHeight/2, "SCORE" )
+	cd.text( options, killsX, Y + lineHeight/2, "KILLS" )
+	cd.text( options, pingX, Y + lineHeight/2, "PING" )
+
+	for k, player in pairs( teamState.players ) do
+		Y += lineHeight + outline
+
+		DrawScoreboardPlayer( options, Y + lineHeight/2, nameX, scoreX, killsX, pingX, player, teamColor )
+	end
+
+	if numLines > numPlayersTeam then
+		options.color = "#444"
+		options.alignment = "left middle"
+		for i = 0, numLines - numPlayersTeam - 1, 1 do
+			Y += lineHeight + outline
+			cd.text( options, nameX, Y + (lineHeight + outline)/2, "--------" )
+		end
+	end
+
+	return tabHeight + outline * 3
+end
+
+local function DrawScoreboard( state )
+	if not state.scoreboard then
+		return
+	end
+
+	local offset = state.viewport_height * 0.05
+	local outline = offset * 0.1
+	local width = state.viewport_width * 0.28
+	local titleHeight = state.viewport_height * 0.07
+	local lineHeight = state.viewport_height * 0.03
+	local X = offset
+	local Y = offset
+
+	local title_options = {
+		color = dark_grey,
+		border = "#0000",
+		font = "bolditalic",
+		font_size = titleHeight,
+		alignment = "center middle",
+	}
+
+	local text_options = {
+		border = "#0000",
+		font = "bolditalic",
+		font_size = lineHeight
+	}
+
+	local nameX = X + outline
+	local scoreX = X + width * 0.58
+	local killsX = X + width * 0.76
+	local pingX = X + width * 0.92
+
+	DrawBoxOutline( X, Y, width, titleHeight, outline )
+	cd.box( X, Y, width, titleHeight, yellow )
+	cd.text( title_options, X + width/2, Y + titleHeight/2, "SCOREBOARD" )
+	Y += titleHeight + outline * 3
+
+	if state.gametype == Gametype_Bomb then
+		local numPlayerTeamOne = state.teams[ Team_One ].num_players
+		--cd.text(title_options, 0, 0, numPlayersTeamOne)
+		local numPlayerTeamTwo = state.teams[ Team_Two ].num_players
+		--cd.text(title_options, 0, 50, numPlayersTeamTwo)
+		local numLines = math.max(4, math.max(numPlayerTeamOne, numPlayerTeamTwo))
+
+		Y += DrawScoreboardTeam( state, X, Y, width, outline, numPlayerTeamOne, numLines, Team_One, lineHeight, text_options )
+		Y += DrawScoreboardTeam( state, X, Y, width, outline, numPlayerTeamTwo, numLines, Team_Two, lineHeight, text_options )
+	else
+		local numPlayers = 0
+		for t = Team_One, Team_Count - 1, 1 do
+			numPlayers += state.teams[ t ].num_players
+		end
+
+		DrawBoxOutline( X, Y, width, lineHeight * (numPlayers + 1) + outline * numPlayers, outline )
+		cd.box( X, Y, width, lineHeight, "#fff" )
+		text_options.color = dark_grey
+
+		text_options.alignment = "left middle"
+		cd.text( text_options, nameX, Y + lineHeight/2, "NAME" )
+		text_options.alignment = "center middle"
+		cd.text( text_options, scoreX, Y + lineHeight/2, "SCORE" )
+		cd.text( text_options, killsX, Y + lineHeight/2, "KILLS" )
+		cd.text( text_options, pingX, Y + lineHeight/2, "PING" )
+		
+		for k, team in pairs( state.teams ) do
+			local teamColor = cd.getTeamColor( k )
+			for k, player in pairs( team.players ) do
+				Y += lineHeight + outline
+				DrawScoreboardPlayer( text_options, Y + lineHeight/2, nameX, scoreX, killsX, pingX, player, teamColor )
+			end
+		end
+
+		Y += lineHeight + outline * 3
+	end
+
+	if state.spectating > 0 then
+		DrawBoxOutline( X, Y, width, lineHeight + outline, outline )
+		text_options.color = "#fff"
+		text_options.alignment = "left middle"
+		cd.text( text_options, nameX, Y + lineHeight/2, state.spectating .. " spectating")
 	end
 end
 
@@ -580,6 +724,8 @@ return function( state )
 		cd.drawObituaries( state.viewport_width - 10, 2, state.viewport_width / 10, state.viewport_width / 10,
 						   state.viewport_height / 20, state.viewport_width / 70, "right top" )
 	end
+
+	DrawScoreboard( state )
 
 	DrawCallvote( state )
 

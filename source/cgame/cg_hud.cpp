@@ -69,6 +69,7 @@ static const LuauConst<int> numeric_constants[] = {
 	{ "Team_Six", Team_Six },
 	{ "Team_Sevent", Team_Seven },
 	{ "Team_Eight", Team_Eight },
+	{ "Team_Count", Team_Count },
 
 	{ "WeaponState_Reloading", WeaponState_Reloading },
 	{ "WeaponState_StagedReloading", WeaponState_StagedReloading },
@@ -1536,6 +1537,14 @@ static int YogaLog( YGConfigRef config, YGNodeRef node, YGLogLevel level, const 
 	return len;
 }
 
+bool CG_ScoreboardShown() {
+	if( client_gs.gameState.match_state > MatchState_Playing ) {
+		return true;
+	}
+
+	return cg.showScoreboard;
+}
+
 void CG_InitHUD() {
 	TracyZoneScoped;
 
@@ -1764,6 +1773,9 @@ void CG_DrawHUD() {
 	lua_pushnumber( hud_L, client_gs.gameState.match_state );
 	lua_setfield( hud_L, -2, "match_state" );
 
+	lua_pushnumber( hud_L, client_gs.gameState.bomb.attacking_team );
+	lua_setfield( hud_L, -2, "attacking_team" );
+
 	lua_pushnumber( hud_L, client_gs.gameState.round_state );
 	lua_setfield( hud_L, -2, "round_state" );
 
@@ -1830,7 +1842,6 @@ void CG_DrawHUD() {
 	lua_setfield( hud_L, -2, "viewport_height" );
 
 	lua_createtable( hud_L, Weapon_Count - 1, 0 );
-
 	for( size_t i = 0; i < ARRAY_COUNT( cg.predictedPlayerState.weapons ); i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapons[ i ].weapon );
 
@@ -1857,11 +1868,15 @@ void CG_DrawHUD() {
 	lua_createtable( hud_L, Team_Count, 0 );
 	for( int i = Team_One; i < Team_Count; i++ ) {
 		lua_pushnumber( hud_L, i );
-		lua_createtable( hud_L, 0, 2 );
+		lua_createtable( hud_L, 0, 3 );
 
 		const SyncTeamState & team = client_gs.gameState.teams[ i ];
+
 		lua_pushnumber( hud_L, team.score );
 		lua_setfield( hud_L, -2, "score" );
+
+		lua_pushnumber( hud_L, team.num_players );
+		lua_setfield( hud_L, -2, "num_players" );
 
 		lua_createtable( hud_L, 0, team.num_players );
 		for( u8 p = 0; p < team.num_players; p++ ) {
@@ -1892,6 +1907,11 @@ void CG_DrawHUD() {
 		lua_settable( hud_L, -3 );
 	}
 	lua_setfield( hud_L, -2, "teams" );
+
+
+	lua_pushnumber( hud_L, client_gs.gameState.teams[ Team_None ].num_players );
+	lua_setfield( hud_L, -2, "spectating" );
+
 
 	lua_pushboolean( hud_L, CG_ScoreboardShown() );
 	lua_setfield( hud_L, -2, "scoreboard" );

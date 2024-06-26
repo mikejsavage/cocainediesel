@@ -15,7 +15,7 @@ enum SolidBits : u16 {
 	Solid_Trigger = 1 << 5,
 
 	//this should be changed so that only Team enum stays
-	Solid_PlayerTeamOne = 1 << 5,
+	Solid_PlayerTeamOne = 1 << 6,
 	Solid_PlayerTeamTwo = 1 << 7,
 	Solid_PlayerTeamThree = 1 << 8,
 	Solid_PlayerTeamFour = 1 << 9,

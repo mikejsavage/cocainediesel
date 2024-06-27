@@ -1700,6 +1700,9 @@ void CG_DrawHUD() {
 	lua_pushvalue( hud_L, -1 );
 	lua_newtable( hud_L );
 
+	lua_pushnumber( hud_L, cg.predictedPlayerState.POVnum );
+	lua_setfield( hud_L, -2, "current_player" );
+
 	lua_pushboolean( hud_L, cg.predictedPlayerState.ready );
 	lua_setfield( hud_L, -2, "ready" );
 
@@ -1885,6 +1888,8 @@ void CG_DrawHUD() {
 			lua_createtable( hud_L, 0, 7 );
 
 			const SyncScoreboardPlayer & player = client_gs.gameState.players[ team.player_indices[ p ] - 1 ];
+			lua_pushnumber( hud_L, team.player_indices[ p ] );
+			lua_setfield( hud_L, -2, "id" );
 			lua_pushlstring( hud_L, player.name, strlen( player.name ) );
 			lua_setfield( hud_L, -2, "name" );
 			lua_pushnumber( hud_L, player.ping );

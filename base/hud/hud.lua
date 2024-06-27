@@ -485,6 +485,10 @@ local function DrawScoreboardPlayer( state, options, X, Y, width, height, nameX,
 		end
 
 		cd.box( X, Y, width, height, color )
+	elseif state.current_player == player.id then
+		teamColor.a = 0.1
+		cd.box( X, Y, width, height, teamColor )
+		teamColor.a = 1.0
 	end
 
 	Y += height/2
@@ -557,7 +561,7 @@ local function DrawScoreboard( state )
 
 	local offset = state.viewport_height * 0.05
 	local outline = offset * 0.1
-	local width = state.viewport_width * 0.28
+	local width = state.viewport_width * 0.29
 	local titleHeight = state.viewport_height * 0.07
 	local lineHeight = state.viewport_height * 0.03
 	local X = offset

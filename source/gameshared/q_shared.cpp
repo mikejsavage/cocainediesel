@@ -759,6 +759,21 @@ Span< const char > ParseWorldspawnKey( Span< const char > entities, const char *
 	return Span< const char >();
 }
 
+void operator++( WeaponType & x, int ) {
+	using T = typename std::underlying_type< WeaponType >::type;
+	x = WeaponType( T( x ) + 1 );
+}
+
+void operator++( GadgetType & x, int ) {
+	using T = typename std::underlying_type< GadgetType >::type;
+	x = GadgetType( T( x ) + 1 );
+}
+
+void operator++( PerkType & x, int ) {
+	using T = typename std::underlying_type< PerkType >::type;
+	x = PerkType( T( x ) + 1 );
+}
+
 void operator&=( EntityFlags & lhs, EntityFlags rhs ) {
 	lhs = EntityFlags( lhs & rhs );
 }

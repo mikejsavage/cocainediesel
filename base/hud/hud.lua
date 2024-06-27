@@ -363,16 +363,14 @@ local function DrawStaminaBar( state, x, y, width, height, padding, bg_color )
 	end
 end
 
-local function DrawPlayerBar( state )
+local function DrawPlayerBar( state, offset, padding )
 	if state.health <= 0 or state.ghost or state.zooming then
 		return
 	end
 
-	local offset = state.viewport_width * 0.01
 	local stamina_bar_height = state.viewport_width * 0.015
 	local health_bar_height = state.viewport_width * 0.022
 	local empty_bar_height = state.viewport_width * 0.019
-	local padding = math.floor( offset * 0.3 )
 
 	local width = state.viewport_width * 0.25
 	local height = stamina_bar_height + health_bar_height + empty_bar_height + padding * 4
@@ -547,20 +545,18 @@ local function DrawScoreboardTeam( state, X, Y, width, outline, numPlayersTeam, 
 		options.alignment = "left middle"
 		for i = 0, numLines - numPlayersTeam - 1, 1 do
 			Y += lineHeight + outline
-			cd.text( options, nameX, Y + lineHeight/2 + outline/2, "--------" )
+			cd.text( options, nameX, Y + lineHeight/2 + outline, "--------" )
 		end
 	end
 
 	return tabHeight + outline * 3
 end
 
-local function DrawScoreboard( state )
+local function DrawScoreboard( state, offset, outline )
 	if not state.scoreboard then
 		return
 	end
 
-	local offset = state.viewport_height * 0.05
-	local outline = offset * 0.1
 	local width = state.viewport_width * 0.29
 	local titleHeight = state.viewport_height * 0.07
 	local lineHeight = state.viewport_height * 0.03
@@ -606,7 +602,9 @@ local function DrawScoreboard( state )
 			numPlayers += state.teams[ t ].num_players
 		end
 
-		DrawBoxOutline( X, Y, width, lineHeight * (numPlayers + 1) + outline * numPlayers, outline )
+		local numLines = math.max(numPlayers, Team_Count - 1)
+
+		DrawBoxOutline( X, Y, width, lineHeight * (numLines + 1) + outline * numLines, outline )
 		cd.box( X, Y, width, lineHeight, "#fff" )
 		text_options.color = dark_grey
 
@@ -622,6 +620,15 @@ local function DrawScoreboard( state )
 			for k, player in pairs( team.players ) do
 				Y += lineHeight + outline
 				DrawScoreboardPlayer( state, text_options,  X, Y, width, lineHeight, nameX, scoreX, killsX, pingX, player, teamColor )
+			end
+		end
+
+		if numPlayers < numLines then
+			text_options.color = "#444"
+			text_options.alignment = "left middle"
+			for i = 0, numLines - numPlayers - 1, 1 do
+				Y += lineHeight + outline
+				cd.text( text_options, nameX, Y + lineHeight/2 + outline, "--------" )
 			end
 		end
 
@@ -744,12 +751,15 @@ local function DrawYogaStuff( state )
 end
 
 return function( state )
+	local offset = state.viewport_width * 0.01
+	local padding = math.floor( offset * 0.3 )
+
 	if state.match_state < MatchState_PostMatch then
 		cd.drawBombIndicators( state.viewport_height / 26, state.viewport_height / 60, state.viewport_height / 50 ) -- site name size, site message size (ATTACK/DEFEND/...)
 
 		DrawTopInfo( state )
 
-		DrawPlayerBar( state )
+		DrawPlayerBar( state, offset, padding )
 
 		DrawDevInfo( state )
 
@@ -765,7 +775,7 @@ return function( state )
 						   state.viewport_height / 20, state.viewport_width / 70, "right top" )
 	end
 
-	DrawScoreboard( state )
+	DrawScoreboard( state, offset, padding )
 
 	DrawCallvote( state )
 

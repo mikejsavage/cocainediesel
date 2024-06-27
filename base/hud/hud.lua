@@ -14,6 +14,52 @@ local function Override( t, overrides )
 	return t2
 end
 
+local function DrawClock( state, posX )
+	local fontSize1 = state.viewport_height / 25
+	local testPosY = state.viewport_height * 0.013
+	local options = {
+		color = "#ffff",
+		border = "#000b",
+		font = "bold",
+		font_size = fontSize1,
+		alignment = "center top",
+	}
+
+	if state.round_state == RoundState_Countdown then
+		local text = "DEFUSE"
+		if state.attacking_team == team then
+			text = "PLANT"
+		end
+
+		options.font_size = fontSize1 * 0.8
+		options.alignement = "middle top"
+		cd.text( options, posX, testPosY * 1.2, text )
+	elseif state.round_state == RoundState_Round then
+		local time = cd.getClockTime()
+		local seconds = time * 0.001
+		local milliseconds = time % 1000
+
+		if seconds >= 0 then
+			local minutes = seconds / 60
+			seconds = seconds % 60
+
+			if minutes < 1 and seconds < 11 and seconds ~= 0 then
+				options.color = "#f00" -- TODO: attention getting red
+			end
+
+			options.alignment = "right top"
+			cd.text( options, posX, testPosY, string.format( "%02i", seconds ) )
+
+			options.alignment = "left bottom"
+			local ms_options = Override( options, { font_size = fontSize1 * 0.6 } )
+			cd.text( ms_options, posX + posX * 0.001, testPosY + fontSize1 * 0.6, string.format( ".%03i", milliseconds ))
+		elseif state.gametype == Gametype_Bomb then
+			local size = state.viewport_height * 0.055
+			cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, "#fff", assets.bomb )
+		end
+	end
+end
+
 local function DrawTopInfo( state )
 	local options = {
 		color = "#ffff",
@@ -47,33 +93,11 @@ local function DrawTopInfo( state )
 			end
 		end
 	elseif state.match_state == MatchState_Playing then
-		options.font_size = state.viewport_height / 25
-
-		local time = cd.getClockTime()
-		local seconds = time * 0.001
-		local milliseconds = time % 1000
-		if seconds >= 0 then
-			local minutes = seconds / 60
-			seconds = seconds % 60
-
-			if minutes < 1 and seconds < 11 and seconds ~= 0 then
-				options.color = "#f00" -- TODO: attention getting red
-			end
-
-			local testPosY = state.viewport_height * 0.012
-
-			options.alignment = "right top"
-			cd.text( options, posX + posX * 0.028, testPosY, string.format( "%d:%02i", minutes, seconds ) )
-
-			options.alignment = "left top"
-			local ms_options = Override( options, { font_size = options.font_size / 2 } )
-			cd.text( ms_options, posX + posX * 0.032, testPosY + options.font_size * 0.3, string.format( ".%03i", milliseconds ))
-		elseif state.gametype == Gametype_Bomb then
-			local size = state.viewport_height * 0.055
-			cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, "#fff", assets.bomb )
-		end
+		DrawClock( state, posX )
 
 		if state.gametype == Gametype_Bomb then
+			options.font_size = state.viewport_height / 25
+
 			options.color = cd.getTeamColor( Team_One )
 			cd.text( options, posX - posX / 11, state.viewport_height * 0.012, state.scoreAlpha )
 			options.color = cd.getTeamColor( Team_Two )
@@ -452,7 +476,19 @@ local function DrawLagging( state )
 	end
 end
 
-local function DrawScoreboardPlayer( options, Y, nameX, scoreX, killsX, pingX, player, teamColor )
+local function DrawScoreboardPlayer( state, options, X, Y, width, height, nameX, scoreX, killsX, pingX, player, teamColor )
+	if state.match_state == MatchState_Warmup then
+		local color = RGBALinear( 1, 0, 0, 0.05 )
+		if player.ready then
+			color.r = 0.0
+			color.g = 1.0
+		end
+
+		cd.box( X, Y, width, height, color )
+	end
+
+	Y += height/2
+
 	options.color = teamColor
 	if not player.alive then
 		options.color.a = 0.2
@@ -499,7 +535,7 @@ local function DrawScoreboardTeam( state, X, Y, width, outline, numPlayersTeam, 
 	for k, player in pairs( teamState.players ) do
 		Y += lineHeight + outline
 
-		DrawScoreboardPlayer( options, Y + lineHeight/2, nameX, scoreX, killsX, pingX, player, teamColor )
+		DrawScoreboardPlayer( state, options, X, Y, width, lineHeight, nameX, scoreX, killsX, pingX, player, teamColor )
 	end
 
 	if numLines > numPlayersTeam then
@@ -507,7 +543,7 @@ local function DrawScoreboardTeam( state, X, Y, width, outline, numPlayersTeam, 
 		options.alignment = "left middle"
 		for i = 0, numLines - numPlayersTeam - 1, 1 do
 			Y += lineHeight + outline
-			cd.text( options, nameX, Y + (lineHeight + outline)/2, "--------" )
+			cd.text( options, nameX, Y + lineHeight/2 + outline/2, "--------" )
 		end
 	end
 
@@ -551,7 +587,7 @@ local function DrawScoreboard( state )
 	cd.text( title_options, X + width/2, Y + titleHeight/2, "SCOREBOARD" )
 	Y += titleHeight + outline * 3
 
-	if state.gametype == Gametype_Bomb then
+	if state.gametype == Gametype_Bomb then -- Bomb
 		local numPlayerTeamOne = state.teams[ Team_One ].num_players
 		--cd.text(title_options, 0, 0, numPlayersTeamOne)
 		local numPlayerTeamTwo = state.teams[ Team_Two ].num_players
@@ -560,7 +596,7 @@ local function DrawScoreboard( state )
 
 		Y += DrawScoreboardTeam( state, X, Y, width, outline, numPlayerTeamOne, numLines, Team_One, lineHeight, text_options )
 		Y += DrawScoreboardTeam( state, X, Y, width, outline, numPlayerTeamTwo, numLines, Team_Two, lineHeight, text_options )
-	else
+	else -- Gladiator
 		local numPlayers = 0
 		for t = Team_One, Team_Count - 1, 1 do
 			numPlayers += state.teams[ t ].num_players
@@ -581,7 +617,7 @@ local function DrawScoreboard( state )
 			local teamColor = cd.getTeamColor( k )
 			for k, player in pairs( team.players ) do
 				Y += lineHeight + outline
-				DrawScoreboardPlayer( text_options, Y + lineHeight/2, nameX, scoreX, killsX, pingX, player, teamColor )
+				DrawScoreboardPlayer( state, text_options,  X, Y, width, lineHeight, nameX, scoreX, killsX, pingX, player, teamColor )
 			end
 		end
 

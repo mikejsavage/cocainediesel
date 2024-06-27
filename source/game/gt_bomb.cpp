@@ -1115,7 +1115,7 @@ static void Bomb_Init() {
 		SetLoadout( ent, MSG_ReadString( &args ), false );
 	} );
 
-	g_bomb_roundtime = NewCvar( "g_bomb_roundtime", "61", CvarFlag_Archive );
+	g_bomb_roundtime = NewCvar( "g_bomb_roundtime", "60", CvarFlag_Archive );
 	g_bomb_bombtimer = NewCvar( "g_bomb_bombtimer", "30", CvarFlag_Archive );
 }
 

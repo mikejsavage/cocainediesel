@@ -1178,9 +1178,12 @@ static void GameMenu() {
 		}
 		else {
 			if( client_gs.gameState.match_state <= MatchState_Countdown ) {
-				if( ImGui::Checkbox( ready ? "Ready!" : "Not ready", &ready ) ) {
-					Cmd_Execute( &temp, "toggleready" );
-				}
+				Vec4 color = ready ? vec4_red : vec4_green;
+				color.w = 0.1;
+
+				PushButtonColor( color );
+				GameMenuButton( ready ? "Unready" : "Ready", "toggleready", &should_close );
+				ImGui::PopStyleColor( 3 );
 			}
 
 			GameMenuButton( "Spectate", "spectate", &should_close );

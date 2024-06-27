@@ -60,8 +60,12 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 		}
 
 		{
-			const Material * material = StringHash( mesh.material ) == "editor/wallbangable" ? &wallbang_material : &world_material;
-			PipelineState pipeline = MaterialToPipelineState( FindMaterial( StringHash( mesh.material ), material ) );
+			const Material * material;
+			if( !TryFindMaterial( StringHash( mesh.material ), &material ) ) {
+				material = FindMaterial( "world" );
+			}
+
+			PipelineState pipeline = MaterialToPipelineState( material );
 			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 			pipeline.write_depth = false;

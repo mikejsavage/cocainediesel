@@ -43,9 +43,6 @@ static Hashtable< MAX_MATERIALS * 2 > materials_hashtable;
 
 static Sampler samplers[ Sampler_Count ];
 
-Material world_material;
-Material wallbang_material;
-
 static Vec4 decal_uvwhs[ MAX_DECALS ];
 static Vec4 decal_trims[ MAX_DECALS ];
 static u32 num_decals;
@@ -399,39 +396,6 @@ static u64 AddTexture( Span< const char > name, u64 hash, const TextureConfig & 
 	return idx;
 }
 
-static void LoadBuiltinTextures() {
-	TracyZoneScoped;
-
-	{
-		u8 white = 255;
-
-		TextureConfig config;
-		config.format = TextureFormat_R_U8;
-		config.width = 1;
-		config.height = 1;
-		config.data = &white;
-
-		AddTexture( "$whiteimage", Hash64( "$whiteimage" ), config );
-	}
-
-	{
-		constexpr RGBA8 pixels[] = {
-			RGBA8( 255, 0, 255, 255 ),
-			RGBA8( 0, 0, 0, 255 ),
-			RGBA8( 255, 255, 255, 255 ),
-			RGBA8( 255, 0, 255, 255 ),
-		};
-
-		TextureConfig config;
-		config.format = TextureFormat_RGBA_U8_sRGB;
-		config.width = 2;
-		config.height = 2;
-		config.data = pixels;
-
-		missing_texture = NewTexture( config );
-	}
-}
-
 static void LoadSTBTexture( Span< const char > path, u8 * pixels, int w, int h, int channels, const char * failure_reason ) {
 	TracyZoneScoped;
 	TracyZoneSpan( path );
@@ -516,6 +480,22 @@ static void LoadDDSTexture( Span< const char > path ) {
 	texture_bc4_data[ idx ] = ( dds + sizeof( DDSHeader ) ).cast< const BC4Block >();
 }
 
+static void AddMaterial( Material material, Span< const char > name ) {
+	material.hash = Hash64( name );
+
+	u64 idx = num_materials;
+	if( !materials_hashtable.get( material.hash, &idx ) ) {
+		materials_hashtable.add( material.hash, idx );
+		material.name = CloneSpan( sys_allocator, name );
+		num_materials++;
+	}
+	else {
+		material.name = materials[ idx ].name;
+	}
+
+	materials[ idx ] = material;
+}
+
 static void LoadMaterialFile( Span< const char > path ) {
 	Span< const char > data = AssetString( path );
 
@@ -524,25 +504,12 @@ static void LoadMaterialFile( Span< const char > path ) {
 		if( name == "" )
 			break;
 
-		u64 hash = Hash64( name );
 		ParseToken( &data, Parse_DontStopOnNewLine );
 
-		Material material = Material();
+		Material material;
 		if( !ParseMaterial( &material, name, &data ) )
 			break;
-
-		u64 idx = num_materials;
-		if( !materials_hashtable.get( hash, &idx ) ) {
-			materials_hashtable.add( hash, idx );
-			material.name = CloneSpan( sys_allocator, name );
-			num_materials++;
-		}
-		else {
-			material.name = materials[ idx ].name;
-		}
-
-		material.hash = hash;
-		materials[ idx ] = material;
+		AddMaterial( material, name );
 	}
 }
 
@@ -643,7 +610,7 @@ static Vec4 TrimTexture( Span2D< const BC4Block > bc4, const Material * material
 	);
 
 	// Com_GGPrint( "{} : {}", material->name, trim );
-	
+
 	return trim;
 }
 
@@ -822,6 +789,68 @@ static void PackDecalAtlas() {
 	}
 }
 
+static void LoadBuiltinMaterials() {
+	TracyZoneScoped;
+
+	{
+		u8 white = 255;
+
+		TextureConfig config;
+		config.format = TextureFormat_R_U8;
+		config.width = 1;
+		config.height = 1;
+		config.data = &white;
+
+		AddTexture( "$whiteimage", Hash64( "$whiteimage" ), config );
+	}
+
+	{
+		constexpr RGBA8 pixels[] = {
+			RGBA8( 255, 0, 255, 255 ),
+			RGBA8( 0, 0, 0, 255 ),
+			RGBA8( 255, 255, 255, 255 ),
+			RGBA8( 255, 0, 255, 255 ),
+		};
+
+		TextureConfig config;
+		config.format = TextureFormat_RGBA_U8_sRGB;
+		config.width = 2;
+		config.height = 2;
+		config.data = pixels;
+
+		missing_texture = NewTexture( config );
+	}
+
+	{
+		Material world_material = Material {
+			.rgbgen = { .args = { 0.17f, 0.17f, 0.17f, 1.0f } },
+			.world = true,
+			.specular = 3.0f,
+			.shininess = 8.0f,
+		};
+
+		Material wallbang_material = Material {
+			.rgbgen = {
+				.args = {
+					world_material.rgbgen.args[ 0 ] * 0.45f,
+					world_material.rgbgen.args[ 1 ] * 0.45f,
+					world_material.rgbgen.args[ 2 ] * 0.45f,
+					1.0f,
+				},
+			},
+			.world = true,
+			.specular = world_material.specular,
+			.shininess = world_material.shininess,
+		};
+
+		AddMaterial( world_material, "editor/world" );
+		AddMaterial( world_material, "world" );
+
+		AddMaterial( wallbang_material, "editor/wallbangable" );
+		AddMaterial( wallbang_material, "wallbangable" );
+	}
+}
+
 void InitMaterials() {
 	TracyZoneScoped;
 
@@ -829,24 +858,8 @@ void InitMaterials() {
 	num_materials = 0;
 	ClearMaterialStaticUniforms();
 
-	world_material = Material();
-	world_material.rgbgen.args[ 0 ] = 0.17f;
-	world_material.rgbgen.args[ 1 ] = 0.17f;
-	world_material.rgbgen.args[ 2 ] = 0.17f;
-	world_material.rgbgen.args[ 3 ] = 1.0f;
-	world_material.specular = 3.0f;
-	world_material.shininess = 8.0f;
-
-	wallbang_material = Material();
-	wallbang_material.rgbgen.args[ 0 ] = 0.17f * 0.45f;
-	wallbang_material.rgbgen.args[ 1 ] = 0.17f * 0.45f;
-	wallbang_material.rgbgen.args[ 2 ] = 0.17f * 0.45f;
-	wallbang_material.rgbgen.args[ 3 ] = 1.0f;
-	wallbang_material.specular = 3.0f;
-	wallbang_material.shininess = 8.0f;
-
 	CreateSamplers();
-	LoadBuiltinTextures();
+	LoadBuiltinMaterials();
 
 	{
 		TracyZoneScopedN( "Load disk textures" );
@@ -996,15 +1009,13 @@ bool TryFindMaterial( StringHash name, const Material ** material ) {
 	return true;
 }
 
-const Material * FindMaterial( StringHash name, const Material * def ) {
+const Material * FindMaterial( StringHash name ) {
 	const Material * material;
-	if( !TryFindMaterial( name, &material ) )
-		return def != NULL ? def : &missing_material;
-	return material;
+	return TryFindMaterial( name, &material ) ? material : &missing_material;
 }
 
-const Material * FindMaterial( const char * name, const Material * def ) {
-	return FindMaterial( StringHash( name ), def );
+const Material * FindMaterial( const char * name ) {
+	return FindMaterial( StringHash( name ) );
 }
 
 bool TryFindDecal( StringHash name, Vec4 * uvwh, Vec4 * trim ) {
@@ -1056,7 +1067,7 @@ static float EvaluateWaveFunc( Wave wave ) {
 PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned, bool map_model, GPUMaterial * gpu_material ) {
 	TracyZoneScoped;
 
-	if( material == &world_material || material == &wallbang_material ) {
+	if( material->world ) {
 		PipelineState pipeline;
 		pipeline.shader = &shaders.world;
 		pipeline.pass = frame_static.world_opaque_pass;

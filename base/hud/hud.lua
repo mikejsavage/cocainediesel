@@ -474,16 +474,8 @@ local function DrawLagging( state )
 	end
 end
 
-local function DrawScoreboardPlayer( state, options, X, Y, width, height, nameX, scoreX, killsX, pingX, player, teamColor )
-	if state.match_state == MatchState_Warmup then
-		local color = RGBALinear( 1, 0, 0, 0.05 )
-		if player.ready then
-			color.r = 0.0
-			color.g = 1.0
-		end
-
-		cd.box( X, Y, width, height, color )
-	elseif state.current_player == player.id then
+local function DrawScoreboardPlayer( state, options, X, Y, width, height, nameX, scoreX, killsX, pingX, readyX, player, teamColor )
+	if state.current_player == player.id then
 		teamColor.a = 0.1
 		cd.box( X, Y, width, height, teamColor )
 		teamColor.a = 1.0
@@ -491,14 +483,15 @@ local function DrawScoreboardPlayer( state, options, X, Y, width, height, nameX,
 
 	Y += height/2
 
-	options.color = teamColor
 	if not player.alive then
-		options.color.a = 0.2
+		teamColor.a = 0.2
 	end
-
+	
+	options.font_size = height
+	options.color = teamColor
 	options.alignment = "left middle"
 	cd.text( options, nameX, Y, player.name )
-	options.color.a = 1.0 -- hack because teamcolor seems to be a reference
+	teamColor.a = 1.0 -- hack because teamcolor seems to be a reference
 
 	options.color = RGBALinear( 1, 1, 1, 1 )
 	options.alignment = "center middle"
@@ -507,6 +500,13 @@ local function DrawScoreboardPlayer( state, options, X, Y, width, height, nameX,
 	options.color.g = math.max(0.0, 1.0 - player.ping * 0.002)
 	options.color.b = math.max(0.0, 1.0 - player.ping * 0.01)
 	cd.text( options, pingX, Y, player.ping )
+
+	if state.match_state == MatchState_Warmup and player.ready then
+		options.color = yellow
+		options.alignment = "left middle"
+		options.font_size = height * 0.8
+		cd.text( options, readyX, Y, "READY" )
+	end
 end
 
 local function DrawScoreboardTeam( state, X, Y, width, outline, numPlayersTeam, numLines, team, lineHeight, options )
@@ -518,6 +518,7 @@ local function DrawScoreboardTeam( state, X, Y, width, outline, numPlayersTeam, 
 	local scoreX = X + width * 0.58
 	local killsX = X + width * 0.76
 	local pingX = X + width * 0.92
+	local readyX = X + width * 1.025
 
 	DrawBoxOutline( X, Y, width, tabHeight, outline )
 	cd.box( X, Y, width, lineHeight, teamColor )
@@ -537,7 +538,7 @@ local function DrawScoreboardTeam( state, X, Y, width, outline, numPlayersTeam, 
 	for k, player in pairs( teamState.players ) do
 		Y += lineHeight + outline
 
-		DrawScoreboardPlayer( state, options, X, Y, width, lineHeight, nameX, scoreX, killsX, pingX, player, teamColor )
+		DrawScoreboardPlayer( state, options, X, Y, width, lineHeight, nameX, scoreX, killsX, pingX, readyX, player, teamColor )
 	end
 
 	if numLines > numPlayersTeam then
@@ -581,6 +582,7 @@ local function DrawScoreboard( state, offset, outline )
 	local scoreX = X + width * 0.58
 	local killsX = X + width * 0.76
 	local pingX = X + width * 0.92
+	local readyX = X + width * 1.025
 
 	DrawBoxOutline( X, Y, width, titleHeight, outline )
 	cd.box( X, Y, width, titleHeight, yellow )
@@ -619,7 +621,7 @@ local function DrawScoreboard( state, offset, outline )
 			local teamColor = cd.getTeamColor( k )
 			for k, player in pairs( team.players ) do
 				Y += lineHeight + outline
-				DrawScoreboardPlayer( state, text_options,  X, Y, width, lineHeight, nameX, scoreX, killsX, pingX, player, teamColor )
+				DrawScoreboardPlayer( state, text_options,  X, Y, width, lineHeight, nameX, scoreX, killsX, pingX, readyX, player, teamColor )
 			end
 		end
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 #include "qcommon/types.h"
 #include "qcommon/hash.h"
 #include "gameshared/q_collision.h"
@@ -115,8 +117,6 @@ enum WeaponType : u8 {
 	Weapon_Count
 };
 
-void operator++( WeaponType & x, int );
-
 enum GadgetType : u8 {
 	Gadget_None,
 
@@ -128,8 +128,6 @@ enum GadgetType : u8 {
 
 	Gadget_Count
 };
-
-void operator++( GadgetType & x, int );
 
 enum WorldDamage : u8 {
 	WorldDamage_Crush,
@@ -168,8 +166,6 @@ enum PerkType : u8 {
 
 	Perk_Count
 };
-
-void operator++( PerkType & x, int );
 
 enum StaminaState : u8 {
 	Stamina_Normal,
@@ -567,3 +563,16 @@ enum ClientCommandType : u8 {
 
 	ClientCommand_Count
 };
+
+// Just add whatever enum you want to set incrementable here
+template <typename T>
+concept IncrementableEnum = std::is_same_v<Team, T> ||
+							std::is_same_v<WeaponType, T> ||
+							std::is_same_v<GadgetType, T> ||
+							std::is_same_v<PerkType, T>;
+
+template <IncrementableEnum T>
+void operator++( T & x, int ) {
+	using T_ = typename std::underlying_type< T >::type;
+	x = T( T_( x ) + 1 );
+}

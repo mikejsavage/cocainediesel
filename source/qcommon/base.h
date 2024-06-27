@@ -147,3 +147,15 @@ void Com_GGError( const char * fmt, const Rest & ... rest ) {
 	ggformat( buf, sizeof( buf ), fmt, rest... );
 	Com_Error( "%s", buf );
 }
+
+/*
+ * enum arithmetic
+ */
+
+template< typename E > concept IsEnum = __is_enum( E );
+template< typename E > using UnderlyingType = __underlying_type( E );
+
+template< IsEnum E > void operator++( E & x, int ) { x = E( UnderlyingType< E >( x ) + 1 ); }
+template< IsEnum E > void operator&=( E & lhs, E rhs ) { lhs = E( UnderlyingType< E >( lhs ) & UnderlyingType< E >( rhs ) ); }
+template< IsEnum E > void operator|=( E & lhs, E rhs ) { lhs = E( UnderlyingType< E >( lhs ) | UnderlyingType< E >( rhs ) ); }
+template< IsEnum E > constexpr E operator~( E x ) { return E( ~UnderlyingType< E >( x ) ); }

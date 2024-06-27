@@ -115,8 +115,6 @@ enum WeaponType : u8 {
 	Weapon_Count
 };
 
-void operator++( WeaponType & x, int );
-
 enum GadgetType : u8 {
 	Gadget_None,
 
@@ -128,8 +126,6 @@ enum GadgetType : u8 {
 
 	Gadget_Count
 };
-
-void operator++( GadgetType & x, int );
 
 enum WorldDamage : u8 {
 	WorldDamage_Crush,
@@ -168,8 +164,6 @@ enum PerkType : u8 {
 
 	Perk_Count
 };
-
-void operator++( PerkType & x, int );
 
 enum StaminaState : u8 {
 	Stamina_Normal,
@@ -363,10 +357,6 @@ enum EntityFlags : u16 {
 	SVF_NEVEROWNER       = 1 << 9, // this entity is tramitted to everyone but its owner
 };
 
-void operator&=( EntityFlags & lhs, EntityFlags rhs );
-void operator|=( EntityFlags & lhs, EntityFlags rhs );
-EntityFlags operator~( EntityFlags x );
-
 struct SyncEntityState {
 	int number;
 	EntityID id;
@@ -515,8 +505,6 @@ enum UserCommandButton : u8 {
 	Button_Gadget = 1 << 5,
 	Button_Plant = 1 << 6,
 };
-
-void operator|=( UserCommandButton & lhs, UserCommandButton rhs );
 
 struct UserCommand {
 	u8 msec;

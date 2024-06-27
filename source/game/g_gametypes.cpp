@@ -203,7 +203,7 @@ void G_Match_CheckReadys() {
 		}
 	}
 
-	if( teamsready >= 2 ) {
+	if( teamsready >= level.gametype.numTeams ) {
 		G_PrintMsg( NULL, "All players are ready. Match starting!\n" );
 		G_Match_LaunchState( MatchState_Countdown );
 	}

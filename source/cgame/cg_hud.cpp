@@ -120,6 +120,7 @@ static const LuauConst<StringHash> asset_constants[] = {
 	{ "bomb", StringHash( "hud/icons/bomb" ) },
 	{ "guy", StringHash( "hud/icons/guy" ) },
 	{ "net", StringHash( "hud/icons/net" ) },
+	{ "star", StringHash( "hud/icons/star" ) },
 };
 
 static int CG_GetSpeed() {
@@ -1775,6 +1776,9 @@ void CG_DrawHUD() {
 
 	lua_pushnumber( hud_L, client_gs.gameState.match_state );
 	lua_setfield( hud_L, -2, "match_state" );
+
+	lua_pushnumber( hud_L, client_gs.gameState.scorelimit );
+	lua_setfield( hud_L, -2, "scorelimit" );
 
 	lua_pushnumber( hud_L, client_gs.gameState.bomb.attacking_team );
 	lua_setfield( hud_L, -2, "attacking_team" );

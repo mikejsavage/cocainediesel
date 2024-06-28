@@ -474,13 +474,17 @@ local function DrawLagging( state )
 	end
 end
 
-local function DrawScoreboardPlayer( state, options, X, Y, width, height, nameX, scoreX, killsX, pingX, readyX, player, teamColor )
-	if state.current_player == player.id then
-		teamColor.a = 0.1
-		cd.box( X, Y, width, height, teamColor )
-		teamColor.a = 1.0
-	end
+local function DrawScoreboardEmptySlot( options, Y, nameX, scoreX, killsX, pingX )
+	options.color = "#444"
+	options.alignment = "left middle"
+	cd.text( options, nameX, Y, "--------" )
+	options.alignment = "center middle"
+	cd.text( options, scoreX, Y, "---" )
+	cd.text( options, killsX, Y, "---" )
+	cd.text( options, pingX, Y, "---" )
+end
 
+local function DrawScoreboardPlayer( state, options, X, Y, width, height, nameX, scoreX, killsX, pingX, readyX, player, teamColor )
 	Y += height/2
 
 	if not player.alive then
@@ -490,7 +494,7 @@ local function DrawScoreboardPlayer( state, options, X, Y, width, height, nameX,
 	options.font_size = height
 	options.color = teamColor
 	options.alignment = "left middle"
-	cd.text( options, nameX, Y, player.name )
+	cd.text( options, nameX, Y, string.sub( player.name, 1, (scoreX - nameX)/(height * 0.45) ) )
 	teamColor.a = 1.0 -- hack because teamcolor seems to be a reference
 
 	options.color = RGBALinear( 1, 1, 1, 1 )
@@ -506,6 +510,7 @@ local function DrawScoreboardPlayer( state, options, X, Y, width, height, nameX,
 		options.alignment = "left middle"
 		options.font_size = height * 0.8
 		cd.text( options, readyX, Y, "READY" )
+		options.font_size = height
 	end
 end
 
@@ -546,7 +551,7 @@ local function DrawScoreboardTeam( state, X, Y, width, outline, numPlayersTeam, 
 		options.alignment = "left middle"
 		for i = 0, numLines - numPlayersTeam - 1, 1 do
 			Y += lineHeight + outline
-			cd.text( options, nameX, Y + lineHeight/2 + outline, "--------" )
+			DrawScoreboardEmptySlot( options, Y + lineHeight/2 + outline, nameX, scoreX, killsX, pingX )
 		end
 	end
 
@@ -563,6 +568,9 @@ local function DrawScoreboard( state, offset, outline )
 	local lineHeight = state.viewport_height * 0.03
 	local X = offset
 	local Y = offset
+	
+	local starsX = X
+	local starsWidth = lineHeight * state.scorelimit
 
 	local title_options = {
 		color = dark_grey,
@@ -578,11 +586,9 @@ local function DrawScoreboard( state, offset, outline )
 		font_size = lineHeight
 	}
 
-	local nameX = X + outline
-	local scoreX = X + width * 0.58
-	local killsX = X + width * 0.76
-	local pingX = X + width * 0.92
-	local readyX = X + width * 1.025
+	if state.gametype == Gametype_Gladiator then
+		width = state.viewport_width * 0.36 + starsWidth * 0.5
+	end
 
 	DrawBoxOutline( X, Y, width, titleHeight, outline )
 	cd.box( X, Y, width, titleHeight, yellow )
@@ -599,6 +605,13 @@ local function DrawScoreboard( state, offset, outline )
 		Y += DrawScoreboardTeam( state, X, Y, width, outline, numPlayerTeamOne, numLines, Team_One, lineHeight, text_options )
 		Y += DrawScoreboardTeam( state, X, Y, width, outline, numPlayerTeamTwo, numLines, Team_Two, lineHeight, text_options )
 	else -- Gladiator
+		local placeX = starsX + starsWidth + width * 0.06 - outline
+		local nameX = placeX + width * 0.06
+		local scoreX = X + width * 0.68
+		local killsX = X + width * 0.8
+		local pingX = X + width * 0.92
+		local readyX = X + width * 1.025
+
 		local numPlayers = 0
 		for t = Team_One, Team_Count - 1, 1 do
 			numPlayers += state.teams[ t ].num_players
@@ -610,27 +623,66 @@ local function DrawScoreboard( state, offset, outline )
 		cd.box( X, Y, width, lineHeight, "#fff" )
 		text_options.color = dark_grey
 
+		text_options.alignment = "center middle"
+		cd.text( text_options, starsX + starsWidth * 0.5, Y + lineHeight/2, "SCORE" )
 		text_options.alignment = "left middle"
 		cd.text( text_options, nameX, Y + lineHeight/2, "NAME" )
 		text_options.alignment = "center middle"
-		cd.text( text_options, scoreX, Y + lineHeight/2, "SCORE" )
+		cd.text( text_options, scoreX, Y + lineHeight/2, "WINS" )
 		cd.text( text_options, killsX, Y + lineHeight/2, "KILLS" )
 		cd.text( text_options, pingX, Y + lineHeight/2, "PING" )
 		
-		for k, team in pairs( state.teams ) do
-			local teamColor = cd.getTeamColor( k )
-			for k, player in pairs( team.players ) do
-				Y += lineHeight + outline
-				DrawScoreboardPlayer( state, text_options,  X, Y, width, lineHeight, nameX, scoreX, killsX, pingX, readyX, player, teamColor )
-			end
-		end
+		local place = 0
+		local line = 0
+		local previous_max_score = state.scorelimit
+		while line < numLines do
+			place += 1
 
-		if numPlayers < numLines then
-			text_options.color = "#444"
-			text_options.alignment = "left middle"
-			for i = 0, numLines - numPlayers - 1, 1 do
-				Y += lineHeight + outline
-				cd.text( text_options, nameX, Y + lineHeight/2 + outline, "--------" )
+			local max_score = 0
+			for k, team in pairs( state.teams ) do
+				if team.score > max_score and team.score < previous_max_score then
+					max_score = team.score
+				end
+			end
+			previous_max_score = max_score
+
+			for k, team in pairs( state.teams ) do
+				if team.score == max_score then
+					local teamColor = cd.getTeamColor( k )
+					local starColorBack = "#aaa"
+					local starColorFront = yellow
+					
+					if team.num_players == 0 then
+						starColorBack = "#555"
+					end
+
+					local tmpY = Y + lineHeight + outline
+					cd.boxuv( starsX, tmpY, starsWidth, lineHeight, 0, 0, state.scorelimit, 1, starColorBack, assets.star )
+					cd.boxuv( starsX + lineHeight * (state.scorelimit - team.score), tmpY, lineHeight * team.score, lineHeight, 0, 0, team.score, 1, starColorFront, assets.star )
+					yellow.a = 1.0
+
+					local placeText = ""
+					if place == 1 then placeText = "1st"
+					elseif place == 2 then placeText = "2nd"
+					elseif place == 3 then placeText = "3rd"
+					else placeText = place .. "th" end
+
+					text_options.color = RGBALinear( 1.0, 1.0, 1.0, 1.0/place )
+					text_options.alignment = "center middle"
+					cd.text( text_options, placeX, tmpY + lineHeight/2, placeText )
+
+					if team.num_players == 0 then
+						line += 1
+						Y += lineHeight + outline
+						DrawScoreboardEmptySlot( text_options, Y + lineHeight/2 + outline, nameX, scoreX, killsX, pingX )
+					else
+						for k, player in pairs( team.players ) do
+							line += 1
+							Y += lineHeight + outline
+							DrawScoreboardPlayer( state, text_options, X, Y, width, lineHeight, nameX, scoreX, killsX, pingX, readyX, player, teamColor )
+						end
+					end
+				end
 			end
 		end
 

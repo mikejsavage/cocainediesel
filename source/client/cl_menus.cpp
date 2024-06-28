@@ -1179,7 +1179,7 @@ static void GameMenu() {
 		else {
 			if( client_gs.gameState.match_state <= MatchState_Countdown ) {
 				Vec4 color = ready ? vec4_red : vec4_green;
-				color.w = 0.1;
+				color.w = 0.1f;
 
 				PushButtonColor( color );
 				GameMenuButton( ready ? "Unready" : "Ready", "toggleready", &should_close );

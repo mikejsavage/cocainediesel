@@ -289,6 +289,8 @@ struct SyncGameState {
 	s64 match_duration;
 	s64 clock_override;
 
+	u8 scorelimit;
+
 	char callvote[ 32 ];
 	u8 callvote_required_votes;
 	u8 callvote_yes_votes;

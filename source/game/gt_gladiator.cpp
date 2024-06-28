@@ -145,9 +145,9 @@ static void NewRound() {
 	// check for match point
 	server_gs.gameState.round_type = RoundType_Normal;
 
-	if( g_scorelimit->integer > 0 ) {
+	if( server_gs.gameState.scorelimit > 0 ) {
 		for( int i = 0; i < level.gametype.numTeams; i++ ) {
-			if( server_gs.gameState.teams[ Team_One + i ].score == g_scorelimit->integer - 1 ) {
+			if( server_gs.gameState.teams[ Team_One + i ].score == server_gs.gameState.scorelimit - 1 ) {
 				server_gs.gameState.round_type = RoundType_MatchPoint;
 				break;
 			}
@@ -202,6 +202,12 @@ static void NewRoundState( RoundState newState ) {
 				}
 			}
 
+			for( Team t = Team_One; t < Team_Count; t++ ) {
+				if ( t != winner && server_gs.gameState.teams[ t ].score > 0 ) {
+					server_gs.gameState.teams[ t ].score--;
+				}
+			}
+
 			if( winner == Team_None && !gladiator_state.bomb_exploded ) {
 				G_AnnouncerSound( NULL, "sounds/gladiator/wowyourterrible", Team_Count, false, NULL );
 			}
@@ -211,7 +217,16 @@ static void NewRoundState( RoundState newState ) {
 			}
 
 			if( G_Match_ScorelimitHit() ) {
-				G_Match_LaunchState( MatchState_PostMatch );
+				for( Team t = Team_One; t < Team_Count; t++ ) {
+					server_gs.gameState.teams[ t ].score = 0;
+					
+					if ( t == winner ) {
+						for( u16 i = 0; i < server_gs.gameState.teams[ t ].num_players; i++ ) {
+							score_stats_t * stats = G_ClientGetStats( PLAYERENT( server_gs.gameState.teams[ t ].player_indices[ i ] ) );
+							stats->score++;
+						}
+					}
+				}
 			}
 		} break;
 	}
@@ -241,6 +256,16 @@ static void Gladiator_Think() {
 	if( server_gs.gameState.match_state != MatchState_Playing ) {
 		EndGame();
 		return;
+	}
+
+	u8 num_players = 0;
+	for( Team t = Team_One; t < Team_Count; t++ ) {
+		num_players += server_gs.gameState.teams[ t ].num_players;
+	}
+
+	// End game if no player is playing anymore
+	if ( num_players == 0 ) {
+		EndGame();
 	}
 
 	RemoveDisconnectedPlayersFromRespawnQueues( &gladiator_state.respawn_queues );
@@ -457,6 +482,7 @@ static void LoadArenas() {
 
 static void Gladiator_Init() {
 	server_gs.gameState.gametype = Gametype_Gladiator;
+	server_gs.gameState.scorelimit = 5;
 
 	gladiator_state = { };
 	gladiator_state.randomize_arena = GetWorldspawnKey( FindServerMap( server_gs.gameState.map ), "randomize_arena" ) != "";

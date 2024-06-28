@@ -145,8 +145,6 @@ extern Cvar *g_floodprotection_penalty;
 
 extern Cvar *g_inactivity_maxtime;
 
-extern Cvar *g_scorelimit;
-
 extern Cvar *g_projectile_prestep;
 extern Cvar *g_numbots;
 extern Cvar *g_maxtimeouts;

@@ -812,6 +812,7 @@ static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState
 	Delta( buf, state.match_state_start_time, baseline.match_state_start_time );
 	Delta( buf, state.match_duration, baseline.match_duration );
 	Delta( buf, state.clock_override, baseline.clock_override );
+	Delta( buf, state.scorelimit, baseline.scorelimit );
 
 	DeltaString( buf, state.callvote, baseline.callvote );
 	Delta( buf, state.callvote_required_votes, baseline.callvote_required_votes );

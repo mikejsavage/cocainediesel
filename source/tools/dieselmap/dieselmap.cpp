@@ -621,7 +621,7 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 
 		kd_tree.brushes.push_back( map_brush );
 		kd_tree.bounds = Union( kd_tree.bounds, bounds );
-		kd_tree.solidity = SolidBits( kd_tree.solidity | map_brush.solidity );
+		kd_tree.solidity = kd_tree.solidity | map_brush.solidity;
 	}
 
 	BuildKDTree( &kd_tree, VectorToSpan( brush_bounds ) );

@@ -2,13 +2,13 @@
 
 constexpr const EditorMaterial editor_materials[] = {
 	{ "editor/discard", "discard", false, SolidMask_AnySolid },
-	{ "editor/ladder", "ladder", false, SolidBits( Solid_Ladder | Solid_PlayerClip ) },
+	{ "editor/ladder", "ladder", false, Solid_Ladder | Solid_PlayerClip },
 	{ "editor/clip", "clip", false, SolidMask_AnySolid },
 	{ "editor/playerclip", "playerclip", false, Solid_PlayerClip },
 	{ "editor/weaponclip", "weaponclip", false, Solid_WeaponClip },
 	{ "editor/trigger", "trigger", false, SolidMask_AnySolid },
-	{ "editor/wallbangable", "wallbangable", true, SolidBits( Solid_World | Solid_Wallbangable | Solid_PlayerClip ) },
-	{ "editor/door", "door", true, SolidBits( Solid_World | Solid_WeaponClip ) },
+	{ "editor/wallbangable", "wallbangable", true, Solid_World | Solid_Wallbangable | Solid_PlayerClip },
+	{ "editor/door", "door", true, Solid_World | Solid_WeaponClip },
 };
 
 const EditorMaterial * FindEditorMaterial( StringHash name ) {

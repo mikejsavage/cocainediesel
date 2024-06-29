@@ -238,7 +238,7 @@ static constexpr ItemState generic_gun_refire_state =
 	} );
 
 static UserCommandButton WeaponAttackBits( const WeaponDef * def ) {
-	return def->has_altfire ? UserCommandButton( Button_Attack1 | Button_Attack2 ) : Button_Attack1;
+	return def->has_altfire ? ( Button_Attack1 | Button_Attack2 ) : Button_Attack1;
 }
 
 static constexpr ItemState generic_gun_states[] = {
@@ -582,9 +582,9 @@ void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd
 	}
 
 	if( ps->pmove.no_shooting_time > 0 ) {
-		cmd.buttons = UserCommandButton( cmd.buttons & ~Button_Attack1 );
-		cmd.buttons = UserCommandButton( cmd.buttons & ~Button_Attack2 );
-		cmd.buttons = UserCommandButton( cmd.buttons & ~Button_Gadget );
+		cmd.buttons = cmd.buttons & ~Button_Attack1;
+		cmd.buttons = cmd.buttons & ~Button_Attack2;
+		cmd.buttons = cmd.buttons & ~Button_Gadget;
 	}
 
 	if( HasAllBits( cmd.buttons, Button_Gadget ) && HasAllBits( cmd.down_edges, Button_Gadget ) ) {

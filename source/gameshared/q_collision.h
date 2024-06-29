@@ -28,11 +28,11 @@ enum SolidBits : u16 {
 	Solid_MaskGenerator
 };
 
-constexpr SolidBits SolidMask_Player = SolidBits( Solid_PlayerTeamOne | Solid_PlayerTeamTwo | Solid_PlayerTeamThree | Solid_PlayerTeamFour | Solid_PlayerTeamFive | Solid_PlayerTeamSix | Solid_PlayerTeamSeven | Solid_PlayerTeamEight );
-constexpr SolidBits SolidMask_AnySolid = SolidBits( Solid_World | Solid_PlayerClip | Solid_WeaponClip | Solid_Wallbangable | SolidMask_Player );
-constexpr SolidBits SolidMask_Opaque = SolidBits( Solid_World | Solid_WeaponClip | Solid_Wallbangable );
-constexpr SolidBits SolidMask_WallbangShot = SolidBits( Solid_WeaponClip | SolidMask_Player );
-constexpr SolidBits SolidMask_Shot = SolidBits( SolidMask_WallbangShot | Solid_Wallbangable );
+constexpr SolidBits SolidMask_Player = Solid_PlayerTeamOne | Solid_PlayerTeamTwo | Solid_PlayerTeamThree | Solid_PlayerTeamFour | Solid_PlayerTeamFive | Solid_PlayerTeamSix | Solid_PlayerTeamSeven | Solid_PlayerTeamEight;
+constexpr SolidBits SolidMask_AnySolid = Solid_World | Solid_PlayerClip | Solid_WeaponClip | Solid_Wallbangable | SolidMask_Player;
+constexpr SolidBits SolidMask_Opaque = Solid_World | Solid_WeaponClip | Solid_Wallbangable;
+constexpr SolidBits SolidMask_WallbangShot = Solid_WeaponClip | SolidMask_Player;
+constexpr SolidBits SolidMask_Shot = SolidMask_WallbangShot | Solid_Wallbangable;
 
 constexpr SolidBits SolidMask_Everything = SolidBits( ( Solid_MaskGenerator - 1 ) * 2 - 1 );
 

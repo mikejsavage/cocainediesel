@@ -326,7 +326,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		}
 		self->s.svflags |= SVF_FORCETEAM;
 		SolidBits team_solidity = SolidBits( Solid_PlayerTeamOne << ( self->s.team - Team_One ) );
-		self->s.solidity = SolidBits( team_solidity );
+		self->s.solidity = team_solidity;
 		self->movetype = MOVETYPE_PLAYER;
 		client->ps.pmove.features = PMFEAT_ALL;
 	}

@@ -675,7 +675,7 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 			}
 
 			SolidBits inverse_team_solidity = SolidBits( ~( Solid_PlayerTeamOne << ( pm->team - Team_One ) ) & SolidMask_Player );
-			pm->solid_mask = SolidBits( Solid_PlayerClip | inverse_team_solidity );
+			pm->solid_mask = Solid_PlayerClip | inverse_team_solidity;
 			break;
 	}
 

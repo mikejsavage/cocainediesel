@@ -587,7 +587,7 @@ void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd
 		cmd.buttons = UserCommandButton( cmd.buttons & ~Button_Gadget );
 	}
 
-	if( HasAllBits( cmd.buttons, Button_Gadget ) != 0 && ( cmd.down_edges & Button_Gadget ) != 0 ) {
+	if( HasAllBits( cmd.buttons, Button_Gadget ) && HasAllBits( cmd.down_edges, Button_Gadget ) ) {
 		ps->pending_gadget = true;
 	}
 

@@ -269,7 +269,7 @@ static bool AlsaChecked( int ret, const char * name ) {
 static void ShutdownAlsa() {
 	if( alsa.thread != NULL ) {
 		JoinThread( alsa.thread );
-		alsa.api.drop( alsa.device );
+		alsa.api.drain( alsa.device );
 	}
 
 	if( alsa.api.lib != NULL ) {

@@ -44,7 +44,7 @@ struct AlsaAPI {
 	decltype( snd_pcm_hw_params_any ) * hw_params_any;
 	decltype( snd_pcm_hw_params_set_access ) * hw_params_set_access;
 	decltype( snd_pcm_hw_params_set_format ) * hw_params_set_format;
-	decltype( snd_pcm_hw_params_set_buffer_size_min ) * hw_params_set_buffer_size_min;
+	decltype( snd_pcm_hw_params_set_buffer_size_max ) * hw_params_set_buffer_size_max;
 	decltype( snd_pcm_hw_params_set_channels ) * hw_params_set_channels;
 	decltype( snd_pcm_hw_params_set_rate ) * hw_params_set_rate;
 	decltype( snd_pcm_hw_params ) * hw_params;
@@ -214,7 +214,7 @@ static Optional< AlsaAPI > LoadAlsaAPI() {
 	ok = ok && LoadFunction( alsa, &api.hw_params_any, "snd_pcm_hw_params_any" );
 	ok = ok && LoadFunction( alsa, &api.hw_params_set_access, "snd_pcm_hw_params_set_access" );
 	ok = ok && LoadFunction( alsa, &api.hw_params_set_format, "snd_pcm_hw_params_set_format" );
-	ok = ok && LoadFunction( alsa, &api.hw_params_set_buffer_size_min, "snd_pcm_hw_params_set_buffer_size_min" );
+	ok = ok && LoadFunction( alsa, &api.hw_params_set_buffer_size_max, "snd_pcm_hw_params_set_buffer_size_max" );
 	ok = ok && LoadFunction( alsa, &api.hw_params_set_channels, "snd_pcm_hw_params_set_channels" );
 	ok = ok && LoadFunction( alsa, &api.hw_params_set_rate, "snd_pcm_hw_params_set_rate" );
 	ok = ok && LoadFunction( alsa, &api.hw_params, "snd_pcm_hw_params" );
@@ -311,7 +311,7 @@ static bool InitAlsa( const char * preferred_device ) {
 	ok = ok && AlsaChecked( alsa.api.hw_params_set_rate( alsa.device, params, AUDIO_BACKEND_SAMPLE_RATE, 0 ), "snd_pcm_hw_params_set_rate" );
 
 	snd_pcm_uframes_t buffer_size = AUDIO_BACKEND_BUFFER_SIZE;
-	ok = ok && AlsaChecked( alsa.api.hw_params_set_buffer_size_min( alsa.device, params, &buffer_size ), "snd_pcm_hw_params_set_buffer_size_min" );
+	ok = ok && AlsaChecked( alsa.api.hw_params_set_buffer_size_max( alsa.device, params, &buffer_size ), "snd_pcm_hw_params_set_buffer_size_max" );
 
 	ok = ok && AlsaChecked( alsa.api.hw_params( alsa.device, params ), "snd_pcm_hw_params" );
 

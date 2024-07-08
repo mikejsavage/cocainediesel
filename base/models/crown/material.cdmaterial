@@ -1,5 +1,0 @@
-models/indicators/crown
-{
-	cull none
-	rgbGen const 1.000 0.675 0.118
-}

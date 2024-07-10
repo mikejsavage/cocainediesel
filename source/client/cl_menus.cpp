@@ -967,6 +967,7 @@ static Vec4 RGBA8ToVec4NosRGB( RGBA8 rgba ) {
 }
 
 static bool LoadoutButton( Span< const char > label, Vec2 icon_size, const Material * icon, bool selected ) {
+	constexpr RGBA8 button_gray = RGBA8( 200, 200, 200, 255 );
 	Vec2 start_pos = ImGui::GetCursorPos();
 	ImGui::GetCursorPos();
 
@@ -975,7 +976,7 @@ static bool LoadoutButton( Span< const char > label, Vec2 icon_size, const Mater
 	ImGui::PopID();
 
 	Vec2 half_pixel = HalfPixelSize( icon );
-	Vec4 color = RGBA8ToVec4NosRGB( selected ? rgba8_diesel_yellow : ImGui::IsItemHovered() ? rgba8_diesel_green : rgba8_white ); // TODO...
+	Vec4 color = RGBA8ToVec4NosRGB( selected ? rgba8_diesel_yellow : ImGui::IsItemHovered() ? button_gray : rgba8_white ); // TODO...
 
 	ImGui::SetCursorPos( start_pos );
 	ImGui::Image( icon, icon_size, half_pixel, 1.0f - half_pixel, color, Vec4( 0.0f ) );
@@ -1017,7 +1018,7 @@ static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 i
 }
 
 static void Perks( Vec2 icon_size ) {
-	InitCategory( "CLASS", icon_size.y * 0.5 );
+	InitCategory( "MINDSET", icon_size.y * 0.5 );
 
 	for( PerkType i = PerkType( Perk_None + 1 ); i < Perk_Count; i++ ) {
 		if( GetPerkDef( i )->disabled )
@@ -1057,10 +1058,10 @@ static bool LoadoutMenu() {
 	ImGui::SetNextWindowSize( displaySize );
 	ImGui::Begin( "Loadout", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 
-	Vec2 icon_size = Vec2( displaySize.y * 0.075f );
+	Vec2 icon_size = Vec2( displaySize.y * 0.065f );
+	size_t title_height = displaySize.y * 0.075f;
 
 	{
-		size_t title_height = displaySize.y * 0.075f;
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
 		ImGui::BeginChild( "loadout title", ImVec2( -1, title_height ) );
 
@@ -1068,7 +1069,7 @@ static bool LoadoutMenu() {
 		ImGui::SameLine();
 
 		ImGui::PushFont( cls.large_italic_font );
-		CenterTextY( "LOADOUT", title_height );
+		CenterTextY( "PICK A LIFESTYLE...", title_height );
 		ImGui::PopFont();
 
 		ImGui::SameLine();
@@ -1077,11 +1078,11 @@ static bool LoadoutMenu() {
 		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.f, 0.f, 0.f, 0.f ) );
 		ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.f, 0.f, 0.f, 0.f ) );
 
-		ImGui::SetCursorPos( ImVec2( displaySize.x - icon_size.x, 0.f ) );
+		ImGui::SetCursorPos( ImVec2( displaySize.x - title_height, 0.f ) );
 
-		const Material * icon = FindMaterial( "hud/icons/dice" );
+		const Material * icon = FindMaterial( "textures/sprays/peekatyou" );
 		Vec2 half_pixel = HalfPixelSize( icon );
-		if( ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 0, Vec4( 0.f ), Vec4( 1.0f ) ) ) {
+		if( ImGui::ImageButton( icon, ImVec2( title_height, title_height ), half_pixel, 1.0f - half_pixel, 0, Vec4( 0.f ), Vec4( 1.0f ) ) ) {
 			for( int category = WeaponCategory_Melee; category < WeaponCategory_Count; ++category ) {
 				WeaponType w;
 				while(GS_GetWeaponDef(w = (WeaponType)RandomUniform( &cls.rng, Weapon_None + 1, Weapon_Count ))->category != category);
@@ -1106,7 +1107,7 @@ static bool LoadoutMenu() {
 	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, Vec2( 0.0f ) );
 
 	ImGui::Dummy( ImVec2( 0.0f, displaySize.x * 0.01f ) );
-	ImGui::Dummy( ImVec2( displaySize.x * 0.02f, 0.0f ) );
+	ImGui::Dummy( ImVec2( displaySize.x * 0.06f, 0.0f ) );
 	ImGui::SameLine();
 
 	ImGui::BeginTable( "loadoutmenu", 6 );
@@ -1121,19 +1122,100 @@ static bool LoadoutMenu() {
 
 	ImGui::EndTable();
 
-	int loadoutKeys[ 2 ] = { };
-	CG_GetBoundKeycodes( "loadoutmenu", loadoutKeys );
-
 	bool should_close = false;
-	if( ImGui::Hotkey( loadoutKeys[ 0 ] ) || ImGui::Hotkey( loadoutKeys[ 1 ] ) ) {
-		should_close = true;
+	{
+		constexpr auto PrintMoveText = [] ( Span< const char > text, ImVec2 & textPos ) {
+			textPos.x -= ImGui::CalcTextSize( text ).x;
+			ImGui::SetCursorPos( textPos );
+			ImGui::Text( text );
+		};
+
+		constexpr auto PrintMoveImage = [] ( const Material * icon, size_t icon_size, ImVec2 & imgPos, ImVec4 color ) {
+			Vec2 half_pixel = HalfPixelSize( icon );
+			imgPos.x -= icon_size;
+			ImGui::SetCursorPos( imgPos );
+			ImGui::Image( icon, ImVec2(icon_size, icon_size), half_pixel, 1.0f - half_pixel, color, Vec4( 0.0f ) );
+		};
+
+		ImGui::SetNextWindowPos( ImVec2( 0, displaySize.y - title_height ) );
+		ImGui::PushStyleColor( ImGuiCol_ChildBg, Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
+		ImGui::BeginChild( "loadout bottom", ImVec2( -1, title_height ) );
+		ImGui::PushFont( cls.large_italic_font );
+
+		static const ImVec4 yellow = RGBA8ToVec4NosRGB( rgba8_diesel_yellow );
+		static const ImVec4 transparent( 0.f, 0.f, 0.f, 0.f );
+		static const ImVec4 white( 1.f, 1.f, 1.f, 1.f );
+		ImGui::PushStyleColor( ImGuiCol_Button, transparent );
+		ImGui::PushStyleColor( ImGuiCol_ButtonActive, transparent );
+		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, transparent );
+
+		const char * imdone = " I'M DONE";
+		ImVec2 textSize = ImGui::CalcTextSize( imdone );
+		ImVec2 textPos = ImVec2( displaySize.x - textSize.x * 1.1f, (title_height - textSize.y) * 0.5f );
+		ImGui::SetCursorPos( textPos );
+
+		ImGui::PushID( imdone );
+		should_close = ImGui::InvisibleButton( "", textSize );
+		ImGui::PopID();
+
+		textPos.x += textSize.x;
+		ImGui::PushStyleColor( ImGuiCol_Text, ImGui::IsItemHovered() ? yellow : white );
+		PrintMoveText( MakeSpan( imdone ), textPos );
+		ImGui::PopStyleColor();
+
+		textPos.y = 0;
+		PrintMoveImage( FindMaterial( "hud/icons/clickme" ), title_height, textPos, white );
+		textPos.y = (title_height - textSize.y) * 0.5f;
+		PrintMoveText( "AND ", textPos );
+
+
+		textPos.y = (title_height - icon_size.y) * 0.5f;
+		PrintMoveImage( FindMaterial( cgs.media.shaderWeaponIcon[ loadout.weapons[ WeaponCategory_Melee ] ] ), icon_size.y, textPos, yellow );
+		PrintMoveImage( FindMaterial( cgs.media.shaderGadgetIcon[ loadout.gadget ] ), icon_size.y, textPos, yellow );
+		PrintMoveImage( FindMaterial( cgs.media.shaderWeaponIcon[ loadout.weapons[ WeaponCategory_Backup ] ] ), icon_size.y, textPos, yellow );
+		PrintMoveImage( FindMaterial( cgs.media.shaderWeaponIcon[ loadout.weapons[ WeaponCategory_Secondary ] ] ), icon_size.y, textPos, yellow );
+		PrintMoveImage( FindMaterial( cgs.media.shaderWeaponIcon[ loadout.weapons[ WeaponCategory_Primary ] ] ), icon_size.y, textPos, yellow );
+		PrintMoveImage( FindMaterial( cgs.media.shaderPerkIcon[ loadout.perk ] ), icon_size.y, textPos, yellow );
+		textPos.y = (title_height - textSize.y) * 0.5f;
+
+		const char * playerName = PlayerName( cg.predictedPlayerState.playerNum );
+		Span<const char> playerNameSpan = MakeSpan( playerName );
+		ImVec2 playerTextSize = ImGui::CalcTextSize( playerName );
+		
+		float predictedPos = textPos.x - ImGui::CalcTextSize( " AND I'M " ).x - ImGui::CalcTextSize( "I AM " ).x * 2.f - playerTextSize.x;
+		float letterWidth = playerTextSize.x / playerNameSpan.num_bytes();
+		int excessLetters = Max2(3.f, -predictedPos / letterWidth); //the excess is the negative part
+
+		if ( predictedPos > 0.f || excessLetters < playerNameSpan.num_bytes() ) { //don't print name if the window is too small
+			PrintMoveText( " AND I'M ", textPos );
+
+			ImGui::PushStyleColor( ImGuiCol_Text, yellow );
+			if ( predictedPos <= 0.f ) {
+				PrintMoveText( "...", textPos );
+				PrintMoveText( playerNameSpan.slice( 0, playerNameSpan.num_bytes() - excessLetters ), textPos );
+			} else {
+				PrintMoveText( playerNameSpan, textPos );
+			}
+
+			ImGui::PopStyleColor();
+		}
+
+		PrintMoveText( "I AM ", textPos );
+
+		ImGui::PopStyleColor( 3 );
+		ImGui::PopFont();
+		ImGui::EndChild();
+		ImGui::PopStyleColor();
 	}
 
 	ImGui::PopStyleVar( 3 );
 	ImGui::PopStyleColor();
 	ImGui::PopFont();
 
-	return should_close;
+	int loadoutKeys[ 2 ] = { };
+	CG_GetBoundKeycodes( "loadoutmenu", loadoutKeys );
+
+	return should_close || ImGui::Hotkey( loadoutKeys[ 0 ] ) || ImGui::Hotkey( loadoutKeys[ 1 ] );
 }
 
 static void GameMenu() {

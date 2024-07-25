@@ -534,7 +534,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	CG_ResetBombHUD();
 
-	DoVisualEffect( "vfx/rain", cg.view.origin );
+	DoVisualEffect( "ui/menu/rain", cg.view.origin );
 
 	DrawEntities();
 	DrawOutlines();

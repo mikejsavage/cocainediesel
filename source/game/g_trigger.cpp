@@ -48,15 +48,11 @@ void InitTrigger( edict_t * ent ) {
 //
 //==============================================================================
 
-static void G_JumpPadSound( edict_t *ent ) {
-	if( ent->moveinfo.sound_start == EMPTY_HASH ) {
-		return;
-	}
-
+static void G_JumpPadSound( edict_t * ent ) {
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
 	Vec3 org = ent->s.origin + Center( bounds );
 
-	G_PositionedSound( org, ent->moveinfo.sound_start );
+	G_PositionedSound( org, "entities/jumppad/trigger" );
 }
 
 #define MIN_TRIGGER_PUSH_REBOUNCE_TIME 100
@@ -115,8 +111,6 @@ static void trigger_push_setup( edict_t *self ) {
 
 void SP_trigger_push( edict_t * self, const spawn_temp_t * st ) {
 	InitTrigger( self );
-
-	self->moveinfo.sound_start = st->noise != EMPTY_HASH ? st->noise : StringHash( "sounds/world/jumppad" );
 
 	if( st->gameteam >= Team_None && st->gameteam < Team_Count ) {
 		self->s.team = Team( st->gameteam );
@@ -206,66 +200,4 @@ void SP_trigger_hurt( edict_t * self, const spawn_temp_t * st ) {
 	if( self->spawnflags & 2 ) {
 		self->use = hurt_use;
 	}
-}
-
-static void TeleporterTouch( edict_t *self, edict_t *other, Vec3 normal, SolidBits solid_mask ) {
-	edict_t *dest;
-
-	if( !G_PlayerCanTeleport( other ) ) {
-		return;
-	}
-
-	if( ( self->s.team != Team_None ) && ( self->s.team != other->s.team ) ) {
-		return;
-	}
-	if( self->spawnflags & 1 && other->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
-		return;
-	}
-
-	// wait delay
-	if( self->timeStamp > level.time ) {
-		return;
-	}
-
-	self->timeStamp = level.time + self->wait;
-
-	dest = G_Find( NULL, &edict_t::name, self->target );
-	if( !dest ) {
-		Com_Printf( "Couldn't find destination.\n" );
-		return;
-	}
-
-	// play custom sound if any (played from the teleporter entrance)
-	if( self->sound != EMPTY_HASH ) {
-		Vec3 org;
-
-		if( self->s.model != EMPTY_HASH ) {
-			MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &self->s );
-			org = self->s.origin + Center( bounds );
-		} else {
-			org = self->s.origin;
-		}
-
-		G_PositionedSound( org, self->sound );
-	}
-
-	G_TeleportPlayer( other, dest );
-}
-
-void SP_trigger_teleport( edict_t * ent, const spawn_temp_t * st ) {
-	if( ent->target == EMPTY_HASH ) {
-		Com_Printf( "teleporter without a target.\n" );
-		G_FreeEdict( ent );
-		return;
-	}
-
-	ent->sound = st->noise;
-
-	if( st->gameteam >= Team_None && st->gameteam < Team_Count ) {
-		ent->s.team = Team( st->gameteam );
-	}
-
-	InitTrigger( ent );
-	GClip_LinkEntity( ent );
-	ent->touch = TeleporterTouch;
 }

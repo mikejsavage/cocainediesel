@@ -275,7 +275,7 @@ void SP_func_door( edict_t * ent, const spawn_temp_t * st ) {
 	G_InitMover( ent );
 	G_SetMovedir( &ent->s.angles, &ent->moveinfo.movedir );
 
-	G_AssignMoverSounds( ent, st, "sounds/movers/door_start", EMPTY_HASH, "sounds/movers/door_close" );
+	G_AssignMoverSounds( ent, st, "entities/door/door_start", EMPTY_HASH, "entities/door/door_close" );
 
 	ent->moveinfo.blocked = door_blocked;
 	ent->use = door_use;

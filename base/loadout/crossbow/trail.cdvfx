@@ -1,6 +1,6 @@
 {
   particles {
-    material textures/vfx/magic5
+    material sprites/magic5
     blendfunc add
 
     position line 0

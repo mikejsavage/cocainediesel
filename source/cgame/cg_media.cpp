@@ -25,19 +25,19 @@ void CG_RegisterMedia() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
-		cgs.media.shaderWeaponIcon[ i ] = StringHash( temp( "weapons/{}/icon", GS_GetWeaponDef( i )->short_name ) );
+		cgs.media.shaderWeaponIcon[ i ] = StringHash( temp( "loadout/{}/icon", GS_GetWeaponDef( i )->short_name ) );
 	}
 
 	for( GadgetType i = Gadget_None; i < Gadget_Count; i++ ) {
-		cgs.media.shaderGadgetIcon[ i ] = StringHash( temp( "gadgets/{}/icon", GetGadgetDef( i )->short_name ) );
+		cgs.media.shaderGadgetIcon[ i ] = StringHash( temp( "loadout/{}/icon", GetGadgetDef( i )->short_name ) );
 	}
 
 	for( PerkType i = Perk_None; i < Perk_Count; i++ ) {
-		cgs.media.shaderPerkIcon[ i ] = StringHash( temp( "perks/{}/icon", GetPerkDef( i )->short_name ) );
+		cgs.media.shaderPerkIcon[ i ] = StringHash( temp( "loadout/{}/icon", GetPerkDef( i )->short_name ) );
 	}
 
-	cgs.fontNormal = RegisterFont( "fonts/Decalotype-Bold" );
-	cgs.fontNormalBold = RegisterFont( "fonts/Decalotype-Black" );
-	cgs.fontItalic = RegisterFont( "fonts/Decalotype-BoldItalic" );
-	cgs.fontBoldItalic = RegisterFont( "fonts/Decalotype-BlackItalic" );
+	cgs.fontNormal = RegisterFont( "ui/fonts/Decalotype-Bold" );
+	cgs.fontNormalBold = RegisterFont( "ui/fonts/Decalotype-Black" );
+	cgs.fontItalic = RegisterFont( "ui/fonts/Decalotype-BoldItalic" );
+	cgs.fontBoldItalic = RegisterFont( "ui/fonts/Decalotype-BlackItalic" );
 }

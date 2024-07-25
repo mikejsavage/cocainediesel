@@ -126,7 +126,7 @@ static void target_laser_start( edict_t *self ) {
 	self->s.solidity = Solid_NotSolid;
 	self->s.type = ET_LASER;
 	self->s.svflags = EntityFlags( 0 );
-	self->s.sound = "sounds/gladiator/laser_hum";
+	self->s.sound = "loadout/laser/laser_hum";
 
 	if( !self->enemy ) {
 		if( self->target != EMPTY_HASH ) {

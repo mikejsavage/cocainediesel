@@ -7,5 +7,5 @@
 {
 	volume 0.25
 	pitch 1.25
-	find_sounds weapons/whizz
+	find_sounds loadout/whizz
 }

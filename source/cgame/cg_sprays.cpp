@@ -29,7 +29,7 @@ void InitSprays() {
 
 	for( Span< const char > path : AssetPaths() ) {
 		bool ext_ok = EndsWith( path, ".png" ) || EndsWith( path, ".jpg" ) || EndsWith( path, ".dds" );
-		if( !StartsWith( path, "textures/sprays/" ) || !ext_ok )
+		if( !StartsWith( path, "decals/sprays/" ) || !ext_ok )
 			continue;
 
 		const Material * material = FindMaterial( StringHash( Hash64( StripExtension( path ) ) ) );
@@ -83,8 +83,8 @@ void AddSpray( Vec3 origin, Vec3 normal, EulerDegrees3 angles, float scale, u64 
 		num_sprays++;
 	}
 
-	PlaySFX( "sounds/spray/spray", PlaySFXConfigPosition( origin ) );
-	DoVisualEffect( "vfx/spray", origin - forward * 8.0f, forward );
+	PlaySFX( "loadout/spray/spray", PlaySFXConfigPosition( origin ) );
+	DoVisualEffect( "loadout/spray/spray", origin - forward * 8.0f, forward );
 }
 
 void DrawSprays() {

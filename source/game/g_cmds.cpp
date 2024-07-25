@@ -21,12 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "game/g_local.h"
 #include "gameshared/vsays.h"
 
-/*
-* G_Teleport
-*
-* Teleports client to specified position
-* If client is not spectator teleporting is only done if position is free and teleport effects are drawn.
-*/
 static bool G_Teleport( edict_t * ent, Vec3 origin, EulerDegrees3 angles ) {
 	if( !ent->r.inuse || !ent->r.client ) {
 		return false;
@@ -38,8 +32,6 @@ static bool G_Teleport( edict_t * ent, Vec3 origin, EulerDegrees3 angles ) {
 		if( trace.HitSomething() && game.edicts[ trace.ent ].s.team != ent->s.team ) {
 			return false;
 		}
-
-		G_TeleportEffect( ent, false );
 	}
 
 	ent->s.origin = origin;
@@ -47,19 +39,12 @@ static bool G_Teleport( edict_t * ent, Vec3 origin, EulerDegrees3 angles ) {
 
 	ent->velocity = Vec3( 0.0f );
 
-	if( ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
-		G_TeleportEffect( ent, true );
-	}
-
-	// set angles
 	ent->s.angles = angles;
 	ent->r.client->ps.viewangles = angles;
 	ent->r.client->ps.pmove.angles = angles;
 
 	return true;
 }
-
-//=================================================================================
 
 static void Cmd_Noclip_f( edict_t * ent, msg_t args ) {
 	const char *msg;
@@ -270,7 +255,7 @@ static void Say( edict_t * ent, const char * message, bool teamonly, bool checkf
 	if( checkflood && CheckFlood( ent, false ) ) {
 		return;
 	}
-	TypewriterSound( ent, "sounds/typewriter/return" );
+	TypewriterSound( ent, "ui/hud/typewriter/return" );
 	G_ChatMsg( NULL, ent, teamonly, MakeSpan( message ) );
 }
 
@@ -283,11 +268,11 @@ static void Cmd_SayTeam_f( edict_t * ent, msg_t args ) {
 }
 
 static void Cmd_TypewriterClack_f( edict_t * ent, msg_t args ) {
-	TypewriterSound( ent, "sounds/typewriter/clack" );
+	TypewriterSound( ent, "ui/hud/typewriter/clack" );
 }
 
 static void Cmd_TypewriterSpace_f( edict_t * ent, msg_t args ) {
-	TypewriterSound( ent, "sounds/typewriter/space" );
+	TypewriterSound( ent, "ui/hud/typewriter/space" );
 }
 
 static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
@@ -381,7 +366,7 @@ static void Cmd_Timeout_f( edict_t * ent, msg_t args ) {
 	G_PrintMsg( NULL, "%s%s called a timeout\n", ent->r.client->name, S_COLOR_WHITE );
 
 	if( !server_gs.gameState.paused ) {
-		G_AnnouncerSound( NULL, StringHash( "sounds/announcer/timeout" ), Team_Count, true, NULL );
+		G_AnnouncerSound( NULL, StringHash( "voices/announcer/timeout" ), Team_Count, true, NULL );
 	}
 
 	server_gs.gameState.paused = true;
@@ -413,7 +398,7 @@ static void Cmd_Timein_f( edict_t * ent, msg_t args ) {
 
 	level.timeout.endtime = level.timeout.time + TIMEIN_TIME + FRAMETIME;
 
-	G_AnnouncerSound( NULL, StringHash( "sounds/announcer/timein" ), Team_Count, true, NULL );
+	G_AnnouncerSound( NULL, StringHash( "voices/announcer/timein" ), Team_Count, true, NULL );
 
 	G_PrintMsg( NULL, "%s%s called a timein\n", ent->r.client->name, S_COLOR_WHITE );
 }

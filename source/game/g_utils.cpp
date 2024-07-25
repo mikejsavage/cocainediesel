@@ -634,30 +634,6 @@ float LookAtKillerYAW( edict_t * self, edict_t * inflictor, edict_t * attacker )
 //
 //==============================================================================
 
-static void G_SpawnTeleportEffect( edict_t * ent, bool in ) {
-	constexpr StringHash tele_in = "sounds/world/tele_in";
-	constexpr StringHash tele_out = "sounds/world/tele_in";
-
-	if( !ent || !ent->r.client ) {
-		return;
-	}
-
-	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED || EntitySolidity( ServerCollisionModelStorage(), &ent->s ) == Solid_NotSolid ) {
-		return;
-	}
-
-	edict_t * event = G_SpawnEvent( EV_SOUND_ORIGIN, in ? tele_in.hash : tele_out.hash, &ent->s.origin );
-	event->s.ownerNum = ENTNUM( ent );
-}
-
-void G_TeleportEffect( edict_t * ent, bool in ) {
-	G_SpawnTeleportEffect( ent, in );
-}
-
-void G_RespawnEffect( edict_t * ent ) {
-	G_SpawnTeleportEffect( ent, false );
-}
-
 void G_CheckGround( edict_t * ent ) {
 	float up_speed_limit = ent->r.client == NULL ? 1.0f : 180.0f;
 

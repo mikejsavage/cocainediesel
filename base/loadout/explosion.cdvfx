@@ -7,16 +7,16 @@
   }
 
   decal {
-    material weapons/explosion_scorch1
-    material weapons/explosion_scorch2
-    material weapons/explosion_scorch3
+    material loadout/explosion_scorch1
+    material loadout/explosion_scorch2
+    material loadout/explosion_scorch3
     size 46
     lifetime 30
     color 0.01 0.01 0.01 1.0
   }
 
   particles {
-    material textures/vfx/trace2
+    material sprites/trace2
     blendfunc add
     rotate
     stretch
@@ -37,7 +37,7 @@
   }
 
   particles {
-    material textures/vfx/trace2
+    material sprites/trace2
     blendfunc add
     rotate
     stretch
@@ -57,7 +57,7 @@
   }
 
   particles {
-    material textures/vfx/trace2
+    material sprites/trace2
     blendfunc add
     rotate
     stretch
@@ -79,7 +79,7 @@
   }
 
    particles {
-    material textures/vfx/trace2
+    material sprites/trace2
     blendfunc add
     rotate
     stretch
@@ -101,7 +101,7 @@
   }
 
   particles {
-    material textures/vfx/trace2
+    material sprites/trace2
     blendfunc blend
     rotate
     stretch
@@ -120,7 +120,7 @@
   }
 
   particles {
-    material textures/vfx/smoke9
+    material sprites/smoke9
     blendfunc blend
 
     position sphere 0
@@ -140,7 +140,7 @@
   }
 
   particles {
-    material textures/vfx/smoke9
+    material sprites/smoke9
     blendfunc add
 
     position sphere 0

@@ -1,6 +1,6 @@
 {
   particles {
-    material textures/vfx/star8
+    material sprites/star8
 
     blendfunc add
     rotate
@@ -21,8 +21,8 @@
     count 1
   }
 
-    particles {
-    material textures/vfx/star5
+  particles {
+    material sprites/star5
 
     blendfunc add
     rotate
@@ -44,8 +44,7 @@
   }
 
   particles {
-
-    material textures/vfx/star5
+    material sprites/star5
 
     blendfunc add
     rotate

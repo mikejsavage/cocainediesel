@@ -72,7 +72,7 @@ static float sensivity_range[] = { 0.25f, 10.f };
 
 static size_t selected_mask = 0;
 static NonRAIIDynamicArray< char * > masks;
-static Span< const char > MASKS_DIR = "models/masks/";
+static Span< const char > MASKS_DIR = "characters/extra/masks/";
 
 static void PushButtonColor( ImVec4 color ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, color );
@@ -638,7 +638,7 @@ static void SettingsAudio() {
 	}
 
 	if( ImGui::Button( "Test" ) ) {
-		PlaySFX( "sounds/announcer/bomb/ace" );
+		PlaySFX( "voices/announcer/bomb/ace" );
 	}
 
 	ImGui::Separator();

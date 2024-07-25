@@ -67,16 +67,16 @@ void CL_InitImGui() {
 	}
 
 	{
-		AddFontAsset( "fonts/Decalotype-Bold.ttf", 18.0f );
-		cls.huge_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 128.0f );
-		cls.large_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 64.0f );
-		cls.big_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 48.0f );
-		cls.medium_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 28.0f );
-		cls.medium_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 28.0f );
-		cls.big_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 48.0f );
-		cls.large_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 64.0f );
-		cls.console_font = AddFontAsset( "fonts/Decalotype-Bold.ttf", 14.0f );
-		cls.idi_nahui_font = AddFontAsset( "fonts/OpenSans-SemiBold.ttf", 24.0f, true );
+		AddFontAsset( "ui/fonts/Decalotype-Bold.ttf", 18.0f );
+		cls.huge_font = AddFontAsset( "ui/fonts/Decalotype-Black.ttf", 128.0f );
+		cls.large_font = AddFontAsset( "ui/fonts/Decalotype-Black.ttf", 64.0f );
+		cls.big_font = AddFontAsset( "ui/fonts/Decalotype-Black.ttf", 48.0f );
+		cls.medium_font = AddFontAsset( "ui/fonts/Decalotype-Black.ttf", 28.0f );
+		cls.medium_italic_font = AddFontAsset( "ui/fonts/Decalotype-BlackItalic.ttf", 28.0f );
+		cls.big_italic_font = AddFontAsset( "ui/fonts/Decalotype-BlackItalic.ttf", 48.0f );
+		cls.large_italic_font = AddFontAsset( "ui/fonts/Decalotype-BlackItalic.ttf", 64.0f );
+		cls.console_font = AddFontAsset( "ui/fonts/Decalotype-Bold.ttf", 14.0f );
+		cls.idi_nahui_font = AddFontAsset( "ui/fonts/OpenSans-SemiBold.ttf", 24.0f, true );
 
 		io.Fonts->Build();
 

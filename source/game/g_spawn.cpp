@@ -49,9 +49,6 @@ static constexpr EntitySpawnCallback spawn_callbacks[] = {
 
 	{ "path_corner", SP_path_corner },
 
-	{ "trigger_teleport", SP_trigger_teleport },
-	{ "misc_teleporter_dest", SP_target_position },
-
 	{ "model", SP_model },
 	{ "decal", SP_decal },
 

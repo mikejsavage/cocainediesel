@@ -871,7 +871,7 @@ void InitMaterials() {
 			for( Span< const char > path : AssetPaths() ) {
 				Span< const char > ext = FileExtension( path );
 
-				if( StartsWith( path, "textures/editor" ) ) {
+				if( StartsWith( path, "dev/" ) ) {
 					continue;
 				}
 

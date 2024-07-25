@@ -1,24 +1,24 @@
 {
   particles {
-    material textures/sprays/user
-    material textures/sprays/angry
-    material textures/sprays/gr
-    material textures/sprays/bentodog
-    material textures/sprays/bglasses
-    material textures/sprays/bistemadsmile
-    material textures/sprays/bogdanoff
-    material textures/sprays/bojo
-    material textures/sprays/bom
-    material textures/sprays/boobs
-    material textures/sprays/catcr
-    material textures/sprays/cd_font
-    material textures/sprays/cock4
-    material textures/sprays/cr
-    material textures/sprays/dickbutt
-    material textures/sprays/dudedead
-    material textures/sprays/fuckyou
-    material textures/sprays/ggkor
-    material textures/sprays/gitgud
+    material decals/sprays/user
+    material decals/sprays/angry
+    material decals/sprays/gr
+    material decals/sprays/bentodog
+    material decals/sprays/bglasses
+    material decals/sprays/bistemadsmile
+    material decals/sprays/bogdanoff
+    material decals/sprays/bojo
+    material decals/sprays/bom
+    material decals/sprays/boobs
+    material decals/sprays/catcr
+    material decals/sprays/cd_font
+    material decals/sprays/cock4
+    material decals/sprays/cr
+    material decals/sprays/dickbutt
+    material decals/sprays/dudedead
+    material decals/sprays/fuckyou
+    material decals/sprays/ggkor
+    material decals/sprays/gitgud
 
     blendfunc blend
 

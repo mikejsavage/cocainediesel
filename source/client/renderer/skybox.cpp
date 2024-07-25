@@ -51,7 +51,7 @@ void DrawSkybox( Time time ) {
 	pipeline.cull_face = CullFace_Front;
 	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.bind_uniform( "u_Time", UploadUniformBlock( ToSeconds( time ) ) );
-	pipeline.bind_texture_and_sampler( "u_Noise", FindMaterial( "textures/noise" )->texture, Sampler_Standard );
+	pipeline.bind_texture_and_sampler( "u_Noise", RGBNoiseTexture(), Sampler_Standard );
 	pipeline.bind_texture_and_sampler( "u_BlueNoiseTexture", BlueNoiseTexture(), Sampler_Standard );
 	DrawMesh( sky_mesh, pipeline );
 }

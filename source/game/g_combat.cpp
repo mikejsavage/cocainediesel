@@ -170,7 +170,7 @@ static void G_KnockBackPush( edict_t * targ, const edict_t * attacker, Vec3 base
 }
 
 void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage, bool headshot, Vec3 pos, Vec3 dir, bool showNumbers ) {
-	constexpr StringHash headshot_sound = "sounds/headshot/headshot";
+	constexpr StringHash headshot_sound = "ui/hud/sounds/gunplay/headshot";
 
 	u64 parm = HEALTH_TO_INT( damage ) << 1;
 	if( headshot ) {

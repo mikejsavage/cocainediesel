@@ -1,6 +1,6 @@
 {
   particles {
-    material textures/vfx/smoke9
+    material sprites/smoke9
     blendfunc add
 
     position sphere 12

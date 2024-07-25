@@ -1,6 +1,6 @@
 {
   particles {
-    material textures/vfx/flare1
+    material sprites/flare1
     blendfunc add
 
     position sphere 1500

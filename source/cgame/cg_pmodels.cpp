@@ -192,7 +192,7 @@ void InitPlayerModels() {
 		}
 
 		Span< const char > ext = FileExtension( path );
-		if( ext == ".glb" && StartsWith( path, "players/" ) ) {
+		if( ext == ".glb" && StartsWith( path, "characters/" ) ) {
 			Span< const char > dir = BasePath( path );
 			u64 hash = Hash64( StripExtension( path ) );
 
@@ -230,9 +230,9 @@ const PlayerModelMetadata * GetPlayerModelMetadata( int ent_num ) {
 	const SyncEntityState * ent = &cg_entities[ ent_num ].current;
 	switch( ent->perk ) {
 		case Perk_Jetpack:
-			return GetPlayerModelMetadata( "players/jetpack/model" );
+			return GetPlayerModelMetadata( "characters/jetpack/model" );
 		default:
-			return GetPlayerModelMetadata( "players/rigg/model" );
+			return GetPlayerModelMetadata( "characters/hooligan/model" );
 	}
 }
 

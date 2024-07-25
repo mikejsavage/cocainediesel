@@ -116,11 +116,11 @@ static const LuauConst<int> numeric_constants[] = {
 };
 
 static const LuauConst<StringHash> asset_constants[] = {
-	{ "diagonal_pattern", StringHash( "hud/diagonal_pattern" ) },
-	{ "bomb", StringHash( "hud/icons/bomb" ) },
-	{ "guy", StringHash( "hud/icons/guy" ) },
-	{ "net", StringHash( "hud/icons/net" ) },
-	{ "star", StringHash( "hud/icons/star" ) },
+	{ "diagonal_pattern", StringHash( "ui/hud/diagonal_pattern" ) },
+	{ "bomb", StringHash( "ui/hud/icons/bomb" ) },
+	{ "guy", StringHash( "ui/hud/icons/guy" ) },
+	{ "net", StringHash( "ui/hud/icons/net" ) },
+	{ "star", StringHash( "ui/hud/icons/star" ) },
 };
 
 static int CG_GetSpeed() {
@@ -381,21 +381,21 @@ static const Material * DamageTypeToIcon( DamageType type ) {
 
 	switch( world ) {
 		case WorldDamage_Crush:
-			return FindMaterial( "hud/icons/obituaries/crush" );
+			return FindMaterial( "ui/hud/icons/obituaries/crush" );
 		case WorldDamage_Telefrag:
-			return FindMaterial( "hud/icons/obituaries/telefrag" );
+			return FindMaterial( "ui/hud/icons/obituaries/telefrag" );
 		case WorldDamage_Suicide:
-			return FindMaterial( "hud/icons/obituaries/suicide" );
+			return FindMaterial( "ui/hud/icons/obituaries/suicide" );
 		case WorldDamage_Explosion:
-			return FindMaterial( "hud/icons/obituaries/explosion" );
+			return FindMaterial( "ui/hud/icons/obituaries/explosion" );
 		case WorldDamage_Trigger:
-			return FindMaterial( "hud/icons/obituaries/trigger" );
+			return FindMaterial( "ui/hud/icons/obituaries/trigger" );
 		case WorldDamage_Laser:
-			return FindMaterial( "hud/icons/obituaries/laser" );
+			return FindMaterial( "ui/hud/icons/obituaries/laser" );
 		case WorldDamage_Spike:
-			return FindMaterial( "hud/icons/obituaries/spike" );
+			return FindMaterial( "ui/hud/icons/obituaries/spike" );
 		case WorldDamage_Void:
-			return FindMaterial( "hud/icons/obituaries/void" );
+			return FindMaterial( "ui/hud/icons/obituaries/void" );
 	}
 
 	return FindMaterial( "" );
@@ -1048,7 +1048,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 		xoffset += icon_size + icon_padding;
 
 		if( obr->wallbang ) {
-			Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, FindMaterial( "weapons/wallbang_icon" ), AttentionGettingColor() );
+			Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, FindMaterial( "base/ui/hud/icons/wallbang" ), AttentionGettingColor() );
 			xoffset += icon_size + icon_padding;
 		}
 
@@ -1556,7 +1556,7 @@ void CG_InitHUD() {
 		show_inspector = !show_inspector;
 	} );
 
-	Span< const char > src = AssetString( StringHash( "hud/hud.lua" ) );
+	Span< const char > src = AssetString( StringHash( "ui/hud/hud.lua" ) );
 	size_t bytecode_size;
 	char * bytecode = luau_compile( src.ptr, src.n, NULL, &bytecode_size );
 	defer { free( bytecode ); };
@@ -1682,7 +1682,7 @@ void CG_DrawHUD() {
 
 	bool hotload = false;
 	for( Span< const char > path : ModifiedAssetPaths() ) {
-		if( StartsWith( path, "hud/" ) && EndsWith( path, ".lua" ) ) {
+		if( StartsWith( path, "ui/hud/" ) && EndsWith( path, ".lua" ) ) {
 			hotload = true;
 			break;
 		}

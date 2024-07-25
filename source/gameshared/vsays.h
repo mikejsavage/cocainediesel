@@ -11,7 +11,7 @@ struct Vsay {
 	constexpr Vsay( Span< const char > d, Span< const char > n )
 		: description( d ),
 		short_name( n ),
-		sfx( Hash64_CT( n.ptr, n.n, Hash64_CT( "sounds/vsay/" ) ) ) { }
+		sfx( Hash64_CT( n.ptr, n.n, Hash64_CT( "voices/" ) ) ) { }
 };
 
 constexpr Vsay vsays[] = {

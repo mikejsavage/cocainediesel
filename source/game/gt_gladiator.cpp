@@ -181,7 +181,7 @@ static void NewRoundState( RoundState newState ) {
 			gladiator_state.countdown = 0;
 			gladiator_state.round_state_start = level.time;
 			gladiator_state.round_state_end = 0;
-			G_AnnouncerSound( NULL, "sounds/gladiator/fight", Team_Count, false, NULL );
+			G_AnnouncerSound( NULL, "voices/announcer/gladiator/fight", Team_Count, false, NULL );
 			G_ClearCenterPrint( NULL );
 		} break;
 
@@ -209,17 +209,17 @@ static void NewRoundState( RoundState newState ) {
 			}
 
 			if( winner == Team_None && !gladiator_state.bomb_exploded ) {
-				G_AnnouncerSound( NULL, "sounds/gladiator/wowyourterrible", Team_Count, false, NULL );
+				G_AnnouncerSound( NULL, "voices/announcer/gladiator/wowyourterrible", Team_Count, false, NULL );
 			}
 			else {
-				G_AnnouncerSound( NULL, "sounds/gladiator/score", winner, true, NULL );
+				G_AnnouncerSound( NULL, "voices/announcer/gladiator/score", winner, true, NULL );
 				server_gs.gameState.teams[ winner ].score++;
 			}
 
 			if( G_Match_ScorelimitHit() ) {
 				for( Team t = Team_One; t < Team_Count; t++ ) {
 					server_gs.gameState.teams[ t ].score = 0;
-					
+
 					if ( t == winner ) {
 						for( u16 i = 0; i < server_gs.gameState.teams[ t ].num_players; i++ ) {
 							score_stats_t * stats = G_ClientGetStats( PLAYERENT( server_gs.gameState.teams[ t ].player_indices[ i ] ) );
@@ -241,7 +241,7 @@ static void NewGame() {
 static void EndGame() {
 	NewRoundState( RoundState_None );
 	GhostEveryone();
-	G_AnnouncerSound( NULL, "sounds/announcer/game_over", Team_Count, true, NULL );
+	G_AnnouncerSound( NULL, "voices/announcer/game_over", Team_Count, true, NULL );
 }
 
 static void Gladiator_Think() {
@@ -295,7 +295,7 @@ static void Gladiator_Think() {
 
 				TempAllocator temp = svs.frame_arena.temp();
 				if( gladiator_state.countdown <= 3 ) {
-					StringHash sound = StringHash( temp( "sounds/gladiator/countdown_{}", gladiator_state.countdown ) );
+					StringHash sound = StringHash( temp( "voices/announcer/gladiator/countdown_{}", gladiator_state.countdown ) );
 					G_AnnouncerSound( NULL, sound, Team_Count, false, NULL );
 				}
 				G_CenterPrintMsg( NULL, "%d", gladiator_state.countdown );
@@ -403,7 +403,7 @@ static void Gladiator_PlayerRespawned( edict_t * ent, Team old_team, Team new_te
 		}
 
 		if( server_gs.gameState.teams[ ent->s.team ].score == top_score ) {
-			ent->s.model2 = "models/crown/crown";
+			ent->s.model2 = "characters/extra/hats/crown";
 			ent->s.effects |= EF_HAT;
 		}
 		else {
@@ -416,12 +416,12 @@ static void Gladiator_PlayerRespawned( edict_t * ent, Team old_team, Team new_te
 static void Gladiator_PlayerKilled( edict_t * victim, edict_t * attacker, edict_t * inflictor ) {
 	if( server_gs.gameState.round_state > RoundState_None && server_gs.gameState.round_state < RoundState_Post ) {
 		if( victim->velocity.z < -1600.0f && victim->health < victim->max_health ) {
-			G_GlobalSound( "sounds/gladiator/smackdown" );
+			G_GlobalSound( "voices/announcer/gladiator/smackdown" );
 		}
 	}
 
 	if( server_gs.gameState.round_state == RoundState_Countdown ) {
-		G_LocalSound( victim, "sounds/gladiator/ouch" );
+		G_LocalSound( victim, "voices/announcer/gladiator/ouch" );
 	}
 }
 
@@ -430,7 +430,7 @@ static void Gladiator_MatchStateStarted() {
 		case MatchState_Warmup:
 			break;
 		case MatchState_Countdown:
-			G_AnnouncerSound( NULL, "sounds/gladiator/let_the_games_begin", Team_Count, false, NULL );
+			G_AnnouncerSound( NULL, "voices/announcer/gladiator/let_the_games_begin", Team_Count, false, NULL );
 			break;
 		case MatchState_Playing:
 			NewGame();

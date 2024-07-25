@@ -80,7 +80,7 @@ static void SendChat() {
 	if( strlen( chat.input ) > 0 ) {
 		TempAllocator temp = cls.frame_arena.temp();
 		Cmd_Execute( &temp, "{} {}", chat.mode == ChatMode_Team ? "say_team" : "say", chat.input );
-		PlaySFX( "sounds/typewriter/return" );
+		PlaySFX( "base/ui/hud/sounds/typewriter/return" );
 	}
 
 	CloseChat();
@@ -93,11 +93,11 @@ static int InputCallback( ImGuiInputTextCallbackData * data ) {
 	chat.last_typewriter_event = cls.monotonicTime;
 
 	if( data->EventChar == ' ' ) {
-		PlaySFX( "sounds/typewriter/space" );
+		PlaySFX( "base/ui/hud/sounds/typewriter/space" );
 		CL_AddReliableCommand( ClientCommand_TypewriterSpace );
 	}
 	else {
-		PlaySFX( "sounds/typewriter/clack" );
+		PlaySFX( "base/ui/hud/sounds/typewriter/clack" );
 		CL_AddReliableCommand( ClientCommand_TypewriterClack );
 	}
 

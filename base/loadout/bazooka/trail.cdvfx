@@ -1,6 +1,6 @@
 {
   particles {
-    material textures/vfx/glow1
+    material sprites/glow1
     blendfunc add
 
     position line 0
@@ -20,7 +20,7 @@
   }
 
   particles {
-    material textures/vfx/flare1
+    material sprites/flare1
     blendfunc add
 
     position line 0
@@ -38,13 +38,13 @@
   }
 
     particles {
-    material textures/vfx/smoke3
-    material textures/vfx/smoke4
-    material textures/vfx/smoke5
-    material textures/vfx/smoke6
-    material textures/vfx/smoke7
-    material textures/vfx/smoke8
-    material textures/vfx/smoke9
+    material sprites/smoke3
+    material sprites/smoke4
+    material sprites/smoke5
+    material sprites/smoke6
+    material sprites/smoke7
+    material sprites/smoke8
+    material sprites/smoke9
     blendfunc add
 
     position line 0

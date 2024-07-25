@@ -14,7 +14,7 @@
   }
 
   particles {
-    material textures/vfx/trace2
+    material sprites/trace2
     blendfunc add
     rotate
     stretch
@@ -36,7 +36,7 @@
   }
 
   particles {
-    material textures/vfx/glow2
+    material sprites/glow2
     blendfunc add
 
     position sphere 42
@@ -55,7 +55,7 @@
   }
 
   particles {
-    material textures/vfx/circle5
+    material sprites/circle5
     blendfunc add
 
     color 1.0 1.0 1.0 1.0

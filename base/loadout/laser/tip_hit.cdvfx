@@ -1,10 +1,10 @@
 {
   particles {
-    material textures/vfx/trace1
-    material textures/vfx/trace2
-    material textures/vfx/trace3
-    material textures/vfx/trace4
-    material textures/vfx/trace5
+    material sprites/trace1
+    material sprites/trace2
+    material sprites/trace3
+    material sprites/trace4
+    material sprites/trace5
     blendfunc add
     stretch
     rotate
@@ -27,11 +27,11 @@
   }
 
   particles {
-    material textures/vfx/trace1
-    material textures/vfx/trace2
-    material textures/vfx/trace3
-    material textures/vfx/trace4
-    material textures/vfx/trace5
+    material sprites/trace1
+    material sprites/trace2
+    material sprites/trace3
+    material sprites/trace4
+    material sprites/trace5
     blendfunc add
     stretch
     rotate
@@ -52,8 +52,8 @@
   }
 
   particles {
-    material textures/vfx/trace3
-    material textures/vfx/lightning2
+    material sprites/trace3
+    material sprites/lightning2
     blendfunc add
     rotate
     stretch
@@ -74,7 +74,7 @@
   }
 
   particles {
-    material textures/vfx/glow1
+    material sprites/glow1
     stretch
     rotate
     blendfunc add
@@ -93,7 +93,7 @@
   }
 
   particles {
-    material textures/vfx/lightning1
+    material sprites/lightning1
     blendfunc add
     rotate
     stretch

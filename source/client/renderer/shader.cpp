@@ -71,7 +71,7 @@ static void BuildShaderSrcs( DynamicString * src, Span< const char > path, Span<
 		cursor += length_up_to_include + strlen( "#include" );
 
 		Span< const char > include = ParseToken( &cursor, Parse_StopOnNewLine );
-		StringHash hash = StringHash( Hash64( include.ptr, include.n, Hash64( "glsl/" ) ) );
+		StringHash hash = StringHash( Hash64( include.ptr, include.n, Hash64( "shaders/" ) ) );
 
 		Span< const char > contents = AssetString( hash );
 		if( contents.ptr == NULL ) {
@@ -122,15 +122,15 @@ static void LoadShaders() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	// standard
-	LoadShader( &shaders.standard, "glsl/standard.glsl" );
-	LoadShader( &shaders.standard_vertexcolors, "glsl/standard.glsl", "#define VERTEX_COLORS 1\n" );
-	LoadShader( &shaders.standard_skinned, "glsl/standard.glsl", "#define SKINNED 1\n" );
-	LoadShader( &shaders.standard_shaded, "glsl/standard.glsl", "#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
-	LoadShader( &shaders.standard_skinned_shaded, "glsl/standard.glsl", "#define SKINNED 1\n#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
+	LoadShader( &shaders.standard, "shaders/standard.glsl" );
+	LoadShader( &shaders.standard_vertexcolors, "shaders/standard.glsl", "#define VERTEX_COLORS 1\n" );
+	LoadShader( &shaders.standard_skinned, "shaders/standard.glsl", "#define SKINNED 1\n" );
+	LoadShader( &shaders.standard_shaded, "shaders/standard.glsl", "#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
+	LoadShader( &shaders.standard_skinned_shaded, "shaders/standard.glsl", "#define SKINNED 1\n#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
 
 	// standard instanced
-	LoadShader( &shaders.standard_instanced, "glsl/standard.glsl", "#define INSTANCED 1\n" );
-	LoadShader( &shaders.standard_shaded_instanced, "glsl/standard.glsl", "#define INSTANCED 1\n#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
+	LoadShader( &shaders.standard_instanced, "shaders/standard.glsl", "#define INSTANCED 1\n" );
+	LoadShader( &shaders.standard_shaded_instanced, "shaders/standard.glsl", "#define INSTANCED 1\n#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
 
 	// rest
 	constexpr Span< const char > world_defines =
@@ -140,7 +140,7 @@ static void LoadShaders() {
 		"#define APPLY_DLIGHTS 1\n"
 		"#define APPLY_SHADOWS 1\n"
 		"#define SHADED 1\n";
-	LoadShader( &shaders.world, "glsl/standard.glsl", world_defines );
+	LoadShader( &shaders.world, "shaders/standard.glsl", world_defines );
 	constexpr Span< const char > world_instanced_defines =
 		"#define APPLY_DRAWFLAT 1\n"
 		"#define APPLY_FOG 1\n"
@@ -149,34 +149,34 @@ static void LoadShaders() {
 		"#define APPLY_SHADOWS 1\n"
 		"#define SHADED 1\n"
 		"#define INSTANCED 1\n";
-	LoadShader( &shaders.world_instanced, "glsl/standard.glsl", world_instanced_defines );
+	LoadShader( &shaders.world_instanced, "shaders/standard.glsl", world_instanced_defines );
 
-	LoadShader( &shaders.depth_only, "glsl/depth_only.glsl" );
-	LoadShader( &shaders.depth_only_instanced, "glsl/depth_only.glsl", "#define INSTANCED 1\n" );
-	LoadShader( &shaders.depth_only_skinned, "glsl/depth_only.glsl", "#define SKINNED 1\n" );
+	LoadShader( &shaders.depth_only, "shaders/depth_only.glsl" );
+	LoadShader( &shaders.depth_only_instanced, "shaders/depth_only.glsl", "#define INSTANCED 1\n" );
+	LoadShader( &shaders.depth_only_skinned, "shaders/depth_only.glsl", "#define SKINNED 1\n" );
 
-	LoadShader( &shaders.postprocess_world_gbuffer, "glsl/postprocess_world_gbuffer.glsl" );
-	LoadShader( &shaders.postprocess_world_gbuffer_msaa, "glsl/postprocess_world_gbuffer.glsl", "#define MSAA 1\n" );
+	LoadShader( &shaders.postprocess_world_gbuffer, "shaders/postprocess_world_gbuffer.glsl" );
+	LoadShader( &shaders.postprocess_world_gbuffer_msaa, "shaders/postprocess_world_gbuffer.glsl", "#define MSAA 1\n" );
 
-	LoadShader( &shaders.write_silhouette_gbuffer, "glsl/write_silhouette_gbuffer.glsl" );
-	LoadShader( &shaders.write_silhouette_gbuffer_instanced, "glsl/write_silhouette_gbuffer.glsl", "#define INSTANCED 1\n" );
-	LoadShader( &shaders.write_silhouette_gbuffer_skinned, "glsl/write_silhouette_gbuffer.glsl", "#define SKINNED 1\n" );
-	LoadShader( &shaders.postprocess_silhouette_gbuffer, "glsl/postprocess_silhouette_gbuffer.glsl" );
+	LoadShader( &shaders.write_silhouette_gbuffer, "shaders/write_silhouette_gbuffer.glsl" );
+	LoadShader( &shaders.write_silhouette_gbuffer_instanced, "shaders/write_silhouette_gbuffer.glsl", "#define INSTANCED 1\n" );
+	LoadShader( &shaders.write_silhouette_gbuffer_skinned, "shaders/write_silhouette_gbuffer.glsl", "#define SKINNED 1\n" );
+	LoadShader( &shaders.postprocess_silhouette_gbuffer, "shaders/postprocess_silhouette_gbuffer.glsl" );
 
-	LoadShader( &shaders.outline, "glsl/outline.glsl" );
-	LoadShader( &shaders.outline_instanced, "glsl/outline.glsl", "#define INSTANCED 1\n" );
-	LoadShader( &shaders.outline_skinned, "glsl/outline.glsl", "#define SKINNED 1\n" );
+	LoadShader( &shaders.outline, "shaders/outline.glsl" );
+	LoadShader( &shaders.outline_instanced, "shaders/outline.glsl", "#define INSTANCED 1\n" );
+	LoadShader( &shaders.outline_skinned, "shaders/outline.glsl", "#define SKINNED 1\n" );
 
-	LoadShader( &shaders.scope, "glsl/scope.glsl" );
-	LoadShader( &shaders.skybox, "glsl/skybox.glsl" );
-	LoadShader( &shaders.text, "glsl/text.glsl" );
-	LoadShader( &shaders.postprocess, "glsl/postprocess.glsl" );
+	LoadShader( &shaders.scope, "shaders/scope.glsl" );
+	LoadShader( &shaders.skybox, "shaders/skybox.glsl" );
+	LoadShader( &shaders.text, "shaders/text.glsl" );
+	LoadShader( &shaders.postprocess, "shaders/postprocess.glsl" );
 
-	LoadComputeShader( &shaders.particle_compute, "glsl/particle_compute.glsl" );
-	LoadComputeShader( &shaders.particle_setup_indirect, "glsl/particle_setup_indirect.glsl" );
-	LoadShader( &shaders.particle, "glsl/particle.glsl" );
+	LoadComputeShader( &shaders.particle_compute, "shaders/particle_compute.glsl" );
+	LoadComputeShader( &shaders.particle_setup_indirect, "shaders/particle_setup_indirect.glsl" );
+	LoadShader( &shaders.particle, "shaders/particle.glsl" );
 
-	LoadComputeShader( &shaders.tile_culling, "glsl/tile_culling.glsl" );
+	LoadComputeShader( &shaders.tile_culling, "shaders/tile_culling.glsl" );
 }
 
 void InitShaders() {

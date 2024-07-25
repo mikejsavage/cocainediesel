@@ -50,7 +50,7 @@ void SP_spike( edict_t * spike, const spawn_temp_t * st ) {
 	spike->s.override_collision_model = CollisionModelAABB( bounds );
 	spike->s.solidity = Solid_Trigger;
 
-	spike->s.model = "models/spikes/spike";
+	spike->s.model = "entities/spikes/spike";
 	spike->s.type = ET_SPIKES;
 
 	spike->touch = SpikesTouched;
@@ -61,7 +61,7 @@ void SP_spike( edict_t * spike, const spawn_temp_t * st ) {
 	base->s.svflags &= ~SVF_NOCLIENT;
 	base->s.origin = spike->s.origin;
 	base->s.angles = spike->s.angles;
-	base->s.model = "models/spikes/spike_base";
+	base->s.model = "entities/spikes/spike_base";
 	GClip_LinkEntity( base );
 }
 
@@ -76,7 +76,7 @@ void SP_spikes( edict_t * spikes, const spawn_temp_t * st ) {
 	bounds = Union( bounds, -( forward + right ) * 64.0f + up * 48.0f );
 	bounds = Union( bounds, ( forward + right ) * 64.0f );
 
-	spikes->s.model = "models/spikes/spikes";
+	spikes->s.model = "entities/spikes/spikes";
 	spikes->s.type = ET_SPIKES;
 
 	spikes->s.override_collision_model = CollisionModelAABB( bounds );
@@ -90,6 +90,6 @@ void SP_spikes( edict_t * spikes, const spawn_temp_t * st ) {
 	base->s.svflags &= ~SVF_NOCLIENT;
 	base->s.origin = spikes->s.origin;
 	base->s.angles = spikes->s.angles;
-	base->s.model = "models/spikes/spikes_base";
+	base->s.model = "entities/spikes/spikes_base";
 	GClip_LinkEntity( base );
 }

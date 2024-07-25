@@ -6,9 +6,9 @@
   }
 
   decal {
-    material weapons/bullet_impact1
-    material weapons/bullet_impact2
-    material weapons/bullet_impact3
+    material loadout/bullet_impact1
+    material loadout/bullet_impact2
+    material loadout/bullet_impact3
     size 3.5
     size_distribution uniform 1.5
     lifetime 20
@@ -18,7 +18,7 @@
   }
 
   particles {
-    material textures/vfx/trace2
+    material sprites/trace2
     blendfunc add
     rotate
     stretch
@@ -37,7 +37,7 @@
   }
 
   particles {
-    material textures/vfx/smoke1
+    material sprites/smoke1
     blendfunc add
     rotate
     stretch
@@ -58,7 +58,7 @@
   }
 
   particles {
-    material textures/vfx/smoke1
+    material sprites/smoke1
     blendfunc add
     rotate
     stretch

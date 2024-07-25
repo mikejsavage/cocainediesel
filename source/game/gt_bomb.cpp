@@ -28,8 +28,6 @@ static constexpr Team initial_defenders = Team_Two;
 static constexpr MinMax3 bomb_bounds( Vec3( -16.0f ), Vec3( 16.0f, 16.0f, 48.0f ) );
 static constexpr float bomb_hud_offset = 32.0f;
 
-static constexpr StringHash model_bomb = "models/bomb/bomb";
-
 enum BombAnnouncement {
 	BombAnnouncement_RoundStarted,
 	BombAnnouncement_Planted,
@@ -39,15 +37,15 @@ enum BombAnnouncement {
 };
 
 static constexpr StringHash snd_announcements_off[ BombAnnouncement_Count ] = {
-	"sounds/announcer/bomb/offense/start",
-	"sounds/announcer/bomb/offense/planted",
-	"sounds/announcer/bomb/offense/defused",
+	"voices/announcer/bomb/offense/start",
+	"voices/announcer/bomb/offense/planted",
+	"voices/announcer/bomb/offense/defused",
 };
 
 static constexpr StringHash snd_announcements_def[ BombAnnouncement_Count ] = {
-	"sounds/announcer/bomb/defense/start",
-	"sounds/announcer/bomb/defense/planted",
-	"sounds/announcer/bomb/defense/defused",
+	"voices/announcer/bomb/defense/start",
+	"voices/announcer/bomb/defense/planted",
+	"voices/announcer/bomb/defense/defused",
 };
 
 static Cvar * g_bomb_roundtime;
@@ -300,7 +298,7 @@ static void SpawnBomb() {
 	bomb_state.bomb.model->s.override_collision_model = CollisionModelAABB( bomb_bounds );
 
 	bomb_state.bomb.model->s.solidity = Solid_World | Solid_Trigger;
-	bomb_state.bomb.model->s.model = model_bomb;
+	bomb_state.bomb.model->s.model = "loadout/bomb/bomb";
 	bomb_state.bomb.model->s.effects |= EF_TEAM_SILHOUETTE;
 	bomb_state.bomb.model->s.silhouetteColor = RGBA8( 255, 255, 255, 255 );
 	bomb_state.bomb.model->touch = BombTouch;
@@ -319,7 +317,7 @@ static void SpawnBombHUD() {
 
 static void BombPickup() {
 	PLAYERENT( bomb_state.carrier )->s.effects |= EF_CARRIER;
-	PLAYERENT( bomb_state.carrier )->s.model2 = model_bomb;
+	PLAYERENT( bomb_state.carrier )->s.model2 = "loadout/bomb/bomb";
 
 	Hide( bomb_state.bomb.model );
 	Hide( bomb_state.bomb.hud );
@@ -347,7 +345,7 @@ static void BombSetCarrier( s32 player_num, bool no_sound ) {
 	BombPickup();
 
 	if( !no_sound ) {
-		G_AnnouncerSound( PLAYERENT( player_num ), "sounds/announcer/bomb/offense/taken", AttackingTeam(), true, NULL );
+		G_AnnouncerSound( PLAYERENT( player_num ), "voices/announcer/bomb/offense/taken", AttackingTeam(), true, NULL );
 	}
 }
 
@@ -427,7 +425,7 @@ static void BombStartPlanting( edict_t * carrier_ent, u32 site ) {
 	bomb_state.bomb.action_time = level.time;
 	bomb_state.bomb.state = BombState_Planting;
 
-	G_Sound( bomb_state.bomb.model, "models/bomb/plant" );
+	G_Sound( bomb_state.bomb.model, "loadout/bomb/plant" );
 }
 
 static void BombPlanted() {
@@ -435,7 +433,7 @@ static void BombPlanted() {
 	carrier_ent->r.client->ps.pmove.max_speed = -1;
 
 	bomb_state.bomb.action_time = level.time + int( g_bomb_bombtimer->number * 1000.0f );
-	bomb_state.bomb.model->s.sound = "models/bomb/fuse";
+	bomb_state.bomb.model->s.sound = "loadout/bomb/fuse";
 	bomb_state.bomb.model->s.effects &= ~EF_TEAM_SILHOUETTE;
 
 	// show to defs too
@@ -468,7 +466,7 @@ static void BombDefused() {
 	TempAllocator temp = svs.frame_arena.temp();
 	G_PrintMsg( NULL, "%s defused the bomb!\n", PLAYERENT( bomb_state.defuser )->r.client->name );
 
-	G_Sound( bomb_state.bomb.model, "models/bomb/tss" );
+	G_Sound( bomb_state.bomb.model, "loadout/bomb/tss" );
 
 	RoundWonBy( DefendingTeam() );
 
@@ -493,7 +491,7 @@ static void BombExplode() {
 
 	G_SpawnEvent( EV_BOMB_EXPLOSION, bomb_explosion_effect_radius, &bomb_state.bomb.model->s.origin );
 
-	G_Sound( bomb_state.bomb.model, "models/bomb/explode" );
+	G_Sound( bomb_state.bomb.model, "loadout/bomb/explode" );
 }
 
 static void BombThink() {
@@ -688,12 +686,12 @@ static void PlayXvXSound( Team team_that_died ) {
 	if( alive == 1 ) {
 		if( alive_other_team == 1 ) {
 			if( bomb_state.was_1vx ) {
-				G_AnnouncerSound( NULL, "sounds/announcer/bomb/1v1", Team_Count, false, NULL );
+				G_AnnouncerSound( NULL, "voices/announcer/bomb/1v1", Team_Count, false, NULL );
 			}
 		}
 		else if( alive_other_team >= 3 ) {
-			G_AnnouncerSound( NULL, "sounds/announcer/bomb/1vx", team_that_died, false, NULL );
-			G_AnnouncerSound( NULL, "sounds/announcer/bomb/xv1", other_team, false, NULL );
+			G_AnnouncerSound( NULL, "voices/announcer/bomb/1vx", team_that_died, false, NULL );
+			G_AnnouncerSound( NULL, "voices/announcer/bomb/xv1", other_team, false, NULL );
 			bomb_state.was_1vx = true;
 		}
 	}
@@ -721,8 +719,8 @@ static void NewGame() {
 static void RoundWonBy( Team winner ) {
 	Team loser = winner == AttackingTeam() ? DefendingTeam() : AttackingTeam();
 
-	G_AnnouncerSound( NULL, "sounds/announcer/bomb/team_scored", winner, true, NULL );
-	G_AnnouncerSound( NULL, "sounds/announcer/bomb/enemy_scored", loser, true, NULL );
+	G_AnnouncerSound( NULL, "voices/announcer/bomb/team_scored", winner, true, NULL );
+	G_AnnouncerSound( NULL, "voices/announcer/bomb/enemy_scored", loser, true, NULL );
 
 	server_gs.gameState.teams[ winner ].score++;
 
@@ -732,7 +730,7 @@ static void RoundWonBy( Team winner ) {
 static void EndGame() {
 	RoundNewState( RoundState_None );
 	GhostEveryone();
-	G_AnnouncerSound( NULL, "sounds/announcer/game_over", Team_Count, true, NULL );
+	G_AnnouncerSound( NULL, "voices/announcer/game_over", Team_Count, true, NULL );
 }
 
 static bool ScoreLimitHit() {
@@ -835,12 +833,12 @@ static void RoundThink() {
 			bomb_state.countdown = remaining_seconds;
 
 			if( remaining_seconds == countdown_max ) {
-				G_AnnouncerSound( NULL, "sounds/announcer/ready", Team_Count, false, NULL );
+				G_AnnouncerSound( NULL, "voices/announcer/ready", Team_Count, false, NULL );
 			}
 			else {
 				if( remaining_seconds < 4 ) {
 					TempAllocator temp = svs.frame_arena.temp();
-					G_AnnouncerSound( NULL, StringHash( temp( "sounds/announcer/{}", remaining_seconds ) ), Team_Count, false, NULL );
+					G_AnnouncerSound( NULL, StringHash( temp( "voices/announcer/{}", remaining_seconds ) ), Team_Count, false, NULL );
 				}
 			}
 		}
@@ -878,9 +876,9 @@ static void RoundThink() {
 			bomb_state.bomb.model->s.origin = G_PickRandomEnt( &edict_t::classname, "spawn_bomb_attacking" )->s.origin;
 			bomb_state.bomb.model->velocity = Vec3( 0.0f, 0.0f, bomb_throw_speed );
 
-			constexpr StringHash vfx_bomb_respawn = "models/bomb/respawn";
+			constexpr StringHash vfx_bomb_respawn = "loadout/bomb/respawn";
 
-			G_Sound( bomb_state.bomb.model, "models/bomb/respawn" );
+			G_Sound( bomb_state.bomb.model, "loadout/bomb/respawn" );
 			G_SpawnEvent( EV_VFX, vfx_bomb_respawn.hash, &bomb_state.bomb.model->s.origin );
 
 			return;
@@ -1028,7 +1026,7 @@ static void Bomb_PlayerKilled( edict_t * victim, edict_t * attacker, edict_t * i
 
 		u32 required_for_ace = attacker->s.team == Team_One ? server_gs.gameState.bomb.beta_players_total : server_gs.gameState.bomb.alpha_players_total;
 		if( required_for_ace >= 3 && bomb_state.kills_this_round[ PLAYERNUM( attacker ) ] == required_for_ace ) {
-			G_AnnouncerSound( NULL, "sounds/announcer/bomb/ace", Team_Count, false, NULL );
+			G_AnnouncerSound( NULL, "voices/announcer/bomb/ace", Team_Count, false, NULL );
 		}
 	}
 
@@ -1074,7 +1072,7 @@ static void Bomb_MatchStateStarted() {
 			break;
 
 		case MatchState_Countdown:
-			G_AnnouncerSound( NULL, "sounds/announcer/get_ready_to_fight", Team_Count, false, NULL );
+			G_AnnouncerSound( NULL, "voices/announcer/get_ready_to_fight", Team_Count, false, NULL );
 			break;
 
 		case MatchState_Playing:

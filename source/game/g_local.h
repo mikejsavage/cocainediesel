@@ -282,8 +282,6 @@ edict_t * G_PositionedSound( Vec3 origin, StringHash sound );
 void G_GlobalSound( StringHash sound );
 void G_LocalSound( edict_t * owner, StringHash sound );
 
-void G_TeleportEffect( edict_t * ent, bool in );
-void G_RespawnEffect( edict_t * ent );
 void G_CheckGround( edict_t * ent );
 void G_ReleaseClientPSEvent( gclient_t *client );
 void G_AddPlayerStateEvent( gclient_t *client, int event, u64 parm );
@@ -310,7 +308,6 @@ void G_CallVotes_VoteNo( edict_t * ent );
 //
 // g_trigger.c
 //
-void SP_trigger_teleport( edict_t * ent, const spawn_temp_t * st );
 void SP_trigger_push( edict_t * ent, const spawn_temp_t * st );
 void SP_trigger_hurt( edict_t * ent, const spawn_temp_t * st );
 
@@ -400,8 +397,6 @@ void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead );
 void G_SelectWeapon( edict_t * ent, int index );
 void G_GiveWeapon( edict_t * ent, WeaponType weapon );
 void G_GivePerk( edict_t * ent, PerkType perk );
-void G_TeleportPlayer( edict_t * player, edict_t * dest );
-bool G_PlayerCanTeleport( edict_t * player );
 
 //
 // g_player.c

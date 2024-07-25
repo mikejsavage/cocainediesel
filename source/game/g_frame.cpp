@@ -61,12 +61,12 @@ static void G_Timeout_Update( unsigned int msec ) {
 			int seconds_left = (int)( ( level.timeout.endtime - level.timeout.time ) / 1000.0 + 0.5 );
 
 			if( seconds_left == ( TIMEIN_TIME * 2 ) / 1000 ) {
-				G_AnnouncerSound( NULL, StringHash( "sounds/announcer/ready" ), Team_Count, false, NULL );
+				G_AnnouncerSound( NULL, StringHash( "voices/announcer/ready" ), Team_Count, false, NULL );
 			} else if( seconds_left >= 1 && seconds_left <= 3 ) {
 				constexpr StringHash countdown[] = {
-					"sounds/announcer/1",
-					"sounds/announcer/2",
-					"sounds/announcer/3",
+					"voices/announcer/1",
+					"voices/announcer/2",
+					"voices/announcer/3",
 				};
 				G_AnnouncerSound( NULL, countdown[ seconds_left + 1 ], Team_Count, false, NULL );
 			}

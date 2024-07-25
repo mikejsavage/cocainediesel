@@ -8,8 +8,8 @@ static float RandomRadians() {
 
 void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius ) {
 	// TODO: radius is just ignored?
-	DoVisualEffect( "vfx/explosion", pos, dir, 1.0f, vec4_white );
-	PlaySFX( "models/bomb/explode", PlaySFXConfigPosition( pos ) );
+	DoVisualEffect( "loadout/explosion", pos, dir, 1.0f, vec4_white );
+	PlaySFX( "loadout/bomb/explode", PlaySFXConfigPosition( pos ) );
 }
 
 struct Gib {
@@ -34,7 +34,7 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 
 	float player_radius = playerbox_stand.maxs.x;
 
-	const GLTFRenderData * model = FindGLTFRenderData( "models/gibs/gib" );
+	const GLTFRenderData * model = FindGLTFRenderData( "characters/extra/gibs/gib" );
 	if( model == NULL )
 		return;
 
@@ -63,21 +63,21 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 }
 
 static void GibImpact( Vec3 pos, Vec3 normal, Vec4 color, float scale ) {
-	DoVisualEffect( "vfx/blood", pos, normal, 1.0f, color );
+	DoVisualEffect( "characters/extra/blood", pos, normal, 1.0f, color );
 
 	{
 		constexpr StringHash decals[] = {
-			"textures/blood_decals/blood1",
-			"textures/blood_decals/blood2",
-			"textures/blood_decals/blood3",
-			"textures/blood_decals/blood4",
-			"textures/blood_decals/blood5",
-			"textures/blood_decals/blood6",
-			"textures/blood_decals/blood7",
-			"textures/blood_decals/blood8",
-			"textures/blood_decals/blood9",
-			"textures/blood_decals/blood10",
-			"textures/blood_decals/blood11",
+			"decals/blood/1",
+			"decals/blood/2",
+			"decals/blood/3",
+			"decals/blood/4",
+			"decals/blood/5",
+			"decals/blood/6",
+			"decals/blood/7",
+			"decals/blood/8",
+			"decals/blood/9",
+			"decals/blood/10",
+			"decals/blood/11",
 		};
 
 		if( Probability( &cls.rng, 0.25f ) ) {
@@ -91,7 +91,7 @@ void DrawGibs() {
 
 	float dt = cls.frametime * 0.001f;
 
-	const GLTFRenderData * model = FindGLTFRenderData( "models/gibs/gib" );
+	const GLTFRenderData * model = FindGLTFRenderData( "characters/extra/gibs/gib" );
 	Vec3 gravity = Vec3( 0, 0, -GRAVITY );
 
 	for( u32 i = 0; i < num_gibs; i++ ) {

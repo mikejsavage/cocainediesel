@@ -43,7 +43,7 @@ static void ClientObituary( edict_t * self, edict_t * inflictor, edict_t * attac
 				Com_GGPrint( "\"{}\" suicide {}", self->r.client->name, damage_type.encoded );
 			}
 
-			G_PositionedSound( self->s.origin, "sounds/trombone/sad" );
+			G_PositionedSound( self->s.origin, "characters/selfkill" );
 		}
 
 		G_Obituary( self, attacker, topAssistEntNo, damage_type, wallbang );
@@ -368,71 +368,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	}
 
 	GT_CallPlayerRespawned( self, old_team, self->s.team );
-
-	if( !ghost ) {
-		G_RespawnEffect( self );
-	}
-}
-
-bool G_PlayerCanTeleport( edict_t *player ) {
-	if( !player->r.client ) {
-		return false;
-	}
-	if( player->r.client->ps.pmove.pm_type > PM_SPECTATOR ) {
-		return false;
-	}
-	return true;
-}
-
-void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
-	gclient_t *client = player->r.client;
-
-	if( !dest ) {
-		return;
-	}
-	if( !client ) {
-		return;
-	}
-
-	// draw the teleport entering effect
-	G_TeleportEffect( player, false );
-
-	//
-	// teleport the player
-	//
-
-	// from racesow - use old pmove velocity
-	Vec3 velocity = client->old_pmove.velocity;
-
-	velocity.z = 0; // ignore vertical velocity
-	float speed = Length( velocity );
-
-	mat3_t axis;
-	AnglesToAxis( dest->s.angles, axis );
-	client->ps.pmove.velocity = FromQFAxis( axis, AXIS_FORWARD ) * ( speed );
-
-	client->ps.viewangles = dest->s.angles;
-	client->ps.pmove.origin = dest->s.origin;
-
-	client->ps.pmove.angles = EulerDegrees3( client->ucmd.angles );
-
-	player->s.teleported = true;
-
-	// update the entity from the pmove
-	player->s.angles = client->ps.viewangles;
-	player->s.origin = client->ps.pmove.origin;
-	player->velocity = client->ps.pmove.velocity;
-
-	// unlink to make sure it can't possibly interfere with KillBox
-	GClip_UnlinkEntity( player );
-
-	// kill anything at the destination
-	KillBox( player, WorldDamage_Telefrag, Vec3( 0.0f ) );
-
-	GClip_LinkEntity( player );
-
-	// add the teleport effect at the destination
-	G_TeleportEffect( player, true );
 }
 
 //==============================================================

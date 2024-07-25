@@ -937,7 +937,7 @@ void StartMenuMusic() {
 		return;
 
 	Sound sound;
-	if( !FindSound( "sounds/music/longcovid", &sound ) )
+	if( !FindSound( "music/longcovid", &sound ) )
 		return;
 
 	if( music_playing )

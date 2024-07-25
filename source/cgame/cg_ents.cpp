@@ -575,16 +575,16 @@ static void CG_UpdateSpikes( centity_t * cent ) {
 
 	StringHash sound = EMPTY_HASH;
 	if( old_delta <= 0 && delta >= 0 ) {
-		sound = "sounds/spikes/arm";
+		sound = "entities/spikes/arm";
 	}
 	else if( old_delta < 1000 && delta >= 1000 ) {
-		sound = "sounds/spikes/deploy";
+		sound = "entities/spikes/deploy";
 	}
 	else if( old_delta < 1050 && delta >= 1050 ) {
-		sound = "sounds/spikes/glint";
+		sound = "entities/spikes/glint";
 	}
 	else if( old_delta < 1500 && delta >= 1500 ) {
-		sound = "sounds/spikes/retract";
+		sound = "entities/spikes/retract";
 	}
 	PlaySFX( sound, PlaySFXConfigEntity( cent->current.number ) );
 }
@@ -595,13 +595,13 @@ void CG_EntityLoopSound( centity_t * cent, SyncEntityState * state ) {
 
 static void PerkIdleSounds( centity_t * cent, SyncEntityState * state ) {
 	if( state->perk == Perk_Jetpack ) {
-		cent->playing_idle_sound = PlayImmediateSFX( "perks/jetpack/idle", cent->playing_idle_sound, PlaySFXConfigEntity( cent->current.number ) );
+		cent->playing_idle_sound = PlayImmediateSFX( "characters/jetpack/idle", cent->playing_idle_sound, PlaySFXConfigEntity( cent->current.number ) );
 	} else if( state->perk == Perk_Wheel ) {
 		PlaySFXConfig cfg = PlaySFXConfigEntity( cent->current.number );
 		float speed = Length( cent->velocity.xy() );
 		cfg.pitch = 0.65f + speed * 0.0015f;
-		cfg.volume = 0.25f + speed * 0.001f; 
-		cent->playing_idle_sound = PlayImmediateSFX( "perks/wheel/idle", cent->playing_idle_sound, cfg );
+		cfg.volume = 0.25f + speed * 0.001f;
+		cent->playing_idle_sound = PlayImmediateSFX( "characters/wheel/idle", cent->playing_idle_sound, cfg );
 	}
 }
 
@@ -638,37 +638,37 @@ void DrawEntities() {
 
 			case ET_ROCKET:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/rl/trail" );
+				DrawEntityTrail( cent, "loadout/rl/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 25600.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_GRENADE:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/gl/trail" );
+				DrawEntityTrail( cent, "loadout/gl/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_STUNGRENADE:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "gadgets/flash/trail" );
+				DrawEntityTrail( cent, "loadout/flash/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_ARBULLET:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/ar/trail" );
+				DrawEntityTrail( cent, "loadout/ar/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_BUBBLE:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/bg/trail" );
+				DrawEntityTrail( cent, "loadout/bg/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_RIFLEBULLET:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/rifle/bullet_trail" );
+				DrawEntityTrail( cent, "loadout/rifle/bullet_trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_PISTOLBULLET:
@@ -678,16 +678,16 @@ void DrawEntities() {
 				}
 
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/pistol/bullet_trail" );
+				DrawEntityTrail( cent, "loadout/pistol/bullet_trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_STAKE:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/stake/trail" );
+				DrawEntityTrail( cent, "loadout/stake/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_BLAST:
-				DrawEntityTrail( cent, "weapons/mb/trail" );
+				DrawEntityTrail( cent, "loadout/mb/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 3200.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
@@ -698,7 +698,7 @@ void DrawEntities() {
 				break;
 			case ET_THROWING_AXE:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/axe/trail" );
+				DrawEntityTrail( cent, "loadout/axe/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_SHURIKEN:

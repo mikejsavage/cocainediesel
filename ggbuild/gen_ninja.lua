@@ -72,8 +72,8 @@ configs[ "linux" ] = {
 configs[ "linux-debug" ] = { }
 configs[ "linux-tsan" ] = {
 	bin_suffix = "-tsan",
-	cxxflags = "-fsanitize=thread",
-	ldflags = "-fsanitize=thread -static-libtsan",
+	cxxflags = "-fsanitize=thread -D_LARGEFILE64_SOURCE",
+	ldflags = "-fsanitize-thread",
 	prebuilt_lib_dir = "linux-debug",
 }
 configs[ "linux-release" ] = {

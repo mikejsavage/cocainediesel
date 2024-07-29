@@ -32,10 +32,12 @@ local function load_replacements( path )
 	return replacements
 end
 
-local function get_glb_chunk( contents, cursor )
+local function get_glb_chunk( contents, cursor, expected_type )
 	local chunk_size, chunk_type, cursor = string.unpack( "<I4c4", contents, cursor )
-	assert( chunk_size, chunk_type )
-	return chunk_type, contents:sub( cursor, cursor + chunk_size - 1 ), cursor + chunk_size
+	assert( chunk_size )
+	print( chunk_type, expected_type )
+	assert( chunk_type == expected_type )
+	return contents:sub( cursor, cursor + chunk_size - 1 ), cursor + chunk_size
 end
 
 local function replace_in_glb( replacements, path )
@@ -47,11 +49,8 @@ local function replace_in_glb( replacements, path )
 	assert( magic == "glTF", "magic bytes are not glTF" )
 	assert( version == 2, "not glTF 2" )
 
-	local chunk1_type, chunk1_data, cursor = get_glb_chunk( contents, cursor )
-	local chunk2_type, chunk2_data, cursor = get_glb_chunk( contents, cursor )
-
-	local json = chunk1_type == "JSON" and chunk1_data or chunk2_data
-	local bin = chunk1_type == "JSON" and chunk2_data or chunk1_data
+	local json, cursor = get_glb_chunk( contents, cursor, "JSON" )
+	local bin, cursor = get_glb_chunk( contents, cursor, "BIN\0" )
 
 	local before_materials, materials, after_materials = json:match( '^(.-)("materials":%b[])(.-)$' )
 	if not before_materials then
@@ -66,10 +65,10 @@ local function replace_in_glb( replacements, path )
 
 	local new_json = ( before_materials .. materials .. after_materials:gsub( " -$", "" ) ):padright( 4, " " )
 	local new_json_chunk = string.pack( "<I4c4", #new_json, "JSON" ) .. new_json
-	local bin_chunk = string.pack( "<I4c3B", #bin, "BIN", 0 ) .. bin
+	local bin_chunk = string.pack( "<I4c4", #bin, "BIN\0" ) .. bin
 	local header = string.pack( "<c4I4I4", magic, version, 12 + #new_json_chunk + #bin_chunk )
 
-	io.writefile( path, header .. ( chunk1_type == "JSON" and new_json_chunk or bin_chunk ) .. ( chunk1_type == "JSON" and bin_chunk or new_json_chunk ) )
+	io.writefile( path, header .. new_json_chunk .. bin_chunk )
 end
 
 local replacements = load_replacements( arg[ 1 ] )

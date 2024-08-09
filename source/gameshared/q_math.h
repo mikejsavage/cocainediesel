@@ -78,7 +78,7 @@ float Dequantize01( T x ) {
 }
 
 template< typename T, u64 Bits = sizeof( T ) * 8 >
-static T Quantize01( float x ) {
+T Quantize01( float x ) {
 	Assert( x >= 0.0f && x <= 1.0f );
 	return T( x * float( ( 1_u64 << Bits ) - 1 ) + 0.5f );
 }
@@ -90,7 +90,7 @@ float Dequantize11( T x ) {
 }
 
 template< typename T, u64 Bits = sizeof( T ) * 8 >
-static T Quantize11( float x ) {
+T Quantize11( float x ) {
 	Assert( x >= -1.0f && x <= 1.0f );
 	return T( ( x * 0.5f + 0.5f ) * float( ( 1_u64 << Bits ) - 2 ) + 0.5f );
 }

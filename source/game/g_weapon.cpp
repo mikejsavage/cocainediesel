@@ -47,7 +47,7 @@ static void Explode( edict_t * ent, edict_t * other, Optional< Vec3 > normal ) {
 	if( other != NULL && other->takedamage ) {
 		Vec3 push_dir;
 		G_SplashFrac4D( other, ent->s.origin, ent->projectileInfo.radius, &push_dir, NULL, ent->timeDelta, false );
-		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, DAMAGE_KNOCKBACK_SOFT, ent->projectileInfo.damage_type );
+		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, ent->projectileInfo.damage_type );
 	}
 
 	G_RadiusDamage( ent, ent->r.owner, normal, other, ent->projectileInfo.damage_type );
@@ -350,7 +350,7 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, EulerDegrees3 angles, int
 	trace_t trace, wallbang;
 	GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, spread, def->range, ENTNUM( self ), timeDelta );
 	if( trace.HitSomething() && game.edicts[ trace.ent ].takedamage ) {
-		int dmgflags = DAMAGE_KNOCKBACK_SOFT;
+		int dmgflags = 0;
 		float damage = def->damage;
 
 		if( IsHeadshot( trace.ent, trace.endpos, timeDelta ) ) {
@@ -381,10 +381,10 @@ static void W_Fire_Shotgun( edict_t * self, Vec3 start, EulerDegrees3 angles, in
 		trace_t trace, wallbang;
 		GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, spread, def->range, ENTNUM( self ), timeDelta );
 		if( trace.HitSomething() && game.edicts[ trace.ent ].takedamage ) {
-			int dmgflags = trace.endpos == wallbang.endpos ? 0 : DAMAGE_WALLBANG;
+			int dmgflags = 0;
 			float damage = def->damage;
 
-			if( trace.endpos != wallbang.endpos ) {
+			if( wallbang.HitSomething() ) {
 				dmgflags |= DAMAGE_WALLBANG;
 				damage *= def->wallbang_damage_scale;
 			}
@@ -650,7 +650,7 @@ static void LaserImpact( const trace_t & trace, Vec3 dir, int damage, int knockb
 		return; // should not be possible theoretically but happened at least once in practice
 	}
 
-	G_Damage( &game.edicts[ trace.ent ], attacker, attacker, dir, dir, trace.endpos, damage, knockback, DAMAGE_KNOCKBACK_SOFT, Weapon_Laser );
+	G_Damage( &game.edicts[ trace.ent ], attacker, attacker, dir, dir, trace.endpos, damage, knockback, 0, Weapon_Laser );
 }
 
 static edict_t * FindOrSpawnLaser( edict_t * owner ) {

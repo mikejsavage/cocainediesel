@@ -693,7 +693,7 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 	Delta( buf, pmove.features, baseline.features );
 
 	Delta( buf, pmove.no_shooting_time, baseline.no_shooting_time );
-	Delta( buf, pmove.knockback_time, baseline.knockback_time );
+	Delta( buf, pmove.no_friction_time, baseline.no_friction_time );
 	Delta( buf, pmove.stamina, baseline.stamina );
 	Delta( buf, pmove.stamina_stored, baseline.stamina_stored );
 	Delta( buf, pmove.jump_buffering, baseline.jump_buffering );

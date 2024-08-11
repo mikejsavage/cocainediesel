@@ -348,9 +348,8 @@ void G_RadiusDamage( edict_t * inflictor, edict_t * attacker, Optional< Vec3 > n
 
 // damage flags
 #define DAMAGE_RADIUS         ( 1 << 0 )  // damage was indirect
-#define DAMAGE_KNOCKBACK_SOFT ( 1 << 1 )
-#define DAMAGE_HEADSHOT       ( 1 << 2 )
-#define DAMAGE_WALLBANG       ( 1 << 3 )
+#define DAMAGE_HEADSHOT       ( 1 << 1 )
+#define DAMAGE_WALLBANG       ( 1 << 2 )
 
 //
 // g_misc.c

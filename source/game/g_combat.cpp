@@ -161,10 +161,6 @@ static void G_KnockBackPush( edict_t * targ, const edict_t * attacker, Vec3 base
 	constexpr float VERTICAL_KNOCKBACK_SCALE = 1.25f;
 	dir.z *= VERTICAL_KNOCKBACK_SCALE;
 
-	if( targ->r.client && targ != attacker && !( dflags & DAMAGE_KNOCKBACK_SOFT ) ) {
-		targ->r.client->ps.pmove.knockback_time = Clamp( 100, 3 * knockback, 250 );
-	}
-
 	targ->velocity = targ->velocity + dir * push;
 	knockbackOfDeath = dir * push;
 }

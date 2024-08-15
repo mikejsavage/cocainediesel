@@ -179,6 +179,10 @@ void G_Match_CheckReadys() {
 	int teamsready = 0;
 	for( int team = Team_One; team < Team_Count; team++ ) {
 		SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
+		if( current_team->num_players == 0 ) {
+			continue;
+		}
+
 		for( u8 i = 0; i < current_team->num_players; i++ ) {
 			const edict_t * e = game.edicts + current_team->player_indices[ i ];
 

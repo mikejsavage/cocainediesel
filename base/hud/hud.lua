@@ -14,7 +14,11 @@ local function Override( t, overrides )
 	return t2
 end
 
-local function DrawClock( state, posX )
+local function DrawClockOrBomb( state, posX )
+	if state.round_state < RoundState_Countdown or state.round_state > RoundState_Round then
+		return
+	end
+
 	local fontSize1 = state.viewport_height / 25
 	local testPosY = state.viewport_height * 0.013
 	local options = {
@@ -25,7 +29,7 @@ local function DrawClock( state, posX )
 		alignment = "center top",
 	}
 
-	if state.round_state == RoundState_Countdown then
+	if state.round_state == RoundState_Countdown and state.gametype == Gametype_Bomb then
 		local text = "DEFUSE"
 		if state.attacking_team == team then
 			text = "PLANT"
@@ -34,7 +38,7 @@ local function DrawClock( state, posX )
 		options.font_size = fontSize1 * 0.8
 		options.alignement = "middle top"
 		cd.text( options, posX, testPosY * 1.2, text )
-	elseif state.round_state == RoundState_Round then
+	else
 		local time = cd.getClockTime()
 		local seconds = time * 0.001
 		local milliseconds = time % 1000
@@ -93,7 +97,7 @@ local function DrawTopInfo( state )
 			end
 		end
 	elseif state.match_state == MatchState_Playing then
-		DrawClock( state, posX )
+		DrawClockOrBomb( state, posX )
 
 		if state.gametype == Gametype_Bomb then
 			options.font_size = state.viewport_height / 25

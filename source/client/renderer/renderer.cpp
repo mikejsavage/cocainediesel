@@ -97,7 +97,7 @@ const char * ShadowQualityToString( ShadowQuality mode ) {
 
 static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
 	switch( mode ) {
-		case ShadowQuality_Low:    return { 2, { 256.0f, 2048.0f }, 1024, 2 };
+		case ShadowQuality_Low:    return { 2, { 256.0f, 2048.0f, 2048.0f, 2048.0f }, 1024, 2 };
 		case ShadowQuality_Medium: return { 4, { 256.0f, 768.0f, 2304.0f, 6912.0f }, 1024, 2 };
 		case ShadowQuality_High:   return { 4, { 256.0f, 768.0f, 2304.0f, 6912.0f }, 2048, 4 };
 		case ShadowQuality_Ultra:  return { 4, { 256.0f, 768.0f, 2304.0f, 6912.0f }, 4096, 4 };
@@ -609,11 +609,11 @@ static Mat4 InverseScaleTranslation( Mat4 m ) {
 
 void SetupShadowCascades() {
 	TracyZoneScoped;
-	const float near_plane = 4.0f;
+	constexpr float near_plane = 4.0f;
 	float cascade_dist[ 5 ];
-	const u32 num_planes = ARRAY_COUNT( cascade_dist );
-	const u32 num_cascades = num_planes - 1;
-	const u32 num_corners = 4;
+	constexpr u32 num_planes = ARRAY_COUNT( cascade_dist );
+	constexpr u32 num_cascades = num_planes - 1;
+	constexpr u32 num_corners = 4;
 
 	cascade_dist[ 0 ] = near_plane;
 	for( u32 i = 0; i < num_cascades; i++ ) {

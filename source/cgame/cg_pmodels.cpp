@@ -784,7 +784,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 		const GLTFRenderData * weapon_model = GetEquippedItemRenderData( &cent->current );
 		if( weapon_model != NULL ) {
 			PlayerModelMetadata::Tag tag = cent->current.gadget == Gadget_None ? meta->tag_weapon : meta->tag_gadget;
-			Mat3x4 tag_transform = TransformTag( weapon_model, transform, pose, tag ) * inverse_scale;
+			Mat3x4 tag_transform = TransformTag( model, transform, pose, tag ) * inverse_scale;
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -815,7 +815,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			if( cent->current.effects & EF_HAT )
 				tag = meta->tag_hat;
 
-			Mat3x4 tag_transform = TransformTag( attached_model, transform, pose, tag ) * inverse_scale;
+			Mat3x4 tag_transform = TransformTag( model, transform, pose, tag ) * inverse_scale;
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -833,7 +833,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 		if( mask_model != NULL ) {
 			PlayerModelMetadata::Tag tag = meta->tag_mask;
 
-			Mat3x4 tag_transform = TransformTag( mask_model, transform, pose, tag ) * inverse_scale;
+			Mat3x4 tag_transform = TransformTag( model, transform, pose, tag ) * inverse_scale;
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;

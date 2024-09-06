@@ -666,12 +666,18 @@ local function DrawScoreboard( state, offset, outline )
 					yellow.a = 1.0
 
 					local placeText = ""
-					if place == 1 then placeText = "1st"
+					if team.num_players == 0 then placeText = "---"
+					elseif place == 1 then placeText = "1st"
 					elseif place == 2 then placeText = "2nd"
 					elseif place == 3 then placeText = "3rd"
 					else placeText = place .. "th" end
 
-					text_options.color = RGBALinear( 1.0, 1.0, 1.0, 1.0/place )
+					if team.num_players == 0 then
+						text_options.color = "#444"
+					else
+						text_options.color = RGBALinear( 1.0, 1.0, 1.0, 1.0/place )
+					end
+					
 					text_options.alignment = "center middle"
 					cd.text( text_options, placeX, tmpY + lineHeight/2, placeText )
 

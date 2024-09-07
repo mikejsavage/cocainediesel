@@ -106,7 +106,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 		if( material == NULL )
 			continue;
 
-		data.broadphase_solidity = data.broadphase_solidity | material->solidity;
+		data.broadphase_solidity |= material->solidity;
 
 		Mat4 transform;
 		cgltf_node_transform_world( node, transform.ptr() );

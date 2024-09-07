@@ -132,15 +132,18 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 			}
 		}
 
-		constexpr Mat3 y_up_to_z_up(
-			1, 0, 0,
-			0, 0, -1,
-			0, 1, 0
+		constexpr Mat4 y_up_to_z_up(
+			1, 0, 0, 0,
+			0, 0, -1, 0,
+			0, 1, 0, 0,
+			0, 0, 0, 1
 		);
+
+		transform = y_up_to_z_up * transform;
 
 		DynamicArray< Vec3 > brush_vertices( sys_allocator );
 		for( Vec3 gltf_vert : gltf_verts ) {
-			gltf_vert = y_up_to_z_up * gltf_vert;
+			gltf_vert = ( transform * Vec4( gltf_vert, 1.0f ) ).xyz();
 			bool found = false;
 			for( Vec3 & vert : brush_vertices ) {
 				if( Length( gltf_vert - vert ) < 0.01f ) {
@@ -160,20 +163,24 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 
 		DynamicArray< Plane > brush_planes( sys_allocator );
 		for( size_t j = 0; j < prim.indices->count; j += 3 ) {
-			u32 a, b, c;
+			Vec3 a, b, c;
 			if( prim.indices->component_type == cgltf_component_type_r_16u ) {
-				a = indices_data.cast< const u16 >()[ j + 0 ];
-				b = indices_data.cast< const u16 >()[ j + 1 ];
-				c = indices_data.cast< const u16 >()[ j + 2 ];
+				a = gltf_verts[ indices_data.cast< const u16 >()[ j + 0 ] ];
+				b = gltf_verts[ indices_data.cast< const u16 >()[ j + 1 ] ];
+				c = gltf_verts[ indices_data.cast< const u16 >()[ j + 2 ] ];
 			}
 			else {
-				a = indices_data.cast< const u32 >()[ j + 0 ];
-				b = indices_data.cast< const u32 >()[ j + 1 ];
-				c = indices_data.cast< const u32 >()[ j + 2 ];
+				a = gltf_verts[ indices_data.cast< const u32 >()[ j + 0 ] ];
+				b = gltf_verts[ indices_data.cast< const u32 >()[ j + 1 ] ];
+				c = gltf_verts[ indices_data.cast< const u32 >()[ j + 2 ] ];
 			}
 
+			a = ( transform * Vec4( a, 1.0f ) ).xyz();
+			b = ( transform * Vec4( b, 1.0f ) ).xyz();
+			c = ( transform * Vec4( c, 1.0f ) ).xyz();
+
 			Plane plane;
-			if( !PlaneFrom3Points( &plane, y_up_to_z_up * gltf_verts[ a ], y_up_to_z_up * gltf_verts[ c ], y_up_to_z_up * gltf_verts[ b ] ) ) {
+			if( !PlaneFrom3Points( &plane, a, c, b ) ) {
 				return false;
 			}
 

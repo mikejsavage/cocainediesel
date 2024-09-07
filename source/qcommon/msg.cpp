@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/qcommon.h"
 
-#include <type_traits>
-
 #define MAX_MSG_STRING_CHARS    2048
 
 msg_t NewMSGWriter( u8 * data, size_t n ) {
@@ -249,7 +247,7 @@ static void Delta( DeltaBuffer * buf, Capsule & c, const Capsule & baseline ) {
 
 template< typename E >
 void DeltaEnum( DeltaBuffer * buf, E & x, E baseline, E count ) {
-	using T = typename std::underlying_type< E >::type;
+	using T = UnderlyingType< E >;
 	Delta( buf, ( T & ) x, ( const T & ) baseline );
 	if( x < 0 || x >= count ) {
 		buf->error = true;
@@ -262,7 +260,7 @@ void DeltaEnum( DeltaBuffer * buf, Optional< E > & x, Optional< E > baseline, E 
 
 	Delta( buf, x.exists, baseline.exists );
 
-	using T = typename std::underlying_type< E >::type;
+	using T = UnderlyingType< E >;
 	const T & baseline_to_delta_against = baseline.exists ? baseline.value : null_baseline;
 	if( x.exists ) {
 		Delta( buf, ( T & ) x.value, baseline_to_delta_against );
@@ -274,7 +272,7 @@ void DeltaEnum( DeltaBuffer * buf, Optional< E > & x, Optional< E > baseline, E 
 
 template< typename E >
 void DeltaBitfieldEnum( DeltaBuffer * buf, E & x, E baseline, E mask ) {
-	using T = typename std::underlying_type< E >::type;
+	using T = UnderlyingType< E >;
 	Delta( buf, ( T & ) x, ( const T & ) baseline );
 	if( ( x & ~mask ) != 0 ) {
 		buf->error = true;
@@ -287,7 +285,7 @@ void DeltaBitfieldEnum( DeltaBuffer * buf, Optional< E > & x, Optional< E > base
 
 	Delta( buf, x.exists, baseline.exists );
 
-	using T = typename std::underlying_type< E >::type;
+	using T = UnderlyingType< E >;
 	const T & baseline_to_delta_against = baseline.exists ? baseline.value : null_baseline;
 	if( x.exists ) {
 		Delta( buf, ( T & ) x.value, baseline_to_delta_against );

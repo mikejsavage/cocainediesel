@@ -104,7 +104,7 @@ const Texture * BlueNoiseTexture();
 
 void DrawFullscreenMesh( const PipelineState & pipeline );
 
-PipelineState MaterialToPipelineState( const Material * material, Vec4 color = vec4_white, bool skinned = false, bool map_model = false, GPUMaterial * gpu_material = NULL );
+PipelineState MaterialToPipelineState( const Material * material, Vec4 color = vec4_white, bool skinned = false, GPUMaterial * gpu_material = NULL );
 
 void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color = vec4_white );
 void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color );

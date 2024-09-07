@@ -679,7 +679,6 @@ static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh,
 	}
 
 	u64 hash = Hash64( &config.view_weapon, sizeof( config.view_weapon ), Hash64( mesh.vertex_buffers->buffer ) );
-	hash = Hash64( &config.map_model, sizeof( config.map_model ), hash );
 
 	GPUModelInstance instance = { };
 	instance.material = gpu_material;
@@ -813,7 +812,7 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 			continue;
 
 		GPUMaterial gpu_material;
-		PipelineState pipeline = MaterialToPipelineState( FindMaterial( node->material ), color, skinned, config.draw_model.map_model, &gpu_material );
+		PipelineState pipeline = MaterialToPipelineState( FindMaterial( node->material ), color, skinned, &gpu_material );
 		pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 
 		// skinned models can't be instanced

@@ -428,7 +428,6 @@ static void DrawEntityModel( centity_t * cent ) {
 
 	DrawModelConfig config = { };
 	config.draw_model.enabled = true;
-	config.draw_model.map_model = cent->current.type == ET_MAPMODEL;
 	config.draw_shadows.enabled = true;
 
 	if( cent->current.silhouetteColor.a > 0 ) {

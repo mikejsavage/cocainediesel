@@ -116,9 +116,6 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 		brush.first_vertex = vertices.size();
 		brush.solidity = material->solidity;
 
-		DynamicArray< Vec3 > brush_vertices( sys_allocator );
-		DynamicArray< Plane > brush_planes( sys_allocator );
-
 		Span< const Vec3 > gltf_verts;
 		for( size_t j = 0; j < prim.attributes_count; j++ ) {
 			const cgltf_attribute & attr = prim.attributes[ j ];
@@ -141,6 +138,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 			0, 1, 0
 		);
 
+		DynamicArray< Vec3 > brush_vertices( sys_allocator );
 		for( Vec3 gltf_vert : gltf_verts ) {
 			gltf_vert = y_up_to_z_up * gltf_vert;
 			bool found = false;
@@ -160,6 +158,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 		Span< const u8 > indices_data = AccessorToSpan( prim.indices );
 		Assert( prim.indices->count % 3 == 0 );
 
+		DynamicArray< Plane > brush_planes( sys_allocator );
 		for( size_t j = 0; j < prim.indices->count; j += 3 ) {
 			u32 a, b, c;
 			if( prim.indices->component_type == cgltf_component_type_r_16u ) {

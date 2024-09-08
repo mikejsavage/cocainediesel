@@ -65,7 +65,6 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	SafeStrCpy( sv.mapname, mapname, sizeof( sv.mapname ) );
 
 	SV_ResetClientFrameCounters();
-	svs.realtime = Sys_Milliseconds();
 	svs.gametime = 0;
 
 	sv.nextSnapTime = 1000;

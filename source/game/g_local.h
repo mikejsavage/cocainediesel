@@ -77,7 +77,7 @@ struct timeout_t {
 //
 struct level_locals_t {
 	int64_t time; // time in milliseconds
-	int64_t spawnedTimeStamp; // time when map was restarted
+	Time spawnedTimeStamp; // time when map was restarted
 	int64_t finalMatchDuration;
 
 	char callvote_map[128];
@@ -477,7 +477,7 @@ struct chasecam_t {
 	bool active;
 	int target;
 	int mode;                   //3rd or 1st person
-	int64_t timeout;           //delay after loosing target
+	Time timeout;           //delay after loosing target
 };
 
 struct assistinfo_t {
@@ -539,21 +539,21 @@ struct client_respawnreset_t {
 struct client_levelreset_t {
 	int64_t timeStamp;				// last time it was reset
 
-	int64_t last_vsay;				// time when last vsay was said
+	Time last_vsay;
 	int64_t last_activity;
-	int64_t last_spray;
+	Time last_spray;
 
 	score_stats_t stats;
 
 	// flood protection
-	int64_t flood_locktill;			// locked from talking
-	int64_t flood_when[MAX_FLOOD_MESSAGES];        // when messages were said
+	Time flood_locktill;			// locked from talking
+	Time flood_when[MAX_FLOOD_MESSAGES];        // when messages were said
 	int flood_whenhead;             // head pointer for when said
 	// team only
-	int64_t flood_team_when[MAX_FLOOD_MESSAGES];   // when messages were said
+	Time flood_team_when[MAX_FLOOD_MESSAGES];   // when messages were said
 	int flood_team_whenhead;        // head pointer for when said
 
-	int64_t callvote_when;
+	Time callvote_when;
 };
 
 struct client_teamreset_t {
@@ -563,7 +563,7 @@ struct client_teamreset_t {
 	bool position_saved;
 	Vec3 position_origin;
 	EulerDegrees3 position_angles;
-	int64_t position_lastcmd;
+	Time position_lastcmd;
 };
 
 struct gclient_t {
@@ -603,7 +603,7 @@ struct edict_t {
 
 	int movetype;
 
-	int64_t freetime;          // time when the object was freed
+	Time freetime;
 
 	int numEvents;
 	bool eventPriority[2];

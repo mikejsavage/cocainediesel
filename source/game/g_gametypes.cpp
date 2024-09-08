@@ -281,7 +281,7 @@ static bool G_EachNewSecond() {
 }
 
 static void G_CheckNumBots() {
-	if( level.spawnedTimeStamp + 5000 > svs.realtime ) {
+	if( level.spawnedTimeStamp + Seconds( 5 ) > svs.monotonic_time ) {
 		return;
 	}
 

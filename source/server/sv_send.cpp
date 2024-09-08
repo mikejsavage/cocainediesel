@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "server/server.h"
+#include "qcommon/time.h"
 
 // shared message buffer to be used for occasional messages
 msg_t tmpMessage;
@@ -244,7 +245,7 @@ bool SV_SendMessageToClient( client_t *client, msg_t *msg ) {
 	}
 
 	// transmit the message data
-	client->lastPacketSentTime = svs.realtime;
+	client->lastPacketSentTime = svs.monotonic_time;
 	return SV_Netchan_Transmit( &client->netchan, msg );
 }
 
@@ -316,7 +317,7 @@ void SV_SendClientMessages() {
 		} else {
 			// send pending reliable commands, or send heartbeats for not timing out
 			if( client->reliableSequence > client->reliableAcknowledge ||
-				svs.realtime - client->lastPacketSentTime > 1000 ) {
+				svs.monotonic_time - client->lastPacketSentTime > Seconds( 1 ) ) {
 				SV_InitClientMessage( client, &tmpMessage, NULL, 0 );
 				SV_AddReliableCommandsToMessage( client, &tmpMessage );
 				SV_SendMessageToClient( client, &tmpMessage );

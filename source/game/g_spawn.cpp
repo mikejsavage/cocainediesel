@@ -226,7 +226,7 @@ static void G_FreeEntities() {
 }
 
 static void SpawnMapEntities() {
-	level.spawnedTimeStamp = svs.gametime;
+	level.spawnedTimeStamp = svs.monotonic_time;
 	level.canSpawnEntities = true;
 
 	const MapData * map = FindServerMap( server_gs.gameState.map );

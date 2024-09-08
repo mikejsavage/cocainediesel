@@ -794,13 +794,14 @@ static void LoadBuiltinMaterials() {
 
 	{
 		u8 white = 255;
+		TextureConfig config = TextureConfig {
+			.format = TextureFormat_R_U8,
+			.width = 1,
+			.height = 1,
+			.data = &white,
+		};
 
-		TextureConfig config;
-		config.format = TextureFormat_R_U8;
-		config.width = 1;
-		config.height = 1;
-		config.data = &white;
-
+		AddTexture( "white", Hash64( "white" ), config );
 		AddTexture( "$whiteimage", Hash64( "$whiteimage" ), config );
 	}
 

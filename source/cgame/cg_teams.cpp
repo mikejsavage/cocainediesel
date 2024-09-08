@@ -8,10 +8,10 @@ static constexpr RGB8 TEAM_COLORS[] = {
 	RGB8( 255, 24, 96 ), //red
 	RGB8( 100, 255, 100 ), //green
 	RGB8( 255, 255, 34 ), //yellow
-	RGB8( 138, 43, 226 ), //purple
-	RGB8( 0, 47, 167 ), //dark-blue
-	RGB8( 255, 179, 222 ), //pink
-	RGB8( 172, 229, 255 ), //light-blue
+	RGB8( 170, 75, 255 ), //purple
+	RGB8( 0, 70, 255 ), //dark-blue
+	RGB8( 255, 100, 255 ), //pink
+	RGB8( 0, 255, 170 ), //light-blue
 };
 
 static constexpr RGB8 COLORBLIND_TEAM_COLORS[] = {

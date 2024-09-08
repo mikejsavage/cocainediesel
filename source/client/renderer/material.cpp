@@ -848,6 +848,9 @@ static void LoadBuiltinMaterials() {
 
 		AddMaterial( wallbang_material, "editor/wallbangable" );
 		AddMaterial( wallbang_material, "wallbangable" );
+
+		// for use in models, wallbangable is for collision geometry
+		AddMaterial( wallbang_material, "wallbang_visible" );
 	}
 }
 

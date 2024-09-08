@@ -349,7 +349,7 @@ void G_RespawnLevel() {
 	}
 }
 
-void G_HotloadMap() {
+void G_HotloadCollisionModels() {
 	ShutdownServerCollisionModels();
 	InitServerCollisionModels();
 	LoadServerMap( MakeSpan( sv.mapname ) );

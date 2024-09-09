@@ -38,6 +38,34 @@ INLINE_IN_RELEASE_BUILDS Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
 	return result;
 }
 
+INLINE_IN_RELEASE_BUILDS Vec4 operator*( const Mat3x4 & m, const Vec4 & v ) {
+	float w = v.w;
+
+	__m128 vx = _mm_set1_ps( v.x );
+	__m128 vy = _mm_set1_ps( v.y );
+	__m128 vz = _mm_set1_ps( v.z );
+	__m128 vw = _mm_set1_ps( v.w );
+
+	__m128 col0 = _mm_load_ps( &m.col0.x );
+	__m128 col1 = _mm_loadu_ps( &m.col1.x );
+	__m128 col2 = _mm_loadu_ps( &m.col2.x );
+
+	// if we load col3.x we run past the end of the struct, so load col3.x - 1 and shuffle
+	__m128 col3 = _mm_loadu_ps( &m.col2.z );
+	col3 = _mm_shuffle_ps( col3, col3, _MM_SHUFFLE( 0, 3, 2, 1 ) );
+
+	__m128 res128 = _mm_add_ps(
+		_mm_add_ps( _mm_mul_ps( col0, vx ), _mm_mul_ps( col1, vy ) ),
+		_mm_add_ps( _mm_mul_ps( col2, vz ), _mm_mul_ps( col3, vw ) )
+	);
+
+	Vec4 res;
+	_mm_store_ps( &res.x, res128 );
+	res.w = w;
+
+	return res;
+}
+
 #else // #if ARCHITECTURE_X64
 
 #include <arm_neon.h>

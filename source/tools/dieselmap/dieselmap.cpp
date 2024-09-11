@@ -993,12 +993,13 @@ int main( int argc, char ** argv ) {
 	flattened.vertex_normals = flat_vertex_normals.span();
 	flattened.vertex_indices = flat_vertex_indices.span();
 
-	const char * cdmap_path = arena( "{}.cdmap", StripExtension( src_path ) );
-	WriteCDMap( &arena, cdmap_path, immutable_src_copy, &flattened, compress );
-
 	if( write_obj ) {
 		const char * obj_path = arena( "{}.obj", StripExtension( src_path ) );
 		WriteObj( &arena, obj_path, &flattened );
+	}
+	else {
+		const char * cdmap_path = arena( "{}.cdmap", StripExtension( src_path ) );
+		WriteCDMap( &arena, cdmap_path, immutable_src_copy, &flattened, compress );
 	}
 
 	// TODO: generate render geometry

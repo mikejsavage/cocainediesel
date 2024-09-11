@@ -552,7 +552,27 @@ static bool SweptShapeVsGLTFBrush( const GLTFCollisionData * gltf, GLTFCollision
 }
 
 bool SweptShapeVsGLTF( const GLTFCollisionData * gltf, const Mat3x4 & transform, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection ) {
+	TracyZoneScoped;
+
 	Optional< Intersection > best = NONE;
+
+	if( gltf->brushes.n > 1 ) {
+		const Vec3 * bounds[ 2 ] = { &gltf->bounds.mins, &gltf->bounds.maxs };
+		MinMax3 transformed_bounds = MinMax3::Empty();
+		for( int i = 0; i < 8; i++ ) {
+			Vec3 corner = Vec3(
+				bounds[ i % 2 ]->x,
+				bounds[ ( i / 2 ) % 2 ]->y,
+				bounds[ i / 4 ]->z
+			);
+			transformed_bounds = Union( transformed_bounds, ( transform * Vec4( corner, 1.0f ) ).xyz() );
+		}
+
+		Intersection dont_care;
+		if( !RayVsAABB( ray, MinkowskiSum( transformed_bounds, shape ), &dont_care, &dont_care ) ) {
+			return false;
+		}
+	}
 
 	for( GLTFCollisionBrush & brush : gltf->brushes ) {
 		Intersection brush_intersection;

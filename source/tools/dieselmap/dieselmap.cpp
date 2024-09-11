@@ -731,8 +731,10 @@ static void WriteObj( ArenaAllocator * arena, const char * path, const MapData *
 	for( size_t i = 0; i < map->vertex_positions.n; i++ ) {
 		Vec3 p = map->vertex_positions[ i ];
 		Vec3 n = map->vertex_normals[ i ];
-		obj.append( "v {} {} {}\n", p.x, p.y, p.z );
-		obj.append( "vn {} {} {}\n", n.x, n.y, n.z );
+
+		// note the Z-up to Y-up transform
+		obj.append( "v {} {} {}\n", p.x, -p.z, p.y );
+		obj.append( "vn {} {} {}\n", n.x, -n.z, n.y );
 	}
 
 	for( u32 i = 0; i < model->num_meshes; i++ ) {
@@ -740,12 +742,12 @@ static void WriteObj( ArenaAllocator * arena, const char * path, const MapData *
 
 		for( u32 j = 0; j < mesh->num_vertices; j += 3 ) {
 			obj.append( "f {}//{} {}//{} {}//{}\n",
-				map->vertex_indices[ j + 0 + mesh->first_vertex_index ],
-				map->vertex_indices[ j + 0 + mesh->first_vertex_index ],
-				map->vertex_indices[ j + 1 + mesh->first_vertex_index ],
-				map->vertex_indices[ j + 1 + mesh->first_vertex_index ],
-				map->vertex_indices[ j + 2 + mesh->first_vertex_index ],
-				map->vertex_indices[ j + 2 + mesh->first_vertex_index ]
+				map->vertex_indices[ j + 0 + mesh->first_vertex_index ] + 1,
+				map->vertex_indices[ j + 0 + mesh->first_vertex_index ] + 1,
+				map->vertex_indices[ j + 1 + mesh->first_vertex_index ] + 1,
+				map->vertex_indices[ j + 1 + mesh->first_vertex_index ] + 1,
+				map->vertex_indices[ j + 2 + mesh->first_vertex_index ] + 1,
+				map->vertex_indices[ j + 2 + mesh->first_vertex_index ] + 1
 			);
 		}
 	}

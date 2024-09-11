@@ -865,13 +865,11 @@ int main( int argc, char ** argv ) {
 
 			CompiledEntity compiled;
 			compiled.render_geometry = GenerateRenderGeometry( entity );
-			compiled.collision_geometry = GenerateCollisionGeometry( entity ); // TODO: patches
+			compiled.collision_geometry = GenerateCollisionGeometry( entity );
 
 			for( ParsedKeyValue kv : entity.kvs.span() ) {
 				compiled.key_values.push_back( kv );
 			}
-
-			// TODO: assign model IDs
 
 			compiled_entities.push_back( compiled );
 		}

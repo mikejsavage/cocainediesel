@@ -116,6 +116,15 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 		brush.first_vertex = vertices.size();
 		brush.solidity = material->solidity;
 
+		constexpr Mat4 y_up_to_z_up(
+			1, 0, 0, 0,
+			0, 0, -1, 0,
+			0, 1, 0, 0,
+			0, 0, 0, 1
+		);
+
+		transform = y_up_to_z_up * transform;
+
 		Span< const Vec3 > gltf_verts;
 		for( size_t j = 0; j < prim.attributes_count; j++ ) {
 			const cgltf_attribute & attr = prim.attributes[ j ];
@@ -131,15 +140,6 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 				data.bounds = Union( data.bounds, ( transform * Vec4( max, 1.0f ) ).xyz() );
 			}
 		}
-
-		constexpr Mat4 y_up_to_z_up(
-			1, 0, 0, 0,
-			0, 0, -1, 0,
-			0, 1, 0, 0,
-			0, 0, 0, 1
-		);
-
-		transform = y_up_to_z_up * transform;
 
 		DynamicArray< Vec3 > brush_vertices( sys_allocator );
 		for( Vec3 gltf_vert : gltf_verts ) {

@@ -222,7 +222,7 @@ static void NewRoundState( RoundState newState ) {
 					
 					if ( t == winner ) {
 						for( u16 i = 0; i < server_gs.gameState.teams[ t ].num_players; i++ ) {
-							score_stats_t * stats = G_ClientGetStats( PLAYERENT( server_gs.gameState.teams[ t ].player_indices[ i ] ) );
+							score_stats_t * stats = G_ClientGetStats( PLAYERENT( server_gs.gameState.teams[ t ].player_indices[ i ] - 1 ) );
 							stats->score++;
 						}
 					}

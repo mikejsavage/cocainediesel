@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/qcommon.h"
+#include "qcommon/rng.h"
 
 #define MAX_MSG_STRING_CHARS    2048
 
@@ -857,4 +858,51 @@ void MSG_ReadDeltaGameState( msg_t * msg, const SyncGameState * baseline, SyncGa
 	DeltaBuffer delta = MSG_StartReadingDeltaBuffer( msg );
 	Delta( &delta, *state, *baseline );
 	MSG_FinishReadingDeltaBuffer( msg, delta );
+}
+
+[[maybe_unused]] DeltaBuffer ReaderFromWriter( const DeltaBuffer & writer ) {
+	DeltaBuffer reader = {
+		.buf = writer.buf,
+		.cursor = writer.buf,
+		.end = writer.cursor,
+		.num_fields = writer.num_fields,
+		.serializing = false,
+	};
+
+	memcpy( reader.field_mask, writer.field_mask, sizeof( writer.field_mask ) );
+
+	return reader;
+}
+
+TEST( "Delta encoding" ) {
+	struct DeltaTester {
+		Optional< u32 > x;
+		u32 y;
+	};
+
+	auto D = []( DeltaBuffer * buf, DeltaTester & x, const DeltaTester & baseline ) {
+		Delta( buf, x.x, baseline.x );
+		Delta( buf, x.y, baseline.y );
+	};
+
+	RNG rng = NewRNG();
+
+	bool all_ok = true;
+
+	for( int i = 0; i < 100; i++ ) {
+		u8 buf[ 128 ];
+		DeltaTester baseline = { };
+		DeltaTester src = { .x = Probability( &rng, 0.5f ) ? NONE : MakeOptional( Random32( &rng ) ), .y = Random32( &rng ) };
+
+		DeltaBuffer writer = DeltaWriter( buf, sizeof( buf ) );
+		D( &writer, src, baseline );
+
+		DeltaTester dst = baseline;
+		DeltaBuffer reader = ReaderFromWriter( writer );
+		D( &reader, dst, baseline );
+
+		all_ok = all_ok && !writer.error && !reader.error && dst.x == src.x && dst.y == src.y;
+	}
+
+	return all_ok;
 }

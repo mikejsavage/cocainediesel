@@ -16,6 +16,35 @@ void OSServerInit();
 bool OSServerShouldQuit();
 
 int main( int argc, char ** argv ) {
+	if( !is_public_build && argc == 2 && ( StrEqual( argv[ 1 ], "--test" ) || StrEqual( argv[ 1 ], "--testdbg" ) ) ) {
+		bool break_on_fail = StrEqual( argv[ 1 ], "--testdbg" );
+		u32 passed = 0;
+		u32 failed = 0;
+
+		const UnitTest * test = UnitTest::tests_head;
+		while( test != NULL ) {
+			if( test->callback() ) {
+				passed++;
+			}
+			else {
+				printf( "\033[1;31m%s failed (%s:%d)\033[0m\n", test->name, test->src_loc.file, test->src_loc.line );
+				failed++;
+
+				if( break_on_fail ) {
+					Breakpoint();
+					test->callback();
+				}
+			}
+
+			test = test->next;
+		}
+
+		u32 total = passed + failed;
+		printf( "%u/%u test%s passed\n", passed, total, total == 1 ? "" : "s" );
+
+		exit( failed == 0 ? 0 : 1 );
+	}
+
 	OSServerInit();
 
 	Qcommon_Init( argc, argv );

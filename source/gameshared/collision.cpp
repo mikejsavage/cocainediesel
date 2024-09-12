@@ -93,6 +93,15 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 	DynamicArray< size_t > brush_to_node_idx( sys_allocator );
 	GLTFCollisionData data = { };
 
+	bool ok = false;
+	defer {
+		if( !ok ) {
+			vertices.shutdown();
+			planes.shutdown();
+			brushes.shutdown();
+		}
+	};
+
 	for( size_t i = 0; i < gltf->nodes_count; i++ ) {
 		const cgltf_node * node = &gltf->nodes[ i ];
 		if( node->mesh == NULL )
@@ -181,6 +190,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 
 			Plane plane;
 			if( !PlaneFrom3Points( &plane, a, c, b ) ) {
+				Com_GGPrint( S_COLOR_YELLOW "{} has a degenerate collision face", path );
 				return false;
 			}
 
@@ -213,16 +223,18 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 	data.planes = planes.span();
 	data.brushes = brushes.span();
 
-	for( size_t i = 0; i < data.brushes.n; i++ ) {
-		const GLTFCollisionBrush & brush = data.brushes[ i ];
-		bool ok = true;
-		if( !IsConvex( data, brush ) ) {
-			Com_GGPrint( S_COLOR_YELLOW "{} has a concave collision brush: {}", path, gltf->nodes[ brush_to_node_idx[ i ] ].name );
-			ok = false;
+	{
+		bool any_concave = false;
+
+		for( size_t i = 0; i < data.brushes.n; i++ ) {
+			const GLTFCollisionBrush & brush = data.brushes[ i ];
+			if( !IsConvex( data, brush ) ) {
+				Com_GGPrint( S_COLOR_YELLOW "{} has a concave collision brush: {}", path, gltf->nodes[ brush_to_node_idx[ i ] ].name );
+				any_concave = true;
+			}
 		}
 
-		if( !ok ) {
-			DeleteGLTFCollisionData( data );
+		if( !any_concave ) {
 			return false;
 		}
 	}
@@ -237,6 +249,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 
 	storage->gltfs[ idx ] = data;
 
+	ok = true;
 	return true;
 }
 

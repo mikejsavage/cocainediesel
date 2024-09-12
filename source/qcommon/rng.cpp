@@ -25,10 +25,10 @@
 #include "qcommon/rng.h"
 
 RNG NewRNG() {
-	RNG rng;
-	rng.state = UINT64_C( 0x853c49e6748fea9b );
-	rng.inc = UINT64_C( 0xda3e39cb94b95bdb );
-	return rng;
+	return RNG {
+		.state = 0x853c49e6748fea9b_u64,
+		.inc = 0xda3e39cb94b95bdb_u64,
+	};
 }
 
 RNG NewRNG( uint64_t state, uint64_t seq ) {
@@ -43,7 +43,7 @@ RNG NewRNG( uint64_t state, uint64_t seq ) {
 
 uint32_t Random32( RNG * rng ) {
 	uint64_t oldstate = rng->state;
-	rng->state = oldstate * UINT64_C( 6364136223846793005 ) + rng->inc;
+	rng->state = oldstate * 6364136223846793005_u64 + rng->inc;
 	uint32_t xorshifted = uint32_t( ( ( oldstate >> 18 ) ^ oldstate ) >> 27 );
 	uint32_t rot = uint32_t( oldstate >> 59 );
 	return ( xorshifted >> rot ) | ( xorshifted << ( ( -rot ) & 31 ) );
@@ -86,7 +86,7 @@ int RandomUniformExact( RNG * rng, int lo, int hi ) {
 
 float RandomFloat01( RNG * rng ) {
 	uint32_t r = Random32( rng );
-	return bit_cast< float >( UINT32_C( 0x3F800000 ) | ( r >> 9 ) ) - 1.0f;
+	return bit_cast< float >( 0x3F800000_u32 | ( r >> 9 ) ) - 1.0f;
 }
 
 float RandomFloat11( RNG * rng ) {
@@ -96,7 +96,7 @@ float RandomFloat11( RNG * rng ) {
 	} x;
 	uint32_t r = Random32( rng );
 	uint32_t sign = ( r & 1 ) << 31;
-	x.u = UINT32_C( 0x3F800000 ) | ( r >> 9 );
+	x.u = 0x3F800000_u32 | ( r >> 9 );
 	x.f -= 1.0f;
 	x.u |= sign;
 	return x.f;
@@ -109,7 +109,7 @@ float RandomUniformFloat( RNG * rng, float lo, float hi ) {
 
 double RandomDouble01( RNG * rng ) {
 	uint64_t r = Random64( rng );
-	return bit_cast< double >( UINT64_C( 0x3FF0000000000000 ) | ( r >> 12 ) ) - 1.0;
+	return bit_cast< double >( 0x3FF0000000000000_u64 | ( r >> 12 ) ) - 1.0;
 }
 
 double RandomDouble11( RNG * rng ) {
@@ -119,7 +119,7 @@ double RandomDouble11( RNG * rng ) {
 	} x;
 	uint64_t r = Random64( rng );
 	uint64_t sign = ( r & 1 ) << 63;
-	x.u = UINT64_C( 0x3FF0000000000000 ) | ( r >> 12 );
+	x.u = 0x3FF0000000000000_u64 | ( r >> 12 );
 	x.d -= 1.0;
 	x.u |= sign;
 	return x.d;

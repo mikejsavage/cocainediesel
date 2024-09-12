@@ -29,7 +29,10 @@ struct UnitTest {
 };
 
 #if PUBLIC_BUILD
-#define TEST( name, body )
+#define TEST( name ) [[maybe_unused]] static bool COUNTER_NAME( rununittest )()
 #else
-#define TEST( name, body ) static UnitTest COUNTER_NAME( unittest )( name, CurrentSourceLocation(), []() -> bool { body } )
+#define TEST( name ) \
+	static bool LINE_NAME( rununittest )(); \
+	static UnitTest LINE_NAME( unittest )( name, CurrentSourceLocation(), LINE_NAME( rununittest ) ); \
+	static bool LINE_NAME( rununittest )()
 #endif

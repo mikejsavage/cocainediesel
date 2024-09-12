@@ -20,6 +20,7 @@
 #define CONCAT_HELPER( a, b ) a##b
 #define CONCAT( a, b ) CONCAT_HELPER( a, b )
 #define COUNTER_NAME( x ) CONCAT( x, __COUNTER__ )
+#define LINE_NAME( x ) CONCAT( x, __LINE__ )
 
 template< typename To, typename From >
 To bit_cast( const From & from ) {

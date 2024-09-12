@@ -129,12 +129,12 @@ void InitRenderer() {
 		u8 * img = stbi_load_from_memory( blue_noise_png, blue_noise_png_len, &w, &h, NULL, 1 );
 		Assert( img != NULL );
 
-		TextureConfig config;
-		config.width = w;
-		config.height = h;
-		config.data = img;
-		config.format = TextureFormat_R_S8;
-		blue_noise = NewTexture( config );
+		blue_noise = NewTexture( TextureConfig {
+			.format = TextureFormat_R_S8,
+			.width = u32( w ),
+			.height = u32( h ),
+			.data = img,
+		} );
 
 		stbi_image_free( img );
 	}

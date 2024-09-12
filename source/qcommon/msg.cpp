@@ -96,13 +96,12 @@ static void MSG_FinishReadingDeltaBuffer( msg_t * msg, const DeltaBuffer & delta
 }
 
 static DeltaBuffer DeltaWriter( u8 * buf, size_t n ) {
-	DeltaBuffer delta = { };
-	delta.buf = buf;
-	delta.cursor = buf;
-	delta.end = delta.buf + n;
-	delta.serializing = true;
-
-	return delta;
+	return DeltaBuffer {
+		.buf = buf,
+		.cursor = buf,
+		.end = buf + n,
+		.serializing = true,
+	};
 }
 
 static void AddBit( DeltaBuffer * buf, bool b ) {

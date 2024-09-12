@@ -1,5 +1,6 @@
-#include "qcommon/base.h"
 #include "qcommon/qcommon.h"
+#include "qcommon/base.h"
+#include "qcommon/time.h"
 
 void CL_Init() { }
 void CL_Shutdown() { }
@@ -23,7 +24,15 @@ int main( int argc, char ** argv ) {
 
 		const UnitTest * test = UnitTest::tests_head;
 		while( test != NULL ) {
-			if( test->callback() ) {
+			Time before = Now();
+			bool ok = test->callback();
+			Time dt = Now() - before;
+
+			if( dt > Milliseconds( 1 ) ) {
+				printf( "\033[1;33m%s took %.1fms (%s:%d)\033[0m\n", test->name, ToSeconds( dt ) * 1000.0f, test->src_loc.file, test->src_loc.line );
+			}
+
+			if( ok ) {
 				passed++;
 			}
 			else {

@@ -97,6 +97,34 @@ INLINE_IN_RELEASE_BUILDS Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
 	return result;
 }
 
+INLINE_IN_RELEASE_BUILDS Vec4 operator*( const Mat3x4 & m, const Vec4 & v ) {
+    float w = v.w;
+
+    float32x4_t vx = vdupq_n_f32( v.x );
+    float32x4_t vy = vdupq_n_f32( v.y );
+    float32x4_t vz = vdupq_n_f32( v.z );
+    float32x4_t vw = vdupq_n_f32( v.w );
+
+    float32x4_t col0 = vld1q_f32( &m.col0.x );
+    float32x4_t col1 = vld1q_f32( &m.col1.x );
+    float32x4_t col2 = vld1q_f32( &m.col2.x );
+
+    float32x2_t col3xy = vld1_f32( &m.col3.x );
+    float32x2_t col3z0 = vld1_lane_f32( &m.col3.z, vdup_n_f32( 0.0f ), 0 );
+    float32x4_t col3 = vcombine_f32( col3xy, col3z0 );
+
+    float32x4_t res128 = vaddq_f32(
+        vfmaq_f32( vmulq_f32( col0, vx ), col1, vy ),
+        vfmaq_f32( vmulq_f32( col2, vz ), col3, vw )
+    );
+
+    Vec4 res;
+    vst1q_f32( &res.x, res128 );
+    res.w = w;
+
+    return res;
+}
+
 #endif // #if !ARCHITECTURE_X64
 
 #endif // #if !PUBLIC_BUILD

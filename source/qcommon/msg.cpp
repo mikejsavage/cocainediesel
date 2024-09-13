@@ -367,12 +367,12 @@ static void DeltaAngle( DeltaBuffer * buf, float & x, const float & baseline, fl
 	x = normalize( Dequantize01< u16 >( angle16 ) * 360.0f );
 }
 
-static void DeltaAngles( DeltaBuffer * buf, EulerDegrees2 & a, const EulerDegrees2 & baseline ) {
+static void Delta( DeltaBuffer * buf, EulerDegrees2 & a, const EulerDegrees2 & baseline ) {
 	DeltaAngle( buf, a.pitch, baseline.pitch, AngleNormalize180 );
 	DeltaAngle( buf, a.yaw, baseline.yaw, AngleNormalize360 );
 }
 
-static void DeltaAngles( DeltaBuffer * buf, EulerDegrees3 & a, const EulerDegrees3 & baseline ) {
+static void Delta( DeltaBuffer * buf, EulerDegrees3 & a, const EulerDegrees3 & baseline ) {
 	DeltaAngle( buf, a.pitch, baseline.pitch, AngleNormalize180 );
 	DeltaAngle( buf, a.yaw, baseline.yaw, AngleNormalize360 );
 	DeltaAngle( buf, a.roll, baseline.roll, AngleNormalize360 );
@@ -558,7 +558,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.events, baseline.events );
 
 	Delta( buf, ent.origin, baseline.origin );
-	DeltaAngles( buf, ent.angles, baseline.angles );
+	Delta( buf, ent.angles, baseline.angles );
 
 	Delta( buf, ent.override_collision_model, baseline.override_collision_model );
 	DeltaBitfieldEnum( buf, ent.solidity, baseline.solidity, SolidMask_Everything );
@@ -649,7 +649,7 @@ void MSG_ReadDeltaEntity( msg_t * msg, const SyncEntityState * baseline, SyncEnt
 //==================================================
 
 static void Delta( DeltaBuffer * buf, UserCommand & cmd, const UserCommand & baseline ) {
-	DeltaAngles( buf, cmd.angles, baseline.angles );
+	Delta( buf, cmd.angles, baseline.angles );
 	Delta( buf, cmd.forwardmove, baseline.forwardmove );
 	Delta( buf, cmd.sidemove, baseline.sidemove );
 	DeltaEnum( buf, cmd.buttons, baseline.buttons, UserCommandButton( U8_MAX ) ); // TODO: dunno how to represent bitfields here
@@ -684,7 +684,7 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 
 	Delta( buf, pmove.origin, baseline.origin );
 	Delta( buf, pmove.velocity, baseline.velocity );
-	DeltaAngles( buf, pmove.angles, baseline.angles );
+	Delta( buf, pmove.angles, baseline.angles );
 
 	Delta( buf, pmove.pm_flags, baseline.pm_flags );
 
@@ -710,7 +710,7 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 
 	Delta( buf, player.events, baseline.events );
 
-	DeltaAngles( buf, player.viewangles, baseline.viewangles );
+	Delta( buf, player.viewangles, baseline.viewangles );
 
 	Delta( buf, player.POVnum, baseline.POVnum );
 	Delta( buf, player.playerNum, baseline.playerNum );
@@ -829,8 +829,8 @@ static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState
 	Delta( buf, state.exploding, baseline.exploding );
 	Delta( buf, state.exploded_at, baseline.exploded_at );
 
-	DeltaAngles( buf, state.sun_angles_from, baseline.sun_angles_from );
-	DeltaAngles( buf, state.sun_angles_to, baseline.sun_angles_to );
+	Delta( buf, state.sun_angles_from, baseline.sun_angles_from );
+	Delta( buf, state.sun_angles_to, baseline.sun_angles_to );
 	Delta( buf, state.sun_moved_from, baseline.sun_moved_from );
 	Delta( buf, state.sun_moved_to, baseline.sun_moved_to );
 }

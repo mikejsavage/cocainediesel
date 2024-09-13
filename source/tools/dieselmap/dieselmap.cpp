@@ -186,7 +186,7 @@ static std::vector< CompiledMesh > BrushToCompiledMeshes( const ParsedBrush & br
 		assert( material_mesh.material != 0 );
 
 		const EditorMaterial * editor_material = FindEditorMaterial( StringHash( material_mesh.material ) );
-		if( editor_material != NULL && !editor_material->visible )
+		if( editor_material != NULL && !editor_material->visible_in_maps )
 			continue;
 
 		std::vector< Vec3 > hull = BrushFaceToHull( VectorToSpan( planes ), i );

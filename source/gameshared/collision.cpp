@@ -234,7 +234,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 			}
 		}
 
-		if( !any_concave ) {
+		if( any_concave ) {
 			return false;
 		}
 	}

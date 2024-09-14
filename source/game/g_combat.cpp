@@ -273,7 +273,7 @@ void G_Damage( edict_t * targ, edict_t * inflictor, edict_t * attacker, Vec3 pus
 
 		// shotgun calls G_Damage for every bullet, so we accumulate damage
 		// in W_Fire_Shotgun and send events from there instead
-		if( damage_type != Weapon_Shotgun && damage_type != Weapon_DoubleBarrel ) {
+		if( damage_type != Weapon_Shotgun && damage_type != Weapon_SawnOff ) {
 			bool headshot = dflags & DAMAGE_HEADSHOT;
 			SpawnDamageEvents( attacker, targ, take, headshot, point, dmgdir, statDmg );
 		}

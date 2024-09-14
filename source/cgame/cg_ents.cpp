@@ -167,7 +167,7 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 		}
 
 		if( ( cent->current.type == ET_GENERIC || cent->current.type == ET_PLAYER
-			  || cent->current.type == ET_GRENADE
+			  || cent->current.type == ET_LAUNCHER
 			  || cent->current.type == ET_CORPSE || cent->current.type == ET_FLASH ) ) {
 			cent->canExtrapolate = true;
 		}
@@ -635,7 +635,7 @@ void DrawEntities() {
 				CG_EntityLoopSound( cent, state );
 				break;
 
-			case ET_ROCKET:
+			case ET_BAZOOKA:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/bazooka/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 25600.0f );
@@ -794,9 +794,10 @@ void CG_LerpEntities() {
 			case ET_JUMPPAD:
 			case ET_PAINKILLER_JUMPPAD:
 			case ET_BAZOOKA:
+			case ET_STICKY:
 			case ET_ASSAULT:
 			case ET_BUBBLE:
-			case ET_GRENADE:
+			case ET_LAUNCHER:
 			case ET_FLASH:
 			case ET_RIFLE:
 			case ET_PISTOL:

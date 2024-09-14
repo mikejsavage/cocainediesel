@@ -671,13 +671,13 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			if( weapon == Weapon_Rail ) {
 				FireRail( origin, dir, owner, false );
 			}
-			else if( weapon == Weapon_Shotgun || weapon == Weapon_DoubleBarrel ) {
+			else if( weapon == Weapon_Shotgun || weapon == Weapon_SawnOff ) {
 				CG_Event_FireShotgun( origin, dir, owner, team_color, weapon );
 			}
 			else if( weapon == Weapon_Laser ) {
 				CG_Event_LaserBeam( origin, dir, owner );
 			}
-			else if( weapon == Weapon_9mm || weapon == Weapon_MachineGun || weapon == Weapon_Deagle || weapon == Weapon_BurstRifle || weapon == Weapon_Sniper || weapon == Weapon_AutoSniper /* || weapon == Weapon_Minigun */ ) {
+			else if( weapon == Weapon_9mm || weapon == Weapon_Smg || weapon == Weapon_Deagle || weapon == Weapon_Burst || weapon == Weapon_Sniper || weapon == Weapon_Scout /* || weapon == Weapon_Minigun */ ) {
 				u16 entropy = parm >> 8;
 				s16 zoom_time = parm >> 24;
 				CG_Event_FireBullet( origin, dir, entropy, zoom_time, weapon, owner, team_color );

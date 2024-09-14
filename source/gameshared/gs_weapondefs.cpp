@@ -491,8 +491,8 @@ static constexpr WeaponDef weapon_defs[] = {
 		.knockback = 10,
 
 		.speed = 3000,
-		.spread = 30,
 		.restitution = 0.5f,
+		.spread = 30,
 	},
 
 	WeaponDef {

@@ -48,28 +48,6 @@ size_t FileSize( FILE * file ) {
 	return size;
 }
 
-char * ReadFileString( Allocator * a, const char * path, size_t * len ) {
-	FILE * file = OpenFile( a, path, OpenFile_Read );
-	if( file == NULL )
-		return NULL;
-
-	size_t size = FileSize( file );
-	char * contents = ( char * ) a->allocate( size + 1, 16 );
-	size_t r = fread( contents, 1, size, file );
-	fclose( file );
-
-	if( r != size ) {
-		Free( a, contents );
-		return NULL;
-	}
-
-	contents[ size ] = '\0';
-	if( len != NULL ) {
-		*len = size;
-	}
-	return contents;
-}
-
 Span< u8 > ReadFileBinary( Allocator * a, const char * path ) {
 	FILE * file = OpenFile( a, path, OpenFile_Read );
 	if( file == NULL )

@@ -856,7 +856,7 @@ void W_Fire_Pistol( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDe
 	bullet->s.sound = "weapons/bullet_whizz";
 	bullet->touch = W_Touch_Pistol;
 	bullet->stop = G_FreeEdict;
-	bullet->gravity_scale = 0.0;
+	bullet->gravity_scale = 0.0f;
 }
 
 static void W_Touch_Sawblade( edict_t * ent, edict_t * other, Vec3 normal, SolidBits solid_mask ) {

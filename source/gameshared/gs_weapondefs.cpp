@@ -271,6 +271,7 @@ static constexpr WeaponDef weapon_defs[] = {
 		.min_knockback = 50,
 
 		.speed = 1400,
+		.restitution = 0.5f,
 		.has_altfire = true,
 	},
 
@@ -491,6 +492,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 		.speed = 3000,
 		.spread = 30,
+		.restitution = 0.5f,
 	},
 
 	WeaponDef {
@@ -514,6 +516,7 @@ static constexpr WeaponDef weapon_defs[] = {
 		.knockback = 10,
 
 		.speed = 3000,
+		.restitution = 0.5f,
 	},
 
 	WeaponDef {
@@ -641,6 +644,7 @@ const GadgetDef gadget_defs[] = {
 		.timeout = 1500,
 		.speed = 1500,
 		.min_speed = 1000,
+		.restitution = 0.5f,
 	},
 
 	GadgetDef {

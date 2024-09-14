@@ -22,7 +22,7 @@ static bool ParseWeaponModelConfig( WeaponModelMetadata * metadata, Span< const 
 
 	metadata->handpositionAngles.pitch = ParseFloat( &contents, 0.0f, Parse_StopOnNewLine );
 	metadata->handpositionAngles.yaw = ParseFloat( &contents, 0.0f, Parse_StopOnNewLine );
-	metadata->handpositionAngles.roll= ParseFloat( &contents, 0.0f, Parse_StopOnNewLine );
+	metadata->handpositionAngles.roll = ParseFloat( &contents, 0.0f, Parse_StopOnNewLine );
 
 	return true;
 }

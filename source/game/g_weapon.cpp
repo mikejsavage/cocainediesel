@@ -442,9 +442,9 @@ static void W_Fire_Launcher( edict_t * self, Vec3 start, EulerDegrees3 angles, i
 	launcher->s.type = ET_LAUNCHER;
 	launcher->classname = "launcher";
 	launcher->movetype = MOVETYPE_BOUNCEGRENADE;
-	launcher->s.model = "loadout/mortar/projectile";
+	launcher->s.model = "loadout/launcher/projectile";
 	launcher->projectileInfo.explosion_vfx = "loadout/_effects/explosion";
-	launcher->projectileInfo.explosion_sfx = "loadout/mortar/explode";
+	launcher->projectileInfo.explosion_sfx = "loadout/launcher/explode";
 	launcher->think = W_Launcher_Explode;
 	launcher->touch = W_Touch_Launcher;
 }

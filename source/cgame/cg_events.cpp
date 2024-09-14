@@ -822,7 +822,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_LAUNCHER_BOUNCE: {
 			float volume = Min2( 1.0f, parm / float( U16_MAX ) );
-			PlaySFX( "loadout/mortar/bounce", PlaySFXConfigEntity( ent->number, volume ) );
+			PlaySFX( "loadout/launcher/bounce", PlaySFXConfigEntity( ent->number, volume ) );
 		} break;
 
 		case EV_BLOOD: {

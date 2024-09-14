@@ -95,9 +95,9 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	body->s.teleported = true;
 	body->s.ownerNum = ent->s.number;
 
-	bool gib = damage_type == Weapon_Railgun || damage_type == WorldDamage_Trigger || damage_type == WorldDamage_Telefrag
+	bool gib = damage_type == Weapon_Rail || damage_type == WorldDamage_Trigger || damage_type == WorldDamage_Telefrag
 		|| damage_type == WorldDamage_Explosion || damage_type == WorldDamage_Spike ||
-		( ( damage_type == Weapon_RocketLauncher || damage_type == Weapon_GrenadeLauncher ) && damage >= 20 );
+		( ( damage_type == Weapon_Bazooka || damage_type == Weapon_Launcher ) && damage >= 20 );
 
 	if( gib ) {
 		ThrowSmallPileOfGibs( body, knockbackOfDeath, damage );

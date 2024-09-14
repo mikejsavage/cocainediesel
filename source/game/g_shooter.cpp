@@ -26,7 +26,7 @@ void SP_shooter( edict_t * shooter, const spawn_temp_t * st ) {
 		const WeaponDef * weapon = GS_GetWeaponDef( i );
 		if( st->weapon == StringHash( weapon->short_name ) ) {
 			shooter->s.weapon = i;
-			shooter->s.model = StringHash( temp( "loadout/{}/model", weapon->short_name ) );
+			shooter->s.model = StringHash( temp( "loadout/{}/weapon", weapon->short_name ) );
 			shooter->nextThink = level.time + 2000;
 			return;
 		}

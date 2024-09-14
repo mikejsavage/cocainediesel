@@ -607,8 +607,8 @@ const GadgetDef gadget_defs[] = {
 	GadgetDef { },
 
 	GadgetDef {
-		.name = "HATCHET",
-		.short_name = "hatchet",
+		.name = "AXE",
+		.short_name = "axe",
 		.uses = 2,
 		.switch_in_time = WEAPONUP_TIME_FAST,
 		.using_time = 50,

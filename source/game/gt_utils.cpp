@@ -44,7 +44,7 @@ static Loadout DefaultLoadout() {
 		Assert( loadout.weapons[ i ] != Weapon_None );
 	}
 
-	loadout.gadget = Gadget_ThrowingAxe;
+	loadout.gadget = Gadget_Axe;
 
 	return loadout;
 }

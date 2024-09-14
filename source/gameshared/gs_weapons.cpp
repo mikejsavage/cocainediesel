@@ -370,19 +370,19 @@ static constexpr ItemState generic_gun_states[] = {
 	} ),
 };
 
-static constexpr ItemState railgun_states[] = {
+static constexpr ItemState rail_states[] = {
 	generic_gun_switching_in_state,
 	generic_gun_switching_out_state,
 	generic_gun_refire_state,
 
 	ItemState( WeaponState_Idle, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		if( HasAllBits( cmd->buttons, Button_Attack1 ) ) {
-			gs->api.PredictedFireWeapon( ps->POVnum, Weapon_Railgun );
+			gs->api.PredictedFireWeapon( ps->POVnum, Weapon_Rail );
 			return WeaponState_Firing;
 		}
 
 		if( HasAllBits( cmd->buttons, Button_Attack2 ) ) {
-			gs->api.PredictedAltFireWeapon( ps->POVnum, Weapon_Railgun );
+			gs->api.PredictedAltFireWeapon( ps->POVnum, Weapon_Rail );
 			return WeaponState_Firing;
 		}
 
@@ -504,7 +504,7 @@ static constexpr ItemState martyr_states[] = {
 static constexpr Span< const ItemState > dispatch_state_machine = StaticSpan( dispatch_states );
 static constexpr Span< const ItemState > generic_gun_state_machine = StaticSpan( generic_gun_states );
 static constexpr Span< const ItemState > bat_state_machine = StaticSpan( bat_states );
-static constexpr Span< const ItemState > railgun_state_machine = StaticSpan( railgun_states );
+static constexpr Span< const ItemState > rail_state_machine = StaticSpan( rail_states );
 static constexpr Span< const ItemState > generic_throwable_state_machine = StaticSpan( generic_throwable_states );
 static constexpr Span< const ItemState > martyr_state_machine = StaticSpan( martyr_states );
 

@@ -36,15 +36,15 @@ enum EntityType : u8 {
 	ET_PAINKILLER_JUMPPAD,
 
 	ET_ROCKET,
-	ET_GRENADE,
+	ET_LAUNCHER,
 	ET_FLASH,
-	ET_ARBULLET,
+	ET_ASSAULT,
 	ET_BUBBLE,
 	ET_RAILALT,
-	ET_RIFLEBULLET,
-	ET_PISTOLBULLET,
-	ET_BOLT,
-	ET_BLAST,
+	ET_RIFLE,
+	ET_PISTOL,
+	ET_CROSSBOW,
+	ET_BLASTER,
 	ET_SAWBLADE,
 
 	ET_SHURIKEN,
@@ -114,37 +114,6 @@ enum WeaponType : u8 {
 
 	Weapon_Count
 };
-
-// enum WeaponType : u8 {
-// 	Weapon_None,
-
-// 	Weapon_Knife,
-// 	Weapon_Bat,
-// 	Weapon_9mm,
-// 	Weapon_Pistol,
-// 	Weapon_MachineGun,
-// 	Weapon_Deagle,
-// 	Weapon_Shotgun,
-// 	Weapon_DoubleBarrel,
-// 	Weapon_BurstRifle,
-// 	Weapon_StakeGun,
-// 	Weapon_GrenadeLauncher,
-// 	Weapon_RocketLauncher,
-// 	Weapon_AssaultRifle,
-// 	Weapon_BubbleGun,
-// 	Weapon_Laser,
-// 	Weapon_Railgun,
-// 	Weapon_Sniper,
-// 	Weapon_AutoSniper,
-// 	Weapon_Rifle,
-// 	Weapon_MasterBlaster,
-// 	Weapon_RoadGun,
-// 	Weapon_StickyGun,
-// 	Weapon_Sawblade,
-// 	// Weapon_Minigun,
-
-// 	Weapon_Count
-// };
 
 enum GadgetType : u8 {
 	Gadget_None,

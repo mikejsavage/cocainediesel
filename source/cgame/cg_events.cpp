@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/collision.h"
 #include "gameshared/vsays.h"
 
-static void RailgunImpact( Vec3 pos, Vec3 dir, Vec4 color ) {
+static void RailImpact( Vec3 pos, Vec3 dir, Vec4 color ) {
 	DoVisualEffect( "loadout/rail/hit", pos, dir, 1.0f, color );
 	PlaySFX( "loadout/rail/hit", PlaySFXConfigPosition( pos ) );
 }
@@ -61,8 +61,8 @@ static void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
 	DoVisualEffect( "loadout/rail/trail", start, end, count, color );
 }
 
-static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
+static void FireRail( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_Rail );
 
 	float range = def->range;
 	Vec3 end = origin + dir * range;
@@ -73,11 +73,11 @@ static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin )
 
 	trace_t trace = CG_Trace( origin, MinMax3( 0.0f ), end, cg.view.POVent, SolidMask_WallbangShot );
 	if( trace.HitSomething() ) {
-		RailgunImpact( trace.endpos, trace.normal, color );
+		RailImpact( trace.endpos, trace.normal, color );
 	}
 
 	if( from_origin ) {
-		PlaySFX( GetWeaponModelMetadata( Weapon_Railgun )->fire_sound, PlaySFXConfigPosition( origin ) );
+		PlaySFX( GetWeaponModelMetadata( Weapon_Rail )->fire_sound, PlaySFXConfigPosition( origin ) );
 	}
 
 	Vec3 fx_origin = from_origin ? origin : GetMuzzleTransform( ownerNum ).col3;
@@ -193,20 +193,20 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_PISTOL, 0, EVENT_CHANNEL );
 			break;
 
-		case Weapon_MachineGun:
+		case Weapon_Smg:
 		case Weapon_Shotgun:
 		case Weapon_SawnOff:
-		case Weapon_AssaultRifle:
-		case Weapon_BubbleGun:
+		case Weapon_Assault:
+		case Weapon_Bubble:
 		case Weapon_Crossbow:
 		case Weapon_Blaster:
-		case Weapon_RoadGun:
+		case Weapon_Roadgun:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_LIGHTWEAPON, 0, EVENT_CHANNEL );
 			break;
 
-		case Weapon_BurstRifle:
-		case Weapon_RocketLauncher:
-		case Weapon_GrenadeLauncher:
+		case Weapon_Burst:
+		case Weapon_Bazooka:
+		case Weapon_Launcher:
 		// case Weapon_Minigun:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_HEAVYWEAPON, 0, EVENT_CHANNEL );
 			break;
@@ -643,7 +643,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				return;
 			}
 
-			if( weapon == Weapon_Railgun && ev == EV_ALTFIREWEAPON ) {
+			if( weapon == Weapon_Rail && ev == EV_ALTFIREWEAPON ) {
 				return;
 			}
 
@@ -669,7 +669,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			AngleVectors( angles, &dir, NULL, NULL );
 
 			if( weapon == Weapon_Rail ) {
-				FireRailgun( origin, dir, owner, false );
+				FireRail( origin, dir, owner, false );
 			}
 			else if( weapon == Weapon_Shotgun || weapon == Weapon_DoubleBarrel ) {
 				CG_Event_FireShotgun( origin, dir, owner, team_color, weapon );
@@ -796,9 +796,9 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			SpawnGibs( ent->origin, ent->origin2, parm, team_color );
 			break;
 
-		case EV_BOLT_EXPLOSION: {
+		case EV_RAIL_EXPLOSION: {
 			Vec3 normal = U64ToDir( parm );
-			RailgunImpact( ent->origin, normal, team_color );
+			RailImpact( ent->origin, normal, team_color );
 		} break;
 
 		case EV_STICKY_EXPLOSION: {
@@ -817,10 +817,10 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_RAIL_ALTFIRE: {
 			Vec3 dir;
 			AngleVectors( ent->angles, &dir, NULL, NULL );
-			FireRailgun( ent->origin, dir, ent->ownerNum, true );
+			FireRail( ent->origin, dir, ent->ownerNum, true );
 		} break;
 
-		case EV_GRENADE_BOUNCE: {
+		case EV_LAUNCHER_BOUNCE: {
 			float volume = Min2( 1.0f, parm / float( U16_MAX ) );
 			PlaySFX( "loadout/mortar/bounce", PlaySFXConfigEntity( ent->number, volume ) );
 		} break;

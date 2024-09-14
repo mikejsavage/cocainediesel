@@ -34,7 +34,7 @@ static WeaponModelMetadata BuildWeaponModelMetadata( WeaponType weapon ) {
 
 	Span< const char > name = GS_GetWeaponDef( weapon )->short_name;
 
-	metadata.model = StringHash( temp( "loadout/{}/model", name ) );
+	metadata.model = StringHash( temp( "loadout/{}/weapon", name ) );
 
 	ParseWeaponModelConfig( &metadata, temp.sv( "loadout/{}/model.cfg", name ) );
 
@@ -53,7 +53,7 @@ static GadgetModelMetadata BuildGadgetModelMetadata( GadgetType gadget ) {
 
 	GadgetModelMetadata metadata;
 
-	metadata.model = StringHash( temp.sv( "loadout/{}/model", name ) );
+	metadata.model = StringHash( temp.sv( "loadout/{}/projectile", name ) );
 	metadata.use_sound = StringHash( temp.sv( "loadout/{}/use", name ) );
 	metadata.switch_in_sound = StringHash( temp.sv( "loadout/{}/switch_in", name ) );
 

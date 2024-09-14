@@ -168,7 +168,7 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 
 		if( ( cent->current.type == ET_GENERIC || cent->current.type == ET_PLAYER
 			  || cent->current.type == ET_GRENADE
-			  || cent->current.type == ET_CORPSE || cent->current.type == ET_STUNGRENADE ) ) {
+			  || cent->current.type == ET_CORPSE || cent->current.type == ET_FLASH ) ) {
 			cent->canExtrapolate = true;
 		}
 	}
@@ -641,52 +641,52 @@ void DrawEntities() {
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 25600.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_GRENADE:
+			case ET_LAUNCHER:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "loadout/mortar/trail" );
+				DrawEntityTrail( cent, "loadout/launcher/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_STUNGRENADE:
+			case ET_FLASH:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/flash/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_ARBULLET:
+			case ET_ASSAULT:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "loadout/ar/trail" );
+				DrawEntityTrail( cent, "loadout/assault/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_BUBBLE:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "loadout/bg/trail" );
+				DrawEntityTrail( cent, "loadout/bubble/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_RIFLEBULLET:
+			case ET_RIFLE:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "loadout/rifle/bullet_trail" );
+				DrawEntityTrail( cent, "loadout/rifle/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_PISTOLBULLET:
+			case ET_PISTOL:
 				//change angle after bounce
 				if( cent->velocity != Vec3( 0.0f ) ) {
 					AnglesToAxis( VecToAngles( cent->velocity ), cent->interpolated.axis );
 				}
 
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "loadout/pistol/bullet_trail" );
+				DrawEntityTrail( cent, "loadout/pistol/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_BOLT:
+			case ET_CROSSBOW:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/crossbow/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_BLAST:
-				DrawEntityTrail( cent, "loadout/mb/trail" );
+			case ET_BLASTER:
+				DrawEntityTrail( cent, "loadout/blaster/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 3200.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
@@ -695,7 +695,7 @@ void DrawEntities() {
 				DrawEntityTrail( cent, EMPTY_HASH );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_THROWING_AXE:
+			case ET_AXE:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/axe/trail" );
 				CG_EntityLoopSound( cent, state );
@@ -793,17 +793,17 @@ void CG_LerpEntities() {
 			case ET_GENERIC:
 			case ET_JUMPPAD:
 			case ET_PAINKILLER_JUMPPAD:
-			case ET_ROCKET:
-			case ET_ARBULLET:
+			case ET_BAZOOKA:
+			case ET_ASSAULT:
 			case ET_BUBBLE:
 			case ET_GRENADE:
-			case ET_STUNGRENADE:
-			case ET_RIFLEBULLET:
-			case ET_PISTOLBULLET:
-			case ET_BOLT:
-			case ET_BLAST:
+			case ET_FLASH:
+			case ET_RIFLE:
+			case ET_PISTOL:
+			case ET_CROSSBOW:
+			case ET_BLASTER:
 			case ET_SAWBLADE:
-			case ET_THROWING_AXE:
+			case ET_AXE:
 			case ET_SHURIKEN:
 			case ET_PLAYER:
 			case ET_CORPSE:
@@ -871,15 +871,15 @@ void CG_UpdateEntities() {
 
 		switch( cent->type ) {
 			case ET_GENERIC:
-			case ET_ROCKET:
-			case ET_ARBULLET:
+			case ET_BAZOOKA:
+			case ET_ASSAULT:
 			case ET_BUBBLE:
-			case ET_GRENADE:
+			case ET_LAUNCHER:
 			case ET_FLASH:
-			case ET_RIFLEBULLET:
-			case ET_PISTOLBULLET:
-			case ET_BOLT:
-			case ET_BLAST:
+			case ET_RIFLE:
+			case ET_PISTOL:
+			case ET_CROSSBOW:
+			case ET_BLASTER:
 			case ET_SAWBLADE:
 			case ET_RAILALT:
 			case ET_AXE:

@@ -21,3 +21,11 @@ weapon_light
 	shininess 8
 	rgbGen const 0.18 0.18 0.18
 }
+
+weapon_color
+{
+	shaded
+	specular 20
+	shininess 20
+	rgbGen entity
+}

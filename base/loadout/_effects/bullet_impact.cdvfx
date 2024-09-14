@@ -14,9 +14,9 @@
   }
 
   decal {
-    material weapons/bullet_impact1
-    material weapons/bullet_impact2
-    material weapons/bullet_impact3
+    material ./bullet_impact1
+    material ./bullet_impact2
+    material ./bullet_impact3
     size 3.5
     size_distribution uniform 1.5
     lifetime 20

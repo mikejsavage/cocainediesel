@@ -443,7 +443,7 @@ static void W_Fire_Grenade( edict_t * self, Vec3 start, EulerDegrees3 angles, in
 	grenade->classname = "grenade";
 	grenade->movetype = MOVETYPE_BOUNCEGRENADE;
 	grenade->s.model = "loadout/mortar/grenade";
-	grenade->projectileInfo.explosion_vfx = "loadout/vfx/explosion";
+	grenade->projectileInfo.explosion_vfx = "loadout/_effects/explosion";
 	grenade->projectileInfo.explosion_sfx = "loadout/mortar/explode";
 	grenade->think = W_Grenade_Explode;
 	grenade->touch = W_Touch_Grenade;
@@ -491,7 +491,7 @@ static void W_Fire_Rocket( edict_t * self, Vec3 start, EulerDegrees3 angles, int
 	rocket->classname = "rocket";
 	rocket->s.model = "loadout/bazooka/rocket";
 	rocket->s.sound = "loadout/bazooka/trail";
-	rocket->projectileInfo.explosion_vfx = "loadout/vfx/explosion";
+	rocket->projectileInfo.explosion_vfx = "loadout/_effects/explosion";
 	rocket->projectileInfo.explosion_sfx = "loadout/bazooka/explode";
 	rocket->touch = W_Touch_Rocket;
 }
@@ -703,7 +703,7 @@ static void W_Touch_RifleBullet( edict_t * ent, edict_t * other, Vec3 normal, So
 		return;
 	}
 
-	SpawnFX( ent, normal, "loadout/vfx/bulletsparks", "loadout/bullet_impact" );
+	SpawnFX( ent, normal, "loadout/_effects/bulletsparks", "loadout/_sounds/bullet_impact" );
 
 	if( other->takedamage && ent->enemy != other ) {
 		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_Rifle );
@@ -720,7 +720,7 @@ void W_Fire_RifleBullet( edict_t * self, Vec3 start, EulerDegrees3 angles, int t
 	bullet->s.type = ET_RIFLEBULLET;
 	bullet->classname = "riflebullet";
 	bullet->s.model = "loadout/rifle/bullet";
-	bullet->s.sound = "loadout/bullet_whizz";
+	bullet->s.sound = "loadout/_sounds/bullet_whiz";
 	bullet->s.solidity = SolidMask_WallbangShot;
 	bullet->touch = W_Touch_RifleBullet;
 }
@@ -853,7 +853,7 @@ void W_Fire_Pistol( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDe
 	bullet->classname = "pistol_bullet";
 	bullet->s.model = "loadout/pistol/bullet";
 	bullet->movetype = MOVETYPE_BOUNCE;
-	bullet->s.sound = "loadout/bullet_whizz";
+	bullet->s.sound = "loadout/_sounds/bullet_whiz";
 	bullet->touch = W_Touch_Pistol;
 	bullet->stop = G_FreeEdict;
 	bullet->gravity_scale = 0.0f;

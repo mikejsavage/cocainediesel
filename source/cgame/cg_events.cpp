@@ -30,14 +30,14 @@ static void RailgunImpact( Vec3 pos, Vec3 dir, Vec4 color ) {
 
 static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_lifetime_scale = 1.0f ) {
 	// decal_lifetime_scale is a shitty hack to help reduce decal spam with shotgun
-	DoVisualEffect( "loadout/vfx/bullet_impact", trace->endpos, trace->normal, num_particles, color, decal_lifetime_scale );
+	DoVisualEffect( "loadout/_effects/bullet_impact", trace->endpos, trace->normal, num_particles, color, decal_lifetime_scale );
 }
 
 static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_lifetime_scale = 1.0f ) {
 	if( ( trace->solidity & Solid_Wallbangable ) == 0 )
 		return;
 
-	DoVisualEffect( "loadout/vfx/wallbang_impact", trace->endpos, trace->normal, num_particles, color, decal_lifetime_scale );
+	DoVisualEffect( "loadout/_effects/wallbang_impact", trace->endpos, trace->normal, num_particles, color, decal_lifetime_scale );
 }
 
 static Mat3x4 GetMuzzleTransform( int ent ) {
@@ -242,10 +242,10 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 		}
 		else {
 			BulletImpact( &trace, team_color, 24 );
-			PlaySFX( "loadout/bullet_impact", PlaySFXConfigPosition( trace.endpos ) );
+			PlaySFX( "loadout/_sounds/bullet_impact", PlaySFXConfigPosition( trace.endpos ) );
 
 			if( !ISVIEWERENTITY( owner ) ) {
-				PlaySFX( "loadout/bullet_whizz", PlaySFXConfigLineSegment( origin, trace.endpos ) );
+				PlaySFX( "loadout/_sounds/bullet_whiz", PlaySFXConfigLineSegment( origin, trace.endpos ) );
 			}
 		}
 	}
@@ -702,7 +702,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			if( (parm - cg_entities[ ent->number ].last_noammo_sound) <= 150 )
 				return;
 
-			PlayEntityOrFirstPersonSFX( "loadout/noammo", ent->number );
+			PlayEntityOrFirstPersonSFX( "loadout/_sounds/weapon_noammo", ent->number );
 
 			cg_entities[ ent->number ].last_noammo_sound = parm;
 			break;
@@ -922,7 +922,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_SUICIDE_BOMB_EXPLODE:
-			DoEntFX( ent, parm, team_color, "loadout/vfx/explosion", "loadout/rl/explode" );
+			DoEntFX( ent, parm, team_color, "loadout/_effects/explosion", "loadout/bazooka/explode" );
 			break;
 	}
 }

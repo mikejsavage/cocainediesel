@@ -1,5 +1,0 @@
-{
-	attenuation distant
-	volume 0.45
-	find_sounds ./fire
-}

@@ -1,4 +1,0 @@
-{
-	attenuation distant
-	find_sounds ./explode
-}

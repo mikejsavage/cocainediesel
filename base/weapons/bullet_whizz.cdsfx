@@ -1,6 +1,0 @@
-{
-	attenuation static
-	volume 0.2
-	pitch_random 0.1
-	find_sounds ./whizz
-}

@@ -1,7 +1,0 @@
-weapons/tracer
-{
-	blendfunc add
-	texture weapons/tracer
-	rgbgen entity
-	alphagen entity
-}

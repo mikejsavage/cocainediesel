@@ -1,5 +1,0 @@
-{
-	volume 0.2
-	find_sounds ./bounce
-	pitch_random 0.15
-}

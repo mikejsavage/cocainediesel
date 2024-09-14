@@ -623,8 +623,8 @@ const GadgetDef gadget_defs[] = {
 	},
 
 	GadgetDef {
-		.name = "AMERICA",
-		.short_name = "suicidevest",
+		.name = "MARTYR",
+		.short_name = "martyr",
 		.uses = 1,
 	},
 

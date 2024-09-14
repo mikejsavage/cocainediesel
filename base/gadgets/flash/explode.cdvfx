@@ -1,8 +1,0 @@
-{
-	dlight {
-		intensity 1000000
-		lifetime 0.1
-		color 1 1 1
-		color_override
-	}
-}

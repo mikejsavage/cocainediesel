@@ -1,8 +1,0 @@
-weapons/rl/exhaust
-{
-	cull disable
-	texture weapons/rl/exhaust
-	blendFunc add
-	rgbGen entity
-	tcmod rotate -360
-}

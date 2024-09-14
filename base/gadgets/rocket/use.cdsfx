@@ -1,7 +1,0 @@
-{
-	attenuation distant
-	find_sounds ./use
-	pitch 0.75
-	pitch_random 0.1
-	volume 0.3
-}

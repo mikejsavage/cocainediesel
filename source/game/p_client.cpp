@@ -644,7 +644,7 @@ void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 			G_FireWeapon( ent, parm );
 			break; // don't send the event
 
-		case EV_SUICIDE_BOMB_EXPLODE: {
+		case EV_MARTYR_EXPLODE: {
 			ent->health = 0;
 
 			// TODO: horrible
@@ -654,9 +654,9 @@ void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 			ent->projectileInfo.minKnockback = 75;
 			ent->projectileInfo.radius = 150;
 
-			G_RadiusDamage( ent, ent, Vec3( 0.0f ), ent, Gadget_SuicideBomb );
+			G_RadiusDamage( ent, ent, Vec3( 0.0f ), ent, Gadget_Martyr );
 
-			G_Killed( ent, ent, ent, -1, Gadget_SuicideBomb, 10000 );
+			G_Killed( ent, ent, ent, -1, Gadget_Martyr, 10000 );
 			G_AddEvent( ent, ev, parm, true );
 		} break;
 

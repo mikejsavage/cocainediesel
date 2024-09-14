@@ -176,7 +176,7 @@ enum EventType {
 	EV_JUMP_PAD,
 	EV_FALL,
 
-	EV_SUICIDE_BOMB_EXPLODE,
+	EV_MARTYR_EXPLODE,
 
 	// non predictable events
 

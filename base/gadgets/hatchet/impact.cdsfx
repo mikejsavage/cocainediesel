@@ -1,5 +1,0 @@
-{
-	attenuation idle
-	sound ./impact
-	pitch_random 0.05
-}

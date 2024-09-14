@@ -1,5 +1,0 @@
-{
-	attenuation distant
-	find_sounds ./impact
-	volume 0.5
-}

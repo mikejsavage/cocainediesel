@@ -680,9 +680,9 @@ void DrawEntities() {
 				DrawEntityTrail( cent, "loadout/pistol/bullet_trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_STAKE:
+			case ET_BOLT:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "loadout/stake/trail" );
+				DrawEntityTrail( cent, "loadout/crossbow/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_BLAST:
@@ -800,7 +800,7 @@ void CG_LerpEntities() {
 			case ET_STUNGRENADE:
 			case ET_RIFLEBULLET:
 			case ET_PISTOLBULLET:
-			case ET_STAKE:
+			case ET_BOLT:
 			case ET_BLAST:
 			case ET_SAWBLADE:
 			case ET_THROWING_AXE:
@@ -875,14 +875,14 @@ void CG_UpdateEntities() {
 			case ET_ARBULLET:
 			case ET_BUBBLE:
 			case ET_GRENADE:
-			case ET_STUNGRENADE:
+			case ET_FLASH:
 			case ET_RIFLEBULLET:
 			case ET_PISTOLBULLET:
-			case ET_STAKE:
+			case ET_BOLT:
 			case ET_BLAST:
 			case ET_SAWBLADE:
 			case ET_RAILALT:
-			case ET_THROWING_AXE:
+			case ET_AXE:
 			case ET_SHURIKEN:
 			case ET_MAPMODEL:
 				break;

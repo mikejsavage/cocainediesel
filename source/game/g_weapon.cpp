@@ -1036,8 +1036,8 @@ static void UseThrowingAxe( edict_t * self, Vec3 start, EulerDegrees3 angles, in
 	axe->touch = TouchThrowingAxe;
 }
 
-static void ExplodeStunGrenade( edict_t * grenade ) {
-	const GadgetDef * def = GetGadgetDef( Gadget_StunGrenade );
+static void ExplodeFlash( edict_t * grenade ) {
+	const GadgetDef * def = GetGadgetDef( Gadget_Flash );
 	static constexpr float flash_distance = 2000.0f;
 
 	SpawnFX( grenade, NONE, "loadout/flash/explode", "loadout/flash/explode" );
@@ -1075,21 +1075,21 @@ static void ExplodeStunGrenade( edict_t * grenade ) {
 	G_FreeEdict( grenade );
 }
 
-static void TouchStunGrenade( edict_t * ent, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
+static void TouchFlash( edict_t * ent, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
 	if( !CanHit( ent, other ) ) {
 		return;
 	}
 
 	if( other->takedamage ) {
-		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Gadget_StunGrenade );
-		ExplodeStunGrenade( ent );
+		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Gadget_Flash );
+		ExplodeFlash( ent );
 	}
 }
 
-static void UseStunGrenade( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, u64 charge_time, bool dead ) {
-	const GadgetDef * def = GetGadgetDef( Gadget_StunGrenade );
+static void UseFlash( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, u64 charge_time, bool dead ) {
+	const GadgetDef * def = GetGadgetDef( Gadget_Flash );
 
-	ProjectileStats stats = GadgetProjectileStats( Gadget_StunGrenade );
+	ProjectileStats stats = GadgetProjectileStats( Gadget_Flash );
 
 	if( dead ) {
 		stats.speed = 1;
@@ -1098,13 +1098,13 @@ static void UseStunGrenade( edict_t * self, Vec3 start, EulerDegrees3 angles, in
 	}
 
 	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, stats );
-	grenade->s.type = ET_STUNGRENADE;
-	grenade->classname = "stun grenade";
+	grenade->s.type = ET_FLASH;
+	grenade->classname = "flash";
 	grenade->movetype = MOVETYPE_BOUNCE;
 	grenade->s.model = "loadout/flash/model";
 	grenade->avelocity = EulerDegrees3( 360.0f, 0.0f, 0.0f );
-	grenade->touch = TouchStunGrenade;
-	grenade->think = ExplodeStunGrenade;
+	grenade->touch = TouchFlashe;
+	grenade->think = ExplodeFlash;
 }
 
 static void TouchShuriken( edict_t * ent, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
@@ -1150,12 +1150,12 @@ void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm, bool dead ) {
 	int timeDelta = ent->r.client->timeDelta;
 
 	switch( gadget ) {
-		case Gadget_ThrowingAxe:
-			UseThrowingAxe( ent, origin, angles, timeDelta, parm );
+		case Gadget_Axe:
+			UseAxe( ent, origin, angles, timeDelta, parm );
 			break;
 
-		case Gadget_StunGrenade:
-			UseStunGrenade( ent, origin, angles, timeDelta, parm, dead );
+		case Gadget_Flash:
+			UseFlash( ent, origin, angles, timeDelta, parm, dead );
 			break;
 
 		case Gadget_Rocket:

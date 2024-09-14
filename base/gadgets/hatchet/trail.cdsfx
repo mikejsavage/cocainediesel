@@ -1,6 +1,0 @@
-{
-	attenuation idle
-	sound ./trail
-	volume 3.0
-	pitch_random 0.1
-}

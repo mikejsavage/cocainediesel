@@ -195,11 +195,11 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 
 		case Weapon_MachineGun:
 		case Weapon_Shotgun:
-		case Weapon_DoubleBarrel:
+		case Weapon_SawnOff:
 		case Weapon_AssaultRifle:
 		case Weapon_BubbleGun:
-		case Weapon_StakeGun:
-		case Weapon_MasterBlaster:
+		case Weapon_Crossbow:
+		case Weapon_Blaster:
 		case Weapon_RoadGun:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_LIGHTWEAPON, 0, EVENT_CHANNEL );
 			break;
@@ -211,7 +211,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_HEAVYWEAPON, 0, EVENT_CHANNEL );
 			break;
 
-		case Weapon_Railgun:
+		case Weapon_Rail:
 		case Weapon_Sniper:
 		case Weapon_Rifle:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_AIMWEAPON, 0, EVENT_CHANNEL );
@@ -668,7 +668,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			Vec3 dir;
 			AngleVectors( angles, &dir, NULL, NULL );
 
-			if( weapon == Weapon_Railgun ) {
+			if( weapon == Weapon_Rail ) {
 				FireRailgun( origin, dir, owner, false );
 			}
 			else if( weapon == Weapon_Shotgun || weapon == Weapon_DoubleBarrel ) {
@@ -921,7 +921,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 			break;
 
-		case EV_SUICIDE_BOMB_EXPLODE:
+		case EV_MARTYR_EXPLODE:
 			DoEntFX( ent, parm, team_color, "loadout/_effects/explosion", "loadout/bazooka/explode" );
 			break;
 	}

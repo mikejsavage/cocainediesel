@@ -637,37 +637,37 @@ void DrawEntities() {
 
 			case ET_ROCKET:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/rl/trail" );
+				DrawEntityTrail( cent, "loadout/bazooka/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 25600.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_GRENADE:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/gl/trail" );
+				DrawEntityTrail( cent, "loadout/mortar/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_STUNGRENADE:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "gadgets/flash/trail" );
+				DrawEntityTrail( cent, "loadout/flash/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_ARBULLET:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/ar/trail" );
+				DrawEntityTrail( cent, "loadout/ar/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_BUBBLE:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/bg/trail" );
+				DrawEntityTrail( cent, "loadout/bg/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_RIFLEBULLET:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/rifle/bullet_trail" );
+				DrawEntityTrail( cent, "loadout/rifle/bullet_trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_PISTOLBULLET:
@@ -677,16 +677,16 @@ void DrawEntities() {
 				}
 
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/pistol/bullet_trail" );
+				DrawEntityTrail( cent, "loadout/pistol/bullet_trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_STAKE:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/stake/trail" );
+				DrawEntityTrail( cent, "loadout/stake/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_BLAST:
-				DrawEntityTrail( cent, "weapons/mb/trail" );
+				DrawEntityTrail( cent, "loadout/mb/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 3200.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
@@ -697,7 +697,7 @@ void DrawEntities() {
 				break;
 			case ET_THROWING_AXE:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/axe/trail" );
+				DrawEntityTrail( cent, "loadout/axe/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_SHURIKEN:

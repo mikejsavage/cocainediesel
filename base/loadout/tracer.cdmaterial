@@ -1,0 +1,7 @@
+tracer
+{
+	blendfunc add
+	texture loadout/tracer
+	rgbgen entity
+	alphagen entity
+}

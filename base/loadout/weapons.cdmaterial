@@ -1,0 +1,23 @@
+weapon
+{
+	shaded
+	specular 10
+	shininess 8
+	rgbGen const 0.18 0.18 0.18
+}
+
+weapon_dark
+{
+	shaded
+	specular 10
+	shininess 8
+	rgbGen const 0.18 0.18 0.18
+}
+
+weapon_light
+{
+	shaded
+	specular 10
+	shininess 8
+	rgbGen const 0.18 0.18 0.18
+}

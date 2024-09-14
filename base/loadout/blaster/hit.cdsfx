@@ -1,0 +1,4 @@
+{
+	attenuation idle
+	sound ./hit
+}

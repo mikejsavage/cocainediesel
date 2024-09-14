@@ -1,0 +1,7 @@
+weapons/eb/beam
+{
+	blendfunc add
+	texture weapons/eb/beam
+	rgbgen entity
+	alphagen entity
+}

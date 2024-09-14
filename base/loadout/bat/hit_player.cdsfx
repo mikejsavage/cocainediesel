@@ -1,0 +1,4 @@
+{
+	pitch_random 0.1
+	sound ./hit_player
+}

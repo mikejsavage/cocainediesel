@@ -1,0 +1,68 @@
+{
+  particles {
+    material textures/vfx/star8
+
+    blendfunc add
+    rotate
+
+    angle 360
+    angle_distribution 360
+
+    position sphere 0 0
+    speed 5
+
+    color 1.0 1.0 1.0 0.25
+    end_color 1.0 1.0 1.0 0.25
+    color_override
+
+    size 15 0
+
+    lifetime 0.02
+    count 1
+  }
+
+    particles {
+    material textures/vfx/star5
+
+    blendfunc add
+    rotate
+
+    angle 360
+    angle_distribution 360
+
+    position sphere 0 0
+    speed 5
+
+    color 1.0 1.0 1.0 0.5
+    end_color 1.0 1.0 1.0 0.5
+    color_override
+
+    size 15 0
+
+    lifetime 0.05
+    count 1
+  }
+
+  particles {
+
+    material textures/vfx/star5
+
+    blendfunc add
+    rotate
+
+    angle 360
+    angle_distribution 360
+
+    position sphere 0 0
+    speed 5
+
+    color 1.0 1.0 1.0 0.5
+    end_color 1.0 1.0 1.0 0.5
+
+
+    size 8 0
+
+    lifetime 0.05
+    count 1
+  }
+}

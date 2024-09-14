@@ -1048,7 +1048,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 		xoffset += icon_size + icon_padding;
 
 		if( obr->wallbang ) {
-			Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, FindMaterial( "weapons/wallbang_icon" ), AttentionGettingColor() );
+			Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, FindMaterial( "loadout/wallbang_icon" ), AttentionGettingColor() );
 			xoffset += icon_size + icon_padding;
 		}
 

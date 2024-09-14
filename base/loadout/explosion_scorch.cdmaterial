@@ -1,0 +1,16 @@
+explosion_scorch1
+{
+	texture vfx/explosion_scorch1
+	decal
+}
+
+explosion_scorch2
+{
+	texture vfx/explosion_scorch2
+	decal
+}
+explosion_scorch3
+{
+	texture vfx/explosion_scorch3
+	decal
+}

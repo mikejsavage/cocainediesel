@@ -1,0 +1,6 @@
+weapons/stake/stake
+{
+	cull disable
+	rgbgen entity
+	alphagen entity
+}

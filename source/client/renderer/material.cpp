@@ -18,7 +18,7 @@
 
 struct MaterialSpecKey {
 	const char * keyword;
-	void ( *func )( Material * material, Span< const char > name, Span< const char > * data );
+	void ( *func )( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data );
 };
 
 constexpr u32 MAX_TEXTURES = 4096;
@@ -153,34 +153,34 @@ static Wave ParseWave( Span< const char > * data ) {
 	return wave;
 }
 
-static void ParseCull( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseCull( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "disable" || token == "none" || token == "twosided" ) {
 		material->double_sided = true;
 	}
 }
 
-static void ParseDecal( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseDecal( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->decal = true;
 }
 
-static void ParseMaskOutlines( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseMaskOutlines( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->mask_outlines = true;
 }
 
-static void ParseShaded( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseShaded( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->shaded = true;
 }
 
-static void ParseSpecular( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseSpecular( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->specular = ParseMaterialFloat( data );
 }
 
-static void ParseShininess( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseShininess( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->shininess = ParseMaterialFloat( data );
 }
 
-static void ParseBlendFunc( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseBlendFunc( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "blend" ) {
 		material->blend_func = BlendFunc_Blend;
@@ -196,7 +196,7 @@ static Vec3 NormalizeColor( Vec3 color ) {
 	return f > 1.0f ? color / f : color;
 }
 
-static void ParseRGBGen( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseRGBGen( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "wave" ) {
 		material->rgbgen.type = ColorGenType_Wave;
@@ -231,7 +231,7 @@ static void ParseRGBGen( Material * material, Span< const char > name, Span< con
 	}
 }
 
-static void ParseAlphaGen( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseAlphaGen( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "entity" ) {
 		material->alphagen.type = ColorGenType_Entity;
@@ -246,7 +246,7 @@ static void ParseAlphaGen( Material * material, Span< const char > name, Span< c
 	}
 }
 
-static void ParseTCMod( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseTCMod( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	if( material->tcmod.type != TCModFunc_None ) {
 		Com_GGPrint( S_COLOR_YELLOW "WARNING: material {} has multiple tcmods", name );
 		SkipToEndOfLine( data );
@@ -276,12 +276,18 @@ static Texture * FindTexture( Span< const char > name ) {
 	return textures_hashtable.get( StringHash( name ).hash, &idx ) ? &textures[ idx ] : NULL;
 }
 
-static void ParseTexture( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseTexture( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
-	material->texture = FindTexture( token );
+	if( StartsWith( token, "." ) ) {
+		TempAllocator temp = cls.frame_arena.temp();
+		material->texture = FindTexture( temp.sv( "{}{}", BasePath( path ), token + 1 ) );
+	}
+	else {
+		material->texture = FindTexture( token );
+	}
 }
 
-static void SkipComment( Material * material, Span< const char > name, Span< const char > * data ) {
+static void SkipComment( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	SkipToEndOfLine( data );
 }
 
@@ -300,10 +306,10 @@ static const MaterialSpecKey shaderkeys[] = {
 	{ "//", SkipComment },
 };
 
-static void ParseMaterialKey( Material * material, Span< const char > name, Span< const char > token, Span< const char > * data ) {
+static void ParseMaterialKey( Material * material, Span< const char > token, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	for( MaterialSpecKey key : shaderkeys ) {
 		if( StrCaseEqual( token, key.keyword ) ) {
-			key.func( material, name, data );
+			key.func( material, name, path, data );
 			return;
 		}
 	}
@@ -313,7 +319,7 @@ static void ParseMaterialKey( Material * material, Span< const char > name, Span
 	SkipToEndOfLine( data );
 }
 
-static bool ParseMaterial( Material * material, Span< const char > name, Span< const char > * data ) {
+static bool ParseMaterial( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	TracyZoneScoped;
 
 	material->texture = FindTexture( MakeSpan( "$whiteimage" ) );
@@ -329,7 +335,7 @@ static bool ParseMaterial( Material * material, Span< const char > name, Span< c
 			break;
 		}
 		else {
-			ParseMaterialKey( material, name, token, data );
+			ParseMaterialKey( material, token, name, path, data );
 		}
 	}
 
@@ -508,7 +514,7 @@ static void LoadMaterialFile( Span< const char > path ) {
 		ParseToken( &data, Parse_DontStopOnNewLine );
 
 		Material material;
-		if( !ParseMaterial( &material, name, &data ) )
+		if( !ParseMaterial( &material, name, path, &data ) )
 			break;
 		AddMaterial( name, material );
 	}

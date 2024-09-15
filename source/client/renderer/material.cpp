@@ -31,14 +31,12 @@ constexpr int DECAL_ATLAS_BLOCK_SIZE = DECAL_ATLAS_SIZE / 4;
 static Texture textures[ MAX_TEXTURES ];
 static void * texture_stb_data[ MAX_TEXTURES ];
 static Span< const BC4Block > texture_bc4_data[ MAX_TEXTURES ];
-static u32 num_textures;
 static Hashtable< MAX_TEXTURES * 2 > textures_hashtable;
 
 static Texture missing_texture;
 static Material missing_material;
 
 static Material materials[ MAX_MATERIALS ];
-static u32 num_materials;
 static Hashtable< MAX_MATERIALS * 2 > materials_hashtable;
 
 static Sampler samplers[ Sampler_Count ];
@@ -366,27 +364,28 @@ static void UnloadTexture( u64 idx ) {
 	DeleteTexture( textures[ idx ] );
 }
 
-static u64 AddTexture( Span< const char > name, u64 hash, const TextureConfig & config ) {
+static Optional< size_t > AddTexture( Span< const char > name, u64 hash, const TextureConfig & config ) {
 	TracyZoneScoped;
 
-	Assert( num_textures < ARRAY_COUNT( textures ) );
+	if( textures_hashtable.size() == ARRAY_COUNT( textures ) ) {
+		Com_Printf( S_COLOR_YELLOW "Too many textures!\n" );
+		return NONE;
+	}
 
-	u64 idx = num_textures;
+	u64 idx = textures_hashtable.size();
 	if( !textures_hashtable.get( hash, &idx ) ) {
-		textures_hashtable.add( hash, num_textures );
+		textures_hashtable.add( hash, idx );
 
-		materials[ num_materials ] = Material();
-		materials[ num_materials ].texture = &textures[ num_textures ];
-		materials[ num_materials ].name = CloneSpan( sys_allocator, name );
-		materials[ num_materials ].hash = hash;
-		materials_hashtable.add( hash, num_materials );
-
-		num_textures++;
-		num_materials++;
+		materials[ materials_hashtable.size() ] = Material {
+			.name = CloneSpan( sys_allocator, name ),
+			.hash = hash,
+			.texture = &textures[ idx ],
+		};
+		materials_hashtable.add( hash, materials_hashtable.size() );
 	}
 	else {
 		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( textures[ idx ].format ) ) {
-			return U64_MAX;
+			return NONE;
 		}
 
 		UnloadTexture( idx );
@@ -413,14 +412,17 @@ static void LoadSTBTexture( Span< const char > path, u8 * pixels, int w, int h, 
 		TextureFormat_RGBA_U8_sRGB,
 	};
 
-	TextureConfig config;
-	config.format = formats[ channels - 1 ];
-	config.width = checked_cast< u32 >( w );
-	config.height = checked_cast< u32 >( h );
-	config.data = pixels;
+	TextureConfig config = {
+		.format = formats[ channels - 1 ],
+		.width = checked_cast< u32 >( w ),
+		.height = checked_cast< u32 >( h ),
+		.data = pixels,
+	};
 
-	size_t idx = AddTexture( path, Hash64( StripExtension( path ) ), config );
-	texture_stb_data[ idx ] = pixels;
+	Optional< size_t > idx = AddTexture( path, Hash64( StripExtension( path ) ), config );
+	if( idx.exists ) {
+		texture_stb_data[ idx.value ] = pixels;
+	}
 }
 
 static void LoadDDSTexture( Span< const char > path ) {
@@ -431,12 +433,6 @@ static void LoadDDSTexture( Span< const char > path ) {
 	}
 
 	const DDSHeader * header = align_cast< const DDSHeader >( dds.ptr );
-
-	TextureConfig config;
-	config.width = header->width;
-	config.height = header->height;
-	config.data = dds.ptr + sizeof( DDSHeader );
-
 	if( header->magic != DDSMagic ) {
 		Com_GGPrint( S_COLOR_YELLOW "{} isn't a DDS file", path );
 		return;
@@ -446,6 +442,11 @@ static void LoadDDSTexture( Span< const char > path ) {
 		Com_GGPrint( S_COLOR_YELLOW "{} dimensions must be a multiple of 4 ({}x{})", path, header->width, header->height );
 		return;
 	}
+
+	TextureConfig config;
+	config.width = header->width;
+	config.height = header->height;
+	config.data = dds.ptr + sizeof( DDSHeader );
 
 	switch( header->format ) {
 		case DDSTextureFormat_BC1:
@@ -476,18 +477,19 @@ static void LoadDDSTexture( Span< const char > path ) {
 		return;
 	}
 
-	size_t idx = AddTexture( path, Hash64( StripExtension( path ) ), config );
-	texture_bc4_data[ idx ] = ( dds + sizeof( DDSHeader ) ).cast< const BC4Block >();
+	Optional< size_t > idx = AddTexture( path, Hash64( StripExtension( path ) ), config );
+	if( idx.exists ) {
+		texture_bc4_data[ idx.value ] = ( dds + sizeof( DDSHeader ) ).cast< const BC4Block >();
+	}
 }
 
 static void AddMaterial( Material material, Span< const char > name ) {
 	material.hash = Hash64( name );
 
-	u64 idx = num_materials;
+	u64 idx = materials_hashtable.size();
 	if( !materials_hashtable.get( material.hash, &idx ) ) {
 		materials_hashtable.add( material.hash, idx );
 		material.name = CloneSpan( sys_allocator, name );
-		num_materials++;
 	}
 	else {
 		material.name = materials[ idx ].name;
@@ -625,7 +627,7 @@ static void PackDecalAtlas() {
 
 	u32 num_mipmaps = U32_MAX;
 
-	for( u32 i = 0; i < num_materials; i++ ) {
+	for( u32 i = 0; i < materials_hashtable.size(); i++ ) {
 		const Texture * texture = materials[ i ].texture;
 		if( !materials[ i ].decal || texture == NULL )
 			continue;
@@ -858,8 +860,8 @@ static void LoadBuiltinMaterials() {
 void InitMaterials() {
 	TracyZoneScoped;
 
-	num_textures = 0;
-	num_materials = 0;
+	textures_hashtable.clear();
+	materials_hashtable.clear();
 	ClearMaterialStaticUniforms();
 
 	CreateSamplers();
@@ -992,11 +994,11 @@ void HotloadMaterials() {
 }
 
 void ShutdownMaterials() {
-	for( u32 i = 0; i < num_textures; i++ ) {
+	for( u32 i = 0; i < textures_hashtable.size(); i++ ) {
 		UnloadTexture( i );
 	}
 
-	for( u32 i = 0; i < num_materials; i++ ) {
+	for( u32 i = 0; i < materials_hashtable.size(); i++ ) {
 		Free( sys_allocator, materials[ i ].name.ptr );
 	}
 

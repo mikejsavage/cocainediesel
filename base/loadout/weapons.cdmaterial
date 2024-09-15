@@ -1,31 +1,31 @@
 weapon
 {
 	shaded
-	specular 10
-	shininess 8
-	rgbGen const 0.18 0.18 0.18
+	specular 5
+	shininess 30
+	rgbGen const 0.35 0.35 0.35
 }
 
 weapon_dark
 {
 	shaded
-	specular 10
-	shininess 8
-	rgbGen const 0.18 0.18 0.18
+	specular 5
+	shininess 30
+	rgbGen const 0.25 0.25 0.25
 }
 
 weapon_light
 {
 	shaded
-	specular 10
-	shininess 8
-	rgbGen const 0.18 0.18 0.18
+	specular 5
+	shininess 30
+	rgbGen const  0.5 0.5 0.5
 }
 
 weapon_color
 {
 	shaded
-	specular 20
-	shininess 20
-	rgbGen entity
+	specular 5
+	shininess 30
+	rgbGen entity 1.0
 }

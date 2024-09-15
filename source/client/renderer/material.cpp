@@ -394,6 +394,7 @@ static Optional< size_t > AddTexture( Span< const char > name, u64 hash, const T
 
 	u64 idx = textures_hashtable.size();
 	if( !textures_hashtable.get( hash, &idx ) ) {
+		textures_hashtable.add( hash, idx );
 		AddMaterial( name, Material { .texture = &textures[ idx ] } );
 	}
 	else {

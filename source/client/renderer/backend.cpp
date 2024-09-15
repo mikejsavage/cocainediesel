@@ -519,7 +519,7 @@ static bool operator==( const VertexAttribute & lhs, const VertexAttribute & rhs
 	return lhs.format == rhs.format && lhs.buffer == rhs.buffer && lhs.offset == rhs.offset;
 }
 
-static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) {
+static void SetPipelineState( const PipelineState & pipeline ) {
 	TracyZoneScoped;
 	TracyGpuZone( "Set pipeline state" );
 
@@ -649,10 +649,6 @@ static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) 
 
 	// backface culling
 	CullFace cull_face = pipeline.cull_face;
-	if( cull_face != CullFace_Disabled && cw_winding ) {
-		cull_face = cull_face == CullFace_Front ? CullFace_Back : CullFace_Front;
-	}
-
 	if( cull_face != prev_pipeline.cull_face ) {
 		if( cull_face == CullFace_Disabled ) {
 			glDisable( GL_CULL_FACE );
@@ -860,7 +856,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	if( dc.pipeline.shader->program == 0 )
 		return;
 
-	SetPipelineState( dc.pipeline, dc.mesh.cw_winding );
+	SetPipelineState( dc.pipeline );
 
 	if( dc.type == DrawCallType_Compute ) {
 		TracyZoneScopedN( "Compute command" );
@@ -950,7 +946,7 @@ void RenderBackendSubmitFrame() {
 		// nuked by scissor, so turn it off at the end of every frame
 		PipelineState no_scissor_test = prev_pipeline;
 		no_scissor_test.scissor = NONE;
-		SetPipelineState( no_scissor_test, true );
+		SetPipelineState( no_scissor_test );
 	}
 
 	RunDeferredDeletes();
@@ -1427,7 +1423,6 @@ Mesh NewMesh( const MeshConfig & config ) {
 	mesh.vertex_descriptor = config.vertex_descriptor;
 	mesh.index_format = config.index_format;
 	mesh.num_vertices = config.num_vertices;
-	mesh.cw_winding = config.cw_winding;
 
 	for( size_t i = 0; i < ARRAY_COUNT( mesh.vertex_buffers ); i++ ) {
 		mesh.vertex_buffers[ i ] = config.vertex_buffers[ i ];

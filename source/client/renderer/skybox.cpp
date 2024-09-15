@@ -19,12 +19,12 @@ void InitSkybox() {
 	};
 
 	constexpr u16 indices[] = {
-		6, 3, 7, 3, 6, 2,
-		2, 0, 3, 0, 2, 6,
-		6, 4, 0, 4, 6, 7,
-		7, 5, 4, 5, 7, 3,
-		5, 3, 1, 1, 3, 0,
-		0, 5, 1, 5, 0, 4,
+		6, 7, 3, 3, 2, 6,
+		2, 3, 0, 0, 6, 2,
+		6, 0, 4, 4, 7, 6,
+		7, 4, 5, 5, 3, 7,
+		5, 1, 3, 1, 0, 3,
+		0, 1, 5, 5, 4, 0,
 	};
 
 	MeshConfig mesh_config = { };
@@ -33,7 +33,6 @@ void InitSkybox() {
 	mesh_config.vertex_descriptor.attributes[ VertexAttribute_Position ].value.format = VertexFormat_Floatx4;
 	mesh_config.index_buffer = NewGPUBuffer( indices, sizeof( indices ), "Skybox indices" );
 	mesh_config.num_vertices = ARRAY_COUNT( indices );
-	mesh_config.cw_winding = true;
 
 	sky_mesh = NewMesh( mesh_config );
 }

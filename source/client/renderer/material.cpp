@@ -364,6 +364,26 @@ static void UnloadTexture( u64 idx ) {
 	DeleteTexture( textures[ idx ] );
 }
 
+static void AddMaterial( Span< const char > name, Material material ) {
+	if( materials_hashtable.size() == ARRAY_COUNT( materials ) ) {
+		Com_Printf( S_COLOR_YELLOW "Too many materials!\n" );
+		return;
+	}
+
+	material.hash = Hash64( name );
+
+	u64 idx = materials_hashtable.size();
+	if( !materials_hashtable.get( material.hash, &idx ) ) {
+		materials_hashtable.add( material.hash, idx );
+		material.name = CloneSpan( sys_allocator, name );
+	}
+	else {
+		material.name = materials[ idx ].name;
+	}
+
+	materials[ idx ] = material;
+}
+
 static Optional< size_t > AddTexture( Span< const char > name, u64 hash, const TextureConfig & config ) {
 	TracyZoneScoped;
 
@@ -374,14 +394,7 @@ static Optional< size_t > AddTexture( Span< const char > name, u64 hash, const T
 
 	u64 idx = textures_hashtable.size();
 	if( !textures_hashtable.get( hash, &idx ) ) {
-		textures_hashtable.add( hash, idx );
-
-		materials[ materials_hashtable.size() ] = Material {
-			.name = CloneSpan( sys_allocator, name ),
-			.hash = hash,
-			.texture = &textures[ idx ],
-		};
-		materials_hashtable.add( hash, materials_hashtable.size() );
+		AddMaterial( name, Material { .texture = &textures[ idx ] } );
 	}
 	else {
 		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( textures[ idx ].format ) ) {
@@ -483,21 +496,6 @@ static void LoadDDSTexture( Span< const char > path ) {
 	}
 }
 
-static void AddMaterial( Material material, Span< const char > name ) {
-	material.hash = Hash64( name );
-
-	u64 idx = materials_hashtable.size();
-	if( !materials_hashtable.get( material.hash, &idx ) ) {
-		materials_hashtable.add( material.hash, idx );
-		material.name = CloneSpan( sys_allocator, name );
-	}
-	else {
-		material.name = materials[ idx ].name;
-	}
-
-	materials[ idx ] = material;
-}
-
 static void LoadMaterialFile( Span< const char > path ) {
 	Span< const char > data = AssetString( path );
 
@@ -511,7 +509,7 @@ static void LoadMaterialFile( Span< const char > path ) {
 		Material material;
 		if( !ParseMaterial( &material, name, &data ) )
 			break;
-		AddMaterial( material, name );
+		AddMaterial( name, material );
 	}
 }
 
@@ -846,14 +844,14 @@ static void LoadBuiltinMaterials() {
 			.shininess = world_material.shininess,
 		};
 
-		AddMaterial( world_material, "editor/world" );
-		AddMaterial( world_material, "world" );
+		AddMaterial( "editor/world", world_material );
+		AddMaterial( "world", world_material );
 
-		AddMaterial( wallbang_material, "editor/wallbangable" );
-		AddMaterial( wallbang_material, "wallbangable" );
+		AddMaterial( "editor/wallbangable", wallbang_material );
+		AddMaterial( "wallbangable", wallbang_material );
 
 		// for use in models, wallbangable is for collision geometry
-		AddMaterial( wallbang_material, "wallbang_visible" );
+		AddMaterial( "wallbang_visible", wallbang_material );
 	}
 }
 

@@ -1,7 +1,7 @@
 // this is a hack, see linear_algebra.h for the explanation
 
-#ifndef KERNEL_MAYBE_INLINE
-#define KERNEL_MAYBE_INLINE
+#ifndef INLINE_IN_RELEASE_BUILDS
+#define INLINE_IN_RELEASE_BUILDS
 #endif
 
 #if !PUBLIC_BUILD
@@ -14,7 +14,7 @@
 
 // https://stackoverflow.com/a/18508113
 // need to swap the args because their implementation is row major
-KERNEL_MAYBE_INLINE Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
+INLINE_IN_RELEASE_BUILDS Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
 	Mat4 result;
 
 	__m128 row1 = _mm_load_ps( &lhs.col0.x );
@@ -38,11 +38,39 @@ KERNEL_MAYBE_INLINE Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
 	return result;
 }
 
+INLINE_IN_RELEASE_BUILDS Vec4 operator*( const Mat3x4 & m, const Vec4 & v ) {
+	float w = v.w;
+
+	__m128 vx = _mm_set1_ps( v.x );
+	__m128 vy = _mm_set1_ps( v.y );
+	__m128 vz = _mm_set1_ps( v.z );
+	__m128 vw = _mm_set1_ps( v.w );
+
+	__m128 col0 = _mm_load_ps( &m.col0.x );
+	__m128 col1 = _mm_loadu_ps( &m.col1.x );
+	__m128 col2 = _mm_loadu_ps( &m.col2.x );
+
+	// if we load col3.x we run past the end of the struct, so load col3.x - 1 and shuffle
+	__m128 col3 = _mm_loadu_ps( &m.col2.z );
+	col3 = _mm_shuffle_ps( col3, col3, _MM_SHUFFLE( 0, 3, 2, 1 ) );
+
+	__m128 res128 = _mm_add_ps(
+		_mm_add_ps( _mm_mul_ps( col0, vx ), _mm_mul_ps( col1, vy ) ),
+		_mm_add_ps( _mm_mul_ps( col2, vz ), _mm_mul_ps( col3, vw ) )
+	);
+
+	Vec4 res;
+	_mm_store_ps( &res.x, res128 );
+	res.w = w;
+
+	return res;
+}
+
 #else // #if ARCHITECTURE_X64
 
 #include <arm_neon.h>
 
-KERNEL_MAYBE_INLINE Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
+INLINE_IN_RELEASE_BUILDS Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
 	Mat4 result;
 
 	float32x4_t row1 = vld1q_f32( &lhs.col0.x );
@@ -67,6 +95,34 @@ KERNEL_MAYBE_INLINE Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
 	}
 
 	return result;
+}
+
+INLINE_IN_RELEASE_BUILDS Vec4 operator*( const Mat3x4 & m, const Vec4 & v ) {
+    float w = v.w;
+
+    float32x4_t vx = vdupq_n_f32( v.x );
+    float32x4_t vy = vdupq_n_f32( v.y );
+    float32x4_t vz = vdupq_n_f32( v.z );
+    float32x4_t vw = vdupq_n_f32( v.w );
+
+    float32x4_t col0 = vld1q_f32( &m.col0.x );
+    float32x4_t col1 = vld1q_f32( &m.col1.x );
+    float32x4_t col2 = vld1q_f32( &m.col2.x );
+
+    float32x2_t col3xy = vld1_f32( &m.col3.x );
+    float32x2_t col3z0 = vld1_lane_f32( &m.col3.z, vdup_n_f32( 0.0f ), 0 );
+    float32x4_t col3 = vcombine_f32( col3xy, col3z0 );
+
+    float32x4_t res128 = vaddq_f32(
+        vfmaq_f32( vmulq_f32( col0, vx ), col1, vy ),
+        vfmaq_f32( vmulq_f32( col2, vz ), col3, vw )
+    );
+
+    Vec4 res;
+    vst1q_f32( &res.x, res128 );
+    res.w = w;
+
+    return res;
 }
 
 #endif // #if !ARCHITECTURE_X64

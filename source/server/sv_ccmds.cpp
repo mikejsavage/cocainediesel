@@ -83,7 +83,7 @@ void SV_Status_f() {
 		}
 
 		Com_Printf( "%-32s", cl->edict->r.client->name );
-		Com_Printf( "%7i ", (int)(svs.realtime - cl->lastPacketReceivedTime) );
+		Com_Printf( "%7i ", int( ToSeconds( svs.monotonic_time - cl->lastPacketReceivedTime ) * 1000.0f ) );
 		Com_GGPrintNL( "{-22}", cl->netchan.remoteAddress );
 		Com_GGPrint( "{16x}", cl->netchan.session_id );
 	}

@@ -14,6 +14,56 @@ local function Override( t, overrides )
 	return t2
 end
 
+local function DrawClockOrBomb( state, posX )
+	if state.round_state < RoundState_Countdown or state.round_state > RoundState_Round then
+		return
+	end
+
+	local fontSize1 = state.viewport_height / 25
+	local testPosY = state.viewport_height * 0.013
+	local options = {
+		color = "#ffff",
+		border = "#000b",
+		font = "bold",
+		font_size = fontSize1,
+		alignment = "center top",
+	}
+
+	if state.round_state == RoundState_Countdown and state.gametype == Gametype_Bomb then
+		local text = "DEFUSE"
+		if state.attacking_team == team then
+			text = "PLANT"
+		end
+
+		options.font_size = fontSize1 * 0.8
+		options.alignement = "middle top"
+		cd.text( options, posX, testPosY * 1.2, text )
+	else
+		local time = cd.getClockTime()
+		local seconds = time * 0.001
+		local milliseconds = time % 1000
+
+		if seconds >= 0 then
+			local minutes = seconds / 60
+			seconds = seconds % 60
+
+			if minutes < 1 and seconds < 11 and seconds ~= 0 then
+				options.color = "#f00" -- TODO: attention getting red
+			end
+
+			options.alignment = "right top"
+			cd.text( options, posX, testPosY, string.format( "%02i", seconds ) )
+
+			options.alignment = "left bottom"
+			local ms_options = Override( options, { font_size = fontSize1 * 0.6 } )
+			cd.text( ms_options, posX + posX * 0.001, testPosY + fontSize1 * 0.6, string.format( ".%03i", milliseconds ))
+		elseif state.gametype == Gametype_Bomb then
+			local size = state.viewport_height * 0.055
+			cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, "#fff", assets.bomb )
+		end
+	end
+end
+
 local function DrawTopInfo( state )
 	local options = {
 		color = "#ffff",
@@ -47,33 +97,11 @@ local function DrawTopInfo( state )
 			end
 		end
 	elseif state.match_state == MatchState_Playing then
-		options.font_size = state.viewport_height / 25
-
-		local time = cd.getClockTime()
-		local seconds = time * 0.001
-		local milliseconds = time % 1000
-		if seconds >= 0 then
-			local minutes = seconds / 60
-			seconds = seconds % 60
-
-			if minutes < 1 and seconds < 11 and seconds ~= 0 then
-				options.color = "#f00" -- TODO: attention getting red
-			end
-
-			local testPosY = state.viewport_height * 0.012
-
-			options.alignment = "right top"
-			cd.text( options, posX + posX * 0.028, testPosY, string.format( "%d:%02i", minutes, seconds ) )
-
-			options.alignment = "left top"
-			local ms_options = Override( options, { font_size = options.font_size / 2 } )
-			cd.text( ms_options, posX + posX * 0.032, testPosY + options.font_size * 0.3, string.format( ".%03i", milliseconds ))
-		elseif state.gametype == Gametype_Bomb then
-			local size = state.viewport_height * 0.055
-			cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, "#fff", assets.bomb )
-		end
+		DrawClockOrBomb( state, posX )
 
 		if state.gametype == Gametype_Bomb then
+			options.font_size = state.viewport_height / 25
+
 			options.color = cd.getTeamColor( Team_One )
 			cd.text( options, posX - posX / 11, state.viewport_height * 0.012, state.scoreAlpha )
 			options.color = cd.getTeamColor( Team_Two )
@@ -211,6 +239,59 @@ local function DrawUtility( state, options, x, y, size, outline_size )
 	end
 end
 
+local function DrawWeapon( state, options, x, y, width, height, padding, weaponID, weaponInfo, show_bind )
+	local h = height
+	local ammo = weaponInfo.ammo
+	local max_ammo = weaponInfo.max_ammo
+	local selected = state.weapon == weaponInfo.weapon
+	local whiteBarHeight = height * 0.0125
+
+	if show_bind then
+		options.color = "#fff"
+		options.alignment = "center middle"
+		options.font_size = width * 0.2
+		cd.text( options, x + width/2, y - options.font_size, cd.getBind( string.format("weapon %d", weaponID) ) )
+	end
+
+
+	if selected then
+		h += whiteBarHeight * 2
+	end
+
+	local frac = -1
+	if max_ammo ~= 0 then
+		frac = ammo/max_ammo
+	end
+
+	if state.weapon == weaponInfo.weapon then
+		h *= 1.05
+		if state.weapon_state == WeaponState_Reloading or state.weapon_state == WeaponState_StagedReloading then
+			local reload_frac = state.weapon_state_time/cd.getWeaponReloadTime( weaponInfo.weapon )
+			frac = cd.getWeaponStagedReload( weaponInfo.weapon ) and frac + reload_frac / max_ammo or reload_frac
+		end
+	end
+
+	DrawBoxOutline( x, y, width, h, padding )
+
+	options.font_size = width * 0.22
+	options.alignment = "left top"
+
+	DrawAmmoFrac( options, x, y, width, ammo, frac, cd.getWeaponIcon( weaponInfo.weapon ) )
+	if selected then
+		cd.box( x, y + width + padding, width, whiteBarHeight, "#fff" )
+		cd.box( x, y + h, width, whiteBarHeight, "#fff" )
+	end
+
+	if selected then
+		options.color = "#fff"
+	else
+		options.color = "#999"
+	end
+	options.alignment = "center middle"
+	options.font_size = width * 0.18
+	cd.text( options, x + width/2, y + width + (h - width + padding)/2, weaponInfo.name )
+end
+
 local function DrawWeaponBar( state, options, x, y, width, height, padding )
 	x += padding
 	y += padding
@@ -219,46 +300,7 @@ local function DrawWeaponBar( state, options, x, y, width, height, padding )
 	local show_bind = hotkeys( state )
 
 	for k, v in ipairs( state.weapons ) do
-		local h = height
-		local ammo = v.ammo
-		local max_ammo = v.max_ammo
-
-		if show_bind then
-			options.color = "#fff"
-			options.alignment = "center middle"
-			options.font_size = width * 0.2
-			cd.text( options, x + width/2, y - options.font_size, cd.getBind( string.format("weapon %d", k) ) )
-		end
-
-
-		if state.weapon == v.weapon then
-			h *= 1.05
-		end
-
-		local frac = -1
-		if max_ammo ~= 0 then
-			frac = ammo/max_ammo
-		end
-
-		if state.weapon == v.weapon then
-			h *= 1.05
-			if state.weapon_state == WeaponState_Reloading or state.weapon_state == WeaponState_StagedReloading then
-				frac = state.weapon_state_time/cd.getWeaponReloadTime( v.weapon )
-			end
-		end
-
-		DrawBoxOutline( x, y, width, h, padding )
-
-		options.font_size = width * 0.22
-		options.alignment = "left top"
-
-		DrawAmmoFrac( options, x, y, width, ammo, frac, cd.getWeaponIcon( v.weapon ) )
-
-		options.color = "#fff"
-		options.alignment = "center middle"
-		options.font_size = width * 0.18
-		cd.text( options, x + width/2, y + width + (h - width + padding)/2, v.name )
-
+		DrawWeapon( state, options, x, y, width, height, padding, k, v, show_bind )
 		x += width + padding * 3
 	end
 
@@ -277,7 +319,7 @@ local function DrawStaminaBar( state, x, y, width, height, padding, bg_color )
 	local stamina_color = cd.allyColor()
 
 	if state.perk == Perk_Hooligan then
-		cd.box( x, y, width, height, bg_color )
+		DrawBoxOutline( x, y, width, height, padding )
 
 		local steps = 2
 		local cell_width = width/steps
@@ -325,24 +367,22 @@ local function DrawStaminaBar( state, x, y, width, height, padding, bg_color )
 	end
 end
 
-local function DrawPlayerBar( state )
+local function DrawPlayerBar( state, offset, padding )
 	if state.health <= 0 or state.ghost or state.zooming then
 		return
 	end
 
-	local offset = state.viewport_width * 0.01
-	local stamina_bar_height = state.viewport_width * 0.012
+	local stamina_bar_height = state.viewport_width * 0.015
 	local health_bar_height = state.viewport_width * 0.022
 	local empty_bar_height = state.viewport_width * 0.019
-	local padding = math.floor( offset * 0.3 );
 
-	local width = state.viewport_width * 0.21
+	local width = state.viewport_width * 0.25
 	local height = stamina_bar_height + health_bar_height + empty_bar_height + padding * 4
 
 	local x = offset
 	local y = state.viewport_height - offset - height
 
-	local perks_utility_size = state.viewport_width * 0.035
+	local perks_utility_size = state.viewport_width * 0.03
 	local perkX = x + padding
 	local perkY = y - perks_utility_size - padding * 2
 	local weapons_options = {
@@ -435,6 +475,235 @@ local function DrawLagging( state )
 	if state.lagging then
 		local width = state.viewport_width * 0.05
 		cd.box( width, width, width, width, "#fff", assets.net )
+	end
+end
+
+local function DrawScoreboardEmptySlot( options, Y, nameX, scoreX, killsX, pingX )
+	options.color = "#444"
+	options.alignment = "left middle"
+	cd.text( options, nameX, Y, "--------" )
+	options.alignment = "center middle"
+	cd.text( options, scoreX, Y, "---" )
+	cd.text( options, killsX, Y, "---" )
+	cd.text( options, pingX, Y, "---" )
+end
+
+local function DrawScoreboardPlayer( state, options, X, Y, width, height, nameX, scoreX, killsX, pingX, readyX, player, teamColor )
+	Y += height/2
+
+	if not player.alive then
+		teamColor.a = 0.2
+	end
+	
+	options.font_size = height
+	options.color = teamColor
+	options.alignment = "left middle"
+	cd.text( options, nameX, Y, string.sub( player.name, 1, (scoreX - nameX)/(height * 0.45) ) )
+	teamColor.a = 1.0 -- hack because teamcolor seems to be a reference
+
+	options.color = RGBALinear( 1, 1, 1, 1 )
+	options.alignment = "center middle"
+	cd.text( options, scoreX, Y, player.score )
+	cd.text( options, killsX, Y, player.kills )
+	options.color.g = math.max(0.0, 1.0 - player.ping * 0.002)
+	options.color.b = math.max(0.0, 1.0 - player.ping * 0.01)
+	cd.text( options, pingX, Y, player.ping )
+
+	if state.match_state == MatchState_Warmup and player.ready then
+		options.color = yellow
+		options.alignment = "left middle"
+		options.font_size = height * 0.8
+		cd.text( options, readyX, Y, "READY" )
+		options.font_size = height
+	end
+end
+
+local function DrawScoreboardTeam( state, X, Y, width, outline, numPlayersTeam, numLines, team, lineHeight, options )
+	local tabHeight = lineHeight * (numLines + 1) + outline * numLines -- add one line for description
+	local teamColor = cd.getTeamColor( team )
+	local teamState = state.teams[ team ]
+
+	local nameX = X + outline
+	local scoreX = X + width * 0.58
+	local killsX = X + width * 0.76
+	local pingX = X + width * 0.92
+	local readyX = X + width * 1.025
+
+	DrawBoxOutline( X, Y, width, tabHeight, outline )
+	cd.box( X, Y, width, lineHeight, teamColor )
+
+	options.color = dark_grey
+	options.alignment = "left middle"
+	local team_text = "DEFENDING"
+	if state.attacking_team == team then
+		team_text = "ATTACKING"
+	end
+	cd.text( options, nameX, Y + lineHeight/2, team_text )
+	options.alignment = "center middle"
+	cd.text( options, scoreX, Y + lineHeight/2, "SCORE" )
+	cd.text( options, killsX, Y + lineHeight/2, "KILLS" )
+	cd.text( options, pingX, Y + lineHeight/2, "PING" )
+
+	for k, player in pairs( teamState.players ) do
+		Y += lineHeight + outline
+
+		DrawScoreboardPlayer( state, options, X, Y, width, lineHeight, nameX, scoreX, killsX, pingX, readyX, player, teamColor )
+	end
+
+	if numLines > numPlayersTeam then
+		options.color = "#444"
+		options.alignment = "left middle"
+		for i = 0, numLines - numPlayersTeam - 1, 1 do
+			Y += lineHeight + outline
+			DrawScoreboardEmptySlot( options, Y + lineHeight/2 + outline, nameX, scoreX, killsX, pingX )
+		end
+	end
+
+	return tabHeight + outline * 3
+end
+
+local function DrawScoreboard( state, offset, outline )
+	if not state.scoreboard then
+		return
+	end
+
+	local width = state.viewport_width * 0.29
+	local titleHeight = state.viewport_height * 0.07
+	local lineHeight = state.viewport_height * 0.03
+	local X = offset
+	local Y = offset
+	
+	local starsX = X
+	local starsWidth = lineHeight * state.scorelimit
+
+	local title_options = {
+		color = dark_grey,
+		border = "#0000",
+		font = "bolditalic",
+		font_size = titleHeight,
+		alignment = "center middle",
+	}
+
+	local text_options = {
+		border = "#0000",
+		font = "bolditalic",
+		font_size = lineHeight
+	}
+
+	if state.gametype == Gametype_Gladiator then
+		width = state.viewport_width * 0.36 + starsWidth * 0.5
+	end
+
+	DrawBoxOutline( X, Y, width, titleHeight, outline )
+	cd.box( X, Y, width, titleHeight, yellow )
+	cd.text( title_options, X + width/2, Y + titleHeight/2, "SCOREBOARD" )
+	Y += titleHeight + outline * 3
+
+	if state.gametype == Gametype_Bomb then -- Bomb
+		local numPlayerTeamOne = state.teams[ Team_One ].num_players
+		--cd.text(title_options, 0, 0, numPlayersTeamOne)
+		local numPlayerTeamTwo = state.teams[ Team_Two ].num_players
+		--cd.text(title_options, 0, 50, numPlayersTeamTwo)
+		local numLines = math.max(4, math.max(numPlayerTeamOne, numPlayerTeamTwo))
+
+		Y += DrawScoreboardTeam( state, X, Y, width, outline, numPlayerTeamOne, numLines, Team_One, lineHeight, text_options )
+		Y += DrawScoreboardTeam( state, X, Y, width, outline, numPlayerTeamTwo, numLines, Team_Two, lineHeight, text_options )
+	else -- Gladiator
+		local placeX = starsX + starsWidth + width * 0.06 - outline
+		local nameX = placeX + width * 0.06
+		local scoreX = X + width * 0.68
+		local killsX = X + width * 0.8
+		local pingX = X + width * 0.92
+		local readyX = X + width * 1.025
+
+		local numPlayers = 0
+		for t = Team_One, Team_Count - 1, 1 do
+			numPlayers += state.teams[ t ].num_players
+		end
+
+		local numLines = math.max(numPlayers, Team_Count - 1)
+
+		DrawBoxOutline( X, Y, width, lineHeight * (numLines + 1) + outline * numLines, outline )
+		cd.box( X, Y, width, lineHeight, "#fff" )
+		text_options.color = dark_grey
+
+		text_options.alignment = "center middle"
+		cd.text( text_options, starsX + starsWidth * 0.5, Y + lineHeight/2, "SCORE" )
+		text_options.alignment = "left middle"
+		cd.text( text_options, nameX, Y + lineHeight/2, "NAME" )
+		text_options.alignment = "center middle"
+		cd.text( text_options, scoreX, Y + lineHeight/2, "WINS" )
+		cd.text( text_options, killsX, Y + lineHeight/2, "KILLS" )
+		cd.text( text_options, pingX, Y + lineHeight/2, "PING" )
+		
+		local place = 0
+		local line = 0
+		local previous_max_score = state.scorelimit
+		while line < numLines do
+			place += 1
+
+			local max_score = 0
+			for k, team in pairs( state.teams ) do
+				if team.score > max_score and team.score < previous_max_score then
+					max_score = team.score
+				end
+			end
+			previous_max_score = max_score
+
+			for k, team in pairs( state.teams ) do
+				if team.score == max_score then
+					local teamColor = cd.getTeamColor( k )
+					local starColorBack = "#aaa"
+					local starColorFront = yellow
+					
+					if team.num_players == 0 then
+						starColorBack = "#555"
+					end
+
+					local tmpY = Y + lineHeight + outline
+					cd.boxuv( starsX, tmpY, starsWidth, lineHeight, 0, 0, state.scorelimit, 1, starColorBack, assets.star )
+					cd.boxuv( starsX + lineHeight * (state.scorelimit - team.score), tmpY, lineHeight * team.score, lineHeight, 0, 0, team.score, 1, starColorFront, assets.star )
+					yellow.a = 1.0
+
+					local placeText = ""
+					if team.num_players == 0 then placeText = "---"
+					elseif place == 1 then placeText = "1st"
+					elseif place == 2 then placeText = "2nd"
+					elseif place == 3 then placeText = "3rd"
+					else placeText = place .. "th" end
+
+					if team.num_players == 0 then
+						text_options.color = "#444"
+					else
+						text_options.color = RGBALinear( 1.0, 1.0, 1.0, 1.0/place )
+					end
+					
+					text_options.alignment = "center middle"
+					cd.text( text_options, placeX, tmpY + lineHeight/2, placeText )
+
+					if team.num_players == 0 then
+						line += 1
+						Y += lineHeight + outline
+						DrawScoreboardEmptySlot( text_options, Y + lineHeight/2 + outline, nameX, scoreX, killsX, pingX )
+					else
+						for k, player in pairs( team.players ) do
+							line += 1
+							Y += lineHeight + outline
+							DrawScoreboardPlayer( state, text_options, X, Y, width, lineHeight, nameX, scoreX, killsX, pingX, readyX, player, teamColor )
+						end
+					end
+				end
+			end
+		end
+
+		Y += lineHeight + outline * 3
+	end
+
+	if state.spectating > 0 then
+		DrawBoxOutline( X, Y, width, lineHeight + outline, outline )
+		text_options.color = "#fff"
+		text_options.alignment = "left middle"
+		cd.text( text_options, nameX, Y + lineHeight/2, state.spectating .. " spectating")
 	end
 end
 
@@ -546,12 +815,15 @@ local function DrawYogaStuff( state )
 end
 
 return function( state )
+	local offset = state.viewport_width * 0.01
+	local padding = math.floor( offset * 0.3 )
+
 	if state.match_state < MatchState_PostMatch then
 		cd.drawBombIndicators( state.viewport_height / 26, state.viewport_height / 60, state.viewport_height / 50 ) -- site name size, site message size (ATTACK/DEFEND/...)
 
 		DrawTopInfo( state )
 
-		DrawPlayerBar( state )
+		DrawPlayerBar( state, offset, padding )
 
 		DrawDevInfo( state )
 
@@ -566,6 +838,8 @@ return function( state )
 		cd.drawObituaries( state.viewport_width - 10, 2, state.viewport_width / 10, state.viewport_width / 10,
 						   state.viewport_height / 20, state.viewport_width / 70, "right top" )
 	end
+
+	DrawScoreboard( state, offset, padding )
 
 	DrawCallvote( state )
 

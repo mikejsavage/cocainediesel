@@ -7,7 +7,7 @@
 #include "client/assets.h"
 #include "client/maps.h"
 #include "client/renderer/model.h"
-#include "game/hotload_map.h"
+#include "game/hotload.h"
 #include "gameshared/cdmap.h"
 #include "gameshared/collision.h"
 
@@ -142,17 +142,20 @@ void HotloadMaps() {
 
 	for( Span< const char > path : ModifiedAssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
-		if( ext != ".cdmap" )
-			continue;
-
-		AddMap( AssetBinary( path ), path );
-		hotloaded_anything = true;
+		if( ext == ".cdmap" ) {
+			AddMap( AssetBinary( path ), path );
+			hotloaded_anything = true;
+		}
+		else if( ext == ".glb" ) {
+			AddGLTFModel( AssetBinary( path ), StripExtension( path ) );
+			hotloaded_anything = true;
+		}
 	}
 
 	// if we hotload a map while playing a local game just assume we're
 	// playing on it and always hotload
 	if( hotloaded_anything && Com_ServerState() != ss_dead ) {
-		G_HotloadMap();
+		G_HotloadCollisionModels();
 	}
 }
 

@@ -307,17 +307,10 @@ void AddDamageEffect( float x = 0.0f );
 //
 void CG_InitHUD();
 void CG_ShutdownHUD();
+void CG_DrawScoreboard();
 void CG_SC_ResetObituaries();
 void CG_SC_Obituary( const Tokenized & args );
 void CG_DrawHUD();
-
-//
-// cg_scoreboard.c
-//
-void CG_DrawScoreboard();
-void CG_ScoresOn_f();
-void CG_ScoresOff_f();
-bool CG_ScoreboardShown();
 
 //
 // cg_main.c

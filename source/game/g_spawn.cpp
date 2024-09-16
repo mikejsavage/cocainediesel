@@ -202,6 +202,7 @@ static void ParseEntityKeyValue( Span< const char > key, Span< const char > valu
 	used = used || DoField( "size", &st->size, key, value );
 	used = used || DoField( "spawn_probability", &st->spawn_probability, key, value );
 	used = used || DoField( "power", &st->power, key, value );
+	used = used || key == "gametype";
 
 	if( !used && key.n > 0 && key[ 0 ] != '_' ) {
 		Com_GGPrint( "{} is not a valid entity key", key );
@@ -225,7 +226,7 @@ static void G_FreeEntities() {
 }
 
 static void SpawnMapEntities() {
-	level.spawnedTimeStamp = svs.gametime;
+	level.spawnedTimeStamp = svs.monotonic_time;
 	level.canSpawnEntities = true;
 
 	const MapData * map = FindServerMap( server_gs.gameState.map );
@@ -277,7 +278,7 @@ static void SpawnMapEntities() {
 * Creates a server's entity / program execution context by
 * parsing textual entity definitions out of an ent file.
 */
-void G_InitLevel( const char *mapname, int64_t levelTime ) {
+void G_InitLevel( Span< const char > mapname, int64_t levelTime ) {
 	ResetEntityIDSequence();
 
 	memset( &level, 0, sizeof( level_locals_t ) );
@@ -338,7 +339,7 @@ void G_ResetLevel() {
 
 void G_RespawnLevel() {
 	ShutdownGametype();
-	G_InitLevel( sv.mapname, level.time );
+	G_InitLevel( MakeSpan( sv.mapname ), level.time );
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = &game.edicts[ i + 1 ];
@@ -348,10 +349,14 @@ void G_RespawnLevel() {
 	}
 }
 
-void G_HotloadMap() {
+void G_HotloadCollisionModels() {
 	ShutdownServerCollisionModels();
 	InitServerCollisionModels();
-	LoadServerMap( sv.mapname );
+	LoadServerMap( MakeSpan( sv.mapname ) );
+
+	if( level.gametype.MapHotloading != NULL ) {
+		level.gametype.MapHotloading();
+	}
 
 	G_ResetLevel();
 

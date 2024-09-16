@@ -35,20 +35,21 @@ enum EntityType : u8 {
 	ET_JUMPPAD,
 	ET_PAINKILLER_JUMPPAD,
 
-	ET_ROCKET,
-	ET_GRENADE,
-	ET_STUNGRENADE,
-	ET_ARBULLET,
+	ET_BAZOOKA,
+	ET_LAUNCHER,
+	ET_FLASH,
+	ET_ASSAULT,
 	ET_BUBBLE,
 	ET_RAILALT,
-	ET_RIFLEBULLET,
-	ET_PISTOLBULLET,
-	ET_STAKE,
-	ET_BLAST,
+	ET_RIFLE,
+	ET_PISTOL,
+	ET_CROSSBOW,
+	ET_BLASTER,
 	ET_SAWBLADE,
+	ET_STICKY,
 
 	ET_SHURIKEN,
-	ET_THROWING_AXE,
+	ET_AXE,
 
 	ET_LASERBEAM,
 
@@ -91,45 +92,41 @@ enum WeaponType : u8 {
 	Weapon_Bat,
 	Weapon_9mm,
 	Weapon_Pistol,
-	Weapon_MachineGun,
+	Weapon_Smg,
 	Weapon_Deagle,
 	Weapon_Shotgun,
-	Weapon_DoubleBarrel,
-	Weapon_BurstRifle,
-	Weapon_StakeGun,
-	Weapon_GrenadeLauncher,
-	Weapon_RocketLauncher,
-	Weapon_AssaultRifle,
-	Weapon_BubbleGun,
+	Weapon_SawnOff,
+	Weapon_Burst,
+	Weapon_Crossbow,
+	Weapon_Launcher,
+	Weapon_Bazooka,
+	Weapon_Assault,
+	Weapon_Bubble,
 	Weapon_Laser,
-	Weapon_Railgun,
+	Weapon_Rail,
 	Weapon_Sniper,
-	Weapon_AutoSniper,
+	Weapon_Scout,
 	Weapon_Rifle,
-	Weapon_MasterBlaster,
-	Weapon_RoadGun,
-	Weapon_StickyGun,
+	Weapon_Blaster,
+	Weapon_Roadgun,
+	Weapon_Sticky,
 	Weapon_Sawblade,
 	// Weapon_Minigun,
 
 	Weapon_Count
 };
 
-void operator++( WeaponType & x, int );
-
 enum GadgetType : u8 {
 	Gadget_None,
 
-	Gadget_ThrowingAxe,
-	Gadget_SuicideBomb,
-	Gadget_StunGrenade,
+	Gadget_Axe,
+	Gadget_Martyr,
+	Gadget_Flash,
 	Gadget_Rocket,
 	Gadget_Shuriken,
 
 	Gadget_Count
 };
-
-void operator++( GadgetType & x, int );
 
 enum WorldDamage : u8 {
 	WorldDamage_Crush,
@@ -168,8 +165,6 @@ enum PerkType : u8 {
 
 	Perk_Count
 };
-
-void operator++( PerkType & x, int );
 
 enum StaminaState : u8 {
 	Stamina_Normal,
@@ -253,6 +248,10 @@ enum Team : u8 {
 	Team_Two,
 	Team_Three,
 	Team_Four,
+	Team_Five,
+	Team_Six,
+	Team_Seven,
+	Team_Eight,
 
 	Team_Count
 };
@@ -290,6 +289,8 @@ struct SyncGameState {
 	s64 match_state_start_time;
 	s64 match_duration;
 	s64 clock_override;
+
+	u8 scorelimit;
 
 	char callvote[ 32 ];
 	u8 callvote_required_votes;
@@ -358,10 +359,6 @@ enum EntityFlags : u16 {
 	SVF_FORCETEAM        = 1 << 8, // this entity is always transmitted to clients with the same ent->s.team value
 	SVF_NEVEROWNER       = 1 << 9, // this entity is tramitted to everyone but its owner
 };
-
-void operator&=( EntityFlags & lhs, EntityFlags rhs );
-void operator|=( EntityFlags & lhs, EntityFlags rhs );
-EntityFlags operator~( EntityFlags x );
 
 struct SyncEntityState {
 	int number;
@@ -434,8 +431,7 @@ struct pmove_state_t {
 
 	s16 no_shooting_time;
 
-	s16 knockback_time;
-	s16 jumppad_time;
+	s16 no_friction_time;
 
 	float stamina;
 	float stamina_stored;
@@ -511,8 +507,6 @@ enum UserCommandButton : u8 {
 	Button_Gadget = 1 << 5,
 	Button_Plant = 1 << 6,
 };
-
-void operator|=( UserCommandButton & lhs, UserCommandButton rhs );
 
 struct UserCommand {
 	u8 msec;

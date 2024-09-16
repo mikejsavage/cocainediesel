@@ -22,7 +22,7 @@ static bool ParseWeaponModelConfig( WeaponModelMetadata * metadata, Span< const 
 
 	metadata->handpositionAngles.pitch = ParseFloat( &contents, 0.0f, Parse_StopOnNewLine );
 	metadata->handpositionAngles.yaw = ParseFloat( &contents, 0.0f, Parse_StopOnNewLine );
-	metadata->handpositionAngles.roll= ParseFloat( &contents, 0.0f, Parse_StopOnNewLine );
+	metadata->handpositionAngles.roll = ParseFloat( &contents, 0.0f, Parse_StopOnNewLine );
 
 	return true;
 }
@@ -34,15 +34,15 @@ static WeaponModelMetadata BuildWeaponModelMetadata( WeaponType weapon ) {
 
 	Span< const char > name = GS_GetWeaponDef( weapon )->short_name;
 
-	metadata.model = StringHash( temp( "weapons/{}/model", name ) );
+	metadata.model = StringHash( temp( "loadout/{}/weapon", name ) );
 
-	ParseWeaponModelConfig( &metadata, temp.sv( "weapons/{}/model.cfg", name ) );
+	ParseWeaponModelConfig( &metadata, temp.sv( "loadout/{}/model.cfg", name ) );
 
-	metadata.fire_sound = StringHash( temp.sv( "weapons/{}/fire", name ) );
-	metadata.reload_sound = StringHash( temp.sv( "weapons/{}/reload", name ) );
-	metadata.switch_in_sound = StringHash( temp.sv( "weapons/{}/up", name ) );
-	metadata.zoom_in_sound = StringHash( temp.sv( "weapons/{}/zoom_in", name ) );
-	metadata.zoom_out_sound = StringHash( temp.sv( "weapons/{}/zoom_out", name ) );
+	metadata.fire_sound = StringHash( temp.sv( "loadout/{}/fire", name ) );
+	metadata.reload_sound = StringHash( temp.sv( "loadout/{}/reload", name ) );
+	metadata.switch_in_sound = StringHash( temp.sv( "loadout/{}/up", name ) );
+	metadata.zoom_in_sound = StringHash( temp.sv( "loadout/{}/zoom_in", name ) );
+	metadata.zoom_out_sound = StringHash( temp.sv( "loadout/{}/zoom_out", name ) );
 
 	return metadata;
 }
@@ -53,9 +53,9 @@ static GadgetModelMetadata BuildGadgetModelMetadata( GadgetType gadget ) {
 
 	GadgetModelMetadata metadata;
 
-	metadata.model = StringHash( temp.sv( "gadgets/{}/model", name ) );
-	metadata.use_sound = StringHash( temp.sv( "gadgets/{}/use", name ) );
-	metadata.switch_in_sound = StringHash( temp.sv( "gadgets/{}/switch_in", name ) );
+	metadata.model = StringHash( temp.sv( "loadout/{}/projectile", name ) );
+	metadata.use_sound = StringHash( temp.sv( "loadout/{}/use", name ) );
+	metadata.switch_in_sound = StringHash( temp.sv( "loadout/{}/switch_in", name ) );
 
 	return metadata;
 }

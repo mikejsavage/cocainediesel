@@ -151,7 +151,7 @@ static void Key_Unbind_f( const Tokenized & args ) {
 	}
 
 	Optional< int > key = Key_StringToKeynum( args.tokens[ 1 ] );
-	if( key.exists ) {
+	if( !key.exists ) {
 		Com_GGPrint( "\"{}\" isn't a valid key", args.tokens[ 1 ] );
 		return;
 	}

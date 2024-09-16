@@ -24,8 +24,7 @@ void ShutdownFS();
 const char * RootDirPath();
 const char * HomeDirPath();
 
-char * ReadFileString( Allocator * a, const char * path, size_t * len = NULL );
-Span< u8 > ReadFileBinary( Allocator * a, const char * path );
+Span< u8 > ReadFileBinary( Allocator * a, const char * path, SourceLocation src_loc = CurrentSourceLocation() );
 
 FILE * OpenFile( Allocator * a, const char * path, OpenFileMode mode );
 bool CloseFile( FILE * file );

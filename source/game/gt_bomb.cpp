@@ -299,7 +299,7 @@ static void SpawnBomb() {
 
 	bomb_state.bomb.model->s.override_collision_model = CollisionModelAABB( bomb_bounds );
 
-	bomb_state.bomb.model->s.solidity = SolidBits( Solid_World | Solid_Trigger );
+	bomb_state.bomb.model->s.solidity = Solid_World | Solid_Trigger;
 	bomb_state.bomb.model->s.model = model_bomb;
 	bomb_state.bomb.model->s.effects |= EF_TEAM_SILHOUETTE;
 	bomb_state.bomb.model->s.silhouetteColor = RGBA8( 255, 255, 255, 255 );
@@ -390,7 +390,7 @@ static void DropBomb( BombDropReason reason ) {
 	bomb_state.bomb.model->r.owner = carrier_ent;
 	bomb_state.bomb.model->s.origin = trace.endpos;
 	bomb_state.bomb.model->velocity = velocity;
-	bomb_state.bomb.model->s.solidity = SolidBits( Solid_World | Solid_Trigger );
+	bomb_state.bomb.model->s.solidity = Solid_World | Solid_Trigger;
 	Show( bomb_state.bomb.model );
 	RemoveCarrier();
 	bomb_state.bomb.state = BombState_Dropped;
@@ -700,15 +700,14 @@ static void PlayXvXSound( Team team_that_died ) {
 }
 
 static void SetTeams() {
-	u32 limit = g_scorelimit->integer;
 	u8 round_num = server_gs.gameState.round_num;
-	if( limit == 0 || round_num > ( limit - 1 ) * 2 ) {
+	if( server_gs.gameState.scorelimit == 0 || round_num > ( server_gs.gameState.scorelimit - 1 ) * 2 ) {
 		bool odd = round_num % 2 == 1;
 		server_gs.gameState.bomb.attacking_team = odd ? initial_attackers : initial_defenders;
 		return;
 	}
 
-	bool first_half = round_num < limit;
+	bool first_half = round_num < server_gs.gameState.scorelimit;
 	server_gs.gameState.bomb.attacking_team = first_half ? initial_attackers : initial_defenders;
 }
 
@@ -743,12 +742,10 @@ static bool ScoreLimitHit() {
 static void SetRoundType() {
 	RoundType type = RoundType_Normal;
 
-	u32 limit = g_scorelimit->integer;
-
 	u8 alpha_score = server_gs.gameState.teams[ Team_One ].score;
 	u8 beta_score = server_gs.gameState.teams[ Team_Two ].score;
-	bool match_point = alpha_score == limit - 1 || beta_score == limit - 1;
-	bool overtime = server_gs.gameState.round_num > ( limit - 1 ) * 2;
+	bool match_point = alpha_score == server_gs.gameState.scorelimit - 1 || beta_score == server_gs.gameState.scorelimit - 1;
+	bool overtime = server_gs.gameState.round_num > ( server_gs.gameState.scorelimit - 1 ) * 2;
 
 	if( overtime ) {
 		type = alpha_score == beta_score ? RoundType_Overtime : RoundType_OvertimeMatchPoint;
@@ -1095,6 +1092,7 @@ static void Bomb_MatchStateStarted() {
 
 static void Bomb_Init() {
 	server_gs.gameState.gametype = Gametype_Bomb;
+	server_gs.gameState.scorelimit = 10;
 	server_gs.gameState.bomb.attacking_team = initial_attackers;
 
 	bomb_state = { };
@@ -1115,7 +1113,7 @@ static void Bomb_Init() {
 		SetLoadout( ent, MSG_ReadString( &args ), false );
 	} );
 
-	g_bomb_roundtime = NewCvar( "g_bomb_roundtime", "61", CvarFlag_Archive );
+	g_bomb_roundtime = NewCvar( "g_bomb_roundtime", "60", CvarFlag_Archive );
 	g_bomb_bombtimer = NewCvar( "g_bomb_bombtimer", "30", CvarFlag_Archive );
 }
 

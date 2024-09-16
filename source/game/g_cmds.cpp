@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
+#include "qcommon/time.h"
 #include "gameshared/vsays.h"
 
 /*
@@ -105,10 +106,10 @@ static void Cmd_Position_f( edict_t * ent, msg_t msg ) {
 	}
 
 	// flood protect
-	if( ent->r.client->teamstate.position_lastcmd + 500 > svs.realtime ) {
+	if( ent->r.client->teamstate.position_lastcmd + Milliseconds( 500 ) > svs.monotonic_time ) {
 		return;
 	}
-	ent->r.client->teamstate.position_lastcmd = svs.realtime;
+	ent->r.client->teamstate.position_lastcmd = svs.monotonic_time;
 
 	TempAllocator temp = svs.frame_arena.temp();
 	Tokenized args = Tokenize( &temp, MakeSpan( MSG_ReadString( &msg ) ) );
@@ -212,9 +213,8 @@ bool CheckFlood( edict_t * ent, bool teamonly ) {
 
 	// old protection still active
 	if( !teamonly || g_floodprotection_team->integer ) {
-		if( svs.realtime < client->level.flood_locktill ) {
-			G_PrintMsg( ent, "You can't talk for %d more seconds\n",
-						(int)( ( client->level.flood_locktill - svs.realtime ) / 1000.0f ) + 1 );
+		if( svs.monotonic_time < client->level.flood_locktill ) {
+			G_PrintMsg( ent, "You can't talk for %d more seconds\n", int( ToSeconds( client->level.flood_locktill - svs.monotonic_time ) ) + 1 );
 			return true;
 		}
 	}
@@ -226,16 +226,16 @@ bool CheckFlood( edict_t * ent, bool teamonly ) {
 				i = ARRAY_COUNT( client->level.flood_when ) + i;
 			}
 
-			if( client->level.flood_team_when[i] && client->level.flood_team_when[i] <= svs.realtime &&
-				( svs.realtime < client->level.flood_team_when[i] + g_floodprotection_seconds->integer * 1000 ) ) {
-				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->integer * 1000;
+			if( client->level.flood_team_when[i] != Seconds( 0 ) && client->level.flood_team_when[i] <= svs.monotonic_time &&
+				( svs.monotonic_time < client->level.flood_team_when[i] + Seconds( g_floodprotection_seconds->integer ) ) ) {
+				client->level.flood_locktill = svs.monotonic_time + Seconds( g_floodprotection_penalty->integer );
 				G_PrintMsg( ent, "Flood protection: You can't talk for %d seconds.\n", g_floodprotection_penalty->integer );
 				return true;
 			}
 		}
 
 		client->level.flood_team_whenhead = ( client->level.flood_team_whenhead + 1 ) % ARRAY_COUNT( client->level.flood_when );
-		client->level.flood_team_when[client->level.flood_team_whenhead] = svs.realtime;
+		client->level.flood_team_when[client->level.flood_team_whenhead] = svs.monotonic_time;
 	} else {
 		if( g_floodprotection_messages->integer && g_floodprotection_penalty->number > 0 ) {
 			i = client->level.flood_whenhead - g_floodprotection_messages->integer + 1;
@@ -243,16 +243,16 @@ bool CheckFlood( edict_t * ent, bool teamonly ) {
 				i = ARRAY_COUNT( client->level.flood_when ) + i;
 			}
 
-			if( client->level.flood_when[i] && client->level.flood_when[i] <= svs.realtime &&
-				( svs.realtime < client->level.flood_when[i] + g_floodprotection_seconds->integer * 1000 ) ) {
-				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->integer * 1000;
+			if( client->level.flood_when[i] != Seconds( 0 ) && client->level.flood_when[i] <= svs.monotonic_time &&
+				( svs.monotonic_time < client->level.flood_when[i] + Seconds( g_floodprotection_seconds->integer ) ) ) {
+				client->level.flood_locktill = svs.monotonic_time + Seconds( g_floodprotection_penalty->integer );
 				G_PrintMsg( ent, "Flood protection: You can't talk for %d seconds.\n", g_floodprotection_penalty->integer );
 				return true;
 			}
 		}
 
 		client->level.flood_whenhead = ( client->level.flood_whenhead + 1 ) % ARRAY_COUNT( client->level.flood_when );
-		client->level.flood_when[client->level.flood_whenhead] = svs.realtime;
+		client->level.flood_when[client->level.flood_whenhead] = svs.monotonic_time;
 	}
 
 	return false;
@@ -294,7 +294,7 @@ static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 	if( G_ISGHOSTING( ent ) )
 		return;
 
-	if( ent->r.client->level.last_spray + 2500 > svs.realtime )
+	if( ent->r.client->level.last_spray + Milliseconds( 2500 ) > svs.monotonic_time )
 		return;
 
 	Vec3 forward;
@@ -312,7 +312,7 @@ static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 	if( target->s.type != ET_MAPMODEL && target != world )
 		return;
 
-	ent->r.client->level.last_spray = svs.realtime;
+	ent->r.client->level.last_spray = svs.monotonic_time;
 
 	edict_t * event = G_SpawnEvent( EV_SPRAY, Random64( &svs.rng ), &trace.endpos );
 	event->s.angles = ent->r.client->ps.viewangles;
@@ -325,10 +325,10 @@ static void G_vsay_f( edict_t * ent, msg_t args ) {
 		return;
 	}
 
-	if( ent->r.client->level.last_vsay > svs.realtime - 500 ) {
+	if( ent->r.client->level.last_vsay > svs.monotonic_time - Milliseconds( 500 ) ) {
 		return;
 	}
-	ent->r.client->level.last_vsay = svs.realtime;
+	ent->r.client->level.last_vsay = svs.monotonic_time;
 
 	const char * arg = MSG_ReadString( &args );
 

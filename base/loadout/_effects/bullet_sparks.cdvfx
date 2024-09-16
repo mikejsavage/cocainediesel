@@ -1,0 +1,19 @@
+{
+  particles {
+    material textures/vfx/scorch1
+    blendfunc add
+
+    position cone 10 0
+    speed 0
+
+    angle 0
+
+    color 1.0 0.0 0.0 1.0
+    end_color 1.0 0.0 0.0 0.0
+
+    size 0 0
+
+    lifetime 0.5
+    count 1
+  }
+}

@@ -291,7 +291,7 @@ static void PM_Friction() {
 
 	// apply ground friction
 	if( pm->groundentity != -1 || pml.ladder ) {
-		if( pm->playerState->pmove.knockback_time <= 0 ) {
+		if( pm->playerState->pmove.no_friction_time <= 0 ) {
 			float control = speed < pm_decelerate ? pm_decelerate : speed;
 			drop += control * pml.groundFriction * pml.frametime;
 		}
@@ -308,6 +308,9 @@ static void PM_Friction() {
 * Handles user intended acceleration
 */
 static void PM_Accelerate( Vec3 wishdir, float wishspeed, float accel ) {
+	if( pm->playerState->pmove.no_friction_time > 0 )
+		return;
+
 	float currentspeed = Dot( pml.velocity, wishdir );
 	float addspeed = wishspeed - currentspeed;
 	if( addspeed <= 0 ) {
@@ -433,13 +436,13 @@ static void PM_Move() {
 		float wishspeed2 = wishspeed;
 		float accel = 0.0f;
 
-		if( Dot( pml.velocity, wishdir ) < 0 && pm->playerState->pmove.knockback_time <= 0 ) {
+		if( Dot( pml.velocity, wishdir ) < 0 && pm->playerState->pmove.no_friction_time <= 0 ) {
 			accel = pm_airdecelerate;
 		} else {
 			accel = pml.airAccel;
 		}
 
-		if( smove != 0.0f && !fmove && pm->playerState->pmove.knockback_time <= 0 ) {
+		if( smove != 0.0f && !fmove && pm->playerState->pmove.no_friction_time <= 0 ) {
 			if( wishspeed > pm_wishspeed ) {
 				wishspeed = pm_wishspeed;
 			}
@@ -448,7 +451,7 @@ static void PM_Move() {
 
 		// Air control
 		PM_Accelerate( wishdir, wishspeed, accel );
-		if( pm->playerState->pmove.knockback_time <= 0 ) { // no air ctrl while wjing
+		if( pm->playerState->pmove.no_friction_time <= 0 ) {
 			PM_Aircontrol( wishdir, wishspeed2 );
 		}
 
@@ -675,18 +678,18 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 			}
 
 			SolidBits inverse_team_solidity = SolidBits( ~( Solid_PlayerTeamOne << ( pm->team - Team_One ) ) & SolidMask_Player );
-			pm->solid_mask = SolidBits( Solid_PlayerClip | inverse_team_solidity );
+			pm->solid_mask = Solid_PlayerClip | inverse_team_solidity;
 			break;
 	}
 
 	if( !pmove_gs->gameState.paused ) {
 		ps->pmove.no_shooting_time = Max2( 0, ps->pmove.no_shooting_time - pm->cmd.msec );
-		ps->pmove.knockback_time = Max2( 0, ps->pmove.knockback_time - pm->cmd.msec );
+		ps->pmove.no_friction_time = Max2( 0, ps->pmove.no_friction_time - pm->cmd.msec );
 	}
 
 	if( ps->pmove.pm_type != PM_NORMAL ) { // includes dead, freeze, chasecam...
 		if( !pmove_gs->gameState.paused ) {
-			ps->pmove.knockback_time = 0;
+			ps->pmove.no_friction_time = 0;
 
 			PM_AdjustBBox();
 		}

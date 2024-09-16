@@ -284,8 +284,7 @@ static Span< const char > ParseQ3Face( ParsedBrushFace * face, Span< const char 
 	);
 
 	str = ParseWord( &face->material, str );
-	constexpr u64 base_hash = Hash64_CT( "textures/", 9 );
-	face->material_hash = Hash64( face->material.ptr, face->material.num_bytes(), base_hash );
+	face->material_hash = Hash64( face->material.ptr, face->material.num_bytes() );
 	str = SkipFlags( str );
 
 	return str;
@@ -312,8 +311,7 @@ static Span< const char > ParsePatch( ParsedPatch * patch, Span< const char > st
 	str = SkipToken( str, "{" );
 
 	str = ParseWord( &patch->material, str );
-	constexpr u64 base_hash = Hash64_CT( "textures/", 9 );
-	patch->material_hash = Hash64( patch->material.ptr, patch->material.num_bytes(), base_hash );
+	patch->material_hash = Hash64( patch->material.ptr, patch->material.num_bytes() );
 
 	str = SkipToken( str, "(" );
 

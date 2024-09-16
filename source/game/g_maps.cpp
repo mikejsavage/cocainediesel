@@ -63,8 +63,9 @@ static void LoadModelsRecursive( TempAllocator * temp, DynamicString * path, siz
 			LoadModelsRecursive( temp, path, skip );
 		}
 		else if( FileExtension( path->c_str() ) == ".glb" ) {
-			Span< u8 > data = ReadFileBinary( temp, path->c_str() );
+			Span< u8 > data = ReadFileBinary( sys_allocator, path->c_str() );
 			AddGLTFModel( data, StripExtension( path->c_str() + skip ) );
+			Free( sys_allocator, data.ptr );
 		}
 		path->truncate( old_len );
 	}
@@ -92,7 +93,7 @@ void ShutdownServerCollisionModels() {
 	}
 }
 
-bool LoadServerMap( const char * name ) {
+bool LoadServerMap( Span< const char > name ) {
 	TempAllocator temp = svs.frame_arena.temp();
 
 	const char * path = temp( "{}/base/maps/{}.cdmap", RootDirPath(), name );
@@ -106,7 +107,7 @@ bool LoadServerMap( const char * name ) {
 		Span< u8 > compressed = ReadFileBinary( sys_allocator, zst_path );
 		defer { Free( sys_allocator, compressed.ptr ); };
 		if( compressed.ptr == NULL ) {
-			Com_Printf( "Couldn't find map %s\n", name );
+			Com_GGPrint( "Couldn't find map {}", name );
 			return false;
 		}
 
@@ -120,7 +121,7 @@ bool LoadServerMap( const char * name ) {
 	MapData decoded;
 	DecodeMapResult res = DecodeMap( &decoded, map.data );
 	if( res != DecodeMapResult_Ok ) {
-		Com_Printf( "Can't decode map %s\n", name );
+		Com_GGPrint( "Can't decode map {}", name );
 		Free( sys_allocator, map.data.ptr );
 		return false;
 	}

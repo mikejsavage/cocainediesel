@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 #include "qcommon/hashtable.h"
+#include "qcommon/time.h"
 
 static u64 entity_id_seq;
 static Hashtable< MAX_EDICTS * 2 > entity_id_hashtable;
@@ -197,10 +198,7 @@ void G_FreeEdict( edict_t * ed ) {
 	memset( ed, 0, sizeof( *ed ) );
 	ed->s.number = ENTNUM( ed );
 	ed->s.svflags = SVF_NOCLIENT;
-
-	if( !ISEVENTENTITY( &ed->s ) && level.spawnedTimeStamp != svs.realtime ) {
-		ed->freetime = svs.realtime; // ET_EVENT or ET_SOUND don't need to wait to be reused
-	}
+	ed->freetime = svs.monotonic_time;
 }
 
 void G_InitEdict( edict_t * e ) {
@@ -249,7 +247,7 @@ edict_t * G_Spawn() {
 
 		// the first couple seconds of server time can involve a lot of
 		// freeing and allocating, so relax the replacement policy
-		if( e->freetime < level.spawnedTimeStamp + 2000 || svs.realtime > e->freetime + 500 ) {
+		if( e->freetime < level.spawnedTimeStamp + Seconds( 2 ) || svs.monotonic_time > e->freetime + Milliseconds( 500 ) ) {
 			G_InitEdict( e );
 			return e;
 		}
@@ -634,7 +632,7 @@ float LookAtKillerYAW( edict_t * self, edict_t * inflictor, edict_t * attacker )
 //
 //==============================================================================
 
-static void G_SpawnTeleportEffect( edict_t * ent, bool respawn, bool in ) {
+static void G_SpawnTeleportEffect( edict_t * ent, bool in ) {
 	constexpr StringHash tele_in = "sounds/world/tele_in";
 	constexpr StringHash tele_out = "sounds/world/tele_in";
 
@@ -651,11 +649,11 @@ static void G_SpawnTeleportEffect( edict_t * ent, bool respawn, bool in ) {
 }
 
 void G_TeleportEffect( edict_t * ent, bool in ) {
-	G_SpawnTeleportEffect( ent, false, in );
+	G_SpawnTeleportEffect( ent, in );
 }
 
 void G_RespawnEffect( edict_t * ent ) {
-	G_SpawnTeleportEffect( ent, true, false );
+	G_SpawnTeleportEffect( ent, false );
 }
 
 void G_CheckGround( edict_t * ent ) {

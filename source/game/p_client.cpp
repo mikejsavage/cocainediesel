@@ -95,9 +95,9 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	body->s.teleported = true;
 	body->s.ownerNum = ent->s.number;
 
-	bool gib = damage_type == Weapon_Railgun || damage_type == WorldDamage_Trigger || damage_type == WorldDamage_Telefrag
+	bool gib = damage_type == Weapon_Rail || damage_type == WorldDamage_Trigger || damage_type == WorldDamage_Telefrag
 		|| damage_type == WorldDamage_Explosion || damage_type == WorldDamage_Spike ||
-		( ( damage_type == Weapon_RocketLauncher || damage_type == Weapon_GrenadeLauncher ) && damage >= 20 );
+		( ( damage_type == Weapon_Bazooka || damage_type == Weapon_Launcher ) && damage >= 20 );
 
 	if( gib ) {
 		ThrowSmallPileOfGibs( body, knockbackOfDeath, damage );
@@ -326,7 +326,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		}
 		self->s.svflags |= SVF_FORCETEAM;
 		SolidBits team_solidity = SolidBits( Solid_PlayerTeamOne << ( self->s.team - Team_One ) );
-		self->s.solidity = SolidBits( team_solidity );
+		self->s.solidity = team_solidity;
 		self->movetype = MOVETYPE_PLAYER;
 		client->ps.pmove.features = PMFEAT_ALL;
 	}
@@ -644,7 +644,7 @@ void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 			G_FireWeapon( ent, parm );
 			break; // don't send the event
 
-		case EV_SUICIDE_BOMB_EXPLODE: {
+		case EV_MARTYR_EXPLODE: {
 			ent->health = 0;
 
 			// TODO: horrible
@@ -654,9 +654,9 @@ void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 			ent->projectileInfo.minKnockback = 75;
 			ent->projectileInfo.radius = 150;
 
-			G_RadiusDamage( ent, ent, Vec3( 0.0f ), ent, Gadget_SuicideBomb );
+			G_RadiusDamage( ent, ent, Vec3( 0.0f ), ent, Gadget_Martyr );
 
-			G_Killed( ent, ent, ent, -1, Gadget_SuicideBomb, 10000 );
+			G_Killed( ent, ent, ent, -1, Gadget_Martyr, 10000 );
 			G_AddEvent( ent, ev, parm, true );
 		} break;
 
@@ -718,6 +718,9 @@ void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead ) 
 }
 
 void G_GiveWeapon( edict_t * ent, WeaponType weapon ) {
+	if( weapon == Weapon_None )
+		return;
+
 	SyncPlayerState * ps = &ent->r.client->ps;
 
 	for( size_t i = 0; i < ARRAY_COUNT( ps->weapons ); i++ ) {

@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/array.h"
 
 #include <limits.h>
-#include <type_traits>
 
 /*
 * COM_SanitizeFilePath
@@ -757,35 +756,4 @@ Span< const char > ParseWorldspawnKey( Span< const char > entities, const char *
 	}
 
 	return Span< const char >();
-}
-
-void operator++( WeaponType & x, int ) {
-	using T = typename std::underlying_type< WeaponType >::type;
-	x = WeaponType( T( x ) + 1 );
-}
-
-void operator++( GadgetType & x, int ) {
-	using T = typename std::underlying_type< GadgetType >::type;
-	x = GadgetType( T( x ) + 1 );
-}
-
-void operator++( PerkType & x, int ) {
-	using T = typename std::underlying_type< PerkType >::type;
-	x = PerkType( T( x ) + 1 );
-}
-
-void operator&=( EntityFlags & lhs, EntityFlags rhs ) {
-	lhs = EntityFlags( lhs & rhs );
-}
-
-void operator|=( EntityFlags & lhs, EntityFlags rhs ) {
-	lhs = EntityFlags( lhs | rhs );
-}
-
-EntityFlags operator~( EntityFlags x ) {
-	return EntityFlags( ~u16( x ) );
-}
-
-void operator|=( UserCommandButton & lhs, UserCommandButton rhs ) {
-	lhs = UserCommandButton( lhs | rhs );
 }

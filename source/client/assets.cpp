@@ -112,6 +112,7 @@ struct DecompressAssetJob {
 	Span< char > path;
 	u64 hash;
 	Span< u8 > compressed;
+	bool virtual_free;
 };
 
 static void DecompressAsset( TempAllocator * temp, void * data ) {
@@ -128,19 +129,27 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 	}
 
 	Free( sys_allocator, job->path.ptr );
+
 #if PLATFORM_WINDOWS
-	CheckedVirtualFree( job->compressed.ptr );
+	if( job->virtual_free ) {
+		CheckedVirtualFree( job->compressed.ptr );
+	}
+	else {
+		Free( sys_allocator, job->compressed.ptr );
+	}
 #else
 	Free( sys_allocator, job->compressed.ptr );
 #endif
+
 	Free( sys_allocator, job );
 }
 
-static void LaunchDecompressAssetJob( Span< const char > path, u64 hash, Span< u8 > compressed ) {
+static void LaunchDecompressAssetJob( Span< const char > path, u64 hash, Span< u8 > compressed, UseVirtualFree virtual_free ) {
 	DecompressAssetJob * job = Alloc< DecompressAssetJob >( sys_allocator );
 	job->path = CloneSpan( sys_allocator, path );
 	job->hash = hash;
 	job->compressed = compressed;
+	job->virtual_free = virtual_free;
 	ThreadPoolDo( DecompressAsset, job );
 }
 
@@ -180,7 +189,7 @@ static void LoadAsset( TempAllocator * temp, Span< const char > game_path, const
 		return;
 
 	if( compressed ) {
-		LaunchDecompressAssetJob( game_path_no_zst, hash, contents );
+		LaunchDecompressAssetJob( game_path_no_zst, hash, contents, UseVirtualFree_No );
 	}
 	else {
 		AddAsset( game_path, hash, contents, IsCompressed_No, UseVirtualFree_No );
@@ -276,7 +285,7 @@ void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip )
 					Span< const char > ext = FileExtension( game_path );
 					if( ext == ".zst" ) {
 						game_path.n -= ext.n;
-						LaunchDecompressAssetJob( game_path, Hash64( game_path ), buffers[ prev ] );
+						LaunchDecompressAssetJob( game_path, Hash64( game_path ), buffers[ prev ], UseVirtualFree_Yes );
 					}
 					else {
 						AddAsset( game_path, Hash64( game_path ), buffers[ prev ], IsCompressed_No, UseVirtualFree_Yes );

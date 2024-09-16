@@ -72,14 +72,14 @@ static bool PlaneFrom3Points( Plane * plane, Vec3 a, Vec3 b, Vec3 c ) {
 
 // like cgltf_load_buffers, but doesn't try to load URIs
 bool LoadGLBBuffers( cgltf_data * data ) {
-	if( data->buffers_count && data->buffers[0].data == NULL && data->buffers[0].uri == NULL && data->bin ) {
-		if( data->bin_size < data->buffers[0].size )
+	if( data->buffers_count && data->buffers[ 0 ].data == NULL && data->buffers[ 0 ].uri == NULL && data->bin ) {
+		if( data->bin_size < data->buffers[ 0 ].size )
 			return false;
-		data->buffers[0].data = const_cast< void * >( data->bin );
+		data->buffers[ 0 ].data = const_cast< void * >( data->bin );
 	}
 
 	for( cgltf_size i = 0; i < data->buffers_count; i++ ) {
-		if( data->buffers[i].data == NULL )
+		if( data->buffers[ i ].data == NULL )
 			return false;
 	}
 
@@ -92,6 +92,15 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 	NonRAIIDynamicArray< GLTFCollisionBrush > brushes( sys_allocator );
 	DynamicArray< size_t > brush_to_node_idx( sys_allocator );
 	GLTFCollisionData data = { };
+
+	bool ok = false;
+	defer {
+		if( !ok ) {
+			vertices.shutdown();
+			planes.shutdown();
+			brushes.shutdown();
+		}
+	};
 
 	for( size_t i = 0; i < gltf->nodes_count; i++ ) {
 		const cgltf_node * node = &gltf->nodes[ i ];
@@ -106,7 +115,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 		if( material == NULL )
 			continue;
 
-		data.broadphase_solidity = SolidBits( data.broadphase_solidity | material->solidity );
+		data.broadphase_solidity |= material->solidity;
 
 		Mat4 transform;
 		cgltf_node_transform_world( node, transform.ptr() );
@@ -116,8 +125,14 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 		brush.first_vertex = vertices.size();
 		brush.solidity = material->solidity;
 
-		DynamicArray< Vec3 > brush_vertices( sys_allocator );
-		DynamicArray< Plane > brush_planes( sys_allocator );
+		constexpr Mat4 y_up_to_z_up(
+			1, 0, 0, 0,
+			0, 0, -1, 0,
+			0, 1, 0, 0,
+			0, 0, 0, 1
+		);
+
+		transform = y_up_to_z_up * transform;
 
 		Span< const Vec3 > gltf_verts;
 		for( size_t j = 0; j < prim.attributes_count; j++ ) {
@@ -135,14 +150,9 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 			}
 		}
 
-		constexpr Mat3 y_up_to_z_up(
-			1, 0, 0,
-			0, 0, -1,
-			0, 1, 0
-		);
-
+		DynamicArray< Vec3 > brush_vertices( sys_allocator );
 		for( Vec3 gltf_vert : gltf_verts ) {
-			gltf_vert = y_up_to_z_up * gltf_vert;
+			gltf_vert = ( transform * Vec4( gltf_vert, 1.0f ) ).xyz();
 			bool found = false;
 			for( Vec3 & vert : brush_vertices ) {
 				if( Length( gltf_vert - vert ) < 0.01f ) {
@@ -160,21 +170,27 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 		Span< const u8 > indices_data = AccessorToSpan( prim.indices );
 		Assert( prim.indices->count % 3 == 0 );
 
+		DynamicArray< Plane > brush_planes( sys_allocator );
 		for( size_t j = 0; j < prim.indices->count; j += 3 ) {
-			u32 a, b, c;
+			Vec3 a, b, c;
 			if( prim.indices->component_type == cgltf_component_type_r_16u ) {
-				a = indices_data.cast< const u16 >()[ j + 0 ];
-				b = indices_data.cast< const u16 >()[ j + 1 ];
-				c = indices_data.cast< const u16 >()[ j + 2 ];
+				a = gltf_verts[ indices_data.cast< const u16 >()[ j + 0 ] ];
+				b = gltf_verts[ indices_data.cast< const u16 >()[ j + 1 ] ];
+				c = gltf_verts[ indices_data.cast< const u16 >()[ j + 2 ] ];
 			}
 			else {
-				a = indices_data.cast< const u32 >()[ j + 0 ];
-				b = indices_data.cast< const u32 >()[ j + 1 ];
-				c = indices_data.cast< const u32 >()[ j + 2 ];
+				a = gltf_verts[ indices_data.cast< const u32 >()[ j + 0 ] ];
+				b = gltf_verts[ indices_data.cast< const u32 >()[ j + 1 ] ];
+				c = gltf_verts[ indices_data.cast< const u32 >()[ j + 2 ] ];
 			}
 
+			a = ( transform * Vec4( a, 1.0f ) ).xyz();
+			b = ( transform * Vec4( b, 1.0f ) ).xyz();
+			c = ( transform * Vec4( c, 1.0f ) ).xyz();
+
 			Plane plane;
-			if( !PlaneFrom3Points( &plane, y_up_to_z_up * gltf_verts[ a ], y_up_to_z_up * gltf_verts[ c ], y_up_to_z_up * gltf_verts[ b ] ) ) {
+			if( !PlaneFrom3Points( &plane, a, c, b ) ) {
+				Com_GGPrint( S_COLOR_YELLOW "{} has a degenerate collision face", path );
 				return false;
 			}
 
@@ -207,16 +223,18 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 	data.planes = planes.span();
 	data.brushes = brushes.span();
 
-	for( size_t i = 0; i < data.brushes.n; i++ ) {
-		const GLTFCollisionBrush & brush = data.brushes[ i ];
-		bool ok = true;
-		if( !IsConvex( data, brush ) ) {
-			Com_GGPrint( S_COLOR_YELLOW "{} has a concave collision brush: {}", path, gltf->nodes[ brush_to_node_idx[ i ] ].name );
-			ok = false;
+	{
+		bool any_concave = false;
+
+		for( size_t i = 0; i < data.brushes.n; i++ ) {
+			const GLTFCollisionBrush & brush = data.brushes[ i ];
+			if( !IsConvex( data, brush ) ) {
+				Com_GGPrint( S_COLOR_YELLOW "{} has a concave collision brush: {}", path, gltf->nodes[ brush_to_node_idx[ i ] ].name );
+				any_concave = true;
+			}
 		}
 
-		if( !ok ) {
-			DeleteGLTFCollisionData( data );
+		if( any_concave ) {
 			return false;
 		}
 	}
@@ -231,6 +249,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 
 	storage->gltfs[ idx ] = data;
 
+	ok = true;
 	return true;
 }
 

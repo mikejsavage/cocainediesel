@@ -311,8 +311,8 @@ struct ClientToServerCommand {
 };
 
 static const cgcmd_t cgcmds[] = {
-	{ "+scores", []( const Tokenized & args ) { CG_ScoresOn_f(); }, true },
-	{ "-scores", []( const Tokenized & args ) { CG_ScoresOff_f(); }, true },
+	{ "+scores", []( const Tokenized & args ) { []() { cg.showScoreboard = true; }(); }, true },
+	{ "-scores", []( const Tokenized & args ) { []() { cg.showScoreboard = false; }(); }, true },
 	{ "demoget", CG_Cmd_DemoGet_f, false },
 	{ "use", CG_Cmd_UseWeapon_f, false },
 	{ "lastweapon", []( const Tokenized & args ) { CG_Cmd_LastWeapon_f(); }, false },

@@ -102,7 +102,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 	WeaponDef {
 		.name = "SMG",
-		.short_name = "mg",
+		.short_name = "smg",
 		.category = WeaponCategory_Secondary,
 
 		.clip_size = 25,
@@ -147,7 +147,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 	WeaponDef {
 		.name = "SHOTGUN",
-		.short_name = "rg",
+		.short_name = "shotgun",
 		.category = WeaponCategory_Secondary,
 
 		.projectile_count = 25,
@@ -173,7 +173,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 	WeaponDef {
 		.name = "SAWN-OFF",
-		.short_name = "doublebarrel",
+		.short_name = "sawn-off",
 		.category = WeaponCategory_Secondary,
 
 		.projectile_count = 26,
@@ -199,7 +199,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 	WeaponDef {
 		.name = "BURST",
-		.short_name = "br",
+		.short_name = "burst",
 		.category = WeaponCategory_Primary,
 
 		.clip_size = 6,
@@ -221,7 +221,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 	WeaponDef {
 		.name = "CROSSBOW",
-		.short_name = "stake",
+		.short_name = "crossbow",
 		.category = WeaponCategory_Backup,
 
 		.clip_size = 1,
@@ -246,8 +246,8 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "MORTAR",
-		.short_name = "gl",
+		.name = "LAUNCHER",
+		.short_name = "launcher",
 		.category = WeaponCategory_Secondary,
 
 		.clip_size = 8,
@@ -271,12 +271,13 @@ static constexpr WeaponDef weapon_defs[] = {
 		.min_knockback = 50,
 
 		.speed = 1400,
+		.restitution = 0.5f,
 		.has_altfire = true,
 	},
 
 	WeaponDef {
 		.name = "BAZOOKA",
-		.short_name = "rl",
+		.short_name = "bazooka",
 		.category = WeaponCategory_Primary,
 
 		.clip_size = 5,
@@ -305,7 +306,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 	WeaponDef {
 		.name = "ASSAULT",
-		.short_name = "ar",
+		.short_name = "assault",
 		.category = WeaponCategory_Primary,
 
 		.clip_size = 30,
@@ -329,7 +330,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 	WeaponDef {
 		.name = "BUBBLE",
-		.short_name = "bg",
+		.short_name = "bubble",
 		.category = WeaponCategory_Backup,
 
 		.clip_size = 15,
@@ -357,7 +358,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 	WeaponDef {
 		.name = "LASER",
-		.short_name = "lg",
+		.short_name = "laser",
 		.category = WeaponCategory_Primary,
 
 		.clip_size = 40,
@@ -375,7 +376,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 	WeaponDef {
 		.name = "RAIL",
-		.short_name = "eb",
+		.short_name = "rail",
 		.category = WeaponCategory_Primary,
 
 		.reload_time = 1000, // time to fully charge for rail
@@ -421,7 +422,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 	WeaponDef {
 		.name = "SCOUT",
-		.short_name = "autosniper",
+		.short_name = "scout",
 		.category = WeaponCategory_Backup,
 
 		.clip_size = 8,
@@ -470,7 +471,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 	WeaponDef {
 		.name = "BLASTER",
-		.short_name = "mb",
+		.short_name = "blaster",
 		.category = WeaponCategory_Backup,
 
 		.projectile_count = 12,
@@ -490,12 +491,13 @@ static constexpr WeaponDef weapon_defs[] = {
 		.knockback = 10,
 
 		.speed = 3000,
+		.restitution = 0.5f,
 		.spread = 30,
 	},
 
 	WeaponDef {
 		.name = "ROADGUN",
-		.short_name = "road",
+		.short_name = "roadgun",
 		.category = WeaponCategory_Backup,
 
 		.clip_size = 20,
@@ -514,6 +516,7 @@ static constexpr WeaponDef weapon_defs[] = {
 		.knockback = 10,
 
 		.speed = 3000,
+		.restitution = 0.5f,
 	},
 
 	WeaponDef {
@@ -604,8 +607,8 @@ const GadgetDef gadget_defs[] = {
 	GadgetDef { },
 
 	GadgetDef {
-		.name = "HATCHET",
-		.short_name = "hatchet",
+		.name = "AXE",
+		.short_name = "axe",
 		.uses = 2,
 		.switch_in_time = WEAPONUP_TIME_FAST,
 		.using_time = 50,
@@ -620,8 +623,8 @@ const GadgetDef gadget_defs[] = {
 	},
 
 	GadgetDef {
-		.name = "AMERICA",
-		.short_name = "suicidevest",
+		.name = "MARTYR",
+		.short_name = "martyr",
 		.uses = 1,
 	},
 
@@ -641,6 +644,7 @@ const GadgetDef gadget_defs[] = {
 		.timeout = 1500,
 		.speed = 1500,
 		.min_speed = 1000,
+		.restitution = 0.5f,
 	},
 
 	GadgetDef {

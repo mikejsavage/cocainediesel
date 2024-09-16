@@ -129,12 +129,12 @@ void InitRenderer() {
 		u8 * img = stbi_load_from_memory( blue_noise_png, blue_noise_png_len, &w, &h, NULL, 1 );
 		Assert( img != NULL );
 
-		TextureConfig config;
-		config.width = w;
-		config.height = h;
-		config.data = img;
-		config.format = TextureFormat_R_S8;
-		blue_noise = NewTexture( config );
+		blue_noise = NewTexture( TextureConfig {
+			.format = TextureFormat_R_S8,
+			.width = u32( w ),
+			.height = u32( h ),
+			.data = img,
+		} );
 
 		stbi_image_free( img );
 	}
@@ -609,11 +609,11 @@ static Mat4 InverseScaleTranslation( Mat4 m ) {
 
 void SetupShadowCascades() {
 	TracyZoneScoped;
-	const float near_plane = 4.0f;
+	constexpr float near_plane = 4.0f;
 	float cascade_dist[ 5 ];
-	const u32 num_planes = ARRAY_COUNT( cascade_dist );
-	const u32 num_cascades = num_planes - 1;
-	const u32 num_corners = 4;
+	constexpr u32 num_planes = ARRAY_COUNT( cascade_dist );
+	constexpr u32 num_cascades = num_planes - 1;
+	constexpr u32 num_corners = 4;
 
 	cascade_dist[ 0 ] = near_plane;
 	for( u32 i = 0; i < num_cascades; i++ ) {

@@ -22,17 +22,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "game/g_local.h"
 #include "qcommon/maplist.h"
 #include "qcommon/string.h"
+#include "qcommon/time.h"
 
 static constexpr size_t MAX_CONFIGSTRING_CHARS = 64; // TODO: figure this out properly. max map name length too
 
 static Optional< bool > clientVote[MAX_CLIENTS];
-static s64 lastclientVote[MAX_CLIENTS];
+static Time lastclientVote[MAX_CLIENTS];
 
-static constexpr s64 callvote_duration_seconds = 20;
+static constexpr Time callvote_duration = Seconds( 20 );
 
 static constexpr float callvoteElectPercent = 55.0f / 100.0f;
-static constexpr int callvoteCooldown = 5000;
-static constexpr int voteChangeCooldown = 500;
+static constexpr Time callvoteCooldown = Seconds( 5000 );
+static constexpr Time voteChangeCooldown = Milliseconds( 500 );
 
 // Data that can be used by the vote specific functions
 struct callvotetype_t;
@@ -59,7 +60,7 @@ struct callvotetype_t {
 
 // Data that will only be used by the common callvote functions
 struct callvotestate_t {
-	int64_t timeout;           // time to finish
+	Time timeout;           // time to finish
 	callvotedata_t vote;
 };
 
@@ -437,14 +438,14 @@ void G_CallVotes_ResetClient( int n ) {
 
 static void G_CallVotes_Reset( bool vote_happened ) {
 	if( vote_happened && callvoteState.vote.caller && callvoteState.vote.caller->r.client ) {
-		callvoteState.vote.caller->r.client->level.callvote_when = svs.realtime;
+		callvoteState.vote.caller->r.client->level.callvote_when = svs.monotonic_time;
 	}
 
 	callvoteState.vote.callvote = NULL;
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		G_CallVotes_ResetClient( i );
 	}
-	callvoteState.timeout = 0;
+	callvoteState.timeout = { };
 
 	callvoteState.vote.caller = NULL;
 	callvoteState.vote.string.clear();
@@ -561,7 +562,7 @@ static void G_CallVotes_CheckState() {
 		return;
 	}
 
-	if( svs.realtime > callvoteState.timeout || needvotes + noes > voters ) {
+	if( svs.monotonic_time > callvoteState.timeout || needvotes + noes > voters ) {
 		G_PrintMsg( NULL, "Vote %s%s%s failed\n", S_COLOR_YELLOW, vote_string, S_COLOR_WHITE );
 		G_CallVotes_Reset( true );
 		return;
@@ -589,13 +590,13 @@ static void Vote( edict_t * ent, bool vote ) {
 		return;
 	}
 
-	if( ( svs.realtime - lastclientVote[PLAYERNUM( ent )] ) < voteChangeCooldown ) {
+	if( ( svs.monotonic_time - lastclientVote[PLAYERNUM( ent )] ) < voteChangeCooldown ) {
 		G_PrintMsg( ent, "%sYou can't vote that fast\n", S_COLOR_RED );
 		return;
 	}
 
 	clientVote[PLAYERNUM( ent )] = vote;
-	lastclientVote[PLAYERNUM( ent )] = svs.realtime;
+	lastclientVote[PLAYERNUM( ent )] = svs.monotonic_time;
 
 	G_CallVotes_CheckState();
 }
@@ -609,17 +610,7 @@ void G_CallVotes_VoteNo( edict_t * ent ) {
 }
 
 void G_CallVotes_Think() {
-	static int64_t callvotethinktimer = 0;
-
-	if( !callvoteState.vote.callvote ) {
-		callvotethinktimer = 0;
-		return;
-	}
-
-	if( callvotethinktimer < svs.realtime ) {
-		G_CallVotes_CheckState();
-		callvotethinktimer = svs.realtime + 1000;
-	}
+	G_CallVotes_CheckState();
 }
 
 static void G_CallVote( edict_t * ent, const Tokenized & args ) {
@@ -651,7 +642,7 @@ static void G_CallVote( edict_t * ent, const Tokenized & args ) {
 		return;
 	}
 
-	if( ent->r.client->level.callvote_when && ent->r.client->level.callvote_when + callvoteCooldown > svs.realtime ) {
+	if( ent->r.client->level.callvote_when != Seconds( 0 ) && ent->r.client->level.callvote_when + callvoteCooldown > svs.monotonic_time ) {
 		G_PrintMsg( ent, S_COLOR_RED "You can not call a vote right now\n" );
 		return;
 	}
@@ -680,7 +671,7 @@ static void G_CallVote( edict_t * ent, const Tokenized & args ) {
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		G_CallVotes_ResetClient( i );
 	}
-	callvoteState.timeout = svs.realtime + callvote_duration_seconds * 1000;
+	callvoteState.timeout = svs.monotonic_time + callvote_duration;
 
 	//caller is assumed to vote YES
 	clientVote[PLAYERNUM( ent )] = true;

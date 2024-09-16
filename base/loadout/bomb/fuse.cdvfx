@@ -1,0 +1,114 @@
+{
+  particles {
+    material textures/vfx/muzzle1
+    material textures/vfx/muzzle2
+    material textures/vfx/muzzle3
+    material textures/vfx/muzzle4
+    material textures/vfx/muzzle5
+    blendfunc add
+    rotate
+    stretch
+
+    position point
+
+    speed 124
+
+    color 1.0 0.69 0.0 1.0
+    end_color 0.8 0.1 0.0
+
+    red_distribution uniform 0.1
+    green_distribution uniform 0.05
+
+    size 0 24
+    size_distribution uniform 2
+
+    lifetime 0.24
+    lifetime_distribution uniform 0.05
+
+    emission 50
+  }
+
+  particles {
+    material textures/vfx/muzzle1
+    material textures/vfx/muzzle2
+    material textures/vfx/muzzle3
+    material textures/vfx/muzzle4
+    material textures/vfx/muzzle5
+    blendfunc add
+    rotate
+    stretch
+
+    acceleration $gravity
+
+    position point
+
+    speed 324
+
+    color 1.0 0.25 0.0 1.0
+    end_color 0.8 0.1 0.0
+
+    red_distribution uniform 0.1
+    green_distribution uniform 0.05
+
+    size 8 0
+
+    lifetime 0.24
+    lifetime_distribution uniform 0.05
+
+    emission 150
+  }
+
+  particles {
+    material textures/vfx/trace1
+    material textures/vfx/trace2
+    material textures/vfx/trace3
+    material textures/vfx/trace4
+    material textures/vfx/trace5
+    blendfunc add
+    rotate
+    stretch
+
+    position sphere 0
+
+    speed 200
+
+    color 1.0 0.69 1.0 1.0
+
+    red_distribution uniform 0.1
+    green_distribution uniform 0.05
+
+    size 0 12
+    size_distribution uniform 2
+
+    lifetime 0.07
+    lifetime_distribution uniform 0.05
+
+    emission 100
+  }
+
+  particles {
+    material textures/vfx/scorch1
+    material textures/vfx/scorch2
+
+    blendfunc add
+    rotate
+    stretch
+
+    position point
+
+    speed 12
+
+    color 1.0 0.45 0.0 1.0
+
+    red_distribution uniform 0.1
+    green_distribution uniform 0.05
+
+    size 16 24w
+    size_distribution uniform 2
+
+    lifetime 0.24
+    lifetime_distribution uniform 0.05
+
+    emission 50
+  }
+}

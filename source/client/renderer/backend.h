@@ -123,8 +123,6 @@ struct MeshConfig {
 	GPUBuffer index_buffer;
 	u32 num_vertices;
 
-	bool cw_winding;
-
 	static constexpr VertexFormat default_attribute_formats[] = {
 		VertexFormat_Floatx3,
 		VertexFormat_Floatx3,

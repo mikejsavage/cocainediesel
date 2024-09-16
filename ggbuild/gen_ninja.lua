@@ -38,7 +38,8 @@ configs[ "windows" ] = {
 configs[ "windows-debug" ] = {
 	-- /Z7 puts debug info in the .obj
 	-- /FC (Full path of source code file in diagnostics)
-	cxxflags = "/MTd /Z7 /FC",
+	-- /JMC "Just My Code", doesn't step into library code etc
+	cxxflags = "/MTd /Z7 /FC /JMC",
 	-- /FUNCTIONPADMIN /OPT:NOREF /OPT:NOICF are required for Live++
 	ldflags = "/NOLOGO /DEBUG:FULL /FUNCTIONPADMIN /OPT:NOREF /OPT:NOICF",
 }
@@ -72,8 +73,8 @@ configs[ "linux" ] = {
 configs[ "linux-debug" ] = { }
 configs[ "linux-tsan" ] = {
 	bin_suffix = "-tsan",
-	cxxflags = "-fsanitize=thread",
-	ldflags = "-fsanitize=thread -static-libtsan",
+	cxxflags = "-fsanitize=thread -D_LARGEFILE64_SOURCE",
+	ldflags = "-fsanitize-thread",
 	prebuilt_lib_dir = "linux-debug",
 }
 configs[ "linux-release" ] = {

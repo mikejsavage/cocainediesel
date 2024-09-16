@@ -1,5 +1,17 @@
 // include base.h instead of this
 
+// some ops are so much slower in debug than -O2 that it makes the game
+// unplayable in debug builds, so we put manually vectorised and optimised
+// kernels in their own TU in debug builds and inline it in release builds
+// Mat4 * Mat4: ~30x speedup
+// Mat3x4 * Vec4: ~10x speedup
+#if PUBLIC_BUILD
+#undef PUBLIC_BUILD // to break the cyclic include of types.h -> kernels -> types.h
+#define INLINE_IN_RELEASE_BUILDS inline
+#include "linear_algebra_kernels.cpp"
+#define PUBLIC_BUILD 1
+#endif
+
 /*
  * Vec2
  */
@@ -222,21 +234,8 @@ constexpr Vec4 Clamp( Vec4 lo, Vec4 v, Vec4 hi ) {
  * Mat4
  */
 
-// the naive -O0 Mat4 * Mat4 is ~30x slower than SIMD -O2 Mat4 * Mat4, which is
-// slow enough to be problematic, so put it in its own optimised TU in debug
-// builds and inline it in release builds
-
 #if !PUBLIC_BUILD
-
 Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs );
-
-#else
-
-#undef PUBLIC_BUILD
-#define KERNEL_MAYBE_INLINE inline
-#include "linear_algebra_kernels.cpp"
-#define PUBLIC_BUILD 1
-
 #endif
 
 inline void operator*=( Mat4 & lhs, const Mat4 & rhs ) {
@@ -307,14 +306,9 @@ constexpr Mat3x4 operator*( const Mat3x4 & lhs, const Mat3x4 & rhs ) {
 	);
 }
 
-constexpr Vec4 operator*( const Mat3x4 & m, const Vec4 & v ) {
-	return Vec4(
-		Dot( m.row0(), v ),
-		Dot( m.row1(), v ),
-		Dot( m.row2(), v ),
-		Dot( Vec4( 0.0f, 0.0f, 0.0f, 1.0f ), v )
-	);
-}
+#if !PUBLIC_BUILD
+Vec4 operator*( const Mat3x4 & m, const Vec4 & v );
+#endif
 
 /*
  * EulerDegrees2

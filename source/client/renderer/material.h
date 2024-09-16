@@ -57,14 +57,12 @@ struct Material {
 	bool mask_outlines = false;
 	bool outlined = true;
 	bool shaded = false;
+	bool world = false;
 	float specular = 0.0f;
 	float shininess = 64.0f;
 
 	TCMod tcmod = { };
 };
-
-extern Material world_material;
-extern Material wallbang_material;
 
 bool CompressedTextureFormat( TextureFormat format );
 u32 BitsPerPixel( TextureFormat format );
@@ -73,8 +71,8 @@ void InitMaterials();
 void HotloadMaterials();
 void ShutdownMaterials();
 
-const Material * FindMaterial( StringHash name, const Material * def = NULL );
-const Material * FindMaterial( const char * name, const Material * def = NULL );
+const Material * FindMaterial( StringHash name );
+const Material * FindMaterial( const char * name );
 bool TryFindMaterial( StringHash name, const Material ** material );
 
 Sampler GetSampler( SamplerType sampler );

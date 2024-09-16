@@ -1,0 +1,17 @@
+loadout/bullet_impact1
+{
+	texture weapons/bullet_impact1
+	decal
+}
+
+loadout/bullet_impact2
+{
+	texture weapons/bullet_impact2
+	decal
+}
+
+loadout/bullet_impact3
+{
+	texture weapons/bullet_impact3
+	decal
+}

@@ -65,6 +65,11 @@ static const LuauConst<int> numeric_constants[] = {
 	{ "Team_Two", Team_Two },
 	{ "Team_Three", Team_Three },
 	{ "Team_Four", Team_Four },
+	{ "Team_Five", Team_Five },
+	{ "Team_Six", Team_Six },
+	{ "Team_Sevent", Team_Seven },
+	{ "Team_Eight", Team_Eight },
+	{ "Team_Count", Team_Count },
 
 	{ "WeaponState_Reloading", WeaponState_Reloading },
 	{ "WeaponState_StagedReloading", WeaponState_StagedReloading },
@@ -115,6 +120,7 @@ static const LuauConst<StringHash> asset_constants[] = {
 	{ "bomb", StringHash( "hud/icons/bomb" ) },
 	{ "guy", StringHash( "hud/icons/guy" ) },
 	{ "net", StringHash( "hud/icons/net" ) },
+	{ "star", StringHash( "hud/icons/star" ) },
 };
 
 static int CG_GetSpeed() {
@@ -878,6 +884,13 @@ static int LuauGetWeaponReloadTime( lua_State * L ) {
 	return 1;
 }
 
+static int LuauGetWeaponStagedReload( lua_State * L ) {
+	u8 w = luaL_checknumber( L, 1 );
+	lua_newtable( L );
+	lua_pushboolean( L, GS_GetWeaponDef( WeaponType( w ) )->staged_reload );
+	return 1;
+}
+
 static int LuauGetGadgetAmmo( lua_State * L ) {
 	u8 g = luaL_checknumber( L, 1 );
 	lua_newtable( L );
@@ -1035,7 +1048,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 		xoffset += icon_size + icon_padding;
 
 		if( obr->wallbang ) {
-			Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, FindMaterial( "weapons/wallbang_icon" ), AttentionGettingColor() );
+			Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, FindMaterial( "loadout/wallbang_icon" ), AttentionGettingColor() );
 			xoffset += icon_size + icon_padding;
 		}
 
@@ -1525,6 +1538,14 @@ static int YogaLog( YGConfigRef config, YGNodeRef node, YGLogLevel level, const 
 	return len;
 }
 
+bool CG_ScoreboardShown() {
+	if( client_gs.gameState.match_state > MatchState_Playing ) {
+		return true;
+	}
+
+	return cg.showScoreboard;
+}
+
 void CG_InitHUD() {
 	TracyZoneScoped;
 
@@ -1568,6 +1589,7 @@ void CG_InitHUD() {
 		{ "getPerkIcon", LuauGetPerkIcon },
 
 		{ "getWeaponReloadTime", LuauGetWeaponReloadTime },
+		{ "getWeaponStagedReload", LuauGetWeaponStagedReload },
 
 		{ "getGadgetAmmo", LuauGetGadgetAmmo },
 
@@ -1679,6 +1701,9 @@ void CG_DrawHUD() {
 	lua_pushvalue( hud_L, -1 );
 	lua_newtable( hud_L );
 
+	lua_pushnumber( hud_L, cg.predictedPlayerState.POVnum );
+	lua_setfield( hud_L, -2, "current_player" );
+
 	lua_pushboolean( hud_L, cg.predictedPlayerState.ready );
 	lua_setfield( hud_L, -2, "ready" );
 
@@ -1752,6 +1777,12 @@ void CG_DrawHUD() {
 	lua_pushnumber( hud_L, client_gs.gameState.match_state );
 	lua_setfield( hud_L, -2, "match_state" );
 
+	lua_pushnumber( hud_L, client_gs.gameState.scorelimit );
+	lua_setfield( hud_L, -2, "scorelimit" );
+
+	lua_pushnumber( hud_L, client_gs.gameState.bomb.attacking_team );
+	lua_setfield( hud_L, -2, "attacking_team" );
+
 	lua_pushnumber( hud_L, client_gs.gameState.round_state );
 	lua_setfield( hud_L, -2, "round_state" );
 
@@ -1818,7 +1849,6 @@ void CG_DrawHUD() {
 	lua_setfield( hud_L, -2, "viewport_height" );
 
 	lua_createtable( hud_L, Weapon_Count - 1, 0 );
-
 	for( size_t i = 0; i < ARRAY_COUNT( cg.predictedPlayerState.weapons ); i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapons[ i ].weapon );
 
@@ -1841,6 +1871,59 @@ void CG_DrawHUD() {
 
 	}
 	lua_setfield( hud_L, -2, "weapons" );
+
+	lua_createtable( hud_L, Team_Count, 0 );
+	for( int i = Team_One; i < Team_Count; i++ ) {
+		lua_pushnumber( hud_L, i );
+		lua_createtable( hud_L, 0, 3 );
+
+		const SyncTeamState & team = client_gs.gameState.teams[ i ];
+
+		lua_pushnumber( hud_L, team.score );
+		lua_setfield( hud_L, -2, "score" );
+
+		lua_pushnumber( hud_L, team.num_players );
+		lua_setfield( hud_L, -2, "num_players" );
+
+		lua_createtable( hud_L, 0, team.num_players );
+		for( u8 p = 0; p < team.num_players; p++ ) {
+			lua_pushnumber( hud_L, p + 1 );
+
+			lua_createtable( hud_L, 0, 7 );
+
+			const SyncScoreboardPlayer & player = client_gs.gameState.players[ team.player_indices[ p ] - 1 ];
+			lua_pushnumber( hud_L, team.player_indices[ p ] );
+			lua_setfield( hud_L, -2, "id" );
+			lua_pushlstring( hud_L, player.name, strlen( player.name ) );
+			lua_setfield( hud_L, -2, "name" );
+			lua_pushnumber( hud_L, player.ping );
+			lua_setfield( hud_L, -2, "ping" );
+			lua_pushnumber( hud_L, player.score );
+			lua_setfield( hud_L, -2, "score" );
+			lua_pushnumber( hud_L, player.kills );
+			lua_setfield( hud_L, -2, "kills" );
+			lua_pushboolean( hud_L, player.ready );
+			lua_setfield( hud_L, -2, "ready" );
+			lua_pushboolean( hud_L, player.carrier );
+			lua_setfield( hud_L, -2, "carrier" );
+			lua_pushboolean( hud_L, player.alive );
+			lua_setfield( hud_L, -2, "alive" );
+
+			lua_settable( hud_L, -3 );
+		}
+		lua_setfield( hud_L, -2, "players" );
+
+		lua_settable( hud_L, -3 );
+	}
+	lua_setfield( hud_L, -2, "teams" );
+
+
+	lua_pushnumber( hud_L, client_gs.gameState.teams[ Team_None ].num_players );
+	lua_setfield( hud_L, -2, "spectating" );
+
+
+	lua_pushboolean( hud_L, CG_ScoreboardShown() );
+	lua_setfield( hud_L, -2, "scoreboard" );
 
 	bool still_showing_inspector = show_inspector;
 	ImGuiStyle old_style = ImGui::GetStyle();

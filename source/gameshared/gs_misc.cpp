@@ -41,6 +41,7 @@ void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, 
 	}
 
 	playerState->pmove.velocity = GS_EvaluateJumppad( pusher, playerState->pmove.velocity );
+	playerState->pmove.no_friction_time = 500;
 
 	// reset walljump counter
 	gs->api.PredictedEvent( playerState->POVnum, EV_JUMP_PAD, 0 );

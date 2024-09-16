@@ -94,9 +94,9 @@ struct client_t {
 	int64_t UcmdReceived;          // last client-command we received
 	UserCommand ucmds[CMD_BACKUP];        // each message will send several old cmds
 
-	int64_t lastPacketSentTime;    // time when we sent the last message to this client
-	int64_t lastPacketReceivedTime; // time when we received the last message from this client
-	int64_t lastconnect;
+	Time lastPacketSentTime;    // time when we sent the last message to this client
+	Time lastPacketReceivedTime; // time when we received the last message from this client
+	Time lastconnect;
 
 	int64_t lastframe;                  // used for delta compression etc.
 	bool nodelta;               // send one non delta compressed frame trough
@@ -144,9 +144,9 @@ struct client_entities_t {
 };
 
 struct server_static_t {
-	bool initialized;               // sv_init has completed
-	int64_t realtime;               // real world time - always increasing, no clamping, etc
-	int64_t gametime;               // game world time - always increasing, no clamping, etc
+	bool initialized;
+	Time monotonic_time; // starts at 0 when the server starts, increases forever
+	int64_t gametime; // game world time - always increasing, no clamping, etc
 
 	ArenaAllocator frame_arena;
 
@@ -154,8 +154,7 @@ struct server_static_t {
 
 	Socket socket;
 
-	int spawncount;                     // incremented each server start
-	                                    // used to check late spawns
+	int spawncount; // incremented each server start, used to check late spawns
 
 	client_t * clients;
 	client_entities_t client_entities;

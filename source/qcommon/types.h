@@ -448,11 +448,13 @@ struct alignas( 16 ) Mat3x4 {
 		float e20, float e21, float e22, float e23
 	) : col0( e00, e10, e20 ), col1( e01, e11, e21 ), col2( e02, e12, e22 ), col3( e03, e13, e23 ) { }
 
-	constexpr explicit Mat3x4( const Mat4 & m4 ) :
-		col0( m4.col0.xyz() ),
-		col1( m4.col1.xyz() ),
-		col2( m4.col2.xyz() ),
-		col3( m4.col3.xyz() ) { }
+	explicit Mat3x4( const Mat4 & m4 ) {
+		Assert( m4.col0.w == 0.0f && m4.col1.w == 0.0f && m4.col2.w == 0.0f );
+		col0 = m4.col0.xyz();
+		col1 = m4.col1.xyz();
+		col2 = m4.col2.xyz();
+		col3 = m4.col3.xyz();
+	}
 
 	constexpr Vec4 row0() const { return Vec4( col0.x, col1.x, col2.x, col3.x ); }
 	constexpr Vec4 row1() const { return Vec4( col0.y, col1.y, col2.y, col3.y ); }
@@ -584,3 +586,17 @@ struct RGBA8 {
  */
 
 struct Tokenized;
+
+/*
+ * enum arithmetic
+ */
+
+template< typename E > concept IsEnum = __is_enum( E );
+template< typename E > using UnderlyingType = __underlying_type( E );
+
+template< IsEnum E > void operator++( E & x, int ) { x = E( UnderlyingType< E >( x ) + 1 ); }
+template< IsEnum E > constexpr E operator&( E lhs, E rhs ) { return E( UnderlyingType< E >( lhs ) & UnderlyingType< E >( rhs ) ); }
+template< IsEnum E > constexpr E operator|( E lhs, E rhs ) { return E( UnderlyingType< E >( lhs ) | UnderlyingType< E >( rhs ) ); }
+template< IsEnum E > constexpr E operator~( E x ) { return E( ~UnderlyingType< E >( x ) ); }
+template< IsEnum E > void operator&=( E & lhs, E rhs ) { lhs = E( UnderlyingType< E >( lhs ) & UnderlyingType< E >( rhs ) ); }
+template< IsEnum E > void operator|=( E & lhs, E rhs ) { lhs = E( UnderlyingType< E >( lhs ) | UnderlyingType< E >( rhs ) ); }

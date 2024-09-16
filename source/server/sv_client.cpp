@@ -64,8 +64,8 @@ bool SV_ClientConnect( const NetAddress & address, client_t * client, char * use
 	SV_ClientResetCommandBuffers( client );
 
 	// reset timeouts
-	client->lastPacketReceivedTime = svs.realtime;
-	client->lastconnect = Sys_Milliseconds();
+	client->lastPacketReceivedTime = svs.monotonic_time;
+	client->lastconnect = svs.monotonic_time;
 
 	// init the connection
 	client->state = CS_CONNECTING;

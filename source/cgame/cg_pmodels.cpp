@@ -296,14 +296,14 @@ static int CG_MoveFlagsToUpperAnimation( uint32_t moveflags, int carried_weapon 
 		case Weapon_Deagle:
 			return TORSO_HOLD_PISTOL;
 		case Weapon_Shotgun:
-		case Weapon_AssaultRifle:
-		case Weapon_BubbleGun:
+		case Weapon_Assault:
+		case Weapon_Bubble:
 			return TORSO_HOLD_LIGHTWEAPON;
-		case Weapon_BurstRifle:
-		case Weapon_RocketLauncher:
-		case Weapon_GrenadeLauncher:
+		case Weapon_Burst:
+		case Weapon_Bazooka:
+		case Weapon_Launcher:
 			return TORSO_HOLD_HEAVYWEAPON;
-		case Weapon_Railgun:
+		case Weapon_Rail:
 		case Weapon_Sniper:
 		case Weapon_Rifle:
 			return TORSO_HOLD_AIMWEAPON;
@@ -784,7 +784,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 		const GLTFRenderData * weapon_model = GetEquippedItemRenderData( &cent->current );
 		if( weapon_model != NULL ) {
 			PlayerModelMetadata::Tag tag = cent->current.gadget == Gadget_None ? meta->tag_weapon : meta->tag_gadget;
-			Mat3x4 tag_transform = TransformTag( weapon_model, transform, pose, tag ) * inverse_scale;
+			Mat3x4 tag_transform = TransformTag( model, transform, pose, tag ) * inverse_scale;
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -815,7 +815,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			if( cent->current.effects & EF_HAT )
 				tag = meta->tag_hat;
 
-			Mat3x4 tag_transform = TransformTag( attached_model, transform, pose, tag ) * inverse_scale;
+			Mat3x4 tag_transform = TransformTag( model, transform, pose, tag ) * inverse_scale;
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -833,7 +833,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 		if( mask_model != NULL ) {
 			PlayerModelMetadata::Tag tag = meta->tag_mask;
 
-			Mat3x4 tag_transform = TransformTag( mask_model, transform, pose, tag ) * inverse_scale;
+			Mat3x4 tag_transform = TransformTag( model, transform, pose, tag ) * inverse_scale;
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;

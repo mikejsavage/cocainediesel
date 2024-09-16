@@ -13,7 +13,7 @@ void ShowErrorMessage( const char * msg, const char * file, int line ) {
 	printf( "%s (%s:%d)\n", msg, file, line );
 }
 
-static sig_atomic_t received_shutdown_signal = 0;
+static sig_atomic_t received_shutdown_signal;
 
 static void ShutdownSignal( int sig ) {
 	received_shutdown_signal = 1;
@@ -25,34 +25,16 @@ static void QuitOnSignal( int sig ) {
 	sigaction( sig, &sa, NULL );
 }
 
-int main( int argc, char ** argv ) {
+void OSServerInit() {
+	received_shutdown_signal = 0;
+
 	QuitOnSignal( SIGINT );
 	QuitOnSignal( SIGQUIT );
 	QuitOnSignal( SIGTERM );
+}
 
-	Qcommon_Init( argc, argv );
-
-	s64 oldtime = Sys_Milliseconds();
-	while( true ) {
-		TracyCFrameMark;
-
-		s64 dt = 0;
-		{
-			TracyZoneScopedN( "Interframe" );
-			while( dt == 0 ) {
-				dt = Sys_Milliseconds() - oldtime;
-			}
-			oldtime += dt;
-		}
-
-		if( !Qcommon_Frame( dt ) || received_shutdown_signal == 1 ) {
-			break;
-		}
-	}
-
-	Qcommon_Shutdown();
-
-	return 0;
+bool OSServerShouldQuit() {
+	return received_shutdown_signal == 1;
 }
 
 #endif // #if PLATFORM_UNIX

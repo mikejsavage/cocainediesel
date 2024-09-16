@@ -186,7 +186,7 @@ static std::vector< CompiledMesh > BrushToCompiledMeshes( const ParsedBrush & br
 		assert( material_mesh.material != 0 );
 
 		const EditorMaterial * editor_material = FindEditorMaterial( StringHash( material_mesh.material ) );
-		if( editor_material != NULL && !editor_material->visible )
+		if( editor_material != NULL && !editor_material->visible_in_maps )
 			continue;
 
 		std::vector< Vec3 > hull = BrushFaceToHull( VectorToSpan( planes ), i );
@@ -621,7 +621,7 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 
 		kd_tree.brushes.push_back( map_brush );
 		kd_tree.bounds = Union( kd_tree.bounds, bounds );
-		kd_tree.solidity = SolidBits( kd_tree.solidity | map_brush.solidity );
+		kd_tree.solidity = kd_tree.solidity | map_brush.solidity;
 	}
 
 	BuildKDTree( &kd_tree, VectorToSpan( brush_bounds ) );
@@ -731,8 +731,10 @@ static void WriteObj( ArenaAllocator * arena, const char * path, const MapData *
 	for( size_t i = 0; i < map->vertex_positions.n; i++ ) {
 		Vec3 p = map->vertex_positions[ i ];
 		Vec3 n = map->vertex_normals[ i ];
-		obj.append( "v {} {} {}\n", p.x, p.y, p.z );
-		obj.append( "vn {} {} {}\n", n.x, n.y, n.z );
+
+		// note the Z-up to Y-up transform
+		obj.append( "v {} {} {}\n", p.x, -p.z, p.y );
+		obj.append( "vn {} {} {}\n", n.x, -n.z, n.y );
 	}
 
 	for( u32 i = 0; i < model->num_meshes; i++ ) {
@@ -740,12 +742,12 @@ static void WriteObj( ArenaAllocator * arena, const char * path, const MapData *
 
 		for( u32 j = 0; j < mesh->num_vertices; j += 3 ) {
 			obj.append( "f {}//{} {}//{} {}//{}\n",
-				map->vertex_indices[ j + 0 + mesh->first_vertex_index ],
-				map->vertex_indices[ j + 0 + mesh->first_vertex_index ],
-				map->vertex_indices[ j + 1 + mesh->first_vertex_index ],
-				map->vertex_indices[ j + 1 + mesh->first_vertex_index ],
-				map->vertex_indices[ j + 2 + mesh->first_vertex_index ],
-				map->vertex_indices[ j + 2 + mesh->first_vertex_index ]
+				map->vertex_indices[ j + 0 + mesh->first_vertex_index ] + 1,
+				map->vertex_indices[ j + 0 + mesh->first_vertex_index ] + 1,
+				map->vertex_indices[ j + 1 + mesh->first_vertex_index ] + 1,
+				map->vertex_indices[ j + 1 + mesh->first_vertex_index ] + 1,
+				map->vertex_indices[ j + 2 + mesh->first_vertex_index ] + 1,
+				map->vertex_indices[ j + 2 + mesh->first_vertex_index ] + 1
 			);
 		}
 	}
@@ -865,13 +867,11 @@ int main( int argc, char ** argv ) {
 
 			CompiledEntity compiled;
 			compiled.render_geometry = GenerateRenderGeometry( entity );
-			compiled.collision_geometry = GenerateCollisionGeometry( entity ); // TODO: patches
+			compiled.collision_geometry = GenerateCollisionGeometry( entity );
 
 			for( ParsedKeyValue kv : entity.kvs.span() ) {
 				compiled.key_values.push_back( kv );
 			}
-
-			// TODO: assign model IDs
 
 			compiled_entities.push_back( compiled );
 		}
@@ -993,12 +993,13 @@ int main( int argc, char ** argv ) {
 	flattened.vertex_normals = flat_vertex_normals.span();
 	flattened.vertex_indices = flat_vertex_indices.span();
 
-	const char * cdmap_path = arena( "{}.cdmap", StripExtension( src_path ) );
-	WriteCDMap( &arena, cdmap_path, immutable_src_copy, &flattened, compress );
-
 	if( write_obj ) {
 		const char * obj_path = arena( "{}.obj", StripExtension( src_path ) );
 		WriteObj( &arena, obj_path, &flattened );
+	}
+	else {
+		const char * cdmap_path = arena( "{}.cdmap", StripExtension( src_path ) );
+		WriteCDMap( &arena, cdmap_path, immutable_src_copy, &flattened, compress );
 	}
 
 	// TODO: generate render geometry

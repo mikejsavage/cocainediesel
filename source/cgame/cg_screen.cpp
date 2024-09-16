@@ -82,7 +82,7 @@ static bool CG_IsShownCrosshair() {
 	WeaponType weapon = cg.predictedPlayerState.weapon;
 	return cg.predictedPlayerState.health > 0 &&
 			!( weapon == Weapon_Knife || weapon == Weapon_Sniper || weapon == Weapon_Bat ) &&
-			!( weapon == Weapon_AutoSniper && cg.predictedPlayerState.zoom_time > 0 );
+			!( weapon == Weapon_Scout && cg.predictedPlayerState.zoom_time > 0 );
 }
 
 void CG_ScreenCrosshairShootUpdate( u16 refire_time ) {
@@ -481,10 +481,7 @@ void CG_Draw2DView() {
 	CG_SCRDrawViewBlend();
 
 	scr_centertime_off -= cls.frametime;
-	if( CG_ScoreboardShown() ) {
-		CG_DrawScoreboard();
-	}
-	else if( scr_centertime_off > 0 ) {
+	if( scr_centertime_off > 0 ) {
 		CG_DrawCenterString();
 	}
 

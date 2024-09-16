@@ -55,16 +55,15 @@ static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pm
 		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 	}
 
-	if( ps->pmove.knockback_time > 0 ) { // can not start a new dash during knockback time
+	if( ps->pmove.no_friction_time > 0 ) {
 		return;
 	}
-
-	ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
 
 	if( pressed ) {
 		if( pm->groundentity == -1 ) {
 			PM_HooliganWalljump( pm, pml, pmove_gs, ps );
-		} else {
+		}
+		else {
 			PM_HooliganDash( pm, pml, pmove_gs, ps );
 		}
 	}

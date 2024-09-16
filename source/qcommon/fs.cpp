@@ -170,7 +170,7 @@ static void ListDirRecursive( Allocator * a, NonRAIIDynamicArray< Span< char > >
 			}
 		}
 		else {
-			files->add( CopySpan( a, path->span() ) );
+			files->add( CloneSpan( a, path->span() ) );
 		}
 		path->truncate( old_len );
 	}

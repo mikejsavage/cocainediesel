@@ -370,13 +370,13 @@ static void UnloadTexture( u64 idx ) {
 	DeleteTexture( textures[ idx ] );
 }
 
-static void AddMaterial( Span< const char > name, Material material ) {
+static void AddMaterial( Span< const char > name, u64 hash, Material material ) {
 	if( materials_hashtable.size() == ARRAY_COUNT( materials ) ) {
 		Com_Printf( S_COLOR_YELLOW "Too many materials!\n" );
 		return;
 	}
 
-	material.hash = Hash64( name );
+	material.hash = hash;
 
 	u64 idx = materials_hashtable.size();
 	if( !materials_hashtable.get( material.hash, &idx ) ) {
@@ -390,6 +390,10 @@ static void AddMaterial( Span< const char > name, Material material ) {
 	materials[ idx ] = material;
 }
 
+static void AddMaterial( Span< const char > name, const Material & material ) {
+	AddMaterial( name, Hash64( name ), material );
+}
+
 static Optional< size_t > AddTexture( Span< const char > name, u64 hash, const TextureConfig & config ) {
 	TracyZoneScoped;
 
@@ -401,7 +405,7 @@ static Optional< size_t > AddTexture( Span< const char > name, u64 hash, const T
 	u64 idx = textures_hashtable.size();
 	if( !textures_hashtable.get( hash, &idx ) ) {
 		textures_hashtable.add( hash, idx );
-		AddMaterial( name, Material { .texture = &textures[ idx ] } );
+		AddMaterial( name, hash, Material { .texture = &textures[ idx ] } );
 	}
 	else {
 		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( textures[ idx ].format ) ) {

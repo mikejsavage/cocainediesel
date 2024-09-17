@@ -844,7 +844,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				Vec3 random_dir = Normalize( dir + tangent * RandomFloat11( &cls.rng ) * 0.1f + bitangent * RandomFloat11( &cls.rng ) * 0.1f );
 				Vec3 end = ent->origin + random_dir * 256.0f;
 
-				trace_t trace = CG_Trace( ent->origin, MinMax3( 4.0f ), end, 0, SolidMask_AnySolid );
+				trace_t trace = CG_Trace( ent->origin, MinMax3( 4.0f ), end, -1, Solid_World );
 
 				if( trace.HitSomething() ) {
 					constexpr StringHash decals[] = {

@@ -271,9 +271,9 @@ static void ParseTCMod( Material * material, Span< const char > name, Span< cons
 	}
 }
 
-static Texture * FindTexture( Span< const char > name ) {
+static const Texture * FindTexture( Span< const char > name ) {
 	u64 idx;
-	return textures_hashtable.get( StringHash( name ).hash, &idx ) ? &textures[ idx ] : NULL;
+	return textures_hashtable.get( StringHash( name ).hash, &idx ) ? &textures[ idx ] : missing_material.texture;
 }
 
 static void ParseTexture( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
@@ -803,6 +803,11 @@ static void PackDecalAtlas() {
 static void LoadBuiltinMaterials() {
 	TracyZoneScoped;
 
+	missing_material = Material();
+	missing_material.name = CloneSpan( sys_allocator, Span< const char >( "missing material" ) );
+	missing_material.texture = &missing_texture;
+	missing_material.sampler = Sampler_Unfiltered;
+
 	{
 		u8 white = 255;
 		TextureConfig config = TextureConfig {
@@ -948,11 +953,6 @@ void InitMaterials() {
 			}
 		}
 	}
-
-	missing_material = Material();
-	missing_material.name = CloneSpan( sys_allocator, Span< const char >( "missing material" ) );
-	missing_material.texture = &missing_texture;
-	missing_material.sampler = Sampler_Unfiltered;
 
 	PackDecalAtlas();
 }

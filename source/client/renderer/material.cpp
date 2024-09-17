@@ -950,6 +950,7 @@ void InitMaterials() {
 	}
 
 	missing_material = Material();
+	missing_material.name = CloneSpan( sys_allocator, Span< const char >( "missing material" ) );
 	missing_material.texture = &missing_texture;
 	missing_material.sampler = Sampler_Unfiltered;
 
@@ -1006,6 +1007,7 @@ void ShutdownMaterials() {
 	for( u32 i = 0; i < materials_hashtable.size(); i++ ) {
 		Free( sys_allocator, materials[ i ].name.ptr );
 	}
+	Free( sys_allocator, missing_material.name.ptr );
 
 	DeleteSamplers();
 	DeleteTexture( missing_texture );

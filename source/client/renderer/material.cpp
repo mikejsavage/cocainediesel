@@ -322,7 +322,7 @@ static void ParseMaterialKey( Material * material, Span< const char > token, Spa
 static bool ParseMaterial( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	TracyZoneScoped;
 
-	material->texture = FindTexture( MakeSpan( "$whiteimage" ) );
+	material->texture = FindTexture( MakeSpan( "white" ) );
 
 	while( true ) {
 		Span< const char > token = ParseToken( data, Parse_DontStopOnNewLine );

@@ -1140,7 +1140,7 @@ void CL_Init() {
 	InitMaps();
 	InitSound();
 
-	cls.white_material = FindMaterial( "$whiteimage" );
+	cls.white_material = FindMaterial( "white" );
 
 	CL_ClearState();
 

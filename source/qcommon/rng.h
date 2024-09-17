@@ -23,24 +23,23 @@
 
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
+#include "qcommon/types.h"
 
 struct RNG {
 	// RNG state. All values are possible.
-	uint64_t state;
+	u64 state;
 	// Controls which RNG sequence (stream) is selected. Must *always* be odd.
-	uint64_t inc;
+	u64 inc;
 };
 
 RNG NewRNG();
-RNG NewRNG( uint64_t state, uint64_t seq );
+RNG NewRNG( u64 state, u64 seq );
 
 // return a random number in [0, 2^32)
-uint32_t Random32( RNG * rng );
+u32 Random32( RNG * rng );
 
 // return a random number in [0, 2^64)
-uint64_t Random64( RNG * rng );
+u64 Random64( RNG * rng );
 
 // return a random number in [lo, hi)
 int RandomUniform( RNG * rng, int lo, int hi );
@@ -62,11 +61,16 @@ double RandomDouble11( RNG * rng );
 bool Probability( RNG * rng, float p );
 
 template< typename T >
-T RandomElement( RNG * rng, const T * arr, size_t n ) {
+T & RandomElement( RNG * rng, T * arr, size_t n ) {
 	return arr[ RandomUniform( rng, 0, n ) ];
 }
 
+template< typename T >
+T & RandomElement( RNG * rng, Span< T > span ) {
+	return RandomElement( rng, span.ptr, span.n );
+}
+
 template< typename T, size_t N >
-T RandomElement( RNG * rng, const T ( &arr )[ N ] ) {
+const T & RandomElement( RNG * rng, const T ( &arr )[ N ] ) {
 	return RandomElement( rng, arr, N );
 }

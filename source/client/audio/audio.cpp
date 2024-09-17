@@ -610,11 +610,11 @@ static bool StartSound( PlayingSFX * ps, size_t i ) {
 
 	StringHash sound_name;
 	if( !ps->config.entropy.exists ) {
-		sound_name = RandomElement( &cls.rng, config.sounds.ptr(), config.sounds.size() );
+		sound_name = RandomElement( &cls.rng, config.sounds.span() );
 	}
 	else {
 		RNG rng = NewRNG( ps->config.entropy.value, 0 );
-		sound_name = RandomElement( &rng, config.sounds.ptr(), config.sounds.size() );
+		sound_name = RandomElement( &rng, config.sounds.span() );
 	}
 
 	Sound sound;

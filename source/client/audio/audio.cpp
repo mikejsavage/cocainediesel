@@ -30,8 +30,7 @@ struct Sound {
 
 struct SoundEffect {
 	struct PlaybackConfig {
-		StringHash sounds[ 128 ];
-		u8 num_random_sounds;
+		BoundedDynamicArray< StringHash, 128 > sounds;
 
 		Time delay;
 		float volume;
@@ -40,8 +39,7 @@ struct SoundEffect {
 		float attenuation;
 	};
 
-	PlaybackConfig sounds[ 8 ];
-	u8 num_sounds;
+	BoundedDynamicArray< PlaybackConfig, 8 > sounds;
 };
 
 struct PlayingSFX {
@@ -265,16 +263,16 @@ static void AddSound( Span< const char > path, int num_samples, int channels, in
 		num_sounds++;
 
 		// add simple sound effect
-		SoundEffect sfx = { };
-		sfx.sounds[ 0 ].sounds[ 0 ] = StringHash( hash );
-		sfx.sounds[ 0 ].volume = 1;
-		sfx.sounds[ 0 ].pitch = 1.0f;
-		sfx.sounds[ 0 ].pitch_random = 0.0f;
-		sfx.sounds[ 0 ].attenuation = ATTN_NORM;
-		sfx.sounds[ 0 ].num_random_sounds = 1;
-		sfx.num_sounds = 1;
-
-		sound_effects[ num_sound_effects ] = sfx;
+		sound_effects[ num_sound_effects ] = SoundEffect {
+			.sounds = {
+				SoundEffect::PlaybackConfig {
+					.sounds = { StringHash( hash ) },
+					.volume = 1.0f,
+					.pitch = 1.0f,
+					.attenuation = ATTN_NORM,
+				},
+			},
+		};
 		sound_effects_hashtable.add( hash, num_sound_effects );
 		num_sound_effects++;
 	}
@@ -358,11 +356,6 @@ static void HotloadSounds() {
 static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span< const char > base_path ) {
 	TracyZoneScoped;
 
-	if( sfx->num_sounds == ARRAY_COUNT( sfx->sounds ) ) {
-		Com_Printf( S_COLOR_YELLOW "SFX with too many sections\n" );
-		return false;
-	}
-
 	TempAllocator temp = cls.frame_arena.temp();
 
 	while( true ) {
@@ -375,11 +368,11 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span
 			return false;
 		}
 
-		SoundEffect::PlaybackConfig * config = &sfx->sounds[ sfx->num_sounds ];
-		config->volume = 1.0f;
-		config->pitch = 1.0f;
-		config->pitch_random = 0.0f;
-		config->attenuation = ATTN_NORM;
+		SoundEffect::PlaybackConfig config = { };
+		config.volume = 1.0f;
+		config.pitch = 1.0f;
+		config.pitch_random = 0.0f;
+		config.attenuation = ATTN_NORM;
 
 		while( true ) {
 			Span< const char > key = ParseToken( data, Parse_DontStopOnNewLine );
@@ -395,17 +388,17 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span
 			}
 
 			if( key == "sound" ) {
-				if( config->num_random_sounds == ARRAY_COUNT( config->sounds ) ) {
+				StringHash hash;
+				if( StartsWith( value, "." ) ) {
+					hash = StringHash( temp( "{}{}", base_path, value + 1 ) );
+				}
+				else {
+					hash = StringHash( value );
+				}
+				if( !config.sounds.add( hash ) ) {
 					Com_Printf( S_COLOR_YELLOW "SFX with too many random sounds\n" );
 					return false;
 				}
-				if( StartsWith( value, "." ) ) {
-					config->sounds[ config->num_random_sounds ] = StringHash( temp( "{}{}", base_path, value + 1 ) );
-				}
-				else {
-					config->sounds[ config->num_random_sounds ] = StringHash( value );
-				}
-				config->num_random_sounds++;
 			}
 			else if( key == "find_sounds" ) {
 				TracyZoneScopedN( "find_sounds" );
@@ -417,13 +410,10 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span
 
 				for( Span< const char > path : AssetPaths() ) {
 					if( FileExtension( path ) == ".ogg" && StartsWith( path, prefix ) ) {
-						if( config->num_random_sounds == ARRAY_COUNT( config->sounds ) ) {
+						if( !config.sounds.add( StringHash( StripExtension( path ) ) ) ) {
 							Com_Printf( S_COLOR_YELLOW "SFX with too many random sounds\n" );
 							return false;
 						}
-
-						config->sounds[ config->num_random_sounds ] = StringHash( StripExtension( path ) );
-						config->num_random_sounds++;
 					}
 				}
 			}
@@ -433,41 +423,41 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span
 					Com_Printf( S_COLOR_YELLOW "Argument to delay should be a number\n" );
 					return false;
 				}
-				config->delay = Seconds( double( delay ) );
+				config.delay = Seconds( double( delay ) );
 			}
 			else if( key == "volume" ) {
-				if( !TrySpanToFloat( value, &config->volume ) ) {
+				if( !TrySpanToFloat( value, &config.volume ) ) {
 					Com_Printf( S_COLOR_YELLOW "Argument to volume should be a number\n" );
 					return false;
 				}
 			}
 			else if( key == "pitch" ) {
-				if( !TrySpanToFloat( value, &config->pitch ) ) {
+				if( !TrySpanToFloat( value, &config.pitch ) ) {
 					Com_Printf( S_COLOR_YELLOW "Argument to pitch should be a number\n" );
 					return false;
 				}
 			}
 			else if( key == "pitch_random" ) {
-				if( !TrySpanToFloat( value, &config->pitch_random ) ) {
+				if( !TrySpanToFloat( value, &config.pitch_random ) ) {
 					Com_Printf( S_COLOR_YELLOW "Argument to pitch_random should be a number\n" );
 					return false;
 				}
 			}
 			else if( key == "attenuation" ) {
 				if( value == "none" ) {
-					config->attenuation = ATTN_NONE;
+					config.attenuation = ATTN_NONE;
 				}
 				else if( value == "distant" ) {
-					config->attenuation = ATTN_DISTANT;
+					config.attenuation = ATTN_DISTANT;
 				}
 				else if( value == "norm" ) {
-					config->attenuation = ATTN_NORM;
+					config.attenuation = ATTN_NORM;
 				}
 				else if( value == "idle" ) {
-					config->attenuation = ATTN_IDLE;
+					config.attenuation = ATTN_IDLE;
 				}
 				else if( value == "static" ) {
-					config->attenuation = ATTN_STATIC;
+					config.attenuation = ATTN_STATIC;
 				}
 				else {
 					Com_Printf( S_COLOR_YELLOW "Bad attenuation value\n" );
@@ -480,12 +470,15 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span
 			}
 		}
 
-		if( config->num_random_sounds == 0 ) {
+		if( config.sounds.size() == 0 ) {
 			Com_Printf( S_COLOR_YELLOW "Section with no sounds\n" );
 			return false;
 		}
 
-		sfx->num_sounds++;
+		if( !sfx->sounds.add( config ) ) {
+			Com_Printf( S_COLOR_YELLOW "SFX with too many sections\n" );
+			return false;
+		}
 	}
 
 	return true;
@@ -612,20 +605,20 @@ static const SoundEffect * FindSoundEffect( StringHash name ) {
 	return &sound_effects[ idx ];
 }
 
-static bool StartSound( PlayingSFX * ps, u8 i ) {
+static bool StartSound( PlayingSFX * ps, size_t i ) {
 	SoundEffect::PlaybackConfig config = ps->sfx->sounds[ i ];
 
-	int idx;
+	StringHash sound_name;
 	if( !ps->config.entropy.exists ) {
-		idx = RandomUniform( &cls.rng, 0, config.num_random_sounds );
+		sound_name = RandomElement( &cls.rng, config.sounds.ptr(), config.sounds.size() );
 	}
 	else {
 		RNG rng = NewRNG( ps->config.entropy.value, 0 );
-		idx = RandomUniform( &rng, 0, config.num_random_sounds );
+		sound_name = RandomElement( &rng, config.sounds.ptr(), config.sounds.size() );
 	}
 
 	Sound sound;
-	if( !FindSound( config.sounds[ idx ], &sound ) )
+	if( !FindSound( sound_name, &sound ) )
 		return false;
 
 	if( num_free_sound_sources == 0 ) {
@@ -681,7 +674,7 @@ static bool StartSound( PlayingSFX * ps, u8 i ) {
 	return true;
 }
 
-static void StopSound( PlayingSFX * ps, u8 i ) {
+static void StopSound( PlayingSFX * ps, size_t i ) {
 	CheckedALSourceStop( ps->sources[ i ] );
 	CheckedALSource( ps->sources[ i ], AL_BUFFER, 0 );
 	free_sound_sources[ num_free_sound_sources ] = ps->sources[ i ];
@@ -690,7 +683,7 @@ static void StopSound( PlayingSFX * ps, u8 i ) {
 }
 
 static void StopSFX( PlayingSFX * ps ) {
-	for( u8 i = 0; i < ps->sfx->num_sounds; i++ ) {
+	for( size_t i = 0; i < ps->sfx->sounds.size(); i++ ) {
 		if( ps->started[ i ] && !ps->stopped[ i ] ) {
 			StopSound( ps, i );
 		}
@@ -715,7 +708,7 @@ static void UpdateSound( PlayingSFX * ps, float volume, float pitch ) {
 	ps->config.volume = volume;
 	ps->config.pitch = pitch;
 
-	for( size_t i = 0; i < ps->sfx->num_sounds; i++ ) {
+	for( size_t i = 0; i < ps->sfx->sounds.size(); i++ ) {
 		if( ps->started[ i ] ) {
 			const SoundEffect::PlaybackConfig * config = &ps->sfx->sounds[ i ];
 			CheckedALSource( ps->sources[ i ], AL_GAIN, ps->config.volume * config->volume * s_volume->number );
@@ -750,7 +743,7 @@ void SoundFrame( Vec3 origin, Vec3 velocity, Vec3 forward, Vec3 up ) {
 		Time t = cls.monotonicTime - ps->start_time;
 		bool all_stopped = true;
 
-		for( u8 j = 0; j < ps->sfx->num_sounds; j++ ) {
+		for( size_t j = 0; j < ps->sfx->sounds.size(); j++ ) {
 			if( ps->started[ j ] ) {
 				if( ps->stopped[ j ] )
 					continue;
@@ -783,7 +776,7 @@ void SoundFrame( Vec3 origin, Vec3 velocity, Vec3 forward, Vec3 up ) {
 		}
 		ps->keep_playing_immediate = false;
 
-		for( u8 j = 0; j < ps->sfx->num_sounds; j++ ) {
+		for( size_t j = 0; j < ps->sfx->sounds.size(); j++ ) {
 			if( !ps->started[ j ] || ps->stopped[ j ] )
 				continue;
 

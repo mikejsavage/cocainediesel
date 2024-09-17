@@ -109,9 +109,9 @@ Span< const char > CaptureNOrMore( std::vector< T > * array, Span< const char > 
 	return res;
 }
 
-template< typename T, typename F >
-Span< const char > ParseUpToN( T * array, size_t * num_parsed, size_t n, Span< const char > str, F parser ) {
-	*num_parsed = 0;
+template< typename T, size_t N, typename F >
+Span< const char > ParseUpToN( BoundedDynamicArray< T, N > * array, Span< const char > str, F parser ) {
+	array->clear();
 
 	while( true ) {
 		T elem;
@@ -119,18 +119,13 @@ Span< const char > ParseUpToN( T * array, size_t * num_parsed, size_t n, Span< c
 		if( res.ptr == NULL )
 			return str;
 
-		if( *num_parsed == n )
+		if( !array->add( elem ) ) {
+			array->clear();
 			return NullSpan;
+		}
 
-		array[ *num_parsed ] = elem;
-		*num_parsed += 1;
 		str = res;
 	}
-}
-
-template< typename T, size_t N, typename F >
-Span< const char > ParseUpToN( StaticArray< T, N > * array, Span< const char > str, F parser ) {
-	return ParseUpToN( array->elems, &array->n, N, str, parser );
 }
 
 static constexpr const char * whitespace_chars = " \r\n\t";
@@ -264,7 +259,7 @@ static Span< const char > ParseQ1Brush( ParsedBrush * brush, Span< const char > 
 	brush->first_char = str.ptr - 1;
 	str = ParseUpToN( &brush->faces, str, ParseQ1Face );
 	str = SkipToken( str, "}" );
-	return brush->faces.n >= 4 ? str : NullSpan;
+	return brush->faces.size() >= 4 ? str : NullSpan;
 }
 
 static Span< const char > ParseQ3Face( ParsedBrushFace * face, Span< const char > str ) {
@@ -298,7 +293,7 @@ static Span< const char > ParseQ3Brush( ParsedBrush * brush, Span< const char > 
 	str = ParseUpToN( &brush->faces, str, ParseQ3Face );
 	str = SkipToken( str, "}" );
 	str = SkipToken( str, "}" );
-	return brush->faces.n >= 4 ? str : NullSpan;
+	return brush->faces.size() >= 4 ? str : NullSpan;
 }
 
 static Span< const char > ParsePatch( ParsedPatch * patch, Span< const char > str ) {

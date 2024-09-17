@@ -1,3 +1,5 @@
+#include "qcommon/base.h"
+#include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/serialization.h"
 #include "client/assets.h"
@@ -106,8 +108,7 @@ enum ParticleCollisionType : u8 {
 };
 
 struct ParticleEvents {
-	u8 num_events;
-	StringHash events[ MAX_PARTICLE_EMITTER_EVENTS ];
+	BoundedDynamicArray< StringHash, MAX_PARTICLE_EMITTER_EVENTS > events;
 };
 
 struct ParticleSystem {
@@ -147,8 +148,7 @@ struct VisualEffect {
 };
 
 struct VisualEffectGroup {
-	VisualEffect effects[ MAX_VISUAL_EFFECTS ];
-	u8 num_effects;
+	BoundedDynamicArray< VisualEffect, MAX_VISUAL_EFFECTS > effects;
 };
 
 enum ParticleEmitterPositionType : u8 {
@@ -173,8 +173,7 @@ struct ParticleEmitterPosition {
 struct ParticleEmitter {
 	u64 particle_system;
 
-	u8 num_materials;
-	StringHash materials[ MAX_PARTICLE_EMITTER_MATERIALS ];
+	BoundedDynamicArray< StringHash, MAX_PARTICLE_EMITTER_MATERIALS > materials;
 
 	BlendFunc blend_func = BlendFunc_Add;
 
@@ -210,8 +209,7 @@ struct ParticleEmitter {
 };
 
 struct DecalEmitter {
-	u8 num_materials;
-	StringHash materials[ MAX_DECAL_EMITTER_MATERIALS ];
+	BoundedDynamicArray< StringHash, MAX_DECAL_EMITTER_MATERIALS > materials;
 
 	Vec4 color = Vec4( 1.0f );
 	RandomDistribution red_distribution, green_distribution, blue_distribution, alpha_distribution;
@@ -284,8 +282,10 @@ bool ParseParticleEvents( Span< const char > * data, ParticleEvents * event ) {
 				return false;
 			}
 
-			event->events[ event->num_events ] = name;
-			event->num_events++;
+			if( !event->events.add( name ) ) {
+				Com_Printf( S_COLOR_YELLOW "Too many events\n" );
+				return false;
+			}
 		}
 	}
 
@@ -368,14 +368,11 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 			}
 
 			if( key == "material" ) {
-				if( emitter->num_materials == ARRAY_COUNT( emitter->materials ) ) {
+				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
+				if( !emitter->materials.add( StringHash( Hash64( value.ptr, value.n ) ) ) ) {
 					Com_Printf( S_COLOR_YELLOW "Too many materials in particle emitter!\n" );
 					return false;
 				}
-
-				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				emitter->materials[ emitter->num_materials ] = StringHash( Hash64( value.ptr, value.n ) );
-				emitter->num_materials++;
 			}
 			else if( key == "blendfunc" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
@@ -547,8 +544,10 @@ static bool ParseDecalEmitter( DecalEmitter * emitter, Span< const char > * data
 
 			if( key == "material" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				emitter->materials[ emitter->num_materials ] = StringHash( Hash64( value.ptr, value.n ) );
-				emitter->num_materials++;
+				if( !emitter->materials.add( StringHash( Hash64( value.ptr, value.n ) ) ) ) {
+					Com_Printf( S_COLOR_YELLOW "Too many materials in decal emitter!\n" );
+					return false;
+				}
 			}
 			else if( key == "color" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
@@ -682,7 +681,8 @@ static bool ParseVisualEffectGroup( VisualEffectGroup * group, Span< const char 
 				e.type = VisualEffectType_Particles;
 				ParticleEmitter emitter = { };
 				if( ParseParticleEmitter( &emitter, data ) ) {
-					e.hash = Hash64( ( void * )&group->num_effects, 1, base_hash );
+					size_t n = group->effects.size();
+					e.hash = Hash64( &n, sizeof( n ), base_hash );
 
 					u64 idx = num_particleEmitters;
 					if( !particleEmitters_hashtable.get( e.hash, &idx ) ) {
@@ -691,15 +691,18 @@ static bool ParseVisualEffectGroup( VisualEffectGroup * group, Span< const char 
 					}
 					particleEmitters[ idx ] = emitter;
 
-					group->effects[ group->num_effects ] = e;
-					group->num_effects++;
+					if( !group->effects.add( e ) ) {
+						Com_Printf( S_COLOR_YELLOW "Too many effects\n" );
+						return false;
+					}
 				}
 			}
 			else if( key == "decal" ) {
 				e.type = VisualEffectType_Decal;
 				DecalEmitter emitter = { };
 				if( ParseDecalEmitter( &emitter, data ) ) {
-					e.hash = Hash64( ( void * )&group->num_effects, 1, base_hash );
+					size_t n = group->effects.size();
+					e.hash = Hash64( &n, sizeof( n ), base_hash );
 
 					u64 idx = num_decalEmitters;
 					if( !decalEmitters_hashtable.get( e.hash, &idx ) ) {
@@ -708,15 +711,18 @@ static bool ParseVisualEffectGroup( VisualEffectGroup * group, Span< const char 
 					}
 					decalEmitters[ idx ] = emitter;
 
-					group->effects[ group->num_effects ] = e;
-					group->num_effects++;
+					if( !group->effects.add( e ) ) {
+						Com_Printf( S_COLOR_YELLOW "Too many effects\n" );
+						return false;
+					}
 				}
 			}
 			else if( key == "dlight" ) {
 				e.type = VisualEffectType_DynamicLight;
 				DynamicLightEmitter emitter = { };
 				if( ParseDynamicLightEmitter( &emitter, data ) ) {
-					e.hash = Hash64( ( void * )&group->num_effects, 1, base_hash );
+					size_t n = group->effects.size();
+					e.hash = Hash64( &n, sizeof( n ), base_hash );
 
 					u64 idx = num_dlightEmitters;
 					if( !dlightEmitters_hashtable.get( e.hash, &idx ) ) {
@@ -725,8 +731,10 @@ static bool ParseVisualEffectGroup( VisualEffectGroup * group, Span< const char 
 					}
 					dlightEmitters[ idx ] = emitter;
 
-					group->effects[ group->num_effects ] = e;
-					group->num_effects++;
+					if( !group->effects.add( e ) ) {
+						Com_Printf( S_COLOR_YELLOW "Too many effects\n" );
+						return false;
+					}
 				}
 			}
 		}
@@ -774,7 +782,7 @@ void CreateParticleSystems() {
 
 	for( size_t i = 0; i < num_particleEmitters; i++ ) {
 		ParticleEmitter * emitter = &particleEmitters[ i ];
-		if( emitter->num_materials ) {
+		if( emitter->materials.size() > 0 ) {
 			if( emitter->blend_func == BlendFunc_Add ) {
 				emitter->particle_system = addSystem_hash;
 				addSystem->max_particles += particles_per_emitter;
@@ -1019,10 +1027,10 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 	start_color.w += SampleRandomDistribution( &cls.rng, emitter->alpha_distribution );
 	start_color = Clamp01( start_color );
 
-	if( emitter->num_materials ) {
+	if( emitter->materials.size() > 0 ) {
 		Vec4 uvwh = Vec4( 0.0f );
 		Vec4 trim = Vec4( 0.0f, 0.0f, 1.0f, 1.0f );
-		if( TryFindDecal( emitter->materials[ RandomUniform( &cls.rng, 0, emitter->num_materials - 1 ) ], &uvwh, &trim ) ) {
+		if( TryFindDecal( RandomElement( &cls.rng, emitter->materials.span() ), &uvwh, &trim ) ) {
 			EmitParticle( ps, lifetime, position, dir * speed, angle, angular_velocity, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, trim, start_color, end_color, size, emitter->end_size, emitter->flags );
 		}
 	}
@@ -1109,7 +1117,7 @@ static void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 co
 	float lifetime = Max2( 0.0f, emitter->lifetime + SampleRandomDistribution( &cls.rng, emitter->lifetime_distribution ) ) * lifetime_scale;
 	float size = Max2( 0.0f, emitter->size + SampleRandomDistribution( &cls.rng, emitter->size_distribution ) );
 	float angle = RandomUniformFloat( &cls.rng, 0.0f, Radians( 360.0f ) );
-	StringHash material = emitter->materials[ RandomUniform( &cls.rng, 0, emitter->num_materials - 1 ) ];
+	StringHash material = RandomElement( &cls.rng, emitter->materials.span() );
 
 	Vec4 actual_color = emitter->color;
 	if( emitter->color_override ) {
@@ -1143,8 +1151,7 @@ void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec
 	if( vfx == NULL )
 		return;
 
-	for( size_t i = 0; i < vfx->num_effects; i++ ) {
-		VisualEffect e = vfx->effects[ i ];
+	for( VisualEffect e : vfx->effects ) {
 		if( e.type == VisualEffectType_Particles ) {
 			u64 idx = num_particleEmitters;
 			if( particleEmitters_hashtable.get( e.hash, &idx ) ) {

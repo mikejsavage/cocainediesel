@@ -97,7 +97,7 @@
 		<real3 key="modelscale_vec" name="Scale XYZ" value="1 1 1">Floating-point vector used to scale a model's axes individually (default 1.0 1.0 1.0).</real3>
 	</point>
 
-	<point name="decal" color="1 0 0" box="-8 -8 -8 8 8 8">
+	<point name="decal" color="1 0 0" box="-8 -8 -8 8 8 8" model="entities/decal/radiant_model.glb">
 		Place a decal to be loaded at runtime. MAKE SURE RADIANT ISN'T SETTING modelscale_vec, DECALS ONLY SUPPORT UNIFORM SCALING
 		<texture key="material" name="material">Name of material</texture>
 		<angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>

@@ -46,6 +46,12 @@ public:
 		remove_swap( &elems[ idx ] );
 	}
 
+	T pop() {
+		Assert( n > 0 );
+		n--;
+		return elems[ n ];
+	}
+
 	T & operator[]( size_t i ) {
 		Assert( i < n );
 		return elems[ i ];

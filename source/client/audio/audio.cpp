@@ -74,18 +74,14 @@ static constexpr u32 MAX_SOUND_EFFECTS = 4096;
 static constexpr u32 MAX_PLAYING_SOUNDS = 256;
 
 static Sound sounds[ MAX_SOUND_ASSETS ];
-static u32 num_sounds;
 static Hashtable< MAX_SOUND_ASSETS * 2 > sounds_hashtable;
 
 static SoundEffect sound_effects[ MAX_SOUND_EFFECTS ];
-static u32 num_sound_effects;
 static Hashtable< MAX_SOUND_EFFECTS * 2 > sound_effects_hashtable;
 
-static ALuint free_sound_sources[ MAX_PLAYING_SOUNDS ];
-static u32 num_free_sound_sources;
+static BoundedDynamicArray< ALuint, MAX_PLAYING_SOUNDS > free_sound_sources;
 
 static PlayingSFX playing_sound_effects[ MAX_PLAYING_SOUNDS ];
-static u32 num_playing_sound_effects;
 static Hashtable< MAX_PLAYING_SOUNDS * 2 > playing_sounds_hashtable;
 static u64 playing_sounds_autoinc;
 
@@ -208,9 +204,10 @@ static void InitOpenAL() {
 
 	alDistanceModel( AL_INVERSE_DISTANCE_CLAMPED );
 
-	alGenSources( ARRAY_COUNT( free_sound_sources ), free_sound_sources );
+	for( size_t i = 0; i < ARRAY_COUNT( free_sound_sources ); i++ ) {
+		alGenSources( 1, free_sound_sources.add() );
+	}
 	alGenSources( 1, &music_source );
-	num_free_sound_sources = ARRAY_COUNT( free_sound_sources );
 
 	if( alGetError() != AL_NO_ERROR ) {
 		Fatal( "Failed to allocate sound sources" );
@@ -218,7 +215,7 @@ static void InitOpenAL() {
 }
 
 static void ShutdownOpenAL() {
-	alDeleteSources( ARRAY_COUNT( free_sound_sources ), free_sound_sources );
+	alDeleteSources( ARRAY_COUNT( free_sound_sources ), free_sound_sources.ptr() );
 	alDeleteSources( 1, &music_source );
 
 	CheckALErrors( "ShutdownSound" );
@@ -254,16 +251,21 @@ static void AddSound( Span< const char > path, int num_samples, int channels, in
 
 	bool restart_music = false;
 
-	u64 idx = num_sounds;
+	u64 idx = sounds_hashtable.size();
 	if( !sounds_hashtable.get( hash, &idx ) ) {
-		Assert( num_sounds < ARRAY_COUNT( sounds ) );
-		Assert( num_sound_effects < ARRAY_COUNT( sound_effects ) );
+		if( sounds_hashtable.size() == ARRAY_COUNT( sounds ) ) {
+			Com_Printf( S_COLOR_YELLOW "Too many sounds!\n" );
+			return;
+		}
+		if( sound_effects_hashtable.size() == ARRAY_COUNT( sound_effects ) ) {
+			Com_Printf( S_COLOR_YELLOW "Too many sound effects!\n" );
+			return;
+		}
 
-		sounds_hashtable.add( hash, num_sounds );
-		num_sounds++;
+		sounds_hashtable.add( hash, sounds_hashtable.size() );
 
 		// add simple sound effect
-		sound_effects[ num_sound_effects ] = SoundEffect {
+		sound_effects[ sound_effects_hashtable.size() ] = SoundEffect {
 			.sounds = {
 				SoundEffect::PlaybackConfig {
 					.sounds = { StringHash( hash ) },
@@ -273,8 +275,7 @@ static void AddSound( Span< const char > path, int num_samples, int channels, in
 				},
 			},
 		};
-		sound_effects_hashtable.add( hash, num_sound_effects );
-		num_sound_effects++;
+		sound_effects_hashtable.add( hash, sound_effects_hashtable.size() );
 	}
 	else {
 		restart_music = music_playing;
@@ -499,10 +500,14 @@ static void LoadSoundEffect( Span< const char > path ) {
 
 	u64 hash = Hash64( StripExtension( path ) );
 
-	u64 idx = num_sound_effects;
+	u64 idx = sound_effects_hashtable.size();
 	if( !sound_effects_hashtable.get( hash, &idx ) ) {
-		sound_effects_hashtable.add( hash, num_sound_effects );
-		num_sound_effects++;
+		if( sound_effects_hashtable.size() == ARRAY_COUNT( sound_effects ) ) {
+			Com_Printf( S_COLOR_YELLOW "Too many sound effects!\n" );
+			return;
+		}
+
+		sound_effects_hashtable.add( hash, sound_effects_hashtable.size() );
 	}
 
 	sound_effects[ idx ] = sfx;
@@ -538,9 +543,6 @@ static void AudioCallback( Span< Vec2 > buffer, void * userdata ) {
 void InitSound() {
 	TracyZoneScoped;
 
-	num_sounds = 0;
-	num_sound_effects = 0;
-	num_playing_sound_effects = 0;
 	playing_sounds_autoinc = 1;
 	sounds_hashtable.clear();
 	sound_effects_hashtable.clear();
@@ -581,7 +583,7 @@ void ShutdownSound() {
 
 	StopAllSounds( true );
 
-	for( u32 i = 0; i < num_sounds; i++ ) {
+	for( size_t i = 0; i < sounds_hashtable.size(); i++ ) {
 		alDeleteBuffers( 1, &sounds[ i ].buf );
 		free( sounds[ i ].samples.ptr );
 	}
@@ -621,7 +623,7 @@ static bool StartSound( PlayingSFX * ps, size_t i ) {
 	if( !FindSound( sound_name, &sound ) )
 		return false;
 
-	if( num_free_sound_sources == 0 ) {
+	if( free_sound_sources.size() == 0 ) {
 		Com_Printf( S_COLOR_YELLOW "Too many playing sounds!\n" );
 		return false;
 	}
@@ -631,8 +633,7 @@ static bool StartSound( PlayingSFX * ps, size_t i ) {
 		return false;
 	}
 
-	num_free_sound_sources--;
-	ALuint source = free_sound_sources[ num_free_sound_sources ];
+	ALuint source = free_sound_sources.pop();
 	ps->sources[ i ] = source;
 
 	CheckedALSource( source, AL_BUFFER, sound.buf );
@@ -677,8 +678,7 @@ static bool StartSound( PlayingSFX * ps, size_t i ) {
 static void StopSound( PlayingSFX * ps, size_t i ) {
 	CheckedALSourceStop( ps->sources[ i ] );
 	CheckedALSource( ps->sources[ i ], AL_BUFFER, 0 );
-	free_sound_sources[ num_free_sound_sources ] = ps->sources[ i ];
-	num_free_sound_sources++;
+	free_sound_sources.add( ps->sources[ i ] );
 	ps->stopped[ i ] = true;
 }
 
@@ -690,8 +690,7 @@ static void StopSFX( PlayingSFX * ps ) {
 	}
 
 	// remove-swap it from playing_sound_effects
-	num_playing_sound_effects--;
-	Swap2( ps, &playing_sound_effects[ num_playing_sound_effects ] );
+	Swap2( ps, &playing_sound_effects[ playing_sounds_hashtable.size() - 1 ] );
 
 	{
 		bool ok = playing_sounds_hashtable.update( ps->handle.handle, ps - playing_sound_effects );
@@ -699,7 +698,7 @@ static void StopSFX( PlayingSFX * ps ) {
 	}
 
 	{
-		bool ok = playing_sounds_hashtable.remove( playing_sound_effects[ num_playing_sound_effects ].handle.handle );
+		bool ok = playing_sounds_hashtable.remove( playing_sound_effects[ playing_sounds_hashtable.size() - 1 ].handle.handle );
 		Assert( ok );
 	}
 }
@@ -738,7 +737,7 @@ void SoundFrame( Vec3 origin, Vec3 velocity, Vec3 forward, Vec3 up ) {
 	CheckedALListener( AL_VELOCITY, velocity );
 	CheckedALListenerOrientation( forward, up );
 
-	for( size_t i = 0; i < num_playing_sound_effects; i++ ) {
+	for( size_t i = 0; i < playing_sounds_hashtable.size(); i++ ) {
 		PlayingSFX * ps = &playing_sound_effects[ i ];
 		Time t = cls.monotonicTime - ps->start_time;
 		bool all_stopped = true;
@@ -850,12 +849,12 @@ static PlayingSFX * PlaySFXInternal( StringHash name, const PlaySFXConfig & conf
 	if( sfx == NULL )
 		return NULL;
 
-	if( num_playing_sound_effects == ARRAY_COUNT( playing_sound_effects ) ) {
+	if( playing_sounds_hashtable.size() == ARRAY_COUNT( playing_sound_effects ) ) {
 		Com_Printf( S_COLOR_YELLOW "Too many playing sound effects!\n" );
 		return NULL;
 	}
 
-	PlayingSFX * ps = &playing_sound_effects[ num_playing_sound_effects ];
+	PlayingSFX * ps = &playing_sound_effects[ playing_sounds_hashtable.size() ];
 
 	*ps = { };
 	ps->config = config;
@@ -867,9 +866,8 @@ static PlayingSFX * PlaySFXInternal( StringHash name, const PlaySFXConfig & conf
 
 	ps->start_time = cls.monotonicTime;
 
-	bool ok = playing_sounds_hashtable.add( ps->handle.handle, num_playing_sound_effects );
+	bool ok = playing_sounds_hashtable.add( ps->handle.handle, playing_sounds_hashtable.size() );
 	Assert( ok );
-	num_playing_sound_effects++;
 
 	return ps;
 }
@@ -914,7 +912,7 @@ void StopAllSounds( bool stop_music ) {
 	if( !backend_initialized )
 		return;
 
-	while( num_playing_sound_effects > 0 ) {
+	while( playing_sounds_hashtable.size() > 0 ) {
 		StopSFX( &playing_sound_effects[ 0 ] );
 	}
 

@@ -62,6 +62,19 @@ constexpr Alignment Alignment_LeftBottom = { XAlignment_Left, YAlignment_Bottom 
 constexpr Alignment Alignment_CenterBottom = { XAlignment_Center, YAlignment_Bottom };
 constexpr Alignment Alignment_RightBottom = { XAlignment_Right, YAlignment_Bottom };
 
+struct MultiTypeColor {
+	const RGBA8 rgba8;
+	const Vec4 vec4;
+
+	constexpr MultiTypeColor( u8 r, u8 g, u8 b, u8 a ):
+		rgba8( r, g, b, a ),
+		vec4( r / 255.f, g / 255.f, b / 255.f, a / 255.f )
+	{}
+};
+
+constexpr MultiTypeColor diesel_yellow( 255, 204, 38, 255  );
+constexpr MultiTypeColor diesel_green( 44, 209, 89, 255 ); //yolo
+
 constexpr Vec4 vec4_white = Vec4( 1, 1, 1, 1 );
 constexpr Vec4 vec4_black = Vec4( 0, 0, 0, 1 );
 constexpr Vec4 vec4_dark = Vec4( 0.02f, 0.02f, 0.02f, 1.0f );

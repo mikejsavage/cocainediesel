@@ -345,7 +345,7 @@ void CG_SC_Obituary( const Tokenized & args ) {
 	if( assistor == NULL ) {
 		CG_AddChat( temp.sv( "{} {}{} {}",
 			attacker_name,
-			ImGuiColorToken( rgba8_diesel_yellow ), obituary,
+			ImGuiColorToken( diesel_yellow.rgba8 ), obituary,
 			victim_name
 		) );
 	}
@@ -355,7 +355,7 @@ void CG_SC_Obituary( const Tokenized & args ) {
 			attacker_name,
 			ImGuiColorToken( 255, 255, 255, 255 ), conjugation,
 			assistor_name,
-			ImGuiColorToken( rgba8_diesel_yellow ), obituary,
+			ImGuiColorToken( diesel_yellow.rgba8 ), obituary,
 			victim_name
 		) );
 	}

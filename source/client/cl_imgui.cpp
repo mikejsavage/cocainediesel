@@ -69,6 +69,7 @@ void CL_InitImGui() {
 	{
 		AddFontAsset( "fonts/Decalotype-Bold.ttf", 18.0f );
 		cls.huge_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 128.0f );
+		cls.huge_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 128.0f );
 		cls.large_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 64.0f );
 		cls.big_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 48.0f );
 		cls.medium_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 28.0f );
@@ -77,6 +78,7 @@ void CL_InitImGui() {
 		cls.large_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 64.0f );
 		cls.console_font = AddFontAsset( "fonts/Decalotype-Bold.ttf", 14.0f );
 		cls.idi_nahui_font = AddFontAsset( "fonts/OpenSans-SemiBold.ttf", 24.0f, true );
+		cls.license_italic_font = AddFontAsset( "fonts/sofachrome-rg-it.otf", 128.0f );
 
 		io.Fonts->Build();
 
@@ -99,6 +101,7 @@ void CL_InitImGui() {
 		ImGuiStyle & style = ImGui::GetStyle();
 		style.WindowRounding = 0;
 		style.FrameRounding = 0;
+		style.TabRounding = 0;
 		style.GrabRounding = 0;
 		style.FramePadding = ImVec2( 16, 16 );
 		style.FrameBorderSize = 0;
@@ -335,9 +338,9 @@ Vec4 CustomAttentionGettingColor( Vec4 from, Vec4 to, Time period ) {
 }
 
 Vec4 AttentionGettingColor() {
-	return CustomAttentionGettingColor( vec4_red, sRGBToLinear( rgba8_diesel_yellow ), Milliseconds( 125 ) );
+	return CustomAttentionGettingColor( vec4_red, sRGBToLinear( diesel_yellow.rgba8 ), Milliseconds( 125 ) );
 }
 
 Vec4 PlantableColor() {
-	return CustomAttentionGettingColor( vec4_dark, sRGBToLinear( rgba8_diesel_green ), Milliseconds( 125 ) );
+	return CustomAttentionGettingColor( vec4_dark, sRGBToLinear( diesel_green.rgba8 ), Milliseconds( 125 ) );
 }

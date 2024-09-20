@@ -283,7 +283,7 @@ void CG_DrawDamageNumbers( float obi_size, float dmg_size ) {
 		}
 		else {
 			snprintf( buf, sizeof( buf ), "%d", dn.damage );
-			color = dn.headshot ? sRGBToLinear( rgba8_diesel_yellow ) : vec4_white;
+			color = dn.headshot ? sRGBToLinear( diesel_yellow.rgba8 ) : vec4_white;
 			font_size = Lerp( dmg_size, Unlerp01( 0, dn.damage, 50 ), cgs.textSizeSmall );
 		}
 
@@ -368,7 +368,7 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 	Team my_team = cg.predictedPlayerState.team;
 	bool show_labels = my_team != Team_None && client_gs.gameState.match_state == MatchState_Playing;
 
-	Vec4 yellow = sRGBToLinear( rgba8_diesel_yellow );
+	Vec4 yellow = sRGBToLinear( diesel_yellow.rgba8 );
 
 	// TODO: draw arrows when clamped
 

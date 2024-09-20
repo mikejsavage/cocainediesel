@@ -36,9 +36,6 @@
 struct ImFont;
 struct snapshot_t;
 
-constexpr RGBA8 rgba8_diesel_yellow = RGBA8( 255, 204, 38, 255 );
-constexpr RGBA8 rgba8_diesel_green = RGBA8( 44, 209, 89, 255 ); //yolo
-
 //=============================================================================
 
 #define MAX_TIMEDELTAS_BACKUP 8
@@ -163,6 +160,7 @@ struct client_static_t {
 	int64_t lastPacketReceivedTime;
 
 	ImFont * huge_font;
+	ImFont * huge_italic_font;
 	ImFont * large_font;
 	ImFont * big_font;
 	ImFont * medium_font;
@@ -171,6 +169,7 @@ struct client_static_t {
 	ImFont * big_italic_font;
 	ImFont * console_font;
 	ImFont * idi_nahui_font;
+	ImFont * license_italic_font;
 };
 
 extern client_static_t cls;

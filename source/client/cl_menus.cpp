@@ -90,11 +90,6 @@ static Vec4 RGBA8ToVec4NosRGB( RGBA8 rgba ) {
 	return Vec4( rgba.r / 255.0f, rgba.g / 255.0f, rgba.b / 255.0f, rgba.a / 255.0f );
 }
 
-static const Vec4 transparent( 0.f, 0.f, 0.f, 0.f );
-static const Vec4 red( 1.f, 0.f, 0.f, 1.f );
-static const Vec4 green( 0.f, 1.f, 0.f, 1.f );
-static const Vec4 white( 1.f, 1.f, 1.f, 1.f );
-
 static void ResetServerBrowser() {
 	selected_server = NONE;
 }
@@ -353,7 +348,7 @@ static void SettingsControls() {
 
 	ImGui::BeginChild( "binds" );
 
-	PushButtonColor( red );
+	PushButtonColor( red.vec4 );
 	if( ImGui::Button("Reset to default") ) {
 		Key_UnbindAll();
 		ExecDefaultCfg();
@@ -837,7 +832,7 @@ static void DemoBrowser() {
 		ImGui::NextColumn();
 
 		bool old_version = !StrEqual( demo.version, APP_VERSION );
-		ImGui::PushStyleColor( ImGuiCol_Text, old_version ? vec4_red : vec4_green );
+		ImGui::PushStyleColor( ImGuiCol_Text, old_version ? red.vec4 : green.vec4 );
 		ImGui::Text( "%s", demo.version );
 		ImGui::NextColumn();
 		ImGui::PopStyleColor();
@@ -901,9 +896,9 @@ static bool MainSectionButton( const ImVec2& pos, const Material * icon, const V
 	const Vec2 OFFSET_VEC = hovered ? Vec2( OFFSET, OFFSET ) : Vec2( 0.f, 0.f );
 
 	ImGui::SetCursorPos( Vec2( pos.x - 4.f, pos.y - 4.f ) - OFFSET_VEC );
-	ImGui::Image( cls.white_material, SQUARE_SIZE, Vec2( 0.f ), Vec2( 0.f ), vec4_dark, Vec4( 0.0f ) );
+	ImGui::Image( cls.white_material, SQUARE_SIZE, Vec2( 0.f ), Vec2( 0.f ), dark.vec4, Vec4( 0.0f ) );
 	ImGui::SetCursorPos( Vec2( pos.x + 4.f, pos.y + 4.f ) );
-	ImGui::Image( cls.white_material, SQUARE_SIZE + OFFSET_VEC, Vec2( 0.f ), Vec2( 0.f ), vec4_dark, Vec4( 0.0f ) );
+	ImGui::Image( cls.white_material, SQUARE_SIZE + OFFSET_VEC, Vec2( 0.f ), Vec2( 0.f ), dark.vec4, Vec4( 0.0f ) );
 	
 
 	ImGui::SetCursorPos( pos - OFFSET_VEC );
@@ -938,11 +933,11 @@ static void NotImplemented() {
 
 static void MainMenu() {
 	static const MainMenuCategory categories[] = {
-		{"hud/license", "LICENSE", MainMenuState_License, green},
-		{"hud/locker", "LOCKER", MainMenuState_Locker, white},
+		{"hud/license", "LICENSE", MainMenuState_License, green.vec4},
+		{"hud/locker", "LOCKER", MainMenuState_Locker, white.vec4},
 		{"hud/replays", "REPLAYS", MainMenuState_Replays, diesel_yellow.vec4},
-		{"hud/bomb", "PLAY", MainMenuState_ServerBrowser, red},
-		{"hud/gladiator", "RANKED", MainMenuState_Ranked, red},
+		{"hud/bomb", "PLAY", MainMenuState_ServerBrowser, red.vec4},
+		{"hud/gladiator", "RANKED", MainMenuState_Ranked, red.vec4},
 		{"hud/settings", "SETTINGS", MainMenuState_Settings, diesel_yellow.vec4}
 	};
 
@@ -960,7 +955,7 @@ static void MainMenu() {
 	const Vec2 icon_size = Vec2( frame_static.viewport_height * 0.11f, frame_static.viewport_height * 0.11f );
 
 	// background
-	Draw2DBox( 0.0, 0.0, frame_static.viewport_width, frame_static.viewport_height, FindMaterial( "hud/nk" ), white );
+	Draw2DBox( 0.0, 0.0, frame_static.viewport_width, frame_static.viewport_height, FindMaterial( "hud/nk" ), white.vec4 );
 
 	// TITLE
 	{
@@ -1035,13 +1030,13 @@ static void MainMenu() {
 		draw_list->AddRectFilledMultiColor( submenus_offset + Vec2( submenus_size.x * 0.5f, submenus_size.y ), submenus_offset + Vec2( submenus_size.x, submenus_size.y + 32.f ), GRAY_COL32, BLACK_COL32, BLACK_COL32, GRAY_COL32 );
 
 
-		Draw2DBox( submenus_offset.x, submenus_offset.y, submenus_size.x, submenus_size.y, cls.white_material, vec4_dark );
+		Draw2DBox( submenus_offset.x, submenus_offset.y, submenus_size.x, submenus_size.y, cls.white_material, dark.vec4 );
 		Draw2DBoxUV( submenus_offset.x, submenus_offset.y, submenus_size.x, submenus_size.y, Vec2( 0.f, 0.f ), submenus_size/8.f, FindMaterial( "hud/diagonal_pattern" ), Vec4( 1.f, 1.f, 1.f, 0.025f ) );
 
 		ImGui::SetCursorPos( submenus_offset );
 
-		ImGui::PushStyleColor( ImGuiCol_Border, transparent );
-		ImGui::PushStyleColor( ImGuiCol_ChildBg, transparent );
+		ImGui::PushStyleColor( ImGuiCol_Border, Vec4( 0.f ) );
+		ImGui::PushStyleColor( ImGuiCol_ChildBg, Vec4( 0.f ) );
 		ImGui::BeginChild( "sub main menus", submenus_size, true );
 
 		if ( mainmenu_state == MainMenuState_License ) {
@@ -1075,10 +1070,10 @@ static void MainMenu() {
 	const Vec2 TAPE_UV_START = Vec2( 0.f, 0.02f );
 	const Vec2 TAPE_UV_END = Vec2( frame_static.viewport_width / 64.f, 0.98f );
 
-	Draw2DBox( 0.0, 0.0, frame_static.viewport_width, OFFSET, cls.white_material, vec4_dark );
-	Draw2DBoxUV( 0.0, OFFSET, frame_static.viewport_width, 32.0, TAPE_UV_START + TAPE_OFFSET, TAPE_UV_END + TAPE_OFFSET, TAPE, white );
-	Draw2DBox( 0.0, frame_static.viewport_height - OFFSET, frame_static.viewport_width, OFFSET, cls.white_material, vec4_dark );
-	Draw2DBoxUV( 0.0, frame_static.viewport_height - OFFSET - 32.0, frame_static.viewport_width, 32.0, TAPE_UV_START - TAPE_OFFSET, TAPE_UV_END - TAPE_OFFSET, TAPE, white );
+	Draw2DBox( 0.0, 0.0, frame_static.viewport_width, OFFSET, cls.white_material, dark.vec4 );
+	Draw2DBoxUV( 0.0, OFFSET, frame_static.viewport_width, 32.0, TAPE_UV_START + TAPE_OFFSET, TAPE_UV_END + TAPE_OFFSET, TAPE, white.vec4 );
+	Draw2DBox( 0.0, frame_static.viewport_height - OFFSET, frame_static.viewport_width, OFFSET, cls.white_material, dark.vec4 );
+	Draw2DBoxUV( 0.0, frame_static.viewport_height - OFFSET - 32.0, frame_static.viewport_width, 32.0, TAPE_UV_START - TAPE_OFFSET, TAPE_UV_END - TAPE_OFFSET, TAPE, white.vec4 );
 
 /*
 	{
@@ -1156,7 +1151,7 @@ static bool LoadoutButton( Span< const char > label, Vec2 icon_size, const Mater
 	ImGui::PopID();
 
 	Vec2 half_pixel = HalfPixelSize( icon );
-	Vec4 color = RGBA8ToVec4NosRGB( selected ? diesel_yellow.rgba8 : ImGui::IsItemHovered() ? button_gray : rgba8_white ); // TODO...
+	Vec4 color = RGBA8ToVec4NosRGB( selected ? diesel_yellow.rgba8 : ImGui::IsItemHovered() ? button_gray : white.rgba8 ); // TODO...
 
 	ImGui::SetCursorPos( start_pos );
 	ImGui::Image( icon, icon_size, half_pixel, 1.0f - half_pixel, color, Vec4( 0.0f ) );
@@ -1322,9 +1317,9 @@ static bool LoadoutMenu() {
 		ImGui::BeginChild( "loadout bottom", ImVec2( -1, title_height ) );
 		ImGui::PushFont( cls.large_italic_font );
 
-		ImGui::PushStyleColor( ImGuiCol_Button, transparent );
-		ImGui::PushStyleColor( ImGuiCol_ButtonActive, transparent );
-		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, transparent );
+		ImGui::PushStyleColor( ImGuiCol_Button, Vec4( 0.f ) );
+		ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0.f ) );
+		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.f ) );
 
 		const char * imdone = " I'M DONE";
 		ImVec2 textSize = ImGui::CalcTextSize( imdone );
@@ -1336,12 +1331,12 @@ static bool LoadoutMenu() {
 		ImGui::PopID();
 
 		textPos.x += textSize.x;
-		ImGui::PushStyleColor( ImGuiCol_Text, ImGui::IsItemHovered() ? diesel_yellow.vec4 : white );
+		ImGui::PushStyleColor( ImGuiCol_Text, ImGui::IsItemHovered() ? diesel_yellow.vec4 : white.vec4 );
 		PrintMoveText( MakeSpan( imdone ), textPos );
 		ImGui::PopStyleColor();
 
 		textPos.y = 0;
-		PrintMoveImage( FindMaterial( "hud/icons/clickme" ), title_height, textPos, white );
+		PrintMoveImage( FindMaterial( "hud/icons/clickme" ), title_height, textPos, white.vec4 );
 		textPos.y = (title_height - textSize.y) * 0.5f;
 		PrintMoveText( "AND ", textPos );
 
@@ -1437,7 +1432,7 @@ static void GameMenu() {
 		}
 		else {
 			if( client_gs.gameState.match_state <= MatchState_Countdown ) {
-				Vec4 color = ready ? vec4_red : vec4_green;
+				Vec4 color = ready ? red.vec4 : green.vec4;
 				color.w = 0.1f;
 
 				PushButtonColor( color );

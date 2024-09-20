@@ -323,10 +323,10 @@ void CG_SC_Obituary( const Tokenized & args ) {
 		current->type = OBITUARY_ACCIDENT;
 
 		if( damage_type == WorldDamage_Void ) {
-			attacker_name = temp( "{}{}", ImGuiColorToken( rgba8_black ), "THE VOID" );
+			attacker_name = temp( "{}{}", ImGuiColorToken( black.rgba8 ), "THE VOID" );
 		}
 		else if( damage_type == WorldDamage_Spike ) {
-			attacker_name = temp( "{}{}", ImGuiColorToken( rgba8_black ), "A SPIKE" );
+			attacker_name = temp( "{}{}", ImGuiColorToken( black.rgba8 ), "A SPIKE" );
 		}
 		else {
 			return;
@@ -443,7 +443,7 @@ void CG_DrawScope() {
 				char * msg = temp( "{.2}m", distance / 32.0f );
 				GlitchText( Span< char >( msg + strlen( msg ) - 3, 2 ) );
 
-				DrawText( cgs.fontItalic, cgs.textSizeSmall, msg, Alignment_RightTop, frame_static.viewport_width / 2 - offset, frame_static.viewport_height / 2 + offset, vec4_red );
+				DrawText( cgs.fontItalic, cgs.textSizeSmall, msg, Alignment_RightTop, frame_static.viewport_width / 2 - offset, frame_static.viewport_height / 2 + offset, red.vec4 );
 			}
 
 			if( trace.ent > 0 && trace.ent <= MAX_CLIENTS ) {
@@ -454,7 +454,7 @@ void CG_DrawScope() {
 				char * msg = temp( "{}?", RandomElement( &obituary_rng, normal_obituaries ) );
 				GlitchText( Span< char >( msg, strlen( msg ) - 1 ) );
 
-				DrawText( cgs.fontItalic, cgs.textSizeSmall, msg, Alignment_LeftTop, frame_static.viewport_width / 2 + offset, frame_static.viewport_height / 2 + offset, color, vec4_black );
+				DrawText( cgs.fontItalic, cgs.textSizeSmall, msg, Alignment_LeftTop, frame_static.viewport_width / 2 + offset, frame_static.viewport_height / 2 + offset, color, black.vec4 );
 			}
 		}
 	}
@@ -764,7 +764,7 @@ static int LuauDrawText( lua_State * L ) {
 	lua_pop( L, 1 );
 
 	bool border = false;
-	Vec4 border_color = vec4_black;
+	Vec4 border_color = black.vec4;
 	lua_getfield( L, 1, "border" );
 	if( !lua_isnil( L, -1 ) ) {
 		border = true;
@@ -1269,7 +1269,7 @@ static OurYogaNodeStuff OurYogaNodeStuffDefaults() {
 	OurYogaNodeStuff defaults;
 
 	defaults.background_color = Vec4( 0.0f );
-	defaults.border_color = vec4_black;
+	defaults.border_color = black.vec4;
 
 	defaults.text = NULL;
 	defaults.material = EMPTY_HASH;
@@ -1448,11 +1448,11 @@ static void RenderYogaNodeRecursive( Vec2 cursor, YGNodeRef node, bool show_in_i
 		if( ours->text != NULL ) {
 			DrawText( cgs.fontNormal, h, ours->text,
 				Alignment_LeftTop, content_left, content_top,
-				vec4_white );
+				white.vec4 );
 		}
 
 		if( ours->material != EMPTY_HASH ) {
-			Draw2DBox( content_left, content_top, content_width, content_height, FindMaterial( ours->material ), vec4_white );
+			Draw2DBox( content_left, content_top, content_width, content_height, FindMaterial( ours->material ), white.vec4 );
 		}
 
 

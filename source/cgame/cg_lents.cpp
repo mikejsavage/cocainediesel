@@ -9,7 +9,7 @@ static float RandomRadians() {
 
 void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius ) {
 	// TODO: radius is just ignored?
-	DoVisualEffect( "loadout/_effects/explosion", pos, dir, 1.0f, vec4_white );
+	DoVisualEffect( "loadout/_effects/explosion", pos, dir, 1.0f, white.vec4 );
 	PlaySFX( "models/bomb/explode", PlaySFXConfigPosition( pos ) );
 }
 

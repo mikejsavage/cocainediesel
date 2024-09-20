@@ -75,12 +75,9 @@ struct MultiTypeColor {
 constexpr MultiTypeColor diesel_yellow( 255, 204, 38, 255  );
 constexpr MultiTypeColor diesel_green( 44, 209, 89, 255 ); //yolo
 
-constexpr Vec4 vec4_white = Vec4( 1, 1, 1, 1 );
-constexpr Vec4 vec4_black = Vec4( 0, 0, 0, 1 );
-constexpr Vec4 vec4_dark = Vec4( 0.02f, 0.02f, 0.02f, 1.0f );
-constexpr Vec4 vec4_red = Vec4( 1, 0, 0, 1 );
-constexpr Vec4 vec4_green = Vec4( 0, 1, 0, 1 );
-constexpr Vec4 vec4_yellow = Vec4( 1, 1, 0, 1 );
-
-constexpr RGBA8 rgba8_white = RGBA8( 255, 255, 255, 255 );
-constexpr RGBA8 rgba8_black = RGBA8( 0, 0, 0, 255 );
+constexpr MultiTypeColor white( 255, 255, 255, 255 );
+constexpr MultiTypeColor black( 0, 0, 0, 255 );
+constexpr MultiTypeColor dark( 5, 5, 5, 255 );
+constexpr MultiTypeColor red( 255, 0, 0, 255 );
+constexpr MultiTypeColor green( 0, 255, 0, 255 );
+constexpr MultiTypeColor yellow( 255, 255, 0, 255 );

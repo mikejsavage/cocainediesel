@@ -62,7 +62,7 @@ static void CG_SC_ChatPrint( const Tokenized & args ) {
 	CG_LocalPrint( temp.sv( "{}{}{}{}: {}\n",
 		prefix,
 		ImGuiColorToken( team_color ), name,
-		ImGuiColorToken( rgba8_white ), args.tokens[ 2 ]
+		ImGuiColorToken( white.rgba8 ), args.tokens[ 2 ]
 	) );
 }
 

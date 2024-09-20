@@ -823,7 +823,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			config.draw_silhouette.enabled = draw_silhouette;
 			config.draw_silhouette.silhouette_color = color;
 
-			DrawGLTFModel( config, attached_model, tag_transform, vec4_white );
+			DrawGLTFModel( config, attached_model, tag_transform, white.vec4 );
 		}
 	}
 
@@ -841,7 +841,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			config.draw_silhouette.enabled = draw_silhouette;
 			config.draw_silhouette.silhouette_color = color;
 
-			DrawGLTFModel( config, mask_model, tag_transform, vec4_white );
+			DrawGLTFModel( config, mask_model, tag_transform, white.vec4 );
 		}
 	}
 }

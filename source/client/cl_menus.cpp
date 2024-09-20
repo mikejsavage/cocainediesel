@@ -348,7 +348,7 @@ static void SettingsControls() {
 
 	ImGui::BeginChild( "binds" );
 
-	PushButtonColor( red.vec4 );
+	PushButtonColor( diesel_red.vec4 );
 	if( ImGui::Button("Reset to default") ) {
 		Key_UnbindAll();
 		ExecDefaultCfg();
@@ -832,7 +832,7 @@ static void DemoBrowser() {
 		ImGui::NextColumn();
 
 		bool old_version = !StrEqual( demo.version, APP_VERSION );
-		ImGui::PushStyleColor( ImGuiCol_Text, old_version ? red.vec4 : green.vec4 );
+		ImGui::PushStyleColor( ImGuiCol_Text, old_version ? diesel_red.vec4 : diesel_green.vec4 );
 		ImGui::Text( "%s", demo.version );
 		ImGui::NextColumn();
 		ImGui::PopStyleColor();
@@ -933,11 +933,11 @@ static void NotImplemented() {
 
 static void MainMenu() {
 	static const MainMenuCategory categories[] = {
-		{"hud/license", "LICENSE", MainMenuState_License, green.vec4},
+		{"hud/license", "LICENSE", MainMenuState_License, diesel_green.vec4},
 		{"hud/locker", "LOCKER", MainMenuState_Locker, white.vec4},
 		{"hud/replays", "REPLAYS", MainMenuState_Replays, diesel_yellow.vec4},
-		{"hud/bomb", "PLAY", MainMenuState_ServerBrowser, red.vec4},
-		{"hud/gladiator", "RANKED", MainMenuState_Ranked, red.vec4},
+		{"hud/bomb", "PLAY", MainMenuState_ServerBrowser, diesel_red.vec4},
+		{"hud/gladiator", "RANKED", MainMenuState_Ranked, diesel_red.vec4},
 		{"hud/settings", "SETTINGS", MainMenuState_Settings, diesel_yellow.vec4}
 	};
 
@@ -1022,12 +1022,12 @@ static void MainMenu() {
 		const ImVec2 submenus_size = ImVec2( frame_static.viewport_width - submenus_offset.x - 32.f, frame_static.viewport_height - OFFSET * 2.f - 256.f );
 
 		ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
-		ImU32 BLACK_COL32 = IM_COL32( 25, 25, 25, 255 );
-		ImU32 GRAY_COL32 = IM_COL32( 100, 100, 100, 255 );
-		draw_list->AddRectFilledMultiColor( submenus_offset - Vec2( 0.f, 32.f ), submenus_offset + Vec2( submenus_size.x * 0.5f, 0.f ), BLACK_COL32, GRAY_COL32, GRAY_COL32, BLACK_COL32 );
-		draw_list->AddRectFilledMultiColor( submenus_offset + Vec2( submenus_size.x * 0.5f, -32.f ), submenus_offset + Vec2( submenus_size.x, 0.f ), GRAY_COL32, BLACK_COL32, BLACK_COL32, GRAY_COL32 );
-		draw_list->AddRectFilledMultiColor( submenus_offset + Vec2( 0.f, submenus_size.y ), submenus_offset + Vec2( submenus_size.x * 0.5f, submenus_size.y + 32.f ), BLACK_COL32, GRAY_COL32, GRAY_COL32, BLACK_COL32 );
-		draw_list->AddRectFilledMultiColor( submenus_offset + Vec2( submenus_size.x * 0.5f, submenus_size.y ), submenus_offset + Vec2( submenus_size.x, submenus_size.y + 32.f ), GRAY_COL32, BLACK_COL32, BLACK_COL32, GRAY_COL32 );
+		constexpr ImU32 DARK_COL32 = IM_COL32( 25, 25, 25, 255 );
+		constexpr ImU32 GRAY_COL32 = IM_COL32( 100, 100, 100, 255 );
+		draw_list->AddRectFilledMultiColor( submenus_offset - Vec2( 0.f, 32.f ), submenus_offset + Vec2( submenus_size.x * 0.5f, 0.f ), DARK_COL32, GRAY_COL32, GRAY_COL32, DARK_COL32 );
+		draw_list->AddRectFilledMultiColor( submenus_offset + Vec2( submenus_size.x * 0.5f, -32.f ), submenus_offset + Vec2( submenus_size.x, 0.f ), GRAY_COL32, DARK_COL32, DARK_COL32, GRAY_COL32 );
+		draw_list->AddRectFilledMultiColor( submenus_offset + Vec2( 0.f, submenus_size.y ), submenus_offset + Vec2( submenus_size.x * 0.5f, submenus_size.y + 32.f ), DARK_COL32, GRAY_COL32, GRAY_COL32, DARK_COL32 );
+		draw_list->AddRectFilledMultiColor( submenus_offset + Vec2( submenus_size.x * 0.5f, submenus_size.y ), submenus_offset + Vec2( submenus_size.x, submenus_size.y + 32.f ), GRAY_COL32, DARK_COL32, DARK_COL32, GRAY_COL32 );
 
 
 		Draw2DBox( submenus_offset.x, submenus_offset.y, submenus_size.x, submenus_size.y, cls.white_material, dark.vec4 );
@@ -1432,7 +1432,7 @@ static void GameMenu() {
 		}
 		else {
 			if( client_gs.gameState.match_state <= MatchState_Countdown ) {
-				Vec4 color = ready ? red.vec4 : green.vec4;
+				Vec4 color = ready ? diesel_red.vec4 : diesel_green.vec4;
 				color.w = 0.1f;
 
 				PushButtonColor( color );

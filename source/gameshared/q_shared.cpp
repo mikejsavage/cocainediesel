@@ -252,6 +252,14 @@ char ToUpperASCII( char c ) {
 	return c >= 'a' && c <= 'z' ? c + 'A' - 'a' : c;
 }
 
+Span< char > ToUpperASCII( Allocator * a, Span< const char > str ) {
+	Span< char > result = AllocSpan< char >( a, str.n );
+	for( size_t i = 0; i < str.n; i++ ) {
+		result[ i ] = ToUpperASCII( str[ i ] );
+	}
+	return result;
+}
+
 bool StrEqual( Span< const char > lhs, Span< const char > rhs ) {
 	return lhs.n == rhs.n && memcmp( lhs.ptr, rhs.ptr, lhs.n ) == 0;
 }

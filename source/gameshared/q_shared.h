@@ -55,6 +55,8 @@ float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine sto
 char ToLowerASCII( char c );
 char ToUpperASCII( char c );
 
+Span< char > ToUpperASCII( Allocator * a, Span< const char > str );
+
 bool StrEqual( Span< const char > lhs, Span< const char > rhs );
 bool StrEqual( Span< const char > lhs, const char * rhs );
 bool StrEqual( const char * lhs, Span< const char > rhs );

@@ -1360,16 +1360,16 @@ static bool LoadoutMenu() {
 		ImVec2 playerTextSize = ImGui::CalcTextSize( playerName );
 
 		float predictedPos = textPos.x - ImGui::CalcTextSize( " AND I'M " ).x - ImGui::CalcTextSize( "I AM " ).x * 2.f - playerTextSize.x;
-		float letterWidth = playerTextSize.x / playerNameSpan.num_bytes();
+		float letterWidth = playerTextSize.x / playerNameSpan.n;
 		int excessLetters = Max2(3.f, -predictedPos / letterWidth); //the excess is the negative part
 
-		if( predictedPos > 0.f || excessLetters < playerNameSpan.num_bytes() ) { //don't print name if the window is too small
+		if( predictedPos > 0.f || excessLetters < playerNameSpan.n ) { //don't print name if the window is too small
 			PrintMoveText( " AND I'M ", textPos );
 
 			ImGui::PushStyleColor( ImGuiCol_Text, diesel_yellow.vec4 );
 			if( predictedPos <= 0.f ) {
 				PrintMoveText( "...", textPos );
-				PrintMoveText( playerNameSpan.slice( 0, playerNameSpan.num_bytes() - excessLetters ), textPos );
+				PrintMoveText( playerNameSpan.slice( 0, playerNameSpan.n - excessLetters ), textPos );
 			} else {
 				PrintMoveText( playerNameSpan, textPos );
 			}

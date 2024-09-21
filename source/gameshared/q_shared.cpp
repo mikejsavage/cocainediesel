@@ -406,17 +406,9 @@ Span< const char > FileName( Span< const char > path ) {
 	return name == "" ? path : name + 1;
 }
 
-Span< const char > FileName( const char * path ) {
-	return FileName( MakeSpan( path ) );
-}
-
 Span< const char > BasePath( Span< const char > path ) {
 	Span< const char > slash = MemRChr( path, '/', true );
 	return path.slice( 0, path.n - slash.n );
-}
-
-Span< const char > BasePath( const char * path ) {
-	return BasePath( MakeSpan( path ) );
 }
 
 bool SortCStringsComparator( const char * a, const char * b ) {

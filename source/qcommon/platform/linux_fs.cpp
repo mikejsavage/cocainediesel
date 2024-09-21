@@ -16,7 +16,7 @@
 #include <sys/inotify.h>
 #include <sys/syscall.h>
 
-char * GetExePath( Allocator * a ) {
+Span< char > GetExePath( Allocator * a ) {
 	NonRAIIDynamicArray< char > buf( a );
 	buf.resize( 1024 );
 
@@ -34,7 +34,7 @@ char * GetExePath( Allocator * a ) {
 		buf.resize( buf.size() * 2 );
 	}
 
-	return buf.ptr();
+	return buf.span();
 }
 
 bool MoveFile( Allocator * a, const char * old_path, const char * new_path, MoveFileReplace replace ) {

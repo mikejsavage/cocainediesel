@@ -25,23 +25,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/version.h"
 
 struct DownloadInProgress {
-	char * path;
+	Span< char > path;
 	DownloadCompleteCallback callback;
 };
 
 static DownloadInProgress download;
 
 static void OnDownloadDone( int http_status, Span< const u8 > data ) {
-	Com_Printf( "Download %s: %s (%i)\n", data.ptr != NULL ? "successful" : "failed", download.path, http_status );
+	Com_GGPrint( "Download {}: {} ({})", data.ptr != NULL ? "successful" : "failed", download.path, http_status );
 
 	download.callback( download.path, data );
 
-	Free( sys_allocator, download.path );
-	download.path = NULL;
+	Free( sys_allocator, download.path.ptr );
+	download.path = { };
 }
 
 bool CL_DownloadFile( Span< const char > filename, DownloadCompleteCallback callback ) {
-	if( download.path ) {
+	if( download.path.ptr != NULL ) {
 		Com_Printf( "Already downloading something.\n" );
 		return false;
 	}
@@ -54,7 +54,7 @@ bool CL_DownloadFile( Span< const char > filename, DownloadCompleteCallback call
 	Com_GGPrint( "Asking to download: {}", filename );
 
 	download = { };
-	download.path = ( *sys_allocator )( "{}", filename );
+	download.path = CloneSpan( sys_allocator, filename );
 	download.callback = callback;
 
 	TempAllocator temp = cls.frame_arena.temp();

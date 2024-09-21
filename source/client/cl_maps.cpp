@@ -38,7 +38,7 @@ static void FillMapModelsHashtable() {
 		const Map * map = &maps[ i ];
 		for( size_t j = 0; j < map->data.models.n; j++ ) {
 			String< 16 > suffix( "*{}", j );
-			u64 hash = Hash64( suffix.c_str(), suffix.length(), map->base_hash.hash );
+			u64 hash = Hash64( suffix.span(), map->base_hash.hash );
 
 			if( map_models_hashtable.size() == ARRAY_COUNT( map_models ) ) {
 				Fatal( "Too many map submodels" );

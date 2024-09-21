@@ -210,6 +210,11 @@ struct Span {
 		Assert( num_bytes() % sizeof( S ) == 0 );
 		return Span< S >( align_cast< S >( ptr ), num_bytes() / sizeof( S ) );
 	}
+
+	template< typename S >
+	Span< S > constcast() const {
+		return Span< S >( const_cast< S * >( ptr ), num_bytes() );
+	}
 };
 
 /*

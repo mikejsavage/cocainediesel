@@ -21,8 +21,8 @@ enum MoveFileReplace {
 void InitFS();
 void ShutdownFS();
 
-const char * RootDirPath();
-const char * HomeDirPath();
+Span< const char > RootDirPath();
+Span< const char > HomeDirPath();
 
 Span< u8 > ReadFileBinary( Allocator * a, const char * path, SourceLocation src_loc = CurrentSourceLocation() );
 

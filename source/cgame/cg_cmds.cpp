@@ -109,7 +109,7 @@ static void CG_SC_DownloadDemo( const Tokenized & args ) {
 		return;
 	}
 
-	CL_DownloadFile( filename, []( const char * filename, Span< const u8 > data ) {
+	CL_DownloadFile( filename, []( Span< const char > filename, Span< const u8 > data ) {
 		if( data.ptr == NULL )
 			return;
 

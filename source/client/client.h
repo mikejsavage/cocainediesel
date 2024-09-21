@@ -272,7 +272,7 @@ void CL_DemoJump_f( const Tokenized & args );
 void CL_ParseServerMessage( msg_t *msg );
 #define SHOWNET( msg,s ) _SHOWNET( msg,s,cl_shownet->integer );
 
-using DownloadCompleteCallback = void ( * )( const char * filename, Span< const u8 > data );
+using DownloadCompleteCallback = void ( * )( Span< const char > filename, Span< const u8 > data );
 
 bool CL_DownloadFile( Span< const char > filename, DownloadCompleteCallback cb );
 bool CL_IsDownloading();

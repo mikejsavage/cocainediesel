@@ -14,10 +14,10 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-char * FindHomeDirectory( Allocator * a ) {
+Span< char > FindHomeDirectory( Allocator * a ) {
 	const char * xdg_data_home = getenv( "XDG_DATA_HOME" );
 	if( xdg_data_home != NULL ) {
-		return ( *a )( "{}/{}", xdg_data_home, APPLICATION );
+		return a->sv( "{}/{}", xdg_data_home, APPLICATION );
 	}
 
 	const char * home = getenv( "HOME" );
@@ -25,7 +25,7 @@ char * FindHomeDirectory( Allocator * a ) {
 		Fatal( "Can't find home directory" );
 	}
 
-	return ( *a )( "{}/.local/share/{}", home, APPLICATION );
+	return a->sv( "{}/.local/share/{}", home, APPLICATION );
 }
 
 FILE * OpenFile( Allocator * a, const char * path, OpenFileMode mode ) {

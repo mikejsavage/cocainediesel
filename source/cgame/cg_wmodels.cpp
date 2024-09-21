@@ -32,7 +32,7 @@ static WeaponModelMetadata BuildWeaponModelMetadata( WeaponType weapon ) {
 
 	WeaponModelMetadata metadata;
 
-	Span< const char > name = GS_GetWeaponDef( weapon )->short_name;
+	Span< const char > name = GS_GetWeaponDef( weapon )->name;
 
 	metadata.model = StringHash( temp( "loadout/{}/weapon", name ) );
 
@@ -49,7 +49,7 @@ static WeaponModelMetadata BuildWeaponModelMetadata( WeaponType weapon ) {
 
 static GadgetModelMetadata BuildGadgetModelMetadata( GadgetType gadget ) {
 	TempAllocator temp = cls.frame_arena.temp();
-	Span< const char > name = GetGadgetDef( gadget )->short_name;
+	Span< const char > name = GetGadgetDef( gadget )->name;
 
 	GadgetModelMetadata metadata;
 

@@ -1178,13 +1178,15 @@ static void InitCategory( const char * category_name, float padding ) {
 }
 
 static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	InitCategory( label, icon_size.y * 0.5 );
 
 	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( i );
 		if( def->category == category ) {
 			const Material * icon = FindMaterial( cgs.media.shaderWeaponIcon[ i ] );
-			if( LoadoutButton( def->name, icon_size, icon, loadout.weapons[ def->category ] == i ) ) {
+			if( LoadoutButton( ToUpperASCII( &temp, def->name ), icon_size, icon, loadout.weapons[ def->category ] == i ) ) {
 				loadout.weapons[ def->category ] = i;
 				SendLoadout();
 			}
@@ -1193,6 +1195,8 @@ static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 i
 }
 
 static void Perks( Vec2 icon_size ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	InitCategory( "MINDSET", icon_size.y * 0.5 );
 
 	for( PerkType i = PerkType( Perk_None + 1 ); i < Perk_Count; i++ ) {
@@ -1200,21 +1204,22 @@ static void Perks( Vec2 icon_size ) {
 			continue;
 
 		const Material * icon = FindMaterial( cgs.media.shaderPerkIcon[ i ] );
-		if( LoadoutButton( GetPerkDef( i )->name, icon_size, icon, loadout.perk == i ) ) {
+		if( LoadoutButton( ToUpperASCII( &temp, GetPerkDef( i )->name ), icon_size, icon, loadout.perk == i ) ) {
 			loadout.perk = i;
 			SendLoadout();
 		}
 	}
 }
 
-
 static void Gadgets( Vec2 icon_size ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	InitCategory( "GADGET", icon_size.y * 0.5 );
 
 	for( GadgetType i = GadgetType( Gadget_None + 1 ); i < Gadget_Count; i++ ) {
 		const GadgetDef * def = GetGadgetDef( i );
 		const Material * icon = FindMaterial( cgs.media.shaderGadgetIcon[ i ] );
-		if( LoadoutButton( def->name, icon_size, icon, loadout.gadget == i ) ) {
+		if( LoadoutButton( ToUpperASCII( &temp, def->name ), icon_size, icon, loadout.gadget == i ) ) {
 			loadout.gadget = GadgetType( i );
 			SendLoadout();
 		}

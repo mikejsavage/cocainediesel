@@ -214,7 +214,7 @@ static void CG_Cmd_UseWeapon_f( const Tokenized & args ) {
 
 	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
 		const WeaponDef * weapon = GS_GetWeaponDef( i );
-		if( StrCaseEqual( weapon->short_name, args.tokens[ 1 ] ) && GS_CanEquip( &cg.predictedPlayerState, i ) ) {
+		if( StrCaseEqual( weapon->name, args.tokens[ 1 ] ) && GS_CanEquip( &cg.predictedPlayerState, i ) ) {
 			SwitchWeapon( i );
 		}
 	}

@@ -13,13 +13,11 @@ static constexpr WeaponDef weapon_defs[] = {
 	// Weapon_None
 	WeaponDef {
 		.name = "",
-		.short_name = "",
 		.category = WeaponCategory_Count,
 	},
 
 	WeaponDef {
-		.name = "KNIFE",
-		.short_name = "knife",
+		.name = "knife",
 		.category = WeaponCategory_Melee,
 
 		.projectile_count = 8,
@@ -35,8 +33,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "BAT",
-		.short_name = "bat",
+		.name = "bat",
 		.category = WeaponCategory_Melee,
 
 		.projectile_count = 10,
@@ -56,8 +53,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "9MM",
-		.short_name = "9mm",
+		.name = "9mm",
 		.category = WeaponCategory_Backup,
 
 		.clip_size = 15,
@@ -78,8 +74,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "PISTOL",
-		.short_name = "pistol",
+		.name = "pistol",
 		.category = WeaponCategory_Backup,
 
 		.clip_size = 20,
@@ -101,8 +96,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "SMG",
-		.short_name = "smg",
+		.name = "smg",
 		.category = WeaponCategory_Secondary,
 
 		.clip_size = 25,
@@ -124,8 +118,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "DEAGLE",
-		.short_name = "deagle",
+		.name = "deagle",
 		.category = WeaponCategory_Secondary,
 
 		.clip_size = 7,
@@ -146,8 +139,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "SHOTGUN",
-		.short_name = "shotgun",
+		.name = "shotgun",
 		.category = WeaponCategory_Secondary,
 
 		.projectile_count = 25,
@@ -172,8 +164,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "SAWN-OFF",
-		.short_name = "sawn-off",
+		.name = "sawn-off",
 		.category = WeaponCategory_Secondary,
 
 		.projectile_count = 26,
@@ -198,8 +189,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "BURST",
-		.short_name = "burst",
+		.name = "burst",
 		.category = WeaponCategory_Primary,
 
 		.clip_size = 6,
@@ -220,8 +210,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "CROSSBOW",
-		.short_name = "crossbow",
+		.name = "crossbow",
 		.category = WeaponCategory_Backup,
 
 		.clip_size = 1,
@@ -246,8 +235,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "LAUNCHER",
-		.short_name = "launcher",
+		.name = "launcher",
 		.category = WeaponCategory_Secondary,
 
 		.clip_size = 8,
@@ -276,8 +264,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "BAZOOKA",
-		.short_name = "bazooka",
+		.name = "bazooka",
 		.category = WeaponCategory_Primary,
 
 		.clip_size = 5,
@@ -305,8 +292,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "ASSAULT",
-		.short_name = "assault",
+		.name = "assault",
 		.category = WeaponCategory_Primary,
 
 		.clip_size = 30,
@@ -329,8 +315,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "BUBBLE",
-		.short_name = "bubble",
+		.name = "bubble",
 		.category = WeaponCategory_Backup,
 
 		.clip_size = 15,
@@ -357,8 +342,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "LASER",
-		.short_name = "laser",
+		.name = "laser",
 		.category = WeaponCategory_Primary,
 
 		.clip_size = 40,
@@ -375,8 +359,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "RAIL",
-		.short_name = "rail",
+		.name = "rail",
 		.category = WeaponCategory_Primary,
 
 		.reload_time = 1000, // time to fully charge for rail
@@ -396,8 +379,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "SNIPER",
-		.short_name = "sniper",
+		.name = "sniper",
 		.category = WeaponCategory_Primary,
 
 		.clip_size = 1,
@@ -421,8 +403,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "SCOUT",
-		.short_name = "scout",
+		.name = "scout",
 		.category = WeaponCategory_Backup,
 
 		.clip_size = 8,
@@ -446,8 +427,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "RIFLE",
-		.short_name = "rifle",
+		.name = "rifle",
 		.category = WeaponCategory_Secondary,
 
 		.clip_size = 5,
@@ -470,8 +450,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "BLASTER",
-		.short_name = "blaster",
+		.name = "blaster",
 		.category = WeaponCategory_Backup,
 
 		.projectile_count = 12,
@@ -496,8 +475,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "ROADGUN",
-		.short_name = "roadgun",
+		.name = "roadgun",
 		.category = WeaponCategory_Backup,
 
 		.clip_size = 20,
@@ -520,8 +498,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "STICKY",
-		.short_name = "sticky",
+		.name = "sticky",
 		.category = WeaponCategory_Secondary,
 
 		.clip_size = 15,
@@ -550,8 +527,7 @@ static constexpr WeaponDef weapon_defs[] = {
 	},
 
 	WeaponDef {
-		.name = "SAWBLADE",
-		.short_name = "sawblade",
+		.name = "sawblade",
 		.category = WeaponCategory_Primary,
 
 		.clip_size = 5,
@@ -575,8 +551,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 #if 0
 	WeaponDef {
-		.name = "MINIGUN",
-		.short_name = "minigun",
+		.name = "minigun",
 		.category = WeaponCategory_Backup,
 
 		.switch_in_time = WEAPONUP_TIME_VERY_SLOW,
@@ -607,8 +582,7 @@ const GadgetDef gadget_defs[] = {
 	GadgetDef { },
 
 	GadgetDef {
-		.name = "AXE",
-		.short_name = "axe",
+		.name = "axe",
 		.uses = 2,
 		.switch_in_time = WEAPONUP_TIME_FAST,
 		.using_time = 50,
@@ -623,14 +597,12 @@ const GadgetDef gadget_defs[] = {
 	},
 
 	GadgetDef {
-		.name = "MARTYR",
-		.short_name = "martyr",
+		.name = "martyr",
 		.uses = 1,
 	},
 
 	GadgetDef {
-		.name = "FLASH",
-		.short_name = "flash",
+		.name = "flash",
 		.uses = 2,
 		.drop_on_death = true,
 		.switch_in_time = WEAPONUP_TIME_FAST,
@@ -648,8 +620,7 @@ const GadgetDef gadget_defs[] = {
 	},
 
 	GadgetDef {
-		.name = "ROCKET",
-		.short_name = "rocket",
+		.name = "rocket",
 		.uses = 2,
 		.switch_in_time = 0,
 		.using_time = 200,
@@ -666,8 +637,7 @@ const GadgetDef gadget_defs[] = {
 	},
 
 	GadgetDef {
-		.name = "SHURIKEN",
-		.short_name = "shuriken",
+		.name = "shuriken",
 		.uses = 4,
 		.switch_in_time = 0,
 		.using_time = 150,
@@ -691,8 +661,7 @@ const PerkDef perk_defs[] = {
 	PerkDef { },
 
 	PerkDef {
-		.name = "HOOLIGAN",
-		.short_name = "hooligan",
+		.name = "hooligan",
 		.health = 100,
 		.scale = Vec3( 1 ),
 		.weight = 1.0f,
@@ -704,8 +673,7 @@ const PerkDef perk_defs[] = {
 	},
 
 	PerkDef {
-		.name = "MIDGET",
-		.short_name = "midget",
+		.name = "midget",
 		.health = 70,
 		.scale = Vec3( 0.8f, 0.8f, 0.75f ),
 		.weight = 0.6f,
@@ -717,8 +685,7 @@ const PerkDef perk_defs[] = {
 	},
 
 	PerkDef {
-		.name = "WHEEL",
-		.short_name = "wheel",
+		.name = "wheel",
 		.health = 90,
 		.scale = Vec3( 0.9f, 0.9f, 0.9f ),
 		.weight = 0.9f,
@@ -730,8 +697,7 @@ const PerkDef perk_defs[] = {
 	},
 
 	PerkDef {
-		.name = "JETPACK",
-		.short_name = "jetpack",
+		.name = "jetpack",
 		.health = 80,
 		.scale = Vec3( 1 ),
 		.weight = 1.0f,
@@ -744,8 +710,7 @@ const PerkDef perk_defs[] = {
 
 	PerkDef {
 		.disabled = true,
-		.name = "NINJA",
-		.short_name = "ninja",
+		.name = "ninja",
 		.health = 100,
 		.scale = Vec3( 1 ),
 		.weight = 1.0f,
@@ -758,8 +723,7 @@ const PerkDef perk_defs[] = {
 
 	PerkDef {
 		.disabled = true,
-		.name = "BOOMER",
-		.short_name = "boomer",
+		.name = "boomer",
 		.health = 150,
 		.scale = Vec3( 1.5f, 1.5f, 1.0f ),
 		.weight = 1.5f,

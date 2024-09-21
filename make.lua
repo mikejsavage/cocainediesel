@@ -14,6 +14,7 @@ gcc_global_cxxflags( "-std=c++20 -fno-exceptions -fno-rtti -fno-strict-aliasing 
 gcc_global_cxxflags( "-Wall -Wextra -Wcast-align -Wvla -Wformat-security -Wimplicit-fallthrough" ) -- -Wconversion
 gcc_global_cxxflags( "-Werror=format" )
 gcc_global_cxxflags( "-Wno-unused-parameter -Wno-missing-field-initializers" )
+gcc_global_cxxflags( "-Wno-switch" ) -- this is too annoying in practice
 
 if OS == "linux" then
 	gcc_global_cxxflags( "-msse4.2 -mpopcnt" )

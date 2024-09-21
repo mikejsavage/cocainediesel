@@ -2,7 +2,7 @@
 #include "qcommon/array.h"
 #include "qcommon/fpe.h"
 #include "qcommon/hash.h"
-#include "qcommon/hashtable.h"
+#include "qcommon/hashmap.h"
 #include "qcommon/time.h"
 #include "client/audio/api.h"
 #include "client/audio/backend.h"
@@ -73,17 +73,15 @@ static constexpr u32 MAX_SOUND_ASSETS = 4096;
 static constexpr u32 MAX_SOUND_EFFECTS = 4096;
 static constexpr u32 MAX_PLAYING_SOUNDS = 256;
 
-static Sound sounds[ MAX_SOUND_ASSETS ];
-static Hashtable< MAX_SOUND_ASSETS * 2 > sounds_hashtable;
+static u64 GetPlayingSFXKey( const PlayingSFX & sfx ) {
+	return sfx.handle.handle;
+}
 
-static SoundEffect sound_effects[ MAX_SOUND_EFFECTS ];
-static Hashtable< MAX_SOUND_EFFECTS * 2 > sound_effects_hashtable;
-
+static Hashmap< Sound, MAX_SOUND_ASSETS > sounds;
+static Hashmap< SoundEffect, MAX_SOUND_EFFECTS > sound_effects;
 static BoundedDynamicArray< ALuint, MAX_PLAYING_SOUNDS > free_sound_sources;
-
-static PlayingSFX playing_sound_effects[ MAX_PLAYING_SOUNDS ];
-static Hashtable< MAX_PLAYING_SOUNDS * 2 > playing_sounds_hashtable;
-static u64 playing_sounds_autoinc;
+static Hashmap< PlayingSFX, MAX_PLAYING_SOUNDS, GetPlayingSFXKey > playing_sounds;
+static u64 playing_sound_handle_autoinc;
 
 static ALuint music_source;
 static bool music_playing;
@@ -251,21 +249,21 @@ static void AddSound( Span< const char > path, int num_samples, int channels, in
 
 	bool restart_music = false;
 
-	u64 idx = sounds_hashtable.size();
-	if( !sounds_hashtable.get( hash, &idx ) ) {
-		if( sounds_hashtable.size() == ARRAY_COUNT( sounds ) ) {
+	Sound * sound = sounds.get( hash );
+	if( sound == NULL ) {
+		if( sounds.full() ) {
 			Com_Printf( S_COLOR_YELLOW "Too many sounds!\n" );
 			return;
 		}
-		if( sound_effects_hashtable.size() == ARRAY_COUNT( sound_effects ) ) {
+		if( sound_effects.full() ) {
 			Com_Printf( S_COLOR_YELLOW "Too many sound effects!\n" );
 			return;
 		}
 
-		sounds_hashtable.add( hash, sounds_hashtable.size() );
+		sound = sounds.add( hash );
 
 		// add simple sound effect
-		sound_effects[ sound_effects_hashtable.size() ] = SoundEffect {
+		sound_effects.add( hash, SoundEffect {
 			.sounds = {
 				SoundEffect::PlaybackConfig {
 					.sounds = { StringHash( hash ) },
@@ -274,21 +272,20 @@ static void AddSound( Span< const char > path, int num_samples, int channels, in
 					.attenuation = ATTN_NORM,
 				},
 			},
-		};
-		sound_effects_hashtable.add( hash, sound_effects_hashtable.size() );
+		} );
 	}
 	else {
 		restart_music = music_playing;
 		StopAllSounds( true );
-		alDeleteBuffers( 1, &sounds[ idx ].buf );
+		alDeleteBuffers( 1, &sound->buf );
 	}
 
 	ALenum format = channels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
-	alGenBuffers( 1, &sounds[ idx ].buf );
-	sounds[ idx ].samples = Span< s16 >( samples, num_samples );
-	sounds[ idx ].mono = channels == 1;
+	alGenBuffers( 1, &sound->buf );
+	sound->samples = Span< s16 >( samples, num_samples );
+	sound->mono = channels == 1;
 
-	alBufferDataStatic( sounds[ idx ].buf, format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
+	alBufferDataStatic( sound->buf, format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
 	CheckALErrors( "AddSound" );
 
 	if( restart_music ) {
@@ -492,25 +489,15 @@ static void LoadSoundEffect( Span< const char > path ) {
 	Span< const char > data = AssetString( path );
 
 	SoundEffect sfx = { };
-
 	if( !ParseSoundEffect( &sfx, &data, BasePath( path ) ) ) {
 		Com_GGPrint( S_COLOR_YELLOW "Couldn't load {}", path );
 		return;
 	}
 
 	u64 hash = Hash64( StripExtension( path ) );
-
-	u64 idx = sound_effects_hashtable.size();
-	if( !sound_effects_hashtable.get( hash, &idx ) ) {
-		if( sound_effects_hashtable.size() == ARRAY_COUNT( sound_effects ) ) {
-			Com_Printf( S_COLOR_YELLOW "Too many sound effects!\n" );
-			return;
-		}
-
-		sound_effects_hashtable.add( hash, sound_effects_hashtable.size() );
+	if( !sound_effects.upsert( hash, sfx ) ) {
+		Com_Printf( S_COLOR_YELLOW "Too many sound effects!\n" );
 	}
-
-	sound_effects[ idx ] = sfx;
 }
 
 static void LoadSoundEffects() {
@@ -543,10 +530,10 @@ static void AudioCallback( Span< Vec2 > buffer, void * userdata ) {
 void InitSound() {
 	TracyZoneScoped;
 
-	playing_sounds_autoinc = 1;
-	sounds_hashtable.clear();
-	sound_effects_hashtable.clear();
-	playing_sounds_hashtable.clear();
+	playing_sound_handle_autoinc = 1;
+	sounds.clear();
+	sound_effects.clear();
+	playing_sounds.clear();
 	music_playing = false;
 	backend_initialized = false;
 	backend_device_initialized = false;
@@ -583,7 +570,7 @@ void ShutdownSound() {
 
 	StopAllSounds( true );
 
-	for( size_t i = 0; i < sounds_hashtable.size(); i++ ) {
+	for( size_t i = 0; i < sounds.size(); i++ ) {
 		alDeleteBuffers( 1, &sounds[ i ].buf );
 		free( sounds[ i ].samples.ptr );
 	}
@@ -592,19 +579,12 @@ void ShutdownSound() {
 	ShutdownAudioBackend();
 }
 
-static bool FindSound( StringHash name, Sound * sound ) {
-	u64 idx;
-	if( !backend_initialized || !sounds_hashtable.get( name.hash, &idx ) )
-		return false;
-	*sound = sounds[ idx ];
-	return true;
+static const Sound * FindSound( StringHash name ) {
+	return backend_initialized ? sounds.get( name.hash ) : NULL;
 }
 
 static const SoundEffect * FindSoundEffect( StringHash name ) {
-	u64 idx;
-	if( !backend_initialized || !sound_effects_hashtable.get( name.hash, &idx ) )
-		return NULL;
-	return &sound_effects[ idx ];
+	return backend_initialized ? sound_effects.get( name.hash ) : NULL;
 }
 
 static bool StartSound( PlayingSFX * ps, size_t i ) {
@@ -619,8 +599,8 @@ static bool StartSound( PlayingSFX * ps, size_t i ) {
 		sound_name = RandomElement( &rng, config.sounds.span() );
 	}
 
-	Sound sound;
-	if( !FindSound( sound_name, &sound ) )
+	const Sound * sound = FindSound( sound_name );
+	if( sound == NULL )
 		return false;
 
 	if( free_sound_sources.size() == 0 ) {
@@ -628,7 +608,7 @@ static bool StartSound( PlayingSFX * ps, size_t i ) {
 		return false;
 	}
 
-	if( !sound.mono && ps->config.spatialisation != SpatialisationMethod_None ) {
+	if( !sound->mono && ps->config.spatialisation != SpatialisationMethod_None ) {
 		Com_Printf( S_COLOR_YELLOW "Positioned sounds must be mono!\n" );
 		return false;
 	}
@@ -636,7 +616,7 @@ static bool StartSound( PlayingSFX * ps, size_t i ) {
 	ALuint source = free_sound_sources.pop();
 	ps->sources[ i ] = source;
 
-	CheckedALSource( source, AL_BUFFER, sound.buf );
+	CheckedALSource( source, AL_BUFFER, sound->buf );
 	CheckedALSource( source, AL_GAIN, ps->config.volume * config.volume * s_volume->number );
 	CheckedALSource( source, AL_PITCH, ps->config.pitch * config.pitch + ( RandomFloat11( &cls.rng ) * config.pitch_random * config.pitch * ps->config.pitch ) );
 	CheckedALSource( source, AL_REFERENCE_DISTANCE, S_DEFAULT_ATTENUATION_REFDISTANCE );
@@ -689,18 +669,7 @@ static void StopSFX( PlayingSFX * ps ) {
 		}
 	}
 
-	// remove-swap it from playing_sound_effects
-	Swap2( ps, &playing_sound_effects[ playing_sounds_hashtable.size() - 1 ] );
-
-	{
-		bool ok = playing_sounds_hashtable.update( ps->handle.handle, ps - playing_sound_effects );
-		Assert( ok );
-	}
-
-	{
-		bool ok = playing_sounds_hashtable.remove( playing_sound_effects[ playing_sounds_hashtable.size() - 1 ].handle.handle );
-		Assert( ok );
-	}
+	playing_sounds.remove( ps->handle.handle );
 }
 
 static void UpdateSound( PlayingSFX * ps, float volume, float pitch ) {
@@ -737,8 +706,8 @@ void SoundFrame( Vec3 origin, Vec3 velocity, Vec3 forward, Vec3 up ) {
 	CheckedALListener( AL_VELOCITY, velocity );
 	CheckedALListenerOrientation( forward, up );
 
-	for( size_t i = 0; i < playing_sounds_hashtable.size(); i++ ) {
-		PlayingSFX * ps = &playing_sound_effects[ i ];
+	for( size_t i = 0; i < playing_sounds.size(); i++ ) {
+		PlayingSFX * ps = &playing_sounds[ i ];
 		Time t = cls.monotonicTime - ps->start_time;
 		bool all_stopped = true;
 
@@ -849,25 +818,21 @@ static PlayingSFX * PlaySFXInternal( StringHash name, const PlaySFXConfig & conf
 	if( sfx == NULL )
 		return NULL;
 
-	if( playing_sounds_hashtable.size() == ARRAY_COUNT( playing_sound_effects ) ) {
+	PlayingSFX * ps = playing_sounds.add( playing_sound_handle_autoinc );
+	if( ps == NULL ) {
 		Com_Printf( S_COLOR_YELLOW "Too many playing sound effects!\n" );
 		return NULL;
 	}
-
-	PlayingSFX * ps = &playing_sound_effects[ playing_sounds_hashtable.size() ];
 
 	*ps = { };
 	ps->config = config;
 	ps->hash = name;
 	ps->sfx = sfx;
 
-	ps->handle = { playing_sounds_autoinc };
-	playing_sounds_autoinc++;
+	ps->handle = { playing_sound_handle_autoinc };
+	playing_sound_handle_autoinc++;
 
 	ps->start_time = cls.monotonicTime;
-
-	bool ok = playing_sounds_hashtable.add( ps->handle.handle, playing_sounds_hashtable.size() );
-	Assert( ok );
 
 	return ps;
 }
@@ -880,15 +845,14 @@ PlayingSFXHandle PlaySFX( StringHash name, const PlaySFXConfig & config ) {
 }
 
 PlayingSFXHandle PlayImmediateSFX( StringHash name, PlayingSFXHandle handle, const PlaySFXConfig & config ) {
-	u64 idx;
-	if( playing_sounds_hashtable.get( handle.handle, &idx ) ) {
-		PlayingSFX * ps = &playing_sound_effects[ idx ];
-		if( ps->hash == name ) {
-			ps->keep_playing_immediate = true;
-			UpdateSound( ps, config.volume, config.pitch );
+	PlayingSFX * playing = playing_sounds.get( handle.handle );
+	if( playing != NULL ) {
+		if( playing->hash == name ) {
+			playing->keep_playing_immediate = true;
+			UpdateSound( playing, config.volume, config.pitch );
 			return handle;
 		}
-		StopSFX( &playing_sound_effects[ idx ] );
+		StopSFX( playing );
 	}
 
 	PlayingSFX * ps = PlaySFXInternal( name, config );
@@ -902,42 +866,39 @@ PlayingSFXHandle PlayImmediateSFX( StringHash name, PlayingSFXHandle handle, con
 }
 
 void StopSFX( PlayingSFXHandle handle ) {
-	u64 idx;
-	if( !playing_sounds_hashtable.get( handle.handle, &idx ) )
-		return;
-	StopSFX( &playing_sound_effects[ idx ] );
+	PlayingSFX * ps = playing_sounds.get( handle.handle );
+	if( ps != NULL ) {
+		StopSFX( ps );
+	}
 }
 
 void StopAllSounds( bool stop_music ) {
 	if( !backend_initialized )
 		return;
 
-	while( playing_sounds_hashtable.size() > 0 ) {
-		StopSFX( &playing_sound_effects[ 0 ] );
+	while( playing_sounds.size() > 0 ) {
+		StopSFX( &playing_sounds[ 0 ] );
 	}
 
 	if( stop_music ) {
 		StopMenuMusic();
 	}
 
-	playing_sounds_hashtable.clear();
+	playing_sounds.clear();
 }
 
 void StartMenuMusic() {
-	if( !backend_device_initialized )
+	if( !backend_device_initialized || music_playing )
 		return;
 
-	Sound sound;
-	if( !FindSound( "sounds/music/longcovid", &sound ) )
-		return;
-
-	if( music_playing )
+	const Sound * music = FindSound( "sounds/music/longcovid" );
+	if( music == NULL )
 		return;
 
 	CheckedALSource( music_source, AL_GAIN, s_volume->number * s_musicvolume->number * MusicIsWayTooLoud );
 	CheckedALSource( music_source, AL_DIRECT_CHANNELS_SOFT, AL_REMIX_UNMATCHED_SOFT );
 	CheckedALSource( music_source, AL_LOOPING, AL_TRUE );
-	CheckedALSource( music_source, AL_BUFFER, sound.buf );
+	CheckedALSource( music_source, AL_BUFFER, music->buf );
 
 	CheckedALSourcePlay( music_source );
 

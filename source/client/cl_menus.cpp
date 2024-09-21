@@ -87,7 +87,12 @@ static void PushButtonColor( ImVec4 color ) {
 }
 
 static Vec4 RGBA8ToVec4NosRGB( RGBA8 rgba ) {
-	return Vec4( rgba.r / 255.0f, rgba.g / 255.0f, rgba.b / 255.0f, rgba.a / 255.0f );
+	return Vec4(
+		Dequantize01( rgba.r ),
+		Dequantize01( rgba.g ),
+		Dequantize01( rgba.b ),
+		Dequantize01( rgba.a )
+	);
 }
 
 static void ResetServerBrowser() {
@@ -119,7 +124,6 @@ static void RefreshMasksList() {
 
 		masks.add( ( *sys_allocator )( "{}", StripPrefix( StripExtension( path ), MASKS_DIR ) ) );
 	}
-
 
 	Span< const char > mask = Cvar_String( "cg_mask" );
 	for( size_t i = 0; i < masks.size(); i++ ) {
@@ -262,7 +266,7 @@ static Span< const char > SelectableMapList( bool include_gladiator ) {
 	ImGui::PushItemWidth( 200 );
 	if( ImGui::BeginCombo( "##map", temp( "{}", maps[ selected_map ] ) ) ) {
 		for( size_t i = 0; i < maps.n; i++ ) {
-			if ( !include_gladiator && StrEqual( maps[ i ], "gladiator" ) )
+			if( !include_gladiator && StrEqual( maps[ i ], "gladiator" ) )
 				continue;
 
 			if( ImGui::Selectable( temp( "{}", maps[ i ] ), i == selected_map ) )
@@ -697,12 +701,12 @@ static void Settings() {
 static bool LicenseCategory( TempAllocator& temp, char c, const ImU32& color, const Vec2& size, const Vec2& pos ) {
 	constexpr auto draw_text = [] (ImDrawList * draw_list, ImFont * font, float font_size, const char * text, const Vec2& pos, const Vec2& size) {
 		ImGui::PushFont( font );
-		
+
 		const Vec2 text_size = ImGui::CalcTextSize( text );
 		ImGui::SetCursorPos( Vec2( pos.x + (size.x - text_size.x) * 0.5f, pos.y + (size.y - text_size.y) * 0.5f ) );
 		const Vec2 global_pos = ImGui::GetCursorScreenPos();
 		draw_list->AddText( font, font_size, global_pos, IM_COL32( 255, 255, 255, 255 ), text );
-		
+
 		ImGui::PopFont();
 	};
 
@@ -754,12 +758,12 @@ static void ServerBrowser() {
 	}
 
 	ImGui::SameLine();
-	if ( ImGui::Button( "Host Bomb match" ) ) {
+	if( ImGui::Button( "Host Bomb match" ) ) {
 		mainmenu_state = MainMenuState_CreateServerBomb;
 	}
 
 	ImGui::SameLine();
-	if ( ImGui::Button( "Host Gladiator match" ) ) {
+	if( ImGui::Button( "Host Gladiator match" ) ) {
 		mainmenu_state = MainMenuState_CreateServerGladiator;
 	}
 
@@ -851,7 +855,7 @@ static void CreateServer( bool gladiator ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	CvarTextbox( "Server name", "sv_hostname", 128 );
-	if ( !gladiator ) {
+	if( !gladiator ) {
 		SettingLabel( "Map" );
 	}
 	Span< const char > map_name = gladiator ? "gladiator" : SelectableMapList( false );
@@ -867,7 +871,7 @@ static void CreateServer( bool gladiator ) {
 static void ShadowedText( Span<const char> text, float shadow_size ) {
 	const Vec2 pos = ImGui::GetCursorPos();
 	ImGui::SetCursorPos( pos + Vec2( shadow_size, shadow_size ) );
-	
+
 	ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 0, 0, 0, 255 ) );
 	ImGui::Text( text );
 	ImGui::PopStyleColor();
@@ -876,7 +880,7 @@ static void ShadowedText( Span<const char> text, float shadow_size ) {
 	ImGui::Text( text );
 }
 
-template <bool BUTTON>
+template< bool BUTTON >
 static bool MainSectionButton( const ImVec2& pos, const Material * icon, const Vec2& size, Span<const char> name, const Vec4& bg_color ) {
 	const Vec2 half_pixel = HalfPixelSize( icon );
 	const Vec2 SQUARE_SIZE = Vec2( size.x + 8.f, size.y + 8.f );
@@ -884,7 +888,7 @@ static bool MainSectionButton( const ImVec2& pos, const Material * icon, const V
 
 	bool pressed = false;
 	bool hovered = false;
-	if constexpr ( BUTTON ) {
+	if( BUTTON ) {
 		ImGui::SetCursorPos( pos );
 		ImGui::PushID( name.begin(), name.end() );
 		pressed = ImGui::InvisibleButton( "", size );
@@ -899,7 +903,6 @@ static bool MainSectionButton( const ImVec2& pos, const Material * icon, const V
 	ImGui::Image( cls.white_material, SQUARE_SIZE, Vec2( 0.f ), Vec2( 0.f ), dark.vec4, Vec4( 0.0f ) );
 	ImGui::SetCursorPos( Vec2( pos.x + 4.f, pos.y + 4.f ) );
 	ImGui::Image( cls.white_material, SQUARE_SIZE + OFFSET_VEC, Vec2( 0.f ), Vec2( 0.f ), dark.vec4, Vec4( 0.0f ) );
-	
 
 	ImGui::SetCursorPos( pos - OFFSET_VEC );
 	ImGui::Image( cls.white_material, size, Vec2( 0.f ), Vec2( 0.f ), bg_color, Vec4( 0.0f ) );
@@ -907,9 +910,10 @@ static bool MainSectionButton( const ImVec2& pos, const Material * icon, const V
 	ImGui::SetCursorPos( pos - OFFSET_VEC * 2.f );
 	ImGui::Image( icon, size + OFFSET_VEC, half_pixel, 1.0f - half_pixel, Vec4( 0.f, 0.f, 0.f, 1.f ), Vec4( 0.0f ) );
 
-	if constexpr ( BUTTON ) {
+	if( BUTTON ) {
 		ImGui::SetCursorPos( ImVec2( pos.x + (size.x - text_size.x) * 0.5f + 4.f, pos.y + size.y + 16.f ) );
-	} else {
+	}
+	else {
 		ImGui::SetCursorPos( ImVec2( pos.x + size.x + 32.f, pos.y + (size.y - text_size.y) * 0.5f + 4.f ) );
 	}
 
@@ -920,7 +924,7 @@ static bool MainSectionButton( const ImVec2& pos, const Material * icon, const V
 
 struct MainMenuCategory {
 	StringHash icon_path;
-	Span<const char> name;
+	Span< const char > name;
 	MainMenuState state;
 	Vec4 bg_color;
 };
@@ -932,13 +936,13 @@ static void NotImplemented() {
 }
 
 static void MainMenu() {
-	static const MainMenuCategory categories[] = {
-		{"hud/license", "LICENSE", MainMenuState_License, diesel_green.vec4},
-		{"hud/locker", "LOCKER", MainMenuState_Locker, white.vec4},
-		{"hud/replays", "REPLAYS", MainMenuState_Replays, diesel_yellow.vec4},
-		{"hud/bomb", "PLAY", MainMenuState_ServerBrowser, diesel_red.vec4},
-		{"hud/gladiator", "RANKED", MainMenuState_Ranked, diesel_red.vec4},
-		{"hud/settings", "SETTINGS", MainMenuState_Settings, diesel_yellow.vec4}
+	constexpr MainMenuCategory categories[] = {
+		{ "hud/license", "LICENSE", MainMenuState_License, diesel_green.vec4 },
+		{ "hud/locker", "LOCKER", MainMenuState_Locker, white.vec4 },
+		{ "hud/replays", "REPLAYS", MainMenuState_Replays, diesel_yellow.vec4 },
+		{ "hud/bomb", "PLAY", MainMenuState_ServerBrowser, diesel_red.vec4 },
+		{ "hud/gladiator", "RANKED", MainMenuState_Ranked, diesel_red.vec4 },
+		{ "hud/settings", "SETTINGS", MainMenuState_Settings, diesel_yellow.vec4 }
 	};
 
 	TempAllocator temp = cls.frame_arena.temp();
@@ -946,7 +950,6 @@ static void MainMenu() {
 	ImGui::SetNextWindowPos( ImVec2() );
 	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
 
-	bool parteditor_wason = mainmenu_state == MainMenuState_ParticleEditor;
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_Interactive;
 
 	ImGui::Begin( "mainmenu", WindowZOrder_Menu, flags );
@@ -961,21 +964,21 @@ static void MainMenu() {
 	{
 		ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0.f, 0.f ) );
 		ImGui::PushFont( cls.huge_italic_font );
-		
+
 		ImGui::SetCursorPosY( OFFSET + 64.f );
 		ShadowedText( "COCAINE", 4.f );
 		ImGui::SetCursorPosY( OFFSET + 154.f );
 		ShadowedText( "DIESEL", 4.f );
-		
+
 		ImGui::PopFont();
 		ImGui::PopStyleVar();
 
 		ImGui::PushFont( cls.big_font );
 
 		//CATEGORY ICON
-		for( int i = 0; i < ARRAY_COUNT( categories ); i++ ) {
-			if ( categories[i].state == mainmenu_state ) {
-				MainSectionButton<false>( ImGui::GetCursorPos(), FindMaterial( categories[i].icon_path ), icon_size, categories[i].name, categories[i].bg_color );
+		for( size_t i = 0; i < ARRAY_COUNT( categories ); i++ ) {
+			if( categories[ i ].state == mainmenu_state ) {
+				MainSectionButton< false >( ImGui::GetCursorPos(), FindMaterial( categories[ i ].icon_path ), icon_size, categories[ i ].name, categories[ i ].bg_color );
 				break;
 			}
 		}
@@ -988,14 +991,13 @@ static void MainMenu() {
 		ShadowedText( MakeSpan( categories_text ), 4.f );
 		ImGui::PopFont();
 
-
 		ImGui::SetCursorPosY( POSY );
-		if ( ImGui::InvisibleButton( categories_text, categories_text_size ) || (ImGui::Hotkey( K_ESCAPE ) && mainmenu_state != MainMenuState_CreateServerGladiator && mainmenu_state != MainMenuState_CreateServerBomb) ) {
+		if( ImGui::InvisibleButton( categories_text, categories_text_size ) || (ImGui::Hotkey( K_ESCAPE ) && mainmenu_state != MainMenuState_CreateServerGladiator && mainmenu_state != MainMenuState_CreateServerBomb) ) {
 			mainmenu_state = MainMenuState_Main;
 		}
 	}
 
-	if ( mainmenu_state == MainMenuState_Main ) {
+	if( mainmenu_state == MainMenuState_Main ) {
 		const float BASE_COLUMN = frame_static.viewport_width * 0.4f;
 		const float COLUMN_OFFSET = frame_static.viewport_width * 0.2f;
 		const float COLUMN_LINE_OFFSET = frame_static.viewport_width * 0.05f;
@@ -1005,14 +1007,14 @@ static void MainMenu() {
 
 		//CATEGORIES
 		ImGui::PushFont( cls.big_font );
-		for( int i = 0; i < ARRAY_COUNT( categories ); i++ ) {
-			if ( MainSectionButton<true>( ImVec2( BASE_COLUMN + (COLUMN_OFFSET * (i % 3)) + COLUMN_LINE_OFFSET * (i/3), BASE_LINE + LINE_OFFSET * (i/3) ),
-				FindMaterial( categories[i].icon_path ), icon_size, categories[i].name, categories[i].bg_color ) ) {
-				mainmenu_state = categories[i].state;
+		for( size_t i = 0; i < ARRAY_COUNT( categories ); i++ ) {
+			if( MainSectionButton< true >( ImVec2( BASE_COLUMN + (COLUMN_OFFSET * (i % 3)) + COLUMN_LINE_OFFSET * (i/3), BASE_LINE + LINE_OFFSET * (i/3) ),
+				FindMaterial( categories[ i ].icon_path ), icon_size, categories[ i ].name, categories[ i ].bg_color ) ) {
+				mainmenu_state = categories[ i ].state;
 			}
 		}
 
-		if ( MainSectionButton<true>( ImVec2( BASE_COLUMN + COLUMN_OFFSET * 2.f + COLUMN_LINE_OFFSET * 2.f, BASE_LINE + LINE_OFFSET * 2.f ),
+		if( MainSectionButton<true>( ImVec2( BASE_COLUMN + COLUMN_OFFSET * 2.f + COLUMN_LINE_OFFSET * 2.f, BASE_LINE + LINE_OFFSET * 2.f ),
 			FindMaterial( "hud/exit" ), icon_size, "EXIT", Vec4( 0.5f, 0.5f, 0.5f, 1.f ) ) ) {
 			Cmd_Execute( &temp, "quit" );
 		}
@@ -1029,7 +1031,6 @@ static void MainMenu() {
 		draw_list->AddRectFilledMultiColor( submenus_offset + Vec2( 0.f, submenus_size.y ), submenus_offset + Vec2( submenus_size.x * 0.5f, submenus_size.y + 32.f ), DARK_COL32, GRAY_COL32, GRAY_COL32, DARK_COL32 );
 		draw_list->AddRectFilledMultiColor( submenus_offset + Vec2( submenus_size.x * 0.5f, submenus_size.y ), submenus_offset + Vec2( submenus_size.x, submenus_size.y + 32.f ), GRAY_COL32, DARK_COL32, DARK_COL32, GRAY_COL32 );
 
-
 		Draw2DBox( submenus_offset.x, submenus_offset.y, submenus_size.x, submenus_size.y, cls.white_material, dark.vec4 );
 		Draw2DBoxUV( submenus_offset.x, submenus_offset.y, submenus_size.x, submenus_size.y, Vec2( 0.f, 0.f ), submenus_size/8.f, FindMaterial( "hud/diagonal_pattern" ), Vec4( 1.f, 1.f, 1.f, 0.025f ) );
 
@@ -1039,24 +1040,24 @@ static void MainMenu() {
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, Vec4( 0.f ) );
 		ImGui::BeginChild( "sub main menus", submenus_size, true );
 
-		if ( mainmenu_state == MainMenuState_License ) {
+		if( mainmenu_state == MainMenuState_License ) {
 			NotImplemented();
 			//License( submenus_size );
-		} else if ( mainmenu_state == MainMenuState_Locker ) {
+		} else if( mainmenu_state == MainMenuState_Locker ) {
 			Locker();
-		} else if ( mainmenu_state == MainMenuState_Replays ) {
+		} else if( mainmenu_state == MainMenuState_Replays ) {
 			DemoBrowser();
-		} else if ( mainmenu_state == MainMenuState_ServerBrowser ) {
+		} else if( mainmenu_state == MainMenuState_ServerBrowser ) {
 			ServerBrowser();
-		} else if ( mainmenu_state == MainMenuState_Ranked ) {
+		} else if( mainmenu_state == MainMenuState_Ranked ) {
 			NotImplemented();
-		} else if ( mainmenu_state == MainMenuState_CreateServerGladiator ) {
+		} else if( mainmenu_state == MainMenuState_CreateServerGladiator ) {
 			CreateServer( true );
-		} else if ( mainmenu_state == MainMenuState_CreateServerBomb ) {
+		} else if( mainmenu_state == MainMenuState_CreateServerBomb ) {
 			CreateServer( false );
-		} else if ( mainmenu_state == MainMenuState_Settings ) {
+		} else if( mainmenu_state == MainMenuState_Settings ) {
 			Settings();
-		} else if ( mainmenu_state == MainMenuState_ParticleEditor ) {
+		} else if( mainmenu_state == MainMenuState_ParticleEditor ) {
 			mainmenu_state = MainMenuState_Main;
 		}
 
@@ -1345,7 +1346,6 @@ static bool LoadoutMenu() {
 		textPos.y = (title_height - textSize.y) * 0.5f;
 		PrintMoveText( "AND ", textPos );
 
-
 		textPos.y = (title_height - icon_size.y) * 0.5f;
 		PrintMoveImage( FindMaterial( cgs.media.shaderWeaponIcon[ loadout.weapons[ WeaponCategory_Melee ] ] ), icon_size.y, textPos, diesel_yellow.vec4 );
 		PrintMoveImage( FindMaterial( cgs.media.shaderGadgetIcon[ loadout.gadget ] ), icon_size.y, textPos, diesel_yellow.vec4 );
@@ -1358,16 +1358,16 @@ static bool LoadoutMenu() {
 		const char * playerName = PlayerName( cg.predictedPlayerState.playerNum );
 		Span<const char> playerNameSpan = MakeSpan( playerName );
 		ImVec2 playerTextSize = ImGui::CalcTextSize( playerName );
-		
+
 		float predictedPos = textPos.x - ImGui::CalcTextSize( " AND I'M " ).x - ImGui::CalcTextSize( "I AM " ).x * 2.f - playerTextSize.x;
 		float letterWidth = playerTextSize.x / playerNameSpan.num_bytes();
 		int excessLetters = Max2(3.f, -predictedPos / letterWidth); //the excess is the negative part
 
-		if ( predictedPos > 0.f || excessLetters < playerNameSpan.num_bytes() ) { //don't print name if the window is too small
+		if( predictedPos > 0.f || excessLetters < playerNameSpan.num_bytes() ) { //don't print name if the window is too small
 			PrintMoveText( " AND I'M ", textPos );
 
 			ImGui::PushStyleColor( ImGuiCol_Text, diesel_yellow.vec4 );
-			if ( predictedPos <= 0.f ) {
+			if( predictedPos <= 0.f ) {
 				PrintMoveText( "...", textPos );
 				PrintMoveText( playerNameSpan.slice( 0, playerNameSpan.num_bytes() - excessLetters ), textPos );
 			} else {
@@ -1556,7 +1556,6 @@ static void DemoMenu() {
 		} else {
 			GameMenuButton( "Hide HUD", "cg_draw2D 0", NULL, 1 );
 		}
-
 
 		ImGui::Columns( 1, NULL, false );
 

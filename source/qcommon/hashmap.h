@@ -59,9 +59,11 @@ public:
 		return true;
 	}
 
+	void clear() { hashtable.clear(); }
+
 	size_t size() const { return hashtable.size(); }
-	bool full() const { return size() == N; }
+	bool full() const { return hashtable.size() == N; }
 	T & operator[]( size_t idx ) { return values[ idx ]; }
 
-	void clear() { hashtable.clear(); }
+	Span< const T > span() const { return Span< const T >( values, hashtable.size() ); }
 };

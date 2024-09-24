@@ -5,7 +5,6 @@ layout( local_size_x = 64 ) in;
 
 layout( std140 ) uniform u_ParticleUpdate {
 	int u_Collision;
-	float u_Radius;
 	float u_dt;
 	uint num_new_particles;
 };
@@ -39,7 +38,6 @@ bool collide( inout Particle particle, float dt ) {
 	// if( ( particle.flags & PARTICLE_COLLISION_SPHERE ) != 0 ) {
 	// 	float fage = particle.age / particle.lifetime;
 	// 	radius = mix( particle.start_size, particle.end_size, fage );
-	// 	radius *= u_Radius;
 	// }
 	// float asdf = 8.0;
 	// float prestep = min( 0.1, particle.age );

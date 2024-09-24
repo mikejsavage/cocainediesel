@@ -1595,7 +1595,7 @@ void UI_Refresh() {
 
 	if( uistate == UIState_MainMenu ) {
 		if( mainmenu_state != MainMenuState_ParticleEditor ) {
-			DrawParticleMenuEffect();
+			// DrawParticleMenuEffect();
 		}
 
 		MainMenu();
@@ -1603,7 +1603,7 @@ void UI_Refresh() {
 
 	if( uistate == UIState_Connecting ) {
 		if( mainmenu_state != MainMenuState_ParticleEditor ) {
-			DrawParticleMenuEffect();
+			// DrawParticleMenuEffect();
 		}
 
 		ImGui::SetNextWindowPos( ImVec2() );

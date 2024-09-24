@@ -234,7 +234,7 @@ static ParticleSystem blendParticleSystem;
 static Hashmap< VisualEffectGroup, MAX_VISUAL_EFFECT_GROUPS > visualEffectGroups;
 static Hashmap< ParticleEmitter, MAX_PARTICLE_EMITTERS > particleEmitters;
 static Hashmap< DecalEmitter, MAX_DECAL_EMITTERS > decalEmitters;
-static Hashmap< DynamicLightEmitter, MAX_DECAL_EMITTERS > dlightEmitters;
+static Hashmap< DynamicLightEmitter, MAX_DLIGHT_EMITTERS > dlightEmitters;
 
 struct ComputeIndirect {
 	u32 x, y, z;
@@ -249,7 +249,7 @@ struct DrawArraysIndirect {
 
 static ParticleSystem NewParticleSystem( Allocator * a, BlendFunc blend_func, size_t max_particles ) {
 	u32 zero = 0;
-	ComputeIndirect compute_indirect[] = { 1, 1, 1 };
+	ComputeIndirect compute_indirect = { 1, 1, 1 };
 	DrawArraysIndirect draw_indirect = { .count = 6 };
 
 	return ParticleSystem {

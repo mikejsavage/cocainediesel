@@ -163,9 +163,9 @@ void main() {
 	#endif
 	shadowlight = shadowlight * 0.5 + 0.5;
 
-#if APPLY_DLIGHTS
-	applyDynamicLights( dynamic_tile.num_dlights, tile_index, v_Position, normal, viewDir, lambertlight, specularlight );
-#endif
+	#if APPLY_DLIGHTS
+		applyDynamicLights( dynamic_tile.num_dlights, tile_index, v_Position, normal, viewDir, lambertlight, specularlight );
+	#endif
 	lambertlight = lambertlight * 0.5 + 0.5;
 
 	#if APPLY_DRAWFLAT
@@ -173,7 +173,6 @@ void main() {
 	#endif
 
 	diffuse.rgb *= shadowlight * ( lambertlight + specularlight );
-
 #endif
 
 #if APPLY_FOG

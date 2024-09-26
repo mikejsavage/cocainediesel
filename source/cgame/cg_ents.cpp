@@ -695,6 +695,12 @@ void DrawEntities() {
 				DrawEntityTrail( cent, EMPTY_HASH );
 				CG_EntityLoopSound( cent, state );
 				break;
+			case ET_STICKY:
+				DrawEntityModel( cent );
+				DrawEntityTrail( cent, "loadout/sticky/trail" );
+				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
+				CG_EntityLoopSound( cent, state );
+				break;
 			case ET_AXE:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/axe/trail" );
@@ -882,6 +888,7 @@ void CG_UpdateEntities() {
 			case ET_CROSSBOW:
 			case ET_BLASTER:
 			case ET_SAWBLADE:
+			case ET_STICKY:
 			case ET_RAILALT:
 			case ET_AXE:
 			case ET_SHURIKEN:

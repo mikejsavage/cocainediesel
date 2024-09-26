@@ -289,7 +289,7 @@ local function DrawWeapon( state, options, x, y, width, height, padding, weaponI
 	end
 	options.alignment = "center middle"
 	options.font_size = width * 0.18
-	cd.text( options, x + width/2, y + width + (h - width + padding)/2, weaponInfo.name )
+	cd.text( options, x + width/2, y + width + (h - width + padding)/2, weaponInfo.name:upper() )
 end
 
 local function DrawWeaponBar( state, options, x, y, width, height, padding )

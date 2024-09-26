@@ -290,6 +290,13 @@ struct SyncGameState {
 	s64 match_duration;
 	s64 clock_override;
 
+	struct CameraOverride {
+		Vec3 origin;
+		EulerDegrees3 angles;
+	};
+
+	Optional< CameraOverride > camera_override;
+
 	u8 scorelimit;
 
 	char callvote[ 32 ];

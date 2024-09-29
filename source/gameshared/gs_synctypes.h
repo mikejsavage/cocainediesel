@@ -61,6 +61,7 @@ enum EntityType : u8 {
 	ET_LASER,
 	ET_SPIKES,
 	ET_SPEAKER,
+	ET_CINEMATIC_MAPNAME,
 	ET_MAPMODEL,
 
 	// eventual entities: types below this will get event treatment

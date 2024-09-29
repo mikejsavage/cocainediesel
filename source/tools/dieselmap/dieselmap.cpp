@@ -192,6 +192,9 @@ static std::vector< CompiledMesh > BrushToCompiledMeshes( const ParsedBrush & br
 		Vec3 normal = planes[ i ].normal;
 		for( Vec3 position : hull ) {
 			InterleavedMapVertex v = { position, normal };
+			if( v.position.z <= -1024.0f ) {
+				v.position.z = -999999.0f;
+			}
 			material_mesh.vertices.push_back( v );
 		}
 

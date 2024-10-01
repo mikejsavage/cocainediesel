@@ -1,7 +1,7 @@
 // include base.h instead of this
 // scoped wrappers around the tracy C API, because it compiles faster than the C++ API
 
-#include "tracy/tracy/TracyC.h"
+#include "tracy/tracy/TracyCD.h"
 
 inline bool tracy_is_active = true;
 

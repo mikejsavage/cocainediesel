@@ -2093,8 +2093,7 @@ void Profiler::Worker()
         return;
     }
     // Handle remaining server queries
-    // for(;;)
-    for(;false;) // DIESEL: hack to stop the game livelocking on shutdown
+    for(;;)
     {
         while( m_sock->HasData() )
         {

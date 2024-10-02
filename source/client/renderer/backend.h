@@ -72,6 +72,7 @@ struct PipelineState {
 	Optional< Scissor > scissor = NONE;
 	bool write_depth = true;
 	bool clamp_depth = false;
+	bool alpha_to_coverage = false;
 	bool view_weapon_depth_hack = false;
 	bool wireframe = false;
 

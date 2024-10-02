@@ -152,4 +152,8 @@
 		<angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
 		<string key="weapon" name="Weapon">weapon shortname</string>
 	</point>
+
+	<point name="cinematic_mapname" color="1 1 1" box="0 -1 0 1824 1 256" model="dev/cinematic_mapname.glb">
+		<angles key="angles" name="Pitch Yaw Roll"></angles>
+	</point>
 </classes>

@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/time.h"
 #include "client/audio/api.h"
 #include "client/renderer/renderer.h"
+#include "client/renderer/text.h"
 
 static void CG_UpdateEntities();
 
@@ -769,6 +770,12 @@ void DrawEntities() {
 				DrawEntityModel( cent );
 				break;
 
+			case ET_CINEMATIC_MAPNAME: {
+				TempAllocator temp = cls.frame_arena.temp();
+				Span< const char > big = ToUpperASCII( &temp, cl.map->name );
+				Draw3DText( cgs.fontBoldItalic, 256.0f, big, { }, cent->current.origin, cent->current.angles, white.vec4 );
+			} break;
+
 			case ET_MAPMODEL:
 				DrawEntityModel( cent );
 				break;
@@ -816,6 +823,7 @@ void CG_LerpEntities() {
 			case ET_CORPSE:
 			case ET_GHOST:
 			case ET_SPEAKER:
+			case ET_CINEMATIC_MAPNAME:
 			case ET_BOMB:
 			case ET_MAPMODEL:
 				if( state->linearMovement ) {
@@ -892,6 +900,7 @@ void CG_UpdateEntities() {
 			case ET_RAILALT:
 			case ET_AXE:
 			case ET_SHURIKEN:
+			case ET_CINEMATIC_MAPNAME:
 			case ET_MAPMODEL:
 				break;
 

@@ -122,8 +122,8 @@ struct client_static_t {
 	Optional< Time > connect_time; // for connection retransmits
 	int connect_count;
 
-	char * server_name;
-	char * download_url;              // http://<httpaddress>/
+	Span< char > server_name;
+	Span< char > download_url;              // http://<httpaddress>/
 
 	bool rejected;          // these are used when the server rejects our connection
 	char rejectmessage[80];

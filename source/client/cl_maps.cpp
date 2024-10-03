@@ -25,7 +25,7 @@ static Hashtable< MAX_MAP_MODELS * 2 > map_models_hashtable;
 static CollisionModelStorage collision_models;
 
 static void DeleteMap( Map * map ) {
-	Free( sys_allocator, const_cast< char * >( map->name ) );
+	Free( sys_allocator, const_cast< char * >( map->name.ptr ) );
 	DeleteMapRenderData( map->render_data );
 }
 
@@ -67,7 +67,7 @@ bool AddMap( Span< const u8 > data, Span< const char > path ) {
 		return false;
 	}
 
-	map.name = ( *sys_allocator )( "{}", name );
+	map.name = CloneSpan( sys_allocator, name );
 	map.base_hash = hash;
 	map.render_data = NewMapRenderData( map.data, path );
 

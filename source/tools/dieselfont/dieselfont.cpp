@@ -1,4 +1,5 @@
 #include "qcommon/base.h"
+#include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/span2d.h"
 #include "gameshared/q_math.h"
@@ -23,7 +24,13 @@ static msdfgen::Point2 Point( stbtt_vertex_type x, stbtt_vertex_type y ) {
 	return msdfgen::Point2( x / 64.0, y / 64.0 );
 }
 
+static Vec2 Point2( stbtt_vertex_type x, stbtt_vertex_type y ) {
+	return Vec2( x / 64.0f, y / 64.0f );
+}
+
 static msdfgen::Shape STBShapeToMSDFShape( const stbtt_fontinfo * font, u32 codepoint ) {
+	TracyZoneScoped;
+
 	stbtt_vertex * verts;
 	int num_verts = stbtt_GetCodepointShape( font, checked_cast< int >( codepoint ), &verts );
 
@@ -57,7 +64,7 @@ static msdfgen::Shape STBShapeToMSDFShape( const stbtt_fontinfo * font, u32 code
 			} break;
 
 			case STBTT_vcubic: {
-				Fatal( "fuck otf" );
+				Fatal( "TTF only" );
 			} break;
 		}
 
@@ -67,11 +74,229 @@ static msdfgen::Shape STBShapeToMSDFShape( const stbtt_fontinfo * font, u32 code
 	return shape;
 }
 
+struct GlyphContours {
+	struct Color {
+		bool r, g, b;
+	};
+
+	static constexpr Color two_colors[] = {
+		{ true, true, false }, // 6
+		{ false, true, true }, // 3
+		{ true, false, true }, // 4
+	};
+
+	struct Bezier {
+		Vec2 a, b, c;
+	};
+
+	struct Contour {
+		size_t first;
+		size_t n;
+	};
+
+	Span< Bezier > beziers;
+	Span< Contour > contours;
+};
+
+static Vec2 TangentAt0( GlyphContours::Bezier b ) { return b.b - b.a; }
+static Vec2 TangentAt1( GlyphContours::Bezier b ) { return b.c - b.b; }
+
+static GlyphContours STBShapeToDiesel( Allocator * a, const stbtt_fontinfo * font, u32 codepoint ) {
+	TracyZoneScoped;
+
+	stbtt_vertex * verts;
+	int num_verts = stbtt_GetCodepointShape( font, checked_cast< int >( codepoint ), &verts );
+
+	NonRAIIDynamicArray< GlyphContours::Bezier > beziers( a );
+	NonRAIIDynamicArray< GlyphContours::Contour > contours( a );
+
+	Vec2 cursor = Vec2( 0.0f );
+
+	for( int i = 0; i < num_verts; i++ ) {
+		const stbtt_vertex & v = verts[ i ];
+		switch( v.type ) {
+			case STBTT_vmove: {
+				if( contours.size() == 0 || contours[ contours.size() - 1 ].n > 0 ) {
+					contours.add( { .first = beziers.size() } );
+				}
+			} break;
+
+			case STBTT_vline: {
+				Vec2 end = Point2( v.x, v.y );
+				if( end != cursor ) { // this check is from msdf-atlas-gen
+					if( contours.size() == 0 ) {
+						Fatal( "Bad font" );
+					}
+					beziers.add( { cursor, ( cursor + end ) * 0.5f, end } );
+					contours[ contours.size() - 1 ].n++;
+				}
+			} break;
+
+			case STBTT_vcurve: {
+				// msdf-c checks if cursor == control || control == end and sets control to the midpoint
+				Vec2 end = Point2( v.x, v.y );
+				Vec2 control = Point2( v.cx, v.cy );
+				if( end != cursor ) {
+					if( contours.size() == 0 ) {
+						Fatal( "Bad font" );
+					}
+					beziers.add( { cursor, control, end } );
+					contours[ contours.size() - 1 ].n++;
+				}
+			} break;
+
+			case STBTT_vcubic: {
+				Fatal( "TTF only" );
+			} break;
+		}
+
+		cursor = Point2( v.x, v.y );
+	}
+
+	return { beziers.span(), contours.span() };
+}
+
+static float CosAcosDiv3( float x ) {
+	x = sqrtf( 0.5f + 0.5f * x );
+	return x * ( x * ( x * ( x * -0.008972f + 0.039071f ) - 0.107074f ) + 0.576975f ) + 0.5f;
+}
+
+static float Sign( float x ) {
+	if( x == 0.0f )
+		return 0.0f;
+	return x < 0.0f ? -1.0f : 1.0f;
+}
+
+static float Cross( Vec2 a, Vec2 b ) { return a.x * b.y - a.y * b.x; }
+static Vec2 Sign( Vec2 v ) { return Vec2( Sign( v.x ), Sign( v.y ) ); }
+static Vec2 Abs( Vec2 v ) { return Vec2( fabsf( v.x ), fabsf( v.y ) ); }
+static Vec2 Pow( Vec2 v, float e ) { return Vec2( powf( v.x, e ), powf( v.y, e ) ); }
+static Vec3 Clamp( float lo, Vec3 v, float hi ) { return Vec3( Clamp( lo, v.x, hi ), Clamp( lo, v.y, hi ), Clamp( lo, v.z, hi ) ); }
+
+static void CopySpan2DFlipY( Span2D< RGB8 > dst, Span2D< const RGB8 > src ) {
+	Assert( src.w == dst.w && src.h == dst.h );
+	for( u32 i = 0; i < dst.h; i++ ) {
+		memcpy( dst.row( dst.h - i - 1 ).ptr, src.row( i ).ptr, dst.row( i ).num_bytes() );
+	}
+}
+
+static float DistanceToBezier( GlyphContours::Bezier bezier, Vec2 pos ) {
+	Vec2 a = bezier.b - bezier.a;
+	Vec2 b = bezier.a - 2.0f * bezier.b + bezier.c;
+	Vec2 c = a * 2.0f;
+	Vec2 d = bezier.a - pos;
+
+	// cubic to be solved (kx*=3 and ky*=3)
+	float kk = 1.0f / Dot( b, b );
+	float kx = kk * Dot( a, b );
+	float ky = kk * (2.0f*Dot(a,a)+Dot(d,b))/3.0f;
+	float kz = kk * Dot(d,a);
+
+	float res = 0.0f;
+	float sgn = 0.0f;
+
+	float p  = ky - kx*kx;
+	float q  = kx*(2.0f*kx*kx - 3.0f*ky) + kz;
+	float p3 = p*p*p;
+	float q2 = q*q;
+	float h  = q2 + 4.0f*p3;
+
+	if( h >= 0.0f ) { // 1 root
+		h = sqrtf( h );
+		Vec2 x = (Vec2(h,-h)-q)/2.0f;
+
+#if 0
+		// When p≈0 and p<0, h-q has catastrophic cancelation. So, we do
+		// h=√(q²+4p³)=q·√(1+4p³/q²)=q·√(1+w) instead. Now we approximate
+		// √ by a linear Taylor expansion into h≈q(1+½w) so that the q's
+		// cancel each other in h-q. Expanding and simplifying further we
+		// get x=vec2(p³/q,-p³/q-q). And using a second degree Taylor
+		// expansion instead: x=vec2(k,-k-q) with k=(1-p³/q²)·p³/q
+		if( abs(p)<0.001 )
+		{
+			float k = p3/q;              // linear approx
+										 //float k = (1.0-p3/q2)*p3/q;  // quadratic approx
+			x = vec2(k,-k-q);
+		}
+#endif
+
+		Vec2 uv = Sign(x)*Pow(Abs(x), 1.0f / 3.0f);
+		float t = uv.x + uv.y;
+
+		// from NinjaKoala - single newton iteration to account for cancellation
+		t -= (t*(t*t+3.0f*p)+q)/(3.0f*t*t+3.0f*p);
+
+		t = Clamp( 0.0f, t-kx, 1.0f );
+		Vec2  w = d+(c+b*t)*t;
+		res = Dot( w, w );
+		sgn = Cross(c+2.0*b*t,w);
+	}
+	else { // 3 roots
+		float z = sqrtf( -p );
+#if 0
+		float v = acos(q/(p*z*2.0))/3.0;
+		float m = cos(v);
+		float n = sin(v);
+#else
+		float m = CosAcosDiv3( q/(p*z*2.0f) );
+		float n = sqrtf(1.0f - m*m);
+#endif
+		n *= sqrtf( 3.0f );
+		Vec3  t = Clamp( 0.0f, Vec3(m+m,-n-m,n-m)*z-kx, 1.0f );
+		Vec2  qx=d+(c+b*t.x)*t.x; float dx=Dot(qx, qx), sx=Cross(a+b*t.x,qx);
+		Vec2  qy=d+(c+b*t.y)*t.y; float dy=Dot(qy, qy), sy=Cross(a+b*t.y,qy);
+		if( dx < dy ) {
+			res=dx;sgn=sx;
+		}
+		else {
+			res=dy;sgn=sy;
+		}
+	}
+
+	{
+		Vec2 dir = TangentAt0( bezier );
+		Vec2 o = pos - bezier.a;
+		if( Dot( dir, o ) < 0.0f ) {
+			Vec2 proj = bezier.a + Dot( o, dir ) / Dot( dir, dir ) * dir;
+			float dist = Dot( pos - proj, pos - proj );
+			if( dist < res ) {
+				res = dist;
+				sgn = -Cross( dir, o );
+			}
+		}
+	}
+
+	{
+		Vec2 dir = TangentAt1( bezier );
+		Vec2 o = pos - bezier.c;
+		if( Dot( dir, o ) > 0.0f ) {
+			Vec2 proj = bezier.c + Dot( o, dir ) / Dot( dir, dir ) * dir;
+			float dist = Dot( pos - proj, pos - proj );
+			if( dist < res ) {
+				res = dist;
+				sgn = -Cross( dir, o );
+			}
+		}
+	}
+
+	return sqrtf( res ) * Sign( sgn );
+}
+
 int main( int argv, char ** argc ) {
+	constexpr u32 codepoint_ranges[][ 2 ] = {
+		{ 1, 255 },
+	};
+
+	constexpr size_t sdf_embox_size = 64;
+	constexpr float range_in_ems = 4.0f;
+
 	constexpr size_t arena_size = 1024 * 1024 * 100; // 100MB
 	ArenaAllocator arena( sys_allocator->allocate( arena_size, 16 ), arena_size );
 
 	Span< u8 > ttf = ReadFileBinary( &arena, "base/fonts/Decalotype-Black.ttf" );
+	if( ttf.ptr == NULL ) {
+		Fatal( "Can't read font" );
+	}
 
 	stbtt_fontinfo font;
 	font.userdata = &arena;
@@ -81,80 +306,119 @@ int main( int argv, char ** argc ) {
 
 	int ascent, descent;
 	stbtt_GetFontVMetrics( &font, &ascent, &descent, 0 );
-	float scale = stbtt_ScaleForPixelHeight( &font, 1.0f );
+	// float scale = stbtt_ScaleForPixelHeight( &font, 1.0f );
+	float scale = stbtt_ScaleForMappingEmToPixels( &font, 1.0f );
 
-#if GG
-	// Funit to pixel scale
-	float scale = stbtt_ScaleForMappingEmToPixels(font, h);
+	float dSDF_dUV = 1.0f / ( scale * range_in_ems );
+	float padding = range_in_ems * scale * sdf_embox_size * 64.0f; // TODO: give 64 a meaningful name
+	printf( "dSDF_dUV %f\n", dSDF_dUV );
+	printf( "scale %f\n", scale );
+	printf( "padding %f\n", range_in_ems * scale * sdf_embox_size * 64 );
 
-	// get glyph bounding box (scaled later)
-	int ix0, iy0, ix1, iy1;
-	float xoff = .5, yoff = .5;
-	stbtt_GetGlyphBox(font, stbtt_FindGlyphIndex(font,c), &ix0, &iy0, &ix1, &iy1);
-
-	if (autofit) {
-		// calculate new height
-		float newh = h + (h - (iy1 - iy0)*scale) - 4;
-
-		// calculate new scale
-		// see 'stbtt_ScaleForMappingEmToPixels' in stb_truetype.h
-		uint8_t *p = font->data + font->head + 18;
-		int unitsPerEm = p[0]*256 + p[1];
-		scale = newh / unitsPerEm;
-
-		// make sure we are centered
-		xoff = .0;
-		yoff = .0;
+	size_t max_codepoints = 0;
+	for( auto [ lo, hi ] : codepoint_ranges ) {
+		max_codepoints += hi - lo;
 	}
 
-	// get left offset and advance
-	int left_bearing, advance;
-	stbtt_GetGlyphHMetrics(font, stbtt_FindGlyphIndex(font,c), &advance, &left_bearing);
-	left_bearing *= scale;
+	stbrp_rect * rects = AllocMany< stbrp_rect >( &arena, max_codepoints );
+	memset( rects, 0, sizeof( stbrp_rect ) * max_codepoints );
 
-	// calculate offset for centering glyph on bitmap
-	int translate_x = (w/2)-((ix1 - ix0)*scale)/2-left_bearing;
-	int translate_y = (h/2)-((iy1 - iy0)*scale)/2-iy0*scale;
+	struct GlyphBox {
+		u32 codepoint;
+		int x0, y0, x1, y1;
+	};
+	GlyphBox * glyphs = AllocMany< GlyphBox >( &arena, max_codepoints );
 
-	// set the glyph metrics
-	// (pre-scale them)
-	if (metrics) {
-		metrics->left_bearing = left_bearing;
-		metrics->advance      = advance*scale;
-		metrics->ix0          = ix0*scale;
-		metrics->ix1          = ix1*scale;
-		metrics->iy0          = iy0*scale;
-		metrics->iy1          = iy1*scale;
+	size_t num_glyphs = 0;
+	for( auto [ lo, hi ] : codepoint_ranges ) {
+		for( u32 i = lo; i < hi; i++ ) {
+			TempAllocator temp = arena.temp();
+			font.userdata = &temp;
+
+			int x0, y0, x1, y1;
+			if( stbtt_GetCodepointBox( &font, i, &x0, &y0, &x1, &y1 ) == 0 )
+				continue;
+
+			rects[ num_glyphs ] = {
+				.w = checked_cast< stbrp_coord >( ceilf( ( x1 - x0 ) * sdf_embox_size * scale + 2.0f * padding ) ),
+				.h = checked_cast< stbrp_coord >( ceilf( ( y1 - y0 ) * sdf_embox_size * scale + 2.0f * padding ) ),
+			};
+			glyphs[ num_glyphs ] = {
+				.codepoint = i,
+				.x0 = x0,
+				.y0 = y0,
+				.x1 = x1,
+				.y1 = y1,
+			};
+
+			num_glyphs++;
+		}
 	}
 
-	stbtt_vertex *verts;
-	int num_verts = stbtt_GetGlyphShape(font, stbtt_FindGlyphIndex(font, c), &verts);
-#endif
+	constexpr int atlas_size = 1024;
 
-	for( uint32_t i = 0; i <= 255; i++ ) {
-		msdfgen::Shape shape = STBShapeToMSDFShape( &font, i );
-		msdfgen::Projection projection( msdfgen::Vector2( 1.0 ), msdfgen::Vector2( 10.0 ) );
-		msdfgen::Range range( 5.0 );
+	stbrp_node * nodes = AllocMany< stbrp_node >( &arena, num_glyphs );
+	stbrp_context packer;
+	stbrp_init_target( &packer, atlas_size, atlas_size, nodes, num_glyphs );
+	if( stbrp_pack_rects( &packer, rects, num_glyphs ) != 1 ) {
+		Fatal( "Can't pack" );
+	}
 
-		Span2D< Vec3 > pixels = AllocSpan2D< Vec3 >( &arena, 64, 64 );
+	Span2D< RGB8 > atlas = AllocSpan2D< RGB8 >( &arena, atlas_size, atlas_size );
+	memset( atlas.ptr, 0, atlas.num_bytes() );
+
+	for( size_t i = 0; i < num_glyphs; i++ ) {
+		TempAllocator temp = arena.temp();
+		font.userdata = &temp;
+
+		u32 codepoint = glyphs[ i ].codepoint;
+
+		int advance, lsb;
+		stbtt_GetCodepointHMetrics( &font, codepoint, &advance, &lsb );
+
+		msdfgen::Shape shape = STBShapeToMSDFShape( &font, codepoint );
+		// no idea why the translation needs to be * 0.5f
+		msdfgen::Projection projection(
+			msdfgen::Vector2( scale * 64.0f * sdf_embox_size ),
+			msdfgen::Vector2( ( padding - glyphs[ i ].x0 * scale * 64.0f ) * 0.5f, ( padding - glyphs[ i ].y0 * scale * 64.0f ) * 0.5f )
+		);
+		msdfgen::Range range( 1.0 );
+
+		Span2D< Vec3 > pixels = AllocSpan2D< Vec3 >( &temp, rects[ i ].w, rects[ i ].h );
 		msdfgen::BitmapRef< float, 3 > bitmap( pixels.ptr->ptr(), pixels.w, pixels.h );
-		msdfgen::generateMSDF( bitmap, shape, projection, range );
+		{
+			TracyZoneScopedN( "edgeColoringSimple" );
+			msdfgen::edgeColoringSimple( shape, 3 );
+		}
+		{
+			TracyZoneScopedN( "generateMSDF" );
+			msdfgen::generateMSDF( bitmap, shape, projection, range );
+		}
 
-		Span2D< RGB8 > pixels8 = AllocSpan2D< RGB8 >( &arena, pixels.w, pixels.h );
-		for( size_t y = 0; y < pixels.h; y++ ) {
-			for( size_t x = 0; x < pixels.w; x++ ) {
-				pixels8( x, y ) = RGB8(
-					Quantize11< u8 >( Clamp( -1.0, pixels( x, y ).x / 5.0, 1.0 ) ),
-					Quantize11< u8 >( Clamp( -1.0, pixels( x, y ).y / 5.0, 1.0 ) ),
-					Quantize11< u8 >( Clamp( -1.0, pixels( x, y ).z / 5.0, 1.0 ) )
-				);
+		Span2D< RGB8 > pixels8 = AllocSpan2D< RGB8 >( &temp, pixels.w, pixels.h );
+		{
+			TracyZoneScopedN( "Vec3 -> RGB8" );
+			for( size_t y = 0; y < pixels.h; y++ ) {
+				for( size_t x = 0; x < pixels.w; x++ ) {
+					pixels8( x, y ) = RGB8(
+						Quantize11< u8 >( Clamp( -1.0, pixels( x, y ).x / 5.0, 1.0 ) ),
+						Quantize11< u8 >( Clamp( -1.0, pixels( x, y ).y / 5.0, 1.0 ) ),
+						Quantize11< u8 >( Clamp( -1.0, pixels( x, y ).z / 5.0, 1.0 ) )
+					);
+				}
 			}
 		}
 
-		const char * path = arena( "msdf/{}.jpg", i );
-		CreatePathForFile( &arena, path );
-		stbi_write_png( path, pixels8.w, pixels8.h, 3, pixels8.ptr, 0 );
+		CopySpan2DFlipY( atlas.slice( rects[ i ].x, rects[ i ].y, rects[ i ].w, rects[ i ].h ), pixels8 );
 	}
+
+	{
+		TracyZoneScopedN( "stbi_write_png" );
+		CreatePathForFile( &arena, "msdf/atlas.png" );
+		stbi_write_png( "msdf/atlas.png", atlas.w, atlas.h, 3, atlas.ptr, 0 );
+	}
+
+	// TODO: write font spec
 
 	Free( sys_allocator, arena.get_memory() );
 

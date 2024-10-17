@@ -9,7 +9,7 @@
 #include <errno.h>
 #include <mach-o/dyld.h>
 
-char * GetExePath( Allocator * a ) {
+Span< char > GetExePath( Allocator * a ) {
 	NonRAIIDynamicArray< char > buf( a );
 	buf.resize( 1024 );
 
@@ -21,7 +21,7 @@ char * GetExePath( Allocator * a ) {
 		}
 	}
 
-	return buf.ptr();
+	return buf.span();
 }
 
 bool MoveFile( Allocator * a, const char * old_path, const char * new_path, MoveFileReplace replace ) {

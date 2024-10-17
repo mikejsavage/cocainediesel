@@ -107,7 +107,7 @@ void CG_Reset() {
 }
 
 static void PrintMap( const Tokenized & args ) {
-	Com_Printf( "Current map: %s\n", cl.map == NULL ? "null" : cl.map->name );
+	Com_GGPrint( "Current map: {}", cl.map == NULL ? "none" : cl.map->name );
 }
 
 void CG_Init( unsigned int playerNum, int max_clients,

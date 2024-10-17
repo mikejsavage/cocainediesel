@@ -106,14 +106,14 @@ static void CL_ParseServerData( msg_t *msg ) {
 
 	cl.max_clients = MSG_ReadUint8( msg );
 	cl.playernum = MSG_ReadInt16( msg );
-	cls.server_name = CopyString( sys_allocator, MSG_ReadString( msg ) );
+	cls.server_name = CloneSpan( sys_allocator, MakeSpan( MSG_ReadString( msg ) ) );
 
 	const char * download_url = MSG_ReadString( msg );
 	if( !StrEqual( download_url, "" ) ) {
-		cls.download_url = CopyString( sys_allocator, download_url );
+		cls.download_url = CloneSpan( sys_allocator, MakeSpan( download_url ) );
 	}
 	else {
-		cls.download_url = CopyString( sys_allocator, temp( "http://{}", cls.serveraddress ) );
+		cls.download_url = sys_allocator->sv( "http://{}", cls.serveraddress );
 	}
 
 	msg_t * args = CL_AddReliableCommand( ClientCommand_Baselines );

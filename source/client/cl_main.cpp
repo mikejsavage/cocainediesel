@@ -268,11 +268,11 @@ void CL_Disconnect( const char *message ) {
 		CL_Disconnect_SendCommand(); // send a disconnect message to the server
 	}
 
-	Free( sys_allocator, cls.server_name );
-	cls.server_name = NULL;
+	Free( sys_allocator, cls.server_name.ptr );
+	cls.server_name = Span< char >();
 
-	Free( sys_allocator, cls.download_url );
-	cls.download_url = NULL;
+	Free( sys_allocator, cls.download_url.ptr );
+	cls.download_url = Span< char >();
 
 	StopAllSounds( false );
 

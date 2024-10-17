@@ -98,7 +98,7 @@ configs[ "macos-debug" ] = { }
 configs[ "macos-asan" ] = {
 	bin_suffix = "-asan",
 	cxxflags = "-fsanitize=address",
-	ldflags = "-fsanitize=address -static-libsan",
+	ldflags = "-fsanitize=address",
 	prebuilt_lib_dir = "macos-debug",
 }
 configs[ "macos-tsan" ] = {

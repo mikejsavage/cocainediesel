@@ -309,7 +309,7 @@ int main( int argv, char ** argc ) {
 	// float scale = stbtt_ScaleForPixelHeight( &font, 1.0f );
 	float scale = stbtt_ScaleForMappingEmToPixels( &font, 1.0f );
 
-	float dSDF_dUV = 1.0f / ( scale * range_in_ems );
+	float dSDF_dUV = 1.0f / ( scale * 64.0f * range_in_ems );
 	float padding = range_in_ems * scale * sdf_embox_size * 64.0f; // TODO: give 64 a meaningful name
 	printf( "dSDF_dUV %f\n", dSDF_dUV );
 	printf( "scale %f\n", scale );
@@ -357,11 +357,15 @@ int main( int argv, char ** argc ) {
 
 	constexpr int atlas_size = 1024;
 
-	stbrp_node * nodes = AllocMany< stbrp_node >( &arena, num_glyphs );
-	stbrp_context packer;
-	stbrp_init_target( &packer, atlas_size, atlas_size, nodes, num_glyphs );
-	if( stbrp_pack_rects( &packer, rects, num_glyphs ) != 1 ) {
-		Fatal( "Can't pack" );
+	{
+		TracyZoneScopedN( "stbrp_pack_rects" );
+
+		stbrp_node * nodes = AllocMany< stbrp_node >( &arena, num_glyphs );
+		stbrp_context packer;
+		stbrp_init_target( &packer, atlas_size, atlas_size, nodes, num_glyphs );
+		if( stbrp_pack_rects( &packer, rects, num_glyphs ) != 1 ) {
+			Fatal( "Can't pack" );
+		}
 	}
 
 	Span2D< RGB8 > atlas = AllocSpan2D< RGB8 >( &arena, atlas_size, atlas_size );
@@ -370,6 +374,9 @@ int main( int argv, char ** argc ) {
 	for( size_t i = 0; i < num_glyphs; i++ ) {
 		TempAllocator temp = arena.temp();
 		font.userdata = &temp;
+
+		TracyZoneScopedN( "Generate MSDF" );
+		TracyZoneSpan( temp.sv( "{}", i ) );
 
 		u32 codepoint = glyphs[ i ].codepoint;
 

@@ -55,6 +55,8 @@ float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine sto
 char ToLowerASCII( char c );
 char ToUpperASCII( char c );
 
+Span< char > ToUpperASCII( Allocator * a, Span< const char > str );
+
 bool StrEqual( Span< const char > lhs, Span< const char > rhs );
 bool StrEqual( Span< const char > lhs, const char * rhs );
 bool StrEqual( const char * lhs, Span< const char > rhs );
@@ -95,9 +97,7 @@ Span< const char > FileExtension( const char * path );
 Span< const char > StripExtension( Span< const char > path );
 Span< const char > StripExtension( const char * path );
 Span< const char > FileName( Span< const char > path );
-Span< const char > FileName( const char * path );
 Span< const char > BasePath( Span< const char > path );
-Span< const char > BasePath( const char * path );
 
 bool SortCStringsComparator( const char * a, const char * b );
 bool SortSpanStringsComparator( Span< const char > a, Span< const char > b );

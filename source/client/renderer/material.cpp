@@ -271,9 +271,9 @@ static void ParseTCMod( Material * material, Span< const char > name, Span< cons
 	}
 }
 
-static Texture * FindTexture( Span< const char > name ) {
+static const Texture * FindTexture( Span< const char > name ) {
 	u64 idx;
-	return textures_hashtable.get( StringHash( name ).hash, &idx ) ? &textures[ idx ] : NULL;
+	return textures_hashtable.get( StringHash( name ).hash, &idx ) ? &textures[ idx ] : missing_material.texture;
 }
 
 static void ParseTexture( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
@@ -322,7 +322,7 @@ static void ParseMaterialKey( Material * material, Span< const char > token, Spa
 static bool ParseMaterial( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	TracyZoneScoped;
 
-	material->texture = FindTexture( MakeSpan( "$whiteimage" ) );
+	material->texture = FindTexture( MakeSpan( "white" ) );
 
 	while( true ) {
 		Span< const char > token = ParseToken( data, Parse_DontStopOnNewLine );
@@ -370,13 +370,13 @@ static void UnloadTexture( u64 idx ) {
 	DeleteTexture( textures[ idx ] );
 }
 
-static void AddMaterial( Span< const char > name, Material material ) {
+static void AddMaterial( Span< const char > name, u64 hash, Material material ) {
 	if( materials_hashtable.size() == ARRAY_COUNT( materials ) ) {
 		Com_Printf( S_COLOR_YELLOW "Too many materials!\n" );
 		return;
 	}
 
-	material.hash = Hash64( name );
+	material.hash = hash;
 
 	u64 idx = materials_hashtable.size();
 	if( !materials_hashtable.get( material.hash, &idx ) ) {
@@ -390,6 +390,10 @@ static void AddMaterial( Span< const char > name, Material material ) {
 	materials[ idx ] = material;
 }
 
+static void AddMaterial( Span< const char > name, const Material & material ) {
+	AddMaterial( name, Hash64( name ), material );
+}
+
 static Optional< size_t > AddTexture( Span< const char > name, u64 hash, const TextureConfig & config ) {
 	TracyZoneScoped;
 
@@ -401,7 +405,7 @@ static Optional< size_t > AddTexture( Span< const char > name, u64 hash, const T
 	u64 idx = textures_hashtable.size();
 	if( !textures_hashtable.get( hash, &idx ) ) {
 		textures_hashtable.add( hash, idx );
-		AddMaterial( name, Material { .texture = &textures[ idx ] } );
+		AddMaterial( name, hash, Material { .texture = &textures[ idx ] } );
 	}
 	else {
 		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( textures[ idx ].format ) ) {
@@ -799,6 +803,11 @@ static void PackDecalAtlas() {
 static void LoadBuiltinMaterials() {
 	TracyZoneScoped;
 
+	missing_material = Material();
+	missing_material.name = CloneSpan( sys_allocator, Span< const char >( "missing material" ) );
+	missing_material.texture = &missing_texture;
+	missing_material.sampler = Sampler_Unfiltered;
+
 	{
 		u8 white = 255;
 		TextureConfig config = TextureConfig {
@@ -945,10 +954,6 @@ void InitMaterials() {
 		}
 	}
 
-	missing_material = Material();
-	missing_material.texture = &missing_texture;
-	missing_material.sampler = Sampler_Unfiltered;
-
 	PackDecalAtlas();
 }
 
@@ -1002,6 +1007,7 @@ void ShutdownMaterials() {
 	for( u32 i = 0; i < materials_hashtable.size(); i++ ) {
 		Free( sys_allocator, materials[ i ].name.ptr );
 	}
+	Free( sys_allocator, missing_material.name.ptr );
 
 	DeleteSamplers();
 	DeleteTexture( missing_texture );

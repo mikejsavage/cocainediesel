@@ -38,8 +38,7 @@ configs[ "windows" ] = {
 configs[ "windows-debug" ] = {
 	-- /Z7 puts debug info in the .obj
 	-- /FC (Full path of source code file in diagnostics)
-	-- /JMC "Just My Code", doesn't step into library code etc
-	cxxflags = "/MTd /Z7 /FC /JMC",
+	cxxflags = "/MTd /Z7 /FC",
 	-- /FUNCTIONPADMIN /OPT:NOREF /OPT:NOICF are required for Live++
 	ldflags = "/NOLOGO /DEBUG:FULL /FUNCTIONPADMIN /OPT:NOREF /OPT:NOICF",
 }
@@ -99,7 +98,7 @@ configs[ "macos-debug" ] = { }
 configs[ "macos-asan" ] = {
 	bin_suffix = "-asan",
 	cxxflags = "-fsanitize=address",
-	ldflags = "-fsanitize=address -static-libsan",
+	ldflags = "-fsanitize=address",
 	prebuilt_lib_dir = "macos-debug",
 }
 configs[ "macos-tsan" ] = {

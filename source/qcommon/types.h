@@ -224,6 +224,11 @@ struct Span {
 		Assert( num_bytes() % sizeof( S ) == 0 );
 		return Span< S >( align_cast< S >( ptr ), num_bytes() / sizeof( S ) );
 	}
+
+	template< typename S >
+	Span< S > constcast() const {
+		return Span< S >( const_cast< S * >( ptr ), num_bytes() );
+	}
 };
 
 /*
@@ -598,5 +603,5 @@ template< IsEnum E > void operator++( E & x, int ) { x = E( UnderlyingType< E >(
 template< IsEnum E > constexpr E operator&( E lhs, E rhs ) { return E( UnderlyingType< E >( lhs ) & UnderlyingType< E >( rhs ) ); }
 template< IsEnum E > constexpr E operator|( E lhs, E rhs ) { return E( UnderlyingType< E >( lhs ) | UnderlyingType< E >( rhs ) ); }
 template< IsEnum E > constexpr E operator~( E x ) { return E( ~UnderlyingType< E >( x ) ); }
-template< IsEnum E > void operator&=( E & lhs, E rhs ) { lhs = E( UnderlyingType< E >( lhs ) & UnderlyingType< E >( rhs ) ); }
-template< IsEnum E > void operator|=( E & lhs, E rhs ) { lhs = E( UnderlyingType< E >( lhs ) | UnderlyingType< E >( rhs ) ); }
+template< IsEnum E > void operator&=( E & lhs, E rhs ) { lhs = lhs & rhs; }
+template< IsEnum E > void operator|=( E & lhs, E rhs ) { lhs = lhs | rhs; }

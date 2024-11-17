@@ -268,11 +268,11 @@ void CL_Disconnect( const char *message ) {
 		CL_Disconnect_SendCommand(); // send a disconnect message to the server
 	}
 
-	Free( sys_allocator, cls.server_name );
-	cls.server_name = NULL;
+	Free( sys_allocator, cls.server_name.ptr );
+	cls.server_name = Span< char >();
 
-	Free( sys_allocator, cls.download_url );
-	cls.download_url = NULL;
+	Free( sys_allocator, cls.download_url.ptr );
+	cls.download_url = Span< char >();
 
 	StopAllSounds( false );
 
@@ -560,14 +560,14 @@ void CL_FinishConnect() {
 	MSG_WriteInt32( args, precache_spawncount );
 }
 
-static bool AddDownloadedMap( const char * filename, Span< const u8 > compressed ) {
+static bool AddDownloadedMap( Span< const char > filename, Span< const u8 > compressed ) {
 	if( compressed.ptr == NULL )
 		return false;
 
 	Span< u8 > data;
 	defer { Free( sys_allocator, data.ptr ); };
 
-	if( !Decompress( MakeSpan( filename ), sys_allocator, compressed, &data ) ) {
+	if( !Decompress( filename, sys_allocator, compressed, &data ) ) {
 		Com_Printf( "Downloaded map is corrupt.\n" );
 		return false;
 	}
@@ -606,7 +606,7 @@ void CL_Precache_f( const Tokenized & args ) {
 
 	if( cl.map == NULL ) {
 		TempAllocator temp = cls.frame_arena.temp();
-		CL_DownloadFile( temp.sv( "base/maps/{}.cdmap.zst", args.tokens[ 2 ] ), []( const char * filename, Span< const u8 > data ) {
+		CL_DownloadFile( temp.sv( "base/maps/{}.cdmap.zst", args.tokens[ 2 ] ), []( Span< const char > filename, Span< const u8 > data ) {
 			if( AddDownloadedMap( filename, data ) ) {
 				CL_FinishConnect();
 			}
@@ -1140,7 +1140,7 @@ void CL_Init() {
 	InitMaps();
 	InitSound();
 
-	cls.white_material = FindMaterial( "$whiteimage" );
+	cls.white_material = FindMaterial( "white" );
 
 	CL_ClearState();
 

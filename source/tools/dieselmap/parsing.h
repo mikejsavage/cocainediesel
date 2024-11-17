@@ -3,28 +3,7 @@
 #include <vector>
 
 #include "qcommon/types.h"
-
-template< typename T, size_t N >
-struct StaticArray {
-	T elems[ N ];
-	size_t n;
-
-	void add( const T & x ) {
-		if( n == N ) {
-			Fatal( "StaticArray::add" );
-		}
-		elems[ n ] = x;
-		n++;
-	}
-
-	Span< T > span() {
-		return Span< T >( elems, n );
-	}
-
-	Span< const T > span() const {
-		return Span< const T >( elems, n );
-	}
-};
+#include "qcommon/array.h"
 
 struct ParsedKeyValue {
 	Span< const char > key;
@@ -44,7 +23,7 @@ struct ParsedBrush {
 	const char * first_char;
 	size_t line_number;
 
-	StaticArray< ParsedBrushFace, 32 > faces;
+	BoundedDynamicArray< ParsedBrushFace, 32 > faces;
 };
 
 struct ParsedControlPoint {
@@ -65,7 +44,7 @@ struct ParsedPatch {
 };
 
 struct ParsedEntity {
-	StaticArray< ParsedKeyValue, 16 > kvs;
+	BoundedDynamicArray< ParsedKeyValue, 16 > kvs;
 	std::vector< ParsedBrush > brushes;
 	std::vector< ParsedPatch > patches;
 	u32 model_id;

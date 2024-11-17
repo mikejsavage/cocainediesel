@@ -9,6 +9,7 @@ build_script:
 
 test_script:
 - sh: tests/test_downloads.sh
+- sh: tests/test_entities_ent_are_the_same.sh
 
 artifacts:
 - path: release

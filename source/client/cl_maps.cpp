@@ -25,7 +25,7 @@ static Hashtable< MAX_MAP_MODELS * 2 > map_models_hashtable;
 static CollisionModelStorage collision_models;
 
 static void DeleteMap( Map * map ) {
-	Free( sys_allocator, const_cast< char * >( map->name ) );
+	Free( sys_allocator, const_cast< char * >( map->name.ptr ) );
 	DeleteMapRenderData( map->render_data );
 }
 
@@ -38,7 +38,7 @@ static void FillMapModelsHashtable() {
 		const Map * map = &maps[ i ];
 		for( size_t j = 0; j < map->data.models.n; j++ ) {
 			String< 16 > suffix( "*{}", j );
-			u64 hash = Hash64( suffix.c_str(), suffix.length(), map->base_hash.hash );
+			u64 hash = Hash64( suffix.span(), map->base_hash.hash );
 
 			if( map_models_hashtable.size() == ARRAY_COUNT( map_models ) ) {
 				Fatal( "Too many map submodels" );
@@ -67,7 +67,7 @@ bool AddMap( Span< const u8 > data, Span< const char > path ) {
 		return false;
 	}
 
-	map.name = ( *sys_allocator )( "{}", name );
+	map.name = CloneSpan( sys_allocator, name );
 	map.base_hash = hash;
 	map.render_data = NewMapRenderData( map.data, path );
 

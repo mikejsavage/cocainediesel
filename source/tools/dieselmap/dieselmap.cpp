@@ -168,9 +168,8 @@ static std::vector< Vec3 > BrushFaceToHull( Span< const Plane > brush, size_t fa
 static std::vector< CompiledMesh > BrushToCompiledMeshes( const ParsedBrush & brush ) {
 	// convert 3 verts to planes
 	std::vector< Plane > planes;
-	for( size_t i = 0; i < brush.faces.n; i++ ) {
+	for( const ParsedBrushFace & face : brush.faces ) {
 		Plane plane;
-		const ParsedBrushFace & face = brush.faces.elems[ i ];
 		if( !PlaneFrom3Points( &plane, face.plane[ 0 ], face.plane[ 1 ], face.plane[ 2 ] ) ) {
 			LogDebugInstructions();
 			Fatal( "[entity %zu brush %zu/line %zu] Has a non-planar face", brush.entity_id, brush.id, brush.line_number );
@@ -182,7 +181,7 @@ static std::vector< CompiledMesh > BrushToCompiledMeshes( const ParsedBrush & br
 	std::vector< CompiledMesh > face_meshes;
 	for( size_t i = 0; i < planes.size(); i++ ) {
 		CompiledMesh material_mesh;
-		material_mesh.material = brush.faces.span()[ i ].material_hash;
+		material_mesh.material = brush.faces[ i ].material_hash;
 		assert( material_mesh.material != 0 );
 
 		const EditorMaterial * editor_material = FindEditorMaterial( StringHash( material_mesh.material ) );
@@ -193,6 +192,9 @@ static std::vector< CompiledMesh > BrushToCompiledMeshes( const ParsedBrush & br
 		Vec3 normal = planes[ i ].normal;
 		for( Vec3 position : hull ) {
 			InterleavedMapVertex v = { position, normal };
+			if( v.position.z <= -1024.0f ) {
+				v.position.z = -999999.0f;
+			}
 			material_mesh.vertices.push_back( v );
 		}
 
@@ -557,9 +559,8 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 		// convert triple-vert planes to normal-distance planes
 		const EditorMaterial * editor_material = NULL;
 		std::vector< Plane > planes;
-		for( size_t i = 0; i < brush.faces.n; i++ ) {
+		for( const ParsedBrushFace & face : brush.faces ) {
 			Plane plane;
-			const ParsedBrushFace & face = brush.faces.elems[ i ];
 			if( !PlaneFrom3Points( &plane, face.plane[ 0 ], face.plane[ 1 ], face.plane[ 2 ] ) ) {
 				LogDebugInstructions();
 				Fatal( "[entity %zu brush %zu/line %zu] Has a non-planar face", brush.entity_id, brush.id, brush.line_number );
@@ -869,7 +870,7 @@ int main( int argc, char ** argv ) {
 			compiled.render_geometry = GenerateRenderGeometry( entity );
 			compiled.collision_geometry = GenerateCollisionGeometry( entity );
 
-			for( ParsedKeyValue kv : entity.kvs.span() ) {
+			for( ParsedKeyValue kv : entity.kvs ) {
 				compiled.key_values.push_back( kv );
 			}
 

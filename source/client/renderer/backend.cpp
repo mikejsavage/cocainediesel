@@ -693,6 +693,16 @@ static void SetPipelineState( const PipelineState & pipeline ) {
 		}
 	}
 
+	// alpha to coverage
+	if( pipeline.alpha_to_coverage != prev_pipeline.alpha_to_coverage ) {
+		if( pipeline.alpha_to_coverage ) {
+			glEnable( GL_SAMPLE_ALPHA_TO_COVERAGE );
+		}
+		else {
+			glDisable( GL_SAMPLE_ALPHA_TO_COVERAGE );
+		}
+	}
+
 	// view weapon depth hack
 	if( pipeline.view_weapon_depth_hack != prev_pipeline.view_weapon_depth_hack ) {
 		float far = pipeline.view_weapon_depth_hack ? 0.3f : 1.0f;

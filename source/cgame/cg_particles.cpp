@@ -1,3 +1,5 @@
+#include "qcommon/base.h"
+#include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/serialization.h"
 #include "client/assets.h"
@@ -6,12 +8,11 @@
 #include "cgame/cg_local.h"
 
 #include "qcommon/hash.h"
-#include "qcommon/hashtable.h"
+#include "qcommon/hashmap.h"
 #include "gameshared/q_shared.h"
 
 #include "imgui/imgui.h"
 
-static constexpr u32 MAX_PARTICLE_SYSTEMS = 512;
 static constexpr u32 MAX_PARTICLE_EMITTERS = 512;
 static constexpr u32 MAX_PARTICLE_EMITTER_EVENTS = 8;
 static constexpr u32 MAX_PARTICLE_EMITTER_MATERIALS = 32;
@@ -106,18 +107,13 @@ enum ParticleCollisionType : u8 {
 };
 
 struct ParticleEvents {
-	u8 num_events;
-	StringHash events[ MAX_PARTICLE_EMITTER_EVENTS ];
+	BoundedDynamicArray< StringHash, MAX_PARTICLE_EMITTER_EVENTS > events;
 };
 
 struct ParticleSystem {
 	size_t max_particles;
 
 	BlendFunc blend_func;
-	float radius;
-
-	// dynamic stuff
-	bool initialized;
 
 	GPUBuffer gpu_particles1;
 	GPUBuffer gpu_particles2;
@@ -147,8 +143,7 @@ struct VisualEffect {
 };
 
 struct VisualEffectGroup {
-	VisualEffect effects[ MAX_VISUAL_EFFECTS ];
-	u8 num_effects;
+	BoundedDynamicArray< VisualEffect, MAX_VISUAL_EFFECTS > effects;
 };
 
 enum ParticleEmitterPositionType : u8 {
@@ -171,10 +166,7 @@ struct ParticleEmitterPosition {
 };
 
 struct ParticleEmitter {
-	u64 particle_system;
-
-	u8 num_materials;
-	StringHash materials[ MAX_PARTICLE_EMITTER_MATERIALS ];
+	BoundedDynamicArray< StringHash, MAX_PARTICLE_EMITTER_MATERIALS > materials;
 
 	BlendFunc blend_func = BlendFunc_Add;
 
@@ -210,8 +202,7 @@ struct ParticleEmitter {
 };
 
 struct DecalEmitter {
-	u8 num_materials;
-	StringHash materials[ MAX_DECAL_EMITTER_MATERIALS ];
+	BoundedDynamicArray< StringHash, MAX_DECAL_EMITTER_MATERIALS > materials;
 
 	Vec4 color = Vec4( 1.0f );
 	RandomDistribution red_distribution, green_distribution, blue_distribution, alpha_distribution;
@@ -238,61 +229,62 @@ struct DynamicLightEmitter {
 	RandomDistribution lifetime_distribution;
 };
 
-static ParticleSystem particleSystems[ MAX_PARTICLE_SYSTEMS ];
-static u32 num_particleSystems;
-static Hashtable< MAX_PARTICLE_SYSTEMS * 2 > particleSystems_hashtable;
+static ParticleSystem addParticleSystem;
+static ParticleSystem blendParticleSystem;
+static Hashmap< VisualEffectGroup, MAX_VISUAL_EFFECT_GROUPS > visualEffectGroups;
+static Hashmap< ParticleEmitter, MAX_PARTICLE_EMITTERS > particleEmitters;
+static Hashmap< DecalEmitter, MAX_DECAL_EMITTERS > decalEmitters;
+static Hashmap< DynamicLightEmitter, MAX_DLIGHT_EMITTERS > dlightEmitters;
 
-static VisualEffectGroup visualEffectGroups[ MAX_VISUAL_EFFECT_GROUPS ];
-static u32 num_visualEffectGroups;
-static Hashtable< MAX_VISUAL_EFFECT_GROUPS * 2 > visualEffectGroups_hashtable;
+struct ComputeIndirect {
+	u32 x, y, z;
+};
 
-static ParticleEmitter particleEmitters[ MAX_PARTICLE_EMITTERS ];
-static u32 num_particleEmitters;
-static Hashtable< MAX_PARTICLE_EMITTERS * 2 > particleEmitters_hashtable;
+struct DrawArraysIndirectArguments {
+	u32 count;
+	u32 primCount;
+	u32 baseVertex;
+	u32 baseInstance;
+};
 
-static DecalEmitter decalEmitters[ MAX_DECAL_EMITTERS ];
-static u32 num_decalEmitters;
-static Hashtable< MAX_DECAL_EMITTERS * 2 > decalEmitters_hashtable;
+static ParticleSystem NewParticleSystem( Allocator * a, BlendFunc blend_func, size_t max_particles ) {
+	u32 zero = 0;
+	ComputeIndirect compute_indirect = { 1, 1, 1 };
+	DrawArraysIndirectArguments draw_indirect = { .count = 6 };
 
-static DynamicLightEmitter dlightEmitters[ MAX_DECAL_EMITTERS ];
-static u32 num_dlightEmitters;
-static Hashtable< MAX_DLIGHT_EMITTERS * 2 > dlightEmitters_hashtable;
+	return ParticleSystem {
+		.max_particles = max_particles,
+		.blend_func = blend_func,
 
-constexpr u32 particles_per_emitter = 1000;
+		.gpu_particles1 = NewGPUBuffer( NULL, max_particles * sizeof( GPUParticle ), "particles flip" ),
+		.gpu_particles2 = NewGPUBuffer( NULL, max_particles * sizeof( GPUParticle ), "particles flop" ),
+		.new_particles = NewStreamingBuffer( max_particles * sizeof( GPUParticle ), "new particles" ),
 
-bool ParseParticleEvents( Span< const char > * data, ParticleEvents * event ) {
-	while( true ) {
-		Span< const char > opening_brace = ParseToken( data, Parse_DontStopOnNewLine );
-		if( opening_brace == "" )
-			break;
+		.compute_count1 = NewGPUBuffer( &zero, sizeof( u32 ), "compute_count flip" ),
+		.compute_count2 = NewGPUBuffer( &zero, sizeof( u32 ), "compute_count flop" ),
 
-		if( opening_brace != "{" ) {
-			Com_Printf( S_COLOR_YELLOW "Expected {\n" );
-			return false;
-		}
+		.compute_indirect = NewGPUBuffer( &compute_indirect, sizeof( compute_indirect ), "compute_indirect" ),
+		.draw_indirect = NewGPUBuffer( &draw_indirect, sizeof( draw_indirect ), "draw_indirect" ),
 
-		while( true ) {
-			Span< const char > key = ParseToken( data, Parse_DontStopOnNewLine );
-			StringHash name = StringHash( Hash64( key.ptr, key.n ) );
-
-			if( key == "}" ) {
-				return true;
-			}
-
-			if( key == "" ) {
-				Com_Printf( S_COLOR_YELLOW "Missing event\n" );
-				return false;
-			}
-
-			event->events[ event->num_events ] = name;
-			event->num_events++;
-		}
-	}
-
-	return true;
+		.mesh = NewMesh( MeshConfig {
+			.name = "Particle quad",
+			.num_vertices = 6,
+		} ),
+	};
 }
 
-RandomDistribution ParseRandomDistribution( Span< const char > * data, ParseStopOnNewLine stop ) {
+static void DeleteParticleSystem( Allocator * a, ParticleSystem * ps ) {
+	DeleteGPUBuffer( ps->gpu_particles1 );
+	DeleteGPUBuffer( ps->gpu_particles2 );
+	DeleteStreamingBuffer( ps->new_particles );
+	DeleteGPUBuffer( ps->compute_count1 );
+	DeleteGPUBuffer( ps->compute_count2 );
+	DeleteGPUBuffer( ps->compute_indirect );
+	DeleteGPUBuffer( ps->draw_indirect );
+	DeleteMesh( ps->mesh );
+}
+
+static RandomDistribution ParseRandomDistribution( Span< const char > * data, ParseStopOnNewLine stop ) {
 	RandomDistribution d = { };
 	Span< const char > type = ParseToken( data, stop );
 	if( type == "uniform" ) {
@@ -304,50 +296,6 @@ RandomDistribution ParseRandomDistribution( Span< const char > * data, ParseStop
 		d.sigma = ParseFloat( data, 0.0f, stop );
 	}
 	return d;
-}
-
-void DeleteParticleSystem( Allocator * a, ParticleSystem * ps );
-
-struct DispatchComputeIndirectArguments {
-	u32 num_groups_x;
-	u32 num_groups_y;
-	u32 num_groups_z;
-};
-
-struct DrawArraysIndirectArguments {
-	u32 count;
-	u32 primCount;
-	u32 baseVertex;
-	u32 baseInstance;
-};
-
-void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
-	DeleteParticleSystem( a, ps );
-
-	ps->gpu_particles1 = NewGPUBuffer( NULL, ps->max_particles * sizeof( GPUParticle ), "particles flip" );
-	ps->gpu_particles2 = NewGPUBuffer( NULL, ps->max_particles * sizeof( GPUParticle ), "particles flop" );
-
-	ps->new_particles = NewStreamingBuffer( ps->max_particles * sizeof( GPUParticle ), "new particles" );
-
-	u32 zero = 0;
-	ps->compute_count1 = NewGPUBuffer( &zero, sizeof( u32 ), "compute_count flip" );
-	ps->compute_count2 = NewGPUBuffer( &zero, sizeof( u32 ), "compute_count flop" );
-
-	DispatchComputeIndirectArguments compute_indirect_args = { 1, 1, 1 };
-	ps->compute_indirect = NewGPUBuffer( &compute_indirect_args, sizeof( compute_indirect_args ), "compute_indirect" );
-
-	{
-		MeshConfig mesh_config = { };
-		mesh_config.name = "Particle quad";
-		mesh_config.num_vertices = 6;
-		ps->mesh = NewMesh( mesh_config );
-
-		DrawArraysIndirectArguments indirect = { };
-		indirect.count = 6;
-		ps->draw_indirect = NewGPUBuffer( &indirect, sizeof( indirect ), "draw_indirect" );
-	}
-
-	ps->initialized = true;
 }
 
 static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > * data ) {
@@ -374,14 +322,11 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 			}
 
 			if( key == "material" ) {
-				if( emitter->num_materials == ARRAY_COUNT( emitter->materials ) ) {
+				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
+				if( !emitter->materials.add( StringHash( Hash64( value.ptr, value.n ) ) ) ) {
 					Com_Printf( S_COLOR_YELLOW "Too many materials in particle emitter!\n" );
 					return false;
 				}
-
-				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				emitter->materials[ emitter->num_materials ] = StringHash( Hash64( value.ptr, value.n ) );
-				emitter->num_materials++;
 			}
 			else if( key == "blendfunc" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
@@ -553,8 +498,10 @@ static bool ParseDecalEmitter( DecalEmitter * emitter, Span< const char > * data
 
 			if( key == "material" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				emitter->materials[ emitter->num_materials ] = StringHash( Hash64( value.ptr, value.n ) );
-				emitter->num_materials++;
+				if( !emitter->materials.add( StringHash( Hash64( value.ptr, value.n ) ) ) ) {
+					Com_Printf( S_COLOR_YELLOW "Too many materials in decal emitter!\n" );
+					return false;
+				}
 			}
 			else if( key == "color" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
@@ -683,56 +630,67 @@ static bool ParseVisualEffectGroup( VisualEffectGroup * group, Span< const char 
 				return false;
 			}
 
-			VisualEffect e = { };
 			if( key == "particles" ) {
-				e.type = VisualEffectType_Particles;
 				ParticleEmitter emitter = { };
-				if( ParseParticleEmitter( &emitter, data ) ) {
-					e.hash = Hash64( ( void * )&group->num_effects, 1, base_hash );
+				if( !ParseParticleEmitter( &emitter, data ) )
+					return false;
 
-					u64 idx = num_particleEmitters;
-					if( !particleEmitters_hashtable.get( e.hash, &idx ) ) {
-						particleEmitters_hashtable.add( e.hash, idx );
-						num_particleEmitters++;
-					}
-					particleEmitters[ idx ] = emitter;
+				size_t n = group->effects.size();
+				VisualEffect e = {
+					.type = VisualEffectType_Particles,
+					.hash = Hash64( &n, sizeof( n ), base_hash ),
+				};
 
-					group->effects[ group->num_effects ] = e;
-					group->num_effects++;
+				if( !particleEmitters.upsert( e.hash, emitter ) ) {
+					Com_Printf( S_COLOR_YELLOW "Too many particle emitters\n" );
+					return false;
+				}
+
+				if( !group->effects.add( e ) ) {
+					Com_Printf( S_COLOR_YELLOW "Too many effects\n" );
+					return false;
 				}
 			}
 			else if( key == "decal" ) {
-				e.type = VisualEffectType_Decal;
 				DecalEmitter emitter = { };
-				if( ParseDecalEmitter( &emitter, data ) ) {
-					e.hash = Hash64( ( void * )&group->num_effects, 1, base_hash );
+				if( !ParseDecalEmitter( &emitter, data ) )
+					return false;
 
-					u64 idx = num_decalEmitters;
-					if( !decalEmitters_hashtable.get( e.hash, &idx ) ) {
-						decalEmitters_hashtable.add( e.hash, idx );
-						num_decalEmitters++;
-					}
-					decalEmitters[ idx ] = emitter;
+				size_t n = group->effects.size();
+				VisualEffect e = {
+					.type = VisualEffectType_Decal,
+					.hash = Hash64( &n, sizeof( n ), base_hash ),
+				};
 
-					group->effects[ group->num_effects ] = e;
-					group->num_effects++;
+				if( !decalEmitters.upsert( e.hash, emitter ) ) {
+					Com_Printf( S_COLOR_YELLOW "Too many decal emitters\n" );
+					return false;
+				}
+
+				if( !group->effects.add( e ) ) {
+					Com_Printf( S_COLOR_YELLOW "Too many effects\n" );
+					return false;
 				}
 			}
 			else if( key == "dlight" ) {
-				e.type = VisualEffectType_DynamicLight;
 				DynamicLightEmitter emitter = { };
-				if( ParseDynamicLightEmitter( &emitter, data ) ) {
-					e.hash = Hash64( ( void * )&group->num_effects, 1, base_hash );
+				if( !ParseDynamicLightEmitter( &emitter, data ) )
+					return false;
 
-					u64 idx = num_dlightEmitters;
-					if( !dlightEmitters_hashtable.get( e.hash, &idx ) ) {
-						dlightEmitters_hashtable.add( e.hash, idx );
-						num_dlightEmitters++;
-					}
-					dlightEmitters[ idx ] = emitter;
+				size_t n = group->effects.size();
+				VisualEffect e = {
+					.type = VisualEffectType_DynamicLight,
+					.hash = Hash64( &n, sizeof( n ), base_hash ),
+				};
 
-					group->effects[ group->num_effects ] = e;
-					group->num_effects++;
+				if( !dlightEmitters.upsert( e.hash, emitter ) ) {
+					Com_Printf( S_COLOR_YELLOW "Too many dlight emitters\n" );
+					return false;
+				}
+
+				if( !group->effects.add( e ) ) {
+					Com_Printf( S_COLOR_YELLOW "Too many effects\n" );
+					return false;
 				}
 			}
 		}
@@ -755,63 +713,43 @@ static void LoadVisualEffect( Span< const char > path ) {
 		return;
 	}
 
-	u64 idx = num_visualEffectGroups;
-	if( !visualEffectGroups_hashtable.get( hash, &idx ) ) {
-		visualEffectGroups_hashtable.add( hash, idx );
-		num_visualEffectGroups++;
+	if( !visualEffectGroups.upsert( hash, vfx ) ) {
+		Com_Printf( S_COLOR_YELLOW "Too many VFX groups!" );
 	}
-	visualEffectGroups[ idx ] = vfx;
 }
 
-void CreateParticleSystems() {
-	ParticleSystem * addSystem = &particleSystems[ 0 ];
-	u64 addSystem_hash = StringHash( "addSystem" ).hash;
-	DeleteParticleSystem( sys_allocator, addSystem );
-	addSystem->blend_func = BlendFunc_Add;
-	particleSystems_hashtable.add( addSystem_hash, 0 );
-	num_particleSystems++;
+static void CreateParticleSystems() {
+	static constexpr size_t particles_per_emitter = 1000;
+	size_t add_max_particles = 0;
+	size_t blend_max_particles = 0;
 
-	ParticleSystem * blendSystem = &particleSystems[ 1 ];
-	u64 blendSystem_hash = StringHash( "blendSystem" ).hash;
-	DeleteParticleSystem( sys_allocator, blendSystem );
-	blendSystem->blend_func = BlendFunc_Blend;
-	particleSystems_hashtable.add( blendSystem_hash, 1 );
-	num_particleSystems++;
-
-	for( size_t i = 0; i < num_particleEmitters; i++ ) {
-		ParticleEmitter * emitter = &particleEmitters[ i ];
-		if( emitter->num_materials ) {
-			if( emitter->blend_func == BlendFunc_Add ) {
-				emitter->particle_system = addSystem_hash;
-				addSystem->max_particles += particles_per_emitter;
+	for( const ParticleEmitter & emitter : particleEmitters.span() ) {
+		if( emitter.materials.size() > 0 ) {
+			if( emitter.blend_func == BlendFunc_Add ) {
+				add_max_particles += particles_per_emitter;
 			}
-			else if( emitter->blend_func == BlendFunc_Blend ) {
-				emitter->particle_system = blendSystem_hash;
-				blendSystem->max_particles += particles_per_emitter;
+			else if( emitter.blend_func == BlendFunc_Blend ) {
+				blend_max_particles += particles_per_emitter;
 			}
 		}
 	}
 
-	for( size_t i = 0; i < num_particleSystems; i++ ) {
-		ParticleSystem * ps = &particleSystems[ i ];
-		InitParticleSystem( sys_allocator, ps );
-	}
+	addParticleSystem = NewParticleSystem( sys_allocator, BlendFunc_Add, add_max_particles );
+	blendParticleSystem = NewParticleSystem( sys_allocator, BlendFunc_Blend, blend_max_particles );
 }
 
 void ShutdownParticleSystems() {
-	for( size_t i = 0; i < num_particleSystems; i++ ) {
-		ParticleSystem * ps = &particleSystems[ i ];
-		DeleteParticleSystem( sys_allocator, ps );
-		*ps = { };
-	}
-	particleSystems_hashtable.clear();
-	num_particleSystems = 0;
+	DeleteParticleSystem( sys_allocator, &addParticleSystem );
+	DeleteParticleSystem( sys_allocator, &blendParticleSystem );
 }
 
 void InitVisualEffects() {
 	TracyZoneScoped;
 
-	ShutdownParticleSystems();
+	visualEffectGroups.clear();
+	particleEmitters.clear();
+	decalEmitters.clear();
+	dlightEmitters.clear();
 
 	for( Span< const char > path : AssetPaths() ) {
 		if( FileExtension( path ) == ".cdvfx" ) {
@@ -820,6 +758,10 @@ void InitVisualEffects() {
 	}
 
 	CreateParticleSystems();
+}
+
+void ShutdownVisualEffects() {
+	ShutdownParticleSystems();
 }
 
 void HotloadVisualEffects() {
@@ -839,40 +781,11 @@ void HotloadVisualEffects() {
 }
 
 VisualEffectGroup * FindVisualEffectGroup( StringHash name ) {
-	u64 idx;
-	if( !visualEffectGroups_hashtable.get( name.hash, &idx ) )
-		return NULL;
-	return &visualEffectGroups[ idx ];
+	return visualEffectGroups.get( name.hash );
 }
 
 VisualEffectGroup * FindVisualEffectGroup( const char * name ) {
 	return FindVisualEffectGroup( StringHash( name ) );
-}
-
-void DeleteParticleSystem( Allocator * a, ParticleSystem * ps ) {
-	if( !ps->initialized ) {
-		return;
-	}
-	DeleteGPUBuffer( ps->gpu_particles1 );
-	DeleteGPUBuffer( ps->gpu_particles2 );
-	DeleteStreamingBuffer( ps->new_particles );
-	DeleteGPUBuffer( ps->compute_count1 );
-	DeleteGPUBuffer( ps->compute_count2 );
-	DeleteGPUBuffer( ps->compute_indirect );
-	DeleteGPUBuffer( ps->draw_indirect );
-	DeleteMesh( ps->mesh );
-
-	ps->initialized = false;
-}
-
-void ShutdownVisualEffects() {
-	visualEffectGroups_hashtable.clear();
-	num_visualEffectGroups = 0;
-	particleEmitters_hashtable.clear();
-	num_particleEmitters = 0;
-	decalEmitters_hashtable.clear();
-	num_decalEmitters = 0;
-	ShutdownParticleSystems();
 }
 
 static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
@@ -887,7 +800,7 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		pipeline.bind_buffer( "b_ComputeCountOut", ps->compute_count2 );
 		// u32 collision = cl.map == NULL ? 0 : 1;
 		u32 collision = 0;
-		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, ps->radius, dt, ps->num_new_particles ) );
+		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, dt, ps->num_new_particles ) );
 		// if( collision ) {
 		// 	pipeline.bind_buffer( "b_BSPNodeLinks", cl.map->render_data.nodes );
 		// 	pipeline.bind_buffer( "b_BSPLeaves", cl.map->render_data.leaves );
@@ -932,15 +845,12 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 void DrawParticles() {
 	float dt = cls.frametime / 1000.0f;
 
-	s64 total_new_particles = 0;
+	s64 total_new_particles = addParticleSystem.num_new_particles + blendParticleSystem.num_new_particles;
 
-	for( size_t i = 0; i < num_particleSystems; i++ ) {
-		if( particleSystems[ i ].initialized ) {
-			total_new_particles += particleSystems[ i ].num_new_particles;
-			UpdateParticleSystem( &particleSystems[ i ], dt );
-			DrawParticleSystem( &particleSystems[ i ], dt );
-		}
-	}
+	UpdateParticleSystem( &addParticleSystem, dt );
+	DrawParticleSystem( &addParticleSystem, dt );
+	UpdateParticleSystem( &blendParticleSystem, dt );
+	DrawParticleSystem( &blendParticleSystem, dt );
 
 	TracyPlotSample( "New Particles", total_new_particles );
 }
@@ -987,7 +897,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 
 	float size = Max2( 0.0f, emitter->start_size + SampleRandomDistribution( &cls.rng, emitter->size_distribution ) );
 
-	Vec3 position = pos.origin + size * ps->radius * pos.normal;
+	Vec3 position = pos.origin;
 
 	switch( pos.type ) {
 		case ParticleEmitterPosition_Sphere: {
@@ -1025,10 +935,10 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 	start_color.w += SampleRandomDistribution( &cls.rng, emitter->alpha_distribution );
 	start_color = Clamp01( start_color );
 
-	if( emitter->num_materials ) {
+	if( emitter->materials.size() > 0 ) {
 		Vec4 uvwh = Vec4( 0.0f );
 		Vec4 trim = Vec4( 0.0f, 0.0f, 1.0f, 1.0f );
-		if( TryFindDecal( emitter->materials[ RandomUniform( &cls.rng, 0, emitter->num_materials - 1 ) ], &uvwh, &trim ) ) {
+		if( TryFindDecal( RandomElement( &cls.rng, emitter->materials.span() ), &uvwh, &trim ) ) {
 			EmitParticle( ps, lifetime, position, dir * speed, angle, angular_velocity, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, trim, start_color, end_color, size, emitter->end_size, emitter->flags );
 		}
 	}
@@ -1075,12 +985,7 @@ static void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition po
 	TracyZoneScoped;
 
 	float dt = cls.frametime / 1000.0f;
-	u64 idx = num_particleSystems;
-	if( !particleSystems_hashtable.get( emitter->particle_system, &idx ) ) {
-		Com_Printf( S_COLOR_YELLOW "Warning: Particle emitter doesn't have a system\n" );
-		return;
-	}
-	ParticleSystem * ps = &particleSystems[ idx ];
+	ParticleSystem * ps = emitter->blend_func == BlendFunc_Add ? &addParticleSystem : &blendParticleSystem;
 
 	float p = emitter->count * count + emitter->emission * count * dt;
 	u32 n = u32( p );
@@ -1115,7 +1020,7 @@ static void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 co
 	float lifetime = Max2( 0.0f, emitter->lifetime + SampleRandomDistribution( &cls.rng, emitter->lifetime_distribution ) ) * lifetime_scale;
 	float size = Max2( 0.0f, emitter->size + SampleRandomDistribution( &cls.rng, emitter->size_distribution ) );
 	float angle = RandomUniformFloat( &cls.rng, 0.0f, Radians( 360.0f ) );
-	StringHash material = emitter->materials[ RandomUniform( &cls.rng, 0, emitter->num_materials - 1 ) ];
+	StringHash material = RandomElement( &cls.rng, emitter->materials.span() );
 
 	Vec4 actual_color = emitter->color;
 	if( emitter->color_override ) {
@@ -1149,12 +1054,10 @@ void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec
 	if( vfx == NULL )
 		return;
 
-	for( size_t i = 0; i < vfx->num_effects; i++ ) {
-		VisualEffect e = vfx->effects[ i ];
+	for( const VisualEffect & e : vfx->effects ) {
 		if( e.type == VisualEffectType_Particles ) {
-			u64 idx = num_particleEmitters;
-			if( particleEmitters_hashtable.get( e.hash, &idx ) ) {
-				ParticleEmitter * emitter = &particleEmitters[ idx ];
+			ParticleEmitter * emitter = particleEmitters.get( e.hash );
+			if( emitter != NULL ) {
 				ParticleEmitterPosition pos = emitter->position;
 				pos.origin = origin;
 				pos.normal = normal;
@@ -1162,16 +1065,14 @@ void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec
 			}
 		}
 		else if( e.type == VisualEffectType_Decal ) {
-			u64 idx = num_decalEmitters;
-			if( decalEmitters_hashtable.get( e.hash, &idx ) ) {
-				DecalEmitter * emitter = &decalEmitters[ idx ];
+			DecalEmitter * emitter = decalEmitters.get( e.hash );
+			if( emitter != NULL ) {
 				EmitDecal( emitter, origin, normal, color, decal_lifetime_scale );
 			}
 		}
 		else if( e.type == VisualEffectType_DynamicLight ) {
-			u64 idx = num_dlightEmitters;
-			if( dlightEmitters_hashtable.get( e.hash, &idx ) ) {
-				DynamicLightEmitter * emitter = &dlightEmitters[ idx ];
+			DynamicLightEmitter * emitter = dlightEmitters.get( e.hash );
+			if( emitter != NULL ) {
 				EmitDynamicLight( emitter, origin, color.xyz() );
 			}
 		}
@@ -1183,19 +1084,6 @@ void DoVisualEffect( const char * name, Vec3 origin, Vec3 normal, float count, V
 }
 
 void ClearParticles() {
-	for( size_t i = 0; i < num_particleSystems; i++ ) {
-		if( particleSystems[ i ].initialized ) {
-			ParticleSystem * ps = &particleSystems[ i ];
-			ps->clear = true;
-		}
-	}
-}
-
-void DrawParticleMenuEffect() {
-	ImVec2 mouse_pos = ImGui::GetMousePos();
-	Vec2 pos = Clamp( Vec2( 0.0f ), Vec2( mouse_pos.x, mouse_pos.y ), frame_static.viewport ) - frame_static.viewport * 0.5f;
-	pos *= 0.05f;
-	RendererSetView( Vec3( -400, pos.x, pos.y ), EulerDegrees3( 0, 0, 0 ), 90 );
-	DoVisualEffect( "vfx/menu", Vec3( 0.0f ) );
-	DrawParticles();
+	addParticleSystem.clear = true;
+	blendParticleSystem.clear = true;
 }

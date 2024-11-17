@@ -25,8 +25,7 @@ enum HTTPResponseCode {
 };
 
 struct HTTPResponse {
-	char headers[ 256 ];
-	size_t headers_size;
+	String< 256 > headers;
 	size_t headers_sent;
 
 	FILE * file;
@@ -141,27 +140,24 @@ static void MakeResponse( HTTPConnection * con, Span< const char > method, Span<
 		Com_GGPrint( "HTTP serving file '{}' to {}", path, con->address );
 	}
 
-	String< sizeof( con->response.headers ) - 1 > headers;
-	headers.append( "HTTP/1.1 {} {}\r\n", code, ResponseCodeMessage( code ) );
-	headers.append( "Server: " APPLICATION "\r\n" );
+	response->headers.clear();
+	response->headers.append( "HTTP/1.1 {} {}\r\n", code, ResponseCodeMessage( code ) );
+	response->headers.append( "Server: " APPLICATION "\r\n" );
 
 	if( code == HTTPResponseCode_Ok ) {
-		headers.append( "Content-Length: {}\r\n", response->file_size );
-		headers.append( "Content-Disposition: attachment; filename=\"{}\"\r\n", FileName( path ) );
-		headers += "\r\n";
+		response->headers.append( "Content-Length: {}\r\n", response->file_size );
+		response->headers.append( "Content-Disposition: attachment; filename=\"{}\"\r\n", FileName( path ) );
+		response->headers += "\r\n";
 	}
 	else {
 		String< 64 > error( "{} {}\n", code, ResponseCodeMessage( code ) );
-		headers.append( "Content-Type: text/plain\r\n" );
-		headers.append( "Content-Length: {}\r\n", error.length() );
-		headers += "\r\n";
-		headers += error;
+		response->headers.append( "Content-Type: text/plain\r\n" );
+		response->headers.append( "Content-Length: {}\r\n", error.length() );
+		response->headers += "\r\n";
+		response->headers += error;
 	}
 
-	Assert( headers.length() < headers.capacity() );
-
-	SafeStrCpy( response->headers, headers.c_str(), sizeof( response->headers ) );
-	response->headers_size = headers.length();
+	Assert( response->headers.length() < response->headers.capacity() );
 }
 
 static void ReceiveRequest( HTTPConnection * con ) {
@@ -246,9 +242,9 @@ static void SendResponse( HTTPConnection * con, Time now ) {
 		return;
 
 	HTTPResponse * response = &con->response;
-	while( response->headers_sent < response->headers_size ) {
+	while( response->headers_sent < response->headers.length() ) {
 		size_t sent;
-		if( !TCPSend( con->socket, response->headers + response->headers_sent, response->headers_size - response->headers_sent, &sent ) ) {
+		if( !TCPSend( con->socket, response->headers.c_str() + response->headers_sent, response->headers.length() - response->headers_sent, &sent ) ) {
 			con->should_close = true;
 			return;
 		}
@@ -260,7 +256,7 @@ static void SendResponse( HTTPConnection * con, Time now ) {
 		con->last_activity = now;
 	}
 
-	if( response->headers_sent < response->headers_size ) {
+	if( response->headers_sent < response->headers.length() ) {
 		return;
 	}
 

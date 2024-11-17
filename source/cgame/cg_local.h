@@ -111,12 +111,6 @@ struct cgs_media_t {
 
 #define PREDICTED_STEP_TIME 150 // stairs smoothing time
 
-// view types
-enum {
-	VIEWDEF_DEMOCAM,
-	VIEWDEF_PLAYERVIEW,
-};
-
 struct cg_viewdef_t {
 	int type;
 	int POVent;
@@ -221,7 +215,7 @@ struct cg_state_t {
 extern cg_static_t cgs;
 extern cg_state_t cg;
 
-#define ISVIEWERENTITY( entNum )  ( cg.predictedPlayerState.POVnum > 0 && (int)cg.predictedPlayerState.POVnum == ( entNum ) && cg.view.type == VIEWDEF_PLAYERVIEW )
+#define ISVIEWERENTITY( entNum )  ( cg.predictedPlayerState.POVnum > 0 && (int)cg.predictedPlayerState.POVnum == ( entNum ) && cg.view.type == ViewType_Player )
 
 #define ISREALSPECTATOR()       ( cg.frame.playerState.real_team == Team_None )
 

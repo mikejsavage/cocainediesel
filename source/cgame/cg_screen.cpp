@@ -62,7 +62,7 @@ void CG_CenterPrint( Span< const char > str ) {
 }
 
 static void CG_DrawCenterString() {
-	DrawText( cgs.fontNormal, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, frame_static.viewport_width * 0.5f, frame_static.viewport_height * 0.75f, vec4_white, true );
+	DrawText( cgs.fontNormal, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, frame_static.viewport_width * 0.5f, frame_static.viewport_height * 0.75f, white.vec4, true );
 }
 
 //============================================================================
@@ -105,7 +105,7 @@ void CG_DrawCrosshair( int x, int y ) {
 		return;
 
 	static constexpr Time crosshairDamageTime = Milliseconds( 200 );
-	Vec4 color = cls.monotonicTime - scr_damagetime <= crosshairDamageTime ? vec4_red : vec4_white;
+	Vec4 color = cls.monotonicTime - scr_damagetime <= crosshairDamageTime ? red.vec4 : white.vec4;
 
 	int size = Clamp( 1, cg_crosshair_size->integer, maxCrosshairSize );
 	int gap = Clamp( 0, cg_crosshair_gap->integer, maxCrosshairGapSize );
@@ -116,11 +116,11 @@ void CG_DrawCrosshair( int x, int y ) {
 		size += diff * 0.5f;
 	}
 
-	CG_FillRect( x - 2, y - 2 - size - gap, 4, 4 + size, vec4_black );
-	CG_FillRect( x - 2, y - 2 + gap, 4, 4 + size, vec4_black );
+	CG_FillRect( x - 2, y - 2 - size - gap, 4, 4 + size, black.vec4 );
+	CG_FillRect( x - 2, y - 2 + gap, 4, 4 + size, black.vec4 );
 
-	CG_FillRect( x - 2 - size - gap, y - 2, 4 + size, 4, vec4_black );
-	CG_FillRect( x - 2 + gap, y - 2, 4 + size, 4, vec4_black );
+	CG_FillRect( x - 2 - size - gap, y - 2, 4 + size, 4, black.vec4 );
+	CG_FillRect( x - 2 + gap, y - 2, 4 + size, 4, black.vec4 );
 
 	CG_FillRect( x - 1, y - 1 - gap - size, 2, 2 + size, color );
 	CG_FillRect( x - 1, y - 1 + gap, 2, 2 + size, color );
@@ -283,7 +283,7 @@ void CG_DrawDamageNumbers( float obi_size, float dmg_size ) {
 		}
 		else {
 			snprintf( buf, sizeof( buf ), "%d", dn.damage );
-			color = dn.headshot ? sRGBToLinear( rgba8_diesel_yellow ) : vec4_white;
+			color = dn.headshot ? sRGBToLinear( diesel_yellow.rgba8 ) : white.vec4;
 			font_size = Lerp( dmg_size, Unlerp01( 0, dn.damage, 50 ), cgs.textSizeSmall );
 		}
 
@@ -368,7 +368,7 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 	Team my_team = cg.predictedPlayerState.team;
 	bool show_labels = my_team != Team_None && client_gs.gameState.match_state == MatchState_Playing;
 
-	Vec4 yellow = sRGBToLinear( rgba8_diesel_yellow );
+	Vec4 yellow = sRGBToLinear( diesel_yellow.rgba8 );
 
 	// TODO: draw arrows when clamped
 
@@ -400,7 +400,7 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 		}
 		else {
 			if( show_labels ) {
-				Vec4 color = vec4_white;
+				Vec4 color = white.vec4;
 				const char * msg = "";
 
 				if( bomb.state == BombState_Dropped ) {

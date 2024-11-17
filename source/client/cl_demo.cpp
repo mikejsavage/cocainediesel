@@ -133,8 +133,8 @@ void CL_StopRecording( bool silent ) {
 	DemoMetadata metadata = { };
 	metadata.metadata_version = DEMO_METADATA_VERSION;
 	metadata.game_version = MakeSpan( CopyString( &temp, APP_VERSION ) );
-	metadata.server = MakeSpan( cls.server_name );
-	metadata.map = MakeSpan( CopyString( &temp, cl.map->name ) );
+	metadata.server = cls.server_name;
+	metadata.map = CloneSpan( &temp, cl.map->name );
 	metadata.utc_time = record_demo_utc_time;
 	metadata.duration_seconds = ( cls.gametime - record_demo_gametime ) / 1000;
 	metadata.decompressed_size = record_demo_context.decompressed_size;
@@ -188,7 +188,7 @@ void CL_LatchedDemoJump() {
 static void CL_StartDemo( Span< const char > demoname, bool yolo ) {
 	CL_Disconnect( NULL );
 
-	const char * ext = FileExtension( demoname ) == "" ? APP_DEMO_EXTENSION_STR : "";
+	Span< const char > ext = FileExtension( demoname ) == "" ? Span< const char >( APP_DEMO_EXTENSION_STR ) : Span< const char >( "" );
 	char * filename;
 	if( COM_ValidateRelativeFilename( demoname ) ) {
 		filename = ( *sys_allocator )( "{}/demos/{}{}", HomeDirPath(), demoname, ext );

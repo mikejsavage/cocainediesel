@@ -43,6 +43,7 @@ struct Shaders {
 	Shader skybox;
 
 	Shader text;
+	Shader text_alphatest;
 
 	Shader postprocess;
 };

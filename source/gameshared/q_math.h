@@ -115,5 +115,3 @@ MinMax1 Union( MinMax1 bounds, float x );
 MinMax1 Union( MinMax1 a, MinMax1 b );
 
 u32 Log2( u64 x );
-
-u16 Bswap( u16 x );

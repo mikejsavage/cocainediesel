@@ -1,80 +1,110 @@
-weapons/9mm/icon
+loadout/knife/icon
 {
-	texture weapons/9mm/icon
+	texture loadout/knife/icon
 	decal
 }
-weapons/br/icon
+loadout/9mm/icon
 {
-	texture weapons/br/icon
+	texture loadout/9mm/icon
 	decal
 }
-weapons/bg/icon
+loadout/pistol/icon
 {
-	texture weapons/bg/icon
+	texture loadout/pistol/icon
 	decal
 }
-weapons/deagle/icon
+loadout/smg/icon
 {
-	texture weapons/deagle/icon
+	texture loadout/smg/icon
 	decal
 }
-weapons/eb/icon
+loadout/deagle/icon
 {
-	texture weapons/eb/icon
+	texture loadout/deagle/icon
 	decal
 }
-weapons/gb/icon
+loadout/shotgun/icon
 {
-	texture weapons/gb/icon
+	texture loadout/shotgun/icon
 	decal
 }
-weapons/gl/icon
+loadout/sawn-off/icon
 {
-	texture weapons/gl/icon
+	texture loadout/sawn-off/icon
 	decal
 }
-weapons/rl/icon
+loadout/burst/icon
 {
-	texture weapons/rl/icon
+	texture loadout/burst/icon
 	decal
 }
-weapons/lg/icon
+loadout/crossbow/icon
 {
-	texture weapons/lg/icon
+	texture loadout/crossbow/icon
 	decal
 }
-weapons/mg/icon
+loadout/launcher/icon
 {
-	texture weapons/mg/icon
+	texture loadout/launcher/icon
 	decal
 }
-weapons/ar/icon
+loadout/bazooka/icon
 {
-	texture weapons/ar/icon
+	texture loadout/bazooka/icon
 	decal
 }
-weapons/rg/icon
+loadout/assault/icon
 {
-	texture weapons/rg/icon
+	texture loadout/assault/icon
 	decal
 }
-weapons/rifle/icon
+loadout/bubble/icon
 {
-	texture weapons/rifle/icon
+	texture loadout/bubble/icon
 	decal
 }
-weapons/sniper/icon
+loadout/laser/icon
 {
-	texture weapons/sniper/icon
+	texture loadout/laser/icon
 	decal
 }
-weapons/road/icon
+loadout/rail/icon
 {
-	texture weapons/road/icon
+	texture loadout/rail/icon
 	decal
 }
-weapons/minigun/icon
+loadout/sniper/icon
 {
-	texture weapons/minigun/icon
+	texture loadout/sniper/icon
+	decal
+}
+loadout/rifle/icon
+{
+	texture loadout/rifle/icon
+	decal
+}
+loadout/blaster/icon
+{
+	texture loadout/blaster/icon
+	decal
+}
+loadout/roadgun/icon
+{
+	texture loadout/roadgun/icon
+	decal
+}
+loadout/sticky/icon
+{
+	texture loadout/sticky/icon
+	decal
+}
+loadout/sawblade/icon
+{
+	texture loadout/sawblade/icon
+	decal
+}
+loadout/minigun/icon
+{
+	texture loadout/minigun/icon
 	decal
 }

@@ -93,16 +93,16 @@ public:
 		return true;
 	}
 
-	size_t size() const {
-		return n;
-	}
-
 	void clear() {
 		for( Entry & e : entries ) {
 			e.key = EmptyKey;
 			e.value = 0;
 		}
 		n = 0;
+	}
+
+	size_t size() const {
+		return n;
 	}
 
 private:

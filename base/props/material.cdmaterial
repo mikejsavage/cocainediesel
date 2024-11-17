@@ -1,0 +1,29 @@
+//fuckme
+
+
+models/signs/billboard
+{
+	shaded
+	blendfunc blend
+	texture props/billboard
+}
+
+models/signs/truckad
+{
+	shaded
+	// specular 3
+	// shininess 8
+	blendfunc blend
+	texture props/truckad
+}
+
+props/white
+{
+	rgbgen const 1.0 1.0 1.0
+}
+
+models/speaker/speaker_wall
+{
+	shaded
+	rgbgen const 0.25 0.25 0.25
+}

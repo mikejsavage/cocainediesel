@@ -7,7 +7,6 @@ struct gs_state_t;
 
 struct WeaponDef {
 	Span< const char > name;
-	Span< const char > short_name;
 
 	WeaponCategory category;
 
@@ -47,7 +46,6 @@ struct WeaponDef {
 
 struct GadgetDef {
 	Span< const char > name;
-	Span< const char > short_name;
 	int uses;
 	bool drop_on_death;
 
@@ -70,7 +68,6 @@ struct GadgetDef {
 struct PerkDef {
 	bool disabled;
 	Span< const char > name;
-	Span< const char > short_name;
 	float health;
 	Vec3 scale;
 	float weight;

@@ -25,23 +25,23 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/version.h"
 
 struct DownloadInProgress {
-	char * path;
+	Span< char > path;
 	DownloadCompleteCallback callback;
 };
 
 static DownloadInProgress download;
 
 static void OnDownloadDone( int http_status, Span< const u8 > data ) {
-	Com_Printf( "Download %s: %s (%i)\n", data.ptr != NULL ? "successful" : "failed", download.path, http_status );
+	Com_GGPrint( "Download {}: {} ({})", data.ptr != NULL ? "successful" : "failed", download.path, http_status );
 
 	download.callback( download.path, data );
 
-	Free( sys_allocator, download.path );
-	download.path = NULL;
+	Free( sys_allocator, download.path.ptr );
+	download.path = { };
 }
 
 bool CL_DownloadFile( Span< const char > filename, DownloadCompleteCallback callback ) {
-	if( download.path ) {
+	if( download.path.ptr != NULL ) {
 		Com_Printf( "Already downloading something.\n" );
 		return false;
 	}
@@ -54,7 +54,7 @@ bool CL_DownloadFile( Span< const char > filename, DownloadCompleteCallback call
 	Com_GGPrint( "Asking to download: {}", filename );
 
 	download = { };
-	download.path = ( *sys_allocator )( "{}", filename );
+	download.path = CloneSpan( sys_allocator, filename );
 	download.callback = callback;
 
 	TempAllocator temp = cls.frame_arena.temp();
@@ -106,14 +106,14 @@ static void CL_ParseServerData( msg_t *msg ) {
 
 	cl.max_clients = MSG_ReadUint8( msg );
 	cl.playernum = MSG_ReadInt16( msg );
-	cls.server_name = CopyString( sys_allocator, MSG_ReadString( msg ) );
+	cls.server_name = CloneSpan( sys_allocator, MakeSpan( MSG_ReadString( msg ) ) );
 
 	const char * download_url = MSG_ReadString( msg );
 	if( !StrEqual( download_url, "" ) ) {
-		cls.download_url = CopyString( sys_allocator, download_url );
+		cls.download_url = CloneSpan( sys_allocator, MakeSpan( download_url ) );
 	}
 	else {
-		cls.download_url = CopyString( sys_allocator, temp( "http://{}", cls.serveraddress ) );
+		cls.download_url = sys_allocator->sv( "http://{}", cls.serveraddress );
 	}
 
 	msg_t * args = CL_AddReliableCommand( ClientCommand_Baselines );

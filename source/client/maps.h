@@ -6,7 +6,7 @@
 #include "gameshared/cdmap.h"
 
 struct Map {
-	const char * name;
+	Span< const char > name;
 	StringHash base_hash;
 	MapData data;
 	MapSharedRenderData render_data;

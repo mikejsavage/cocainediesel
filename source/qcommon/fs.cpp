@@ -5,13 +5,11 @@
 #include "qcommon/platform/fs.h"
 #include "gameshared/q_shared.h"
 
-static char * root_dir_path;
-static char * home_dir_path;
+static Span< char > root_dir_path;
+static Span< char > home_dir_path;
 
-static char * FindRootDir( Allocator * a ) {
-	char * root = GetExePath( a );
-	root[ BasePath( root ).n ] = '\0';
-	return root;
+static Span< char > FindRootDir( Allocator * a ) {
+	return BasePath( GetExePath( a ) ).constcast< char >();
 }
 
 void InitFS() {
@@ -20,7 +18,7 @@ void InitFS() {
 	root_dir_path = FindRootDir( sys_allocator );
 
 	if( !is_public_build ) {
-		home_dir_path = CopyString( sys_allocator, root_dir_path );
+		home_dir_path = CloneSpan( sys_allocator, root_dir_path );
 	}
 	else {
 		home_dir_path = FindHomeDirectory( sys_allocator );
@@ -28,15 +26,15 @@ void InitFS() {
 }
 
 void ShutdownFS() {
-	Free( sys_allocator, root_dir_path );
-	Free( sys_allocator, home_dir_path );
+	Free( sys_allocator, root_dir_path.ptr );
+	Free( sys_allocator, home_dir_path.ptr );
 }
 
-const char * RootDirPath() {
+Span< const char > RootDirPath() {
 	return root_dir_path;
 }
 
-const char * HomeDirPath() {
+Span< const char > HomeDirPath() {
 	return home_dir_path;
 }
 

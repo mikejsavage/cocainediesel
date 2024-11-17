@@ -1,5 +1,6 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
+#include "qcommon/array.h"
 #include "qcommon/utf8.h"
 #include "qcommon/hash.h"
 #include "qcommon/serialization.h"
@@ -110,6 +111,12 @@ const Font * RegisterFont( const char * path ) {
 	return font;
 }
 
+static float Area( const MinMax2 & rect ) {
+	float w = Max2( 0.0f, rect.maxs.x - rect.mins.x );
+	float h = Max2( 0.0f, rect.maxs.y - rect.mins.y );
+	return w * h;
+}
+
 static void DrawText( const Font * font, float pixel_size, Span< const char > str, float x, float y, Vec4 color, bool border, Vec4 border_color ) {
 	if( font == NULL )
 		return;
@@ -135,7 +142,7 @@ static void DrawText( const Font * font, float pixel_size, Span< const char > st
 
 		const Glyph * glyph = &font->glyphs[ c ];
 
-		if( glyph->bounds.mins.x != glyph->bounds.maxs.x && glyph->bounds.mins.y != glyph->bounds.maxs.y ) {
+		if( Area( glyph->bounds ) > 0.0f ) {
 			// TODO: this is bogus. it should expand glyphs by 1 or
 			// 2 pixels to allow for border/antialiasing, up to a
 			// limit determined by font->glyph_padding
@@ -218,4 +225,103 @@ void DrawText( const Font * font, float pixel_size, const char * str, Alignment 
 
 void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, Vec4 border_color ) {
 	DrawText( font, pixel_size, str, align, x, y, color, true, border_color );
+}
+
+void Draw3DText( const Font * font, float size, Span< const char > str, Alignment align, Vec3 origin, EulerDegrees3 angles, Vec4 color ) {
+	struct TextVertex {
+		Vec3 position;
+		Vec2 uv;
+	};
+
+	TempAllocator temp = cls.frame_arena.temp();
+	DynamicArray< TextVertex > vertices( &temp, 4 * str.n );
+	DynamicArray< u16 > indices( &temp, 6 * str.n );
+
+	Mat3x4 rotation = Mat4Rotation( angles );
+	Vec3 dx = rotation.row0().xyz() * size;
+	Vec3 dy = rotation.row2().xyz() * size;
+
+	Vec3 cursor = origin + dy; // TODO: do alignment properly. really need baseline alignment for this
+	u32 state = 0;
+	u32 c = 0;
+	for( size_t i = 0; i < str.n; i++ ) {
+		if( DecodeUTF8( &state, &c, str[ i ] ) != 0 )
+			continue;
+		if( c > 255 )
+			c = '?';
+
+		const Glyph * glyph = &font->glyphs[ c ];
+
+		if( Area( glyph->bounds ) > 0.0f ) {
+			size_t base_index = vertices.size();
+
+			Vec2 mins = glyph->bounds.mins - font->glyph_padding;
+			Vec2 maxs = glyph->bounds.maxs + font->glyph_padding;
+
+			// TODO: padding for antialiasing/borders!!!!!!!!!!!!!!!!!! very hard because size is in world space and not screen pixels now
+			// note that world mins.y goes with uv maxs.y because world space is y-up and textures are y-down
+			vertices.add( TextVertex {
+				.position = cursor + mins.x * dx + mins.y * dy,
+				.uv = Vec2( glyph->uv_bounds.mins.x, glyph->uv_bounds.maxs.y ),
+			} );
+			vertices.add( TextVertex {
+				.position = cursor + maxs.x * dx + mins.y * dy,
+				.uv = Vec2( glyph->uv_bounds.maxs.x, glyph->uv_bounds.maxs.y ),
+			} );
+			vertices.add( TextVertex {
+				.position = cursor + mins.x * dx + maxs.y * dy,
+				.uv = Vec2( glyph->uv_bounds.mins.x, glyph->uv_bounds.mins.y ),
+			} );
+			vertices.add( TextVertex {
+				.position = cursor + maxs.x * dx + maxs.y * dy,
+				.uv = Vec2( glyph->uv_bounds.maxs.x, glyph->uv_bounds.mins.y ),
+			} );
+
+			indices.add( base_index + 0 );
+			indices.add( base_index + 3 );
+			indices.add( base_index + 2 );
+
+			indices.add( base_index + 0 );
+			indices.add( base_index + 1 );
+			indices.add( base_index + 3 );
+		}
+
+		cursor += dx * glyph->advance;
+	}
+
+	UniformBlock text_uniforms = UploadUniformBlock( color, color, font->dSDF_dTexel, 0 );
+
+	VertexDescriptor vertex_descriptor = { };
+	vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( TextVertex, position ) };
+	vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( TextVertex, uv ) };
+	vertex_descriptor.buffer_strides[ 0 ] = sizeof( TextVertex );
+	DynamicDrawData draw_data = UploadDynamicGeometry( vertices.span().cast< const u8 >(), indices.span(), vertex_descriptor );
+
+	{
+		PipelineState pipeline;
+		pipeline.pass = frame_static.nonworld_opaque_pass;
+		pipeline.shader = &shaders.text;
+		pipeline.cull_face = CullFace_Disabled;
+		pipeline.alpha_to_coverage = true;
+		pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+		pipeline.bind_uniform( "u_Text", text_uniforms );
+		pipeline.bind_texture_and_sampler( "u_BaseTexture", font->material.texture, Sampler_Standard );
+
+		DrawDynamicGeometry( pipeline, draw_data );
+	}
+
+	{
+		for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
+			PipelineState pipeline;
+			pipeline.pass = frame_static.shadowmap_pass[ i ];
+			pipeline.shader = &shaders.text_alphatest;
+			pipeline.cull_face = CullFace_Disabled;
+			pipeline.clamp_depth = true;
+			pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ i ] );
+			pipeline.bind_uniform( "u_Text", text_uniforms );
+			pipeline.bind_texture_and_sampler( "u_BaseTexture", font->material.texture, Sampler_Standard );
+
+			DrawDynamicGeometry( pipeline, draw_data );
+		}
+	}
 }

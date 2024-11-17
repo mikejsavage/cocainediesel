@@ -7,9 +7,9 @@
   }
 
   decal {
-    material weapons/explosion_scorch1
-    material weapons/explosion_scorch2
-    material weapons/explosion_scorch3
+    material explosion_scorch1
+    material explosion_scorch2
+    material explosion_scorch3
     size 46
     lifetime 30
     color 0.01 0.01 0.01 1.0

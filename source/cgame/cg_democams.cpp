@@ -76,26 +76,16 @@ static void CG_DemoCamFreeFly() {
 	cam_origin = cam_origin + wishvel * ( (float)cls.realFrameTime * 0.001f );
 }
 
-static void CG_DemoCamSetCameraPositionFromView() {
-	if( cg.view.type == VIEWDEF_PLAYERVIEW ) {
-		cam_origin = cg.view.origin;
-		cam_angles = EulerDegrees2( cg.view.angles.pitch, cg.view.angles.yaw );
-		cam_velocity = cg.view.velocity;
-	}
-}
-
-int CG_DemoCamUpdate() {
+ViewType CG_DemoCamUpdate() {
 	if( !cgs.demoPlaying ) {
-		return VIEWDEF_PLAYERVIEW;
+		return ViewType_Player;
 	}
 
 	if( CamIsFree ) {
 		CG_DemoCamFreeFly();
 	}
 
-	CG_DemoCamSetCameraPositionFromView();
-
-	return CamIsFree ? VIEWDEF_DEMOCAM : VIEWDEF_PLAYERVIEW;
+	return CamIsFree ? ViewType_Player : ViewType_Demo;
 }
 
 static void CG_DemoFreeFly_Cmd_f( const Tokenized & args ) {

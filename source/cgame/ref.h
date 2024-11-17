@@ -62,12 +62,23 @@ constexpr Alignment Alignment_LeftBottom = { XAlignment_Left, YAlignment_Bottom 
 constexpr Alignment Alignment_CenterBottom = { XAlignment_Center, YAlignment_Bottom };
 constexpr Alignment Alignment_RightBottom = { XAlignment_Right, YAlignment_Bottom };
 
-constexpr Vec4 vec4_white = Vec4( 1, 1, 1, 1 );
-constexpr Vec4 vec4_black = Vec4( 0, 0, 0, 1 );
-constexpr Vec4 vec4_dark = Vec4( 0.02f, 0.02f, 0.02f, 1.0f );
-constexpr Vec4 vec4_red = Vec4( 1, 0, 0, 1 );
-constexpr Vec4 vec4_green = Vec4( 0, 1, 0, 1 );
-constexpr Vec4 vec4_yellow = Vec4( 1, 1, 0, 1 );
+struct MultiTypeColor {
+	const RGBA8 rgba8;
+	const Vec4 vec4;
 
-constexpr RGBA8 rgba8_white = RGBA8( 255, 255, 255, 255 );
-constexpr RGBA8 rgba8_black = RGBA8( 0, 0, 0, 255 );
+	constexpr MultiTypeColor( u8 r, u8 g, u8 b, u8 a ):
+		rgba8( r, g, b, a ),
+		vec4( r / 255.f, g / 255.f, b / 255.f, a / 255.f )
+	{}
+};
+
+constexpr MultiTypeColor diesel_yellow( 255, 204, 38, 255  );
+constexpr MultiTypeColor diesel_green( 44, 209, 89, 255 ); //yolo
+constexpr MultiTypeColor diesel_red( 255, 0, 57, 255 );
+
+constexpr MultiTypeColor white( 255, 255, 255, 255 );
+constexpr MultiTypeColor black( 0, 0, 0, 255 );
+constexpr MultiTypeColor dark( 5, 5, 5, 255 );
+constexpr MultiTypeColor red( 255, 0, 0, 255 );
+constexpr MultiTypeColor green( 0, 255, 0, 255 );
+constexpr MultiTypeColor yellow( 255, 255, 0, 255 );

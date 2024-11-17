@@ -151,6 +151,7 @@ static void LoadShaders() {
 	LoadShader( &shaders.scope, "glsl/scope.glsl" );
 	LoadShader( &shaders.skybox, "glsl/skybox.glsl" );
 	LoadShader( &shaders.text, "glsl/text.glsl" );
+	LoadShader( &shaders.text_alphatest, "glsl/text.glsl", "#define ALPHA_TEST 1\n" );
 	LoadShader( &shaders.postprocess, "glsl/postprocess.glsl" );
 
 	LoadComputeShader( &shaders.particle_compute, "glsl/particle_compute.glsl" );

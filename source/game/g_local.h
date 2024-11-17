@@ -230,6 +230,12 @@ void SP_speaker_wall( edict_t * ent, const spawn_temp_t * st );
 void SP_jumppad( edict_t * ent, const spawn_temp_t * st );
 
 //
+// g_cinematic
+//
+
+void SP_cinematic_mapname( edict_t * ent, const spawn_temp_t * st );
+
+//
 // g_cmds.c
 //
 

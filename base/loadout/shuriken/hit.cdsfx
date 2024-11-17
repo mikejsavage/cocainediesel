@@ -1,6 +1,6 @@
 {
 	attenuation idle
-	find_sounds weapons/knife/hit_player
+	find_sounds loadout/knife/hit_player
 	pitch 1.25
 	volume 0.5
 }

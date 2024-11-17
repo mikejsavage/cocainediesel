@@ -73,7 +73,7 @@ static void BombKill() {
 }
 
 static void PickRandomArena() {
-	const GladiatorArena& arena = RandomElement( &svs.rng, arenas.ptr(), arenas.size() );
+	const GladiatorArena& arena = RandomElement( &svs.rng, arenas.span() );
 	server_gs.gameState.map = arena.hash;
 
 	constexpr auto PickRandomPerk = [](RNG * rng) {

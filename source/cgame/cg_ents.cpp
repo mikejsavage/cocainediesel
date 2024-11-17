@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/time.h"
 #include "client/audio/api.h"
 #include "client/renderer/renderer.h"
+#include "client/renderer/text.h"
 
 static void CG_UpdateEntities();
 
@@ -455,7 +456,7 @@ static void CG_LerpLaser( centity_t *cent ) {
 }
 
 static void CG_AddLaserEnt( centity_t *cent ) {
-	DrawBeam( cent->interpolated.origin, cent->interpolated.origin2, cent->current.radius, vec4_white, "entities/laser/laser" );
+	DrawBeam( cent->interpolated.origin, cent->interpolated.origin2, cent->current.radius, white.vec4, "entities/laser/laser" );
 }
 
 static void CG_UpdateLaserbeamEnt( centity_t *cent ) {
@@ -695,6 +696,12 @@ void DrawEntities() {
 				DrawEntityTrail( cent, EMPTY_HASH );
 				CG_EntityLoopSound( cent, state );
 				break;
+			case ET_STICKY:
+				DrawEntityModel( cent );
+				DrawEntityTrail( cent, "loadout/sticky/trail" );
+				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
+				CG_EntityLoopSound( cent, state );
+				break;
 			case ET_AXE:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/axe/trail" );
@@ -724,7 +731,7 @@ void DrawEntities() {
 			case ET_DECAL: {
 				Vec3 normal;
 				AngleVectors( cent->current.angles, &normal, NULL, NULL );
-				DrawDecal( cent->current.origin, normal, cent->current.scale.x, 0.0f, cent->current.material, sRGBToLinear( cent->current.color ) );
+				DrawDecal( cent->current.origin, normal, cent->current.scale.x, cent->current.angles.roll, cent->current.material, sRGBToLinear( cent->current.color ) );
 			} break;
 
 			case ET_LASERBEAM:
@@ -762,6 +769,12 @@ void DrawEntities() {
 			case ET_SPEAKER:
 				DrawEntityModel( cent );
 				break;
+
+			case ET_CINEMATIC_MAPNAME: {
+				TempAllocator temp = cls.frame_arena.temp();
+				Span< const char > big = ToUpperASCII( &temp, cl.map->name );
+				Draw3DText( cgs.fontBoldItalic, 256.0f, big, { }, cent->current.origin, cent->current.angles, white.vec4 );
+			} break;
 
 			case ET_MAPMODEL:
 				DrawEntityModel( cent );
@@ -810,6 +823,7 @@ void CG_LerpEntities() {
 			case ET_CORPSE:
 			case ET_GHOST:
 			case ET_SPEAKER:
+			case ET_CINEMATIC_MAPNAME:
 			case ET_BOMB:
 			case ET_MAPMODEL:
 				if( state->linearMovement ) {
@@ -882,9 +896,11 @@ void CG_UpdateEntities() {
 			case ET_CROSSBOW:
 			case ET_BLASTER:
 			case ET_SAWBLADE:
+			case ET_STICKY:
 			case ET_RAILALT:
 			case ET_AXE:
 			case ET_SHURIKEN:
+			case ET_CINEMATIC_MAPNAME:
 			case ET_MAPMODEL:
 				break;
 

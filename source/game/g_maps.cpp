@@ -62,9 +62,9 @@ static void LoadModelsRecursive( TempAllocator * temp, DynamicString * path, siz
 		if( dir ) {
 			LoadModelsRecursive( temp, path, skip );
 		}
-		else if( FileExtension( path->c_str() ) == ".glb" ) {
+		else if( FileExtension( path->span() ) == ".glb" ) {
 			Span< u8 > data = ReadFileBinary( sys_allocator, path->c_str() );
-			AddGLTFModel( data, StripExtension( path->c_str() + skip ) );
+			AddGLTFModel( data, StripExtension( path->span() + skip ) );
 			Free( sys_allocator, data.ptr );
 		}
 		path->truncate( old_len );

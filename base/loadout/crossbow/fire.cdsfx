@@ -6,6 +6,6 @@
 
 {
 	attenuation distant
-	sound weapons/noammo
+	sound loadout/_sounds/noammo
 	volume 0.75
 }

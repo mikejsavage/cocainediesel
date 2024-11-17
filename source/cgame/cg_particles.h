@@ -11,5 +11,3 @@ void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal = Vec3( 0.0f, 0.0
 
 void DrawParticles();
 void ClearParticles();
-
-void DrawParticleMenuEffect();

@@ -61,6 +61,8 @@ static constexpr EntitySpawnCallback spawn_callbacks[] = {
 	{ "jumppad", SP_jumppad },
 
 	{ "speaker_wall", SP_speaker_wall },
+
+	{ "cinematic_mapname", SP_cinematic_mapname },
 };
 
 static bool SpawnEntity( edict_t * ent, const spawn_temp_t * st ) {
@@ -366,6 +368,8 @@ void G_HotloadCollisionModels() {
 }
 
 static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st ) {
+	ent->s.type = ET_MAPMODEL;
 	ent->s.svflags &= ~SVF_NOCLIENT;
 	ent->movetype = MOVETYPE_PUSH;
+
 }

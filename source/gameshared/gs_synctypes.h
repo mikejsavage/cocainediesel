@@ -61,6 +61,7 @@ enum EntityType : u8 {
 	ET_LASER,
 	ET_SPIKES,
 	ET_SPEAKER,
+	ET_CINEMATIC_MAPNAME,
 	ET_MAPMODEL,
 
 	// eventual entities: types below this will get event treatment
@@ -289,6 +290,13 @@ struct SyncGameState {
 	s64 match_state_start_time;
 	s64 match_duration;
 	s64 clock_override;
+
+	struct CameraOverride {
+		Vec3 origin;
+		EulerDegrees3 angles;
+	};
+
+	Optional< CameraOverride > camera_override;
 
 	u8 scorelimit;
 

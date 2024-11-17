@@ -91,7 +91,7 @@ static void SCR_DrawDebugGraph() {
 	int w = frame_static.viewport_width;
 	int x = 0;
 	int y = 0 + frame_static.viewport_height;
-	SCR_DrawFillRect( x, y - scr_graphheight->integer, w, scr_graphheight->integer, vec4_black );
+	SCR_DrawFillRect( x, y - scr_graphheight->integer, w, scr_graphheight->integer, black.vec4 );
 
 	int s = ( w + 1024 - 1 ) / 1024; //scale for resolutions with width >1024
 
@@ -157,7 +157,7 @@ static void SubmitPostprocessPass() {
 	pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
 	pipeline.bind_texture_and_sampler( "u_Screen", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Standard );
 	pipeline.bind_texture_and_sampler( "u_Noise", FindMaterial( "textures/noise" )->texture, Sampler_Standard );
-	float damage_effect = cg.view.type == VIEWDEF_PLAYERVIEW ? cg.damage_effect : 0.0f;
+	float damage_effect = cg.view.type == ViewType_Player ? cg.damage_effect : 0.0f;
 
 	float contrast = 1.0f;
 	if( client_gs.gameState.exploding ) {

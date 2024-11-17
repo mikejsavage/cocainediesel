@@ -3,6 +3,89 @@
 #include "qcommon/types.h"
 #include "qcommon/asan.h"
 
+template< typename T, size_t N >
+class BoundedDynamicArray {
+	T elems[ N ];
+	size_t n;
+
+public:
+	BoundedDynamicArray() = default;
+
+	// TODO would be nice if this worked
+	// constexpr BoundedDynamicArray( std::initializer_list< T > init ) : elems( init ), n( init.size() ) { }
+	BoundedDynamicArray( std::initializer_list< T > init ) {
+		clear();
+		for( const T & x : init ) {
+			[[maybe_unused]] bool ok = add( x );
+			Assert( ok );
+		}
+	}
+
+	void clear() {
+		n = 0;
+	}
+
+	T * add() {
+		return n == N ? NULL : &elems[ n++ ];
+	}
+
+	bool add( const T & x ) {
+		T * slot = add();
+		if( slot == NULL )
+			return false;
+		*slot = x;
+		return true;
+	}
+
+	void remove_swap( T * x ) {
+		n--;
+		Swap2( x, &elems[ n ] );
+	}
+
+	void remove_swap( size_t idx ) {
+		remove_swap( &elems[ idx ] );
+	}
+
+	T pop() {
+		Assert( n > 0 );
+		n--;
+		return elems[ n ];
+	}
+
+	T & operator[]( size_t i ) {
+		Assert( i < n );
+		return elems[ i ];
+	}
+
+	const T & operator[]( size_t i ) const {
+		Assert( i < n );
+		return elems[ i ];
+	}
+
+	T * ptr() { return elems; }
+	const T * ptr() const { return elems; }
+	size_t size() const { return n; }
+	size_t num_bytes() const { return sizeof( T ) * n; }
+
+	T * begin() { return elems; }
+	T * end() { return elems + n; }
+	const T * begin() const { return elems; }
+	const T * end() const { return elems + n; }
+
+	Span< T > span() { return Span< T >( elems, n ); }
+	Span< const T > span() const { return Span< const T >( elems, n ); }
+};
+
+template< typename T, size_t N >
+constexpr size_t ARRAY_COUNT( const BoundedDynamicArray< T, N > & arr ) {
+	return N;
+}
+
+template< typename T, typename M, size_t N >
+constexpr size_t ARRAY_COUNT( BoundedDynamicArray< M, N > ( T::* ) ) {
+	return N;
+}
+
 template< typename T >
 class NonRAIIDynamicArray {
 	Allocator * a;

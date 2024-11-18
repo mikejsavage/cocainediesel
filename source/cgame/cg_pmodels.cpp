@@ -648,7 +648,7 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	CG_UpdatePModelAnimations( cent );
 }
 
-static Quaternion EulerAnglesToQuaternion( EulerDegrees3 angles ) {
+static Quaternion EulerDegrees3ToQuaternion( EulerDegrees3 angles ) {
 	float cp = cosf( Radians( angles.pitch ) * 0.5f );
 	float sp = sinf( Radians( angles.pitch ) * 0.5f );
 	float cy = cosf( Radians( angles.yaw ) * 0.5f );

@@ -1,6 +1,7 @@
 #include "qcommon/base.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
+#include "qcommon/serialization.h"
 #include "qcommon/span2d.h"
 #include "gameshared/q_math.h"
 
@@ -10,22 +11,31 @@
 #include "stb/stb_rect_pack.h"
 #include "stb/stb_truetype.h"
 
-#if GG
-msdfgen::Range GlyphGeometry::getBoxRange() const {
-	return box.range;
-}
+// NOTE: this is copy pasted from text.cpp
+struct Glyph {
+	MinMax2 tight_bounds;
+	MinMax2 tight_uv_bounds;
+	MinMax2 padded_uv_bounds;
+	float advance;
+};
 
-msdfgen::Projection GlyphGeometry::getBoxProjection() const {
-	return msdfgen::Projection(msdfgen::Vector2(box.scale), box.translate);
+struct Font {
+	float glyph_padding;
+	float dSDF_dTexel;
+	float ascent;
+
+	Glyph glyphs[ 256 ];
+};
+
+static void Serialize( SerializationBuffer * buf, Font & font ) {
+	*buf & font.glyph_padding & font.dSDF_dTexel & font.ascent;
+	for( Glyph & glyph : font.glyphs ) {
+		*buf & glyph.tight_bounds & glyph.tight_uv_bounds & glyph.padded_uv_bounds & glyph.advance;
+	}
 }
-#endif
 
 static msdfgen::Point2 Point( stbtt_vertex_type x, stbtt_vertex_type y ) {
 	return msdfgen::Point2( x / 64.0, y / 64.0 );
-}
-
-static Vec2 Point2( stbtt_vertex_type x, stbtt_vertex_type y ) {
-	return Vec2( x / 64.0f, y / 64.0f );
 }
 
 static msdfgen::Shape STBShapeToMSDFShape( const stbtt_fontinfo * font, u32 codepoint ) {
@@ -74,6 +84,7 @@ static msdfgen::Shape STBShapeToMSDFShape( const stbtt_fontinfo * font, u32 code
 	return shape;
 }
 
+#if 0
 struct GlyphContours {
 	struct Color {
 		bool r, g, b;
@@ -98,8 +109,9 @@ struct GlyphContours {
 	Span< Contour > contours;
 };
 
-static Vec2 TangentAt0( GlyphContours::Bezier b ) { return b.b - b.a; }
-static Vec2 TangentAt1( GlyphContours::Bezier b ) { return b.c - b.b; }
+static Vec2 Point2( stbtt_vertex_type x, stbtt_vertex_type y ) {
+	return Vec2( x / 64.0f, y / 64.0f );
+}
 
 static GlyphContours STBShapeToDiesel( Allocator * a, const stbtt_fontinfo * font, u32 codepoint ) {
 	TracyZoneScoped;
@@ -172,13 +184,6 @@ static Vec2 Sign( Vec2 v ) { return Vec2( Sign( v.x ), Sign( v.y ) ); }
 static Vec2 Abs( Vec2 v ) { return Vec2( fabsf( v.x ), fabsf( v.y ) ); }
 static Vec2 Pow( Vec2 v, float e ) { return Vec2( powf( v.x, e ), powf( v.y, e ) ); }
 static Vec3 Clamp( float lo, Vec3 v, float hi ) { return Vec3( Clamp( lo, v.x, hi ), Clamp( lo, v.y, hi ), Clamp( lo, v.z, hi ) ); }
-
-static void CopySpan2DFlipY( Span2D< RGB8 > dst, Span2D< const RGB8 > src ) {
-	Assert( src.w == dst.w && src.h == dst.h );
-	for( u32 i = 0; i < dst.h; i++ ) {
-		memcpy( dst.row( dst.h - i - 1 ).ptr, src.row( i ).ptr, dst.row( i ).num_bytes() );
-	}
-}
 
 static float DistanceToBezier( GlyphContours::Bezier bezier, Vec2 pos ) {
 	Vec2 a = bezier.b - bezier.a;
@@ -254,37 +259,47 @@ static float DistanceToBezier( GlyphContours::Bezier bezier, Vec2 pos ) {
 	}
 
 	{
-		Vec2 dir = TangentAt0( bezier );
+		Vec2 tangent0 = bezier.b - bezier.a;
 		Vec2 o = pos - bezier.a;
-		if( Dot( dir, o ) < 0.0f ) {
-			Vec2 proj = bezier.a + Dot( o, dir ) / Dot( dir, dir ) * dir;
+		if( Dot( tangent0, o ) < 0.0f ) {
+			Vec2 proj = bezier.a + Dot( o, tangent0 ) / Dot( tangent0, tangent0 ) * tangent0;
 			float dist = Dot( pos - proj, pos - proj );
 			if( dist < res ) {
 				res = dist;
-				sgn = -Cross( dir, o );
+				sgn = -Cross( tangent0, o );
 			}
 		}
 	}
 
 	{
-		Vec2 dir = TangentAt1( bezier );
+		Vec2 tangent1 = bezier.c - bezier.b;
 		Vec2 o = pos - bezier.c;
-		if( Dot( dir, o ) > 0.0f ) {
-			Vec2 proj = bezier.c + Dot( o, dir ) / Dot( dir, dir ) * dir;
+		if( Dot( tangent1, o ) > 0.0f ) {
+			Vec2 proj = bezier.c + Dot( o, tangent1 ) / Dot( tangent1, tangent1 ) * tangent1;
 			float dist = Dot( pos - proj, pos - proj );
 			if( dist < res ) {
 				res = dist;
-				sgn = -Cross( dir, o );
+				sgn = -Cross( tangent1, o );
 			}
 		}
 	}
 
 	return sqrtf( res ) * Sign( sgn );
 }
+#endif
+
+static void CopySpan2DFlipY( Span2D< RGB8 > dst, Span2D< const RGB8 > src ) {
+	Assert( src.w == dst.w && src.h == dst.h );
+	for( u32 i = 0; i < dst.h; i++ ) {
+		memcpy( dst.row( dst.h - i - 1 ).ptr, src.row( i ).ptr, dst.row( i ).num_bytes() );
+	}
+}
 
 int main( int argv, char ** argc ) {
 	constexpr u32 codepoint_ranges[][ 2 ] = {
-		{ 1, 255 },
+		{ 0x20, 0xff }, // ASCII
+		// { 0x3131, 0x3163 }, // Korean
+		// { 0xac00, 0xd7a3 }, // Korean
 	};
 
 	constexpr size_t sdf_embox_size = 64;
@@ -309,7 +324,7 @@ int main( int argv, char ** argc ) {
 	// float scale = stbtt_ScaleForPixelHeight( &font, 1.0f );
 	float scale = stbtt_ScaleForMappingEmToPixels( &font, 1.0f );
 
-	float dSDF_dUV = 1.0f / ( scale * 64.0f * range_in_ems );
+	float dSDF_dUV = 1.0f / ( scale * sdf_embox_size * 64.0f * range_in_ems * 2 );
 	float padding = range_in_ems * scale * sdf_embox_size * 64.0f; // TODO: give 64 a meaningful name
 	printf( "dSDF_dUV %f\n", dSDF_dUV );
 	printf( "scale %f\n", scale );
@@ -331,12 +346,12 @@ int main( int argv, char ** argc ) {
 
 	size_t num_glyphs = 0;
 	for( auto [ lo, hi ] : codepoint_ranges ) {
-		for( u32 i = lo; i < hi; i++ ) {
+		for( u32 codepoint = lo; codepoint < hi; codepoint++ ) {
 			TempAllocator temp = arena.temp();
 			font.userdata = &temp;
 
 			int x0, y0, x1, y1;
-			if( stbtt_GetCodepointBox( &font, i, &x0, &y0, &x1, &y1 ) == 0 )
+			if( stbtt_GetCodepointBox( &font, codepoint, &x0, &y0, &x1, &y1 ) == 0 )
 				continue;
 
 			rects[ num_glyphs ] = {
@@ -344,7 +359,7 @@ int main( int argv, char ** argc ) {
 				.h = checked_cast< stbrp_coord >( ceilf( ( y1 - y0 ) * sdf_embox_size * scale + 2.0f * padding ) ),
 			};
 			glyphs[ num_glyphs ] = {
-				.codepoint = i,
+				.codepoint = codepoint,
 				.x0 = x0,
 				.y0 = y0,
 				.x1 = x1,
@@ -378,6 +393,8 @@ int main( int argv, char ** argc ) {
 		TracyZoneScopedN( "Generate MSDF" );
 		TracyZoneSpan( temp.sv( "{}", i ) );
 
+		if( i % 100 == 0 ) printf( "%zu/%zu\n", i, num_glyphs );
+
 		u32 codepoint = glyphs[ i ].codepoint;
 
 		int advance, lsb;
@@ -389,7 +406,7 @@ int main( int argv, char ** argc ) {
 			msdfgen::Vector2( scale * 64.0f * sdf_embox_size ),
 			msdfgen::Vector2( ( padding - glyphs[ i ].x0 * scale * 64.0f ) * 0.5f, ( padding - glyphs[ i ].y0 * scale * 64.0f ) * 0.5f )
 		);
-		msdfgen::Range range( 1.0 );
+		msdfgen::Range range( range_in_ems );
 
 		Span2D< Vec3 > pixels = AllocSpan2D< Vec3 >( &temp, rects[ i ].w, rects[ i ].h );
 		msdfgen::BitmapRef< float, 3 > bitmap( pixels.ptr->ptr(), pixels.w, pixels.h );
@@ -408,9 +425,9 @@ int main( int argv, char ** argc ) {
 			for( size_t y = 0; y < pixels.h; y++ ) {
 				for( size_t x = 0; x < pixels.w; x++ ) {
 					pixels8( x, y ) = RGB8(
-						Quantize11< u8 >( Clamp( -1.0, pixels( x, y ).x / 5.0, 1.0 ) ),
-						Quantize11< u8 >( Clamp( -1.0, pixels( x, y ).y / 5.0, 1.0 ) ),
-						Quantize11< u8 >( Clamp( -1.0, pixels( x, y ).z / 5.0, 1.0 ) )
+						Quantize11< u8 >( Clamp( -1.0f, pixels( x, y ).x / ( range_in_ems * 0.5f ), 1.0f ) ),
+						Quantize11< u8 >( Clamp( -1.0f, pixels( x, y ).y / ( range_in_ems * 0.5f ), 1.0f ) ),
+						Quantize11< u8 >( Clamp( -1.0f, pixels( x, y ).z / ( range_in_ems * 0.5f ), 1.0f ) )
 					);
 				}
 			}

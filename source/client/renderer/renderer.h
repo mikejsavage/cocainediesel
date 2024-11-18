@@ -128,7 +128,7 @@ void DrawDynamicGeometry( const PipelineState & pipeline, Span< T > vertices, Sp
 
 UniformBlock UploadModelUniforms( const Mat3x4 & M );
 UniformBlock UploadMaterialStaticUniforms( float specular, float shininess, float lod_bias = 0.0f );
-UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0 = Vec3( 1, 0, 0 ), Vec3 tcmod_row1 = Vec3( 0, 1, 0 ) );
+UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color );
 
 const char * ShadowQualityToString( ShadowQuality mode );
 

@@ -18,22 +18,9 @@ enum ColorGenType {
 	ColorGenType_EntityWave,
 };
 
-enum TCModType {
-	TCModFunc_None,
-	TCModFunc_Scroll,
-	TCModFunc_Rotate,
-	TCModFunc_Stretch,
-};
-
 struct Wave {
 	WaveFunc type;
 	float args[ 4 ]; // offset, amplitude, phase_offset, rate
-};
-
-struct TCMod {
-	TCModType type;
-	float args[ 2 ];
-	Wave wave;
 };
 
 struct ColorGen {
@@ -60,8 +47,6 @@ struct Material {
 	float specular = 0.0f;
 	float shininess = 64.0f;
 	SamplerType sampler = Sampler_Standard;
-
-	TCMod tcmod = { };
 };
 
 bool CompressedTextureFormat( TextureFormat format );

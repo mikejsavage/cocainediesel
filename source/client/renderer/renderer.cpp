@@ -823,8 +823,8 @@ UniformBlock UploadMaterialStaticUniforms( float specular, float shininess, floa
 	return UploadUniformBlock( specular, shininess, lod_bias );
 }
 
-UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0, Vec3 tcmod_row1 ) {
-	return UploadUniformBlock( color, tcmod_row0, tcmod_row1 );
+UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color ) {
+	return UploadUniformBlock( color );
 }
 
 Optional< ModelRenderData > FindModelRenderData( StringHash name ) {

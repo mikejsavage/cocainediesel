@@ -143,7 +143,7 @@ static bool FindTag( const GLTFRenderData * model, PlayerModelMetadata::Tag * ta
 	}
 
 	tag->node_idx = idx;
-	tag->transform = Mat3x4::Identity();
+	tag->transform = Mat3x4::Identity(); // TODO: use node local transform
 
 	return true;
 }
@@ -664,12 +664,17 @@ static Quaternion EulerAnglesToQuaternion( EulerDegrees3 angles ) {
 	);
 }
 
-static Mat3x4 TransformTag( const GLTFRenderData * model, const Mat3x4 & transform, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
+static Mat3x4 TagTransform( const GLTFRenderData * model, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
 	if( pose.node_transforms.ptr != NULL ) {
-		return transform * model->transform * pose.node_transforms[ tag.node_idx ] * tag.transform;
+		return model->transform * pose.node_transforms[ tag.node_idx ] * tag.transform;
 	}
 
-	return transform * model->transform * model->nodes[ tag.node_idx ].global_transform * tag.transform;
+	return model->transform * model->nodes[ tag.node_idx ].global_transform * tag.transform;
+}
+
+static Mat3x4 InverseNodeTransform( const GLTFRenderData * model, StringHash node ) {
+	u8 idx;
+	return FindNodeByName( model, node, &idx ) ? model->nodes[ idx ].inverse_global_transform : Mat3x4::Identity();
 }
 
 void CG_DrawPlayer( centity_t * cent ) {
@@ -731,21 +736,22 @@ void CG_DrawPlayer( centity_t * cent ) {
 				EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ UPPER ], cg.lerpfrac, pmodel->angles[ UPPER ] ) * 0.5f );
 				Swap2( &angles.pitch, &angles.yaw ); // hack for rigg model
 
-				Quaternion q = EulerAnglesToQuaternion( angles );
+				Quaternion q = EulerDegrees3ToQuaternion( angles );
 				lower[ meta->upper_rotator_nodes[ 0 ] ].rotation *= q;
 				lower[ meta->upper_rotator_nodes[ 1 ] ].rotation *= q;
 			}
 
 			{
 				EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ HEAD ], cg.lerpfrac, pmodel->angles[ HEAD ] ) );
-				lower[ meta->head_rotator_node ].rotation *= EulerAnglesToQuaternion( angles );
+				lower[ meta->head_rotator_node ].rotation *= EulerDegrees3ToQuaternion( angles );
 			}
 		}
 
 		pose = ComputeMatrixPalettes( &temp, model, lower );
 	}
 
-	Mat3x4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->interpolated.scale );
+	Mat3x4 unscaled_transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin );
+	Mat3x4 transform = unscaled_transform * Mat4Scale( cent->interpolated.scale );
 
 	Vec4 color = CG_TeamColorVec4( cent->current.team );
 	if( corpse ) {
@@ -777,14 +783,13 @@ void CG_DrawPlayer( centity_t * cent ) {
 		DrawGLTFModel( config, model, transform, color, pose );
 	}
 
-	Mat3x4 inverse_scale = Mat4Scale( 1.0f / cent->interpolated.scale );
 
 	// add weapon model
 	{
 		const GLTFRenderData * weapon_model = GetEquippedItemRenderData( &cent->current );
 		if( weapon_model != NULL ) {
 			PlayerModelMetadata::Tag tag = cent->current.gadget == Gadget_None ? meta->tag_weapon : meta->tag_gadget;
-			Mat3x4 tag_transform = TransformTag( model, transform, pose, tag ) * inverse_scale;
+			Mat3x4 weapon_transform = unscaled_transform * TagTransform( model, pose, tag ) * InverseNodeTransform( weapon_model, "hand" );
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -795,14 +800,14 @@ void CG_DrawPlayer( centity_t * cent ) {
 				config.draw_silhouette.silhouette_color = color;
 			}
 
-			DrawGLTFModel( config, weapon_model, tag_transform, color );
+			DrawGLTFModel( config, weapon_model, weapon_transform, color );
 
 			u8 muzzle;
 			if( FindNodeByName( weapon_model, "muzzle", &muzzle ) ) {
-				pmodel->muzzle_transform = tag_transform * weapon_model->transform * weapon_model->nodes[ muzzle ].global_transform;
+				pmodel->muzzle_transform = weapon_transform * weapon_model->transform * weapon_model->nodes[ muzzle ].global_transform;
 			}
 			else {
-				pmodel->muzzle_transform = tag_transform;
+				pmodel->muzzle_transform = weapon_transform;
 			}
 		}
 	}
@@ -815,7 +820,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			if( cent->current.effects & EF_HAT )
 				tag = meta->tag_hat;
 
-			Mat3x4 tag_transform = TransformTag( model, transform, pose, tag ) * inverse_scale;
+			Mat3x4 tag_transform = unscaled_transform * TagTransform( model, pose, tag );
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -833,7 +838,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 		if( mask_model != NULL ) {
 			PlayerModelMetadata::Tag tag = meta->tag_mask;
 
-			Mat3x4 tag_transform = TransformTag( model, transform, pose, tag ) * inverse_scale;
+			Mat3x4 tag_transform = unscaled_transform * TagTransform( model, pose, tag );
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;

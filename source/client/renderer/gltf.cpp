@@ -216,6 +216,98 @@ static Span< const char > GetExtrasKey( Span< const char > key, GLTFExtras * ext
 	return Span< const char >();
 }
 
+static Transform GetLocalTransform( const cgltf_node * node ) {
+	Transform transform = {
+		.rotation = Quaternion::Identity(),
+		.translation = Vec3( 0.0f ),
+		.scale = 1.0f,
+	};
+
+	if( node->has_rotation ) {
+		transform.rotation = Quaternion(
+			node->rotation[ 0 ],
+			node->rotation[ 1 ],
+			node->rotation[ 2 ],
+			node->rotation[ 3 ]
+		);
+	}
+
+	if( node->has_translation ) {
+		transform.translation = Vec3(
+			node->translation[ 0 ],
+			node->translation[ 1 ],
+			node->translation[ 2 ]
+		);
+	}
+
+	if( node->has_scale ) {
+		// TODO
+		// Assert( Abs( node->scale[ 0 ] / node->scale[ 1 ] - 1.0f ) < 0.001f );
+		// Assert( Abs( node->scale[ 0 ] / node->scale[ 2 ] - 1.0f ) < 0.001f );
+		transform.scale = node->scale[ 0 ];
+	}
+
+	return transform;
+}
+
+static Quaternion Inverse( const Quaternion & q ) {
+	Assert( Abs( Length( q ) - 1.0f ) < 0.0001f );
+	return Quaternion( -q.x, -q.y, -q.z, q.w );
+}
+
+static Transform Inverse( const Transform & transform ) {
+	return Transform {
+		.rotation = Inverse( transform.rotation ),
+		.translation = -transform.translation,
+		.scale = transform.scale == 0.0f ? 0.0f : 1.0f / transform.scale,
+	};
+}
+
+static Mat3x4 TransformToMat3x4( const Transform & transform ) {
+	Quaternion q = transform.rotation;
+	Vec3 t = transform.translation;
+	float s = transform.scale;
+
+	// return t * q * s;
+	return Mat3x4(
+		( 1.0f - 2 * q.y * q.y - 2.0f * q.z * q.z ) * s,
+		( 2.0f * q.x * q.y - 2.0f * q.z * q.w ) * s,
+		( 2.0f * q.x * q.z + 2.0f * q.y * q.w ) * s,
+		t.x,
+
+		( 2.0f * q.x * q.y + 2.0f * q.z * q.w ) * s,
+		( 1.0f - 2.0f * q.x * q.x - 2.0f * q.z * q.z ) * s,
+		( 2.0f * q.y * q.z - 2.0f * q.x * q.w ) * s,
+		t.y,
+
+		( 2.0f * q.x * q.z - 2.0f * q.y * q.w ) * s,
+		( 2.0f * q.y * q.z + 2.0f * q.x * q.w ) * s,
+		( 1.0f - 2.0f * q.x * q.x - 2.0f * q.y * q.y ) * s,
+		t.z
+	);
+}
+
+static Mat3x4 GetInverseWorldTransform( const cgltf_node * node ) {
+	if( node == NULL )
+		return Mat3x4::Identity();
+
+	// ignore rotation/scale on the node itself, we only use this for joining
+	// nodes together and it makes that non-intuitive
+	Vec3 translation = Vec3( 0.0f );
+	if( node->has_translation ) {
+		translation = Vec3( node->translation[ 0 ], node->translation[ 1 ], node->translation[ 2 ] );
+	}
+	node = node->parent;
+
+	Mat3x4 transform = Mat3x4( Mat4Translation( -translation ) );
+	while( node != NULL ) {
+		transform = TransformToMat3x4( Inverse( GetLocalTransform( node ) ) ) * transform;
+		node = node->parent;
+	}
+
+	return transform;
+}
+
 static void LoadNode( GLTFRenderData * model, cgltf_data * gltf, cgltf_node * gltf_node, u8 * node_idx ) {
 	u8 idx = *node_idx;
 	*node_idx += 1;
@@ -229,33 +321,8 @@ static void LoadNode( GLTFRenderData * model, cgltf_data * gltf, cgltf_node * gl
 	cgltf_node_transform_world( gltf_node, global_transform.ptr() );
 
 	node->global_transform = Mat3x4( global_transform );
-	node->local_transform.rotation = Quaternion::Identity();
-	node->local_transform.translation = Vec3( 0.0f );
-	node->local_transform.scale = 1.0f;
-
-	if( gltf_node->has_rotation ) {
-		node->local_transform.rotation = Quaternion(
-			gltf_node->rotation[ 0 ],
-			gltf_node->rotation[ 1 ],
-			gltf_node->rotation[ 2 ],
-			gltf_node->rotation[ 3 ]
-		);
-	}
-
-	if( gltf_node->has_translation ) {
-		node->local_transform.translation = Vec3(
-			gltf_node->translation[ 0 ],
-			gltf_node->translation[ 1 ],
-			gltf_node->translation[ 2 ]
-		);
-	}
-
-	if( gltf_node->has_scale ) {
-		// TODO
-		// Assert( Abs( gltf_node->scale[ 0 ] / gltf_node->scale[ 1 ] - 1.0f ) < 0.001f );
-		// Assert( Abs( gltf_node->scale[ 0 ] / gltf_node->scale[ 2 ] - 1.0f ) < 0.001f );
-		node->local_transform.scale = gltf_node->scale[ 0 ];
-	}
+	node->inverse_global_transform = GetInverseWorldTransform( gltf_node );
+	node->local_transform = GetLocalTransform( gltf_node );
 
 	{
 		GLTFExtras extras = LoadExtras( gltf, gltf_node );
@@ -522,30 +589,6 @@ Span< Transform > SampleAnimation( Allocator * a, const GLTFRenderData * render_
 	return local_poses;
 }
 
-static Mat3x4 TransformToMat3x4( const Transform & transform ) {
-	Quaternion q = transform.rotation;
-	Vec3 t = transform.translation;
-	float s = transform.scale;
-
-	// return t * q * s;
-	return Mat3x4(
-		( 1.0f - 2 * q.y * q.y - 2.0f * q.z * q.z ) * s,
-		( 2.0f * q.x * q.y - 2.0f * q.z * q.w ) * s,
-		( 2.0f * q.x * q.z + 2.0f * q.y * q.w ) * s,
-		t.x,
-
-		( 2.0f * q.x * q.y + 2.0f * q.z * q.w ) * s,
-		( 1.0f - 2.0f * q.x * q.x - 2.0f * q.z * q.z ) * s,
-		( 2.0f * q.y * q.z - 2.0f * q.x * q.w ) * s,
-		t.y,
-
-		( 2.0f * q.x * q.z - 2.0f * q.y * q.w ) * s,
-		( 2.0f * q.y * q.z + 2.0f * q.x * q.w ) * s,
-		( 1.0f - 2.0f * q.x * q.x - 2.0f * q.y * q.y ) * s,
-		t.z
-	);
-}
-
 MatrixPalettes ComputeMatrixPalettes( Allocator * a, const GLTFRenderData * render_data, Span< const Transform > local_poses ) {
 	TracyZoneScoped;
 
@@ -601,18 +644,21 @@ static void MergePosesRecursive( Span< Transform > lower, Span< const Transform 
 	lower[ i ] = upper[ i ];
 
 	const GLTFRenderData::Node * node = &render_data->nodes[ i ];
-	if( node->sibling != U8_MAX )
+	if( node->sibling != U8_MAX ) {
 		MergePosesRecursive( lower, upper, render_data, node->sibling );
-	if( node->first_child != U8_MAX )
+	}
+	if( node->first_child != U8_MAX ) {
 		MergePosesRecursive( lower, upper, render_data, node->first_child );
+	}
 }
 
 void MergeLowerUpperPoses( Span< Transform > lower, Span< const Transform > upper, const GLTFRenderData * render_data, u8 upper_root_node ) {
 	lower[ upper_root_node ] = upper[ upper_root_node ];
 
 	const GLTFRenderData::Node * node = &render_data->nodes[ upper_root_node ];
-	if( node->first_child != U8_MAX )
+	if( node->first_child != U8_MAX ) {
 		MergePosesRecursive( lower, upper, render_data, node->first_child );
+	}
 }
 
 static void DrawVfxNode( DrawModelConfig::DrawModel config, const GLTFRenderData::Node * node, const Mat3x4 & transform, const Vec4 & color ) {

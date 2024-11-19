@@ -399,8 +399,7 @@ Quaternion BasisToQuaternion( Vec3 normal, Vec3 tangent, Vec3 bitangent ) {
 		}
 	}
 	else {
-		if( normal.x < -tangent.y )
-		{
+		if( normal.x < -tangent.y ) {
 			t = 1.0f - normal.x - tangent.y + bitangent.z;
 			q = Quaternion( bitangent.x + normal.z, tangent.z + bitangent.y, t, normal.y - tangent.x );
 		}

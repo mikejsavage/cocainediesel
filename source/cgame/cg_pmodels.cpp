@@ -658,8 +658,8 @@ static Quaternion EulerDegrees3ToQuaternion( EulerDegrees3 angles ) {
 
 	return Quaternion(
 		cp * cy * sr - sp * sy * cr,
-		cp * sy * cr + sp * cy * sr,
-		sp * cy * cr - cp * sy * sr,
+		sp * cy * cr + cp * sy * sr,
+		cp * sy * cr - sp * cy * sr,
 		cp * cy * cr + sp * sy * sr
 	);
 }
@@ -734,7 +734,6 @@ void CG_DrawPlayer( centity_t * cent ) {
 			// also add rotations from velocity leaning
 			{
 				EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ UPPER ], cg.lerpfrac, pmodel->angles[ UPPER ] ) * 0.5f );
-				Swap2( &angles.pitch, &angles.yaw ); // hack for rigg model
 
 				Quaternion q = EulerDegrees3ToQuaternion( angles );
 				lower[ meta->upper_rotator_nodes[ 0 ] ].rotation *= q;

@@ -683,7 +683,7 @@ static void DrawVfxNode( DrawModelConfig::DrawModel config, const GLTFRenderData
 			DrawDynamicLight( origin, node->dlight_node.color, node->dlight_node.intensity * size );
 			break;
 		case ModelVfxType_Decal:
-			DrawDecal( origin, normal, node->decal_node.radius * size, node->decal_node.angle, node->decal_node.name, node->decal_node.color );
+			DrawDecal( origin, QuaternionFromNormalAndRadians( normal, node->decal_node.angle ), node->decal_node.radius * size, node->decal_node.name, node->decal_node.color );
 			break;
 	}
 }

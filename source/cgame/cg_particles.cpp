@@ -1031,7 +1031,7 @@ static void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 co
 	actual_color.z += SampleRandomDistribution( &cls.rng, emitter->blue_distribution );
 	actual_color.w += SampleRandomDistribution( &cls.rng, emitter->alpha_distribution );
 	actual_color = Clamp01( actual_color );
-	AddPersistentDecal( origin, normal, size, angle, material, actual_color, lifetime * 1000.0f, emitter->height );
+	AddPersistentDecal( origin, QuaternionFromNormalAndRadians( normal, angle ), size, material, actual_color, lifetime * 1000.0f, emitter->height );
 }
 
 static void EmitDynamicLight( DynamicLightEmitter * emitter, Vec3 origin, Vec3 color ) {

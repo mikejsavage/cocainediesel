@@ -8,9 +8,8 @@
 
 struct Spray {
 	Vec3 origin;
-	Vec3 normal;
+	Quaternion orientation;
 	float radius;
-	float angle;
 	StringHash material;
 	s64 spawn_time;
 };
@@ -60,7 +59,6 @@ void AddSpray( Vec3 origin, Vec3 normal, EulerDegrees3 angles, float scale, u64 
 
 	Spray spray;
 	spray.origin = origin;
-	spray.normal = normal;
 	spray.material = num_spray_assets == 0 ? StringHash( "" ) : RandomElement( &rng, spray_assets, num_spray_assets );
 	spray.radius = RandomUniformFloat( &rng, 32.0f, 48.0f ) * scale;
 	spray.spawn_time = cls.gametime;
@@ -68,11 +66,8 @@ void AddSpray( Vec3 origin, Vec3 normal, EulerDegrees3 angles, float scale, u64 
 	Vec3 left = Cross( normal, up );
 	Vec3 decal_up = Normalize( Cross( left, normal ) );
 
-	Vec3 tangent, bitangent;
-	OrthonormalBasis( normal, &tangent, &bitangent );
-
-	spray.angle = -atan2f( Dot( decal_up, tangent ), Dot( decal_up, bitangent ) );
-	spray.angle += RandomFloat11( &rng ) * Radians( 10.0f );
+	Quaternion random_rotation = QuaternionFromAxisAndRadians( Vec3( 1.0f, 0.0f, 0.0f ), RandomFloat11( &rng ) * Radians( 10.0f ) );
+	spray.orientation = BasisToQuaternion( normal, -left, decal_up ) * random_rotation;
 
 	sprays[ ( sprays_head + num_sprays ) % ARRAY_COUNT( sprays ) ] = spray;
 
@@ -97,6 +92,6 @@ void DrawSprays() {
 
 	for( size_t i = 0; i < num_sprays; i++ ) {
 		const Spray * spray = &sprays[ ( sprays_head + i ) % ARRAY_COUNT( sprays ) ];
-		DrawDecal( spray->origin, spray->normal, spray->radius, spray->angle, spray->material, white.vec4, 0.0f );
+		DrawDecal( spray->origin, spray->orientation, spray->radius, spray->material, white.vec4, 0.0f );
 	}
 }

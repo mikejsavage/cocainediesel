@@ -79,7 +79,7 @@ static void GibImpact( Vec3 pos, Vec3 normal, Vec4 color, float scale ) {
 		};
 
 		if( Probability( &cls.rng, 0.25f ) ) {
-			AddPersistentDecal( pos, normal, scale * 64.0f, RandomRadians(), RandomElement( &cls.rng, decals ), color, 30000, 10.0f );
+			AddPersistentDecal( pos, QuaternionFromNormalAndRadians( normal, RandomRadians() ), scale * 64.0f, RandomElement( &cls.rng, decals ), color, 30000, 10.0f );
 		}
 	}
 }

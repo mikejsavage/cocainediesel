@@ -108,6 +108,11 @@ Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p );
 
 Mat3x4 Mat4Rotation( EulerDegrees3 angles );
 
+Quaternion EulerDegrees3ToQuaternion( EulerDegrees3 angles );
+Quaternion QuaternionFromAxisAndRadians( Vec3 axis, float radians );
+Quaternion QuaternionFromNormalAndRadians( Vec3 normal, float radians );
+Quaternion BasisToQuaternion( Vec3 normal, Vec3 tangent, Vec3 bitangent );
+
 MinMax3 Union( const MinMax3 & bounds, Vec3 p );
 MinMax3 Union( const MinMax3 & a, const MinMax3 & b );
 

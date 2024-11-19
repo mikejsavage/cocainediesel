@@ -497,6 +497,8 @@ struct Quaternion {
 	Quaternion() = default;
 	constexpr Quaternion( float x_, float y_, float z_, float w_ ) : x( x_ ), y( y_ ), z( z_ ), w( w_ ) { }
 
+	Vec3 im() const { return Vec3( x, y, z ); }
+
 	float * ptr() { return &x; }
 
 	static constexpr Quaternion Identity() {

@@ -648,22 +648,6 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	CG_UpdatePModelAnimations( cent );
 }
 
-static Quaternion EulerDegrees3ToQuaternion( EulerDegrees3 angles ) {
-	float cp = cosf( Radians( angles.pitch ) * 0.5f );
-	float sp = sinf( Radians( angles.pitch ) * 0.5f );
-	float cy = cosf( Radians( angles.yaw ) * 0.5f );
-	float sy = sinf( Radians( angles.yaw ) * 0.5f );
-	float cr = cosf( Radians( angles.roll ) * 0.5f );
-	float sr = sinf( Radians( angles.roll ) * 0.5f );
-
-	return Quaternion(
-		cp * cy * sr - sp * sy * cr,
-		sp * cy * cr + cp * sy * sr,
-		cp * sy * cr - sp * cy * sr,
-		cp * cy * cr + sp * sy * sr
-	);
-}
-
 static Mat3x4 TagTransform( const GLTFRenderData * model, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
 	if( pose.node_transforms.ptr != NULL ) {
 		return model->transform * pose.node_transforms[ tag.node_idx ] * tag.transform;

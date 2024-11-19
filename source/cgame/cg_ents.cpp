@@ -729,9 +729,8 @@ void DrawEntities() {
 				break;
 
 			case ET_DECAL: {
-				Vec3 normal;
-				AngleVectors( cent->current.angles, &normal, NULL, NULL );
-				DrawDecal( cent->current.origin, normal, cent->current.scale.x, cent->current.angles.roll, cent->current.material, sRGBToLinear( cent->current.color ) );
+				Quaternion orientation = EulerDegrees3ToQuaternion( cent->current.angles );
+				DrawDecal( cent->current.origin, orientation, cent->current.scale.x, cent->current.material, sRGBToLinear( cent->current.color ) );
 			} break;
 
 			case ET_LASERBEAM:

@@ -1,4 +1,5 @@
 #include "qcommon/base.h"
+#include "qcommon/array.h"
 #include "qcommon/time.h"
 #include "client/assets.h"
 #include "client/audio/api.h"
@@ -15,17 +16,15 @@ struct Spray {
 	Time expiration;
 };
 
-static StringHash spray_assets[ 4096 ];
-static size_t num_spray_assets;
-
 static constexpr Time SPRAY_LIFETIME = Seconds( 60 );
 
+static BoundedDynamicArray< StringHash, 4096 > spray_assets;
 static Spray sprays[ 1024 ];
 static size_t sprays_head;
 static size_t num_sprays;
 
 void InitSprays() {
-	num_spray_assets = 0;
+	spray_assets.clear();
 
 	for( Span< const char > path : AssetPaths() ) {
 		bool ext_ok = EndsWith( path, ".png" ) || EndsWith( path, ".jpg" ) || EndsWith( path, ".dds" );
@@ -38,13 +37,11 @@ void InitSprays() {
 			continue;
 		}
 
-		Assert( num_spray_assets < ARRAY_COUNT( spray_assets ) );
-
-		spray_assets[ num_spray_assets ] = StringHash( StripExtension( path ) );
-		num_spray_assets++;
+		[[maybe_unused]] bool ok = spray_assets.add( StringHash( StripExtension( path ) ) );
+		Assert( ok );
 	}
 
-	nanosort( spray_assets, spray_assets + num_spray_assets, []( StringHash a, StringHash b ) {
+	nanosort( spray_assets.begin(), spray_assets.end(), []( StringHash a, StringHash b ) {
 		return a.hash < b.hash;
 	} );
 
@@ -60,7 +57,7 @@ void AddSpray( Vec3 origin, Vec3 normal, EulerDegrees3 angles, float scale, u64 
 
 	Spray spray;
 	spray.origin = origin;
-	spray.material = num_spray_assets == 0 ? StringHash( "" ) : RandomElement( &rng, spray_assets, num_spray_assets );
+	spray.material = spray_assets.size() == 0 ? StringHash( "" ) : RandomElement( &rng, spray_assets.span() );
 	spray.radius = RandomUniformFloat( &rng, 32.0f, 48.0f ) * scale;
 	spray.expiration = cls.game_time + SPRAY_LIFETIME;
 

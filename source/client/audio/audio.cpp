@@ -818,21 +818,23 @@ static PlayingSFX * PlaySFXInternal( StringHash name, const PlaySFXConfig & conf
 	if( sfx == NULL )
 		return NULL;
 
-	PlayingSFX * ps = playing_sounds.add( playing_sound_handle_autoinc );
+	u64 handle = Hash64( playing_sound_handle_autoinc );
+
+	PlayingSFX * ps = playing_sounds.add( handle );
 	if( ps == NULL ) {
 		Com_Printf( S_COLOR_YELLOW "Too many playing sound effects!\n" );
 		return NULL;
 	}
 
-	*ps = { };
-	ps->config = config;
-	ps->hash = name;
-	ps->sfx = sfx;
+	*ps = PlayingSFX {
+		.handle = { handle },
+		.config = config,
+		.hash = name,
+		.sfx = sfx,
+		.start_time = cls.monotonicTime,
+	};
 
-	ps->handle = { playing_sound_handle_autoinc };
 	playing_sound_handle_autoinc++;
-
-	ps->start_time = cls.monotonicTime;
 
 	return ps;
 }

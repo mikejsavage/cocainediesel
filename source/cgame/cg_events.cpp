@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include "qcommon/array.h"
 #include "qcommon/time.h"
 #include "cgame/cg_local.h"
 #include "client/audio/api.h"
@@ -306,28 +307,23 @@ static int cg_announcerEventsCurrent = 0;
 static int cg_announcerEventsHead = 0;
 static int cg_announcerEventsDelay = 0;
 
-static Vec3 speaker_origins[ 1024 ];
-static size_t num_speakers;
+static BoundedDynamicArray< Vec3, 1024 > speaker_origins;
 
 void ResetAnnouncerSpeakers() {
-	num_speakers = 0;
+	speaker_origins.clear();
 }
 
 void AddAnnouncerSpeaker( const centity_t * cent ) {
-	if( num_speakers == ARRAY_COUNT( speaker_origins ) )
-		return;
-
-	speaker_origins[ num_speakers ] = cent->current.origin;
-	num_speakers++;
+	[[maybe_unused]] bool ok = speaker_origins.add( cent->current.origin );
 }
 
 static void PlayAnnouncerSound( StringHash sound ) {
-	if( num_speakers == 0 ) {
+	if( speaker_origins.size() == 0 ) {
 		PlaySFX( sound );
 	}
 	else {
-		for( size_t i = 0; i < num_speakers; i++ ) {
-			PlaySFX( sound, PlaySFXConfigPosition( speaker_origins[ i ] ) );
+		for( Vec3 pos : speaker_origins ) {
+			PlaySFX( sound, PlaySFXConfigPosition( pos ) );
 		}
 	}
 }

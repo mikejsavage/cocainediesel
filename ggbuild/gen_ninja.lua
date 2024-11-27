@@ -78,6 +78,7 @@ configs[ "linux-tsan" ] = {
 }
 configs[ "linux-release" ] = {
 	cxxflags = "-O2 -DNDEBUG",
+	ldflags = "-target x86_64-linux-gnu.2.27",
 	output_dir = "release/",
 	can_static_link = true,
 }

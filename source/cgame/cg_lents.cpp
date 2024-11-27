@@ -45,19 +45,20 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 	float radius = player_radius - gib_radius - epsilon;
 
 	for( int i = 0; i < count; i++ ) {
-		Gib * gib = gibs.add();
-		if( gib == NULL )
+		Optional< Gib * > gib = gibs.add();
+		if( !gib.exists )
 			break;
 
 		Vec3 dir = Vec3( UniformSampleInsideCircle( &cls.rng ), 0.0f );
-		gib->origin = origin + dir * radius;
-
 		dir.z = RandomFloat01( &cls.rng );
-		gib->velocity = velocity * 0.5f + dir * Length( velocity ) * 0.5f;
 
-		gib->scale = RandomUniformFloat( &cls.rng, 0.5f, 1.0f );
-		gib->lifetime = 10.0f;
-		gib->color = color;
+		*gib.value = Gib {
+			.origin = origin + dir * radius,
+			.velocity = velocity * 0.5f + dir * Length( velocity ) * 0.5f,
+			.scale = RandomUniformFloat( &cls.rng, 0.5f, 1.0f ),
+			.lifetime = 10.0f,
+			.color = color,
+		};
 	}
 }
 

@@ -99,7 +99,7 @@ void DrawDecal( Vec3 origin, Quaternion orientation, float radius, StringHash na
 	Vec3 c = Floor( color.xyz() * 255.0f );
 	c.x += floorf( height ) * 256.0f;
 
-	decals.add( Decal {
+	[[maybe_unused]] bool ok = decals.add( Decal {
 		.origin_orientation_xyz = Floor( origin ) + ( orientation.im() * 0.49f + 0.5f ),
 		.radius_orientation_w = floorf( radius ) + ( orientation.w * 0.49f + 0.5f ),
 		.color_uvwh_height = Vec4( uvwh.x, uvwh.y + c.x, uvwh.z + c.y, uvwh.w + c.z ),
@@ -116,7 +116,7 @@ void AddPersistentDecal( Vec3 origin, Quaternion orientation, float radius, Stri
 	Vec3 c = Floor( color.xyz() * 255.0f );
 	c.x += floorf( height ) * 256.0f;
 
-	persistent_decals.add( PersistentDecal {
+	[[maybe_unused]] bool ok = persistent_decals.add( PersistentDecal {
 		.decal = Decal {
 			.origin_orientation_xyz = Floor( origin ) + ( orientation.im() * 0.49f + 0.5f ),
 			.radius_orientation_w = floorf( radius ) + ( orientation.w * 0.49f + 0.5f ),
@@ -144,14 +144,14 @@ void DrawPersistentDecals() {
 }
 
 void DrawDynamicLight( Vec3 origin, Vec3 color, float intensity ) {
-	dlights.add( DynamicLight {
+	[[maybe_unused]] bool ok = dlights.add( DynamicLight {
 		.origin_color = Floor( origin ) + color * 0.9f,
 		.radius = sqrtf( intensity / DLIGHT_CUTOFF ),
 	} );
 }
 
 void AddPersistentDynamicLight( Vec3 origin, Vec3 color, float intensity, Time lifetime ) {
-	persistent_dlights.add( PersistentDynamicLight {
+	[[maybe_unused]] bool ok = persistent_dlights.add( PersistentDynamicLight {
 		.dlight = DynamicLight {
 			.origin_color = Floor( origin ) + color * 0.9f,
 			.radius = sqrtf( intensity / DLIGHT_CUTOFF ),

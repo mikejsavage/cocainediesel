@@ -203,7 +203,7 @@ static void InitOpenAL() {
 	alDistanceModel( AL_INVERSE_DISTANCE_CLAMPED );
 
 	for( size_t i = 0; i < ARRAY_COUNT( free_sound_sources ); i++ ) {
-		alGenSources( 1, free_sound_sources.add() );
+		alGenSources( 1, free_sound_sources.add().value );
 	}
 	alGenSources( 1, &music_source );
 
@@ -658,7 +658,7 @@ static bool StartSound( PlayingSFX * ps, size_t i ) {
 static void StopSound( PlayingSFX * ps, size_t i ) {
 	CheckedALSourceStop( ps->sources[ i ] );
 	CheckedALSource( ps->sources[ i ], AL_BUFFER, 0 );
-	free_sound_sources.add( ps->sources[ i ] );
+	[[maybe_unused]] bool ok = free_sound_sources.add( ps->sources[ i ] );
 	ps->stopped[ i ] = true;
 }
 

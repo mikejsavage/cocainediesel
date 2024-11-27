@@ -846,7 +846,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 				trace_t trace = CG_Trace( ent->origin, MinMax3( 4.0f ), end, -1, Solid_World );
 
-				if( trace.HitSomething() ) {
+				if( trace.HitSomething() && trace.normal != Vec3( 0.0f ) ) {
 					constexpr StringHash decals[] = {
 						"textures/blood_decals/blood1",
 						"textures/blood_decals/blood2",

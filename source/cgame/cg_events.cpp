@@ -82,7 +82,7 @@ static void FireRail( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin ) {
 	}
 
 	Vec3 fx_origin = from_origin ? origin : GetMuzzleTransform( ownerNum ).col3;
-	AddPersistentBeam( fx_origin, trace.endpos, 16.0f, color, "loadout/rail/beam", 0.25f, 0.1f );
+	AddPersistentBeam( fx_origin, trace.endpos, 16.0f, color, "loadout/rail/beam", Milliseconds( 250 ), Milliseconds( 100 ) );
 	RailTrailParticles( fx_origin, trace.endpos, color );
 }
 
@@ -254,7 +254,7 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 		WallbangImpact( &wallbang, team_color, 12 );
 	}
 
-	AddPersistentBeam( GetMuzzleTransform( owner ).col3, trace.endpos, 1.0f, team_color, "tracer", 0.2f, 0.1f );
+	AddPersistentBeam( GetMuzzleTransform( owner ).col3, trace.endpos, 1.0f, team_color, "tracer", Milliseconds( 200 ), Milliseconds( 100 ) );
 }
 
 static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_color, WeaponType weapon ) {
@@ -282,7 +282,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 			WallbangImpact( &wallbang, team_color, 2, 0.5f );
 		}
 
-		AddPersistentBeam( muzzle, trace.endpos, 1.0f, team_color, "loadout/tracer", 0.2f, 0.1f );
+		AddPersistentBeam( muzzle, trace.endpos, 1.0f, team_color, "loadout/tracer", Milliseconds( 200 ), Milliseconds( 100 ) );
 	}
 
 	// spawn a single sound at the impact

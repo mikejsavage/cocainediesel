@@ -1,6 +1,7 @@
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/hashtable.h"
+#include "qcommon/time.h"
 
 #define OPTIMIZED_TRAILS
 
@@ -46,7 +47,7 @@ public:
 
 struct TrailPoint {
 	Vec3 p;
-	u64 t;
+	Time t;
 };
 
 struct Trail {
@@ -55,7 +56,7 @@ struct Trail {
 	float width;
 	Vec4 color;
 	StringHash material;
-	u64 duration;
+	Time duration;
 	float offset;
 };
 
@@ -69,7 +70,7 @@ void InitTrails() {
 	num_trails = 0;
 }
 
-void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash material, u64 duration ) {
+void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash material, Time duration ) {
 	u64 idx = num_trails;
 	if( !trails_hashtable.get( unique_id, &idx ) ) {
 		if( num_trails == MAX_TRAILS ) {
@@ -92,7 +93,7 @@ void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash m
 
 	TrailPoint new_point;
 	new_point.p = point;
-	new_point.t = cls.gametime;
+	new_point.t = cls.game_time;
 
 	float dist = 1.0f;
 	if( trail.points.n > 0 ) {
@@ -122,7 +123,7 @@ void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash m
 }
 
 static bool UpdateTrail( Trail & trail ) {
-	u64 tail_time = cls.gametime - trail.duration;
+	Time tail_time = cls.game_time - Min2( cls.game_time, trail.duration );
 	for( size_t i = 0; i < trail.points.n; i++ ) {
 		if( trail.points[ i ].t > tail_time ) {
 			break;
@@ -175,7 +176,7 @@ static void DrawActualTrail( const Trail & trail ) {
 			Vec3 prev_a = trail.points[ i - 1 ].p;
 			dir = a.p - prev_a;
 		}
-		float fract = Clamp01( Unlerp01( cls.gametime - s64( trail.duration ), s64( a.t ), cls.gametime ) );
+		float fract = Unlerp01( cls.game_time - trail.duration, a.t, cls.game_time );
 
 		float len = Length( dir );
 		dir /= len;

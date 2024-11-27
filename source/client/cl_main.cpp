@@ -216,6 +216,7 @@ void CL_ClearState() {
 	cls.ucmdAcknowledged = 0;
 
 	//restart realtime and lastPacket times
+	cls.game_time = { };
 	cls.realtime = 0;
 	cls.gametime = 0;
 	cls.lastPacketSentTime = 0;
@@ -763,7 +764,7 @@ void CL_AdjustServerTime( unsigned int gameMsec ) {
 		}
 	}
 
-	cl.serverTime = cls.gametime + cl.serverTimeDelta;
+	cl.serverTime = ( cls.game_time.flicks / ( GGTIME_FLICKS_PER_SECOND / 1000 ) ) + cl.serverTimeDelta;
 
 	// it launches a new snapshot when the timestamp of the CURRENT snap is reached.
 	if( cl.pendingSnapNum && ( cl.serverTime >= cl.snapShots[ cl.currentSnapNum % ARRAY_COUNT( cl.snapShots ) ].serverTime ) ) {
@@ -1007,6 +1008,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	static float roundingMsec = 0.0f;
 
 	cls.monotonicTime += Milliseconds( realMsec );
+	cls.game_time += Milliseconds( gameMsec );
 	cls.shadertoy_time += Milliseconds( gameMsec );
 	cls.realtime += realMsec;
 

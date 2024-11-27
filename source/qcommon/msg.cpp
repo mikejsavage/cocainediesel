@@ -209,6 +209,10 @@ static void Delta( DeltaBuffer * buf, StringHash & hash, StringHash baseline ) {
 	DeltaFundamental( buf, hash.hash, baseline.hash );
 }
 
+static void Delta( DeltaBuffer * buf, Time & time, Time baseline ) {
+	DeltaFundamental( buf, time.flicks, baseline.flicks );
+}
+
 template< typename T, size_t N >
 void Delta( DeltaBuffer * buf, T ( &arr )[ N ], const T ( &baseline )[ N ] ) {
 	for( size_t i = 0; i < N; i++ ) {

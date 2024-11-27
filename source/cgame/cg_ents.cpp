@@ -614,7 +614,7 @@ static void DrawEntityTrail( const centity_t * cent, StringHash name ) {
 
 	Vec4 color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 0.5f );
 	DoVisualEffect( name, cent->interpolated.origin, cent->trailOrigin, 1.0f, color );
-	DrawTrail( Hash64( cent->current.id.id ), cent->interpolated.origin, 16.0f, color, "simpletrail", 500 );
+	DrawTrail( Hash64( cent->current.id.id ), cent->interpolated.origin, 16.0f, color, "simpletrail", Milliseconds( 500 ) );
 }
 
 void DrawEntities() {

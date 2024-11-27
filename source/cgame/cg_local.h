@@ -391,7 +391,7 @@ void DrawPersistentBeams();
 //
 // cg_trails.cpp
 //
-void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash material, u64 duration );
+void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash material, Time duration );
 void InitTrails();
 void DrawTrails();
 

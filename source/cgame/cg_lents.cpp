@@ -1,5 +1,6 @@
 #include "cgame/cg_local.h"
 #include "qcommon/array.h"
+#include "qcommon/time.h"
 #include "client/audio/api.h"
 #include "client/renderer/renderer.h"
 
@@ -79,7 +80,7 @@ static void GibImpact( Vec3 pos, Vec3 normal, Vec4 color, float scale ) {
 		};
 
 		if( Probability( &cls.rng, 0.25f ) ) {
-			AddPersistentDecal( pos, QuaternionFromNormalAndRadians( normal, RandomRadians() ), scale * 64.0f, RandomElement( &cls.rng, decals ), color, 30000, 10.0f );
+			AddPersistentDecal( pos, QuaternionFromNormalAndRadians( normal, RandomRadians() ), scale * 64.0f, RandomElement( &cls.rng, decals ), color, Seconds( 30 ), 10.0f );
 		}
 	}
 }

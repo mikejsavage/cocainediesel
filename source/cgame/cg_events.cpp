@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include "qcommon/time.h"
 #include "cgame/cg_local.h"
 #include "client/audio/api.h"
 #include "gameshared/collision.h"
@@ -865,7 +866,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 					float min_size = Lerp( 20.0f, Unlerp01( 5, damage, 50 ), 64.0f );
 					float size = min_size * RandomUniformFloat( &cls.rng, 0.75f, 1.5f );
 
-					AddPersistentDecal( trace.endpos, QuaternionFromNormalAndRadians( trace.normal, angle ), size, RandomElement( &cls.rng, decals ), team_color, 30000, 10.0f );
+					AddPersistentDecal( trace.endpos, QuaternionFromNormalAndRadians( trace.normal, angle ), size, RandomElement( &cls.rng, decals ), team_color, Seconds( 30 ), 10.0f );
 				}
 
 				p -= 1.0f;

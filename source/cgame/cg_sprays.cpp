@@ -1,4 +1,5 @@
 #include "qcommon/base.h"
+#include "qcommon/time.h"
 #include "client/assets.h"
 #include "client/audio/api.h"
 #include "client/renderer/material.h"
@@ -11,13 +12,13 @@ struct Spray {
 	Quaternion orientation;
 	float radius;
 	StringHash material;
-	s64 spawn_time;
+	Time expiration;
 };
 
 static StringHash spray_assets[ 4096 ];
 static size_t num_spray_assets;
 
-static constexpr s64 SPRAY_LIFETIME = 60000;
+static constexpr Time SPRAY_LIFETIME = Seconds( 60 );
 
 static Spray sprays[ 1024 ];
 static size_t sprays_head;
@@ -61,7 +62,7 @@ void AddSpray( Vec3 origin, Vec3 normal, EulerDegrees3 angles, float scale, u64 
 	spray.origin = origin;
 	spray.material = num_spray_assets == 0 ? StringHash( "" ) : RandomElement( &rng, spray_assets, num_spray_assets );
 	spray.radius = RandomUniformFloat( &rng, 32.0f, 48.0f ) * scale;
-	spray.spawn_time = cls.gametime;
+	spray.expiration = cls.game_time + SPRAY_LIFETIME;
 
 	Vec3 left = Cross( normal, up );
 	Vec3 decal_up = Normalize( Cross( left, normal ) );
@@ -84,7 +85,7 @@ void AddSpray( Vec3 origin, Vec3 normal, EulerDegrees3 angles, float scale, u64 
 
 void DrawSprays() {
 	while( num_sprays > 0 ) {
-		if( sprays[ sprays_head % ARRAY_COUNT( sprays ) ].spawn_time + SPRAY_LIFETIME >= cls.gametime )
+		if( sprays[ sprays_head % ARRAY_COUNT( sprays ) ].expiration >= cls.game_time )
 			break;
 		sprays_head++;
 		num_sprays--;

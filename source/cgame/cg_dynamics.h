@@ -11,10 +11,10 @@ void ShutdownDecals();
 void DrawDecal( Vec3 origin, Quaternion orientation, float radius, StringHash name, Vec4 color, float height = 0.0f );
 void DrawDynamicLight( Vec3 origin, Vec3 color, float intensity );
 
-void AddPersistentDecal( Vec3 origin, Quaternion orientation, float radius, StringHash name, Vec4 color, s64 duration, float height = 0.0f );
+void AddPersistentDecal( Vec3 origin, Quaternion orientation, float radius, StringHash name, Vec4 color, Time lifetime, float height = 0.0f );
 void DrawPersistentDecals();
 
-void AddPersistentDynamicLight( Vec3 origin, Vec3 color, float intensity, s64 duration );
+void AddPersistentDynamicLight( Vec3 origin, Vec3 color, float intensity, Time lifetime );
 void DrawPersistentDynamicLights();
 
 void AllocateDecalBuffers();

@@ -30,7 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_sprays.h"
 
 #include "client/audio/types.h"
-#include "client/renderer/types.h"
+#include "client/renderer/api.h"
 
 constexpr float FOV = 107.9f; // chosen to upset everyone equally
 
@@ -129,6 +129,7 @@ struct cg_viewdef_t {
 #include "cgame/cg_democams.h"
 
 // this is not exactly "static" but still...
+struct Font;
 struct cg_static_t {
 	const char *demoName;
 	unsigned int playerNum;
@@ -234,8 +235,6 @@ void CG_LerpGenericEnt( centity_t *cent );
 //
 // cg_draw.c
 //
-int CG_HorizontalAlignForWidth( int x, Alignment alignment, int width );
-int CG_VerticalAlignForHeight( int y, Alignment alignment, int height );
 Vec2 WorldToScreen( Vec3 v );
 Vec2 WorldToScreenClamped( Vec3 v, Vec2 screen_border, bool * clamped );
 

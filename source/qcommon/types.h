@@ -164,6 +164,12 @@ inline const char ** DestupidInitializerLists( const char * const * str ) {
 	return const_cast< const char ** >( str );
 }
 
+template< typename T > struct Span;
+template<>
+inline Span< const char > * DestupidInitializerLists( const Span< const char > * str ) {
+	return const_cast< Span< const char > * >( str );
+}
+
 template< typename T >
 struct Span {
 	T * ptr;
@@ -304,6 +310,21 @@ struct Optional {
 		exists = true;
 	}
 };
+
+/*
+ * PoolHandle
+ */
+
+template< typename T > struct PoolHandleType { };
+template< typename T >
+struct PoolHandle {
+	typename PoolHandleType< T >::T x;
+};
+
+template< typename T >
+bool operator==( PoolHandle< T > lhs, PoolHandle< T > rhs ) {
+	return lhs.x == rhs.x;
+}
 
 /*
  * maths types

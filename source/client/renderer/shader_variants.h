@@ -1,23 +1,18 @@
 #pragma once
 
 #include "qcommon/types.h"
-#include "shader.h"
+#include "client/renderer/shader.h"
 
 struct GraphicsShaderDescriptor {
-	struct Variant {
-		VertexDescriptor mesh_format;
-		Span< const char * > features;
-	};
-
-	Shader Shaders:: * field;
-	const char * src;
-	Span< const char * > features;
-	Span< const Variant > variants;
+	PoolHandle< RenderPipeline > Shaders:: * field;
+	Span< const char > src;
+	Span< Span< const char > > features;
+	Span< const VertexDescriptor > vertex_formats;
 };
 
 struct ComputeShaderDescriptor {
-	Shader Shaders:: * field;
-	const char * src;
+	PoolHandle< ComputePipeline > Shaders:: * field;
+	Span< const char > src;
 };
 
 struct ShaderDescriptors {
@@ -69,19 +64,19 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 			GraphicsShaderDescriptor {
 				.field = &Shaders::standard,
 				.src = "standard.glsl",
-				.variants = {
-					{ pos_normal },
-					{ pos_normal_uv },
-					{ pos_normal_uv_skinned, { "SKINNED" } },
-				},
+				.vertex_formats = { pos_normal, pos_normal_uv },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::standard_vertexcolors,
 				.src = "standard.glsl",
 				.features = { "VERTEX_COLORS" },
-				.variants = {
-					{ pos_uv },
-				},
+				.vertex_formats = { pos_uv },
+			},
+			GraphicsShaderDescriptor {
+				.field = &Shaders::standard_skinned,
+				.src = "standard.glsl",
+				.features = { "SKINNED" },
+				.vertex_formats = { pos_normal_uv_skinned },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::world,
@@ -94,45 +89,51 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 					"APPLY_SHADOWS",
 					"SHADED",
 				},
-				.variants = { { pos_normal } },
+				.vertex_formats = { pos_normal },
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::depth_only,
 				.src = "depth_only.glsl",
-				.variants = {
-					{ pos_normal },
-					{ pos_normal_uv },
-					{ pos_normal_uv_skinned, { "SKINNED" } },
-				},
+				.vertex_formats = { pos_normal, pos_normal_uv },
+			},
+			GraphicsShaderDescriptor {
+				.field = &Shaders::depth_only_skinned,
+				.src = "depth_only.glsl",
+				.features = { "SKINNED" },
+				.vertex_formats = { pos_normal_uv_skinned },
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::outline,
 				.src = "outline.glsl",
-				.variants = {
+				.vertex_formats = {
 					{ pos_normal },
 					{ pos_normal_uv },
-					{ pos_normal_uv_skinned, { "SKINNED" } },
 				},
+			},
+			GraphicsShaderDescriptor {
+				.field = &Shaders::outline_skinned,
+				.src = "outline.glsl",
+				.features = { "SKINNED" },
+				.vertex_formats = { pos_normal_uv_skinned },
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::skybox,
 				.src = "skybox.glsl",
-				.variants = { { skybox_vertex_descriptor } },
+				.vertex_formats = { { skybox_vertex_descriptor } },
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::text,
 				.src = "text.glsl",
-				.variants = { { text_vertex_descriptor } },
+				.vertex_formats = { { text_vertex_descriptor } },
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::skybox,
 				.src = "particle.glsl",
-				.variants = { { } },
 			},
 		},
 

@@ -31,7 +31,7 @@
 #include "client/maps.h"
 #include "client/console.h"
 #include "client/audio/types.h"
-#include "client/renderer/types.h"
+#include "client/renderer/api.h"
 
 struct ImFont;
 struct snapshot_t;

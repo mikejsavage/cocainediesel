@@ -39,8 +39,6 @@ static Material missing_material;
 static Material materials[ MAX_MATERIALS ];
 static Hashtable< MAX_MATERIALS * 2 > materials_hashtable;
 
-static Sampler samplers[ Sampler_Count ];
-
 static Vec4 decal_uvwhs[ MAX_DECALS ];
 static Vec4 decal_trims[ MAX_DECALS ];
 static u32 num_decals;
@@ -340,25 +338,6 @@ static bool ParseMaterial( Material * material, Span< const char > name, Span< c
 	}
 
 	return true;
-}
-
-static void CreateSamplers() {
-	samplers[ Sampler_Standard ] = NewSampler( SamplerConfig { } );
-	samplers[ Sampler_Clamp ] = NewSampler( SamplerConfig {
-		.wrap = SamplerWrap_Clamp,
-	} );
-	samplers[ Sampler_Unfiltered ] = NewSampler( SamplerConfig {
-		.filter = false,
-	} );
-	samplers[ Sampler_Shadowmap ] = NewSampler( SamplerConfig {
-		.shadowmap_sampler = true,
-	} );
-}
-
-static void DeleteSamplers() {
-	for( Sampler sampler : samplers ) {
-		DeleteSampler( sampler );
-	}
 }
 
 static void UnloadTexture( u64 idx ) {
@@ -1043,10 +1022,6 @@ bool TryFindDecal( StringHash name, Vec4 * uvwh, Vec4 * trim ) {
 
 const Texture * DecalAtlasTextureArray() {
 	return &decals_atlases;
-}
-
-Sampler GetSampler( SamplerType sampler ) {
-	return samplers[ sampler ];
 }
 
 Vec2 HalfPixelSize( const Material * material ) {

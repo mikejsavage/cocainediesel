@@ -1,31 +1,24 @@
 #include "qcommon/base.h"
 #include "client/client.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
 #include "gameshared/cdmap.h"
 
-MapSharedRenderData NewMapRenderData( const MapData & map, Span< const char > name ) {
+Mesh NewMapRenderData( const MapData & map, Span< const char > name ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	MeshConfig mesh_config = { };
-	mesh_config.name = name;
-	mesh_config.set_attribute( VertexAttribute_Position, NewGPUBuffer( map.vertex_positions, temp.sv( "{} positions", name ) ) );
-	mesh_config.set_attribute( VertexAttribute_Normal, NewGPUBuffer( map.vertex_normals, temp.sv( "{} normals", name ) ) );
-	mesh_config.index_buffer = NewGPUBuffer( map.vertex_indices, temp.sv( "{} indices", name ) );
-	mesh_config.index_format = IndexFormat_U32;
-	mesh_config.num_vertices = map.vertex_indices.n;
+	GPUBuffer positions_buffer = NewBuffer( GPULifetime_Persistent, temp( "{} positions", name ), map.vertex_positions );
+	GPUBuffer normals_buffer = NewBuffer( GPULifetime_Persistent, temp( "{} normals", name ), map.vertex_normals );
 
-	MapSharedRenderData shared = { };
-	shared.mesh = NewMesh( mesh_config );
+	Mesh mesh = { };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx3, 0, 0 };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_Normal ] = { VertexFormat_Floatx3, 1, 0 };
+	mesh.vertex_descriptor.buffer_strides = { sizeof( Vec3 ), sizeof( Vec3 ) };
+	mesh.index_format = IndexFormat_U32,
+	mesh.num_vertices = map_mesh.num_vertices,
+	mesh.vertex_buffers = { positions_buffer, normals_buffer },
+	mesh.index_buffer = NewBuffer( GPULifetime_Persistent, temp( "{} indices", name ), map.vertex_indices );
 
-	return shared;
-}
-
-void DeleteMapRenderData( const MapSharedRenderData & render_data ) {
-	DeleteMesh( render_data.mesh );
-	// DeleteGPUBuffer( render_data.nodes );
-	// DeleteGPUBuffer( render_data.leaves );
-	// DeleteGPUBuffer( render_data.brushes );
-	// DeleteGPUBuffer( render_data.planes );
+	return mesh;
 }
 
 void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData * render_data, const Mat3x4 & transform, const Vec4 & color ) {

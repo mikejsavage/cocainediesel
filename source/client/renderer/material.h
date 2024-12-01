@@ -2,7 +2,7 @@
 
 #include "qcommon/types.h"
 #include "qcommon/hash.h"
-#include "client/renderer/backend.h"
+#include "client/renderer/api.h"
 
 enum WaveFunc {
 	WaveFunc_Sin,
@@ -42,12 +42,34 @@ struct ColorGen {
 	Wave wave = { };
 };
 
+// TODO
+template< size_t N >
+struct BoundedString {
+	char str[ N ];
+	size_t n;
+
+	BoundedString() = default;
+
+	BoundedString( const char * str_ ) {
+		n = Min2( strlen( str_ ), N );
+		memcpy( str, str_, n );
+	}
+
+	BoundedString( Span< const char > str_ ) {
+		n = Min2( str_.n, N );
+		memcpy( str, str_.ptr, n );
+	}
+
+	Span< const char > span() const { return Span< const char >( str, n ); }
+};
+
 struct Material {
-	Span< char > name;
+	BoundedString< 64 > name;
 	u64 hash;
 
-	const Texture * texture;
-	SamplerType sampler = Sampler_Standard;
+	PoolHandle< RenderPipeline > shader;
+	RenderPipelineDynamicState dynamic_state;
+	PoolHandle< BindGroup > bind_group;
 
 	ColorGen rgbgen;
 	ColorGen alphagen;
@@ -74,8 +96,6 @@ void ShutdownMaterials();
 const Material * FindMaterial( StringHash name );
 const Material * FindMaterial( const char * name );
 bool TryFindMaterial( StringHash name, const Material ** material );
-
-Sampler GetSampler( SamplerType sampler );
 
 bool TryFindDecal( StringHash name, Vec4 * uvwh, Vec4 * trim );
 const Texture * DecalAtlasTextureArray();

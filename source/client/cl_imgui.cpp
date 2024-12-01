@@ -12,7 +12,7 @@
 
 #include "nanosort/nanosort.hpp"
 
-static Texture atlas_texture;
+static PoolHandle< Texture > atlas_texture;
 static Material atlas_material;
 
 static ImFont * AddFontAsset( StringHash path, float pixel_size, bool idi_nahui = false ) {
@@ -86,13 +86,12 @@ void CL_InitImGui() {
 		int width, height;
 		io.Fonts->GetTexDataAsAlpha8( &pixels, &width, &height );
 
-		TextureConfig config;
-		config.format = TextureFormat_A_U8;
-		config.width = width;
-		config.height = height;
-		config.data = pixels;
-
-		atlas_texture = NewTexture( config );
+		atlas_texture = NewTexture( TextureConfig {
+			.format = TextureFormat_A_U8,
+			.width = width,
+			.height = height,
+			.data = pixels,
+		} );
 		atlas_material.texture = &atlas_texture;
 		io.Fonts->TexID = ImGuiShaderAndMaterial( &atlas_material );
 	}

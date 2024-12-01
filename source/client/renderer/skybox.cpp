@@ -27,18 +27,13 @@ void InitSkybox() {
 		0, 1, 5, 5, 4, 0,
 	};
 
-	MeshConfig mesh_config = { };
-	mesh_config.name = "Skybox";
-	mesh_config.set_attribute( VertexAttribute_Position, NewGPUBuffer( verts, sizeof( verts ), "Skybox vertices" ) );
-	mesh_config.vertex_descriptor.attributes[ VertexAttribute_Position ].value.format = VertexFormat_Floatx4;
-	mesh_config.index_buffer = NewGPUBuffer( indices, sizeof( indices ), "Skybox indices" );
-	mesh_config.num_vertices = ARRAY_COUNT( indices );
-
-	sky_mesh = NewMesh( mesh_config );
-}
-
-void ShutdownSkybox() {
-	DeleteMesh( sky_mesh );
+	sky_mesh = { };
+	sky_mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx4, 0, 0 };
+	sky_mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec4 );
+	sky_mesh.index_format = IndexFormat_U16;
+	sky_mesh.num_vertices = ARRAY_COUNT( indices );
+	sky_mesh.vertex_buffers[ 0 ] = NewBuffer( GPULifetime_Persistent, "Skybox vertices", verts );
+	sky_mesh.index_buffer = NewBuffer( GPULifetime_Persistent, "Skybox indices", indices );
 }
 
 void DrawSkybox( Time time ) {

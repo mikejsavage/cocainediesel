@@ -1,55 +1,54 @@
 #pragma once
 
-#include "client/renderer/types.h"
+#include "client/renderer/api.h"
 
 struct Shaders {
-	Shader standard;
-	Shader standard_shaded;
-	Shader standard_vertexcolors;
+	PoolHandle< RenderPipeline > standard;
+	PoolHandle< RenderPipeline > standard_shaded;
+	PoolHandle< RenderPipeline > standard_vertexcolors;
 
-	Shader standard_skinned;
-	Shader standard_skinned_shaded;
+	PoolHandle< RenderPipeline > standard_skinned;
+	PoolHandle< RenderPipeline > standard_skinned_shaded;
 
-	Shader standard_instanced;
-	Shader standard_shaded_instanced;
+	PoolHandle< RenderPipeline > standard_instanced;
+	PoolHandle< RenderPipeline > standard_shaded_instanced;
 
-	Shader depth_only;
-	Shader depth_only_instanced;
-	Shader depth_only_skinned;
+	PoolHandle< RenderPipeline > depth_only;
+	PoolHandle< RenderPipeline > depth_only_instanced;
+	PoolHandle< RenderPipeline > depth_only_skinned;
 
-	Shader world;
-	Shader world_instanced;
-	Shader postprocess_world_gbuffer;
-	Shader postprocess_world_gbuffer_msaa;
+	PoolHandle< RenderPipeline > world;
+	PoolHandle< RenderPipeline > world_instanced;
+	PoolHandle< RenderPipeline > postprocess_world_gbuffer;
+	PoolHandle< RenderPipeline > postprocess_world_gbuffer_msaa;
 
-	Shader write_silhouette_gbuffer;
-	Shader write_silhouette_gbuffer_instanced;
-	Shader write_silhouette_gbuffer_skinned;
-	Shader postprocess_silhouette_gbuffer;
+	PoolHandle< RenderPipeline > write_silhouette_gbuffer;
+	PoolHandle< RenderPipeline > write_silhouette_gbuffer_instanced;
+	PoolHandle< RenderPipeline > write_silhouette_gbuffer_skinned;
+	PoolHandle< RenderPipeline > postprocess_silhouette_gbuffer;
 
-	Shader outline;
-	Shader outline_instanced;
-	Shader outline_skinned;
+	PoolHandle< RenderPipeline > outline;
+	PoolHandle< RenderPipeline > outline_instanced;
+	PoolHandle< RenderPipeline > outline_skinned;
 
-	Shader scope;
+	PoolHandle< RenderPipeline > scope;
 
-	Shader particle_compute;
-	Shader particle_setup_indirect;
+	PoolHandle< ComputePipeline > particle_compute;
+	PoolHandle< ComputePipeline > particle_setup_indirect;
 
-	Shader particle;
+	PoolHandle< RenderPipeline > particle;
 
-	Shader tile_culling;
+	PoolHandle< ComputePipeline > tile_culling;
 
-	Shader skybox;
+	PoolHandle< RenderPipeline > skybox;
 
-	Shader text;
-	Shader text_alphatest;
+	PoolHandle< RenderPipeline > text;
+	PoolHandle< RenderPipeline > text_alphatest;
 
-	Shader postprocess;
+	PoolHandle< RenderPipeline > postprocess;
 };
 
 extern Shaders shaders;
 
 void InitShaders();
 void HotloadShaders();
-void ShutdownShaders();

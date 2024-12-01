@@ -23,7 +23,7 @@
 FrameStatic frame_static;
 static u64 frame_counter;
 
-static Texture blue_noise;
+static PoolHandle< Texture > blue_noise;
 
 static Mesh fullscreen_mesh;
 
@@ -166,37 +166,17 @@ void InitRenderer() {
 	InitVisualEffects();
 }
 
-static void DeleteRenderTargets() {
-	DeleteRenderTargetAndTextures( frame_static.render_targets.silhouette_mask );
-	DeleteRenderTarget( frame_static.render_targets.postprocess );
-	DeleteRenderTarget( frame_static.render_targets.msaa );
-	DeleteRenderTargetAndTextures( frame_static.render_targets.postprocess_masked );
-	DeleteRenderTargetAndTextures( frame_static.render_targets.msaa_masked );
-	DeleteRenderTarget( frame_static.render_targets.postprocess_onlycolor );
-	DeleteRenderTarget( frame_static.render_targets.msaa_onlycolor );
-
-	DeleteTexture( frame_static.render_targets.shadowmaps[ 0 ].depth_attachment );
-	for( RenderTarget & rt : frame_static.render_targets.shadowmaps ) {
-		DeleteRenderTarget( rt );
-	}
-
-	frame_static.render_targets = { };
-}
-
 void ShutdownRenderer() {
 	TracyZoneScoped;
 
 	FlushRenderBackend();
 
 	ShutdownVisualEffects();
-	ShutdownSkybox();
 	ShutdownText();
 	ShutdownMaterials();
-	ShutdownShaders();
 
 	DeleteTexture( blue_noise );
 	DeleteMesh( fullscreen_mesh );
-	DeleteRenderTargets();
 
 	DeleteStreamingBuffer( dynamic_geometry.buffer );
 
@@ -329,7 +309,7 @@ static UniformBlock UploadViewUniforms( const Mat3x4 & V, const Mat3x4 & inverse
 }
 
 static void CreateRenderTargets() {
-	DeleteRenderTargets();
+	frame_static.render_targets = { };
 
 	{
 		RenderTargetConfig rt;
@@ -345,21 +325,21 @@ static void CreateRenderTargets() {
 	}
 
 	if( frame_static.msaa_samples > 1 ) {
-		Texture albedo = NewTexture( TextureConfig {
+		Texture albedo = NewTexture( GPULifetime_Framebuffer, TextureConfig {
 			.format = TextureFormat_RGBA_U8_sRGB,
 			.width = frame_static.viewport_width,
 			.height = frame_static.viewport_height,
 			.msaa_samples = frame_static.msaa_samples,
 		} );
 
-		Texture curved_surface_mask = NewTexture( TextureConfig {
+		Texture curved_surface_mask = NewTexture( GPULifetime_Framebuffer, TextureConfig {
 			.format = TextureFormat_R_UI8,
 			.width = frame_static.viewport_width,
 			.height = frame_static.viewport_height,
 			.msaa_samples = frame_static.msaa_samples,
 		} );
 
-		Texture depth = NewTexture( TextureConfig {
+		Texture depth = NewTexture( GPULifetime_Framebuffer, TextureConfig {
 			.format = TextureFormat_Depth,
 			.width = frame_static.viewport_width,
 			.height = frame_static.viewport_height,
@@ -389,19 +369,19 @@ static void CreateRenderTargets() {
 	}
 
 	{
-		Texture albedo = NewTexture( TextureConfig {
+		Texture albedo = NewTexture( GPULifetime_Framebuffer, TextureConfig {
 			.format = TextureFormat_RGBA_U8_sRGB,
 			.width = frame_static.viewport_width,
 			.height = frame_static.viewport_height,
 		} );
 
-		Texture curved_surface_mask = NewTexture( TextureConfig {
+		Texture curved_surface_mask = NewTexture( GPULifetime_Framebuffer, TextureConfig {
 			.format = TextureFormat_R_UI8,
 			.width = frame_static.viewport_width,
 			.height = frame_static.viewport_height,
 		} );
 
-		Texture depth = NewTexture( TextureConfig {
+		Texture depth = NewTexture( GPULifetime_Framebuffer, TextureConfig {
 			.format = TextureFormat_Depth,
 			.width = frame_static.viewport_width,
 			.height = frame_static.viewport_height,
@@ -809,7 +789,7 @@ void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bott
 	RGBA8 rgba = LinearTosRGB( color );
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();
-	bg->PushTextureID( ImGuiShaderAndMaterial( material ) );
+	bg->PushTextureID( ImGuiShaderAndTexture( material ) );
 	bg->PrimReserve( 6, 4 );
 	bg->PrimRectUV( Vec2( x, y ), Vec2( x + w, y + h ), topleft_uv, bottomright_uv, IM_COL32( rgba.r, rgba.g, rgba.b, rgba.a ) );
 	bg->PopTextureID();

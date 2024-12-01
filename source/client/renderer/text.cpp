@@ -5,7 +5,7 @@
 #include "qcommon/hash.h"
 #include "qcommon/serialization.h"
 
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
 #include "client/renderer/text.h"
 #include "client/client.h"
 #include "client/assets.h"
@@ -22,8 +22,7 @@ struct Glyph {
 
 struct Font {
 	u32 path_hash;
-	Texture atlas;
-	Material material;
+	PoolHandle< Texture > atlas;
 
 	float glyph_padding;
 	float dSDF_dTexel;
@@ -40,9 +39,6 @@ void InitText() {
 }
 
 void ShutdownText() {
-	for( size_t i = 0; i < num_fonts; i++ ) {
-		DeleteTexture( fonts[ i ].atlas );
-	}
 }
 
 static void Serialize( SerializationBuffer * buf, Font & font ) {
@@ -102,8 +98,7 @@ const Font * RegisterFont( const char * path ) {
 		config.height = checked_cast< u32 >( h );
 		config.data = pixels;
 
-		font->atlas = NewTexture( config );
-		font->material.texture = &font->atlas;
+		font->atlas = NewTexture( GPULifetime_Persistent, config );
 	}
 
 	num_fonts++;
@@ -117,20 +112,25 @@ static float Area( const MinMax2 & rect ) {
 	return w * h;
 }
 
-static void DrawText( const Font * font, float pixel_size, Span< const char > str, float x, float y, Vec4 color, bool border, Vec4 border_color ) {
+void DrawText( const Font * font, float pixel_size, Span< const char > str, float x, float y, Vec4 color, Optional< Vec4 > border ) {
 	if( font == NULL )
 		return;
 
 	y += pixel_size * font->ascent;
 
-	ImGuiShaderAndMaterial sam;
-	sam.shader = &shaders.text;
-	sam.material = &font->material;
-	sam.uniform_name = "u_Text";
-	sam.uniform_block = UploadUniformBlock( color, border_color, font->dSDF_dTexel, border ? 1 : 0 );
+	ImGuiShaderAndTexture imgui;
+	imgui.shader = shaders.text;
+	imgui.texture = font->atlas;
+	imgui.uniform_name = "u_Text";
+	imgui.uniforms = NewTempBuffer( TextUniforms {
+		.color = color,
+		.border_color = Default( border, Vec4( 0.0f ) ),
+		.dSDF_dTexel = font->dSDF_dTexel,
+		.has_border = border.exists ? 1 : 0,
+	} );
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();
-	bg->PushTextureID( sam );
+	bg->PushTextureID( imgui );
 
 	u32 state = 0;
 	u32 c = 0;
@@ -157,15 +157,6 @@ static void DrawText( const Font * font, float pixel_size, Span< const char > st
 	}
 
 	bg->PopTextureID();
-}
-
-void DrawText( const Font * font, float pixel_size, const char * str, float x, float y, Vec4 color, bool border ) {
-	Vec4 border_color = Vec4( 0, 0, 0, color.w );
-	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border, border_color );
-}
-
-void DrawText( const Font * font, float pixel_size, const char * str, float x, float y, Vec4 color, Vec4 border_color ) {
-	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, true, border_color );
 }
 
 MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
@@ -197,7 +188,7 @@ MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
 	return MinMax2( pixel_size * Vec2( 0, y_extents.lo ), pixel_size * Vec2( width, y_extents.hi ) );
 }
 
-static void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, bool border, Vec4 border_color ) {
+void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, Optional< Vec4 > border ) {
 	MinMax2 bounds = TextBounds( font, pixel_size, str );
 
 	if( align.x == XAlignment_Center ) {
@@ -215,16 +206,7 @@ static void DrawText( const Font * font, float pixel_size, const char * str, Ali
 		y += ( bounds.maxs.y - bounds.mins.y ) / 2.0f;
 	}
 
-	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border, border_color );
-}
-
-void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, bool border ) {
-	Vec4 border_color = Vec4( 0, 0, 0, color.w );
-	DrawText( font, pixel_size, str, align, x, y, color, border, border_color );
-}
-
-void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, Vec4 border_color ) {
-	DrawText( font, pixel_size, str, align, x, y, color, true, border_color );
+	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border );
 }
 
 void Draw3DText( const Font * font, float size, Span< const char > str, Alignment align, Vec3 origin, EulerDegrees3 angles, Vec4 color ) {
@@ -289,13 +271,19 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Alignmen
 		cursor += dx * glyph->advance;
 	}
 
-	UniformBlock text_uniforms = UploadUniformBlock( color, color, font->dSDF_dTexel, 0 );
+	GPUBuffer text_uniforms = NewTempBuffer( TextUniforms {
+		.color = color,
+		.dSDF_dTexel = font->dSDF_dTexel,
+	} );
 
-	VertexDescriptor vertex_descriptor = { };
-	vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( TextVertex, position ) };
-	vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( TextVertex, uv ) };
-	vertex_descriptor.buffer_strides[ 0 ] = sizeof( TextVertex );
-	DynamicDrawData draw_data = UploadDynamicGeometry( vertices.span().cast< const u8 >(), indices.span(), vertex_descriptor );
+	Mesh mesh = { };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx3, 0, offsetof( TextVertex, position ) };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = { VertexFormat_Floatx2, 0, offsetof( TextVertex, uv ) };
+	mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( TextVertex );
+	mesh.index_format = IndexFormat_U16;
+	mesh.num_vertices = vertices.size();
+	mesh.vertex_buffers[ 0 ] = NewTempBuffer( vertices.span() );
+	mesh.index_buffer = NewTempBuffer( indices.span() );
 
 	{
 		PipelineState pipeline;
@@ -307,7 +295,7 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Alignmen
 		pipeline.bind_uniform( "u_Text", text_uniforms );
 		pipeline.bind_texture_and_sampler( "u_BaseTexture", font->material.texture, Sampler_Standard );
 
-		DrawDynamicGeometry( pipeline, draw_data );
+		DrawMesh( pipeline, mesh );
 	}
 
 	{
@@ -321,7 +309,7 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Alignmen
 			pipeline.bind_uniform( "u_Text", text_uniforms );
 			pipeline.bind_texture_and_sampler( "u_BaseTexture", font->material.texture, Sampler_Standard );
 
-			DrawDynamicGeometry( pipeline, draw_data );
+			DrawMesh( pipeline, mesh );
 		}
 	}
 }

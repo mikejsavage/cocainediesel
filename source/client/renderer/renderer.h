@@ -2,7 +2,7 @@
 
 #include "qcommon/types.h"
 #include "qcommon/srgb.h"
-#include "client/renderer/backend.h"
+#include "client/renderer/api.h"
 #include "client/renderer/material.h"
 #include "client/renderer/model.h"
 #include "client/renderer/gltf.h"
@@ -38,13 +38,13 @@ struct FrameStatic {
 	ShadowQuality shadow_quality;
 	ShadowParameters shadow_parameters;
 
-	UniformBlock view_uniforms;
-	UniformBlock ortho_view_uniforms;
-	UniformBlock shadowmap_view_uniforms[ 4 ];
-	UniformBlock shadow_uniforms;
-	UniformBlock identity_model_uniforms;
-	UniformBlock identity_material_static_uniforms;
-	UniformBlock identity_material_dynamic_uniforms;
+	GPUBuffer view_uniforms;
+	GPUBuffer ortho_view_uniforms;
+	GPUBuffer shadowmap_view_uniforms[ 4 ];
+	GPUBuffer shadow_uniforms;
+	GPUBuffer identity_model_uniforms;
+	GPUBuffer identity_material_static_uniforms;
+	GPUBuffer identity_material_dynamic_uniforms;
 
 	Mat3x4 V, inverse_V;
 	Mat4 P, inverse_P;
@@ -54,39 +54,39 @@ struct FrameStatic {
 	float near_plane;
 
 	struct {
-		RenderTarget silhouette_mask;
-		RenderTarget msaa;
-		RenderTarget postprocess;
-		RenderTarget msaa_masked;
-		RenderTarget postprocess_masked;
-		RenderTarget msaa_onlycolor;
-		RenderTarget postprocess_onlycolor;
-		RenderTarget shadowmaps[ 4 ];
+		PoolHandle< Texture > silhouette_mask;
+		PoolHandle< Texture > msaa;
+		PoolHandle< Texture > postprocess;
+		PoolHandle< Texture > msaa_masked;
+		PoolHandle< Texture > postprocess_masked;
+		PoolHandle< Texture > msaa_onlycolor;
+		PoolHandle< Texture > postprocess_onlycolor;
+		PoolHandle< Texture > shadowmaps[ 4 ];
 	} render_targets;
 
-	u8 particle_update_pass;
-	u8 particle_setup_indirect_pass;
-	u8 tile_culling_pass;
+	Opaque< CommandBuffer > particle_update_pass;
+	Opaque< CommandBuffer > particle_setup_indirect_pass;
+	Opaque< CommandBuffer > tile_culling_pass;
 
-	u8 shadowmap_pass[ 4 ];
+	Opaque< CommandBuffer > shadowmap_pass[ 4 ];
 
-	u8 world_opaque_prepass_pass;
-	u8 world_opaque_pass;
-	u8 sky_pass;
+	Opaque< CommandBuffer > world_opaque_prepass_pass;
+	Opaque< CommandBuffer > world_opaque_pass;
+	Opaque< CommandBuffer > sky_pass;
 
-	u8 write_silhouette_gbuffer_pass;
+	Opaque< CommandBuffer > write_silhouette_gbuffer_pass;
 
-	u8 nonworld_opaque_outlined_pass;
-	u8 add_outlines_pass;
-	u8 nonworld_opaque_pass;
+	Opaque< CommandBuffer > nonworld_opaque_outlined_pass;
+	Opaque< CommandBuffer > add_outlines_pass;
+	Opaque< CommandBuffer > nonworld_opaque_pass;
 
-	u8 transparent_pass;
+	Opaque< CommandBuffer > transparent_pass;
 
-	u8 add_silhouettes_pass;
+	Opaque< CommandBuffer > add_silhouettes_pass;
 
-	u8 ui_pass;
-	u8 postprocess_pass;
-	u8 post_ui_pass;
+	Opaque< CommandBuffer > ui_pass;
+	Opaque< CommandBuffer > postprocess_pass;
+	Opaque< CommandBuffer > post_ui_pass;
 };
 
 extern FrameStatic frame_static;
@@ -102,9 +102,10 @@ size_t FrameSlot();
 
 const Texture * BlueNoiseTexture();
 
+struct PipelineState { };
 void DrawFullscreenMesh( const PipelineState & pipeline );
 
-PipelineState MaterialToPipelineState( const Material * material, Vec4 color = white.vec4, bool skinned = false, GPUMaterial * gpu_material = NULL );
+// PipelineState MaterialToPipelineState( const Material * material, Vec4 color = white.vec4, bool skinned = false, GPUMaterial * gpu_material = NULL );
 
 void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color = white.vec4 );
 void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color );
@@ -126,9 +127,9 @@ void DrawDynamicGeometry( const PipelineState & pipeline, Span< T > vertices, Sp
 	DrawDynamicGeometry( pipeline, data );
 }
 
-UniformBlock UploadModelUniforms( const Mat3x4 & M );
-UniformBlock UploadMaterialStaticUniforms( float specular, float shininess, float lod_bias = 0.0f );
-UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0 = Vec3( 1, 0, 0 ), Vec3 tcmod_row1 = Vec3( 0, 1, 0 ) );
+GPUBuffer UploadModelUniforms( const Mat3x4 & M );
+GPUBuffer UploadMaterialStaticUniforms( float specular, float shininess, float lod_bias = 0.0f );
+GPUBuffer UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0 = Vec3( 1, 0, 0 ), Vec3 tcmod_row1 = Vec3( 0, 1, 0 ) );
 
 const char * ShadowQualityToString( ShadowQuality mode );
 

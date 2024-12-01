@@ -2,7 +2,6 @@
 
 #include "qcommon/types.h"
 #include "qcommon/hash.h"
-#include "client/renderer/types.h"
 
 void InitDecals();
 void ResetDecals();
@@ -19,4 +18,6 @@ void DrawPersistentDynamicLights();
 
 void AllocateDecalBuffers();
 void UploadDecalBuffers();
+
+struct PipelineState;
 void AddDynamicsToPipeline( PipelineState * pipeline );

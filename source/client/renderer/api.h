@@ -1,0 +1,457 @@
+#pragma once
+
+#include "qcommon/types.h"
+#include "qcommon/hash.h"
+#include "qcommon/opaque.h"
+
+#include "client/renderer/shader_shared.h"
+
+constexpr size_t MaxFramesInFlight = 2;
+
+// TODO: generic InitRenderer, hide InitRenderBackend
+struct GLFWwindow;
+void InitRenderBackend( GLFWwindow * window );
+void ShutdownRenderBackend();
+
+// TODO: not renderer specific
+void CreateAutoreleasePoolOnMacOS();
+void ReleaseAutoreleasePoolOnMacOS();
+
+/*
+ * Memory allocation
+ */
+
+struct GPUAllocation;
+template<> struct PoolHandleType< GPUAllocation > { using T = u16; };
+
+struct GPUBuffer {
+	PoolHandle< GPUAllocation > allocation;
+	size_t offset;
+	size_t size;
+};
+
+GPUBuffer NewTempBuffer( size_t size, size_t alignment, const void * data = NULL );
+
+template< typename T >
+GPUBuffer NewTempBuffer( const T & x, size_t alignment = alignof( T ) ) {
+	return NewTempBuffer( sizeof( T ), alignment, &x );
+}
+
+template< typename T >
+GPUBuffer NewTempBuffer( size_t alignment = alignof( T ) ) {
+	return NewTempBuffer( sizeof( T ), alignment, NULL );
+}
+
+enum GPULifetime {
+	GPULifetime_Persistent,
+	GPULifetime_Framebuffer,
+};
+
+GPUBuffer NewBuffer( GPULifetime lifetime, const char * label, size_t size, size_t alignment, bool texture, const void * data = NULL );
+
+template< typename T >
+GPUBuffer NewBuffer( GPULifetime lifetime, const char * label, Span< const T > xs, size_t alignment = alignof( T ) ) {
+	return NewBuffer( lifetime, label, sizeof( T ) * xs.n, alignment, false, xs.ptr );
+}
+
+template< typename T >
+GPUBuffer NewBuffer( GPULifetime lifetime, const char * label, const T & x, size_t alignment = alignof( T ) ) {
+	return NewBuffer( lifetime, label, sizeof( T ), alignment, false, &x );
+}
+
+template< typename T >
+GPUBuffer NewBuffer( GPULifetime lifetime, const char * label, size_t alignment = alignof( T ) ) {
+	return NewBuffer( lifetime, label, sizeof( T ), alignment, false, NULL );
+}
+
+void FlushStagingBuffer();
+
+/*
+ * TODO sort these
+ */
+
+// enum VertexAttributeType {
+// 	VertexAttribute_Position,
+// 	VertexAttribute_Normal,
+// 	VertexAttribute_TexCoord,
+// 	VertexAttribute_Color,
+// 	VertexAttribute_JointIndices,
+// 	VertexAttribute_JointWeights,
+//
+// 	VertexAttribute_Count
+// };
+
+// enum DescriptorSetType {
+// 	DescriptorSet_RenderPass,
+// 	DescriptorSet_Material,
+// 	DescriptorSet_DrawCall,
+//
+// 	DescriptorSet_Count
+// };
+
+/*
+ * Textures
+ */
+
+struct Texture;
+template<> struct PoolHandleType< Texture > { using T = u16; };
+
+enum TextureFormat : u8 {
+	TextureFormat_R_U8,
+	TextureFormat_R_U8_sRGB,
+	TextureFormat_R_S8,
+	TextureFormat_R_UI8,
+
+	TextureFormat_A_U8,
+
+	TextureFormat_RA_U8,
+
+	TextureFormat_RGBA_U8,
+	TextureFormat_RGBA_U8_sRGB,
+
+	TextureFormat_BC1_sRGB,
+	TextureFormat_BC3_sRGB,
+	TextureFormat_BC4,
+	TextureFormat_BC5,
+
+	TextureFormat_Depth,
+
+	TextureFormat_Swapchain,
+};
+
+struct TextureConfig {
+	const char * name;
+	TextureFormat format;
+	u32 width;
+	u32 height;
+	u32 num_layers = 1;
+	u32 num_mipmaps = 1;
+	int msaa_samples = 1;
+	const void * data = NULL;
+};
+
+enum TextureLayout {
+	TextureLayout_ReadOnly,
+	TextureLayout_ReadWrite,
+	TextureLayout_Present,
+};
+
+PoolHandle< Texture > NewTexture( GPULifetime lifetime, const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture = NONE );
+PoolHandle< Texture > NewFramebufferTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture = NONE );
+PoolHandle< Texture > UploadBC4( GPULifetime lifetime, const char * path );
+
+u32 TextureWidth( PoolHandle< Texture > texture );
+u32 TextureHeight( PoolHandle< Texture > texture );
+u32 TextureLayers( PoolHandle< Texture > texture );
+u32 TextureMipLevels( PoolHandle< Texture > texture );
+
+/*
+ * Mesh
+ */
+
+enum VertexFormat : u8 {
+	VertexFormat_U8x2,
+	VertexFormat_U8x2_01,
+	VertexFormat_U8x3,
+	VertexFormat_U8x3_01,
+	VertexFormat_U8x4,
+	VertexFormat_U8x4_01,
+
+	VertexFormat_U16x2,
+	VertexFormat_U16x2_01,
+	VertexFormat_U16x3,
+	VertexFormat_U16x3_01,
+	VertexFormat_U16x4,
+	VertexFormat_U16x4_01,
+
+	VertexFormat_U10x3_U2x1_01,
+
+    VertexFormat_Floatx2,
+    VertexFormat_Floatx3,
+    VertexFormat_Floatx4,
+};
+
+struct VertexAttribute {
+	VertexFormat format;
+	size_t buffer;
+	size_t offset;
+};
+
+struct VertexDescriptor {
+	Optional< VertexAttribute > attributes[ VertexAttribute_Count ];
+	Optional< size_t > buffer_strides[ VertexAttribute_Count ];
+};
+
+bool operator==( const VertexAttribute & lhs, const VertexAttribute & rhs );
+bool operator==( const VertexDescriptor & lhs, const VertexDescriptor & rhs );
+
+enum IndexFormat : u8 {
+	IndexFormat_U16,
+	IndexFormat_U32,
+};
+
+struct Mesh {
+	VertexDescriptor vertex_descriptor;
+	IndexFormat index_format;
+	size_t num_vertices;
+
+	Optional< GPUBuffer > vertex_buffers[ VertexAttribute_Count ];
+	Optional< GPUBuffer > index_buffer;
+};
+
+/*
+ * RenderPipeline
+ */
+
+enum BlendFunc : u8 {
+	BlendFunc_Disabled,
+	BlendFunc_Blend,
+	BlendFunc_Add,
+};
+
+// enum FragmentShaderOutputType : u8 {
+// 	FragmentShaderOutput_Albedo,
+//
+// 	FragmentShaderOutput_Count
+// };
+
+struct RenderPipelineOutputFormat {
+	Optional< TextureFormat > colors[ FragmentShaderOutput_Count ];
+	bool has_depth;
+};
+
+struct RenderPipelineConfig {
+	const char * path;
+
+	RenderPipelineOutputFormat output_format;
+	BlendFunc blend_func = BlendFunc_Disabled;
+
+	Span< const VertexDescriptor > mesh_variants;
+};
+
+struct RenderPipeline;
+template<> struct PoolHandleType< RenderPipeline > { using T = u8; };
+
+PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config );
+
+/*
+ * ComputePipeline
+ */
+
+struct ComputePipelineConfig {
+	const char * path;
+};
+
+struct ComputePipeline;
+template<> struct PoolHandleType< ComputePipeline > { using T = u8; };
+
+PoolHandle< ComputePipeline > NewComputePipeline( const ComputePipelineConfig & config );
+
+/*
+ * RenderPipelineDynamicState
+ */
+
+enum DepthFunc : u8 {
+	DepthFunc_Less,
+	DepthFunc_Equal,
+	DepthFunc_Always,
+	DepthFunc_LessNoWrite,
+	DepthFunc_AlwaysNoWrite,
+
+	DepthFunc_Count
+};
+
+enum CullFace : u8 {
+	CullFace_Back,
+	CullFace_Front,
+	CullFace_Disabled,
+};
+
+struct RenderPipelineDynamicState {
+    DepthFunc depth_func : 3 = DepthFunc_Less;
+    CullFace cull_face : 2 = CullFace_Back;
+};
+
+STATIC_ASSERT( sizeof( RenderPipelineDynamicState ) == 1 );
+
+/*
+ * BindGroup
+ */
+
+enum SamplerType : u8 {
+	Sampler_Standard,
+	Sampler_Clamp,
+	Sampler_Unfiltered,
+	Sampler_Shadowmap,
+
+	Sampler_Count
+};
+
+struct BindGroup;
+template<> struct PoolHandleType< BindGroup > { using T = u16; };
+
+/*
+ * Material
+ */
+
+#include "material.h"
+
+struct MaterialDescriptor {
+	Span< const char > name;
+
+	PoolHandle< RenderPipeline > shader;
+	RenderPipelineDynamicState dynamic_state;
+
+	PoolHandle< Texture > texture;
+	SamplerType sampler = Sampler_Standard;
+
+	struct {
+		float specular;
+		float shininess;
+		float lod_bias;
+	} properties;
+};
+
+Material NewMaterial( const MaterialDescriptor & desc );
+
+/*
+ * Frame
+ */
+
+void RenderBackendWaitForNewFrame();
+PoolHandle< Texture > RenderBackendBeginFrame( bool capture );
+void RenderBackendEndFrame();
+
+/*
+ * Render passes
+ */
+
+struct CommandBuffer;
+template<> inline constexpr size_t OpaqueSize< CommandBuffer > = 64;
+
+enum CommandBufferSubmitType {
+	SubmitCommandBuffer_Normal,
+	SubmitCommandBuffer_Wait,
+	SubmitCommandBuffer_Present,
+};
+
+struct BufferBinding {
+	StringHash name;
+	GPUBuffer buffer;
+};
+
+struct GPUBindings {
+	struct TextureBinding {
+		StringHash texture_name;
+		PoolHandle< ::Texture > texture;
+		StringHash sampler_name;
+		SamplerType sampler;
+	};
+
+	Span< const BufferBinding > buffers;
+	Span< const TextureBinding > textures;
+};
+
+struct RenderPassConfig {
+	struct ColorTarget {
+		PoolHandle< Texture > texture;
+		u32 layer = 0;
+		bool preserve_contents = false;
+		Optional< Vec4 > clear = NONE;
+		Optional< PoolHandle< Texture > > resolve_target = NONE;
+	};
+
+	struct DepthTarget {
+		PoolHandle< Texture > texture;
+		u32 layer = 0;
+		bool preserve_contents = false;
+		Optional< float > clear = NONE;
+	};
+
+	const char * name;
+	Span< const ColorTarget > color_targets;
+	Optional< DepthTarget > depth_target;
+
+	Optional< u64 > wait;
+	Optional< u64 > signal;
+
+	PoolHandle< RenderPipeline > representative_shader;
+	GPUBindings bindings;
+};
+
+Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & render_pass );
+void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitType type = SubmitCommandBuffer_Normal );
+
+u64 NewDependency();
+
+/*
+ * Draw calls
+ */
+
+struct IndirectexedDrawArgs {
+	u32 num_vertices;
+	u32 num_instances;
+	u32 first_vertex;
+	u32 base_instance;
+};
+
+struct IndirectIndexedDrawArgs {
+	u32 num_indices;
+	u32 num_instances;
+	u32 first_index;
+	s32 base_vertex;
+	u32 base_instance;
+};
+
+struct DrawCall {
+	struct Scissor {
+		u32 x, y, w, h;
+	};
+
+	PoolHandle< RenderPipeline > shader;
+	RenderPipelineDynamicState dynamic_state;
+	Mesh mesh;
+	u32 first_index;
+	PoolHandle< BindGroup > material_bind_group;
+	Optional< Scissor > scissor; // TODO
+	Span< const BufferBinding > buffers;
+
+	GPUBuffer draw_call_args;
+	Optional< GPUBuffer > indirect_args;
+};
+
+void EncodeDrawCall( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
+// void EncodeBindMesh( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
+// void EncodeBindMaterial( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
+// void EncodeScissor( Opaque< CommandBuffer > cmd_buf, Optional< Scissor > scissor );
+
+/*
+ * Compute passes
+ */
+
+struct IndirectComputeArgs {
+	u32 num_threadgroups_x, num_threadgroups_y, num_threadgroups_z;
+};
+
+struct ComputePassConfig {
+	const char * name;
+	Optional< u64 > wait;
+	Optional< u64 > signal;
+};
+
+Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & compute_pass );
+
+void EncodeComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, const GPUBindings & bindings, u32 x, u32 y, u32 z );
+void EncodeIndirectComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, const GPUBindings & bindings, GPUBuffer indirect_args );
+
+// TODO
+struct Transform {
+	Quaternion rotation;
+	Vec3 translation;
+	float scale;
+};
+
+struct MatrixPalettes {
+	Span< Mat3x4 > node_transforms;
+	Span< Mat3x4 > skinning_matrices;
+};

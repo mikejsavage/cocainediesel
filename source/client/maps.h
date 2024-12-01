@@ -9,7 +9,7 @@ struct Map {
 	Span< const char > name;
 	StringHash base_hash;
 	MapData data;
-	MapSharedRenderData render_data;
+	Mesh render_data;
 };
 
 void InitMaps();

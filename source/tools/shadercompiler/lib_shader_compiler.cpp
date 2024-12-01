@@ -1,4 +1,4 @@
-#include "api.h"
+#include "tools/shadercompiler/api.h"
 
 #include "qcommon/base.h"
 #include "qcommon/array.h"
@@ -11,13 +11,14 @@
 #include "client/renderer/shader_variants.h"
 #include "client/renderer/spirv.h"
 
-static const char * EXE_SUFFIX = IFDEF( PLATFORM_WINDOWS ) ? ".exe" : "";
+static constexpr Span< const char > ExeExtension = IFDEF( PLATFORM_WINDOWS ) ? Span< const char >( ".exe" ) : Span< const char >( "" );
+static constexpr Span< const char > ShaderExtension = IFDEF( PLATFORM_MACOS ) ? Span< const char >( ".metallib" ) : Span< const char >( ".spv" );
 
 struct CompileShaderJob {
 	const CompileShadersSettings * settings;
 	bool graphics;
-	const char * src;
-	Span< const char * > features;
+	Span< const char > src;
+	Span< Span< const char > > features;
 
 	bool ok;
 };
@@ -57,31 +58,43 @@ static void WriteSPVInputHash( TempAllocator & temp, const char * path, u32 hash
 	}
 }
 
-static bool CompileGraphicsShader( TempAllocator & temp, const char * file, Span< const char * > features, const CompileShadersSettings * settings ) {
-	const char * src_path = temp( "base/glsl/{}", file );
-
-	DynamicString features_filename( &temp );
-	for( const char * feature : features ) {
-		features_filename.append( "_{}", feature );
+static Span< const char > ShaderFilename( Allocator * a, Span< const char > src_filename, Span< Span< const char > > features ) {
+	DynamicString filename( a, "{}", StripExtension( src_filename ) );
+	for( Span< const char > feature : features ) {
+		filename.append( "_{}", feature );
 	}
-	const char * out_path = temp( "{}{}", StripExtension( src_path ), features_filename );
+	filename += ShaderExtension;
+	return filename.span();
+}
 
-	DynamicString features_glslc( &temp );
-	for( const char * feature : features ) {
-		features_glslc.append( " -D{}=1", feature );
+Span< const char > ShaderFilename( Allocator * a, const GraphicsShaderDescriptor & shader ) {
+	return ShaderFilename( a, shader.src, shader.features );
+}
+
+Span< const char > ShaderFilename( Allocator * a, const ComputeShaderDescriptor & shader ) {
+	return a->sv( "{}{}", StripExtension( shader.src ), ShaderExtension );
+}
+
+static bool CompileGraphicsShader( TempAllocator & temp, Span< const char > file, Span< Span< const char > > features, const CompileShadersSettings * settings ) {
+	Span< const char > src_path = temp.sv( "base/glsl/{}", file );
+	Span< const char > out_path = ShaderFilename( &temp, file, features );
+
+	DynamicString features_defines( &temp );
+	for( Span< const char > feature : features ) {
+		features_defines.append( " -D{}=1", feature );
 	}
 
-	constexpr const char * target = IFDEF( PLATFORM_MACOS ) ? "vulkan1.3" : "opengl4.5";
+	constexpr Span< const char > target = IFDEF( PLATFORM_MACOS ) ? Span< const char >( "vulkan1.3" ) : Span< const char >( "opengl4.5" );
 
 	DynamicArray< const char * > commands( &temp );
 	DynamicArray< const char * > files_to_remove( &temp );
 
-	commands.add( temp( "glslc{} -std=450core --target-env={} -fshader-stage=vertex -DVERTEX_SHADER=1 -Dv2f=out {} -fauto-map-locations -fauto-bind-uniforms {} -o {}.vert.spv", EXE_SUFFIX, target, features_glslc, src_path, out_path ) );
-	commands.add( temp( "glslc{} -std=450core --target-env={} -fshader-stage=fragment -DFRAGMENT_SHADER=1 -Dv2f=in {} -fauto-map-locations -fauto-bind-uniforms {} -o {}.frag.spv", EXE_SUFFIX, target, features_glslc, src_path, out_path ) );
+	commands.add( temp( "glslc{} -std=450core --target-env={} -fshader-stage=vertex -DVERTEX_SHADER=1 -Dv2f=out {} -fauto-map-locations -fauto-bind-uniforms {} -o {}.vert.spv", ExeExtension, target, features_defines, src_path, out_path ) );
+	commands.add( temp( "glslc{} -std=450core --target-env={} -fshader-stage=fragment -DFRAGMENT_SHADER=1 -Dv2f=in {} -fauto-map-locations -fauto-bind-uniforms {} -o {}.frag.spv", ExeExtension, target, features_defines, src_path, out_path ) );
 
 	if( settings->optimize ) {
-		commands.add( temp( "spirv-opt{} -O {}.vert.spv -o {}.vert.spv", EXE_SUFFIX, out_path, out_path ) );
-		commands.add( temp( "spirv-opt{} -O {}.frag.spv -o {}.frag.spv", EXE_SUFFIX, out_path, out_path ) );
+		commands.add( temp( "spirv-opt{} -O {}.vert.spv -o {}.vert.spv", ExeExtension, out_path, out_path ) );
+		commands.add( temp( "spirv-opt{} -O {}.frag.spv -o {}.frag.spv", ExeExtension, out_path, out_path ) );
 	}
 
 	if( IFDEF( PLATFORM_MACOS ) ) {
@@ -116,7 +129,7 @@ static bool CompileGraphicsShader( TempAllocator & temp, const char * file, Span
 	return true;
 }
 
-static bool CompileComputeShader( TempAllocator & temp, const char * file, const CompileShadersSettings * settings ) {
+static bool CompileComputeShader( TempAllocator & temp, Span< const char > file, const CompileShadersSettings * settings ) {
 	const char * src_path = temp( "base/glsl/{}", file );
 	Span< const char > out_path = StripExtension( src_path );
 
@@ -125,10 +138,10 @@ static bool CompileComputeShader( TempAllocator & temp, const char * file, const
 
 	constexpr const char * target = IFDEF( PLATFORM_MACOS ) ? "vulkan1.3" : "opengl4.5";
 
-	commands.add( temp( "glslc{} -std=450core --target-env={} -fshader-stage=compute -fauto-map-locations -fauto-bind-uniforms {} -o {}.spv", EXE_SUFFIX, target, src_path, out_path ) );
+	commands.add( temp( "glslc{} -std=450core --target-env={} -fshader-stage=compute -fauto-map-locations -fauto-bind-uniforms {} -o {}.spv", ExeExtension, target, src_path, out_path ) );
 
 	if( settings->optimize ) {
-		commands.add( temp( "spirv-opt{} -O {}.spv -o {}.spv", EXE_SUFFIX, out_path, out_path ) );
+		commands.add( temp( "spirv-opt{} -O {}.spv -o {}.spv", ExeExtension, out_path, out_path ) );
 	}
 
 	if( IFDEF( PLATFORM_MACOS ) ) {
@@ -192,6 +205,7 @@ static bool CompileShadersImpl( const ShaderDescriptors & shaders, ArenaAllocato
 
 	for( const CompileShaderJob & job : jobs ) {
 		if( !job.ok ) {
+			ggprint( "failed {}\n", job.src );
 			return false;
 		}
 	}

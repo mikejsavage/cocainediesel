@@ -29,12 +29,16 @@ public:
 		return n == N ? NULL : &elems[ n++ ];
 	}
 
-	bool add( const T & x ) {
+	[[nodiscard]] bool add( const T & x ) {
 		T * slot = add();
 		if( slot == NULL )
 			return false;
 		*slot = x;
 		return true;
+	}
+
+	void must_add( const T & x ) {
+		[[maybe_unused]] bool ok = add( x );
 	}
 
 	void remove_swap( T * x ) {

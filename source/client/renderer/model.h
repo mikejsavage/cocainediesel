@@ -1,7 +1,7 @@
 #pragma once
 
 #include "qcommon/types.h"
-#include "client/renderer/types.h"
+#include "client/renderer/api.h"
 
 struct DrawModelConfig {
 	struct DrawModel {

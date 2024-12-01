@@ -529,6 +529,8 @@ struct Quaternion {
 	Quaternion() = default;
 	constexpr Quaternion( float x_, float y_, float z_, float w_ ) : x( x_ ), y( y_ ), z( z_ ), w( w_ ) { }
 
+	Vec3 im() const { return Vec3( x, y, z ); }
+
 	float * ptr() { return &x; }
 
 	static constexpr Quaternion Identity() {
@@ -568,8 +570,8 @@ struct MinMax3 {
 
 	MinMax3() = default;
 	constexpr MinMax3( Vec3 mins_, Vec3 maxs_ ) : mins( mins_ ), maxs( maxs_ ) { }
-	constexpr MinMax3( Vec3 half_size ) : mins( Vec3( -half_size.x, -half_size.y, -half_size.z ) ), maxs( half_size ) { }
-	constexpr MinMax3( float half_size ) : mins( Vec3( -half_size ) ), maxs( Vec3( half_size ) ) { }
+	explicit constexpr MinMax3( Vec3 half_size ) : mins( Vec3( -half_size.x, -half_size.y, -half_size.z ) ), maxs( half_size ) { }
+	explicit constexpr MinMax3( float half_size ) : mins( Vec3( -half_size ) ), maxs( Vec3( half_size ) ) { }
 
 	static constexpr MinMax3 Empty() {
 		return MinMax3( Vec3( FLT_MAX ), Vec3( -FLT_MAX ) );

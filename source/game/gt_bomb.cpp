@@ -1,4 +1,5 @@
 #include "qcommon/base.h"
+#include "qcommon/time.h"
 #include "game/g_local.h"
 #include "gameshared/collision.h"
 
@@ -789,7 +790,7 @@ static void RoundNewState( RoundState state ) {
 			SetRoundType();
 			BombGiveToRandom();
 			G_SpawnEvent( EV_FLASH_WINDOW, 0, NULL );
-			G_SunCycle( 3000 );
+			G_SunCycle( Seconds( 3 ) );
 		} break;
 
 		case RoundState_Round: {

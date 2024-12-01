@@ -13,7 +13,6 @@ v2f vec2 v_TexCoord;
 struct Instance {
 	AffineTransform transform;
 	vec4 color;
-	vec3 texture_matrix[ 2 ];
 };
 
 layout( std430 ) readonly buffer b_Instances {
@@ -34,15 +33,6 @@ layout( location = VertexAttribute_Position ) in vec4 a_Position;
 layout( location = VertexAttribute_Normal ) in vec3 a_Normal;
 layout( location = VertexAttribute_Color ) in vec4 a_Color;
 layout( location = VertexAttribute_TexCoord ) in vec2 a_TexCoord;
-
-vec2 ApplyTCMod( vec2 uv ) {
-#if INSTANCED
-	mat3x2 m = transpose( mat2x3( instances[ gl_InstanceIndex ].texture_matrix[ 0 ], instances[ gl_InstanceIndex ].texture_matrix[ 1 ] ) );
-#else
-	mat3x2 m = transpose( mat2x3( u_TextureMatrix[ 0 ], u_TextureMatrix[ 1 ] ) );
-#endif
-	return ( m * vec3( uv, 1.0 ) ).xy;
-}
 
 void main() {
 #if INSTANCED
@@ -65,7 +55,7 @@ void main() {
 	mat3 m = transpose( inverse( mat3( M ) ) );
 	v_Normal = m * Normal;
 
-	v_TexCoord = ApplyTCMod( a_TexCoord );
+	v_TexCoord = a_TexCoord;
 
 	if( VertexColors ) {
 		v_Color = sRGBToLinear( a_Color );

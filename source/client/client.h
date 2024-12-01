@@ -103,8 +103,10 @@ struct client_static_t {
 	connstate_t state;          // only set through CL_SetClientState
 
 	Time monotonicTime; // starts at 0 when the game is launched, increases forever
-
-	Time shadertoy_time; // starts at 0 when the game is launched, periodically gets reset
+	Time game_time; // starts at 0 when you connect to a server, scaled by timescale
+	// starts at 0 when the game is launched, periodically gets reset, used to
+	// limit float precision loss for timestamps in shaders
+	Time shadertoy_time;
 
 	int64_t framecount;
 	int64_t realtime;               // always increasing, no clamping, etc

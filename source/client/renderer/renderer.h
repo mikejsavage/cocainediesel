@@ -129,7 +129,7 @@ void DrawDynamicGeometry( const PipelineState & pipeline, Span< T > vertices, Sp
 
 GPUBuffer UploadModelUniforms( const Mat3x4 & M );
 GPUBuffer UploadMaterialStaticUniforms( float specular, float shininess, float lod_bias = 0.0f );
-GPUBuffer UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0 = Vec3( 1, 0, 0 ), Vec3 tcmod_row1 = Vec3( 0, 1, 0 ) );
+GPUBuffer UploadMaterialDynamicUniforms( const Vec4 & color );
 
 const char * ShadowQualityToString( ShadowQuality mode );
 

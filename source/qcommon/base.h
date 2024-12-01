@@ -122,7 +122,7 @@ inline bool break4 = false;
 #if COMPILER_MSVC
 #define Breakpoint() __debugbreak()
 #elif COMPILER_CLANG
-#define Breakpoint() __builtin_trap()
+#define Breakpoint() __builtin_debugtrap()
 #elif COMPILER_GCC
 #define Breakpoint() asm( "int $3" )
 #endif

@@ -34,7 +34,6 @@ layout( std140, set = DescriptorSet_Material ) uniform u_MaterialStatic {
 #ifndef INSTANCED
 layout( std140, set = DescriptorSet_DrawCall ) uniform u_MaterialDynamic {
 	vec4 u_MaterialColor;
-	vec3 u_TextureMatrix[ 2 ];
 };
 #endif
 

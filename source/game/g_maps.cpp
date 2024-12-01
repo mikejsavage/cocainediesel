@@ -1,4 +1,5 @@
 #include "qcommon/base.h"
+#include "qcommon/array.h"
 #include "qcommon/compression.h"
 #include "qcommon/fs.h"
 #include "qcommon/string.h"
@@ -16,8 +17,7 @@ struct ServerMapData {
 	Span< u8 > data;
 };
 
-static ServerMapData maps[ CollisionModelStorage::MAX_MAPS ];
-static size_t num_maps;
+static BoundedDynamicArray< ServerMapData, CollisionModelStorage::MAX_MAPS > maps;
 
 static bool AddGLTFModel( Span< const u8 > data, Span< const char > path ) {
 	cgltf_options options = { };
@@ -80,7 +80,7 @@ void InitServerCollisionModels() {
 	DynamicString base( &temp, "{}/base", RootDirPath() );
 	LoadModelsRecursive( &temp, &base, base.length() + 1 );
 
-	num_maps = 0;
+	maps.clear();
 }
 
 void ShutdownServerCollisionModels() {
@@ -88,8 +88,8 @@ void ShutdownServerCollisionModels() {
 
 	ShutdownCollisionModelStorage( &collision_models );
 
-	for( size_t i = 0; i < num_maps; i++ ) {
-		Free( sys_allocator, maps[ i ].data.ptr );
+	for( ServerMapData & map : maps ) {
+		Free( sys_allocator, map.data.ptr );
 	}
 }
 
@@ -128,12 +128,9 @@ bool LoadServerMap( Span< const char > name ) {
 
 	LoadMapCollisionData( &collision_models, &decoded, map.base_hash );
 
-	if( num_maps == ARRAY_COUNT( maps ) ) {
+	if( !maps.add( map ) ) {
 		Fatal( "Too many maps" );
 	}
-
-	maps[ num_maps ] = map;
-	num_maps++;
 
 	return true;
 }

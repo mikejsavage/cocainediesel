@@ -174,7 +174,7 @@ bool StartRecordingDemo(
 	MaybeWriteDemoMessage( ctx, &msg, true );
 
 	MSG_WriteUint8( &msg, svc_unreliable );
-	MSG_WriteString( &msg, "precache" );
+	MSG_WriteString( &msg, "precache 0 \"\"" );
 
 	MaybeWriteDemoMessage( ctx, &msg, true );
 

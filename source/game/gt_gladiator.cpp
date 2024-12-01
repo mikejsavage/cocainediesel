@@ -1,6 +1,7 @@
 #include "qcommon/base.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
+#include "qcommon/time.h"
 #include "game/g_local.h"
 #include "game/g_maps.h"
 #include "gameshared/cdmap.h"
@@ -132,7 +133,7 @@ static void NewRound() {
 	server_gs.gameState.exploding = false;
 
 	PickRandomArena();
-	G_SunCycle( 1500 );
+	G_SunCycle( Milliseconds( 1500 ) );
 
 	gladiator_state.round_state_end = level.time + countdown_seconds * 1000;
 	gladiator_state.countdown = 4;
@@ -219,7 +220,7 @@ static void NewRoundState( RoundState newState ) {
 			if( G_Match_ScorelimitHit() ) {
 				for( Team t = Team_One; t < Team_Count; t++ ) {
 					server_gs.gameState.teams[ t ].score = 0;
-					
+
 					if ( t == winner ) {
 						for( u16 i = 0; i < server_gs.gameState.teams[ t ].num_players; i++ ) {
 							score_stats_t * stats = G_ClientGetStats( PLAYERENT( server_gs.gameState.teams[ t ].player_indices[ i ] - 1 ) );

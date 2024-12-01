@@ -1,3 +1,6 @@
+#include "qcommon/base.h"
+#include "qcommon/array.h"
+#include "qcommon/time.h"
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 
@@ -83,42 +86,36 @@ struct PersistentBeam {
 	Vec4 color;
 	StringHash material;
 
-	s64 spawn_time;
-	float duration;
-	float start_fade_time;
+	Time spawn_time;
+	Time duration;
+	Time start_fade_time;
 };
 
-static constexpr size_t MaxPersistentBeams = 256;
-static PersistentBeam persistent_beams[ MaxPersistentBeams ];
-static size_t num_persistent_beams;
+static BoundedDynamicArray< PersistentBeam, 256 > persistent_beams;
 
 void InitPersistentBeams() {
-	num_persistent_beams = 0;
+	persistent_beams.clear();
 }
 
-void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material, float duration, float fade_time ) {
-	if( num_persistent_beams == ARRAY_COUNT( persistent_beams ) )
-		return;
-
-	PersistentBeam & beam = persistent_beams[ num_persistent_beams ];
-	num_persistent_beams++;
-
-	beam.start = start;
-	beam.end = end;
-	beam.width = width;
-	beam.color = color;
-	beam.material = material;
-	beam.spawn_time = cl.serverTime;
-	beam.duration = duration;
-	beam.start_fade_time = duration - fade_time;
+void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material, Time duration, Time fade_time ) {
+	[[maybe_unused]] bool ok = persistent_beams.add( PersistentBeam {
+		.start = start,
+		.end = end,
+		.width = width,
+		.color = color,
+		.material = material,
+		.spawn_time = cls.game_time,
+		.duration = duration,
+		.start_fade_time = duration - fade_time,
+	} );
 }
 
 void DrawPersistentBeams() {
 	TracyZoneScoped;
 
-	for( size_t i = 0; i < num_persistent_beams; i++ ) {
-		PersistentBeam & beam = persistent_beams[ i ];
-		float t = ( cl.serverTime - beam.spawn_time ) / 1000.0f;
+	for( size_t i = 0; i < persistent_beams.size(); i++ ) {
+		const PersistentBeam & beam = persistent_beams[ i ];
+		Time t = cls.game_time - beam.spawn_time;
 		float alpha;
 		if( beam.start_fade_time != beam.duration ) {
 			alpha = 1.0f - Unlerp01( beam.start_fade_time, t, beam.duration );
@@ -128,8 +125,7 @@ void DrawPersistentBeams() {
 		}
 
 		if( alpha <= 0 ) {
-			num_persistent_beams--;
-			Swap2( &beam, &persistent_beams[ num_persistent_beams ] );
+			persistent_beams.remove_swap( i );
 			i--;
 			continue;
 		}

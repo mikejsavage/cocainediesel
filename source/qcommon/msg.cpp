@@ -209,6 +209,10 @@ static void Delta( DeltaBuffer * buf, StringHash & hash, StringHash baseline ) {
 	DeltaFundamental( buf, hash.hash, baseline.hash );
 }
 
+static void Delta( DeltaBuffer * buf, Time & time, Time baseline ) {
+	DeltaFundamental( buf, time.flicks, baseline.flicks );
+}
+
 template< typename T, size_t N >
 void Delta( DeltaBuffer * buf, T ( &arr )[ N ], const T ( &baseline )[ N ] ) {
 	for( size_t i = 0; i < N; i++ ) {
@@ -795,6 +799,11 @@ static void Delta( DeltaBuffer * buf, SyncTeamState & team, const SyncTeamState 
 	Delta( buf, team.num_players, baseline.num_players );
 }
 
+static void Delta( DeltaBuffer * buf, SyncGameState::CameraOverride & cam, const SyncGameState::CameraOverride & baseline ) {
+	Delta( buf, cam.origin, baseline.origin );
+	Delta( buf, cam.angles, baseline.angles );
+}
+
 static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGameState & baseline ) {
 	DeltaEnum( buf, bomb.attacking_team, baseline.attacking_team, Team_Count );
 	Delta( buf, bomb.alpha_players_alive, baseline.alpha_players_alive );
@@ -810,6 +819,7 @@ static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState
 	Delta( buf, state.match_state_start_time, baseline.match_state_start_time );
 	Delta( buf, state.match_duration, baseline.match_duration );
 	Delta( buf, state.clock_override, baseline.clock_override );
+	Delta( buf, state.camera_override, baseline.camera_override );
 	Delta( buf, state.scorelimit, baseline.scorelimit );
 
 	DeltaString( buf, state.callvote, baseline.callvote );

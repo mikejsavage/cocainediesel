@@ -265,7 +265,7 @@ void Qcommon_Init( int argc, char ** argv ) {
 	AddCommand( "quit", []( const Tokenized & args ) { Com_DeferQuit(); } );
 
 	timescale = NewCvar( "timescale", "1.0", CvarFlag_Cheat );
-	logconsole = NewCvar( "logconsole", is_dedicated_server ? Span< const char >( "server.log" ) : Span< const char >( "" ), CvarFlag_Archive );
+	logconsole = NewCvar( "logconsole", is_dedicated_server ? "server.log"_sp : ""_sp, CvarFlag_Archive );
 	logconsole_append = NewCvar( "logconsole_append", "1", CvarFlag_Archive );
 	logconsole_flush = NewCvar( "logconsole_flush", "0", CvarFlag_Archive );
 	logconsole_timestamp = NewCvar( "logconsole_timestamp", "0", CvarFlag_Archive );

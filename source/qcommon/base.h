@@ -67,6 +67,10 @@ struct DeferHelper {
  * Span
  */
 
+constexpr Span< const char > operator""_sp( const char * str, size_t n ) {
+	return Span< const char >( str, n );
+}
+
 Span< char > MakeSpan( char * str );
 Span< const char > MakeSpan( const char * str );
 void format( FormatBuffer * fb, Span< const char > arr, const FormatOpts & opts );

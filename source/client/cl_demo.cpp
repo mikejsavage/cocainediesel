@@ -188,7 +188,7 @@ void CL_LatchedDemoJump() {
 static void CL_StartDemo( Span< const char > demoname, bool yolo ) {
 	CL_Disconnect( NULL );
 
-	Span< const char > ext = FileExtension( demoname ) == "" ? Span< const char >( APP_DEMO_EXTENSION_STR ) : Span< const char >( "" );
+	Span< const char > ext = FileExtension( demoname ) == "" ? Span< const char >( APP_DEMO_EXTENSION_STR ) : ""_sp;
 	char * filename;
 	if( COM_ValidateRelativeFilename( demoname ) ) {
 		filename = ( *sys_allocator )( "{}/demos/{}{}", HomeDirPath(), demoname, ext );

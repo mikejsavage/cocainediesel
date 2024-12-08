@@ -26,27 +26,6 @@ static constexpr u32 MAX_DLIGHT_EMITTERS = 512;
 static constexpr u32 MAX_VISUAL_EFFECT_GROUPS = 512;
 static constexpr u32 MAX_VISUAL_EFFECTS = 16;
 
-struct GPUParticle {
-	Vec3 position;
-	float angle;
-	Vec3 velocity;
-	float angular_velocity;
-	float acceleration;
-	float drag;
-	float restitution;
-	float PADDING;
-	Vec4 uvwh;
-	Vec4 trim;
-	RGBA8 start_color;
-	RGBA8 end_color;
-	float start_size;
-	float end_size;
-	float age;
-	float lifetime;
-	ParticleFlags flags;
-	u32 PADDING2;
-};
-
 enum EasingFunction {
 	EasingFunction_Linear,
 	EasingFunction_Quadratic,
@@ -257,9 +236,9 @@ static ParticleSystem NewParticleSystem( Allocator * a, BlendFunc blend_func, si
 		.max_particles = max_particles,
 		.blend_func = blend_func,
 
-		.gpu_particles1 = NewGPUBuffer( NULL, max_particles * sizeof( GPUParticle ), "particles flip" ),
-		.gpu_particles2 = NewGPUBuffer( NULL, max_particles * sizeof( GPUParticle ), "particles flop" ),
-		.new_particles = NewStreamingBuffer( max_particles * sizeof( GPUParticle ), "new particles" ),
+		.gpu_particles1 = NewGPUBuffer( NULL, max_particles * sizeof( Particle ), "particles flip" ),
+		.gpu_particles2 = NewGPUBuffer( NULL, max_particles * sizeof( Particle ), "particles flop" ),
+		.new_particles = NewStreamingBuffer( max_particles * sizeof( Particle ), "new particles" ),
 
 		.compute_count1 = NewGPUBuffer( &zero, sizeof( u32 ), "compute_count flip" ),
 		.compute_count2 = NewGPUBuffer( &zero, sizeof( u32 ), "compute_count flop" ),
@@ -861,8 +840,8 @@ static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Ve
 	if( ps->num_new_particles == ps->max_particles )
 		return;
 
-	GPUParticle * new_particles = ( GPUParticle * ) GetStreamingBufferMemory( ps->new_particles );
-	new_particles[ ps->num_new_particles ] = GPUParticle {
+	Particle * new_particles = ( Particle * ) GetStreamingBufferMemory( ps->new_particles );
+	new_particles[ ps->num_new_particles ] = Particle {
 		.position = position,
 		.angle = angle,
 		.velocity = velocity,

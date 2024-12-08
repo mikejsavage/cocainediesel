@@ -137,7 +137,7 @@ static bool CompileComputeShader( TempAllocator & temp, Span< const char > file,
 
 	constexpr const char * target = IFDEF( PLATFORM_MACOS ) ? "vulkan1.3" : "opengl4.5";
 
-	commands.add( temp( "dxc{} -spirv -T cs_6_0 -fspv-target-env={} -fvk-use-scalar-layout -E main -Fo {} {}", ExeExtension, target, out_path, src_path ) );
+	commands.add( temp( "dxc{} -spirv -T cs_6_0 -fspv-target-env={} -fvk-use-scalar-layout -E main -Fo {}.spv {}", ExeExtension, target, out_path, src_path ) );
 
 	if( settings->optimize ) {
 		commands.add( temp( "spirv-opt{} -O {}.spv -o {}.spv", ExeExtension, out_path, out_path ) );

@@ -19,6 +19,7 @@ shaderconst u32 FORWARD_PLUS_TILE_SIZE = 32;
 shaderconst u32 FORWARD_PLUS_TILE_CAPACITY = 50;
 shaderconst u32 SKINNED_MODEL_MAX_JOINTS = 100;
 shaderconst float DLIGHT_CUTOFF = 0.5f;
+shaderconst u32 PARTICLE_THREADGROUP_SIZE = 64;
 
 enum ParticleFlags : u32 {
 	ParticleFlag_CollisionPoint = u32( 1 ) << u32( 0 ),
@@ -88,6 +89,27 @@ struct MaterialStaticUniforms {
 	float specular;
 	float shininess;
 	float lod_bias;
+};
+
+struct Particle {
+	Vec3 position;
+	float angle;
+	Vec3 velocity;
+	float angular_velocity;
+	float acceleration;
+	float drag;
+	float restitution;
+	float PADDING;
+	Vec4 uvwh;
+	Vec4 trim;
+	u32 start_color;
+	u32 end_color;
+	float start_size;
+	float end_size;
+	float age;
+	float lifetime;
+	u32 flags;
+	u32 PADDING2;
 };
 
 #endif // header guard

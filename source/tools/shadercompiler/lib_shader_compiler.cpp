@@ -63,16 +63,15 @@ static Span< const char > ShaderFilename( Allocator * a, Span< const char > src_
 	for( Span< const char > feature : features ) {
 		filename.append( "_{}", feature );
 	}
-	filename += ShaderExtension;
-	return filename.span();
+	return CloneSpan( a, filename.span() );
 }
 
 Span< const char > ShaderFilename( Allocator * a, const GraphicsShaderDescriptor & shader ) {
 	return ShaderFilename( a, shader.src, shader.features );
 }
 
-Span< const char > ShaderFilename( Allocator * a, const ComputeShaderDescriptor & shader ) {
-	return a->sv( "{}{}", StripExtension( shader.src ), ShaderExtension );
+Span< const char > ShaderFilename( const ComputeShaderDescriptor & shader ) {
+	return StripExtension( shader.src );
 }
 
 static bool CompileGraphicsShader( TempAllocator & temp, Span< const char > file, Span< Span< const char > > features, const CompileShadersSettings * settings ) {
@@ -81,16 +80,16 @@ static bool CompileGraphicsShader( TempAllocator & temp, Span< const char > file
 
 	DynamicString features_defines( &temp );
 	for( Span< const char > feature : features ) {
-		features_defines.append( " -D{}=1", feature );
+		features_defines.append( " -D {}", feature );
 	}
 
-	constexpr Span< const char > target = IFDEF( PLATFORM_MACOS ) ? Span< const char >( "vulkan1.3" ) : Span< const char >( "opengl4.5" );
+	constexpr Span< const char > target = IFDEF( PLATFORM_MACOS ) ? "vulkan1.2"_s : "vulkan1.3"_s;
 
 	DynamicArray< const char * > commands( &temp );
 	DynamicArray< const char * > files_to_remove( &temp );
 
-	commands.add( temp( "glslc{} -std=450core --target-env={} -fshader-stage=vertex -DVERTEX_SHADER=1 -Dv2f=out {} -fauto-map-locations -fauto-bind-uniforms {} -o {}.vert.spv", ExeExtension, target, features_defines, src_path, out_path ) );
-	commands.add( temp( "glslc{} -std=450core --target-env={} -fshader-stage=fragment -DFRAGMENT_SHADER=1 -Dv2f=in {} -fauto-map-locations -fauto-bind-uniforms {} -o {}.frag.spv", ExeExtension, target, features_defines, src_path, out_path ) );
+	commands.add( temp( "dxc{} -spirv -T vs_6_0 -fspv-target-env={} -fvk-use-scalar-layout -fspv-entrypoint-name=main -E VertexMain {} -Fo {}.vert.spv {}", ExeExtension, target, features_defines, out_path, src_path ) );
+	commands.add( temp( "dxc{} -spirv -T ps_6_0 -fspv-target-env={} -fvk-use-scalar-layout -fspv-entrypoint-name=main -E FragmentMain {} -Fo {}.frag.spv {}", ExeExtension, target, features_defines, out_path, src_path ) );
 
 	if( settings->optimize ) {
 		commands.add( temp( "spirv-opt{} -O {}.vert.spv -o {}.vert.spv", ExeExtension, out_path, out_path ) );
@@ -98,8 +97,8 @@ static bool CompileGraphicsShader( TempAllocator & temp, Span< const char > file
 	}
 
 	if( IFDEF( PLATFORM_MACOS ) ) {
-		commands.add( temp( "spirv-cross --msl --msl-version 20000 --msl-argument-buffers --msl-discrete-descriptor-set {} --msl-force-active-argument-buffer-resources --rename-entry-point main vertex_main vert --output {}.vert.metal {}.vert.spv", DescriptorSet_DrawCall, out_path, out_path ) );
-		commands.add( temp( "spirv-cross --msl --msl-version 20000 --msl-argument-buffers --msl-discrete-descriptor-set {} --msl-force-active-argument-buffer-resources --rename-entry-point main fragment_main frag --output {}.frag.metal {}.frag.spv", DescriptorSet_DrawCall, out_path, out_path ) );
+		commands.add( temp( "spirv-cross --msl --msl-version 20000 --msl-argument-buffers --msl-argument-buffer-tier 1 --msl-force-active-argument-buffer-resources --rename-entry-point main vertex_main vert --output {}.vert.metal {}.vert.spv", out_path, out_path ) );
+		commands.add( temp( "spirv-cross --msl --msl-version 20000 --msl-argument-buffers --msl-argument-buffer-tier 1 --msl-force-active-argument-buffer-resources --rename-entry-point main fragment_main frag --output {}.frag.metal {}.frag.spv", out_path, out_path ) );
 
 		commands.add( temp( "xcrun -sdk macosx metal -c {}.vert.metal -o {}.vert.air", out_path, out_path ) );
 		commands.add( temp( "xcrun -sdk macosx metal -c {}.frag.metal -o {}.frag.air", out_path, out_path ) );
@@ -138,7 +137,7 @@ static bool CompileComputeShader( TempAllocator & temp, Span< const char > file,
 
 	constexpr const char * target = IFDEF( PLATFORM_MACOS ) ? "vulkan1.3" : "opengl4.5";
 
-	commands.add( temp( "glslc{} -std=450core --target-env={} -fshader-stage=compute -fauto-map-locations -fauto-bind-uniforms {} -o {}.spv", ExeExtension, target, src_path, out_path ) );
+	commands.add( temp( "dxc{} -spirv -T cs_6_0 -fspv-target-env={} -fvk-use-scalar-layout -E main -Fo {} {}", ExeExtension, target, out_path, src_path ) );
 
 	if( settings->optimize ) {
 		commands.add( temp( "spirv-opt{} -O {}.spv -o {}.spv", ExeExtension, out_path, out_path ) );

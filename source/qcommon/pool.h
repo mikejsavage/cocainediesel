@@ -10,12 +10,12 @@ struct Pool {
 	static constexpr typename PoolHandleType< T >::T capacity = N;
 
 	PoolHandle< T > allocate() {
-		assert( n < N );
+		Assert( n < N );
 		return { n++ };
 	}
 
 	PoolHandle< T > allocate( const T & x ) {
-		assert( n < N );
+		Assert( n < N );
 		data[ n ] = x;
 		return { n++ };
 	}
@@ -25,7 +25,7 @@ struct Pool {
 			return allocate( x );
 		}
 
-		assert( old_handle.value.x < N );
+		Assert( old_handle.value.x < N );
 		data[ old_handle.value.x ] = x;
 		return old_handle.value;
 	}

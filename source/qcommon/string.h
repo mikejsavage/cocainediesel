@@ -141,7 +141,7 @@ public:
 
 	size_t length() const { return buf.size() == 0 ? 0 : buf.size() - 1; }
 
-	Span< const char > span() const { return buf.span(); }
+	Span< const char > span() const { return Span< const char >( buf.ptr(), length() ); }
 };
 
 template< size_t N >

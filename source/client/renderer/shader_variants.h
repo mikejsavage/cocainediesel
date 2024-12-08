@@ -63,24 +63,24 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 		.graphics_shaders = {
 			GraphicsShaderDescriptor {
 				.field = &Shaders::standard,
-				.src = "standard.glsl",
+				.src = "standard.hlsl",
 				.vertex_formats = { pos_normal, pos_normal_uv },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::standard_vertexcolors,
-				.src = "standard.glsl",
+				.src = "standard.hlsl",
 				.features = { "VERTEX_COLORS" },
 				.vertex_formats = { pos_uv },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::standard_skinned,
-				.src = "standard.glsl",
+				.src = "standard.hlsl",
 				.features = { "SKINNED" },
 				.vertex_formats = { pos_normal_uv_skinned },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::world,
-				.src = "standard.glsl",
+				.src = "standard.hlsl",
 				.features = {
 					"APPLY_DRAWFLAT",
 					"APPLY_FOG",
@@ -94,19 +94,19 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::depth_only,
-				.src = "depth_only.glsl",
+				.src = "depth_only.hlsl",
 				.vertex_formats = { pos_normal, pos_normal_uv },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::depth_only_skinned,
-				.src = "depth_only.glsl",
+				.src = "depth_only.hlsl",
 				.features = { "SKINNED" },
 				.vertex_formats = { pos_normal_uv_skinned },
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::outline,
-				.src = "outline.glsl",
+				.src = "outline.hlsl",
 				.vertex_formats = {
 					{ pos_normal },
 					{ pos_normal_uv },
@@ -114,33 +114,33 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::outline_skinned,
-				.src = "outline.glsl",
+				.src = "outline.hlsl",
 				.features = { "SKINNED" },
 				.vertex_formats = { pos_normal_uv_skinned },
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::skybox,
-				.src = "skybox.glsl",
+				.src = "skybox.hlsl",
 				.vertex_formats = { { skybox_vertex_descriptor } },
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::text,
-				.src = "text.glsl",
+				.src = "text.hlsl",
 				.vertex_formats = { { text_vertex_descriptor } },
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::skybox,
-				.src = "particle.glsl",
+				.src = "particle.hlsl",
 			},
 		},
 
 		.compute_shaders = {
-			ComputeShaderDescriptor { &Shaders::particle_compute, "particle_compute.glsl" },
-			ComputeShaderDescriptor { &Shaders::particle_setup_indirect, "particle_setup_indirect.glsl" },
-			ComputeShaderDescriptor { &Shaders::tile_culling, "tile_culling.glsl" },
+			ComputeShaderDescriptor { &Shaders::particle_compute, "particle_compute.hlsl" },
+			ComputeShaderDescriptor { &Shaders::particle_setup_indirect, "particle_setup_indirect.hlsl" },
+			ComputeShaderDescriptor { &Shaders::tile_culling, "tile_culling.hlsl" },
 		},
 	}, rest... );
 }

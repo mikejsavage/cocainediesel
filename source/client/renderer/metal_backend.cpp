@@ -263,16 +263,6 @@ void CopyGPUBufferToBuffer(
 	cmd_buf.unwrap()->bce->copyFromBuffer( allocations[ src ].buffer, src_offset, allocations[ dest ].buffer, dest_offset, n );
 }
 
-static u32 BitsPerPixel( TextureFormat format ) {
-	switch( format ) {
-		case TextureFormat_BC4:
-			return 4;
-		default:
-			Assert( false );
-			return 0;
-	}
-}
-
 void CopyGPUBufferToTexture(
 	Opaque< CommandBuffer > cmd_buf,
 	PoolHandle< Texture > dest, u32 w, u32 h, u32 num_layers, u32 mip_level,

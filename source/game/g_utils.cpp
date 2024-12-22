@@ -771,10 +771,10 @@ void G_AnnouncerSound( edict_t * targ, StringHash sound, Team team, bool queued,
 	}
 }
 
-void G_SunCycle( u64 time ) {
+void G_SunCycle( Time duration ) {
 	float yaw = 3.420f + 24.0f * RandomUniformFloat( &svs.rng, 0.0f, 15.0f ); // idk, some random angle that doesn't hit 90° etc
 	server_gs.gameState.sun_angles_from = server_gs.gameState.sun_angles_to;
 	server_gs.gameState.sun_angles_to = EulerDegrees3( 53.31f, yaw, 0.0f );
-	server_gs.gameState.sun_moved_from = svs.gametime;
-	server_gs.gameState.sun_moved_to = svs.gametime + time;
+	server_gs.gameState.sun_moved_from = Milliseconds( svs.gametime );
+	server_gs.gameState.sun_moved_to = Milliseconds( svs.gametime ) + duration;
 }

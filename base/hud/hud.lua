@@ -494,7 +494,7 @@ local function DrawScoreboardPlayer( state, options, X, Y, width, height, nameX,
 	if not player.alive then
 		teamColor.a = 0.2
 	end
-	
+
 	options.font_size = height
 	options.color = teamColor
 	options.alignment = "left middle"
@@ -572,7 +572,7 @@ local function DrawScoreboard( state, offset, outline )
 	local lineHeight = state.viewport_height * 0.03
 	local X = offset
 	local Y = offset
-	
+
 	local starsX = X
 	local starsWidth = lineHeight * state.scorelimit
 
@@ -635,7 +635,7 @@ local function DrawScoreboard( state, offset, outline )
 		cd.text( text_options, scoreX, Y + lineHeight/2, "WINS" )
 		cd.text( text_options, killsX, Y + lineHeight/2, "KILLS" )
 		cd.text( text_options, pingX, Y + lineHeight/2, "PING" )
-		
+
 		local place = 0
 		local line = 0
 		local previous_max_score = state.scorelimit
@@ -655,7 +655,7 @@ local function DrawScoreboard( state, offset, outline )
 					local teamColor = cd.getTeamColor( k )
 					local starColorBack = "#aaa"
 					local starColorFront = yellow
-					
+
 					if team.num_players == 0 then
 						starColorBack = "#555"
 					end
@@ -677,7 +677,7 @@ local function DrawScoreboard( state, offset, outline )
 					else
 						text_options.color = RGBALinear( 1.0, 1.0, 1.0, 1.0/place )
 					end
-					
+
 					text_options.alignment = "center middle"
 					cd.text( text_options, placeX, tmpY + lineHeight/2, placeText )
 
@@ -750,68 +750,42 @@ local function DrawCallvote( state )
 	cd.text( options, xright, ybottom, "["..cd.getBind("vote_no").."] Vote no" )
 end
 
-local function DrawYogaStuff( state )
-	local perk = {
-		background_color = "#fff",
-		border = 4,
-		border_color = dark_grey,
-		width = "3.5vw",
-		aspect_ratio = 1,
-		margin_right = 4,
-	}
-
-	local gadget = {
-		width = "3.5vw",
+local function DrawClayStuff( state )
+	local perk_style = {
+		background = "#0f0",
+		border_radius = "0.25vh",
+		flow = "vertical",
+		width = "5vw",
 		height = "100%",
-		flow = "column",
-		children = {
-			{
-				background_color = "#fff4",
-				grow = 1,
-				content = "hello",
-			},
-			{
-				aspect_ratio = 1,
-				background_color = yellow,
-				border = 4,
-				border_color = dark_grey,
-				content = cd.getGadgetIcon( state.gadget ),
-			},
-		},
 	}
 
-	cd.yoga( {
-		absolute_position = true,
-		align_items = "flex-end",
-		left = "1.5vw",
-		right = "1.5vw",
-		top = "1.5vw",
-		height = "8%",
-		children = { perk, gadget },
-	} )
-
-	-- local weapon_icons = { }
-	-- for i = 1, 4 do
-	-- 	weapon_icons[ i ] = {
-	-- 		aspect_ratio = 1,
-	-- 		margin_right = "0.75vw",
-	-- 		background_color = RGBALinear( 1, 1, 1, i / 4 ),
-	-- 		height = "100%",
-	-- 		border_color = "#000",
-	-- 		border = 2,
-	-- 		border_bottom = 10,
-	-- 	}
-	-- end
-        --
-	-- cd.yoga( {
-	-- 	absolute_position = true,
-	-- 	left = "1.5vw",
-	-- 	right = "1.5vw",
-	-- 	top = "1.5vw",
-	-- 	height = "15%",
-	-- 	background_color = "#f00",
-	-- 	children = weapon_icons,
-	-- } )
+	cd.render(
+		cd.node( {
+			background = red,
+			border_radius = 4,
+			bottom = "2vh",
+			left = "2vh",
+			flow = "horizontal",
+			width = "fit",
+			height = "8vh",
+			gap = "1vh",
+			padding = "1vh",
+		},
+		{
+			cd.node( perk_style, {
+				cd.node( { background = yellow } ),
+				cd.node( { background = yellow } ),
+			} ),
+			cd.node( perk_style, {
+				cd.node( { background = yellow } ),
+				cd.node( { background = yellow } ),
+			} ),
+			cd.node( perk_style, {
+				cd.node( { background = yellow } ),
+				cd.node( { background = yellow } ),
+			} ),
+		} )
+	)
 end
 
 return function( state )
@@ -843,5 +817,5 @@ return function( state )
 
 	DrawCallvote( state )
 
-	-- DrawYogaStuff( state )
+	-- DrawClayStuff( state )
 end

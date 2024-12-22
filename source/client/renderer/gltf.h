@@ -61,6 +61,7 @@ struct GLTFRenderData {
 		StringHash name;
 
 		Mat3x4 global_transform;
+		Mat3x4 inverse_global_transform;
 		Transform local_transform;
 
 		StringHash material;

@@ -2,6 +2,7 @@
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/serialization.h"
+#include "qcommon/time.h"
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/shader_constants.h"
@@ -1017,6 +1018,10 @@ static void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition po
 }
 
 static void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 color, float lifetime_scale ) {
+	if( normal == Vec3( 0.0f ) ) {
+		return;
+	}
+
 	float lifetime = Max2( 0.0f, emitter->lifetime + SampleRandomDistribution( &cls.rng, emitter->lifetime_distribution ) ) * lifetime_scale;
 	float size = Max2( 0.0f, emitter->size + SampleRandomDistribution( &cls.rng, emitter->size_distribution ) );
 	float angle = RandomUniformFloat( &cls.rng, 0.0f, Radians( 360.0f ) );
@@ -1031,7 +1036,7 @@ static void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 co
 	actual_color.z += SampleRandomDistribution( &cls.rng, emitter->blue_distribution );
 	actual_color.w += SampleRandomDistribution( &cls.rng, emitter->alpha_distribution );
 	actual_color = Clamp01( actual_color );
-	AddPersistentDecal( origin, normal, size, angle, material, actual_color, lifetime * 1000.0f, emitter->height );
+	AddPersistentDecal( origin, QuaternionFromNormalAndRadians( normal, angle ), size, material, actual_color, Seconds( lifetime ), emitter->height );
 }
 
 static void EmitDynamicLight( DynamicLightEmitter * emitter, Vec3 origin, Vec3 color ) {
@@ -1046,7 +1051,7 @@ static void EmitDynamicLight( DynamicLightEmitter * emitter, Vec3 origin, Vec3 c
 	actual_color.y += SampleRandomDistribution( &cls.rng, emitter->green_distribution );
 	actual_color.z += SampleRandomDistribution( &cls.rng, emitter->blue_distribution );
 	actual_color = Clamp01( actual_color );
-	AddPersistentDynamicLight( origin, actual_color, intensity, lifetime * 1000.0f );
+	AddPersistentDynamicLight( origin, actual_color, intensity, Seconds( lifetime ) );
 }
 
 void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec4 color, float decal_lifetime_scale ) {

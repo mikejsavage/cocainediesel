@@ -614,7 +614,7 @@ static void DrawEntityTrail( const centity_t * cent, StringHash name ) {
 
 	Vec4 color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 0.5f );
 	DoVisualEffect( name, cent->interpolated.origin, cent->trailOrigin, 1.0f, color );
-	DrawTrail( Hash64( cent->current.id.id ), cent->interpolated.origin, 16.0f, color, "simpletrail", 500 );
+	DrawTrail( Hash64( cent->current.id.id ), cent->interpolated.origin, 16.0f, color, "simpletrail", Milliseconds( 500 ) );
 }
 
 void DrawEntities() {
@@ -729,9 +729,8 @@ void DrawEntities() {
 				break;
 
 			case ET_DECAL: {
-				Vec3 normal;
-				AngleVectors( cent->current.angles, &normal, NULL, NULL );
-				DrawDecal( cent->current.origin, normal, cent->current.scale.x, cent->current.angles.roll, cent->current.material, sRGBToLinear( cent->current.color ) );
+				Quaternion orientation = EulerDegrees3ToQuaternion( cent->current.angles );
+				DrawDecal( cent->current.origin, orientation, cent->current.scale.x, cent->current.material, sRGBToLinear( cent->current.color ) );
 			} break;
 
 			case ET_LASERBEAM:

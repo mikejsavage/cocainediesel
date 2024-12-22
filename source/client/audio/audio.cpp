@@ -203,7 +203,7 @@ static void InitOpenAL() {
 	alDistanceModel( AL_INVERSE_DISTANCE_CLAMPED );
 
 	for( size_t i = 0; i < ARRAY_COUNT( free_sound_sources ); i++ ) {
-		alGenSources( 1, free_sound_sources.add() );
+		alGenSources( 1, free_sound_sources.add().value );
 	}
 	alGenSources( 1, &music_source );
 
@@ -658,7 +658,7 @@ static bool StartSound( PlayingSFX * ps, size_t i ) {
 static void StopSound( PlayingSFX * ps, size_t i ) {
 	CheckedALSourceStop( ps->sources[ i ] );
 	CheckedALSource( ps->sources[ i ], AL_BUFFER, 0 );
-	free_sound_sources.add( ps->sources[ i ] );
+	[[maybe_unused]] bool ok = free_sound_sources.add( ps->sources[ i ] );
 	ps->stopped[ i ] = true;
 }
 
@@ -818,21 +818,23 @@ static PlayingSFX * PlaySFXInternal( StringHash name, const PlaySFXConfig & conf
 	if( sfx == NULL )
 		return NULL;
 
-	PlayingSFX * ps = playing_sounds.add( playing_sound_handle_autoinc );
+	u64 handle = Hash64( playing_sound_handle_autoinc );
+
+	PlayingSFX * ps = playing_sounds.add( handle );
 	if( ps == NULL ) {
 		Com_Printf( S_COLOR_YELLOW "Too many playing sound effects!\n" );
 		return NULL;
 	}
 
-	*ps = { };
-	ps->config = config;
-	ps->hash = name;
-	ps->sfx = sfx;
+	*ps = PlayingSFX {
+		.handle = { handle },
+		.config = config,
+		.hash = name,
+		.sfx = sfx,
+		.start_time = cls.monotonicTime,
+	};
 
-	ps->handle = { playing_sound_handle_autoinc };
 	playing_sound_handle_autoinc++;
-
-	ps->start_time = cls.monotonicTime;
 
 	return ps;
 }

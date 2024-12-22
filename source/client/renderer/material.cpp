@@ -246,31 +246,6 @@ static void ParseAlphaGen( Material * material, Span< const char > name, Span< c
 	}
 }
 
-static void ParseTCMod( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
-	if( material->tcmod.type != TCModFunc_None ) {
-		Com_GGPrint( S_COLOR_YELLOW "WARNING: material {} has multiple tcmods", name );
-		SkipToEndOfLine( data );
-		return;
-	}
-
-	Span< const char > token = ParseMaterialToken( data );
-	if( token == "rotate" ) {
-		material->tcmod.args[0] = -ParseMaterialFloat( data );
-		material->tcmod.type = TCModFunc_Rotate;
-	}
-	else if( token == "scroll" ) {
-		ParseVector( data, material->tcmod.args, 2 );
-		material->tcmod.type = TCModFunc_Scroll;
-	}
-	else if( token == "stretch" ) {
-		material->tcmod.wave = ParseWave( data );
-		material->tcmod.type = TCModFunc_Stretch;
-	}
-	else {
-		SkipToEndOfLine( data );
-	}
-}
-
 static const Texture * FindTexture( Span< const char > name ) {
 	u64 idx;
 	return textures_hashtable.get( StringHash( name ).hash, &idx ) ? &textures[ idx ] : missing_material.texture;
@@ -301,7 +276,6 @@ static const MaterialSpecKey shaderkeys[] = {
 	{ "shaded", ParseShaded },
 	{ "shininess", ParseShininess },
 	{ "specular", ParseSpecular },
-	{ "tcmod", ParseTCMod },
 	{ "texture", ParseTexture },
 	{ "//", SkipComment },
 };
@@ -804,7 +778,7 @@ static void LoadBuiltinMaterials() {
 	TracyZoneScoped;
 
 	missing_material = Material();
-	missing_material.name = CloneSpan( sys_allocator, Span< const char >( "missing material" ) );
+	missing_material.name = CloneSpan( sys_allocator, "missing material"_sp );
 	missing_material.texture = &missing_texture;
 	missing_material.sampler = Sampler_Unfiltered;
 
@@ -1121,32 +1095,6 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		}
 	}
 
-	// evaluate tcmod
-	Vec3 tcmod_row0 = Vec3( 1.0f, 0.0f, 0.0f );
-	Vec3 tcmod_row1 = Vec3( 0.0f, 1.0f, 0.0f );
-	if( material->tcmod.type == TCModFunc_Scroll ) {
-		float s = float( PositiveMod( double( material->tcmod.args[ 0 ] ) * double( cls.gametime / 1000.0 ), 1.0 ) );
-		float t = float( PositiveMod( double( material->tcmod.args[ 1 ] ) * double( cls.gametime / 1000.0 ), 1.0 ) );
-		tcmod_row0 = Vec3( 1, 0, s );
-		tcmod_row1 = Vec3( 0, 1, t );
-	}
-	else if( material->tcmod.type == TCModFunc_Rotate ) {
-		float degrees = float( PositiveMod( double( material->tcmod.args[ 0 ] ) * double( cls.gametime / 1000.0 ), 360.0 ) );
-		float s = sinf( Radians( degrees ) );
-		float c = cosf( Radians( degrees ) );
-		// keep centered on (0.5, 0.5)
-		tcmod_row0 = Vec3( c, -s, 0.5f * ( 1.0f + s - c ) );
-		tcmod_row1 = Vec3( s, c, 0.5f * ( 1.0f - s - c ) );
-	}
-	else if( material->tcmod.type == TCModFunc_Stretch ) {
-		float wave = EvaluateWaveFunc( material->rgbgen.wave );
-		float scale = wave == 0 ? 1.0f : 1.0f / wave;
-		// keep centered on (0.5, 0.5)
-		float offset = 0.5f - 0.5f * scale;
-		tcmod_row0 = Vec3( scale, 0, offset );
-		tcmod_row1 = Vec3( 0, scale, offset );
-	}
-
 	PipelineState pipeline;
 	if( material->blend_func == BlendFunc_Disabled ) {
 		pipeline.pass = material->outlined ? frame_static.nonworld_opaque_outlined_pass : frame_static.nonworld_opaque_pass;
@@ -1178,13 +1126,11 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 
 	if( skinned || gpu_material == NULL ) {
-		pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, tcmod_row0, tcmod_row1 ) );
+		pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color ) );
 	}
 	if( gpu_material != NULL ) {
 		// instanced material
 		gpu_material->color = color;
-		gpu_material->tcmod_row0 = tcmod_row0;
-		gpu_material->tcmod_row1 = tcmod_row1;
 	}
 
 	if( material->world ) {
@@ -1194,7 +1140,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		pipeline.bind_texture_and_sampler( "u_BlueNoiseTexture", BlueNoiseTexture(), Sampler_Standard );
 		if( gpu_material == NULL ) {
 			pipeline.bind_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( material->specular, material->shininess ) );
-			pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );
+			pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color ) );
 		}
 		pipeline.bind_texture_and_sampler( "u_ShadowmapTextureArray", &frame_static.render_targets.shadowmaps[ 0 ].depth_attachment, Sampler_Shadowmap );
 		pipeline.bind_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );

@@ -62,6 +62,7 @@ bool Probability( RNG * rng, float p );
 
 template< typename T >
 T & RandomElement( RNG * rng, T * arr, size_t n ) {
+	Assert( n > 0 );
 	return arr[ RandomUniform( rng, 0, n ) ];
 }
 

@@ -73,6 +73,7 @@ struct UBO {
 
 static UBO ubos[ 16 ]; // 1MB of uniform space
 static u32 ubo_offset_alignment;
+static u32 ssbo_offset_alignment;
 
 static float max_anisotropic_filtering;
 
@@ -374,6 +375,9 @@ void InitRenderBackend() {
 	GLint alignment;
 	glGetIntegerv( GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &alignment );
 	ubo_offset_alignment = checked_cast< u32 >( alignment );
+
+	glGetIntegerv( GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &alignment );
+	ssbo_offset_alignment = checked_cast< u32 >( alignment );
 
 	glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropic_filtering );
 
@@ -1036,6 +1040,8 @@ void DeferDeleteGPUBuffer( GPUBuffer buf ) {
 }
 
 StreamingBuffer NewStreamingBuffer( u32 size, Span< const char > name ) {
+	size = AlignPow2( size, ssbo_offset_alignment );
+
 	StreamingBuffer stream = { };
 	stream.buffer = NewGPUBuffer( NULL, size * MAX_FRAMES_IN_FLIGHT, true, name );
 	stream.ptr = glMapNamedBufferRange( stream.buffer.buffer, 0, size * MAX_FRAMES_IN_FLIGHT, GL_MAP_COHERENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT );

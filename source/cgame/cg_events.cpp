@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include "qcommon/array.h"
+#include "qcommon/time.h"
 #include "cgame/cg_local.h"
 #include "client/audio/api.h"
 #include "gameshared/collision.h"
@@ -81,7 +83,7 @@ static void FireRail( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin ) {
 	}
 
 	Vec3 fx_origin = from_origin ? origin : GetMuzzleTransform( ownerNum ).col3;
-	AddPersistentBeam( fx_origin, trace.endpos, 16.0f, color, "loadout/rail/beam", 0.25f, 0.1f );
+	AddPersistentBeam( fx_origin, trace.endpos, 16.0f, color, "loadout/rail/beam", Milliseconds( 250 ), Milliseconds( 100 ) );
 	RailTrailParticles( fx_origin, trace.endpos, color );
 }
 
@@ -253,7 +255,7 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 		WallbangImpact( &wallbang, team_color, 12 );
 	}
 
-	AddPersistentBeam( GetMuzzleTransform( owner ).col3, trace.endpos, 1.0f, team_color, "tracer", 0.2f, 0.1f );
+	AddPersistentBeam( GetMuzzleTransform( owner ).col3, trace.endpos, 1.0f, team_color, "tracer", Milliseconds( 200 ), Milliseconds( 100 ) );
 }
 
 static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_color, WeaponType weapon ) {
@@ -281,7 +283,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 			WallbangImpact( &wallbang, team_color, 2, 0.5f );
 		}
 
-		AddPersistentBeam( muzzle, trace.endpos, 1.0f, team_color, "loadout/tracer", 0.2f, 0.1f );
+		AddPersistentBeam( muzzle, trace.endpos, 1.0f, team_color, "loadout/tracer", Milliseconds( 200 ), Milliseconds( 100 ) );
 	}
 
 	// spawn a single sound at the impact
@@ -305,28 +307,23 @@ static int cg_announcerEventsCurrent = 0;
 static int cg_announcerEventsHead = 0;
 static int cg_announcerEventsDelay = 0;
 
-static Vec3 speaker_origins[ 1024 ];
-static size_t num_speakers;
+static BoundedDynamicArray< Vec3, 1024 > speaker_origins;
 
 void ResetAnnouncerSpeakers() {
-	num_speakers = 0;
+	speaker_origins.clear();
 }
 
 void AddAnnouncerSpeaker( const centity_t * cent ) {
-	if( num_speakers == ARRAY_COUNT( speaker_origins ) )
-		return;
-
-	speaker_origins[ num_speakers ] = cent->current.origin;
-	num_speakers++;
+	[[maybe_unused]] bool ok = speaker_origins.add( cent->current.origin );
 }
 
 static void PlayAnnouncerSound( StringHash sound ) {
-	if( num_speakers == 0 ) {
+	if( speaker_origins.size() == 0 ) {
 		PlaySFX( sound );
 	}
 	else {
-		for( size_t i = 0; i < num_speakers; i++ ) {
-			PlaySFX( sound, PlaySFXConfigPosition( speaker_origins[ i ] ) );
+		for( Vec3 pos : speaker_origins ) {
+			PlaySFX( sound, PlaySFXConfigPosition( pos ) );
 		}
 	}
 }
@@ -846,7 +843,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 				trace_t trace = CG_Trace( ent->origin, MinMax3( 4.0f ), end, -1, Solid_World );
 
-				if( trace.HitSomething() ) {
+				if( trace.HitSomething() && trace.normal != Vec3( 0.0f ) ) {
 					constexpr StringHash decals[] = {
 						"textures/blood_decals/blood1",
 						"textures/blood_decals/blood2",
@@ -865,7 +862,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 					float min_size = Lerp( 20.0f, Unlerp01( 5, damage, 50 ), 64.0f );
 					float size = min_size * RandomUniformFloat( &cls.rng, 0.75f, 1.5f );
 
-					AddPersistentDecal( trace.endpos, trace.normal, size, angle, RandomElement( &cls.rng, decals ), team_color, 30000, 10.0f );
+					AddPersistentDecal( trace.endpos, QuaternionFromNormalAndRadians( trace.normal, angle ), size, RandomElement( &cls.rng, decals ), team_color, Seconds( 30 ), 10.0f );
 				}
 
 				p -= 1.0f;

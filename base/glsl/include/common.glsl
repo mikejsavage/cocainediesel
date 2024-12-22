@@ -79,3 +79,27 @@ vec4 ClampedTexelFetch( sampler2DMS texture, ivec2 uv, int msaa_sample ) {
 	uv = clamp( uv, ivec2( 0 ), ivec2( textureSize( texture ) ) - 1 );
 	return texelFetch( texture, uv, msaa_sample );
 }
+
+struct Quaternion {
+	vec4 q;
+};
+
+void QuaternionToBasis( Quaternion q, out vec3 normal, out vec3 tangent, out vec3 bitangent ) {
+	normal = vec3(
+		1.0 - 2.0 * ( q.q.y * q.q.y + q.q.z * q.q.z ),
+		2.0 * ( q.q.x * q.q.y + q.q.z * q.q.w ),
+		2.0 * ( q.q.x * q.q.z - q.q.y * q.q.w )
+	);
+
+	tangent = vec3(
+		2.0 * ( q.q.x * q.q.y - q.q.z * q.q.w ),
+		1.0 - 2.0 * ( q.q.x * q.q.x + q.q.z * q.q.z ),
+		2.0 * ( q.q.y * q.q.z + q.q.x * q.q.w )
+	);
+
+	bitangent = vec3(
+		2.0 * ( q.q.x * q.q.z + q.q.y * q.q.w ),
+		2.0 * ( q.q.y * q.q.z - q.q.x * q.q.w ),
+		1.0 - 2.0 * ( q.q.x * q.q.x + q.q.y * q.q.y )
+	);
+}

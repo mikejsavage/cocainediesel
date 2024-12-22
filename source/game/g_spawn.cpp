@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/base.h"
 #include "qcommon/srgb.h"
+#include "qcommon/time.h"
 #include "game/g_local.h"
 #include "game/g_maps.h"
 #include "gameshared/cdmap.h"
@@ -291,7 +292,7 @@ void G_InitLevel( Span< const char > mapname, int64_t levelTime ) {
 	LoadServerMap( mapname );// TODO: errors???
 	GClip_ClearWorld(); // clear areas links
 
-	G_SunCycle( 0 );
+	G_SunCycle( Seconds( 0 ) );
 
 	G_FreeEntities();
 

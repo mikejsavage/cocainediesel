@@ -414,7 +414,7 @@ static u32 BuildKDTreeRecursive( CompiledKDTree * tree, Span< const u32 > brush_
 	MinMax3 below_bounds, above_bounds;
 	SplitBounds( node_bounds, best_axis, distance, &below_bounds, &above_bounds );
 
-	u16 node_id = checked_cast< u16 >( tree->nodes.size() );
+	u32 node_id = checked_cast< u32 >( tree->nodes.size() );
 	tree->nodes.push_back( MapKDTreeNode() );
 
 	BuildKDTreeRecursive( tree, VectorToSpan( below_brush_ids ), brush_bounds, below_planes, below_bounds, max_depth - 1 );

@@ -140,7 +140,6 @@ void AnglesToAxis( EulerDegrees3 angles, mat3_t axis ) {
 	axis[8] = up.z;
 }
 
-// must match the GLSL OrthonormalBasis
 void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent ) {
 	float s = SignedOne( v.z );
 	float a = -1.0f / ( s + v.z );
@@ -339,6 +338,79 @@ Mat3x4 Mat4Rotation( EulerDegrees3 angles ) {
 	return ry * rp * rr;
 }
 
+Quaternion EulerDegrees3ToQuaternion( EulerDegrees3 angles ) {
+	float cp = cosf( Radians( angles.pitch ) * 0.5f );
+	float sp = sinf( Radians( angles.pitch ) * 0.5f );
+	float cy = cosf( Radians( angles.yaw ) * 0.5f );
+	float sy = sinf( Radians( angles.yaw ) * 0.5f );
+	float cr = cosf( Radians( angles.roll ) * 0.5f );
+	float sr = sinf( Radians( angles.roll ) * 0.5f );
+
+	return Quaternion(
+		cp * cy * sr - sp * sy * cr,
+		sp * cy * cr + cp * sy * sr,
+		cp * sy * cr - sp * cy * sr,
+		cp * cy * cr + sp * sy * sr
+	);
+}
+
+Quaternion QuaternionFromAxisAndRadians( Vec3 axis, float radians ) {
+	float s = sinf( radians * 0.5f );
+	return Quaternion( axis.x * s, axis.y * s, axis.z * s, cosf( radians * 0.5f ) );
+}
+
+static Quaternion QuaternionFromAxisAndCosine( Vec3 axis, float cosine ) {
+	// using half angle identities, theta is always in [0..pi) so always take the positive
+	float c = sqrtf( ( 1.0f + cosine ) * 0.5f );
+	float s = sqrtf( ( 1.0f - cosine ) * 0.5f );
+	return Quaternion( axis.x * s, axis.y * s, axis.z * s, c );
+}
+
+Quaternion QuaternionFromNormalAndRadians( Vec3 normal, float radians ) {
+	constexpr Vec3 x = Vec3( 1.0f, 0.0f, 0.0f );
+	float d = Dot( normal, x );
+
+	Vec3 axis;
+
+	if( Abs( d ) > 0.999f ) {
+		axis = Vec3( 0.0f, 0.0f, 1.0f );
+	}
+	else {
+		axis = Normalize( Cross( x, normal ) );
+	}
+
+	return QuaternionFromAxisAndRadians( normal, radians ) * QuaternionFromAxisAndCosine( axis, Dot( x, normal ) );
+}
+
+Quaternion BasisToQuaternion( Vec3 normal, Vec3 tangent, Vec3 bitangent ) {
+	// https://d3cw3dd2w32x2b.cloudfront.net/wp-content/uploads/2015/01/matrix-to-quat.pdf
+	// "Converting a Rotation Matrix to a Quaternion - Mike Day, Insomniac Games"
+
+	Quaternion q;
+	float t;
+	if( bitangent.z < 0.0f ) {
+		if( normal.x > tangent.y ) {
+			t = 1.0f + normal.x - tangent.y - bitangent.z;
+			q = Quaternion( t, normal.y + tangent.x, bitangent.x + normal.z, tangent.z - bitangent.y );
+		}
+		else {
+			t = 1.0f - normal.x + tangent.y - bitangent.z;
+			q = Quaternion( normal.y + tangent.x, t, tangent.z + bitangent.y, bitangent.x - normal.z );
+		}
+	}
+	else {
+		if( normal.x < -tangent.y ) {
+			t = 1.0f - normal.x - tangent.y + bitangent.z;
+			q = Quaternion( bitangent.x + normal.z, tangent.z + bitangent.y, t, normal.y - tangent.x );
+		}
+		else {
+			t = 1.0f + normal.x + tangent.y + bitangent.z;
+			q = Quaternion( tangent.z - bitangent.y, bitangent.x - normal.z, normal.y - tangent.x, t );
+		}
+	}
+	return q * ( 0.5f / sqrtf( t ) );
+}
+
 MinMax3 Union( const MinMax3 & bounds, Vec3 p ) {
 	return MinMax3(
 		Vec3( Min2( bounds.mins.x, p.x ), Min2( bounds.mins.y, p.y ), Min2( bounds.mins.z, p.z ) ),
@@ -371,8 +443,4 @@ u32 Log2( u64 x ) {
 	}
 
 	return log;
-}
-
-u16 Bswap( u16 x ) {
-	return ( x >> 8 ) | ( x << 8 );
 }

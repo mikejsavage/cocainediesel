@@ -319,8 +319,8 @@ struct SyncGameState {
 
 	EulerDegrees3 sun_angles_from;
 	EulerDegrees3 sun_angles_to;
-	s64 sun_moved_from;
-	s64 sun_moved_to;
+	Time sun_moved_from;
+	Time sun_moved_to;
 };
 
 struct SyncEvent {

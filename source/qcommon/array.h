@@ -25,15 +25,15 @@ public:
 		n = 0;
 	}
 
-	T * add() {
+	Optional< T * > add() {
 		return n == N ? NULL : &elems[ n++ ];
 	}
 
-	bool add( const T & x ) {
-		T * slot = add();
-		if( slot == NULL )
+	[[nodiscard]] bool add( const T & x ) {
+		Optional< T * > slot = add();
+		if( !slot.exists )
 			return false;
-		*slot = x;
+		*slot.value = x;
 		return true;
 	}
 

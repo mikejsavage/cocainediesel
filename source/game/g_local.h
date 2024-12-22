@@ -299,7 +299,7 @@ void G_ClearPlayerStateEvents( gclient_t *client );
 void G_AnnouncerSound( edict_t * targ, StringHash sound, Team team, bool queued, edict_t * ignore );
 edict_t * G_PlayerForText( Span< const char > text );
 
-void G_SunCycle( u64 time );
+void G_SunCycle( Time duration );
 
 //
 // g_callvotes.c

@@ -721,7 +721,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 
 	float t = 1.0f;
 	if( client_gs.gameState.sun_moved_from != client_gs.gameState.sun_moved_to ) {
-		t = Unlerp01( client_gs.gameState.sun_moved_from, cls.gametime, client_gs.gameState.sun_moved_to );
+		t = Unlerp01( client_gs.gameState.sun_moved_from, cls.game_time, client_gs.gameState.sun_moved_to );
 	}
 	EulerDegrees3 sun_angles = LerpAngles( client_gs.gameState.sun_angles_from, t, client_gs.gameState.sun_angles_to );
 	AngleVectors( sun_angles, &frame_static.light_direction, NULL, NULL );
@@ -823,8 +823,8 @@ UniformBlock UploadMaterialStaticUniforms( float specular, float shininess, floa
 	return UploadUniformBlock( specular, shininess, lod_bias );
 }
 
-UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0, Vec3 tcmod_row1 ) {
-	return UploadUniformBlock( color, tcmod_row0, tcmod_row1 );
+UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color ) {
+	return UploadUniformBlock( color );
 }
 
 Optional< ModelRenderData > FindModelRenderData( StringHash name ) {

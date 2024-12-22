@@ -497,6 +497,8 @@ struct Quaternion {
 	Quaternion() = default;
 	constexpr Quaternion( float x_, float y_, float z_, float w_ ) : x( x_ ), y( y_ ), z( z_ ), w( w_ ) { }
 
+	Vec3 im() const { return Vec3( x, y, z ); }
+
 	float * ptr() { return &x; }
 
 	static constexpr Quaternion Identity() {
@@ -592,5 +594,5 @@ template< IsEnum E > void operator++( E & x, int ) { x = E( UnderlyingType< E >(
 template< IsEnum E > constexpr E operator&( E lhs, E rhs ) { return E( UnderlyingType< E >( lhs ) & UnderlyingType< E >( rhs ) ); }
 template< IsEnum E > constexpr E operator|( E lhs, E rhs ) { return E( UnderlyingType< E >( lhs ) | UnderlyingType< E >( rhs ) ); }
 template< IsEnum E > constexpr E operator~( E x ) { return E( ~UnderlyingType< E >( x ) ); }
-template< IsEnum E > void operator&=( E & lhs, E rhs ) { lhs = E( UnderlyingType< E >( lhs ) & UnderlyingType< E >( rhs ) ); }
-template< IsEnum E > void operator|=( E & lhs, E rhs ) { lhs = E( UnderlyingType< E >( lhs ) | UnderlyingType< E >( rhs ) ); }
+template< IsEnum E > void operator&=( E & lhs, E rhs ) { lhs = lhs & rhs; }
+template< IsEnum E > void operator|=( E & lhs, E rhs ) { lhs = lhs | rhs; }

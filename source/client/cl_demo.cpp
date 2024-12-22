@@ -22,11 +22,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client/client.h"
 #include "qcommon/fs.h"
+#include "qcommon/time.h"
 #include "qcommon/version.h"
 #include "gameshared/demo.h"
 
 static RecordDemoContext record_demo_context = { };
-static s64 record_demo_gametime;
+static Time record_demo_game_time;
 static time_t record_demo_utc_time;
 static bool record_demo_waiting = false;
 static char * record_demo_filename = NULL;
@@ -35,8 +36,7 @@ static DemoMetadata playing_demo_metadata;
 static msg_t playing_demo_contents = { };
 static bool playing_demo_paused;
 static bool playing_demo_seek;
-static bool playing_demo_seek_latch;
-static s64 playing_demo_seek_time;
+static Optional< Time > playing_demo_seek_time;
 
 static bool yolodemo;
 
@@ -70,7 +70,7 @@ void CL_DemoBaseline( const snapshot_t * snap ) {
 	if( !record_demo_waiting || snap->delta )
 		return;
 
-	record_demo_gametime = cls.gametime;
+	record_demo_game_time = cls.game_time;
 	record_demo_utc_time = time( NULL );
 	record_demo_waiting = false;
 
@@ -136,7 +136,7 @@ void CL_StopRecording( bool silent ) {
 	metadata.server = cls.server_name;
 	metadata.map = CloneSpan( &temp, cl.map->name );
 	metadata.utc_time = record_demo_utc_time;
-	metadata.duration_seconds = ( cls.gametime - record_demo_gametime ) / 1000;
+	metadata.duration_seconds = ToSeconds( cls.game_time - record_demo_game_time );
 	metadata.decompressed_size = record_demo_context.decompressed_size;
 
 	StopRecordingDemo( &temp, &record_demo_context, metadata );
@@ -170,11 +170,11 @@ void CL_ReadDemoPackets() {
 }
 
 void CL_LatchedDemoJump() {
-	if( !playing_demo_seek_latch ) {
+	if( !playing_demo_seek_time.exists ) {
 		return;
 	}
 
-	cls.gametime = playing_demo_seek_time;
+	cls.game_time = playing_demo_seek_time.value;
 	cl.currentSnapNum = cl.pendingSnapNum = cl.receivedSnapNum = 0;
 
 	playing_demo_contents.readcount = 0;
@@ -182,13 +182,13 @@ void CL_LatchedDemoJump() {
 	CL_AdjustServerTime( 1 );
 
 	playing_demo_seek = true;
-	playing_demo_seek_latch = false;
+	playing_demo_seek_time = NONE;
 }
 
 static void CL_StartDemo( Span< const char > demoname, bool yolo ) {
 	CL_Disconnect( NULL );
 
-	Span< const char > ext = FileExtension( demoname ) == "" ? Span< const char >( APP_DEMO_EXTENSION_STR ) : Span< const char >( "" );
+	Span< const char > ext = FileExtension( demoname ) == "" ? Span< const char >( APP_DEMO_EXTENSION_STR ) : ""_sp;
 	char * filename;
 	if( COM_ValidateRelativeFilename( demoname ) ) {
 		filename = ( *sys_allocator )( "{}/demos/{}{}", HomeDirPath(), demoname, ext );
@@ -218,7 +218,7 @@ static void CL_StartDemo( Span< const char > demoname, bool yolo ) {
 	playing_demo_contents = NewMSGReader( decompressed.ptr, decompressed.n, decompressed.n );
 	playing_demo_paused = false;
 	playing_demo_seek = false;
-	playing_demo_seek_latch = false;
+	playing_demo_seek_time = NONE;
 	yolodemo = yolo;
 
 	CL_SetClientState( CA_HANDSHAKE );
@@ -265,11 +265,10 @@ void CL_DemoJump_f( const Tokenized & args ) {
 
 	Span< const char > time_str = args.tokens[ 1 ];
 	bool relative = false;
+	bool negative = false;
 	if( time_str[ 0 ] == '+' || time_str[ 0 ] == '-' ) {
 		relative = true;
-		if( time_str[ 0 ] == '+' ) {
-			time_str++;
-		}
+		negative = time_str[ 0 ] == '-';
 	}
 
 	s64 seconds;
@@ -277,6 +276,15 @@ void CL_DemoJump_f( const Tokenized & args ) {
 		return bad_syntax();
 	}
 
-	playing_demo_seek_time = Max2( s64( 0 ), ( relative ? cls.gametime : 0 ) + seconds );
-	playing_demo_seek_latch = true;
+	Time time = Seconds( seconds );
+
+	if( !relative ) {
+		playing_demo_seek_time = time;
+	}
+	else if( negative ) {
+		playing_demo_seek_time = cls.game_time - Min2( cls.game_time, time );
+	}
+	else {
+		playing_demo_seek_time = cls.game_time + time;
+	}
 }

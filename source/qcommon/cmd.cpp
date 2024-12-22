@@ -183,7 +183,7 @@ static Span< Span< const char > > SearchCommands( Allocator * a, Span< const cha
 }
 
 static void Cmd_Find_f( const Tokenized & args ) {
-	Span< const char > needle = args.tokens.n < 2 ? Span< const char >( "" ) : args.tokens[ 1 ];
+	Span< const char > needle = args.tokens.n < 2 ? ""_sp : args.tokens[ 1 ];
 
 	Span< Span< const char > > cmds = SearchCommands( sys_allocator, needle );
 	Span< Span< const char > > cvars = SearchCvars( sys_allocator, needle );

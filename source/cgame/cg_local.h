@@ -385,13 +385,13 @@ void DrawGibs();
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material );
 
 void InitPersistentBeams();
-void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material, float duration, float fade_time );
+void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material, Time duration, Time fade_time );
 void DrawPersistentBeams();
 
 //
 // cg_trails.cpp
 //
-void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash material, u64 duration );
+void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash material, Time duration );
 void InitTrails();
 void DrawTrails();
 

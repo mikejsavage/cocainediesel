@@ -11,8 +11,8 @@
 #include "client/renderer/shader_variants.h"
 #include "client/renderer/spirv.h"
 
-static constexpr Span< const char > ExeExtension = IFDEF( PLATFORM_WINDOWS ) ? Span< const char >( ".exe" ) : Span< const char >( "" );
-static constexpr Span< const char > ShaderExtension = IFDEF( PLATFORM_MACOS ) ? Span< const char >( ".metallib" ) : Span< const char >( ".spv" );
+static constexpr Span< const char > ExeExtension = IFDEF( PLATFORM_WINDOWS ) ? ".exe"_sp : ""_sp;
+static constexpr Span< const char > ShaderExtension = IFDEF( PLATFORM_MACOS ) ? ".metallib"_sp : ".spv"_sp;
 
 struct CompileShaderJob {
 	const CompileShadersSettings * settings;
@@ -83,7 +83,7 @@ static bool CompileGraphicsShader( TempAllocator & temp, Span< const char > file
 		features_defines.append( " -D {}", feature );
 	}
 
-	constexpr Span< const char > target = IFDEF( PLATFORM_MACOS ) ? "vulkan1.2"_s : "vulkan1.3"_s;
+	constexpr Span< const char > target = IFDEF( PLATFORM_MACOS ) ? "vulkan1.2"_sp : "vulkan1.3"_sp;
 
 	DynamicArray< const char * > commands( &temp );
 	DynamicArray< const char * > files_to_remove( &temp );

@@ -32,16 +32,15 @@ struct Font {
 	Glyph glyphs[ 256 ];
 };
 
-static Font fonts[ 64 ];
-static size_t num_fonts;
+static BoundedDynamicArray< Font, 64 > fonts;
 
 void InitText() {
-	num_fonts = 0;
+	fonts.clear();
 }
 
 void ShutdownText() {
-	for( size_t i = 0; i < num_fonts; i++ ) {
-		DeleteTexture( fonts[ i ].atlas );
+	for( Font font : fonts ) {
+		DeleteTexture( font.atlas );
 	}
 }
 
@@ -52,20 +51,18 @@ static void Serialize( SerializationBuffer * buf, Font & font ) {
 	}
 }
 
-const Font * RegisterFont( const char * path ) {
+const Font * RegisterFont( Span< const char > path ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	u32 path_hash = Hash32( path );
-	for( size_t i = 0; i < num_fonts; i++ ) {
-		if( fonts[ i ].path_hash == path_hash ) {
-			return &fonts[ i ];
+	for( const Font & font : fonts ) {
+		if( font.path_hash == path_hash ) {
+			return &font;
 		}
 	}
 
-	Assert( num_fonts < ARRAY_COUNT( fonts ) );
-
-	Font * font = &fonts[ num_fonts ];
-	font->path_hash = path_hash;
+	Font font = { };
+	font.path_hash = path_hash;
 
 	// load MSDF spec
 	{
@@ -76,13 +73,14 @@ const Font * RegisterFont( const char * path ) {
 			return NULL;
 		}
 
-		if( !Deserialize( NULL, font, data.ptr, data.n ) ) {
+		if( !Deserialize( NULL, &font, data.ptr, data.n ) ) {
 			Com_GGPrint( S_COLOR_RED "Couldn't load MSDF spec from {}", msdf_path );
 			return NULL;
 		}
 	}
 
 	// load MSDF atlas
+	// we need to load it ourselves because the normal texture loader treats 4 channel PNGs as sRGB
 	{
 		Span< const char > atlas_path = temp.sv( "{}.png", path );
 		Span< const u8 > data = AssetBinary( atlas_path );
@@ -92,23 +90,30 @@ const Font * RegisterFont( const char * path ) {
 		defer { stbi_image_free( pixels ); };
 
 		if( pixels == NULL || channels != 3 ) {
-			Com_Printf( S_COLOR_YELLOW "WARNING: couldn't load atlas from %s\n", path );
+			Com_GGPrint( S_COLOR_YELLOW "WARNING: couldn't load atlas from {}", path );
 			return NULL;
 		}
 
-		TextureConfig config;
-		config.format = TextureFormat_RGBA_U8;
-		config.width = checked_cast< u32 >( w );
-		config.height = checked_cast< u32 >( h );
-		config.data = pixels;
-
-		font->atlas = NewTexture( config );
-		font->material.texture = &font->atlas;
+		font.atlas = NewTexture( TextureConfig {
+			.format = TextureFormat_RGBA_U8,
+			.width = checked_cast< u32 >( w ),
+			.height = checked_cast< u32 >( h ),
+			.data = pixels,
+		} );
+		font.material.texture = &font.atlas;
 	}
 
-	num_fonts++;
+	Optional< Font * > slot = fonts.add();
+	if( !slot.exists ) {
+		Com_Printf( S_COLOR_YELLOW "Too many fonts\n" );
+		DeleteTexture( font.atlas );
+		return NULL;
+	}
 
-	return font;
+	*slot.value = font;
+	slot.value->material.texture = &slot.value->atlas;
+
+	return slot.value;
 }
 
 static float Area( const MinMax2 & rect ) {

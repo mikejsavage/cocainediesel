@@ -33,7 +33,7 @@ void InitText();
 void ShutdownText();
 
 struct Font;
-const Font * RegisterFont( const char * path );
+const Font * RegisterFont( Span< const char > path );
 
 void DrawText( const Font * font, float pixel_size,
 	const char * str,

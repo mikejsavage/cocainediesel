@@ -29,6 +29,7 @@ else
 end
 
 require( "libs.cgltf" )
+require( "libs.clay" )
 require( "libs.curl" )
 require( "libs.discord" )
 require( "libs.freetype" )
@@ -47,7 +48,6 @@ require( "libs.picohttpparser" )
 require( "libs.rgbcx" )
 require( "libs.stb" )
 require( "libs.tracy" )
-require( "libs.yoga" )
 require( "libs.zstd" )
 
 require( "source.tools.bc4" )
@@ -79,6 +79,7 @@ do
 			"imgui",
 
 			"cgltf",
+			"clay",
 			"discord",
 			"freetype",
 			"ggentropy",
@@ -96,7 +97,6 @@ do
 			"stb_rect_pack",
 			"stb_vorbis",
 			"tracy",
-			"yoga",
 			"zstd",
 			platform_curl_libs,
 			{ OS == "macos" and "metal-cpp" or nil },

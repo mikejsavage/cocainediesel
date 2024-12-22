@@ -1501,7 +1501,7 @@ static void GameMenu() {
 			vote = "map";
 			arg = SelectableMapList( true );
 		} else {
-			vote = e == 2 ? Span< const char >( "spectate" ) : Span< const char >( "kick" );
+			vote = e == 2 ? "spectate"_sp : "kick"_sp;
 			arg = SelectablePlayerList();
 		}
 

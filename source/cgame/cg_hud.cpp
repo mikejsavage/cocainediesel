@@ -27,39 +27,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/text.h"
 #include "cgame/cg_local.h"
 
+#include "clay/clay.h"
+
 #include "imgui/imgui.h"
 
 #include "luau/lua.h"
 #include "luau/lualib.h"
 #include "luau/luacode.h"
 
-#include "yoga/Yoga.h"
-
 static const Vec4 light_gray = sRGBToLinear( RGBA8( 96, 96, 96, 255 ) );
 
 static lua_State * hud_L;
 
-static YGConfigRef yoga_config;
+static Clay_Arena clay_arena;
 
-static constexpr size_t yoga_arena_size = 1024 * 64; // 64KB
-static void * yoga_arena_memory;
-static ArenaAllocator yoga_arena;
+static bool show_debugger;
 
-static bool show_inspector;
-static struct {
-	bool hovered;
-	float x, y, w, h;
-	float margin_top, margin_left, margin_right, margin_bottom;
-	float padding_top, padding_left, padding_right, padding_bottom;
-} inspecting;
-
-template <typename T>
+template< typename T >
 struct LuauConst {
 	const char * name;
 	T value;
 };
 
-static const LuauConst<int> numeric_constants[] = {
+static constexpr LuauConst< int > numeric_constants[] = {
 	{ "Team_None", Team_None },
 	{ "Team_One", Team_One },
 	{ "Team_Two", Team_Two },
@@ -115,12 +105,12 @@ static const LuauConst<int> numeric_constants[] = {
 	{ "BombProgress_Defusing", BombProgress_Defusing },
 };
 
-static const LuauConst<StringHash> asset_constants[] = {
-	{ "diagonal_pattern", StringHash( "hud/diagonal_pattern" ) },
-	{ "bomb", StringHash( "hud/icons/bomb" ) },
-	{ "guy", StringHash( "hud/icons/guy" ) },
-	{ "net", StringHash( "hud/icons/net" ) },
-	{ "star", StringHash( "hud/icons/star" ) },
+static constexpr LuauConst< StringHash > asset_constants[] = {
+	{ "diagonal_pattern", "hud/diagonal_pattern" },
+	{ "bomb", "hud/icons/bomb" },
+	{ "guy", "hud/icons/guy" },
+	{ "net", "hud/icons/net" },
+	{ "star", "hud/icons/star" },
 };
 
 static int CG_GetSpeed() {
@@ -1083,458 +1073,266 @@ static int HUD_DrawObituaries( lua_State * L ) {
 	return 0;
 }
 
-using YogaLengthCallback = void ( * )( YGNodeRef node, float x );
-
-template< typename T >
-using YogaLengthCallbackArg = void ( * )( YGNodeRef node, T arg, float x );
-
-static void CheckYogaLength( lua_State * L, int idx, const char * key, YGNodeRef node, YogaLengthCallback set_pixels, YogaLengthCallback set_percent ) {
+static Optional< float > CheckFloat( lua_State * L, int idx, const char * key, bool dont_error = false ) {
 	lua_getfield( L, idx, key );
 	defer { lua_pop( L, 1 ); };
-	if( lua_isnil( L, -1 ) )
-		return;
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
 
 	if( lua_type( L, -1 ) == LUA_TNUMBER ) {
-		set_pixels( node, lua_tonumber( L, -1 ) );
-		return;
+		return lua_tonumber( L, -1 );
 	}
 
 	if( lua_type( L, -1 ) == LUA_TSTRING ) {
 		Span< const char > str = LuaToSpan( L, -1 );
-
-		if( EndsWith( str, "%" ) ) {
-			float percent;
-			if( !TrySpanToFloat( str.slice( 0, str.n - 1 ), &percent ) )
-				luaL_error( L, "length doesn't parse as a percent: %s", str.ptr );
-			set_percent( node, percent );
-			return;
+		if( EndsWith( str, "vw" ) || EndsWith( str, "vh" ) ) {
+			float v;
+			if( !TrySpanToFloat( str.slice( 0, str.n - 2 ), &v ) ) {
+				luaL_error( L, "%s doesn't parse as a vw/vh: %s", key, str.ptr );
+			}
+			return v * 0.01f * checked_cast< float >( EndsWith( str, "vw" ) ? frame_static.viewport_width : frame_static.viewport_height );
 		}
-
-		if( EndsWith( str, "vw" ) ) {
-			float vw;
-			if( !TrySpanToFloat( str.slice( 0, str.n - 2 ), &vw ) )
-				luaL_error( L, "length doesn't parse as a vw: %s", str.ptr );
-			set_pixels( node, floorf( vw * 0.01f * frame_static.viewport_width ) );
-			return;
-		}
-
-		luaL_error( L, "length doesn't parse as anything: %s", str.ptr );
-		return;
 	}
 
-	luaL_error( L, "nah" );
+	if( !dont_error ) {
+		luaL_error( L, "%s isn't a number", key );
+	}
+
+	return NONE;
 }
 
-template< typename T >
-void CheckYogaLengthArg( lua_State * L, int idx, const char * key, YGNodeRef node, YogaLengthCallbackArg< T > set_pixels, YogaLengthCallbackArg< T > set_percent, T arg ) {
+static Optional< u16 > CheckU16( lua_State * L, int idx, const char * key ) {
+	Optional< float > x = CheckFloat( L, idx, key );
+	if( !x.exists )
+		return NONE;
+	if( x.value < 0.0f || x.value > U16_MAX ) {
+		luaL_error( L, "%s doesn't fit in a u16: %f", key, x.value );
+	}
+	return u16( x.value );
+}
+
+static Optional< Clay_SizingAxis > CheckClaySize( lua_State * L, int idx, const char * key ) {
+	Optional< float > x = CheckFloat( L, idx, key, true );
+	if( x.exists ) {
+		return CLAY_SIZING_FIXED( x.value );
+	}
+
 	lua_getfield( L, idx, key );
 	defer { lua_pop( L, 1 ); };
-	if( lua_isnil( L, -1 ) )
-		return;
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
 
-	if( lua_type( L, -1 ) == LUA_TNUMBER ) {
-		set_pixels( node, arg, lua_tonumber( L, -1 ) );
-		return;
+	Span< const char > str = LuaToSpan( L, -1 );
+	if( str == "fit" ) {
+		return Clay_SizingAxis {
+			.sizeMinMax = { 0.0f, FLT_MAX },
+			.type = CLAY__SIZING_TYPE_FIT,
+		};
 	}
 
-	if( lua_type( L, -1 ) == LUA_TSTRING ) {
-		Span< const char > str = LuaToSpan( L, -1 );
-
-		if( EndsWith( str, "%" ) ) {
-			float percent;
-			if( !TrySpanToFloat( str.slice( 0, str.n - 1 ), &percent ) )
-				luaL_error( L, "length doesn't parse as a percent: %s", str.ptr );
-			set_percent( node, arg, percent );
-			return;
+	if( EndsWith( str, "%" ) ) {
+		float percent;
+		if( !TrySpanToFloat( str.slice( 0, str.n - 1 ), &percent ) ) {
+			luaL_error( L, "size doesn't parse as a percent: %s", str.ptr );
 		}
-
-		if( EndsWith( str, "vw" ) ) {
-			float vw;
-			if( !TrySpanToFloat( str.slice( 0, str.n - 2 ), &vw ) )
-				luaL_error( L, "length doesn't parse as a vw: %s", str.ptr );
-			set_pixels( node, arg, vw * 0.01f * frame_static.viewport_width );
-			return;
-		}
-
-		luaL_error( L, "length doesn't parse as anything: %s", str.ptr );
-		return;
+		return CLAY_SIZING_PERCENT( 0.01f * percent );
 	}
 
-	luaL_error( L, "nah" );
+	luaL_error( L, "bad size: %s = %s", key, str.ptr );
+	return NONE;
 }
 
-static void CheckYogaLengthAllEdges( lua_State * L, int idx, const char * key, YGNodeRef node, YogaLengthCallbackArg< YGEdge > set_pixels, YogaLengthCallbackArg< YGEdge > set_percent ) {
-	CheckYogaLengthArg( L, idx, key, node, set_pixels, set_percent, YGEdgeTop );
-	CheckYogaLengthArg( L, idx, key, node, set_pixels, set_percent, YGEdgeLeft );
-	CheckYogaLengthArg( L, idx, key, node, set_pixels, set_percent, YGEdgeRight );
-	CheckYogaLengthArg( L, idx, key, node, set_pixels, set_percent, YGEdgeBottom );
+static Clay_Padding CheckClayPadding( lua_State * L, int idx ) {
+	Clay_Padding padding = { };
+
+	Optional< u16 > all_padding = CheckU16( L, idx, "padding" );
+	if( all_padding.exists ) {
+		padding.x = all_padding.value;
+		padding.y = all_padding.value;
+	}
+
+	padding.x = Default( CheckU16( L, idx, "padding_x" ), padding.x );
+	padding.y = Default( CheckU16( L, idx, "padding_y" ), padding.y );
+
+	return padding;
 }
 
-template< typename T >
-void CheckYogaNumberArg( lua_State * L, int idx, const char * key, YGNodeRef node, YogaLengthCallbackArg< T > set, T arg ) {
-	lua_getfield( L, -1, key );
+static Optional< Clay_LayoutDirection > CheckClayLayoutDirection( lua_State * L, int idx, const char * key ) {
+	lua_getfield( L, idx, key );
 	defer { lua_pop( L, 1 ); };
-	if( lua_isnoneornil( L, -1 ) ) {
-		return;
-	}
-	if( lua_type( L, -1 ) != LUA_TNUMBER ) {
-		luaL_error( L, "%s must be a number", key );
-	}
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
 
-	set( node, arg, lua_tonumber( L, -1 ) );
-}
-
-static void CheckYogaNumberAllEdges( lua_State * L, int idx, const char * key, YGNodeRef node, YogaLengthCallbackArg< YGEdge > set ) {
-	CheckYogaNumberArg( L, idx, key, node, set, YGEdgeTop );
-	CheckYogaNumberArg( L, idx, key, node, set, YGEdgeLeft );
-	CheckYogaNumberArg( L, idx, key, node, set, YGEdgeRight );
-	CheckYogaNumberArg( L, idx, key, node, set, YGEdgeBottom );
-}
-
-static YGFlexDirection CheckYogaFlexDirection( lua_State * L, int idx ) {
-	constexpr YGFlexDirection flex_directions[] = {
-		YGFlexDirectionRow,
-		YGFlexDirectionRowReverse,
-		YGFlexDirectionColumn,
-		YGFlexDirectionColumnReverse,
+	constexpr Clay_LayoutDirection layout_directions[] = {
+		CLAY_LEFT_TO_RIGHT,
+		CLAY_TOP_TO_BOTTOM,
 	};
 
 	constexpr const char * names[] = {
-		"row",
-		"row-reverse",
-		"column",
-		"column-reverse",
+		"horizontal",
+		"vertical",
 	};
 
-	return flex_directions[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
+	return layout_directions[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
 }
 
-static YGAlign CheckYogaAlign( lua_State * L, int idx ) {
-	constexpr YGAlign aligns[] = {
-		YGAlignStretch,
-		YGAlignFlexStart,
-		YGAlignCenter,
-		YGAlignFlexEnd,
-		YGAlignBaseline,
-		YGAlignSpaceBetween,
-		YGAlignSpaceAround,
-	};
+static Optional< Clay_ChildAlignment > CheckClayChildAlignment( lua_State * L, int idx, const char * key ) {
+	lua_getfield( L, idx, key );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
 
-	constexpr const char * names[] = {
-		"stretch",
-		"flex-start",
-		"center",
-		"flex-end",
-		"baseline",
-		"space-between",
-		"space-around",
-	};
+	constexpr Clay_ChildAlignment alignments[] = {
+		{ CLAY_ALIGN_X_LEFT, CLAY_ALIGN_Y_TOP },
+		{ CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_TOP },
+		{ CLAY_ALIGN_X_RIGHT, CLAY_ALIGN_Y_TOP },
 
-	return aligns[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
-}
+		{ CLAY_ALIGN_X_LEFT, CLAY_ALIGN_Y_CENTER },
+		{ CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER },
+		{ CLAY_ALIGN_X_RIGHT, CLAY_ALIGN_Y_CENTER },
 
-static YGJustify CheckYogaJustify( lua_State * L, int idx ) {
-	constexpr YGJustify justifies[] = {
-		YGJustifyFlexStart,
-		YGJustifyCenter,
-		YGJustifyFlexEnd,
-		YGJustifySpaceBetween,
-		YGJustifySpaceAround,
-		YGJustifySpaceEvenly,
+		{ CLAY_ALIGN_X_LEFT, CLAY_ALIGN_Y_BOTTOM },
+		{ CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_BOTTOM },
+		{ CLAY_ALIGN_X_RIGHT, CLAY_ALIGN_Y_BOTTOM },
 	};
 
 	constexpr const char * names[] = {
-		"flex-start",
-		"center",
-		"flex-end",
-		"space-between",
-		"space-around",
-		"space-evenly",
+		"top-left", "top-center", "top-right",
+		"middle-left", "middle-center", "middle-right",
+		"bottom-left", "bottom-center", "bottom-right",
 	};
 
-	return justifies[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
+	return alignments[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
 }
 
-struct OurYogaNodeStuff {
-	Vec4 background_color;
-	Vec4 border_color;
+static Optional< Clay_Color > CheckClayColor( lua_State * L, int idx, const char * key ) {
+	lua_getfield( L, idx, key );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
 
-	const char * text;
-	StringHash material;
-	int render_callback;
-};
-
-static OurYogaNodeStuff OurYogaNodeStuffDefaults() {
-	OurYogaNodeStuff defaults;
-
-	defaults.background_color = Vec4( 0.0f );
-	defaults.border_color = black.vec4;
-
-	defaults.text = NULL;
-	defaults.material = EMPTY_HASH;
-	defaults.render_callback = LUA_NOREF;
-
-	return defaults;
+	RGBA8 srgb = LinearTosRGB( CheckColor( L, -1 ) );
+	return Clay_Color { float( srgb.r ), float( srgb.g ), float( srgb.b ), float( srgb.a ) };
 }
 
-static YGNodeRef NewYogaNode( YGConfigRef config ) {
-	YGNodeRef node = YGNodeNewWithConfig( yoga_config );
-
-	// set borders to 0 or they come out as nans on the other side, we
-	// can't do isnan in this file because we compile the game with fastmath
-	YGNodeStyleSetBorder( node, YGEdgeTop, 0.0f );
-	YGNodeStyleSetBorder( node, YGEdgeLeft, 0.0f );
-	YGNodeStyleSetBorder( node, YGEdgeRight, 0.0f );
-	YGNodeStyleSetBorder( node, YGEdgeBottom, 0.0f );
-
-	return node;
+static Clay_CornerRadius CheckClayBorderRadius( lua_State * L, int idx ) {
+	Optional< float > radius = CheckFloat( L, idx, "border_radius" );
+	float r = Default( radius, 0.0f );
+	return Clay_CornerRadius { r, r, r, r };
 }
 
-static YGNodeRef LuauYogaNodeRecursive( ArenaAllocator * temp, lua_State * L ) {
-	TracyZoneScoped;
+static Clay_LayoutConfig CheckClayLayoutConfig( lua_State * L, int idx ) {
+	return Clay_LayoutConfig {
+		.sizing = {
+			.width = Default( CheckClaySize( L, idx, "width" ), CLAY_LAYOUT_DEFAULT.sizing.width ),
+			.height = Default( CheckClaySize( L, idx, "height" ), CLAY_LAYOUT_DEFAULT.sizing.height ),
+		},
+		.padding = CheckClayPadding( L, idx ),
+		.childGap = Default( CheckU16( L, idx, "gap" ), u16( 0 ) ),
+		.childAlignment = Default( CheckClayChildAlignment( L, idx, "alignment" ), CLAY_LAYOUT_DEFAULT.childAlignment ),
+		.layoutDirection = Default( CheckClayLayoutDirection( L, idx, "flow" ), CLAY_LEFT_TO_RIGHT ),
+	};
+}
 
-	if( lua_type( L, -1 ) != LUA_TTABLE ) {
-		luaL_error( L, "node should be a table" );
+static Optional< Clay_RectangleElementConfig > CheckClayRectangleConfig( lua_State * L, int idx ) {
+	Optional< Clay_Color > background = CheckClayColor( L, idx, "background" );
+	if( !background.exists ) {
+		return NONE;
 	}
 
-	YGNodeRef node = NewYogaNode( yoga_config );
-	OurYogaNodeStuff * ours = Alloc< OurYogaNodeStuff >( temp );
-	*ours = OurYogaNodeStuffDefaults();
-	YGNodeSetContext( node, ours );
+	return Clay_RectangleElementConfig {
+		.color = background.value,
+		.cornerRadius = CheckClayBorderRadius( L, idx ),
+	};
+}
 
-	lua_getfield( L, -1, "absolute_position" );
-	if( lua_toboolean( L, -1 ) ) {
-		YGNodeStyleSetPositionType( node, YGPositionTypeAbsolute );
+static Optional< Clay_BorderElementConfig > CheckClayBorderConfig( lua_State * L, int idx ) {
+	Clay_BorderElementConfig border = { };
+
+	Optional< u16 > all_width = CheckU16( L, idx, "border" );
+	if( all_width.exists ) {
+		border.left.width = all_width.value;
+		border.right.width = all_width.value;
+		border.top.width = all_width.value;
+		border.bottom.width = all_width.value;
 	}
-	lua_pop( L, 1 );
 
-	lua_getfield( L, -1, "aspect_ratio" );
-	if( !lua_isnil( L, -1 ) ) {
-		YGNodeStyleSetAspectRatio( node, luaL_checknumber( L, -1 ) );
+	Optional< Clay_Color > color = CheckClayColor( L, idx, "border_color" );
+	if( color.exists ) {
+		border.left.color = color.value;
+		border.right.color = color.value;
+		border.top.color = color.value;
+		border.bottom.color = color.value;
 	}
-	lua_pop( L, 1 );
 
-	lua_getfield( L, -1, "background_color" );
-	if( !lua_isnil( L, -1 ) ) {
-		ours->background_color = CheckColor( L, -1 );
+	border.left.width = Default( CheckU16( L, idx, "border_left" ), u16( border.left.width ) );
+	border.right.width = Default( CheckU16( L, idx, "border_right" ), u16( border.right.width ) );
+	border.top.width = Default( CheckU16( L, idx, "border_top" ), u16( border.top.width ) );
+	border.bottom.width = Default( CheckU16( L, idx, "border_bottom" ), u16( border.bottom.width ) );
+
+	if( border.left.width == 0 && border.right.width == 0 && border.top.width == 0 && border.bottom.width == 0 ) {
+		return NONE;
 	}
-	lua_pop( L, 1 );
 
-	lua_getfield( L, -1, "border_color" );
-	if( !lua_isnil( L, -1 ) ) {
-		ours->border_color = CheckColor( L, -1 );
+	border.cornerRadius = CheckClayBorderRadius( L, -1 );
+
+	return border;
+}
+
+static Clay_RenderCommandType CheckClayNodeType( lua_State * L, int idx ) {
+	luaL_checktype( L, -1, LUA_TLIGHTUSERDATA );
+	return checked_cast< Clay_RenderCommandType >( checked_cast< uintptr_t >( lua_touserdata( L, idx ) ) );
+}
+
+static void DrawClayNodeRecursive( lua_State * L ) {
+	luaL_checktype( L, -1, LUA_TTABLE );
+
+	Clay__OpenElement();
+	Clay__AttachLayoutConfig( Clay__StoreLayoutConfig( CheckClayLayoutConfig( L, -1 ) ) );
+
+	Optional< Clay_RectangleElementConfig > rectangle_config = CheckClayRectangleConfig( L, -1 );
+	if( rectangle_config.exists ) {
+		Clay__AttachElementConfig( Clay_ElementConfigUnion { .rectangleElementConfig = Clay__StoreRectangleElementConfig( rectangle_config.value ) }, CLAY__ELEMENT_CONFIG_TYPE_RECTANGLE );
 	}
-	lua_pop( L, 1 );
 
-	lua_getfield( L, -1, "flow" );
-	YGNodeStyleSetFlexDirection( node, CheckYogaFlexDirection( L, -1 ) );
-	lua_pop( L, 1 );
-
-	lua_getfield( L, -1, "align_items" );
-	YGNodeStyleSetAlignItems( node, CheckYogaAlign( L, -1 ) );
-	lua_pop( L, 1 );
-
-	lua_getfield( L, -1, "justify_content" );
-	YGNodeStyleSetJustifyContent( node, CheckYogaJustify( L, -1 ) );
-	lua_pop( L, 1 );
-
-	lua_getfield( L, -1, "grow" );
-	if( !lua_isnil( L, -1 ) ) {
-		YGNodeStyleSetFlexGrow( node, luaL_checknumber( L, -1 ) );
+	Optional< Clay_BorderElementConfig > border_config = CheckClayBorderConfig( L, -1 );
+	if( border_config.exists ) {
+		Clay__AttachElementConfig( Clay_ElementConfigUnion { .borderElementConfig = Clay__StoreBorderElementConfig( border_config.value ) }, CLAY__ELEMENT_CONFIG_TYPE_BORDER_CONTAINER );
 	}
-	lua_pop( L, 1 );
 
-	CheckYogaLengthArg( L, -1, "top", node, YGNodeStyleSetPosition, YGNodeStyleSetPositionPercent, YGEdgeTop );
-	CheckYogaLengthArg( L, -1, "left", node, YGNodeStyleSetPosition, YGNodeStyleSetPositionPercent, YGEdgeLeft );
-	CheckYogaLengthArg( L, -1, "right", node, YGNodeStyleSetPosition, YGNodeStyleSetPositionPercent, YGEdgeRight );
-	CheckYogaLengthArg( L, -1, "bottom", node, YGNodeStyleSetPosition, YGNodeStyleSetPositionPercent, YGEdgeBottom );
+	Clay__ElementPostConfiguration();
 
-	CheckYogaNumberAllEdges( L, -1, "border", node, YGNodeStyleSetBorder );
-	CheckYogaNumberArg( L, -1, "border_top", node, YGNodeStyleSetBorder, YGEdgeTop );
-	CheckYogaNumberArg( L, -1, "border_left", node, YGNodeStyleSetBorder, YGEdgeLeft );
-	CheckYogaNumberArg( L, -1, "border_right", node, YGNodeStyleSetBorder, YGEdgeRight );
-	CheckYogaNumberArg( L, -1, "border_bottom", node, YGNodeStyleSetBorder, YGEdgeBottom );
-
-	CheckYogaLengthAllEdges( L, -1, "margin", node, YGNodeStyleSetMargin, YGNodeStyleSetMarginPercent );
-	CheckYogaLengthArg( L, -1, "margin_top", node, YGNodeStyleSetMargin, YGNodeStyleSetMarginPercent, YGEdgeTop );
-	CheckYogaLengthArg( L, -1, "margin_left", node, YGNodeStyleSetMargin, YGNodeStyleSetMarginPercent, YGEdgeLeft );
-	CheckYogaLengthArg( L, -1, "margin_right", node, YGNodeStyleSetMargin, YGNodeStyleSetMarginPercent, YGEdgeRight );
-	CheckYogaLengthArg( L, -1, "margin_bottom", node, YGNodeStyleSetMargin, YGNodeStyleSetMarginPercent, YGEdgeBottom );
-
-	CheckYogaLengthAllEdges( L, -1, "padding", node, YGNodeStyleSetPadding, YGNodeStyleSetPaddingPercent );
-	CheckYogaLengthArg( L, -1, "padding_top", node, YGNodeStyleSetPadding, YGNodeStyleSetPaddingPercent, YGEdgeTop );
-	CheckYogaLengthArg( L, -1, "padding_left", node, YGNodeStyleSetPadding, YGNodeStyleSetPaddingPercent, YGEdgeLeft );
-	CheckYogaLengthArg( L, -1, "padding_right", node, YGNodeStyleSetPadding, YGNodeStyleSetPaddingPercent, YGEdgeRight );
-	CheckYogaLengthArg( L, -1, "padding_bottom", node, YGNodeStyleSetPadding, YGNodeStyleSetPaddingPercent, YGEdgeBottom );
-
-	CheckYogaLength( L, -1, "width", node, YGNodeStyleSetWidth, YGNodeStyleSetWidthPercent );
-	CheckYogaLength( L, -1, "height", node, YGNodeStyleSetHeight, YGNodeStyleSetHeightPercent );
-
-	lua_getfield( L, -1, "content" );
-	if( lua_type( L, -1 ) == LUA_TSTRING ) {
-		ours->text = CopyString( temp, lua_tostring( L, -1 ) );
-	}
-	if( lua_type( L, -1 ) == LUA_TLIGHTUSERDATA ) {
-		ours->material = CheckHash( L, -1 );
-	}
-	lua_pop( L, 1 );
-
-	lua_getfield( L, -1, "children" );
-	if( !lua_isnil( L, -1 ) ) {
-		luaL_checktype( L, 1, LUA_TTABLE );
-
-		for( int i = 0; i < lua_objlen( L, -1 ); i++ ) {
+	if( lua_getfield( L, -1, "children" ) != LUA_TNONE ) {
+		int n = lua_objlen( L, -1 );
+		for( int i = 0; i < n; i++ ) {
 			lua_pushnumber( L, i + 1 );
 			lua_gettable( L, -2 );
-			YGNodeRef child = LuauYogaNodeRecursive( temp, L );
-			YGNodeInsertChild( node, child, i );
+			DrawClayNodeRecursive( L );
 			lua_pop( L, 1 );
 		}
 	}
 	lua_pop( L, 1 );
 
-	return node;
+	Clay__CloseElement();
 }
 
-static void RenderYogaNodeRecursive( Vec2 cursor, YGNodeRef node, bool show_in_inspector ) {
+static int LuauRender( lua_State * L ) {
 	TracyZoneScoped;
-
-	cursor += Vec2( YGNodeLayoutGetLeft( node ), YGNodeLayoutGetTop( node ) );
-
-	bool pop = false;
-
-	const OurYogaNodeStuff * ours = ( const OurYogaNodeStuff * ) YGNodeGetContext( node );
-	if( ours != NULL ) {
-		float w = YGNodeLayoutGetWidth( node );
-		float h = YGNodeLayoutGetHeight( node );
-		float border_top = YGNodeLayoutGetBorder( node, YGEdgeTop );
-		float border_left = YGNodeLayoutGetBorder( node, YGEdgeLeft );
-		float border_right = YGNodeLayoutGetBorder( node, YGEdgeRight );
-		float border_bottom = YGNodeLayoutGetBorder( node, YGEdgeBottom );
-
-		float padding_top = YGNodeLayoutGetPadding( node, YGEdgeTop );
-		float padding_left = YGNodeLayoutGetPadding( node, YGEdgeLeft );
-		float padding_right = YGNodeLayoutGetPadding( node, YGEdgeRight );
-		float padding_bottom = YGNodeLayoutGetPadding( node, YGEdgeBottom );
-
-		float content_top = cursor.y + border_top + padding_top;
-		float content_left = cursor.x + border_left + padding_left;
-		float content_width = w - border_left - padding_left - border_right - padding_right;
-		float content_height = h - border_top - padding_top - border_bottom - padding_bottom;
-
-		Draw2DBox(
-			cursor.x + border_left,
-			cursor.y + border_top,
-			w - border_left - border_right,
-			h - border_top - border_bottom,
-			cls.white_material,
-			ours->background_color );
-
-		// draw the borders like a table with legs on the floor
-		Draw2DBox( cursor.x, cursor.y,
-			w, border_top,
-			cls.white_material, ours->border_color );
-		Draw2DBox( cursor.x, cursor.y + border_top,
-			border_left, h - border_top - border_bottom,
-			cls.white_material, ours->border_color );
-		Draw2DBox( cursor.x + w - border_right, cursor.y + border_top,
-			border_right, h - border_top - border_bottom,
-			cls.white_material, ours->border_color );
-		Draw2DBox( cursor.x, cursor.y + h - border_bottom,
-			w, border_bottom,
-			cls.white_material, ours->border_color );
-
-		if( ours->text != NULL ) {
-			DrawText( cgs.fontNormal, h, ours->text,
-				Alignment_LeftTop, content_left, content_top,
-				white.vec4 );
-		}
-
-		if( ours->material != EMPTY_HASH ) {
-			Draw2DBox( content_left, content_top, content_width, content_height, FindMaterial( ours->material ), white.vec4 );
-		}
-
-
-		if( show_in_inspector ) {
-			const char * label = "Node";
-			if( ours->text != NULL ) {
-				label = ours->text;
-			}
-			else if( ours->material != EMPTY_HASH ) {
-				label = "Icon";
-			}
-			else if( ours->render_callback != LUA_NOREF ) {
-				label = "Custom render callback";
-			}
-
-			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen;
-			if( YGNodeGetChildCount( node ) == 0 ) {
-				flags = ImGuiTreeNodeFlags_Leaf;
-			}
-
-			if( show_inspector ) {
-				pop = ImGui::TreeNodeEx( label, flags );
-				if( ImGui::IsItemHovered() ) {
-					inspecting.hovered = true;
-
-					inspecting.x = content_left;
-					inspecting.y = content_top;
-					inspecting.w = content_width;
-					inspecting.h = content_height;
-
-					inspecting.margin_top = YGNodeLayoutGetMargin( node, YGEdgeTop );
-					inspecting.margin_left = YGNodeLayoutGetMargin( node, YGEdgeLeft );
-					inspecting.margin_right = YGNodeLayoutGetMargin( node, YGEdgeRight );
-					inspecting.margin_bottom = YGNodeLayoutGetMargin( node, YGEdgeBottom );
-
-					inspecting.padding_top = padding_top;
-					inspecting.padding_left = padding_left;
-					inspecting.padding_right = padding_right;
-					inspecting.padding_bottom = padding_bottom;
-				}
-			}
-		}
-	}
-
-	for( u32 i = 0; i < YGNodeGetChildCount( node ); i++ ) {
-		RenderYogaNodeRecursive( cursor, YGNodeGetChild( node, i ), pop || ours == NULL );
-	}
-
-	if( show_inspector && pop ) {
-		ImGui::TreePop();
-	}
-}
-
-static int LuauYoga( lua_State * L ) {
-	TracyZoneScoped;
-	DisableFPEScoped;
-
-	YGNodeRef root = NewYogaNode( yoga_config );
-	YGNodeStyleSetWidth( root, frame_static.viewport_width );
-	YGNodeStyleSetHeight( root, frame_static.viewport_height );
-
-	// if we error out of this we leak all the node contexts. facebook
-	// deleted the allocator overrides so we can't do anything on the yoga
-	// side, but we temp allocate our per-node data so at least it doesn't assert
-	YGNodeRef node = LuauYogaNodeRecursive( &yoga_arena, L );
-	YGNodeInsertChild( root, node, 0 );
-
-	{
-		TracyZoneScopedN( "Yoga layout" );
-		YGNodeCalculateLayout( root, frame_static.viewport_width, frame_static.viewport_height, YGDirectionLTR );
-	}
-
-	RenderYogaNodeRecursive( Vec2( 0.0f ), root, true );
-	YGNodeFreeRecursive( node );
-
+	DrawClayNodeRecursive( L );
 	return 0;
 }
 
-static int YogaLog( YGConfigRef config, YGNodeRef node, YGLogLevel level, const char * format, va_list args ) {
-	char buf[ 1024 ];
-	int len = vsnprintf( buf, sizeof( buf ), format, args );
-	Com_Printf( "%s\n", buf );
-	return len;
+static int LuauNode( lua_State * L ) {
+	luaL_checktype( L, 1, LUA_TTABLE );
+	luaL_argcheck( L, lua_type( L, 2 ) == LUA_TNONE || lua_type( L, 2 ) == LUA_TTABLE, 2, "children must be a table or none" );
+
+	lua_pushvalue( L, 1 );
+	if( lua_type( L, 2 ) == LUA_TTABLE ) {
+		lua_pushvalue( L, 2 );
+		lua_setfield( hud_L, -2, "children" );
+	}
+
+	return 1;
 }
 
 bool CG_ScoreboardShown() {
@@ -1549,10 +1347,11 @@ void CG_InitHUD() {
 	TracyZoneScoped;
 
 	hud_L = NULL;
-	show_inspector = false;
+	show_debugger = false;
 
-	AddCommand( "toggleuiinspector", []( const Tokenized & args ) {
-		show_inspector = !show_inspector;
+	AddCommand( "toggleuidebugger", []( const Tokenized & args ) {
+		show_debugger = !show_debugger;
+		Clay_SetDebugModeEnabled( show_debugger );
 	} );
 
 	Span< const char > src = AssetString( StringHash( "hud/hud.lua" ) );
@@ -1600,7 +1399,8 @@ void CG_InitHUD() {
 		{ "drawPointed", HUD_DrawPointed },
 		{ "drawDamageNumbers", HUD_DrawDamageNumbers },
 
-		{ "yoga", LuauYoga },
+		{ "render", LuauRender },
+		{ "node", LuauNode },
 
 		{ NULL, NULL }
 	};
@@ -1610,7 +1410,6 @@ void CG_InitHUD() {
 		lua_setfield( hud_L, LUA_GLOBALSINDEX, kv.name );
 	}
 
-	//assets
 	{
 		lua_newtable( hud_L );
 
@@ -1655,12 +1454,14 @@ void CG_InitHUD() {
 		hud_L = NULL;
 	}
 
-	yoga_config = YGConfigNew();
-	YGConfigSetUseWebDefaults( yoga_config, true );
-	YGConfigSetLogger( yoga_config, YogaLog );
+	u32 size = Clay_MinMemorySize();
+	clay_arena = Clay_CreateArenaWithCapacityAndMemory( size, sys_allocator->allocate( size, 16 ) );
+	Clay_Initialize( clay_arena, Clay_Dimensions { 1000, 1000 } );
 
-	yoga_arena_memory = sys_allocator->allocate( yoga_arena_size, 16 );
-	yoga_arena = ArenaAllocator( yoga_arena_memory, yoga_arena_size );
+	auto measure_text = []( Clay_String * text, Clay_TextElementConfig * config ) -> Clay_Dimensions {
+		return { };
+	};
+	Clay_SetMeasureTextFunction( measure_text );
 }
 
 void CG_ShutdownHUD() {
@@ -1668,16 +1469,65 @@ void CG_ShutdownHUD() {
 		lua_close( hud_L );
 	}
 
-	YGConfigFree( yoga_config );
-	Free( sys_allocator, yoga_arena_memory );
+	Free( sys_allocator, clay_arena.memory );
 
-	RemoveCommand( "toggleuiinspector" );
+	RemoveCommand( "toggleuidebugger" );
+}
+
+static Vec4 ClayToCD( Clay_Color color ) {
+	RGBA8 clamped = RGBA8(
+		Clamp( 0.0f, color.r, 255.0f ),
+		Clamp( 0.0f, color.g, 255.0f ),
+		Clamp( 0.0f, color.b, 255.0f ),
+		Clamp( 0.0f, color.a, 255.0f )
+	);
+	return Vec4( sRGBToLinear( clamped ) );
+}
+
+static ImU32 ClayToImGui( Clay_Color clay ) {
+	RGBA8 rgba8 = LinearTosRGB( ClayToCD( clay ) );
+	return IM_COL32( rgba8.r, rgba8.g, rgba8.b, rgba8.a );
+}
+
+enum Corner {
+	// ordered by CW rotations where 0deg = +X
+	Corner_BottomRight,
+	Corner_BottomLeft,
+	Corner_TopLeft,
+	Corner_TopRight,
+};
+
+static float _0To1_1ToNeg1( float x ) {
+	return ( 1.0f - x ) * 2.0f - 1.0f;
+}
+
+static void DrawBorderCorner( Corner corner, Clay_BoundingBox bounds, const Clay_BorderElementConfig * border, float width, Clay_Color color ) {
+	struct {
+		float x, y, radius;
+	} corners[] = {
+		{ 1.0f, 1.0f, border->cornerRadius.bottomRight },
+		{ 0.0f, 1.0f, border->cornerRadius.bottomLeft },
+		{ 0.0f, 0.0f, border->cornerRadius.topLeft },
+		{ 1.0f, 0.0f, border->cornerRadius.topRight },
+	};
+
+	float cx = corners[ corner ].x;
+	float cy = corners[ corner ].y;
+	float r = corners[ corner ].radius;
+	float angle = int( corner ) * 90.0f;
+
+	Vec2 arc_origin = Vec2(
+		Lerp( bounds.x, cx, bounds.x + bounds.width ) + r * _0To1_1ToNeg1( cx ),
+		Lerp( bounds.y, cy, bounds.y + bounds.height ) + r * _0To1_1ToNeg1( cy )
+	);
+
+	ImDrawList * draw_list = ImGui::GetBackgroundDrawList();
+	draw_list->PathArcTo( arc_origin, r - width * 0.5f, Radians( angle ), Radians( angle + 90.0f ) );
+	draw_list->PathStroke( ClayToImGui( color ), 0, width );
 }
 
 void CG_DrawHUD() {
 	TracyZoneScoped;
-
-	yoga_arena.clear();
 
 	bool hotload = false;
 	for( Span< const char > path : ModifiedAssetPaths() ) {
@@ -1688,10 +1538,10 @@ void CG_DrawHUD() {
 	}
 
 	if( hotload ) {
-		bool was_showing_inspector = show_inspector;
+		bool was_showing_debugger = show_debugger;
 		CG_ShutdownHUD();
 		CG_InitHUD();
-		show_inspector = was_showing_inspector;
+		show_debugger = was_showing_debugger;
 	}
 
 	if( hud_L == NULL )
@@ -1924,39 +1774,87 @@ void CG_DrawHUD() {
 	lua_pushboolean( hud_L, CG_ScoreboardShown() );
 	lua_setfield( hud_L, -2, "scoreboard" );
 
-	bool still_showing_inspector = show_inspector;
-	ImGuiStyle old_style = ImGui::GetStyle();
-	ImGui::GetStyle() = ImGuiStyle();
-	if( show_inspector ) {
-		ImGui::Begin( "UI inspector", &still_showing_inspector, ImGuiWindowFlags_Interactive );
+	{
+		TracyZoneScopedN( "Clay_BeginLayout" );
+		Clay_BeginLayout();
 	}
 
-	inspecting = { };
+	bool hud_lua_ran_ok;
 	{
 		TracyZoneScopedN( "Luau" );
-		CallWithStackTrace( hud_L, 1, 0 );
+		hud_lua_ran_ok = CallWithStackTrace( hud_L, 1, 0 );
 	}
 
-	if( inspecting.hovered ) {
-		Draw2DBox( inspecting.x, inspecting.y, inspecting.w, inspecting.h, cls.white_material, Vec4( 0.0f, 1.0f, 1.0f, 0.25f ) );
+	// don't run clay layout if hud.lua failed because it might have left clay in a bad state
+	if( !hud_lua_ran_ok )
+		return;
 
-		Vec4 margin_color = Vec4( 1.0f, 1.0f, 0.0f, 0.25f );
-		Draw2DBox( inspecting.x - inspecting.margin_left - inspecting.padding_left, inspecting.y - inspecting.margin_top - inspecting.padding_top, inspecting.w + inspecting.margin_left + inspecting.margin_right + inspecting.padding_left + inspecting.padding_right, inspecting.margin_top, cls.white_material, margin_color );
-		Draw2DBox( inspecting.x - inspecting.margin_left - inspecting.padding_left, inspecting.y - inspecting.padding_top, inspecting.margin_left, inspecting.h + inspecting.padding_top + inspecting.padding_bottom, cls.white_material, margin_color );
-		Draw2DBox( inspecting.x + inspecting.w + inspecting.padding_right, inspecting.y - inspecting.padding_top, inspecting.margin_right, inspecting.h + inspecting.padding_top + inspecting.padding_bottom, cls.white_material, margin_color );
-		Draw2DBox( inspecting.x - inspecting.margin_left - inspecting.padding_left, inspecting.y + inspecting.h + inspecting.padding_bottom, inspecting.w + inspecting.margin_left + inspecting.margin_right + inspecting.padding_left + inspecting.padding_right, inspecting.margin_bottom, cls.white_material, margin_color );
-
-		Vec4 padding_color = Vec4( 1.0f, 0.0f, 1.0f, 0.25f );
-		Draw2DBox( inspecting.x - inspecting.padding_left, inspecting.y - inspecting.padding_top, inspecting.w + inspecting.padding_left + inspecting.padding_right, inspecting.padding_top, cls.white_material, padding_color );
-		Draw2DBox( inspecting.x - inspecting.padding_left, inspecting.y, inspecting.padding_left, inspecting.h, cls.white_material, padding_color );
-		Draw2DBox( inspecting.x + inspecting.w, inspecting.y, inspecting.padding_right, inspecting.h, cls.white_material, padding_color );
-		Draw2DBox( inspecting.x - inspecting.padding_left, inspecting.y + inspecting.h, inspecting.w + inspecting.padding_left + inspecting.padding_right, inspecting.padding_bottom, cls.white_material, padding_color );
+	Clay_RenderCommandArray render_commands;
+	{
+		TracyZoneScopedN( "Clay_EndLayout" );
+		render_commands = Clay_EndLayout();
 	}
 
-	if( show_inspector ) {
-		ImGui::End();
-		show_inspector = still_showing_inspector;
-	}
+	{
+		TracyZoneScopedN( "Clay submit draw calls" );
+		for( u32 i = 0; i < render_commands.length; i++ ) {
+			const Clay_RenderCommand & command = render_commands.internalArray[ i ];
+			const Clay_BoundingBox & bounds = command.boundingBox;
+			switch( command.commandType ) {
+				case CLAY_RENDER_COMMAND_TYPE_RECTANGLE: {
+					const Clay_RectangleElementConfig * rect = command.config.rectangleElementConfig;
+					ImDrawList * draw_list = ImGui::GetBackgroundDrawList();
+					draw_list->AddRectFilled( Vec2( bounds.x, bounds.y ), Vec2( bounds.x + bounds.width, bounds.y + bounds.height ), ClayToImGui( rect->color ), rect->cornerRadius.topLeft );
+				} break;
 
-	ImGui::GetStyle() = old_style;
+				case CLAY_RENDER_COMMAND_TYPE_BORDER: {
+					const Clay_BorderElementConfig * border = command.config.borderElementConfig;
+
+					// top
+					Draw2DBox( bounds.x + border->cornerRadius.topLeft, bounds.y,
+						bounds.width - border->cornerRadius.topLeft - border->cornerRadius.topRight, border->top.width,
+						cls.white_material, ClayToCD( border->top.color ) );
+					// right
+					Draw2DBox( bounds.x + bounds.width - border->right.width, bounds.y + border->cornerRadius.topRight,
+						border->right.width, bounds.height - border->cornerRadius.topRight - border->cornerRadius.bottomRight,
+						cls.white_material, ClayToCD( border->right.color ) );
+					// left
+					Draw2DBox( bounds.x, bounds.y + border->cornerRadius.topLeft,
+						border->left.width, bounds.height - border->cornerRadius.topLeft - border->cornerRadius.bottomLeft,
+						cls.white_material, ClayToCD( border->left.color ) );
+					// bottom
+					Draw2DBox( bounds.x + border->cornerRadius.bottomLeft, bounds.y + bounds.height - border->bottom.width,
+						bounds.width - border->cornerRadius.bottomLeft - border->cornerRadius.bottomRight, border->bottom.width,
+						cls.white_material, ClayToCD( border->bottom.color ) );
+
+					// this doesn't do the right thing for different border sizes/colours
+					DrawBorderCorner( Corner_TopLeft, bounds, border, border->top.width, border->top.color );
+					DrawBorderCorner( Corner_TopRight, bounds, border, border->right.width, border->right.color );
+					DrawBorderCorner( Corner_BottomLeft, bounds, border, border->bottom.width, border->bottom.color );
+					DrawBorderCorner( Corner_BottomRight, bounds, border, border->right.width, border->right.color );
+				} break;
+
+				case CLAY_RENDER_COMMAND_TYPE_TEXT: {
+					const Clay_TextElementConfig * text = command.config.textElementConfig;
+				} break;
+
+				case CLAY_RENDER_COMMAND_TYPE_IMAGE: {
+					const Clay_ImageElementConfig * image = command.config.imageElementConfig;
+					Draw2DBox( bounds.x, bounds.y, bounds.width, bounds.height, FindMaterial( StringHash( bit_cast< u64 >( image->imageData ) ) ) );
+				} break;
+
+				case CLAY_RENDER_COMMAND_TYPE_SCISSOR_START:
+					ImGui::PushClipRect( Vec2( bounds.x, bounds.y ), Vec2( bounds.x + bounds.width, bounds.y + bounds.height ), true );
+					break;
+
+				case CLAY_RENDER_COMMAND_TYPE_SCISSOR_END:
+					ImGui::PopClipRect();
+					break;
+
+				default:
+					assert( false );
+					break;
+			}
+		}
+	}
 }

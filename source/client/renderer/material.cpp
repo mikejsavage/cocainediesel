@@ -757,7 +757,7 @@ static void LoadBuiltinMaterials() {
 	TracyZoneScoped;
 
 	missing_material = Material();
-	missing_material.name = CloneSpan( sys_allocator, Span< const char >( "missing material" ) );
+	missing_material.name = CloneSpan( sys_allocator, "missing material"_sp );
 	missing_material.texture = &missing_texture;
 	missing_material.sampler = Sampler_Unfiltered;
 

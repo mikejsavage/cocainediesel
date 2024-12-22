@@ -67,7 +67,7 @@ struct DeferHelper {
  * Span
  */
 
-consteval Span< const char > operator""_s( const char * str, size_t n ) {
+constexpr Span< const char > operator""_sp( const char * str, size_t n ) {
 	return Span< const char >( str, n );
 }
 

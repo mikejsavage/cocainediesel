@@ -98,7 +98,7 @@ struct FrameStatic {
 		PoolHandle< Texture > shadowmaps[ 4 ];
 	} render_targets;
 
-	CommandBuffer render_passes[ RenderPass_Count ];
+	Opaque< CommandBuffer > render_passes[ RenderPass_Count ];
 };
 
 extern FrameStatic frame_static;

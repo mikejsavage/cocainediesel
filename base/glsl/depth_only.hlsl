@@ -22,7 +22,7 @@ VertexOutput VertexMain( VertexInput input ) {
 	float3x4 skin = SkinningMatrix( input.indices, input.weights, u_Pose[ 0 ] );
 	position4 = mul( skin, position4 );
 #endif
-	output.position = mul( u_View[ 0 ].P * u_Model[ 0 ], position4 );
+	output.position = mul( u_View[ 0 ].P * u_View[ 0 ].V * u_Model[ 0 ], position4 );
 	return output;
 }
 

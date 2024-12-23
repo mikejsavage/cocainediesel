@@ -165,6 +165,10 @@ struct ImGuiShaderAndTexture {
 		uniforms = { };
 	}
 
+	ImGuiShaderAndTexture( const void * null ) {
+		*this = { };
+	}
+
 	explicit operator intptr_t() const {
 		return intptr_t( shader.x ) ^ intptr_t( texture.x );
 	}

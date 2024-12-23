@@ -94,16 +94,12 @@ void InitGLTFModels() {
 			continue;
 		LoadGLTF( path );
 	}
-
-	InitGLTFInstancing();
 }
 
 void ShutdownGLTFModels() {
 	for( u32 i = 0; i < num_gltf_models; i++ ) {
 		DeleteGLTFRenderData( &gltf_models[ i ] );
 	}
-
-	ShutdownGLTFInstancing();
 }
 
 void HotloadGLTFModels() {

@@ -112,6 +112,3 @@ bool FindAnimationByName( const GLTFRenderData * model, StringHash name, u8 * id
 Span< Transform > SampleAnimation( Allocator * a, const GLTFRenderData * model, float t, u8 animation = 0 );
 void MergeLowerUpperPoses( Span< Transform > lower, Span< const Transform > upper, const GLTFRenderData * model, u8 upper_root_joint );
 MatrixPalettes ComputeMatrixPalettes( Allocator * a, const GLTFRenderData * model, Span< const Transform > local_poses );
-
-void InitGLTFInstancing();
-void ShutdownGLTFInstancing();

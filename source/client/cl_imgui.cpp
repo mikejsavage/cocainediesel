@@ -86,10 +86,10 @@ void CL_InitImGui() {
 		int width, height;
 		io.Fonts->GetTexDataAsAlpha8( &pixels, &width, &height );
 
-		atlas_texture = NewTexture( TextureConfig {
+		atlas_texture = NewTexture( GPULifetime_Persistent, TextureConfig {
 			.format = TextureFormat_A_U8,
-			.width = width,
-			.height = height,
+			.width = u32( width ),
+			.height = u32( height ),
 			.data = pixels,
 		} );
 		atlas_material.texture = &atlas_texture;

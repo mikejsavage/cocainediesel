@@ -9,20 +9,9 @@ struct DrawModelConfig {
 		bool view_weapon;
 	} draw_model;
 
-	struct DrawShadows {
-		bool enabled;
-	} draw_shadows;
-
-	struct DrawOutlines {
-		bool enabled;
-		float outline_height;
-		Vec4 outline_color;
-	} draw_outlines;
-
-	struct DrawSilhouette {
-		bool enabled;
-		Vec4 silhouette_color;
-	} draw_silhouette;
+	bool cast_shadows;
+	Optional< OutlineUniforms > outline;
+	Optional< Vec4 > silhouette_color;
 };
 
 enum ModelType {

@@ -1,6 +1,6 @@
 #include "qcommon/base.h"
 #include "qcommon/hash.h"
-#include "qcommon/hashtable.h"
+#include "qcommon/hashmap.h"
 #include "qcommon/string.h"
 #include "qcommon/span2d.h"
 #include "qcommon/threadpool.h"
@@ -28,12 +28,15 @@ constexpr u32 MAX_DECALS = 4096;
 constexpr int DECAL_ATLAS_SIZE = 2048;
 constexpr int DECAL_ATLAS_BLOCK_SIZE = DECAL_ATLAS_SIZE / 4;
 
-static Texture textures[ MAX_TEXTURES ];
-static void * texture_stb_data[ MAX_TEXTURES ];
-static Span< const BC4Block > texture_bc4_data[ MAX_TEXTURES ];
-static Hashtable< MAX_TEXTURES * 2 > textures_hashtable;
+struct HighLevelTexture {
+	PoolHandle< Texture > texture;
+	void * stb_data;
+	Span< const BC4Block > bc4_data;
+};
 
-static Texture missing_texture;
+static Hashmap< HighLevelTexture, MAX_TEXTURES > textures;
+
+static PoolHandle< Texture > missing_texture;
 static Material missing_material;
 
 static Material materials[ MAX_MATERIALS ];

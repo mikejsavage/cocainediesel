@@ -514,6 +514,22 @@ static bool StartsWith( const char * str, const char * prefix ) {
 
 static MTL::VertexFormat VertexFormatToMetal( VertexFormat format ) {
 	switch( format ) {
+		case VertexFormat_U8x2: return MTL::VertexFormatUChar2;
+		case VertexFormat_U8x2_01: return MTL::VertexFormatUChar2Normalized;
+		case VertexFormat_U8x3: return MTL::VertexFormatUChar3;
+		case VertexFormat_U8x3_01: return MTL::VertexFormatUChar3Normalized;
+		case VertexFormat_U8x4: return MTL::VertexFormatUChar4;
+		case VertexFormat_U8x4_01: return MTL::VertexFormatUChar4Normalized;
+
+		case VertexFormat_U16x2: return MTL::VertexFormatUChar2;
+		case VertexFormat_U16x2_01: return MTL::VertexFormatUChar2Normalized;
+		case VertexFormat_U16x3: return MTL::VertexFormatUChar3;
+		case VertexFormat_U16x3_01: return MTL::VertexFormatUChar3Normalized;
+		case VertexFormat_U16x4: return MTL::VertexFormatUChar4;
+		case VertexFormat_U16x4_01: return MTL::VertexFormatUChar4Normalized;
+
+		case VertexFormat_U10x3_U2x1_01: return MTL::VertexFormatUInt1010102Normalized;
+
 		case VertexFormat_Floatx2: return MTL::VertexFormatFloat2;
 		case VertexFormat_Floatx3: return MTL::VertexFormatFloat3;
 		case VertexFormat_Floatx4: return MTL::VertexFormatFloat4;
@@ -790,8 +806,8 @@ void EncodeAndBindArgumentBuffer( Encoder * ce, ArgumentBufferEncoder * encoder,
 	BindArgumentBuffer( ce, args, descriptor_set );
 }
 
-void EncodeDrawCall( Opaque< CommandBuffer > ocb, const DrawCall & draw_call ) {
-	const MTL::RenderPipelineState * pso = SelectRenderPipelineVariant( render_pipelines[ draw_call.shader ], draw_call.mesh.vertex_descriptor, 1 );
+void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline, Mesh mesh, Span< const BufferBinding > buffers, Optional< u32 > first_index ) {
+	const MTL::RenderPipelineState * pso = SelectRenderPipelineVariant( render_pipelines[ pipeline.shader ], mesh.vertex_descriptor, 1 );
 	if( pso == NULL ) {
 		printf( "no shader variant!\n" );
 		return;
@@ -801,43 +817,43 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const DrawCall & draw_call ) {
 
 	cb->rce->setRenderPipelineState( pso );
 	cb->rce->setFrontFacingWinding( MTL::WindingCounterClockwise );
-	cb->rce->setCullMode( CullFaceToMetal( draw_call.dynamic_state.cull_face ) );
-	cb->rce->setDepthStencilState( depth_funcs[ draw_call.dynamic_state.depth_func ] );
+	cb->rce->setCullMode( CullFaceToMetal( pipeline.dynamic_state.cull_face ) );
+	cb->rce->setDepthStencilState( depth_funcs[ pipeline.dynamic_state.depth_func ] );
 
-	if( draw_call.scissor.exists ) {
-		DrawCall::Scissor s = draw_call.scissor.value;
+	if( pipeline.scissor.exists ) {
+		PipelineState::Scissor s = pipeline.scissor.value;
 		cb->rce->setScissorRect( MTL::ScissorRect { s.x, s.y, s.w, s.y } );
 	}
 	else {
 		cb->rce->setScissorRect( { 0, 0, NS::UIntegerMax, NS::UIntegerMax } );
 	}
 
-	BindMesh( cb->rce, draw_call.mesh );
-	BindBindGroup( cb->rce, draw_call.material_bind_group, DescriptorSet_Material );
+	BindMesh( cb->rce, mesh );
+	BindBindGroup( cb->rce, pipeline.material_bind_group, DescriptorSet_Material );
 
-	EncodeAndBindArgumentBuffer( cb->rce, &render_pipelines[ draw_call.shader ].draw_call_args, draw_call.buffers, DescriptorSet_DrawCall );
+	EncodeAndBindArgumentBuffer( cb->rce, &render_pipelines[ pipeline.shader ].draw_call_args, buffers, DescriptorSet_DrawCall );
 
-	MTL::IndexType index_type = draw_call.mesh.index_format == IndexFormat_U16 ? MTL::IndexTypeUInt16 : MTL::IndexTypeUInt32;
-	size_t index_size = draw_call.mesh.index_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
-	if( !draw_call.indirect_args.exists ) {
-		if( draw_call.mesh.index_buffer.exists ) {
-			Assert( draw_call.mesh.index_buffer.value.offset % 4 == 0 );
-			cb->rce->drawIndexedPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, draw_call.mesh.num_vertices, index_type, allocations[ draw_call.mesh.index_buffer.value.allocation ].buffer, draw_call.mesh.index_buffer.value.offset + draw_call.first_index * index_size, 1, /* TODO base vertex */ 0, 0 );
+	MTL::IndexType index_type = mesh.index_format == IndexFormat_U16 ? MTL::IndexTypeUInt16 : MTL::IndexTypeUInt32;
+	size_t index_size = mesh.index_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
+	// if( !draw_call.indirect_args.exists ) {
+		if( mesh.index_buffer.exists ) {
+			Assert( mesh.index_buffer.value.offset % 4 == 0 );
+			cb->rce->drawIndexedPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, mesh.num_vertices, index_type, allocations[ mesh.index_buffer.value.allocation ].buffer, mesh.index_buffer.value.offset + Default( first_index, 0_u32 ) * index_size, 1, /* TODO base vertex */ 0, 0 );
 		}
 		else {
-			cb->rce->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, draw_call.mesh.num_vertices, NS::UInteger( 0 ) );
+			cb->rce->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, mesh.num_vertices, NS::UInteger( 0 ) );
 		}
-	}
-	else {
-		const MTL::Buffer * buffer = allocations[ draw_call.indirect_args.value.allocation ].buffer;
-		if( draw_call.mesh.index_buffer.exists ) {
-			Assert( draw_call.mesh.index_buffer.value.offset % 4 == 0 );
-			cb->rce->drawIndexedPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, index_type, allocations[ draw_call.mesh.index_buffer.value.allocation ].buffer, draw_call.mesh.index_buffer.value.offset + draw_call.first_index * index_size, buffer, draw_call.indirect_args.value.offset );
-		}
-		else {
-			cb->rce->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, buffer, draw_call.indirect_args.value.offset );
-		}
-	}
+	// }
+	// else {
+	// 	const MTL::Buffer * buffer = allocations[ draw_call.indirect_args.value.allocation ].buffer;
+	// 	if( draw_call.mesh.index_buffer.exists ) {
+	// 		Assert( draw_call.mesh.index_buffer.value.offset % 4 == 0 );
+	// 		cb->rce->drawIndexedPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, index_type, allocations[ draw_call.mesh.index_buffer.value.allocation ].buffer, draw_call.mesh.index_buffer.value.offset + draw_call.first_index * index_size, buffer, draw_call.indirect_args.value.offset );
+	// 	}
+	// 	else {
+	// 		cb->rce->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, buffer, draw_call.indirect_args.value.offset );
+	// 	}
+	// }
 }
 
 PoolHandle< ComputePipeline > NewComputePipeline( const ComputePipelineConfig & config ) {

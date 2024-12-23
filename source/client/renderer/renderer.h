@@ -56,6 +56,8 @@ enum RenderPass {
 	RenderPass_UIBeforePostprocessing,
 	RenderPass_Postprocessing,
 	RenderPass_UIAfterPostprocessing,
+
+	RenderPass_Count
 };
 
 /*
@@ -96,29 +98,7 @@ struct FrameStatic {
 		PoolHandle< Texture > shadowmaps[ 4 ];
 	} render_targets;
 
-	Opaque< CommandBuffer > particle_update_pass;
-	Opaque< CommandBuffer > particle_setup_indirect_pass;
-	Opaque< CommandBuffer > tile_culling_pass;
-
-	Opaque< CommandBuffer > shadowmap_pass[ 4 ];
-
-	Opaque< CommandBuffer > world_opaque_prepass_pass;
-	Opaque< CommandBuffer > world_opaque_pass;
-	Opaque< CommandBuffer > sky_pass;
-
-	Opaque< CommandBuffer > write_silhouette_gbuffer_pass;
-
-	Opaque< CommandBuffer > nonworld_opaque_outlined_pass;
-	Opaque< CommandBuffer > add_outlines_pass;
-	Opaque< CommandBuffer > nonworld_opaque_pass;
-
-	Opaque< CommandBuffer > transparent_pass;
-
-	Opaque< CommandBuffer > add_silhouettes_pass;
-
-	Opaque< CommandBuffer > ui_pass;
-	Opaque< CommandBuffer > postprocess_pass;
-	Opaque< CommandBuffer > post_ui_pass;
+	CommandBuffer render_passes[ RenderPass_Count ];
 };
 
 extern FrameStatic frame_static;
@@ -134,7 +114,6 @@ size_t FrameSlot();
 
 const Texture * BlueNoiseTexture();
 
-struct PipelineState { };
 void DrawFullscreenMesh( const PipelineState & pipeline );
 
 // PipelineState MaterialToPipelineState( const Material * material, Vec4 color = white.vec4, bool skinned = false, GPUMaterial * gpu_material = NULL );

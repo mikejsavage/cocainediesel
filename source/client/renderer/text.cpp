@@ -37,12 +37,6 @@ void InitText() {
 	fonts.clear();
 }
 
-void ShutdownText() {
-	for( Font font : fonts ) {
-		DeleteTexture( font.atlas );
-	}
-}
-
 static void Serialize( SerializationBuffer * buf, Font & font ) {
 	*buf & font.glyph_padding & font.dSDF_dTexel & font.ascent;
 	for( Glyph & glyph : font.glyphs ) {
@@ -104,12 +98,10 @@ const Font * RegisterFont( Span< const char > path ) {
 	Optional< Font * > slot = fonts.add();
 	if( !slot.exists ) {
 		Com_Printf( S_COLOR_YELLOW "Too many fonts\n" );
-		DeleteTexture( font.atlas );
 		return NULL;
 	}
 
 	*slot.value = font;
-	slot.value->material.texture = &slot.value->atlas;
 
 	return slot.value;
 }

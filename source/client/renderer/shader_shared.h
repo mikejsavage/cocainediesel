@@ -112,4 +112,9 @@ struct Particle {
 	u32 PADDING2;
 };
 
+struct OutlineUniforms {
+	Vec4 color;
+	float height;
+};
+
 #endif // header guard

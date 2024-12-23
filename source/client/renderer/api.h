@@ -403,24 +403,18 @@ struct IndirectIndexedDrawArgs {
 	u32 base_instance;
 };
 
-struct DrawCall {
+struct PipelineState {
 	struct Scissor {
 		u32 x, y, w, h;
 	};
 
 	PoolHandle< RenderPipeline > shader;
 	RenderPipelineDynamicState dynamic_state;
-	Mesh mesh;
-	u32 first_index;
 	PoolHandle< BindGroup > material_bind_group;
 	Optional< Scissor > scissor; // TODO
-	Span< const BufferBinding > buffers;
-
-	GPUBuffer draw_call_args;
-	Optional< GPUBuffer > indirect_args;
 };
 
-void EncodeDrawCall( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
+void EncodeDrawCall( Opaque< CommandBuffer > cmd_buf, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers, Optional< u32 > first_index = NONE );
 // void EncodeBindMesh( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
 // void EncodeBindMaterial( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
 // void EncodeScissor( Opaque< CommandBuffer > cmd_buf, Optional< Scissor > scissor );
@@ -444,7 +438,10 @@ Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & compute_pass )
 void EncodeComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, const GPUBindings & bindings, u32 x, u32 y, u32 z );
 void EncodeIndirectComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, const GPUBindings & bindings, GPUBuffer indirect_args );
 
-// TODO
+/*
+ * High level stuff TODO
+ */
+
 struct Transform {
 	Quaternion rotation;
 	Vec3 translation;

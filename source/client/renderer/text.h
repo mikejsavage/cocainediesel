@@ -30,7 +30,6 @@ constexpr Alignment Alignment_CenterBottom = { XAlignment_Center, YAlignment_Bot
 constexpr Alignment Alignment_RightBottom = { XAlignment_Right, YAlignment_Bottom };
 
 void InitText();
-void ShutdownText();
 
 struct Font;
 const Font * RegisterFont( Span< const char > path );

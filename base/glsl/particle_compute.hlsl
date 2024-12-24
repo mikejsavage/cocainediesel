@@ -1,17 +1,11 @@
 #include "../../source/client/renderer/shader_shared.h"
 
-struct ParticleUpdateStep {
-	uint32_t collision;
-	float dt;
-	uint32_t num_new_particles;
-};
-
 [[vk::binding( 0 )]] StructuredBuffer< Particle > b_ParticlesIn;
 [[vk::binding( 1 )]] RWStructuredBuffer< Particle > b_ParticlesOut;
 [[vk::binding( 2 )]] StructuredBuffer< Particle > b_NewParticles;
 [[vk::binding( 3 )]] StructuredBuffer< uint32_t > b_ComputeCountIn;
 [[vk::binding( 4 )]] RWStructuredBuffer< uint32_t > b_ComputeCountOut;
-[[vk::binding( 5 )]] StructuredBuffer< ParticleUpdateStep > b_UpdateStep;
+[[vk::binding( 5 )]] StructuredBuffer< ParticleUpdateUniforms > b_UpdateStep;
 
 Particle SimulateParticle( Particle old_particle, float dt ) {
 	Particle particle = old_particle;

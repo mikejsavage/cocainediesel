@@ -4,6 +4,7 @@
 #include "client/renderer/material.h"
 
 static Mesh sky_mesh;
+static PoolHandle< BindGroup > sky_bind_group;
 
 void InitSkybox() {
 	// w = 0 projects to infinity
@@ -34,18 +35,21 @@ void InitSkybox() {
 	sky_mesh.num_vertices = ARRAY_COUNT( indices );
 	sky_mesh.vertex_buffers[ 0 ] = NewBuffer( GPULifetime_Persistent, "Skybox vertices", verts );
 	sky_mesh.index_buffer = NewBuffer( GPULifetime_Persistent, "Skybox indices", indices );
+
+	sky_bind_group = NewBindGroup( shaders.skybox, {
+		{ "u_Noise", RGBNoiseTexture(), Sampler_Standard },
+		{ "u_BlueNoiseTexture", BlueNoiseTexture(), Sampler_Standard },
+	} );
 }
 
 void DrawSkybox( Time time ) {
 	TracyZoneScoped;
 
-	PipelineState pipeline;
-	pipeline.shader = &shaders.skybox;
-	pipeline.pass = frame_static.sky_pass;
-	pipeline.cull_face = CullFace_Front;
-	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.bind_uniform( "u_Time", UploadUniformBlock( ToSeconds( time ) ) );
-	pipeline.bind_texture_and_sampler( "u_Noise", FindMaterial( "textures/noise" )->texture, Sampler_Standard );
-	pipeline.bind_texture_and_sampler( "u_BlueNoiseTexture", BlueNoiseTexture(), Sampler_Standard );
-	DrawMesh( sky_mesh, pipeline );
+	PipelineState pipeline = {
+		.shader = shaders.skybox,
+		.dynamic_state = { .cull_face = CullFace_Front },
+		.material_bind_group = sky_bind_group,
+	};
+
+	EncodeDrawCall( RenderPass_Sky, pipeline, sky_mesh, { { "u_Time", NewTempBuffer( ToSeconds( time ) ) } } );
 }

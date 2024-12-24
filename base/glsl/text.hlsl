@@ -44,7 +44,12 @@ float4 SampleMSDF( float2 uv, float half_pixel_size ) {
 	return float4( u_Text[ 0 ].color.rgb, u_Text[ 0 ].color.a * alpha );
 }
 
-float4 FragmentMain( VertexOutput v ) {
+#if DEPTH_ONLY
+float4
+#else
+void
+#endif
+FragmentMain( VertexOutput v ) {
 	float2 fw = fwidth( v.uv );
 	float2 texture_size;
 	u_Texture.GetDimensions( texture_size.x, texture_size.y );
@@ -61,11 +66,11 @@ float4 FragmentMain( VertexOutput v ) {
 	color += 0.5f * SampleMSDF( v.uv + ssy, half_pixel_size );
 	color *= 1.0f / 3.0f;
 
-#if ALPHA_TEST
+#if DEPTH_ONLY
 	if( color.a <= 0.5f ) {
 		discard;
 	}
-#endif
-
+#else
 	return color;
+#endif
 }

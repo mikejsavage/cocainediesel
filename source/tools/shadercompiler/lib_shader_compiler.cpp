@@ -63,6 +63,7 @@ static Span< const char > ShaderFilename( Allocator * a, Span< const char > src_
 	for( Span< const char > feature : features ) {
 		filename.append( "_{}", feature );
 	}
+	filename += ShaderExtension;
 	return CloneSpan( a, filename.span() );
 }
 

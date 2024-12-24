@@ -718,11 +718,6 @@ static void CreateParticleSystems() {
 	blendParticleSystem = NewParticleSystem( sys_allocator, BlendFunc_Blend, blend_max_particles );
 }
 
-void ShutdownParticleSystems() {
-	DeleteParticleSystem( sys_allocator, &addParticleSystem );
-	DeleteParticleSystem( sys_allocator, &blendParticleSystem );
-}
-
 void InitVisualEffects() {
 	TracyZoneScoped;
 
@@ -740,10 +735,6 @@ void InitVisualEffects() {
 	CreateParticleSystems();
 }
 
-void ShutdownVisualEffects() {
-	ShutdownParticleSystems();
-}
-
 void HotloadVisualEffects() {
 	TracyZoneScoped;
 
@@ -755,7 +746,6 @@ void HotloadVisualEffects() {
 		}
 	}
 	if( restart_systems ) {
-		ShutdownParticleSystems();
 		CreateParticleSystems();
 	}
 }
@@ -770,24 +760,27 @@ VisualEffectGroup * FindVisualEffectGroup( const char * name ) {
 
 static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 	{
-		PipelineState pipeline;
-		pipeline.pass = frame_static.particle_update_pass;
-		pipeline.shader = &shaders.particle_compute;
-		pipeline.bind_buffer( "b_ParticlesIn", ps->gpu_particles1 );
-		pipeline.bind_buffer( "b_ParticlesOut", ps->gpu_particles2 );
-		pipeline.bind_streaming_buffer( "b_NewParticles", ps->new_particles );
-		pipeline.bind_buffer( "b_ComputeCountIn", ps->compute_count1 );
-		pipeline.bind_buffer( "b_ComputeCountOut", ps->compute_count2 );
 		// u32 collision = cl.map == NULL ? 0 : 1;
-		u32 collision = 0;
-		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, dt, ps->num_new_particles ) );
 		// if( collision ) {
 		// 	pipeline.bind_buffer( "b_BSPNodeLinks", cl.map->render_data.nodes );
 		// 	pipeline.bind_buffer( "b_BSPLeaves", cl.map->render_data.leaves );
 		// 	pipeline.bind_buffer( "b_BSPBrushes", cl.map->render_data.brushes );
 		// 	pipeline.bind_buffer( "b_BSPPlanes", cl.map->render_data.planes );
 		// }
-		DispatchComputeIndirect( pipeline, ps->compute_indirect );
+
+		GPUBuffer update = NewTempBuffer( ParticleUpdateUniforms {
+			.collision = 0_u32,
+			.dt = dt,
+			.num_new_particles = ps->num_new_particles,
+		} );
+		EncodeIndirectComputeCall( RenderPass_ParticleUpdate, shaders.particle_compute, {
+			{ "b_ParticlesIn", ps->gpu_particles1 },
+			{ "b_ParticlesOut", ps->gpu_particles2 },
+			{ "b_NewParticles", ... },
+			{ "b_ComputeCountIn", ps->compute_count1 },
+			{ "b_ComputeCountOut", ps->compute_count2 },
+			{ "b_ParticleUpdate", update },
+		}, ps->compute_indirect );
 	}
 
 	{

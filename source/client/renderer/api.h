@@ -30,17 +30,25 @@ struct GPUBuffer {
 	size_t size;
 };
 
-GPUBuffer NewTempBuffer( size_t size, size_t alignment, const void * data = NULL );
+struct GPUTempBuffer {
+	GPUBuffer buffer;
+	void * ptr;
+};
+
+// TODO: dataless forms should return a pointer
+
+GPUTempBuffer NewTempBuffer( size_t size, size_t alignment );
+GPUBuffer NewTempBuffer( size_t size, size_t alignment, const void * data );
 
 template< typename T >
 GPUBuffer NewTempBuffer( const T & x, size_t alignment = alignof( T ) ) {
 	return NewTempBuffer( sizeof( T ), alignment, &x );
 }
 
-template< typename T >
-GPUBuffer NewTempBuffer( size_t alignment = alignof( T ) ) {
-	return NewTempBuffer( sizeof( T ), alignment, NULL );
-}
+// template< typename T >
+// GPUBuffer NewTempBuffer( size_t alignment = alignof( T ) ) {
+// 	return NewTempBuffer( sizeof( T ), alignment, NULL );
+// }
 
 enum GPULifetime {
 	GPULifetime_Persistent,
@@ -138,7 +146,6 @@ enum TextureLayout {
 
 PoolHandle< Texture > NewTexture( GPULifetime lifetime, const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture = NONE );
 PoolHandle< Texture > NewFramebufferTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture = NONE );
-PoolHandle< Texture > UploadBC4( GPULifetime lifetime, const char * path );
 
 u32 TextureWidth( PoolHandle< Texture > texture );
 u32 TextureHeight( PoolHandle< Texture > texture );
@@ -217,14 +224,15 @@ enum BlendFunc : u8 {
 
 struct RenderPipelineOutputFormat {
 	Optional< TextureFormat > colors[ FragmentShaderOutput_Count ];
-	bool has_depth;
+	bool has_depth = true;
 };
 
 struct RenderPipelineConfig {
-	const char * path;
+	Span< const char > path;
 
 	RenderPipelineOutputFormat output_format;
 	BlendFunc blend_func = BlendFunc_Disabled;
+	bool alpha_to_coverage = false;
 
 	Span< const VertexDescriptor > mesh_variants;
 };
@@ -238,14 +246,10 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
  * ComputePipeline
  */
 
-struct ComputePipelineConfig {
-	const char * path;
-};
-
 struct ComputePipeline;
 template<> struct PoolHandleType< ComputePipeline > { using T = u8; };
 
-PoolHandle< ComputePipeline > NewComputePipeline( const ComputePipelineConfig & config );
+PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path );
 
 /*
  * RenderPipelineDynamicState
@@ -254,6 +258,7 @@ PoolHandle< ComputePipeline > NewComputePipeline( const ComputePipelineConfig & 
 enum DepthFunc : u8 {
 	DepthFunc_Less,
 	DepthFunc_Equal,
+	DepthFunc_EqualNoWrite,
 	DepthFunc_Always,
 	DepthFunc_LessNoWrite,
 	DepthFunc_AlwaysNoWrite,
@@ -414,7 +419,13 @@ struct PipelineState {
 	Optional< Scissor > scissor; // TODO
 };
 
-void EncodeDrawCall( Opaque< CommandBuffer > cmd_buf, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers, Optional< u32 > first_index = NONE );
+struct DrawCallExtras {
+	u32 first_index = 0;
+	u32 base_vertex = 0;
+	Optional< size_t > override_num_vertices = NONE;
+};
+
+void EncodeDrawCall( Opaque< CommandBuffer > cmd_buf, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers, DrawCallExtras extras );
 // void EncodeBindMesh( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
 // void EncodeBindMaterial( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
 // void EncodeScissor( Opaque< CommandBuffer > cmd_buf, Optional< Scissor > scissor );
@@ -452,3 +463,41 @@ struct MatrixPalettes {
 	Span< Mat3x4 > node_transforms;
 	Span< Mat3x4 > skinning_matrices;
 };
+
+enum RenderPass {
+	RenderPass_ParticleUpdate,
+	RenderPass_ParticleSetupIndirect, // could be merged into above?
+	RenderPass_TileCulling,
+
+	RenderPass_ShadowmapCascade0,
+	RenderPass_ShadowmapCascade1,
+	RenderPass_ShadowmapCascade2,
+	RenderPass_ShadowmapCascade3,
+
+	// the "world" is everything that receives decals, we do a z-prepass
+	// because decal rendering is expensive and we don't want to do it on
+	// invisible surfaces
+	RenderPass_WorldOpaqueZPrepass,
+	RenderPass_WorldOpaque,
+	RenderPass_Sky,
+
+	// silhouettes are player etc outlines visible through walls, outlines are world outlines
+	RenderPass_SilhouetteGBuffer,
+	RenderPass_NonworldOpaqueOutlined,
+	RenderPass_AddOutlines,
+	RenderPass_NonworldOpaque,
+
+	RenderPass_Transparent,
+
+	RenderPass_AddSilhouettes,
+
+	RenderPass_UIBeforePostprocessing,
+	RenderPass_Postprocessing,
+	RenderPass_UIAfterPostprocessing,
+
+	RenderPass_Count
+};
+
+void EncodeDrawCall( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers, DrawCallExtras extras = DrawCallExtras() );
+void EncodeComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, const GPUBindings & bindings, u32 x, u32 y, u32 z );
+void EncodeIndirectComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, const GPUBindings & bindings, GPUBuffer indirect_args );

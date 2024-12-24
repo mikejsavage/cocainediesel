@@ -60,6 +60,7 @@ local platform_curl_libs = {
 }
 
 obj_cxxflags( "source/client/audio/linux.cpp", "-Ilibs/alsa-headers -Ilibs/pulseaudio-headers" )
+obj_cxxflags( "source/client/renderer/generic_backend.cpp", "-Ilibs/metal-cpp" )
 obj_cxxflags( "source/client/renderer/metal_backend.cpp", "-Ilibs/metal-cpp" )
 obj_cxxflags( "source/qcommon/linear_algebra_kernels.cpp", "-O2" )
 

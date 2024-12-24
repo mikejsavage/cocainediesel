@@ -3,6 +3,7 @@
 #include "qcommon/arraymap.h"
 #include "qcommon/hash.h"
 #include "qcommon/pool.h"
+#include "client/client.h"
 #include "client/renderer/api.h"
 #include "client/renderer/private.h"
 #include <math.h>
@@ -47,10 +48,10 @@ struct ArgumentBufferEncoder {
 };
 
 struct RenderPipeline {
-	const char * name;
+	Span< const char > name;
 
 	struct Variant {
-		BoundedDynamicArray< MTL::RenderPipelineState *, Log2( MaxMSAA + 1 ) > msaa_variants;
+		BoundedDynamicArray< MTL::RenderPipelineState *, Log2_CT( MaxMSAA + 1 ) > msaa_variants;
 	};
 
 	ArrayMap< VertexDescriptor, Variant, MaxShaderVariants > mesh_variants;
@@ -62,7 +63,7 @@ struct RenderPipeline {
 };
 
 struct ComputePipeline {
-	const char * name;
+	Span< const char > name;
 	MTL::ComputePipelineState * pso;
 	ArgumentBufferEncoder args;
 };
@@ -180,7 +181,7 @@ PoolHandle< GPUAllocation > AllocateGPUMemory( size_t size ) {
 
 	MTL::Heap * heap = global_device.device->newHeap( descriptor );
 
-	return allocations.allocate( {
+	return allocations.allocate( GPUAllocation {
 		.heap = heap,
 		.buffer = heap->newBuffer( size, options, 0 ),
 	} );
@@ -374,6 +375,10 @@ static MTL::DepthStencilState * depth_funcs[ DepthFunc_Count ];
 static void CreateDepthFuncs() {
 	depth_funcs[ DepthFunc_Less ] = NewDepthFunc( DepthFuncConfig { .compare_op = MTL::CompareFunctionLess } );
 	depth_funcs[ DepthFunc_Equal ] = NewDepthFunc( DepthFuncConfig { .compare_op = MTL::CompareFunctionEqual } );
+	depth_funcs[ DepthFunc_EqualNoWrite ] = NewDepthFunc( DepthFuncConfig {
+		.compare_op = MTL::CompareFunctionEqual,
+		.write_depth = false,
+	} );
 	depth_funcs[ DepthFunc_Always ] = NewDepthFunc( DepthFuncConfig { .compare_op = MTL::CompareFunctionAlways } );
 	depth_funcs[ DepthFunc_LessNoWrite ] = NewDepthFunc( DepthFuncConfig {
 		.compare_op = MTL::CompareFunctionLess,
@@ -508,10 +513,6 @@ PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandl
 	return bind_groups.allocate( { args } );
 }
 
-static bool StartsWith( const char * str, const char * prefix ) {
-	return strlen( str ) >= strlen( prefix ) && memcmp( str, prefix, strlen( prefix ) ) == 0;
-}
-
 static MTL::VertexFormat VertexFormatToMetal( VertexFormat format ) {
 	switch( format ) {
 		case VertexFormat_U8x2: return MTL::VertexFormatUChar2;
@@ -577,8 +578,9 @@ static Optional< ArgumentBufferEncoder > ParseArgumentBuffer( MTL::Function * fu
 }
 
 PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config ) {
-	char fullpath[ 256 ];
-	snprintf( fullpath, sizeof( fullpath ), "%s.metallib", config.path );
+	TempAllocator temp = cls.frame_arena.temp();
+
+	const char * fullpath = temp( "{}.metallib", config.path );
 
 	MTL::Library * library;
 	{
@@ -610,7 +612,7 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 		for( u32 msaa = 1; msaa <= global_device.max_msaa; msaa *= 2 ) {
 			MTL::RenderPipelineDescriptor * pipeline = MTL::RenderPipelineDescriptor::alloc()->init();
 			defer { pipeline->release(); };
-			pipeline->setLabel( AutoReleaseString( shader.name ) );
+			pipeline->setLabel( AutoReleaseString( temp( "{}", shader.name ) ) );
 			pipeline->setVertexFunction( vertex_main );
 			pipeline->setFragmentFunction( fragment_main );
 
@@ -754,7 +756,7 @@ static void BindBindGroup( MTL::RenderCommandEncoder * encoder, PoolHandle< Bind
 }
 
 static GPUBuffer EncodeArgumentBuffer( ArgumentBufferEncoder * encoder, Span< const BufferBinding > buffers ) {
-	GPUBuffer args = NewTempBuffer( encoder->encoder->encodedLength(), encoder->encoder->alignment() );
+	GPUBuffer args = NewTempBuffer( encoder->encoder->encodedLength(), encoder->encoder->alignment() ).buffer;
 
 	encoder->encoder->setArgumentBuffer( allocations[ args.allocation ].buffer, args.offset );
 
@@ -806,7 +808,7 @@ void EncodeAndBindArgumentBuffer( Encoder * ce, ArgumentBufferEncoder * encoder,
 	BindArgumentBuffer( ce, args, descriptor_set );
 }
 
-void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline, Mesh mesh, Span< const BufferBinding > buffers, Optional< u32 > first_index ) {
+void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline, Mesh mesh, Span< const BufferBinding > buffers, DrawCallExtras extras ) {
 	const MTL::RenderPipelineState * pso = SelectRenderPipelineVariant( render_pipelines[ pipeline.shader ], mesh.vertex_descriptor, 1 );
 	if( pso == NULL ) {
 		printf( "no shader variant!\n" );
@@ -838,7 +840,7 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline
 	// if( !draw_call.indirect_args.exists ) {
 		if( mesh.index_buffer.exists ) {
 			Assert( mesh.index_buffer.value.offset % 4 == 0 );
-			cb->rce->drawIndexedPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, mesh.num_vertices, index_type, allocations[ mesh.index_buffer.value.allocation ].buffer, mesh.index_buffer.value.offset + Default( first_index, 0_u32 ) * index_size, 1, /* TODO base vertex */ 0, 0 );
+			cb->rce->drawIndexedPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, Default( extras.override_num_vertices, mesh.num_vertices ), index_type, allocations[ mesh.index_buffer.value.allocation ].buffer, mesh.index_buffer.value.offset + extras.first_index * index_size, 1, extras.base_vertex, 0 );
 		}
 		else {
 			cb->rce->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, mesh.num_vertices, NS::UInteger( 0 ) );
@@ -856,9 +858,10 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline
 	// }
 }
 
-PoolHandle< ComputePipeline > NewComputePipeline( const ComputePipelineConfig & config ) {
-	char fullpath[ 256 ];
-	snprintf( fullpath, sizeof( fullpath ), "%s.metallib", config.path );
+PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
+	const char * fullpath = temp( "{}.metallib", path );
 
 	MTL::Library * library;
 	{
@@ -879,7 +882,7 @@ PoolHandle< ComputePipeline > NewComputePipeline( const ComputePipelineConfig & 
 	defer { compute_main->release(); };
 
 	MTL::ComputePipelineDescriptor * pipeline = MTL::ComputePipelineDescriptor::alloc()->init();
-	pipeline->setLabel( AutoReleaseString( config.path ) );
+	pipeline->setLabel( AutoReleaseString( temp( "{}", path ) ) );
 	pipeline->setComputeFunction( compute_main );
 
 	NS::Error * error = NULL;
@@ -893,8 +896,8 @@ PoolHandle< ComputePipeline > NewComputePipeline( const ComputePipelineConfig & 
 	Optional< ArgumentBufferEncoder > args = ParseArgumentBuffer( compute_main, reflection->arguments(), DescriptorSetType( 0 ) );
 	Assert( args.exists );
 
-	return compute_pipelines.allocate( {
-		.name = config.path,
+	return compute_pipelines.allocate( ComputePipeline {
+		.name = path,
 		.pso = pso,
 		.args = args.value,
 	} );

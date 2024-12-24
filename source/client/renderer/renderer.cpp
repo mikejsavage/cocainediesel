@@ -172,7 +172,6 @@ void ShutdownRenderer() {
 	FlushRenderBackend();
 
 	ShutdownVisualEffects();
-	ShutdownText();
 	ShutdownMaterials();
 
 	DeleteTexture( blue_noise );
@@ -441,8 +440,6 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadGLTFModels();
 	HotloadMaps();
 	HotloadVisualEffects();
-
-	ClearMaterialStaticUniforms();
 
 	RenderBackendBeginFrame();
 

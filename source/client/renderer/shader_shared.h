@@ -112,6 +112,13 @@ struct Particle {
 	u32 PADDING2;
 };
 
+struct ParticleUpdateUniforms {
+	u32 collision;
+	float dt;
+	u32 num_new_particles;
+};
+
+
 struct OutlineUniforms {
 	Vec4 color;
 	float height;

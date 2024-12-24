@@ -36,7 +36,7 @@ struct Shaders {
 	PoolHandle< RenderPipeline > skybox;
 
 	PoolHandle< RenderPipeline > text;
-	PoolHandle< RenderPipeline > text_alphatest;
+	PoolHandle< RenderPipeline > text_depth_only;
 
 	PoolHandle< RenderPipeline > postprocess;
 };

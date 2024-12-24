@@ -81,7 +81,7 @@ PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandl
 
 size_t FrameSlot();
 
-constexpr u32 Log2( u64 x ) {
+constexpr u32 Log2_CT( u64 x ) {
 	u32 log = 0;
 	x >>= 1;
 

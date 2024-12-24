@@ -153,42 +153,39 @@ namespace ImGui
 #include "qcommon/hash.h"
 #include "client/renderer/shader.h"
 
-struct ImGuiShaderAndTexture {
-	ImGuiShaderAndTexture() {
+struct ImGuiShaderAndMaterial {
+	ImGuiShaderAndMaterial() {
 		*this = { };
 	}
 
-	ImGuiShaderAndTexture( PoolHandle< Texture > tex ) {
+	ImGuiShaderAndMaterial( PoolHandle< BindGroup > material ) {
 		shader = shaders.standard_vertexcolors;
-		texture = tex;
-		uniform_name = { };
-		uniforms = { };
+		material_bind_group = material;
+		buffer = { };
 	}
 
-	ImGuiShaderAndTexture( const void * null ) {
+	ImGuiShaderAndMaterial( const void * null ) {
 		*this = { };
 	}
 
 	explicit operator intptr_t() const {
-		return intptr_t( shader.x ) ^ intptr_t( texture.x );
+		return intptr_t( shader.x ) ^ intptr_t( material_bind_group.x );
 	}
 
 	PoolHandle< RenderPipeline > shader;
-	PoolHandle< Texture > texture;
-
-	StringHash uniform_name;
-	GPUBuffer uniforms;
+	PoolHandle< BindGroup > material_bind_group;
+	BufferBinding buffer;
 };
 
-inline bool operator==( const ImGuiShaderAndTexture & a, const ImGuiShaderAndTexture & b ) {
+inline bool operator==( const ImGuiShaderAndMaterial & a, const ImGuiShaderAndMaterial & b ) {
 	return a.shader == b.shader
-		&& a.texture == b.texture
-		&& a.uniform_name == b.uniform_name
-		&& a.uniforms.allocation == b.uniforms.allocation && a.uniforms.offset == b.uniforms.offset && a.uniforms.size == b.uniforms.size;
+		&& a.material_bind_group == b.material_bind_group
+		&& a.buffer.name == b.buffer.name
+		&& a.buffer.buffer.allocation == b.buffer.buffer.allocation && a.buffer.buffer.offset == b.buffer.buffer.offset && a.buffer.buffer.size == b.buffer.buffer.size;
 }
 
-inline bool operator!=( const ImGuiShaderAndTexture & a, const ImGuiShaderAndTexture & b ) {
+inline bool operator!=( const ImGuiShaderAndMaterial & a, const ImGuiShaderAndMaterial & b ) {
 	return !( a == b );
 }
 
-#define ImTextureID ImGuiShaderAndTexture
+#define ImTextureID ImGuiShaderAndMaterial

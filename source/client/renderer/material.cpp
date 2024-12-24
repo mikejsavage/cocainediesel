@@ -46,16 +46,7 @@ static Vec4 decal_uvwhs[ MAX_DECALS ];
 static Vec4 decal_trims[ MAX_DECALS ];
 static u32 num_decals;
 static Hashtable< MAX_DECALS * 2 > decals_hashtable;
-static Texture decals_atlases;
-
-static UniformBlock material_static_uniforms[ MAX_MATERIALS ];
-static Hashtable< MAX_MATERIALS * 2 > material_static_uniforms_hashtable;
-static u32 num_material_static_uniforms;
-
-void ClearMaterialStaticUniforms() {
-	material_static_uniforms_hashtable.clear();
-	num_material_static_uniforms = 0;
-}
+static PoolHandle< Texture > decals_atlases;
 
 bool CompressedTextureFormat( TextureFormat format ) {
 	switch( format ) {
@@ -247,9 +238,9 @@ static void ParseAlphaGen( Material * material, Span< const char > name, Span< c
 	}
 }
 
-static const Texture * FindTexture( Span< const char > name ) {
-	u64 idx;
-	return textures_hashtable.get( StringHash( name ).hash, &idx ) ? &textures[ idx ] : missing_material.texture;
+static PoolHandle< Texture > FindTexture( Span< const char > name ) {
+	PoolHandle< Texture > * handle = textures.get( StringHash( name ).hash );
+	return handle == NULL ? missing_texture : *handle;
 }
 
 static void ParseTexture( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
@@ -337,7 +328,7 @@ static void AddMaterial( Span< const char > name, u64 hash, Material material ) 
 	u64 idx = materials_hashtable.size();
 	if( !materials_hashtable.get( material.hash, &idx ) ) {
 		materials_hashtable.add( material.hash, idx );
-		material.name = CloneSpan( sys_allocator, name );
+		material.name = name;
 	}
 	else {
 		material.name = materials[ idx ].name;
@@ -760,7 +751,7 @@ static void LoadBuiltinMaterials() {
 	TracyZoneScoped;
 
 	missing_material = Material();
-	missing_material.name = CloneSpan( sys_allocator, "missing material"_sp );
+	missing_material.name = "missing material"_sp;
 	missing_material.texture = &missing_texture;
 	missing_material.sampler = Sampler_Unfiltered;
 
@@ -832,7 +823,6 @@ void InitMaterials() {
 
 	textures_hashtable.clear();
 	materials_hashtable.clear();
-	ClearMaterialStaticUniforms();
 
 	CreateSamplers();
 	LoadBuiltinMaterials();

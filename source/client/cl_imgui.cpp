@@ -13,7 +13,7 @@
 #include "nanosort/nanosort.hpp"
 
 static PoolHandle< Texture > atlas_texture;
-static Material atlas_material;
+static PoolHandle< BindGroup > atlas_bind_group;
 
 static ImFont * AddFontAsset( StringHash path, float pixel_size, bool idi_nahui = false ) {
 	Span< const u8 > data = AssetBinary( path );
@@ -92,8 +92,9 @@ void CL_InitImGui() {
 			.height = u32( height ),
 			.data = pixels,
 		} );
-		atlas_material.texture = &atlas_texture;
-		io.Fonts->TexID = ImGuiShaderAndMaterial( &atlas_material );
+
+		// TODO: atlas_bind_group
+		io.Fonts->TexID = ImGuiShaderAndMaterial( atlas_bind_group );
 	}
 
 	{
@@ -142,8 +143,6 @@ void CL_InitImGui() {
 }
 
 void CL_ShutdownImGui() {
-	DeleteTexture( atlas_texture );
-
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 }
@@ -160,11 +159,10 @@ static void SubmitDrawCalls() {
 		return;
 	draw_data->ScaleClipRects( io.DisplayFramebufferScale );
 
-	UniformBlock lodbias_uniforms = UploadMaterialStaticUniforms( 0.0f, 0.0f, -1.0f );
+	GPUBuffer lodbias_uniforms = NewTempBuffer( MaterialStaticUniforms { .lod_bias = -1.0f } );
 
 	u32 pass = 0;
 
-	ImVec2 pos = draw_data->DisplayPos;
 	for( int n = 0; n < draw_data->CmdListsCount; n++ ) {
 		TempAllocator temp = cls.frame_arena.temp();
 
@@ -183,17 +181,13 @@ static void SubmitDrawCalls() {
 			continue;
 		}
 
-		VertexDescriptor vertex_descriptor = { };
-		vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, pos ) };
-		vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, uv ) };
-		vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( ImDrawVert, col ) };
-		vertex_descriptor.buffer_strides[ 0 ] = sizeof( ImDrawVert );
-
-		DynamicDrawData dynamic_geometry = UploadDynamicGeometry(
-			Span< const ImDrawVert >( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size ).cast< const u8 >(),
-			Span< const ImDrawIdx >( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size ),
-			vertex_descriptor
-		);
+		Mesh mesh = { };
+		mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, pos ) };
+		mesh.vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, uv ) };
+		mesh.vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( ImDrawVert, col ) };
+		mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( ImDrawVert );
+		mesh.vertex_buffers[ 0 ] = NewTempBuffer( cmd_list->VtxBuffer.Size, sizeof( ImDrawVert ), cmd_list->VtxBuffer.Data );
+		mesh.index_buffer = NewTempBuffer( cmd_list->IdxBuffer.Size, sizeof( u16 ), cmd_list->IdxBuffer.Data );
 
 		for( int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++ ) {
 			const ImDrawCmd * pcmd = &cmd_list->CmdBuffer[ cmd_i ];
@@ -201,34 +195,47 @@ static void SubmitDrawCalls() {
 				pcmd->UserCallback( cmd_list, pcmd );
 			}
 			else {
-				MinMax2 scissor = MinMax2( Vec2( pcmd->ClipRect.x - pos.x, pcmd->ClipRect.y - pos.y ), Vec2( pcmd->ClipRect.z - pos.x, pcmd->ClipRect.w - pos.y ) );
+				MinMax2 scissor = MinMax2(
+					Vec2( pcmd->ClipRect.x - draw_data->DisplayPos.x, pcmd->ClipRect.y - draw_data->DisplayPos.y ),
+					Vec2( pcmd->ClipRect.z - draw_data->DisplayPos.x, pcmd->ClipRect.w - draw_data->DisplayPos.y )
+				);
 				if( scissor.mins.x < fb_width && scissor.mins.y < fb_height && scissor.maxs.x >= 0.0f && scissor.maxs.y >= 0.0f ) {
-					PipelineState pipeline;
-					pipeline.pass = pass == 0 ? frame_static.ui_pass : frame_static.post_ui_pass;
-					pipeline.shader = pcmd->TextureId.shader;
-					pipeline.depth_func = DepthFunc_AlwaysAndDontWrite;
-					pipeline.blend_func = BlendFunc_Blend;
-					pipeline.cull_face = CullFace_Disabled;
-					pipeline.write_depth = false;
-					pipeline.scissor = {
-						u32( scissor.mins.x ),
-						u32( scissor.mins.y ),
-						u32( scissor.maxs.x - scissor.mins.x ),
-						u32( scissor.maxs.y - scissor.mins.y ),
+					PipelineState pipeline = {
+						.shader = pcmd->TextureId.shader,
+						.dynamic_state = {
+							.depth_func = DepthFunc_AlwaysNoWrite,
+							.cull_face = CullFace_Disabled,
+						},
+						.material_bind_group = pcmd->TextureId.material_bind_group,
+						.scissor = PipelineState::Scissor {
+							u32( scissor.mins.x ),
+							u32( scissor.mins.y ),
+							u32( scissor.maxs.x - scissor.mins.x ),
+							u32( scissor.maxs.y - scissor.mins.y ),
+						},
 					};
 
-					pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
-					pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
-					pipeline.bind_uniform( "u_MaterialStatic", lodbias_uniforms );
-					pipeline.bind_uniform( "u_MaterialDynamic", frame_static.identity_material_dynamic_uniforms );
+					// pipeline.bind_uniform( "u_MaterialStatic", lodbias_uniforms );
 
-					if( pcmd->TextureId.uniform_name != EMPTY_HASH ) {
-						pipeline.bind_uniform( pcmd->TextureId.uniform_name, pcmd->TextureId.uniform_block );
+					BoundedDynamicArray< BufferBinding, 3 > bindings = {
+						{ "u_Model", frame_static.identity_model_uniforms },
+						{ "u_MaterialDynamic", frame_static.identity_material_dynamic_uniforms },
+					};
+
+					if( pcmd->TextureId.buffer.name != EMPTY_HASH ) {
+						bindings.must_add( pcmd->TextureId.buffer );
 					}
 
-					pipeline.bind_texture_and_sampler( "u_BaseTexture", pcmd->TextureId.material->texture, Sampler_Standard );
-
-					DrawDynamicGeometry( pipeline, dynamic_geometry, pcmd->ElemCount, pcmd->IdxOffset );
+					EncodeDrawCall(
+						pass == 0 ? RenderPass_UIBeforePostprocessing : RenderPass_UIAfterPostprocessing,
+						pipeline,
+						mesh,
+						{
+							{ "u_Model", frame_static.identity_model_uniforms },
+							{ "u_MaterialDynamic", frame_static.identity_material_dynamic_uniforms },
+						},
+						{ .override_num_vertices = pcmd->ElemCount, .first_index = pcmd->IdxOffset }
+					);
 				}
 			}
 		}

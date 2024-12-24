@@ -7,7 +7,7 @@ struct GraphicsShaderDescriptor {
 	PoolHandle< RenderPipeline > Shaders:: * field;
 	Span< const char > src;
 	Span< Span< const char > > features;
-	Span< const VertexDescriptor > vertex_formats;
+	Span< const VertexDescriptor > mesh_variants;
 };
 
 struct ComputeShaderDescriptor {
@@ -64,19 +64,19 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 			GraphicsShaderDescriptor {
 				.field = &Shaders::standard,
 				.src = "standard.hlsl",
-				.vertex_formats = { pos_normal, pos_normal_uv },
+				.mesh_variants = { pos_normal, pos_normal_uv },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::standard_vertexcolors,
 				.src = "standard.hlsl",
 				.features = { "VERTEX_COLORS" },
-				.vertex_formats = { pos_uv },
+				.mesh_variants = { pos_uv },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::standard_skinned,
 				.src = "standard.hlsl",
 				.features = { "SKINNED" },
-				.vertex_formats = { pos_normal_uv_skinned },
+				.mesh_variants = { pos_normal_uv_skinned },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::world,
@@ -89,25 +89,27 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 					"APPLY_SHADOWS",
 					"SHADED",
 				},
-				.vertex_formats = { pos_normal },
+				.mesh_variants = { pos_normal },
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::depth_only,
 				.src = "depth_only.hlsl",
-				.vertex_formats = { pos_normal, pos_normal_uv },
+				.mesh_variants = { pos_normal, pos_normal_uv },
+				// clamp depth
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::depth_only_skinned,
 				.src = "depth_only.hlsl",
 				.features = { "SKINNED" },
-				.vertex_formats = { pos_normal_uv_skinned },
+				.mesh_variants = { pos_normal_uv_skinned },
+				// clamp depth
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::outline,
 				.src = "outline.hlsl",
-				.vertex_formats = {
+				.mesh_variants = {
 					{ pos_normal },
 					{ pos_normal_uv },
 				},
@@ -116,23 +118,30 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.field = &Shaders::outline_skinned,
 				.src = "outline.hlsl",
 				.features = { "SKINNED" },
-				.vertex_formats = { pos_normal_uv_skinned },
+				.mesh_variants = { pos_normal_uv_skinned },
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::skybox,
 				.src = "skybox.hlsl",
-				.vertex_formats = { { skybox_vertex_descriptor } },
+				.mesh_variants = { { skybox_vertex_descriptor } },
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::text,
 				.src = "text.hlsl",
-				.vertex_formats = { { text_vertex_descriptor } },
+				.mesh_variants = { { text_vertex_descriptor } },
+			},
+			GraphicsShaderDescriptor {
+				.field = &Shaders::text_depth_only,
+				.src = "text.hlsl",
+				.features = { "DEPTH_ONLY" },
+				.mesh_variants = { { text_vertex_descriptor } },
+				// alpha to coverage/clamp depth
 			},
 
 			GraphicsShaderDescriptor {
-				.field = &Shaders::skybox,
+				.field = &Shaders::particle,
 				.src = "particle.hlsl",
 			},
 		},

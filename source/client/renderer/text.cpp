@@ -23,6 +23,7 @@ struct Glyph {
 struct Font {
 	u32 path_hash;
 	PoolHandle< Texture > atlas;
+	PoolHandle< BindGroup > bind_group;
 
 	float glyph_padding;
 	float dSDF_dTexel;
@@ -118,16 +119,15 @@ void DrawText( const Font * font, float pixel_size, Span< const char > str, floa
 
 	y += pixel_size * font->ascent;
 
-	ImGuiShaderAndTexture imgui;
+	ImGuiShaderAndMaterial imgui = { };
 	imgui.shader = shaders.text;
-	imgui.texture = font->atlas;
-	imgui.uniform_name = "u_Text";
-	imgui.uniforms = NewTempBuffer( TextUniforms {
+	imgui.material_bind_group = font->bind_group;
+	imgui.buffer = { "u_Text", NewTempBuffer( TextUniforms {
 		.color = color,
 		.border_color = Default( border, Vec4( 0.0f ) ),
 		.dSDF_dTexel = font->dSDF_dTexel,
 		.has_border = border.exists ? 1 : 0,
-	} );
+	} ) };
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();
 	bg->PushTextureID( imgui );
@@ -285,31 +285,20 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Alignmen
 	mesh.vertex_buffers[ 0 ] = NewTempBuffer( vertices.span() );
 	mesh.index_buffer = NewTempBuffer( indices.span() );
 
-	{
-		PipelineState pipeline;
-		pipeline.pass = frame_static.nonworld_opaque_pass;
-		pipeline.shader = &shaders.text;
-		pipeline.cull_face = CullFace_Disabled;
-		pipeline.alpha_to_coverage = true;
-		pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-		pipeline.bind_uniform( "u_Text", text_uniforms );
-		pipeline.bind_texture_and_sampler( "u_BaseTexture", font->material.texture, Sampler_Standard );
+	PipelineState pipeline = {
+		.shader = shaders.text,
+		.dynamic_state = { .cull_face = CullFace_Disabled },
+		.material_bind_group = font->bind_group,
+	};
 
-		DrawMesh( pipeline, mesh );
-	}
+	// pipeline.alpha_to_coverage = true;
+	EncodeDrawCall( RenderPass_NonworldOpaque, pipeline, mesh, { { "u_Text", text_uniforms } } );
 
 	{
+		pipeline.shader = shaders.text_depth_only;
+		// pipeline.clamp_depth = true;
 		for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
-			PipelineState pipeline;
-			pipeline.pass = frame_static.shadowmap_pass[ i ];
-			pipeline.shader = &shaders.text_alphatest;
-			pipeline.cull_face = CullFace_Disabled;
-			pipeline.clamp_depth = true;
-			pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ i ] );
-			pipeline.bind_uniform( "u_Text", text_uniforms );
-			pipeline.bind_texture_and_sampler( "u_BaseTexture", font->material.texture, Sampler_Standard );
-
-			DrawMesh( pipeline, mesh );
+			EncodeDrawCall( RenderPass_ShadowmapCascade0 + i, pipeline, mesh, { { "u_Text", text_uniforms } } );
 		}
 	}
 }

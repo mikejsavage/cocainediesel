@@ -26,40 +26,6 @@ struct ShadowParameters {
 	u32 entity_cascades;
 };
 
-enum RenderPass {
-	RenderPass_ParticleUpdate,
-	RenderPass_ParticleSetupIndirect, // could be merged into above?
-	RenderPass_TileCulling,
-
-	RenderPass_ShadowmapCascade0,
-	RenderPass_ShadowmapCascade1,
-	RenderPass_ShadowmapCascade2,
-	RenderPass_ShadowmapCascade3,
-
-	// the "world" is everything that receives decals, we do a z-prepass
-	// because decal rendering is expensive and we don't want to do it on
-	// invisible surfaces
-	RenderPass_WorldOpaqueZPrepass,
-	RenderPass_WorldOpaque,
-	RenderPass_Sky,
-
-	// silhouettes are player etc outlines visible through walls, outlines are world outlines
-	RenderPass_SilhouetteGBuffer,
-	RenderPass_NonworldOpaqueOutlined,
-	RenderPass_AddOutlines,
-	RenderPass_NonworldOpaque,
-
-	RenderPass_Transparent,
-
-	RenderPass_AddSilhouettes,
-
-	RenderPass_UIBeforePostprocessing,
-	RenderPass_Postprocessing,
-	RenderPass_UIAfterPostprocessing,
-
-	RenderPass_Count
-};
-
 /*
  * stuff that gets set once at the beginning of the frame but is needed all over the place
  */
@@ -112,7 +78,8 @@ void RendererSubmitFrame();
 
 size_t FrameSlot();
 
-const Texture * BlueNoiseTexture();
+PoolHandle< Texture > RGBNoiseTexture();
+PoolHandle< Texture > BlueNoiseTexture();
 
 void DrawFullscreenMesh( const PipelineState & pipeline );
 
@@ -145,4 +112,3 @@ GPUBuffer UploadMaterialDynamicUniforms( const Vec4 & color );
 const char * ShadowQualityToString( ShadowQuality mode );
 
 void DrawModelInstances();
-void ClearMaterialStaticUniforms();

@@ -1,4 +1,5 @@
 #include "qcommon/base.h"
+#include "client/assets.h"
 #include "client/renderer/api.h"
 #include "client/renderer/private.h"
 #include "client/renderer/dds.h"
@@ -93,7 +94,7 @@ void FlushStagingBuffer() {
 }
 
 GPUAllocator NewGPUAllocator( size_t slab_size, size_t min_alignment, size_t buffer_image_granularity ) {
-	GPUAllocator::Slab * dummy = Alloc< GPUAllocator::Slab >();
+	GPUAllocator::Slab * dummy = Alloc< GPUAllocator::Slab >( sys_allocator );
 	*dummy = { };
 	return GPUAllocator {
 		.slab_size = slab_size,
@@ -144,7 +145,7 @@ GPUBuffer NewBuffer( GPUAllocator * a, const char * label, size_t size, size_t a
 			a->slabs = next;
 		}
 		else {
-			GPUAllocator::Slab * new_slab = Alloc< GPUAllocator::Slab >();
+			GPUAllocator::Slab * new_slab = Alloc< GPUAllocator::Slab >( sys_allocator );
 			*new_slab = GPUAllocator::Slab {
 				.buffer = AllocateGPUMemory( a->slab_size ),
 				.cursor = 0,
@@ -206,7 +207,7 @@ void ClearGPUTempAllocator( GPUTempAllocator * a ) {
 	a->cursor = 0;
 }
 
-GPUBuffer NewTempBuffer( GPUTempAllocator * a, const void * data, size_t size, size_t alignment ) {
+GPUTempBuffer NewTempBuffer( GPUTempAllocator * a, size_t size, size_t alignment ) {
 	// alignment and min_alignment are both pow2 so Max2( alignment, min_alignment ) == LeastCommonMultiple( alignment, min_alignment )
 	Assert( IsPowerOf2( alignment ) );
 	size_t aligned_cursor = AlignPow2( a->cursor, Max2( alignment, a->min_alignment ) );
@@ -215,36 +216,20 @@ GPUBuffer NewTempBuffer( GPUTempAllocator * a, const void * data, size_t size, s
 	a->cursor = aligned_cursor + size;
 
 	size_t offset = aligned_cursor + a->capacity * FrameSlot();
-	if( data != NULL ) {
-		memcpy( ( ( char * ) a->memory.ptr ) + offset, data, size );
-	}
-
-	return GPUBuffer {
-		.allocation = a->memory.allocation,
-		.offset = aligned_cursor + a->capacity * FrameSlot(),
-		.size = size,
+	return GPUTempBuffer {
+		.buffer = GPUBuffer {
+			.allocation = a->memory.allocation,
+			.offset = aligned_cursor + a->capacity * FrameSlot(),
+			.size = size,
+		},
+		.ptr = ( ( char * ) a->memory.ptr ) + offset,
 	};
 }
 
-PoolHandle< Texture > UploadBC4( GPUAllocator * a, const char * path ) {
-	Span< u8 > dds = ReadFileBinary( path );
-	defer { free( dds.ptr ); };
-
-	Assert( dds.num_bytes() >= sizeof( DDSHeader ) );
-
-	const DDSHeader * header = align_cast< const DDSHeader >( dds.ptr );
-	return NewTexture( a, {
-		.name = path,
-		.format = TextureFormat_BC4, // TODO
-		.width = header->width,
-		.height = header->height,
-		.num_mipmaps = header->mipmap_count,
-		.data = ( dds + sizeof( DDSHeader ) ).ptr,
-	} );
-}
-
-PoolHandle< Texture > UploadBC4( GPULifetime lifetime, const char * path ) {
-	return UploadBC4( AllocatorForLifetime( lifetime ), path );
+GPUBuffer NewTempBuffer( GPUTempAllocator * a, const void * data, size_t size, size_t alignment ) {
+	GPUTempBuffer temp = NewTempBuffer( a, size, alignment );
+	memcpy( temp.ptr, data, size );
+	return temp.buffer;
 }
 
 PoolHandle< Texture > NewTexture( GPULifetime lifetime, const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {

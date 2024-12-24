@@ -46,6 +46,7 @@ void ClearGPUTempAllocator( GPUTempAllocator * a );
 PoolHandle< GPUAllocation > AllocateGPUMemory( size_t size );
 CoherentMemory AllocateCoherentMemory( size_t size );
 
+GPUTempBuffer NewTempBuffer( GPUTempAllocator * a, size_t size, size_t alignment );
 GPUBuffer NewTempBuffer( GPUTempAllocator * a, const void * data, size_t size, size_t alignment );
 
 // pass a = NULL for a dedicated allocation

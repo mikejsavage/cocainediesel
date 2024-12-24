@@ -45,9 +45,9 @@ float4 SampleMSDF( float2 uv, float half_pixel_size ) {
 }
 
 #if DEPTH_ONLY
-float4
-#else
 void
+#else
+float4
 #endif
 FragmentMain( VertexOutput v ) {
 	float2 fw = fwidth( v.uv );

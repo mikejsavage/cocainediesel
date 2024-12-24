@@ -199,7 +199,11 @@ GPUAllocator * AllocatorForLifetime( GPULifetime lifetime ) {
 	return lifetime == GPULifetime_Persistent ? &global_device.persistent_allocator : &global_device.framebuffer_allocator;
 }
 
-GPUBuffer NewTempBuffer( size_t size, size_t alignment, const void * data ) {
+GPUTempBuffer NewTempBuffer( size_t size, size_t alignment ) {
+	return NewTempBuffer( &global_device.temp_allocator, size, alignment );
+}
+
+GPUBuffer NewTempBuffer( const void * data, size_t size, size_t alignment ) {
 	return NewTempBuffer( &global_device.temp_allocator, data, size, alignment );
 }
 
@@ -374,16 +378,16 @@ static MTL::DepthStencilState * depth_funcs[ DepthFunc_Count ];
 
 static void CreateDepthFuncs() {
 	depth_funcs[ DepthFunc_Less ] = NewDepthFunc( DepthFuncConfig { .compare_op = MTL::CompareFunctionLess } );
+	depth_funcs[ DepthFunc_LessNoWrite ] = NewDepthFunc( DepthFuncConfig {
+		.compare_op = MTL::CompareFunctionLess,
+		.write_depth = false,
+	} );
 	depth_funcs[ DepthFunc_Equal ] = NewDepthFunc( DepthFuncConfig { .compare_op = MTL::CompareFunctionEqual } );
 	depth_funcs[ DepthFunc_EqualNoWrite ] = NewDepthFunc( DepthFuncConfig {
 		.compare_op = MTL::CompareFunctionEqual,
 		.write_depth = false,
 	} );
 	depth_funcs[ DepthFunc_Always ] = NewDepthFunc( DepthFuncConfig { .compare_op = MTL::CompareFunctionAlways } );
-	depth_funcs[ DepthFunc_LessNoWrite ] = NewDepthFunc( DepthFuncConfig {
-		.compare_op = MTL::CompareFunctionLess,
-		.write_depth = false,
-	} );
 	depth_funcs[ DepthFunc_AlwaysNoWrite ] = NewDepthFunc( DepthFuncConfig {
 		.compare_op = MTL::CompareFunctionAlways,
 		.write_depth = false,
@@ -903,9 +907,10 @@ PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path ) {
 	} );
 }
 
-static CommandBuffer * PrepareCompute( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > shader, const GPUBindings & bindings ) {
+static CommandBuffer * PrepareCompute( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > shader, Span< const BufferBinding > buffers ) {
 	CommandBuffer * cb = ocb.unwrap();
 	cb->cce->setComputePipelineState( compute_pipelines[ shader ].pso );
+	GPUBindings bindings = { .buffers = buffers };
 	EncodeAndBindArgumentBuffer( cb->cce, &compute_pipelines[ shader ].args, bindings, DescriptorSetType( 0 ) );
 	return cb;
 }
@@ -920,14 +925,14 @@ static MTL::Size SubgroupSize( PoolHandle< ComputePipeline > shader ) {
 	return size;
 }
 
-void EncodeComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > shader, const GPUBindings & bindings, u32 x, u32 y, u32 z ) {
-	CommandBuffer * cb = PrepareCompute( ocb, shader, bindings );
+void EncodeComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > shader, Span< const BufferBinding > buffers, u32 x, u32 y, u32 z ) {
+	CommandBuffer * cb = PrepareCompute( ocb, shader, buffers );
 	SubgroupSize( shader );
 	cb->cce->dispatchThreadgroups( MTL::Size::Make( x, y, z ), SubgroupSize( shader ) );
 }
 
-void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > shader, const GPUBindings & bindings, GPUBuffer indirect_args ) {
-	CommandBuffer * cb = PrepareCompute( ocb, shader, bindings );
+void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > shader, Span< const BufferBinding > buffers, GPUBuffer indirect_args ) {
+	CommandBuffer * cb = PrepareCompute( ocb, shader, buffers );
 	cb->cce->dispatchThreadgroups( allocations[ indirect_args.allocation ].buffer, indirect_args.offset, SubgroupSize( shader ) );
 }
 

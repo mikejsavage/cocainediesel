@@ -98,7 +98,7 @@ struct ParticleSystem {
 	GPUBuffer gpu_particles1;
 	GPUBuffer gpu_particles2;
 
-	StreamingBuffer new_particles;
+	GPUBuffer new_particles;
 	u32 num_new_particles;
 	bool clear;
 
@@ -216,52 +216,25 @@ static Hashmap< ParticleEmitter, MAX_PARTICLE_EMITTERS > particleEmitters;
 static Hashmap< DecalEmitter, MAX_DECAL_EMITTERS > decalEmitters;
 static Hashmap< DynamicLightEmitter, MAX_DLIGHT_EMITTERS > dlightEmitters;
 
-struct ComputeIndirect {
-	u32 x, y, z;
-};
-
-struct DrawArraysIndirectArguments {
-	u32 count;
-	u32 primCount;
-	u32 baseVertex;
-	u32 baseInstance;
-};
-
 static ParticleSystem NewParticleSystem( Allocator * a, BlendFunc blend_func, size_t max_particles ) {
 	u32 zero = 0;
-	ComputeIndirect compute_indirect = { 1, 1, 1 };
+	DispatchComputeIndirectArguments compute_indirect = { 1, 1, 1 };
 	DrawArraysIndirectArguments draw_indirect = { .count = 6 };
 
 	return ParticleSystem {
 		.max_particles = max_particles,
 		.blend_func = blend_func,
 
-		.gpu_particles1 = NewGPUBuffer( NULL, max_particles * sizeof( Particle ), "particles flip" ),
-		.gpu_particles2 = NewGPUBuffer( NULL, max_particles * sizeof( Particle ), "particles flop" ),
+		.gpu_particles1 = NewBuffer( GPULifetime_Persistent, "particles flip", max_particles * sizeof( Particle ), sizeof( Particle ) ),
+		.gpu_particles2 = NewBuffer( GPULifetime_Persistent, "particles flop",  max_particles * sizeof( Particle ), sizeof( Particle ) ),
 		.new_particles = NewStreamingBuffer( max_particles * sizeof( Particle ), "new particles" ),
 
-		.compute_count1 = NewGPUBuffer( &zero, sizeof( u32 ), "compute_count flip" ),
-		.compute_count2 = NewGPUBuffer( &zero, sizeof( u32 ), "compute_count flop" ),
+		.compute_count1 = NewBuffer( GPULifetime_Persistent, "compute_count flip", zero ),
+		.compute_count2 = NewBuffer( GPULifetime_Persistent, "compute_count flop", zero ),
 
-		.compute_indirect = NewGPUBuffer( &compute_indirect, sizeof( compute_indirect ), "compute_indirect" ),
-		.draw_indirect = NewGPUBuffer( &draw_indirect, sizeof( draw_indirect ), "draw_indirect" ),
-
-		.mesh = NewMesh( MeshConfig {
-			.name = "Particle quad",
-			.num_vertices = 6,
-		} ),
+		.compute_indirect = NewBuffer( GPULifetime_Persistent, "particle compute indirect", &compute_indirect, sizeof( compute_indirect ) ),
+		.draw_indirect = NewBuffer( GPULifetime_Persistent, "particle draw indirect", &draw_indirect, sizeof( draw_indirect ) ),
 	};
-}
-
-static void DeleteParticleSystem( Allocator * a, ParticleSystem * ps ) {
-	DeleteGPUBuffer( ps->gpu_particles1 );
-	DeleteGPUBuffer( ps->gpu_particles2 );
-	DeleteStreamingBuffer( ps->new_particles );
-	DeleteGPUBuffer( ps->compute_count1 );
-	DeleteGPUBuffer( ps->compute_count2 );
-	DeleteGPUBuffer( ps->compute_indirect );
-	DeleteGPUBuffer( ps->draw_indirect );
-	DeleteMesh( ps->mesh );
 }
 
 static RandomDistribution ParseRandomDistribution( Span< const char > * data, ParseStopOnNewLine stop ) {
@@ -773,6 +746,7 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 			.dt = dt,
 			.num_new_particles = ps->num_new_particles,
 		} );
+
 		EncodeIndirectComputeCall( RenderPass_ParticleUpdate, shaders.particle_compute, {
 			{ "b_ParticlesIn", ps->gpu_particles1 },
 			{ "b_ParticlesOut", ps->gpu_particles2 },
@@ -784,15 +758,18 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 	}
 
 	{
-		PipelineState pipeline;
-		pipeline.pass = frame_static.particle_setup_indirect_pass;
-		pipeline.shader = &shaders.particle_setup_indirect;
-		pipeline.bind_buffer( "b_NextComputeCount", ps->compute_count1 );
-		pipeline.bind_buffer( "b_ComputeCount", ps->compute_count2 );
-		pipeline.bind_buffer( "b_ComputeIndirect", ps->compute_indirect );
-		pipeline.bind_buffer( "b_DrawIndirect", ps->draw_indirect );
-		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( ps->num_new_particles, ps->clear ? u32( 1 ) : u32( 0 ) ) );
-		DispatchCompute( pipeline, 1, 1, 1 );
+		NewParticlesUniforms new_particles = {
+			.num_new_particles = ps->num_new_particles,
+			.clear = ps->clear ? 1_u32 : 0_u32,
+		};
+
+		EncodeComputeCall( RenderPass_ParticleSetupIndirect, shaders.particle_setup_indirect, {
+			BufferBinding { "b_NextComputeCount", ps->compute_count1 },
+			BufferBinding { "b_ComputeCount", ps->compute_count2 },
+			BufferBinding { "b_ComputeIndirect", ps->compute_indirect },
+			BufferBinding { "b_DrawIndirect", ps->draw_indirect },
+			BufferBinding { "b_ParticleUpdate", NewTempBuffer( new_particles ) },
+		}, 1, 1, 1 );
 	}
 
 	ps->num_new_particles = 0;
@@ -800,16 +777,16 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 }
 
 static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
-	PipelineState pipeline;
-	pipeline.pass = frame_static.transparent_pass;
-	pipeline.shader = &shaders.particle;
-	pipeline.blend_func = ps->blend_func;
-	pipeline.cull_face = CullFace_Disabled;
-	pipeline.write_depth = false;
-	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.bind_texture_and_sampler( "u_DecalAtlases", DecalAtlasTextureArray(), Sampler_Standard );
-	pipeline.bind_buffer( "b_Particles", ps->gpu_particles2 );
-	DrawMeshIndirect( ps->mesh, pipeline, ps->draw_indirect );
+	PipelineState pipeline = {
+		.shader = shaders.particle, // TODO: blend/add
+		.dynamic_state = { .depth_func = DepthFunc_LessNoWrite },
+		.material_bind_group = DecalAtlasBindGroup(),
+	};
+
+	Mesh mesh = { .num_vertices = 6 };
+	EncodeDrawCall( RenderPass_Transparent, pipeline, mesh, {
+		{ "b_Particles", ps->gpu_particles2 },
+	} );
 
 	Swap2( &ps->gpu_particles1, &ps->gpu_particles2 );
 	Swap2( &ps->compute_count1, &ps->compute_count2 );

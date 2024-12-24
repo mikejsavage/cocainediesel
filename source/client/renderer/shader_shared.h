@@ -6,13 +6,14 @@
   #define shaderconst constexpr
 #else
   #define shaderconst static const
-  #define s32 int32_t
-  #define u32 uint32_t
-  #define Vec2 float2
-  #define Vec3 float3
-  #define Vec4 float4
-  #define Mat3x4 float3x4
-  #define Mat4 float4x4
+  typedef int32_t s32;
+  typedef uint32_t u32;
+  typedef float2 Vec2;
+  typedef float3 Vec3;
+  typedef float4 Vec4;
+  typedef float3x4 Mat3x4;
+  typedef float4x4 Mat4;
+  typedef uint32_t RGBA8;
 #endif
 
 shaderconst u32 FORWARD_PLUS_TILE_SIZE = 32;
@@ -102,8 +103,8 @@ struct Particle {
 	float PADDING;
 	Vec4 uvwh;
 	Vec4 trim;
-	u32 start_color;
-	u32 end_color;
+	RGBA8 start_color;
+	RGBA8 end_color;
 	float start_size;
 	float end_size;
 	float age;
@@ -112,16 +113,33 @@ struct Particle {
 	u32 PADDING2;
 };
 
+struct NewParticlesUniforms {
+	u32 num_new_particles;
+	u32 clear;
+};
+
 struct ParticleUpdateUniforms {
 	u32 collision;
 	float dt;
 	u32 num_new_particles;
 };
 
-
 struct OutlineUniforms {
 	Vec4 color;
 	float height;
+};
+
+struct DispatchComputeIndirectArguments {
+	u32 num_groups_x;
+	u32 num_groups_y;
+	u32 num_groups_z;
+};
+
+struct DrawArraysIndirectArguments {
+	u32 count;
+	u32 num_instances;
+	u32 base_vertex;
+	u32 base_instance;
 };
 
 #endif // header guard

@@ -35,14 +35,12 @@ struct GPUTempBuffer {
 	void * ptr;
 };
 
-// TODO: dataless forms should return a pointer
-
 GPUTempBuffer NewTempBuffer( size_t size, size_t alignment );
-GPUBuffer NewTempBuffer( size_t size, size_t alignment, const void * data );
+GPUBuffer NewTempBuffer( const void * data, size_t size, size_t alignment );
 
 template< typename T >
 GPUBuffer NewTempBuffer( const T & x, size_t alignment = alignof( T ) ) {
-	return NewTempBuffer( sizeof( T ), alignment, &x );
+	return NewTempBuffer( &x, sizeof( T ), alignment );
 }
 
 // template< typename T >
@@ -257,10 +255,10 @@ PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path );
 
 enum DepthFunc : u8 {
 	DepthFunc_Less,
+	DepthFunc_LessNoWrite,
 	DepthFunc_Equal,
 	DepthFunc_EqualNoWrite,
 	DepthFunc_Always,
-	DepthFunc_LessNoWrite,
 	DepthFunc_AlwaysNoWrite,
 
 	DepthFunc_Count
@@ -446,8 +444,8 @@ struct ComputePassConfig {
 
 Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & compute_pass );
 
-void EncodeComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, const GPUBindings & bindings, u32 x, u32 y, u32 z );
-void EncodeIndirectComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, const GPUBindings & bindings, GPUBuffer indirect_args );
+void EncodeComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, Span< const BufferBinding > buffers, u32 x, u32 y, u32 z );
+void EncodeIndirectComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, Span< const BufferBinding > buffers, GPUBuffer indirect_args );
 
 /*
  * High level stuff TODO
@@ -499,5 +497,5 @@ enum RenderPass {
 };
 
 void EncodeDrawCall( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers, DrawCallExtras extras = DrawCallExtras() );
-void EncodeComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, const GPUBindings & bindings, u32 x, u32 y, u32 z );
-void EncodeIndirectComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, const GPUBindings & bindings, GPUBuffer indirect_args );
+void EncodeComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, Span< const BufferBinding > buffers, u32 x, u32 y, u32 z );
+void EncodeIndirectComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, Span< const BufferBinding > buffers, GPUBuffer indirect_args );

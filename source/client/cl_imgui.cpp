@@ -186,8 +186,8 @@ static void SubmitDrawCalls() {
 		mesh.vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, uv ) };
 		mesh.vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( ImDrawVert, col ) };
 		mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( ImDrawVert );
-		mesh.vertex_buffers[ 0 ] = NewTempBuffer( cmd_list->VtxBuffer.Size, sizeof( ImDrawVert ), cmd_list->VtxBuffer.Data );
-		mesh.index_buffer = NewTempBuffer( cmd_list->IdxBuffer.Size, sizeof( u16 ), cmd_list->IdxBuffer.Data );
+		mesh.vertex_buffers[ 0 ] = NewTempBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size, sizeof( ImDrawVert ) );
+		mesh.index_buffer = NewTempBuffer( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size, sizeof( u16 ) );
 
 		for( int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++ ) {
 			const ImDrawCmd * pcmd = &cmd_list->CmdBuffer[ cmd_i ];

@@ -169,7 +169,6 @@ void CG_Shutdown() {
 	CG_ShutdownChat();
 	CG_ShutdownInput();
 	CG_ShutdownHUD();
-	ShutdownDecals();
 
 	RemoveCommand( "printmap" );
 }

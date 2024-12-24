@@ -81,6 +81,8 @@ size_t FrameSlot();
 PoolHandle< Texture > RGBNoiseTexture();
 PoolHandle< Texture > BlueNoiseTexture();
 
+Mesh FullscreenMesh();
+
 void DrawFullscreenMesh( const PipelineState & pipeline );
 
 // PipelineState MaterialToPipelineState( const Material * material, Vec4 color = white.vec4, bool skinned = false, GPUMaterial * gpu_material = NULL );

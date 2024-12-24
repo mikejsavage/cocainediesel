@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client/client.h"
 #include "client/renderer/renderer.h"
+#include "client/renderer/shader_shared.h"
 #include "cgame/cg_local.h"
 #include "qcommon/time.h"
 
@@ -132,31 +133,10 @@ static void FlashStage( float begin, float t, float end, float from, float to, f
 	*flash = Lerp( from, frac, to );
 }
 
-struct PostprocessUniforms {
-	float time;
-	float damage;
-	float crt;
-	float brightness;
-	float contrast;
-};
-
-static UniformBlock UploadPostprocessUniforms( PostprocessUniforms uniforms ) {
-	return UploadUniformBlock( uniforms.time, uniforms.damage, uniforms.crt, uniforms.brightness, uniforms.contrast );
-}
-
 static void SubmitPostprocessPass() {
 	TracyZoneScoped;
 
-	PipelineState pipeline;
-	pipeline.pass = frame_static.postprocess_pass;
-	pipeline.shader = &shaders.postprocess;
-	pipeline.depth_func = DepthFunc_AlwaysAndDontWrite;
-	pipeline.write_depth = false;
-
 	const RenderTarget & rt = frame_static.render_targets.postprocess;
-	pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
-	pipeline.bind_texture_and_sampler( "u_Screen", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Standard );
-	pipeline.bind_texture_and_sampler( "u_Noise", FindMaterial( "textures/noise" )->texture, Sampler_Standard );
 	float damage_effect = cg.view.type == ViewType_Player ? cg.damage_effect : 0.0f;
 
 	float contrast = 1.0f;
@@ -182,16 +162,24 @@ static void SubmitPostprocessPass() {
 	}
 	chasing_amount = Clamp01( chasing_amount );
 
-	PostprocessUniforms uniforms = { };
-	uniforms.time = ToSeconds( cls.shadertoy_time );
-	uniforms.damage = damage_effect;
-	uniforms.crt = chasing_amount;
-	uniforms.brightness = 0.0f;
-	uniforms.contrast = contrast;
+	PipelineState pipeline = {
+		.shader = shaders.postprocess,
+		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
+		.material_bind_group = ...,
+	};
+	// pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
+	// pipeline.bind_texture_and_sampler( "u_Screen", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Standard );
+	// pipeline.bind_texture_and_sampler( "u_Noise", FindMaterial( "textures/noise" )->texture, Sampler_Standard );
 
-	pipeline.bind_uniform( "u_PostProcess", UploadPostprocessUniforms( uniforms ) );
+	PostprocessUniforms uniforms = {
+		uniforms.time = ToSeconds( cls.shadertoy_time ),
+		uniforms.damage = damage_effect,
+		uniforms.crt = chasing_amount,
+		uniforms.brightness = 0.0f,
+		uniforms.contrast = contrast,
+	};
 
-	DrawFullscreenMesh( pipeline );
+	EncodeDrawCall( RenderPass_Postprocessing, pipeline, FullscreenMesh(), { "u_PostProcess", NewTempBuffer( uniforms ) } );
 }
 
 void SCR_UpdateScreen() {

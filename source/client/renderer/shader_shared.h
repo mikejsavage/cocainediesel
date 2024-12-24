@@ -124,6 +124,18 @@ struct ParticleUpdateUniforms {
 	u32 num_new_particles;
 };
 
+struct Decal {
+	Vec3 origin_orientation_xyz; // floor( origin ) + ( orientation.xyz * 0.49 + 0.5 )
+	float radius_orientation_w; // floor( radius ) + ( orientation.w * 0.49 + 0.5 )
+	Vec4 color_uvwh_height; // vec4( u + layer, v + floor( r * 255 ) + floor( height ) * 256, w + floor( g * 255 ), h + floor( b * 255 ) )
+	// NOTE(msc): uvwh should all be < 1.0
+};
+
+struct DynamicLight {
+	Vec3 origin_color; // floor( origin ) + ( color * 0.9 )
+	float radius;
+};
+
 struct OutlineUniforms {
 	Vec4 color;
 	float height;
@@ -140,6 +152,14 @@ struct DrawArraysIndirectArguments {
 	u32 num_instances;
 	u32 base_vertex;
 	u32 base_instance;
+};
+
+struct PostprocessUniforms {
+	float time;
+	float damage;
+	float crt;
+	float brightness;
+	float contrast;
 };
 
 #endif // header guard

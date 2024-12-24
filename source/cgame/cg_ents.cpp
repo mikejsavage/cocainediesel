@@ -427,14 +427,14 @@ static void DrawEntityModel( centity_t * cent ) {
 		palettes = ComputeMatrixPalettes( &temp, model.gltf, pose );
 	}
 
-	DrawModelConfig config = { };
-	config.draw_model.enabled = true;
-	config.draw_shadows.enabled = true;
+	DrawModelConfig config = {
+		draw_model = { .enabled = true },
+		.cast_shadows = true,
+	};
 
 	if( cent->current.silhouetteColor.a > 0 ) {
 		if( ( cent->current.effects & EF_TEAM_SILHOUETTE ) == 0 || ISREALSPECTATOR() || cent->current.team == cg.predictedPlayerState.team ) {
-			config.draw_silhouette.enabled = true;
-			config.draw_silhouette.silhouette_color = sRGBToLinear( cent->current.silhouetteColor );
+			config.silhouette_color = sRGBToLinear( cent->current.silhouetteColor );
 		}
 	}
 

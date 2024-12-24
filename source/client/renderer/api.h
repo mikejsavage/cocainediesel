@@ -496,6 +496,6 @@ enum RenderPass {
 	RenderPass_Count
 };
 
-void EncodeDrawCall( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers, DrawCallExtras extras = DrawCallExtras() );
+void EncodeDrawCall( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers = { }, DrawCallExtras extras = DrawCallExtras() );
 void EncodeComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, Span< const BufferBinding > buffers, u32 x, u32 y, u32 z );
 void EncodeIndirectComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, Span< const BufferBinding > buffers, GPUBuffer indirect_args );

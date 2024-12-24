@@ -5,19 +5,11 @@
 #include "client/renderer/shader_shared.h"
 #include "qcommon/array.h"
 
-static StreamingBuffer decals_buffer;
+static GPUBuffer this_frame_decals_buffer;
 static GPUBuffer decal_tiles_buffer;
-static StreamingBuffer dlights_buffer;
+static GPUBuffer this_frame_dlights_buffer;
 static GPUBuffer dlight_tiles_buffer;
 static GPUBuffer dynamic_count;
-
-// gets copied directly to GPU so packing order is important
-struct Decal {
-	Vec3 origin_orientation_xyz; // floor( origin ) + ( orientation.xyz * 0.49 + 0.5 )
-	float radius_orientation_w; // floor( radius ) + ( orientation.w * 0.49 + 0.5 )
-	Vec4 color_uvwh_height; // vec4( u + layer, v + floor( r * 255 ) + floor( height ) * 256, w + floor( g * 255 ), h + floor( b * 255 ) )
-	// NOTE(msc): uvwh should all be < 1.0
-};
 
 struct PersistentDecal {
 	Decal decal;
@@ -67,8 +59,8 @@ struct GPUDynamicCount {
 void InitDecals() {
 	ResetDecals();
 
-	decals_buffer = NewStreamingBuffer( sizeof( decals ), "Decals" );
-	dlights_buffer = NewStreamingBuffer( sizeof( dlights ), "Dynamic lights" );
+	this_frame_decals_buffer = NewStreamingBuffer( sizeof( decals ), "Decals" );
+	this_frame_dlights_buffer = NewStreamingBuffer( sizeof( dlights ), "Dynamic lights" );
 	decal_tiles_buffer = { };
 	dlight_tiles_buffer = { };
 	dynamic_count = { };
@@ -79,14 +71,6 @@ void ResetDecals() {
 	dlights.clear();
 	persistent_decals.clear();
 	persistent_dlights.clear();
-}
-
-void ShutdownDecals() {
-	DeferDeleteStreamingBuffer( decals_buffer );
-	DeferDeleteGPUBuffer( decal_tiles_buffer );
-	DeferDeleteStreamingBuffer( dlights_buffer );
-	DeferDeleteGPUBuffer( dlight_tiles_buffer );
-	DeferDeleteGPUBuffer( dynamic_count );
 }
 
 void DrawDecal( Vec3 origin, Quaternion orientation, float radius, StringHash name, Vec4 color, float height ) {
@@ -190,6 +174,9 @@ static u32 PixelsToTiles( u32 pixels ) {
 }
 
 void AllocateDecalBuffers() {
+	this_frame_decals_buffer = NewTempBuffer( decals.num_bytes(), alignof( Decal ) );
+	this_frame_dlights_buffer = NewTempBuffer( dlights.num_bytes(), alignof( DynamicLight ) );
+
 	if( decal_tiles_buffer.buffer != 0 && !frame_static.viewport_resized )
 		return;
 
@@ -202,9 +189,9 @@ void AllocateDecalBuffers() {
 	u32 rows = PixelsToTiles( frame_static.viewport_height );
 	u32 cols = PixelsToTiles( frame_static.viewport_width );
 
-	decal_tiles_buffer = NewGPUBuffer( NULL, rows * cols * sizeof( GPUDecalTile ), "Decal tile indices" );
-	dlight_tiles_buffer = NewGPUBuffer( NULL, rows * cols * sizeof( GPUDynamicLightTile ), "Dynamic light tile indices" );
-	dynamic_count = NewGPUBuffer( NULL, rows * cols * sizeof( GPUDynamicCount ), "Dynamics tile counts" );
+	decal_tiles_buffer = NewBuffer( GPULifetime_Framebuffer, "Decal tile indices", rows * cols * sizeof( GPUDecalTile ), sizeof( GPUDecalTile ), false );
+	dlight_tiles_buffer = NewBuffer( GPULifetime_Framebuffer, "Dynamic light tile indices", rows * cols * sizeof( GPUDynamicLightTile ), sizeof( GPUDynamicLightTile ), false );
+	dynamic_count = NewBuffer( GPULifetime_Framebuffer, "Dynamics tile counts", rows * cols * sizeof( GPUDynamicCount ), sizeof( GPUDynamicCount ), false );
 }
 
 void UploadDecalBuffers() {
@@ -213,14 +200,14 @@ void UploadDecalBuffers() {
 	u32 rows = PixelsToTiles( frame_static.viewport_height );
 	u32 cols = PixelsToTiles( frame_static.viewport_width );
 
-	memcpy( GetStreamingBufferMemory( decals_buffer ), decals.ptr(), decals.num_bytes() );
-	memcpy( GetStreamingBufferMemory( dlights_buffer ), dlights.ptr(), dlights.num_bytes() );
+	memcpy( GetStreamingBufferMemory( this_frame_decals_buffer ), decals.ptr(), decals.num_bytes() );
+	memcpy( GetStreamingBufferMemory( this_frame_dlights_buffer ), dlights.ptr(), dlights.num_bytes() );
 
 	PipelineState pipeline;
 	pipeline.pass = frame_static.tile_culling_pass;
 	pipeline.shader = &shaders.tile_culling;
-	pipeline.bind_streaming_buffer( "b_Decals", decals_buffer );
-	pipeline.bind_streaming_buffer( "b_Dlights", dlights_buffer );
+	pipeline.bind_streaming_buffer( "b_Decals", this_frame_decals_buffer );
+	pipeline.bind_streaming_buffer( "b_Dlights", this_frame_dlights_buffer );
 	pipeline.bind_buffer( "b_TileCounts", dynamic_count );
 	pipeline.bind_buffer( "b_DecalTiles", decal_tiles_buffer );
 	pipeline.bind_buffer( "b_DLightTiles", dlight_tiles_buffer );
@@ -233,9 +220,9 @@ void UploadDecalBuffers() {
 }
 
 void AddDynamicsToPipeline( PipelineState * pipeline ) {
-	pipeline->bind_streaming_buffer( "b_Decals", decals_buffer );
+	pipeline->bind_streaming_buffer( "b_Decals", this_frame_decals_buffer );
 	pipeline->bind_buffer( "b_DecalTiles", decal_tiles_buffer );
-	pipeline->bind_streaming_buffer( "b_DynamicLights", dlights_buffer );
+	pipeline->bind_streaming_buffer( "b_DynamicLights", this_frame_dlights_buffer );
 	pipeline->bind_buffer( "b_DynamicLightTiles", dlight_tiles_buffer );
 	pipeline->bind_buffer( "b_DynamicTiles", dynamic_count );
 }

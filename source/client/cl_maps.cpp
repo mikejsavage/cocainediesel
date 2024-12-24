@@ -26,7 +26,6 @@ static CollisionModelStorage collision_models;
 
 static void DeleteMap( Map * map ) {
 	Free( sys_allocator, const_cast< char * >( map->name.ptr ) );
-	DeleteMapRenderData( map->render_data );
 }
 
 static void FillMapModelsHashtable() {

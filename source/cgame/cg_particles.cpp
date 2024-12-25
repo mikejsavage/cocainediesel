@@ -747,14 +747,14 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 			.num_new_particles = ps->num_new_particles,
 		} );
 
-		EncodeIndirectComputeCall( RenderPass_ParticleUpdate, shaders.particle_compute, {
+		EncodeIndirectComputeCall( RenderPass_ParticleUpdate, shaders.particle_compute, ps->compute_indirect, {
 			{ "b_ParticlesIn", ps->gpu_particles1 },
 			{ "b_ParticlesOut", ps->gpu_particles2 },
 			{ "b_NewParticles", ... },
 			{ "b_ComputeCountIn", ps->compute_count1 },
 			{ "b_ComputeCountOut", ps->compute_count2 },
 			{ "b_ParticleUpdate", update },
-		}, ps->compute_indirect );
+		} );
 	}
 
 	{
@@ -763,13 +763,13 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 			.clear = ps->clear ? 1_u32 : 0_u32,
 		};
 
-		EncodeComputeCall( RenderPass_ParticleSetupIndirect, shaders.particle_setup_indirect, {
+		EncodeComputeCall( RenderPass_ParticleSetupIndirect, shaders.particle_setup_indirect, 1, 1, 1, {
 			BufferBinding { "b_NextComputeCount", ps->compute_count1 },
 			BufferBinding { "b_ComputeCount", ps->compute_count2 },
 			BufferBinding { "b_ComputeIndirect", ps->compute_indirect },
 			BufferBinding { "b_DrawIndirect", ps->draw_indirect },
 			BufferBinding { "b_ParticleUpdate", NewTempBuffer( new_particles ) },
-		}, 1, 1, 1 );
+		} );
 	}
 
 	ps->num_new_particles = 0;

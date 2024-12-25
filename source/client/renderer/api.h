@@ -357,7 +357,7 @@ struct RenderPassConfig {
 	struct ColorTarget {
 		PoolHandle< Texture > texture;
 		u32 layer = 0;
-		bool preserve_contents = false;
+		bool preserve_contents = true;
 		Optional< Vec4 > clear = NONE;
 		Optional< PoolHandle< Texture > > resolve_target = NONE;
 	};
@@ -365,7 +365,7 @@ struct RenderPassConfig {
 	struct DepthTarget {
 		PoolHandle< Texture > texture;
 		u32 layer = 0;
-		bool preserve_contents = false;
+		bool preserve_contents = true;
 		Optional< float > clear = NONE;
 	};
 
@@ -442,8 +442,8 @@ struct ComputePassConfig {
 
 Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & compute_pass );
 
-void EncodeComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, Span< const BufferBinding > buffers, u32 x, u32 y, u32 z );
-void EncodeIndirectComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, Span< const BufferBinding > buffers, GPUBuffer indirect_args );
+void EncodeComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers );
+void EncodeIndirectComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, GPUBuffer indirect_args, Span< const BufferBinding > buffers );
 
 /*
  * High level stuff TODO
@@ -495,5 +495,5 @@ enum RenderPass {
 };
 
 void EncodeDrawCall( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers = { }, DrawCallExtras extras = DrawCallExtras() );
-void EncodeComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, Span< const BufferBinding > buffers, u32 x, u32 y, u32 z );
-void EncodeIndirectComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, Span< const BufferBinding > buffers, GPUBuffer indirect_args );
+void EncodeComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers );
+void EncodeIndirectComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, GPUBuffer indirect_args, Span< const BufferBinding > buffers );

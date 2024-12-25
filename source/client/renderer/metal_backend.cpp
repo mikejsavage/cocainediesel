@@ -933,13 +933,13 @@ static MTL::Size SubgroupSize( PoolHandle< ComputePipeline > shader ) {
 	return size;
 }
 
-void EncodeComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > shader, Span< const BufferBinding > buffers, u32 x, u32 y, u32 z ) {
+void EncodeComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > shader, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers ) {
 	CommandBuffer * cb = PrepareCompute( ocb, shader, buffers );
 	SubgroupSize( shader );
 	cb->cce->dispatchThreadgroups( MTL::Size::Make( x, y, z ), SubgroupSize( shader ) );
 }
 
-void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > shader, Span< const BufferBinding > buffers, GPUBuffer indirect_args ) {
+void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > shader, GPUBuffer indirect_args, Span< const BufferBinding > buffers ) {
 	CommandBuffer * cb = PrepareCompute( ocb, shader, buffers );
 	cb->cce->dispatchThreadgroups( allocations[ indirect_args.allocation ].buffer, indirect_args.offset, SubgroupSize( shader ) );
 }

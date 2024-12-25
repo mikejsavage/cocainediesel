@@ -54,15 +54,12 @@ struct FrameStatic {
 	float near_plane;
 
 	struct {
-		PoolHandle< Texture > silhouette_mask;
-		PoolHandle< Texture > msaa_color;
-		PoolHandle< Texture > msaa_depth;
-		PoolHandle< Texture > postprocess;
-		PoolHandle< Texture > msaa_masked;
-		PoolHandle< Texture > postprocess_masked;
-		PoolHandle< Texture > msaa_onlycolor;
-		PoolHandle< Texture > postprocess_onlycolor;
-		PoolHandle< Texture > shadowmaps[ 4 ];
+		Optional< PoolHandle< Texture > > silhouette_mask;
+		Optional< PoolHandle< Texture > > curved_surface_mask;
+		Optional< PoolHandle< Texture > > msaa_color;
+		Optional< PoolHandle< Texture > > resolved_color;
+		Optional< PoolHandle< Texture > > depth;
+		Optional< PoolHandle< Texture > > shadowmaps[ 4 ];
 	} render_targets;
 
 	Opaque< CommandBuffer > render_passes[ RenderPass_Count ];
@@ -83,8 +80,6 @@ PoolHandle< Texture > RGBNoiseTexture();
 PoolHandle< Texture > BlueNoiseTexture();
 
 Mesh FullscreenMesh();
-
-void DrawFullscreenMesh( const PipelineState & pipeline );
 
 // PipelineState MaterialToPipelineState( const Material * material, Vec4 color = white.vec4, bool skinned = false, GPUMaterial * gpu_material = NULL );
 

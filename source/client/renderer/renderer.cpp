@@ -302,119 +302,46 @@ static UniformBlock UploadViewUniforms( const Mat3x4 & V, const Mat3x4 & inverse
 }
 
 static void CreateRenderTargets() {
-	frame_static.render_targets = { };
+	// TODO: save old so texture handles can be recycled
+	frame_static.render_targets.silhouette_mask = NewTexture( GPULifetime_Framebuffer, TextureConfig {
+		.format = TextureFormat_RGBA_U8_sRGB,
+		.width = frame_static.viewport_width,
+		.height = frame_static.viewport_height,
+	}, frame_static.render_targets.silhouette_mask );
 
-	{
-		RenderTargetConfig rt;
-		rt.color_attachments[ FragmentShaderOutput_Albedo ] = {
-			NewTexture( TextureConfig {
-				.format = TextureFormat_RGBA_U8_sRGB,
-				.width = frame_static.viewport_width,
-				.height = frame_static.viewport_height,
-			} ),
-		};
+	frame_static.render_targets.curved_surface_mask = NewTexture( GPULifetime_Framebuffer, TextureConfig {
+		.format = TextureFormat_R_UI8,
+		.width = frame_static.viewport_width,
+		.height = frame_static.viewport_height,
+		.msaa_samples = frame_static.msaa_samples,
+	}, frame_static.render_targets.curved_surface_mask );
 
-		frame_static.render_targets.silhouette_mask = NewRenderTarget( rt );
-	}
+	frame_static.render_targets.depth = NewTexture( GPULifetime_Framebuffer, TextureConfig {
+		.format = TextureFormat_Depth,
+		.width = frame_static.viewport_width,
+		.height = frame_static.viewport_height,
+		.msaa_samples = frame_static.msaa_samples,
+	}, frame_static.render_targets.depth );
 
 	if( frame_static.msaa_samples > 1 ) {
-		Texture albedo = NewTexture( GPULifetime_Framebuffer, TextureConfig {
+		frame_static.render_targets.msaa_color = NewTexture( GPULifetime_Framebuffer, TextureConfig {
 			.format = TextureFormat_RGBA_U8_sRGB,
 			.width = frame_static.viewport_width,
 			.height = frame_static.viewport_height,
 			.msaa_samples = frame_static.msaa_samples,
-		} );
-
-		Texture curved_surface_mask = NewTexture( GPULifetime_Framebuffer, TextureConfig {
-			.format = TextureFormat_R_UI8,
-			.width = frame_static.viewport_width,
-			.height = frame_static.viewport_height,
-			.msaa_samples = frame_static.msaa_samples,
-		} );
-
-		Texture depth = NewTexture( GPULifetime_Framebuffer, TextureConfig {
-			.format = TextureFormat_Depth,
-			.width = frame_static.viewport_width,
-			.height = frame_static.viewport_height,
-			.msaa_samples = frame_static.msaa_samples,
-		} );
-
-		{
-			RenderTargetConfig rt;
-			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
-			rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ] = { curved_surface_mask };
-			rt.depth_attachment = { depth };
-			frame_static.render_targets.msaa_masked = NewRenderTarget( rt );
-		}
-
-		{
-			RenderTargetConfig rt;
-			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
-			rt.depth_attachment = { depth };
-			frame_static.render_targets.msaa = NewRenderTarget( rt );
-		}
-
-		{
-			RenderTargetConfig rt;
-			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
-			frame_static.render_targets.msaa_onlycolor = NewRenderTarget( rt );
-		}
+		}, frame_static.render_targets.msaa_color );
+	}
+	else {
+		frame_static.render_targets.msaa_color = NONE;
 	}
 
-	{
-		Texture albedo = NewTexture( GPULifetime_Framebuffer, TextureConfig {
-			.format = TextureFormat_RGBA_U8_sRGB,
-			.width = frame_static.viewport_width,
-			.height = frame_static.viewport_height,
-		} );
-
-		Texture curved_surface_mask = NewTexture( GPULifetime_Framebuffer, TextureConfig {
-			.format = TextureFormat_R_UI8,
-			.width = frame_static.viewport_width,
-			.height = frame_static.viewport_height,
-		} );
-
-		Texture depth = NewTexture( GPULifetime_Framebuffer, TextureConfig {
-			.format = TextureFormat_Depth,
-			.width = frame_static.viewport_width,
-			.height = frame_static.viewport_height,
-		} );
-
-		{
-			RenderTargetConfig rt;
-			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
-			rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ] = { curved_surface_mask };
-			rt.depth_attachment = { depth };
-			frame_static.render_targets.postprocess_masked = NewRenderTarget( rt );
-		}
-
-		{
-			RenderTargetConfig rt;
-			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
-			rt.depth_attachment = { depth };
-			frame_static.render_targets.postprocess = NewRenderTarget( rt );
-		}
-
-		{
-			RenderTargetConfig rt;
-			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
-			frame_static.render_targets.postprocess_onlycolor = NewRenderTarget( rt );
-		}
-	}
-
-	{
-		Texture shadowmap = NewTexture( TextureConfig {
+	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
+		frame_static.render_targets.shadowmaps[ i ] = NewTexture( GPULifetime_Framebuffer, TextureConfig {
 			.format = TextureFormat_Depth,
 			.width = frame_static.shadow_parameters.resolution,
 			.height = frame_static.shadow_parameters.resolution,
 			.num_layers = frame_static.shadow_parameters.num_cascades,
-		} );
-
-		for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
-			frame_static.render_targets.shadowmaps[ i ] = NewRenderTarget( RenderTargetConfig {
-				.depth_attachment = RenderTargetConfig::Attachment { shadowmap, i }
-			} );
-		}
+		}, frame_static.render_targets.shadowmaps[ i ] );
 	}
 }
 

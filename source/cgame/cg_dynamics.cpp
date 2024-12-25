@@ -1,13 +1,20 @@
 #include "qcommon/base.h"
+#include "qcommon/array.h"
 #include "qcommon/time.h"
 #include "cgame/cg_local.h"
 #include "client/renderer/api.h"
+#include "client/renderer/shader.h"
 #include "client/renderer/shader_shared.h"
-#include "qcommon/array.h"
 
-static GPUBuffer this_frame_decals_buffer;
+STATIC_ASSERT( sizeof( Decal ) == 2 * 4 * sizeof( float ) );
+STATIC_ASSERT( sizeof( Decal ) % alignof( Decal ) == 0 );
+
+STATIC_ASSERT( sizeof( DynamicLight ) == 1 * 4 * sizeof( float ) );
+STATIC_ASSERT( sizeof( DynamicLight ) % alignof( DynamicLight ) == 0 );
+
+static GPUTempBuffer this_frame_decals_buffer;
 static GPUBuffer decal_tiles_buffer;
-static GPUBuffer this_frame_dlights_buffer;
+static GPUTempBuffer this_frame_dlights_buffer;
 static GPUBuffer dlight_tiles_buffer;
 static GPUBuffer dynamic_count;
 
@@ -16,18 +23,12 @@ struct PersistentDecal {
 	Time expiration;
 };
 
-STATIC_ASSERT( sizeof( Decal ) == 2 * 4 * sizeof( float ) );
-STATIC_ASSERT( sizeof( Decal ) % alignof( Decal ) == 0 );
-
 struct PersistentDynamicLight {
 	DynamicLight dlight;
 	float start_intensity;
 	Time spawn_time;
 	Time lifetime;
 };
-
-STATIC_ASSERT( sizeof( DynamicLight ) == 1 * 4 * sizeof( float ) );
-STATIC_ASSERT( sizeof( DynamicLight ) % alignof( DynamicLight ) == 0 );
 
 static constexpr u32 MAX_DECALS = 100000;
 static constexpr u32 MAX_DLIGHTS = 100000;
@@ -171,14 +172,10 @@ void AllocateDecalBuffers() {
 	this_frame_decals_buffer = NewTempBuffer( decals.num_bytes(), alignof( Decal ) );
 	this_frame_dlights_buffer = NewTempBuffer( dlights.num_bytes(), alignof( DynamicLight ) );
 
-	if( decal_tiles_buffer.buffer != 0 && !frame_static.viewport_resized )
+	if( decal_tiles_buffer.size != 0 && !frame_static.viewport_resized )
 		return;
 
 	TracyZoneScopedN( "Reallocate tile buffers" );
-
-	DeleteGPUBuffer( decal_tiles_buffer );
-	DeleteGPUBuffer( dlight_tiles_buffer );
-	DeleteGPUBuffer( dynamic_count );
 
 	u32 rows = PixelsToTiles( frame_static.viewport_height );
 	u32 cols = PixelsToTiles( frame_static.viewport_width );
@@ -194,26 +191,36 @@ void UploadDecalBuffers() {
 	u32 rows = PixelsToTiles( frame_static.viewport_height );
 	u32 cols = PixelsToTiles( frame_static.viewport_width );
 
-	memcpy( GetStreamingBufferMemory( this_frame_decals_buffer ), decals.ptr(), decals.num_bytes() );
-	memcpy( GetStreamingBufferMemory( this_frame_dlights_buffer ), dlights.ptr(), dlights.num_bytes() );
+	memcpy( this_frame_decals_buffer.ptr, decals.ptr(), decals.num_bytes() );
+	memcpy( this_frame_dlights_buffer.ptr, dlights.ptr(), dlights.num_bytes() );
 
-	PipelineState pipeline;
-	pipeline.pass = frame_static.tile_culling_pass;
-	pipeline.shader = &shaders.tile_culling;
-	pipeline.bind_streaming_buffer( "b_Decals", this_frame_decals_buffer );
-	pipeline.bind_streaming_buffer( "b_Dlights", this_frame_dlights_buffer );
-	pipeline.bind_buffer( "b_TileCounts", dynamic_count );
-	pipeline.bind_buffer( "b_DecalTiles", decal_tiles_buffer );
-	pipeline.bind_buffer( "b_DLightTiles", dlight_tiles_buffer );
-	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.bind_uniform( "u_TileCulling", UploadUniformBlock( cols, rows, u32( decals.size() ), u32( dlights.size() ) ) );
-	DispatchCompute( pipeline, ( cols * rows ) / 64 + 1, 1, 1 );
+	frame_static.render_passes[ RenderPass_TileCulling ] = NewComputePass( ComputePassConfig {
+		.name = "Particle/dlight tile culling",
+	} );
+
+	TileCullingUniforms uniforms = {
+		.rows = rows,
+		.cols = cols,
+		.num_decals = u32( decals.size() ),
+		.num_dlights = u32( dlights.size() ),
+	};
+
+	EncodeComputeCall( RenderPass_TileCulling, shaders.tile_culling, ( cols * rows ) / 64 + 1, 1, 1, {
+		{ "u_View", frame_static.view_uniforms },
+		{ "u_TileCulling", NewTempBuffer( uniforms ) },
+		{ "b_Decals", this_frame_decals_buffer },
+		{ "b_Dlights", this_frame_dlights_buffer },
+		{ "b_TileCounts", dynamic_count },
+		{ "b_DecalTiles", decal_tiles_buffer },
+		{ "b_DLightTiles", dlight_tiles_buffer },
+	} );
 
 	decals.clear();
 	dlights.clear();
 }
 
 void AddDynamicsToPipeline( PipelineState * pipeline ) {
+	// TODO: this is no good now
 	pipeline->bind_streaming_buffer( "b_Decals", this_frame_decals_buffer );
 	pipeline->bind_buffer( "b_DecalTiles", decal_tiles_buffer );
 	pipeline->bind_streaming_buffer( "b_DynamicLights", this_frame_dlights_buffer );

@@ -40,7 +40,6 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 			.first_index = mesh.first_vertex_index,
 		};
 
-
 		for( u32 j = 0; j < frame_static.shadow_parameters.num_cascades; j++ ) {
 			// pipeline.clamp_depth = true;
 			PipelineState pipeline = { .shader = shaders.depth_only };
@@ -60,9 +59,15 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 				material = FindMaterial( "world" );
 			}
 
-			RenderPass pass;
-			PipelineState pipeline = MaterialToPipelineState( material, &pass );
+			PipelineState pipeline = {
+				.shader = material->shader, // TODO: skinned?
+				.dynamic_state = material->renderer_dynamic_state,
+				.material_bind_group = material->bind_group,
+			};
 			pipeline.dynamic_state.depth_func = DepthFunc_EqualNoWrite;
+
+			RenderPass pass; // TODO transparent/nonworld opaque/nonworld opaque outlined
+			PipelineState pipeline = MaterialToPipelineState( material, &pass );
 			EncodeDrawCall( pass, pipeline, map->render_data, { model_binding }, mesh_extras );
 		}
 	}

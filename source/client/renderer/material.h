@@ -63,7 +63,6 @@ struct Material {
 	BlendFunc blend_func = BlendFunc_Disabled;
 	bool double_sided = false;
 	bool decal = false;
-	bool mask_outlines = false;
 	bool outlined = true;
 	bool shaded = false;
 	bool world = false;

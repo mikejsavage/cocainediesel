@@ -163,4 +163,10 @@ struct PostprocessUniforms {
 	float contrast;
 };
 
+struct TileCullingUniforms {
+	u32 rows, cols;
+	u32 num_decals;
+	u32 num_dlights;
+};
+
 #endif // header guard

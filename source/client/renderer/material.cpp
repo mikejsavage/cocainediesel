@@ -156,10 +156,6 @@ static void ParseDecal( Material * material, Span< const char > name, Span< cons
 	material->decal = true;
 }
 
-static void ParseMaskOutlines( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
-	material->mask_outlines = true;
-}
-
 static void ParseShaded( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->shaded = true;
 }
@@ -263,7 +259,6 @@ static const MaterialSpecKey shaderkeys[] = {
 	{ "blendfunc", ParseBlendFunc },
 	{ "cull", ParseCull },
 	{ "decal", ParseDecal },
-	{ "maskoutlines", ParseMaskOutlines },
 	{ "rgbgen", ParseRGBGen },
 	{ "shaded", ParseShaded },
 	{ "shininess", ParseShininess },
@@ -1019,17 +1014,8 @@ static float EvaluateWaveFunc( Wave wave ) {
 	return wave.args[ 0 ] + wave.args[ 1 ] * v;
 }
 
-PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned, GPUMaterial * gpu_material ) {
-	TracyZoneScoped;
-
-	if( material->mask_outlines ) {
-		PipelineState pipeline;
-		pipeline.pass = frame_static.world_opaque_pass;
-		pipeline.shader = &shaders.depth_only;
-		return pipeline;
-	}
-
-	// evaluate rgbgen/alphagen
+Vec4 EvaluateMaterialColor( const Material & material, Vec4 entity_color ) {
+	Vec4 color = entity_color;
 	switch( material->rgbgen.type ) {
 		case ColorGenType_Constant:
 			color.x = material->rgbgen.args[ 0 ];
@@ -1038,30 +1024,41 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 			break;
 
 		case ColorGenType_Entity:
-			color = Vec4( color.xyz() * material->rgbgen.args[ 0 ], color.w );
+			color = Vec4( entity_color.xyz() * material->rgbgen.args[ 0 ], entity_color.w );
 			break;
 
 		case ColorGenType_Wave:
-			color = Vec4( Vec3( EvaluateWaveFunc( material->rgbgen.wave ) ), color.w );
+			color = Vec4( Vec3( EvaluateWaveFunc( material->rgbgen.wave ) ), entity_color.w );
 			break;
 
 		case ColorGenType_EntityWave:
-			color = Vec4( color.xyz() + EvaluateWaveFunc( material->rgbgen.wave ), color.w );
+			color = Vec4( entity_color.xyz() + EvaluateWaveFunc( material->rgbgen.wave ), entity_color.w );
 			break;
 	}
 
-	if( material->alphagen.type == ColorGenType_Constant ) {
-		color.w = material->alphagen.args[ 0 ];
+	switch( material->alphagen.type ) {
+		case ColorGenType_Constant:
+			color.w = material->alphagen.args[ 0 ];
+			break;
+
+		case ColorGenType_Entity:
+			break;
+
+		case ColorGenType_Wave:
+		case ColorGenType_EntityWave: {
+			float wave = EvaluateWaveFunc( material->alphagen.wave );
+			color.w = ( material->alphagen.type == ColorGenType_EntityWave ? color.w : 0.0f ) + wave;
+		} break;
 	}
-	else if( material->alphagen.type == ColorGenType_Wave || material->alphagen.type == ColorGenType_EntityWave ) {
-		float wave = EvaluateWaveFunc( material->rgbgen.wave );
-		if( material->alphagen.type == ColorGenType_EntityWave ) {
-			color.w += wave;
-		}
-		else {
-			color.w = wave;
-		}
-	}
+
+	return color;
+}
+
+RenderPass RenderPassForMaterial( const Material & material, bool skinned ) {
+}
+
+PipelineState MaterialToPipelineState( const Material & material, Vec4 entity_color, bool skinned ) {
+	TracyZoneScoped;
 
 	PipelineState pipeline;
 	if( material->blend_func == BlendFunc_Disabled ) {
@@ -1079,29 +1076,8 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 
 	pipeline.bind_texture_and_sampler( "u_BaseTexture", material->texture, Sampler_Standard );
 
-	{
-		u64 hash = Hash64( u64( material ) );
-
-		u64 idx = num_material_static_uniforms;
-		if( !material_static_uniforms_hashtable.get( hash, &idx ) ) {
-			Assert( num_material_static_uniforms < ARRAY_COUNT( material_static_uniforms ) );
-			material_static_uniforms_hashtable.add( hash, num_material_static_uniforms );
-			material_static_uniforms[ idx ] = UploadMaterialStaticUniforms( material->specular, material->shininess );
-			num_material_static_uniforms++;
-		}
-
-		pipeline.bind_uniform( "u_MaterialStatic", material_static_uniforms[ idx ] );
-	}
-
-	if( skinned || gpu_material == NULL ) {
-		pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color ) );
-	}
-	if( gpu_material != NULL ) {
-		// instanced material
-		gpu_material->color = color;
-	}
-
 	if( material->world ) {
+		// TODO: most of these should be on the render pass
 		Assert( !skinned );
 		pipeline.shader = gpu_material == NULL ? &shaders.world : &shaders.world_instanced;
 		pipeline.pass = frame_static.world_opaque_pass;

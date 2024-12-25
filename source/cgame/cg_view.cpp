@@ -442,11 +442,6 @@ static void DrawOutlines() {
 	frame_static.render_passes[ RenderPass_AddOutlines ] = NewRenderPass( RenderPassConfig {
 		.name = "Add outlines",
 		.representative_shader = shaders.postprocess_world_gbuffer,
-	} );
-
-	PipelineState pipeline = {
-		.shader = msaa ? &shaders.postprocess_world_gbuffer_msaa : &shaders.postprocess_world_gbuffer,
-		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
 		.bindings = {
 			.buffers = {
 				{ "u_View", frame_static.ortho_view_uniforms },
@@ -457,6 +452,11 @@ static void DrawOutlines() {
 				{ "u_CurvedSurfaceMask", ... },
 			},
 		},
+	} );
+
+	PipelineState pipeline = {
+		.shader = msaa ? &shaders.postprocess_world_gbuffer_msaa : &shaders.postprocess_world_gbuffer,
+		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
 	};
 	// pipeline.blend_func = BlendFunc_Blend;
 

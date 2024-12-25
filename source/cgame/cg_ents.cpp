@@ -428,7 +428,7 @@ static void DrawEntityModel( centity_t * cent ) {
 	}
 
 	DrawModelConfig config = {
-		draw_model = { .enabled = true },
+		.draw_model = { .enabled = true },
 		.cast_shadows = true,
 	};
 

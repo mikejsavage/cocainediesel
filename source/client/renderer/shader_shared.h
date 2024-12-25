@@ -124,6 +124,7 @@ struct ParticleUpdateUniforms {
 	u32 num_new_particles;
 };
 
+// TODO: use half floats etc
 struct Decal {
 	Vec3 origin_orientation_xyz; // floor( origin ) + ( orientation.xyz * 0.49 + 0.5 )
 	float radius_orientation_w; // floor( radius ) + ( orientation.w * 0.49 + 0.5 )

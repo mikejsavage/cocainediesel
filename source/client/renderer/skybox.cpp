@@ -36,6 +36,7 @@ void InitSkybox() {
 	sky_mesh.vertex_buffers[ 0 ] = NewBuffer( GPULifetime_Persistent, "Skybox vertices", verts );
 	sky_mesh.index_buffer = NewBuffer( GPULifetime_Persistent, "Skybox indices", indices );
 
+	// TODO: make the skybox render pass here and use pass bindings for these
 	sky_bind_group = NewBindGroup( shaders.skybox, {
 		{ "u_Noise", RGBNoiseTexture(), Sampler_Standard },
 		{ "u_BlueNoiseTexture", BlueNoiseTexture(), Sampler_Standard },

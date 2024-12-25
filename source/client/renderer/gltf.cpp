@@ -1,4 +1,5 @@
 #include "qcommon/base.h"
+#include "qcommon/array.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "client/client.h"
@@ -664,41 +665,57 @@ static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh,
 	DrawMesh( mesh, pipeline );
 }
 
-static void DrawShadowsNode( const Mesh & mesh, bool skinned, PipelineState pipeline, const Mat3x4 & transform ) {
+static void DrawShadowsNode( const Mesh & mesh, GPUBuffer model_uniforms, Optional< GPUBuffer > pose_uniforms ) {
 	TracyZoneScoped;
 
-	pipeline.shader = skinned ? &shaders.depth_only_skinned : &shaders.depth_only;
-	pipeline.clamp_depth = true;
-	// pipeline.cull_face = CullFace_Disabled;
-	pipeline.write_depth = true;
+	PipelineState pipeline = { .shader = pose_uniforms.exists ? shaders.depth_only_skinned : shaders.depth_only };
+
+	BoundedDynamicArray< BufferBinding, 2 > buffers = { { "u_Model", model_uniforms } };
+	if( pose_uniforms.exists ) {
+		buffers.add( { "u_Pose", pose_uniforms.value } );
+	}
 
 	for( u32 i = 0; i < frame_static.shadow_parameters.entity_cascades; i++ ) {
-		pipeline.pass = frame_static.shadowmap_pass[ i ];
-		pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ i ] );
-		DrawMesh( mesh, pipeline );
+		EncodeDrawCall( RenderPass_ShadowmapCascade0 + i, pipeline, mesh, buffers.span() );
 	}
 }
 
-static void DrawOutlinesNode( const Mesh & mesh, bool skinned, PipelineState pipeline, GPUBuffer outline_uniforms, const Mat3x4 & transform ) {
+static void DrawOutlinesNode( const Mesh & mesh, GPUBuffer model_uniforms, GPUBuffer outline_uniforms, Optional< GPUBuffer > pose_uniforms ) {
 	TracyZoneScoped;
 
-	pipeline.shader = skinned ? &shaders.outline_skinned : &shaders.outline;
-	pipeline.pass = frame_static.nonworld_opaque_pass;
-	pipeline.cull_face = CullFace_Front;
-	pipeline.bind_uniform( "u_Outline", outline_uniforms );
+	PipelineState pipeline = {
+		.shader = pose_uniforms.exists ? shaders.outline_skinned : shaders.outline,
+		.dynamic_state = { .cull_face = CullFace_Front },
+	};
 
-	DrawMesh( mesh, pipeline );
+	BoundedDynamicArray< BufferBinding, 3 > buffers = {
+		{ "u_Model", model_uniforms },
+		{ "u_Outline", outline_uniforms },
+	};
+	if( pose_uniforms.exists ) {
+		buffers.add( { "u_Pose", pose_uniforms.value } );
+	}
+
+	EncodeDrawCall( RenderPass_NonworldOpaque, pipeline, mesh, buffers.span() );
 }
 
-static void DrawSilhouetteNode( const Mesh & mesh, bool skinned, PipelineState pipeline, GPUBuffer silhouette_uniforms, const Mat3x4 & transform ) {
+static void DrawSilhouetteNode( const Mesh & mesh, GPUBuffer model_uniforms, GPUBuffer silhouette_uniforms, Optional< GPUBuffer > pose_uniforms ) {
 	TracyZoneScoped;
 
-	pipeline.shader = skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer;
-	pipeline.pass = frame_static.write_silhouette_gbuffer_pass;
-	pipeline.write_depth = false;
-	pipeline.bind_uniform( "u_Silhouette", silhouette_uniforms );
+	PipelineState pipeline = {
+		.shader = pose_uniforms.exists ? shaders.write_silhouette_gbuffer_skinned : shaders.write_silhouette_gbuffer,
+	};
+	// pipeline.write_depth = false;
 
-	DrawMesh( mesh, pipeline );
+	BoundedDynamicArray< BufferBinding, 3 > buffers = {
+		{ "u_Model", model_uniforms },
+		{ "u_Silhouette", silhouette_uniforms },
+	};
+	if( pose_uniforms.exists ) {
+		buffers.add( { "u_Pose", pose_uniforms.value } );
+	}
+
+	EncodeDrawCall( RenderPass_SilhouetteGBuffer, pipeline, mesh, buffers.span() );
 }
 
 void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * render_data, const Mat3x4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
@@ -709,9 +726,9 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 	bool animated = palettes.node_transforms.ptr != NULL;
 	bool any_skinned = render_data->skin.n > 0;
 
-	GPUBuffer pose_uniforms = any_skinned && animated ? NewTempBuffer( palettes.skinning_matrices ) : { };
-	GPUBuffer outline_uniforms = config.outline.exists ? NewTempBuffer( config.outline.value ) : { };
-	GPUBuffer silhouette_uniforms = config.silhouette_color.exists ? NewTempBuffer( config.silhouette_color.value ) : { };
+	Optional< GPUBuffer > pose_uniforms = any_skinned && animated ? MakeOptional( NewTempBuffer( palettes.skinning_matrices ) ) : NONE;
+	Optional< GPUBuffer > outline_uniforms = config.outline.exists ? MakeOptional( NewTempBuffer( config.outline.value ) ) : NONE;
+	Optional< GPUBuffer > silhouette_uniforms = config.silhouette_color.exists ? MakeOptional( NewTempBuffer( config.silhouette_color.value ) ) : NONE;
 
 	for( u8 i = 0; i < render_data->nodes.n; i++ ) {
 		TracyZoneScopedN( "Render node" );
@@ -739,27 +756,24 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 		if( node->mesh.num_vertices == 0 )
 			continue;
 
-		PipelineState pipeline = MaterialToPipelineState( FindMaterial( node->material ), color, skinned );
-		pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+		GPUBuffer model_uniforms = NewTempBuffer( node_transform );
 
-		// skinned models can't be instanced
-		if( skinned ) {
-			pipeline.bind_uniform( "u_Model", UploadModelUniforms( node_transform ) );
-			pipeline.bind_uniform( "u_Pose", pose_uniforms );
+		{
+			// TODO
+			PipelineState pipeline = MaterialToPipelineState( FindMaterial( node->material ), color, skinned );
+			DrawModelNode( config.draw_model, node->mesh, skinned, pipeline, node_transform );
 		}
-
-		DrawModelNode( config.draw_model, node->mesh, skinned, pipeline, node_transform );
 
 		if( config.cast_shadows ) {
-			DrawShadowsNode( config.draw_shadows, node->mesh, skinned, pipeline, node_transform );
+			DrawShadowsNode( node->mesh, model_uniforms, pose_uniforms );
 		}
 
-		if( config.outline.exists ) {
-			DrawOutlinesNode( node->mesh, skinned, pipeline, outline_uniforms, node_transform );
+		if( outline_uniforms.exists ) {
+			DrawOutlinesNode( node->mesh, model_uniforms, outline_uniforms.value, pose_uniforms );
 		}
 
-		if( config.silhouette_color.exists ) {
-			DrawSilhouetteNode( node->mesh, skinned, pipeline, silhouette_uniforms, node_transform );
+		if( silhouette_uniforms.exists ) {
+			DrawSilhouetteNode( node->mesh, model_uniforms, silhouette_uniforms.value, pose_uniforms );
 		}
 	}
 }

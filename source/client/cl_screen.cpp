@@ -179,7 +179,7 @@ static void SubmitPostprocessPass() {
 		uniforms.contrast = contrast,
 	};
 
-	EncodeDrawCall( RenderPass_Postprocessing, pipeline, FullscreenMesh(), { "u_PostProcess", NewTempBuffer( uniforms ) } );
+	EncodeDrawCall( RenderPass_Postprocessing, pipeline, FullscreenMesh(), { { "u_PostProcess", NewTempBuffer( uniforms ) } } );
 }
 
 void SCR_UpdateScreen() {

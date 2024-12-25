@@ -417,37 +417,57 @@ static void CG_SetupViewDef( cg_viewdef_t *view, ViewType type, UserCommand * cm
 static void DrawSilhouettes() {
 	TracyZoneScoped;
 
-	PipelineState pipeline;
-	pipeline.pass = frame_static.add_silhouettes_pass;
-	pipeline.shader = &shaders.postprocess_silhouette_gbuffer;
-	pipeline.depth_func = DepthFunc_AlwaysAndDontWrite;
-	pipeline.blend_func = BlendFunc_Blend;
-	pipeline.write_depth = false;
+	frame_static.render_passes[ RenderPass_AddSilhouettes ] = NewRenderPass( RenderPassConfig {
+		.name = "Add silhouettes",
+		.representative_shader = shaders.postprocess_silhouette_gbuffer,
+		.bindings = {
+			.textures = { { "u_SilhouetteTexture", rt.color_attachments[ FragmentShaderOutput_Albedo ] } },
+		},
+	} );
 
-	const RenderTarget & rt = frame_static.render_targets.silhouette_mask;
-	pipeline.bind_texture_and_sampler( "u_SilhouetteTexture", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Clamp );
-	pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
-	DrawFullscreenMesh( pipeline );
+	PipelineState pipeline = {
+		.shader = shaders.postprocess_silhouette_gbuffer,
+		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
+	};
+	// pipeline.blend_func = BlendFunc_Blend;
+
+	EncodeDrawCall( RenderPass_AddSilhouettes, pipeline, FullscreenMesh() );
 }
 
 static void DrawOutlines() {
 	bool msaa = frame_static.msaa_samples >= 1;
 
-	PipelineState pipeline;
-	pipeline.pass = frame_static.add_outlines_pass;
-	pipeline.shader = msaa ? &shaders.postprocess_world_gbuffer_msaa : &shaders.postprocess_world_gbuffer;
-	pipeline.depth_func = DepthFunc_AlwaysAndDontWrite;
-	pipeline.blend_func = BlendFunc_Blend;
-	pipeline.write_depth = false;
+	constexpr RGBA8 gray = RGBA8( 30, 30, 30 );
 
-	constexpr RGBA8 gray = RGBA8( 30, 30, 30, 255 );
+	frame_static.render_passes[ RenderPass_AddOutlines ] = NewRenderPass( RenderPassConfig {
+		.name = "Add outlines",
+		.representative_shader = shaders.postprocess_world_gbuffer,
+	} );
 
-	const RenderTarget & rt = msaa ? frame_static.render_targets.msaa_masked : frame_static.render_targets.postprocess_masked;
-	pipeline.bind_texture_and_sampler( "u_DepthTexture", &rt.depth_attachment, Sampler_Standard );
-	pipeline.bind_texture_and_sampler( "u_CurvedSurfaceMask", &rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ], Sampler_Unfiltered );
-	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.bind_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );
-	DrawFullscreenMesh( pipeline );
+	PipelineState pipeline = {
+		.shader = msaa ? &shaders.postprocess_world_gbuffer_msaa : &shaders.postprocess_world_gbuffer,
+		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
+		.bindings = {
+			.buffers = {
+				{ "u_View", frame_static.ortho_view_uniforms },
+				{ "u_OutlineColor", NewTempBuffer( sRGBToLinear( gray ) ) },
+			},
+			.textures = {
+				{ "u_DepthTexture", ... },
+				{ "u_CurvedSurfaceMask", ... },
+			},
+		},
+	};
+	// pipeline.blend_func = BlendFunc_Blend;
+
+	EncodeDrawCall( RenderPass_AddOutlines, pipeline, FullscreenMesh() );
+
+	// const RenderTarget & rt = msaa ? frame_static.render_targets.msaa_masked : frame_static.render_targets.postprocess_masked;
+	// pipeline.bind_texture_and_sampler( "u_DepthTexture", &rt.depth_attachment, Sampler_Standard );
+	// pipeline.bind_texture_and_sampler( "u_CurvedSurfaceMask", &rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ], Sampler_Unfiltered );
+	// pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+	// pipeline.bind_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );
+	// DrawFullscreenMesh( pipeline );
 }
 
 void CG_RenderView( unsigned extrapolationTime ) {

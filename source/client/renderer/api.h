@@ -214,12 +214,6 @@ enum BlendFunc : u8 {
 	BlendFunc_Add,
 };
 
-// enum FragmentShaderOutputType : u8 {
-// 	FragmentShaderOutput_Albedo,
-//
-// 	FragmentShaderOutput_Count
-// };
-
 struct RenderPipelineOutputFormat {
 	Optional< TextureFormat > colors[ FragmentShaderOutput_Count ];
 	bool has_depth = true;
@@ -345,14 +339,18 @@ struct BufferBinding {
 
 struct GPUBindings {
 	struct TextureBinding {
-		StringHash texture_name;
-		PoolHandle< ::Texture > texture;
-		StringHash sampler_name;
+		StringHash name;
+		PoolHandle< Texture > texture;
+	};
+
+	struct SamplerBinding {
+		StringHash name;
 		SamplerType sampler;
 	};
 
 	Span< const BufferBinding > buffers;
 	Span< const TextureBinding > textures;
+	Span< const SamplerBinding > samplers;
 };
 
 struct RenderPassConfig {

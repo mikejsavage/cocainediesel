@@ -129,7 +129,7 @@ void CG_DrawCrosshair( int x, int y ) {
 	CG_FillRect( x - 1 + gap, y - 1, 2 + size, 2, color );
 }
 
-void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color ) {
+void CG_DrawPlayerNames( const Font * font, float font_size ) {
 	// static vec4_t alphagreen = { 0, 1, 0, 0 }, alphared = { 1, 0, 0, 0 }, alphayellow = { 1, 1, 0, 0 }, alphamagenta = { 1, 0, 1, 1 }, alphagrey = { 0.85, 0.85, 0.85, 1 };
 	for( int i = 0; i < client_gs.maxclients; i++ ) {
 		if( strlen( PlayerName( i ) ) == 0 || ISVIEWERENTITY( i + 1 ) ) {
@@ -159,7 +159,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color ) {
 			continue;
 		}
 
-		Vec4 tmpcolor = color;
+		Vec4 color = white.vec4;
 
 		float fadeFrac;
 		if( cent->current.number != cg.pointedNum ) {
@@ -169,14 +169,14 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color ) {
 
 			fadeFrac = Clamp01( Min2( ( playerNamesZfar - dist ) / ( playerNamesZfar * 0.25f ), ( dist - playerNamesZclose ) / playerNamesZclose ) );
 
-			tmpcolor.w = playerNamesAlpha * color.w * fadeFrac;
+			color.w = playerNamesAlpha * color.w * fadeFrac;
 		} else {
 			fadeFrac = Clamp01( ( cg.pointRemoveTime - cl.serverTime ) / 150.0f );
 
-			tmpcolor.w = color.w * fadeFrac;
+			color.w = color.w * fadeFrac;
 		}
 
-		if( tmpcolor.w <= 0.0f ) {
+		if( color.w <= 0.0f ) {
 			continue;
 		}
 
@@ -194,7 +194,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color ) {
 		}
 
 		float size = font_size * playerNamesZgrow * ( 1.0f - ( dist / ( playerNamesZfar * 1.8f ) ) );
-		DrawText( font, size, PlayerName( i ), Alignment_CenterBottom, coords.x, coords.y, tmpcolor, black.vec4 );
+		DrawText( font, size, PlayerName( i ), Alignment_CenterBottom, coords.x, coords.y, color, black.vec4 );
 	}
 }
 

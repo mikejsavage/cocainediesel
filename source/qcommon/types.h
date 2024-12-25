@@ -603,7 +603,7 @@ struct RGBA8 {
 	u8 r, g, b, a;
 
 	RGBA8() = default;
-	constexpr RGBA8( u8 r_, u8 g_, u8 b_, u8 a_ ) : r( r_ ), g( g_ ), b( b_ ), a( a_ ) { }
+	constexpr RGBA8( u8 r_, u8 g_, u8 b_, u8 a_ = 255 ) : r( r_ ), g( g_ ), b( b_ ), a( a_ ) { }
 	explicit constexpr RGBA8( RGB8 rgb, u8 a_ = 255 ) : r( rgb.r ), g( rgb.g ), b( rgb.b ), a( a_ ) { }
 
 	constexpr RGB8 rgb() const { return RGB8( r, g, b ); }

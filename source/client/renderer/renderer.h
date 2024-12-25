@@ -55,7 +55,8 @@ struct FrameStatic {
 
 	struct {
 		PoolHandle< Texture > silhouette_mask;
-		PoolHandle< Texture > msaa;
+		PoolHandle< Texture > msaa_color;
+		PoolHandle< Texture > msaa_depth;
 		PoolHandle< Texture > postprocess;
 		PoolHandle< Texture > msaa_masked;
 		PoolHandle< Texture > postprocess_masked;

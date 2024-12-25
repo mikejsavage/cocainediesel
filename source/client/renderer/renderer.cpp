@@ -171,13 +171,7 @@ void ShutdownRenderer() {
 
 	FlushRenderBackend();
 
-	ShutdownVisualEffects();
 	ShutdownMaterials();
-
-	DeleteTexture( blue_noise );
-	DeleteMesh( fullscreen_mesh );
-
-	DeleteStreamingBuffer( dynamic_geometry.buffer );
 
 	RemoveCommand( "screenshot" );
 

@@ -19,12 +19,6 @@ struct PersistentDecal {
 STATIC_ASSERT( sizeof( Decal ) == 2 * 4 * sizeof( float ) );
 STATIC_ASSERT( sizeof( Decal ) % alignof( Decal ) == 0 );
 
-// gets copied directly to GPU so packing order is important
-struct DynamicLight {
-	Vec3 origin_color; // floor( origin ) + ( color * 0.9 )
-	float radius;
-};
-
 struct PersistentDynamicLight {
 	DynamicLight dlight;
 	float start_intensity;

@@ -162,15 +162,6 @@ static void SubmitPostprocessPass() {
 	}
 	chasing_amount = Clamp01( chasing_amount );
 
-	PipelineState pipeline = {
-		.shader = shaders.postprocess,
-		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
-		.material_bind_group = ...,
-	};
-	// pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
-	// pipeline.bind_texture_and_sampler( "u_Screen", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Standard );
-	// pipeline.bind_texture_and_sampler( "u_Noise", FindMaterial( "textures/noise" )->texture, Sampler_Standard );
-
 	PostprocessUniforms uniforms = {
 		uniforms.time = ToSeconds( cls.shadertoy_time ),
 		uniforms.damage = damage_effect,
@@ -179,7 +170,30 @@ static void SubmitPostprocessPass() {
 		uniforms.contrast = contrast,
 	};
 
-	EncodeDrawCall( RenderPass_Postprocessing, pipeline, FullscreenMesh(), { { "u_PostProcess", NewTempBuffer( uniforms ) } } );
+	frame_static.render_passes[ RenderPass_Postprocessing ] = NewRenderPass( RenderPassConfig {
+		.name = "Postprocessing",
+		.color_targets = ...,
+		.representative_shader = shaders.postprocess,
+		.bindings = {
+			.buffers = {
+				{ "u_View", frame_static.ortho_view_uniforms },
+				{ "u_PostProcess", NewTempBuffer( uniforms ) },
+			},
+			.textures = {
+				{ "u_Screen", ... },
+				{ "u_Noise", RGBNoiseTexture() },
+			},
+			.samplers = { { "u_Sampler", Sampler_Standard } },
+		},
+	} );
+	// pipeline.bind_texture_and_sampler( "u_Screen", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Standard );
+
+	PipelineState pipeline = {
+		.shader = shaders.postprocess,
+		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
+	};
+
+	EncodeDrawCall( RenderPass_Postprocessing, pipeline, FullscreenMesh() );
 }
 
 void SCR_UpdateScreen() {

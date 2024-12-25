@@ -793,14 +793,22 @@ void EncodeAndBindArgumentBuffer( Encoder * ce, ArgumentBufferEncoder * encoder,
 	for( size_t i = 0; i < bindings.textures.n; i++ ) {
 		const GPUBindings::TextureBinding & b = bindings.textures[ i ];
 
-		Optional< u32 > texture_idx = encoder->textures.get2( b.texture_name );
-		Optional< u32 > sampler_idx = encoder->textures.get2( b.sampler_name );
-		if( !texture_idx.exists || !sampler_idx.exists ) {
+		Optional< u32 > idx = encoder->textures.get2( b.name );
+		if( !idx.exists ) {
 			printf( "can't bind\n" );
 			continue;
 		}
-		encoder->encoder->setTexture( textures[ b.texture ].texture, texture_idx.value );
-		encoder->encoder->setSamplerState( samplers[ b.sampler ], sampler_idx.value );
+		encoder->encoder->setTexture( textures[ b.texture ].texture, idx.value );
+	}
+
+	for( size_t i = 0; i < bindings.samplers.n; i++ ) {
+		const GPUBindings::SamplerBinding & b = bindings.samplers[ i ];
+		Optional< u32 > idx = encoder->samplers.get2( b.name );
+		if( !idx.exists ) {
+			printf( "can't bind\n" );
+			continue;
+		}
+		encoder->encoder->setSamplerState( samplers[ b.sampler ], idx.value );
 	}
 
 	BindArgumentBuffer( ce, args, descriptor_set );

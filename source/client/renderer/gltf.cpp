@@ -672,7 +672,7 @@ static void DrawShadowsNode( const Mesh & mesh, GPUBuffer model_uniforms, Option
 
 	BoundedDynamicArray< BufferBinding, 2 > buffers = { { "u_Model", model_uniforms } };
 	if( pose_uniforms.exists ) {
-		buffers.add( { "u_Pose", pose_uniforms.value } );
+		buffers.must_add( { "u_Pose", pose_uniforms.value } );
 	}
 
 	for( u32 i = 0; i < frame_static.shadow_parameters.entity_cascades; i++ ) {
@@ -693,7 +693,7 @@ static void DrawOutlinesNode( const Mesh & mesh, GPUBuffer model_uniforms, GPUBu
 		{ "u_Outline", outline_uniforms },
 	};
 	if( pose_uniforms.exists ) {
-		buffers.add( { "u_Pose", pose_uniforms.value } );
+		buffers.must_add( { "u_Pose", pose_uniforms.value } );
 	}
 
 	EncodeDrawCall( RenderPass_NonworldOpaque, pipeline, mesh, buffers.span() );
@@ -712,7 +712,7 @@ static void DrawSilhouetteNode( const Mesh & mesh, GPUBuffer model_uniforms, GPU
 		{ "u_Silhouette", silhouette_uniforms },
 	};
 	if( pose_uniforms.exists ) {
-		buffers.add( { "u_Pose", pose_uniforms.value } );
+		buffers.must_add( { "u_Pose", pose_uniforms.value } );
 	}
 
 	EncodeDrawCall( RenderPass_SilhouetteGBuffer, pipeline, mesh, buffers.span() );

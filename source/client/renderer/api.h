@@ -10,8 +10,8 @@ constexpr size_t MaxFramesInFlight = 2;
 
 // TODO: generic InitRenderer, hide InitRenderBackend
 struct GLFWwindow;
-void InitRenderBackend( GLFWwindow * window );
-void ShutdownRenderBackend();
+void InitRenderer( GLFWwindow * window );
+void ShutdownRenderer( GLFWwindow * window );
 
 // TODO: not renderer specific
 void CreateAutoreleasePoolOnMacOS();
@@ -132,7 +132,7 @@ struct TextureConfig {
 	u32 height;
 	u32 num_layers = 1;
 	u32 num_mipmaps = 1;
-	int msaa_samples = 1;
+	u32 msaa_samples = 1;
 	const void * data = NULL;
 };
 
@@ -492,6 +492,11 @@ enum RenderPass {
 	RenderPass_UIAfterPostprocessing,
 
 	RenderPass_Count
+};
+
+enum RenderPassDependency {
+	RenderPassDependency_ParticleUpdate_To_ParticleSetupIndirect,
+	RenderPassDependency_Shadowmap_To_WorldOpaque,
 };
 
 void EncodeDrawCall( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers = { }, DrawCallExtras extras = DrawCallExtras() );

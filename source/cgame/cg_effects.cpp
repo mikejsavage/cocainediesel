@@ -66,7 +66,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash materia
 	constexpr u16 indices[] = { 0, 1, 2, 1, 3, 2 };
 
 	PipelineState pipeline = MaterialToPipelineState( material, color );
-	pipeline.shader = &shaders.standard_vertexcolors;
+	pipeline.shader = shaders.standard_vertexcolors;
 	pipeline.blend_func = BlendFunc_Add;
 	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );

@@ -45,11 +45,10 @@ float4 SampleMSDF( float2 uv, float half_pixel_size ) {
 }
 
 #if DEPTH_ONLY
-void
+void FragmentMain( VertexOutput v ) {
 #else
-float4
+float4 FragmentMain( VertexOutput v ) : SV_Target0 {
 #endif
-FragmentMain( VertexOutput v ) {
 	float2 fw = fwidth( v.uv );
 	float2 texture_size;
 	u_Texture.GetDimensions( texture_size.x, texture_size.y );

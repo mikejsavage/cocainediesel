@@ -9,6 +9,8 @@
 #include "client/renderer/blue_noise.h"
 #include "client/renderer/cdmap.h"
 #include "client/renderer/gltf.h"
+#include "client/renderer/private.h"
+// #include "client/renderer/rgb_noise.h"
 #include "client/renderer/skybox.h"
 #include "client/renderer/text.h"
 
@@ -23,18 +25,10 @@
 FrameStatic frame_static;
 static u64 frame_counter;
 
+static PoolHandle< Texture > rgb_noise;
 static PoolHandle< Texture > blue_noise;
 
 static Mesh fullscreen_mesh;
-
-struct DynamicGeometry {
-	static constexpr size_t BufferSize = 1024 * 1024; // 1MB
-
-	StreamingBuffer buffer;
-	size_t cursor;
-};
-
-static DynamicGeometry dynamic_geometry;
 
 static char last_screenshot_date[ 256 ];
 static int same_date_count;
@@ -47,42 +41,42 @@ static Cvar * r_samples;
 static Cvar * r_shadow_quality;
 
 static void TakeScreenshot() {
-	RGB8 * framebuffer = AllocMany< RGB8 >( sys_allocator, frame_static.viewport_width * frame_static.viewport_height );
-	defer { Free( sys_allocator, framebuffer ); };
-	DownloadFramebuffer( framebuffer );
-
-	stbi_flip_vertically_on_write( 1 );
-
-	int ok = stbi_write_png_to_func( []( void * context, void * png, int png_size ) {
-		char date[ 256 ];
-		FormatCurrentTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
-
-		TempAllocator temp = cls.frame_arena.temp();
-
-		DynamicString path( &temp, "{}/screenshots/{}", HomeDirPath(), date );
-
-		if( StrEqual( date, last_screenshot_date ) ) {
-			same_date_count++;
-			path.append( "_{}", same_date_count );
-		}
-		else {
-			same_date_count = 0;
-		}
-		strcpy( last_screenshot_date, date );
-
-		path.append( ".png" );
-
-		if( WriteFile( &temp, path.c_str(), png, png_size ) ) {
-			Com_Printf( "Wrote %s\n", path.c_str() );
-		}
-		else {
-			Com_Printf( "Couldn't write %s\n", path.c_str() );
-		}
-	}, NULL, frame_static.viewport_width, frame_static.viewport_height, 3, framebuffer, 0 );
-
-	if( ok == 0 ) {
-		Com_Printf( "Couldn't convert screenshot to PNG\n" );
-	}
+	// RGB8 * framebuffer = AllocMany< RGB8 >( sys_allocator, frame_static.viewport_width * frame_static.viewport_height );
+	// defer { Free( sys_allocator, framebuffer ); };
+	// DownloadFramebuffer( framebuffer );
+    //
+	// stbi_flip_vertically_on_write( 1 );
+    //
+	// int ok = stbi_write_png_to_func( []( void * context, void * png, int png_size ) {
+	// 	char date[ 256 ];
+	// 	FormatCurrentTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
+    //
+	// 	TempAllocator temp = cls.frame_arena.temp();
+    //
+	// 	DynamicString path( &temp, "{}/screenshots/{}", HomeDirPath(), date );
+    //
+	// 	if( StrEqual( date, last_screenshot_date ) ) {
+	// 		same_date_count++;
+	// 		path.append( "_{}", same_date_count );
+	// 	}
+	// 	else {
+	// 		same_date_count = 0;
+	// 	}
+	// 	strcpy( last_screenshot_date, date );
+    //
+	// 	path.append( ".png" );
+    //
+	// 	if( WriteFile( &temp, path.c_str(), png, png_size ) ) {
+	// 		Com_Printf( "Wrote %s\n", path.c_str() );
+	// 	}
+	// 	else {
+	// 		Com_Printf( "Couldn't write %s\n", path.c_str() );
+	// 	}
+	// }, NULL, frame_static.viewport_width, frame_static.viewport_height, 3, framebuffer, 0 );
+    //
+	// if( ok == 0 ) {
+	// 	Com_Printf( "Couldn't convert screenshot to PNG\n" );
+	// }
 }
 
 const char * ShadowQualityToString( ShadowQuality mode ) {
@@ -107,10 +101,10 @@ static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
 	return { };
 }
 
-void InitRenderer() {
+void InitRenderer( GLFWwindow * window ) {
 	TracyZoneScoped;
 
-	InitRenderBackend();
+	InitRenderBackend( window );
 
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -124,12 +118,27 @@ void InitRenderer() {
 	last_msaa = 0;
 	last_shadow_quality = ShadowQuality_Count;
 
+	// {
+	// 	int w, h;
+	// 	u8 * img = stbi_load_from_memory( rgb_noise_png, rgb_noise_png_len, &w, &h, NULL, 4 );
+	// 	Assert( img != NULL );
+    //
+	// 	rgb_noise = NewTexture( GPULifetime_Persistent, TextureConfig {
+	// 		.format = TextureFormat_RGBA_U8_sRGB,
+	// 		.width = u32( w ),
+	// 		.height = u32( h ),
+	// 		.data = img,
+	// 	} );
+    //
+	// 	stbi_image_free( img );
+	// }
+
 	{
 		int w, h;
 		u8 * img = stbi_load_from_memory( blue_noise_png, blue_noise_png_len, &w, &h, NULL, 1 );
 		Assert( img != NULL );
 
-		blue_noise = NewTexture( TextureConfig {
+		blue_noise = NewTexture( GPULifetime_Persistent, TextureConfig {
 			.format = TextureFormat_R_S8,
 			.width = u32( w ),
 			.height = u32( h ),
@@ -146,14 +155,11 @@ void InitRenderer() {
 			Vec3( -1.0f, 3.0f, 0.0f ),
 		};
 
-		MeshConfig config = { };
-		config.name = "Fullscreen triangle";
-		config.set_attribute( VertexAttribute_Position, NewGPUBuffer( positions, sizeof( positions ), "Fullscreen triangle vertices" ) );
-		config.num_vertices = 3;
-		fullscreen_mesh = NewMesh( config );
+		fullscreen_mesh = { };
+		fullscreen_mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx3 };
+		fullscreen_mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec3 );
+		fullscreen_mesh.vertex_buffers[ 0 ] = NewBuffer( GPULifetime_Persistent, "Fullscreen triangle vertices", positions );
 	}
-
-	dynamic_geometry.buffer = NewStreamingBuffer( DynamicGeometry::BufferSize, "Dynamic geometry buffer" );
 
 	AddCommand( "screenshot", []( const Tokenized & args ) { TakeScreenshot(); } );
 	strcpy( last_screenshot_date, "" );
@@ -169,13 +175,10 @@ void InitRenderer() {
 void ShutdownRenderer() {
 	TracyZoneScoped;
 
-	FlushRenderBackend();
-
+	ShutdownRenderBackend();
 	ShutdownMaterials();
 
 	RemoveCommand( "screenshot" );
-
-	ShutdownRenderBackend();
 }
 
 static Mat4 OrthographicProjection( float left, float top, float right, float bottom, float near_plane, float far_plane ) {
@@ -297,10 +300,6 @@ static Mat3x4 InvertViewMatrix( const Mat3x4 & V, Vec3 position ) {
 	);
 }
 
-static UniformBlock UploadViewUniforms( const Mat3x4 & V, const Mat3x4 & inverse_V, const Mat4 & P, const Mat4 & inverse_P, Vec3 camera_pos, Vec2 viewport_size, float near_plane, int samples, Vec3 light_dir ) {
-	return UploadUniformBlock( V, inverse_V, P, inverse_P, camera_pos, viewport_size, near_plane, samples, light_dir );
-}
-
 static void CreateRenderTargets() {
 	// TODO: save old so texture handles can be recycled
 	frame_static.render_targets.silhouette_mask = NewTexture( GPULifetime_Framebuffer, TextureConfig {
@@ -362,9 +361,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadMaps();
 	HotloadVisualEffects();
 
-	RenderBackendBeginFrame();
-
-	dynamic_geometry.cursor = 0;
+	RenderBackendBeginFrame( false );
 
 	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer > 16 || r_samples->integer == 1 ) {
 		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
@@ -394,70 +391,33 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	last_msaa = frame_static.msaa_samples;
 	last_shadow_quality = frame_static.shadow_quality;
 
-	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat3x4::Identity(), Mat3x4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples, Vec3() );
-	frame_static.identity_model_uniforms = UploadModelUniforms( Mat3x4::Identity() );
-	frame_static.identity_material_static_uniforms = UploadMaterialStaticUniforms( 0.0f, 64.0f );
-	frame_static.identity_material_dynamic_uniforms = UploadMaterialDynamicUniforms( white.vec4 );
-
-#define TRACY_HACK( name ) { name, __FUNCTION__, __FILE__, uint32_t( __LINE__ ), 0 }
-	static const tracy::SourceLocationData particle_update_tracy = TRACY_HACK( "Update particles" );
-	static const tracy::SourceLocationData particle_setup_indirect_tracy = TRACY_HACK( "Write particle indirect draw buffer" );
-	static const tracy::SourceLocationData tile_culling_tracy = TRACY_HACK( "Decal/dlight tile culling" );
-	static const tracy::SourceLocationData write_shadowmap_tracy = TRACY_HACK( "Write shadowmap" );
-	static const tracy::SourceLocationData world_opaque_prepass_tracy = TRACY_HACK( "World z-prepass" );
-	static const tracy::SourceLocationData world_opaque_tracy = TRACY_HACK( "Render world opaque" );
-	static const tracy::SourceLocationData sky_tracy = TRACY_HACK( "Render sky" );
-	static const tracy::SourceLocationData write_silhouette_buffer_tracy = TRACY_HACK( "Write silhouette buffer" );
-	static const tracy::SourceLocationData nonworld_opaque_outlined_tracy = TRACY_HACK( "Render nonworld opaque outlined" );
-	static const tracy::SourceLocationData add_outlines_tracy = TRACY_HACK( "Render outlines" );
-	static const tracy::SourceLocationData nonworld_opaque_tracy = TRACY_HACK( "Render nonworld opaque" );
-	static const tracy::SourceLocationData msaa_tracy = TRACY_HACK( "Resolve MSAA" );
-	static const tracy::SourceLocationData transparent_tracy = TRACY_HACK( "Render transparent" );
-	static const tracy::SourceLocationData silhouettes_tracy = TRACY_HACK( "Render silhouettes" );
-	static const tracy::SourceLocationData ui_tracy = TRACY_HACK( "Render game HUD" );
-	static const tracy::SourceLocationData postprocess_tracy = TRACY_HACK( "Postprocess" );
-	static const tracy::SourceLocationData post_ui_tracy = TRACY_HACK( "Render non-game UI" );
-#undef TRACY_HACK
-
-	frame_static.particle_update_pass = AddRenderPass( &particle_update_tracy );
-	frame_static.particle_setup_indirect_pass = AddRenderPass( RenderPassConfig {
-		.barrier = true,
-		.tracy = &particle_setup_indirect_tracy,
+	frame_static.ortho_view_uniforms = NewTempBuffer( ViewUniforms {
+		.V = Mat3x4::Identity(),
+		.inverse_V = Mat3x4::Identity(),
+		.P = OrthographicProjection( 0.0f, 0.0f, viewport_width, viewport_height, -1.0f, 1.0f ),
+		.inverse_P = Mat4::Identity(),
+		.camera_pos = Vec3( 0.0f ),
+		.viewport_size = frame_static.viewport,
+		.near_clip = -1.0f,
+		.msaa_samples = frame_static.msaa_samples,
+		.sun_direction = Vec3( 0.0f ),
 	} );
-	frame_static.tile_culling_pass = AddRenderPass( &tile_culling_tracy );
+	frame_static.identity_model_transform_uniforms = NewTempBuffer( Mat3x4::Identity() );
+	frame_static.identity_material_properties_uniforms = NewTempBuffer( MaterialProperties { .shininess = 64.0f } );
+	frame_static.identity_material_color_uniforms = NewTempBuffer( white.vec4 );
 
 	Vec4 clear_color = Vec4( 0.0f );
 	float clear_depth = 1.0f;
 
-	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
-		frame_static.shadowmap_pass[ i ] = AddRenderPass( &write_shadowmap_tracy, frame_static.render_targets.shadowmaps[ i ], NONE, clear_depth );
-	}
-
-	bool msaa = frame_static.msaa_samples;
-	if( msaa ) {
-		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.msaa, clear_color, clear_depth );
-		frame_static.world_opaque_pass = AddRenderPass( RenderPassConfig {
+	if( frame_static.msaa_samples > 1 ) {
+		frame_static.render_passes[ RenderPass_WorldOpaqueZPrepass ] = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.msaa, clear_color, clear_depth );
+		frame_static.render_passes[ RenderPass_WorldOpaque ] = AddRenderPass( RenderPassConfig {
 			.target = frame_static.render_targets.msaa_masked,
 			.barrier = true,
 			.tracy = &world_opaque_tracy,
 		} );
-		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.render_targets.msaa );
-	}
-	else {
-		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.postprocess, clear_color, clear_depth );
-		frame_static.world_opaque_pass = AddRenderPass( RenderPassConfig {
-			.target = frame_static.render_targets.postprocess_masked,
-			.barrier = true,
-			.tracy = &world_opaque_tracy,
-		} );
-		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.render_targets.postprocess );
-	}
 
-	frame_static.write_silhouette_gbuffer_pass = AddRenderPass( &write_silhouette_buffer_tracy, frame_static.render_targets.silhouette_mask, clear_color, NONE );
-
-	if( msaa ) {
 		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.render_targets.msaa_masked );
-		frame_static.add_outlines_pass = AddRenderPass( &add_outlines_tracy, frame_static.render_targets.msaa_onlycolor );
 		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.render_targets.msaa );
 		AddRenderPass( RenderPassConfig {
 			.type = RenderPass_Blit,
@@ -467,30 +427,40 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		} );
 	}
 	else {
+		frame_static.render_passes[ RenderPass_WorldOpaqueZPrepass ] = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.postprocess, clear_color, clear_depth );
+		frame_static.render_passes[ RenderPass_WorldOpaque ] = AddRenderPass( RenderPassConfig {
+			.target = frame_static.render_targets.postprocess_masked,
+			.barrier = true,
+			.tracy = &world_opaque_tracy,
+		} );
+
 		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.render_targets.postprocess_masked );
-		frame_static.add_outlines_pass = AddRenderPass( &add_outlines_tracy, frame_static.render_targets.postprocess_onlycolor );
 		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.render_targets.postprocess );
 	}
 
-	frame_static.transparent_pass = AddRenderPass( RenderPassConfig {
+	frame_static.render_passes[ RenderPass_SilhouetteGBuffer ] = AddRenderPass( &write_silhouette_buffer_tracy, frame_static.render_targets.silhouette_mask, clear_color, NONE );
+
+	frame_static.render_passes[ RenderPass_Transparent ] = AddRenderPass( RenderPassConfig {
 		.target = frame_static.render_targets.postprocess,
 		.barrier = true,
 		.tracy = &transparent_tracy,
 	} );
 
-	frame_static.add_silhouettes_pass = AddRenderPass( &silhouettes_tracy, frame_static.render_targets.postprocess );
-
-	frame_static.ui_pass = AddRenderPass( RenderPassConfig {
-		.target = frame_static.render_targets.postprocess,
-		.sorted = false,
-		.tracy = &ui_tracy,
+	frame_static.render_passes[ RenderPass_UIBeforePostprocessing ] = AddRenderPass( RenderPassConfig {
+		.name = "UI before postprocessing",
+		.color_targets = { RenderPassConfig::ColorTarget { .texture = [to postprocess] } },
+		.wait = ...,
+		.signal = ...,
+		.representative_shader = shaders.standard_vertexcolors_blend,
+		.bindings = { { "u_View", frame_static.ortho_view_uniforms } },
 	} );
 
-	frame_static.postprocess_pass = AddRenderPass( &postprocess_tracy, clear_color );
-
-	frame_static.post_ui_pass = AddRenderPass( RenderPassConfig {
-		.sorted = false,
-		.tracy = &post_ui_tracy,
+	frame_static.render_passes[ RenderPass_UIAfterPostprocessing ] = NewRenderPass( RenderPassConfig {
+		.name = "UI after postprocessing",
+		.color_targets = { RenderPassConfig::ColorTarget { .texture = swapchain } },
+		.wait = ...,
+		.representative_shader = shaders.standard_vertexcolors_blend,
+		.bindings = { { "u_View", frame_static.ortho_view_uniforms } },
 	} );
 }
 
@@ -626,7 +596,32 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 
 	SetupShadowCascades();
 
-	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.inverse_V, frame_static.P, frame_static.inverse_P, position, frame_static.viewport, near_plane, frame_static.msaa_samples, frame_static.light_direction );
+	frame_static.view_uniforms = NewTempBuffer( ViewUniforms {
+		.V = V,
+		.inverse_V = frame_static.inverse_V,
+		.P = frame_static.P,
+		.inverse_P = frame_static.inverse_P,
+		.camera_pos = position,
+		.viewport = frame_static.viewport,
+		.near_clip = near_plane,
+		.msaa_samples = frame_static.msaa_samples,
+		.sun_direction = frame_static.light_direction,
+	} );
+
+	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
+		frame_static.render_passes[ RenderPass_ShadowmapCascade0 + i ] = NewRenderPass( RenderPassConfig {
+			.name = temp( "Shadowmap cascade {}", i ),
+			.depth_target = RenderPassConfig::DepthTarget {
+				.texture = frame_static.render_targets.shadowmaps[ i ],
+				.preserve_contents = false,
+				.clear = clear_depth,
+			},
+			.representative_shader = shaders.depth_only,
+			.bindings = {
+				{ "u_View", frame_static.view_uniforms },
+			},
+		} );
+	}
 }
 
 void RendererSubmitFrame() {
@@ -638,61 +633,16 @@ size_t FrameSlot() {
 	return frame_counter % MAX_FRAMES_IN_FLIGHT;
 }
 
-const Texture * BlueNoiseTexture() {
+PoolHandle< Texture > RGBNoiseTexture() {
 	return &blue_noise;
 }
 
-void DrawFullscreenMesh( const PipelineState & pipeline ) {
-	DrawMesh( fullscreen_mesh, pipeline );
+PoolHandle< Texture > BlueNoiseTexture() {
+	return blue_noise;
 }
 
-static size_t AlignNonPow2( size_t x, size_t alignment ) {
-	return ( ( x + alignment - 1 ) / alignment ) * alignment;
-}
-
-template< typename T >
-static size_t FillDynamicGeometryBuffer( Span< const T > data, size_t alignment ) {
-	size_t frame_offset = dynamic_geometry.buffer.size * FrameSlot();
-	size_t aligned_offset = AlignNonPow2( frame_offset + dynamic_geometry.cursor, alignment );
-	memcpy( ( ( char * ) dynamic_geometry.buffer.ptr ) + aligned_offset, data.ptr, data.num_bytes() );
-	dynamic_geometry.cursor = aligned_offset + data.num_bytes() - frame_offset;
-	return aligned_offset / alignment;
-}
-
-DynamicDrawData UploadDynamicGeometry( Span< const u8 > vertices, Span< const u16 > indices, const VertexDescriptor & vertex_descriptor ) {
-	for( Optional< VertexAttribute > attr : vertex_descriptor.attributes ) {
-		Assert( !attr.exists || attr.value.buffer == 0 );
-	}
-
-	size_t vertex_size = vertex_descriptor.buffer_strides[ 0 ];
-	size_t frame_offset = dynamic_geometry.buffer.size * FrameSlot();
-	size_t required_size = AlignNonPow2( AlignNonPow2( frame_offset + dynamic_geometry.cursor, vertex_size ) + vertices.num_bytes(), sizeof( u16 ) ) + indices.num_bytes() - frame_offset;
-	if( required_size > DynamicGeometry::BufferSize ) {
-		Com_Printf( S_COLOR_YELLOW "Too much dynamic geometry!\n" );
-		Assert( is_public_build );
-		return { };
-	}
-
-	size_t base_vertex = FillDynamicGeometryBuffer( vertices, vertex_size );
-	size_t first_index = FillDynamicGeometryBuffer( indices, sizeof( u16 ) );
-
-	return { vertex_descriptor, base_vertex, first_index, indices.n };
-}
-
-void DrawDynamicGeometry( const PipelineState & pipeline, const DynamicDrawData & data, Optional< size_t > override_num_vertices, size_t extra_first_index ) {
-	if( data.num_vertices == 0 ) {
-		return;
-	}
-
-	Mesh mesh = NewMesh( MeshConfig {
-		.vertex_descriptor = data.vertex_descriptor,
-		.vertex_buffers = { dynamic_geometry.buffer.buffer },
-		.index_format = IndexFormat_U16,
-		.index_buffer = dynamic_geometry.buffer.buffer,
-	} );
-
-	size_t num_vertices = Default( override_num_vertices, data.num_vertices );
-	DrawMesh( mesh, pipeline, num_vertices, data.first_index + extra_first_index, data.base_vertex );
+Mesh FullscreenMesh() {
+	return fullscreen_mesh;
 }
 
 void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color ) {
@@ -711,18 +661,6 @@ void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bott
 	bg->PrimReserve( 6, 4 );
 	bg->PrimRectUV( Vec2( x, y ), Vec2( x + w, y + h ), topleft_uv, bottomright_uv, IM_COL32( rgba.r, rgba.g, rgba.b, rgba.a ) );
 	bg->PopTextureID();
-}
-
-UniformBlock UploadModelUniforms( const Mat3x4 & M ) {
-	return UploadUniformBlock( M );
-}
-
-UniformBlock UploadMaterialStaticUniforms( float specular, float shininess, float lod_bias ) {
-	return UploadUniformBlock( specular, shininess, lod_bias );
-}
-
-UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color ) {
-	return UploadUniformBlock( color );
 }
 
 Optional< ModelRenderData > FindModelRenderData( StringHash name ) {

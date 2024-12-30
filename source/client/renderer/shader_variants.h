@@ -84,8 +84,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.features = {
 					"APPLY_DRAWFLAT",
 					"APPLY_FOG",
-					"APPLY_DECALS",
-					"APPLY_DLIGHTS",
+					"APPLY_DYNAMICS",
 					"APPLY_SHADOWS",
 					"SHADED",
 				},
@@ -141,7 +140,11 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 			},
 
 			GraphicsShaderDescriptor {
-				.field = &Shaders::particle,
+				.field = &Shaders::particle_add,
+				.src = "particle.hlsl",
+			},
+			GraphicsShaderDescriptor {
+				.field = &Shaders::particle_blend,
 				.src = "particle.hlsl",
 			},
 		},

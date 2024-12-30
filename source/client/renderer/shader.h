@@ -6,6 +6,8 @@ struct Shaders {
 	PoolHandle< RenderPipeline > standard;
 	PoolHandle< RenderPipeline > standard_shaded;
 	PoolHandle< RenderPipeline > standard_vertexcolors;
+	PoolHandle< RenderPipeline > standard_vertexcolors_add;
+	PoolHandle< RenderPipeline > standard_vertexcolors_blend;
 
 	PoolHandle< RenderPipeline > standard_skinned;
 	PoolHandle< RenderPipeline > standard_skinned_shaded;
@@ -29,7 +31,8 @@ struct Shaders {
 	PoolHandle< ComputePipeline > particle_compute;
 	PoolHandle< ComputePipeline > particle_setup_indirect;
 
-	PoolHandle< RenderPipeline > particle;
+	PoolHandle< RenderPipeline > particle_add;
+	PoolHandle< RenderPipeline > particle_blend;
 
 	PoolHandle< ComputePipeline > tile_culling;
 

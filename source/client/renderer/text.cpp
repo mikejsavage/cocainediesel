@@ -126,7 +126,7 @@ void DrawText( const Font * font, float pixel_size, Span< const char > str, floa
 		.color = color,
 		.border_color = Default( border, Vec4( 0.0f ) ),
 		.dSDF_dTexel = font->dSDF_dTexel,
-		.has_border = border.exists ? 1 : 0,
+		.has_border = border.exists ? 1_u32 : 0_u32,
 	} ) };
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();

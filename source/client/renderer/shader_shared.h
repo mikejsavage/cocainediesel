@@ -6,7 +6,6 @@
   #define shaderconst constexpr
 #else
   #define shaderconst static const
-  typedef int32_t s32;
   typedef uint32_t u32;
   typedef float2 Vec2;
   typedef float3 Vec3;
@@ -59,7 +58,7 @@ struct TextUniforms {
 	Vec4 color;
 	Vec4 border_color;
 	float dSDF_dTexel;
-	s32 has_border;
+	u32 has_border;
 };
 
 struct ViewUniforms {
@@ -70,8 +69,8 @@ struct ViewUniforms {
 	Vec3 camera_pos;
 	Vec2 viewport_size;
 	float near_clip;
-	int msaa_samples;
-	Vec3 light_direction;
+	u32 msaa_samples;
+	Vec3 sun_direction;
 };
 
 struct ShadowMapUniforms {
@@ -83,10 +82,10 @@ struct ShadowMapUniforms {
 
 	Mat3x4 shadow_view_projection;
 	Cascade cascades[ 4 ];
-	s32 num_cascades;
+	u32 num_cascades;
 };
 
-struct MaterialStaticUniforms {
+struct MaterialProperties {
 	float specular;
 	float shininess;
 	float lod_bias;
@@ -163,10 +162,17 @@ struct PostprocessUniforms {
 	float contrast;
 };
 
-struct TileCullingUniforms {
+struct TileCullingDimensions {
 	u32 rows, cols;
+};
+
+struct TileCountsUniforms {
 	u32 num_decals;
 	u32 num_dlights;
+};
+
+struct TileIndices {
+	u32 indices[ FORWARD_PLUS_TILE_CAPACITY ];
 };
 
 #endif // header guard

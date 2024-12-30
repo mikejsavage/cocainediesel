@@ -34,7 +34,7 @@ struct FrameStatic {
 	Vec2 viewport;
 	bool viewport_resized;
 	float aspect_ratio;
-	int msaa_samples;
+	u32 msaa_samples;
 	ShadowQuality shadow_quality;
 	ShadowParameters shadow_parameters;
 
@@ -42,9 +42,9 @@ struct FrameStatic {
 	GPUBuffer ortho_view_uniforms;
 	GPUBuffer shadowmap_view_uniforms[ 4 ];
 	GPUBuffer shadow_uniforms;
-	GPUBuffer identity_model_uniforms;
-	GPUBuffer identity_material_static_uniforms;
-	GPUBuffer identity_material_dynamic_uniforms;
+	GPUBuffer identity_model_transform_uniforms;
+	GPUBuffer identity_material_properties_uniforms;
+	GPUBuffer identity_material_color_uniforms;
 
 	Mat3x4 V, inverse_V;
 	Mat4 P, inverse_P;
@@ -87,26 +87,4 @@ void Draw2DBox( float x, float y, float w, float h, const Material * material, V
 void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color );
 // void DrawRotatedBox( float x, float y, float w, float h, float angle, const Material * material, RGBA8 color );
 
-struct DynamicDrawData {
-	VertexDescriptor vertex_descriptor;
-	size_t base_vertex;
-	size_t first_index;
-	size_t num_vertices;
-};
-
-DynamicDrawData UploadDynamicGeometry( Span< const u8 > vertices, Span< const u16 > indices, const VertexDescriptor & vertex_descriptor );
-void DrawDynamicGeometry( const PipelineState & pipeline, const DynamicDrawData & data, Optional< size_t > override_num_vertices = NONE, size_t extra_first_index = 0 );
-
-template< typename T >
-void DrawDynamicGeometry( const PipelineState & pipeline, Span< T > vertices, Span< const u16 > indices, const VertexDescriptor & vertex_descriptor ) {
-	DynamicDrawData data = UploadDynamicGeometry( vertices.template cast< const u8 >(), indices, vertex_descriptor );
-	DrawDynamicGeometry( pipeline, data );
-}
-
-GPUBuffer UploadModelUniforms( const Mat3x4 & M );
-GPUBuffer UploadMaterialStaticUniforms( float specular, float shininess, float lod_bias = 0.0f );
-GPUBuffer UploadMaterialDynamicUniforms( const Vec4 & color );
-
 const char * ShadowQualityToString( ShadowQuality mode );
-
-void DrawModelInstances();

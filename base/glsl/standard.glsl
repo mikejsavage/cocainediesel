@@ -9,19 +9,6 @@ v2f vec3 v_Position;
 v2f vec3 v_Normal;
 v2f vec2 v_TexCoord;
 
-#ifdef INSTANCED
-struct Instance {
-	AffineTransform transform;
-	vec4 color;
-};
-
-layout( std430 ) readonly buffer b_Instances {
-	Instance instances[];
-};
-
-v2f flat int v_Instance;
-#endif
-
 // layout( constant_id = 0 ) const bool VertexColors = false;
 
 #if VERTEX_COLORS

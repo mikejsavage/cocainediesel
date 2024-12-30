@@ -1272,11 +1272,6 @@ static Optional< Clay_BorderElementConfig > CheckClayBorderConfig( lua_State * L
 	return border;
 }
 
-static Clay_RenderCommandType CheckClayNodeType( lua_State * L, int idx ) {
-	luaL_checktype( L, -1, LUA_TLIGHTUSERDATA );
-	return checked_cast< Clay_RenderCommandType >( checked_cast< uintptr_t >( lua_touserdata( L, idx ) ) );
-}
-
 static void DrawClayNodeRecursive( lua_State * L ) {
 	luaL_checktype( L, -1, LUA_TTABLE );
 

@@ -159,7 +159,8 @@ static void SubmitDrawCalls() {
 		return;
 	draw_data->ScaleClipRects( io.DisplayFramebufferScale );
 
-	GPUBuffer lodbias_uniforms = NewTempBuffer( MaterialStaticUniforms { .lod_bias = -1.0f } );
+	// TODO: use these
+	GPUBuffer lodbias_uniforms = NewTempBuffer( MaterialProperties { .lod_bias = -1.0f } );
 
 	u32 pass = 0;
 
@@ -218,8 +219,8 @@ static void SubmitDrawCalls() {
 					// pipeline.bind_uniform( "u_MaterialStatic", lodbias_uniforms );
 
 					BoundedDynamicArray< BufferBinding, 3 > bindings = {
-						{ "u_Model", frame_static.identity_model_uniforms },
-						{ "u_MaterialDynamic", frame_static.identity_material_dynamic_uniforms },
+						{ "u_Model", frame_static.identity_model_transform_uniforms },
+						{ "u_MaterialDynamic", frame_static.identity_material_properties_uniforms },
 					};
 
 					if( pcmd->TextureId.buffer.name != EMPTY_HASH ) {
@@ -231,8 +232,8 @@ static void SubmitDrawCalls() {
 						pipeline,
 						mesh,
 						{
-							{ "u_Model", frame_static.identity_model_uniforms },
-							{ "u_MaterialDynamic", frame_static.identity_material_dynamic_uniforms },
+							{ "u_Model", frame_static.identity_model_transform_uniforms },
+							{ "u_MaterialDynamic", frame_static.identity_material_properties_uniforms },
 						},
 						{ .override_num_vertices = pcmd->ElemCount, .first_index = pcmd->IdxOffset }
 					);

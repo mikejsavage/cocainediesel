@@ -1,6 +1,9 @@
 #pragma once
 
-#include "api.h"
+#include "client/renderer/api.h"
+
+void InitRenderBackend( GLFWwindow * window );
+void ShutdownRenderBackend();
 
 struct CoherentMemory {
 	PoolHandle< GPUAllocation > allocation;

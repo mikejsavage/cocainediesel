@@ -435,7 +435,7 @@ static void DrawSilhouettes() {
 }
 
 static void DrawOutlines() {
-	bool msaa = frame_static.msaa_samples >= 1;
+	bool msaa = frame_static.msaa_samples > 1;
 
 	constexpr RGBA8 gray = RGBA8( 30, 30, 30 );
 
@@ -448,14 +448,14 @@ static void DrawOutlines() {
 				{ "u_OutlineColor", NewTempBuffer( sRGBToLinear( gray ) ) },
 			},
 			.textures = {
-				{ "u_DepthTexture", ... },
-				{ "u_CurvedSurfaceMask", ... },
+				{ "u_DepthTexture", frame_static.resolved_depth },
+				{ "u_CurvedSurfaceMask", frame_static.curved_surface_mask },
 			},
 		},
 	} );
 
 	PipelineState pipeline = {
-		.shader = msaa ? &shaders.postprocess_world_gbuffer_msaa : &shaders.postprocess_world_gbuffer,
+		.shader = msaa ? shaders.postprocess_world_gbuffer_msaa : shaders.postprocess_world_gbuffer,
 		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
 	};
 	// pipeline.blend_func = BlendFunc_Blend;

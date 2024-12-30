@@ -1,19 +1,23 @@
 #include "../../source/client/renderer/shader_shared.h"
 #include "include/skinning.hlsl"
 
+[[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
+[[vk::binding( 0, DescriptorSet_DrawCall )]] StructuredBuffer< float4x4 > u_Model;
+#if SKINNED
+[[vk::binding( 1, DescriptorSet_DrawCall )]] StructuredBuffer< Pose > u_Pose;
+#endif
+
 struct VertexInput {
 	[[vk::location( VertexAttribute_Position )]] float3 position : SV_Position;
+#if SKINNED
 	[[vk::location( VertexAttribute_JointIndices )]] uint4 indices : BLENDINDICES;
 	[[vk::location( VertexAttribute_JointWeights )]] float4 weights : BLENDWEIGHT;
+#endif
 };
 
 struct VertexOutput {
 	float4 position : SV_Position;
 };
-
-[[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
-[[vk::binding( 0, DescriptorSet_DrawCall )]] StructuredBuffer< float4x4 > u_Model;
-[[vk::binding( 1, DescriptorSet_DrawCall )]] StructuredBuffer< Pose > u_Pose;
 
 VertexOutput VertexMain( VertexInput input ) {
 	VertexOutput output;

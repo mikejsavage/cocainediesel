@@ -764,11 +764,11 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		};
 
 		EncodeComputeCall( RenderPass_ParticleSetupIndirect, shaders.particle_setup_indirect, 1, 1, 1, {
-			BufferBinding { "b_NextComputeCount", ps->compute_count1 },
-			BufferBinding { "b_ComputeCount", ps->compute_count2 },
-			BufferBinding { "b_ComputeIndirect", ps->compute_indirect },
-			BufferBinding { "b_DrawIndirect", ps->draw_indirect },
-			BufferBinding { "b_ParticleUpdate", NewTempBuffer( new_particles ) },
+			{ "b_NextComputeCount", ps->compute_count1 },
+			{ "b_ComputeCount", ps->compute_count2 },
+			{ "b_ComputeIndirect", ps->compute_indirect },
+			{ "b_DrawIndirect", ps->draw_indirect },
+			{ "b_ParticleUpdate", NewTempBuffer( new_particles ) },
 		} );
 	}
 
@@ -778,7 +778,7 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 
 static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	PipelineState pipeline = {
-		.shader = shaders.particle, // TODO: blend/add
+		.shader = ps->blend_func == BlendFunc_Add ? shaders.particle_add : shaders.particle_blend,
 		.dynamic_state = { .depth_func = DepthFunc_LessNoWrite },
 		.material_bind_group = DecalAtlasBindGroup(),
 	};
@@ -796,6 +796,18 @@ void DrawParticles() {
 	float dt = cls.frametime / 1000.0f;
 
 	s64 total_new_particles = addParticleSystem.num_new_particles + blendParticleSystem.num_new_particles;
+
+	// TODO: probably merge these into one pass
+	frame_static.render_passes[ RenderPass_ParticleUpdate ] = NewComputePass( ComputePassConfig {
+		.name = "Update particles",
+		// .signal = ...,
+	} );
+
+	frame_static.render_passes[ RenderPass_ParticleSetupIndirect ] = NewComputePass( ComputePassConfig {
+		.name = "Particle setup indirect",
+		// .wait = ...,
+		// .signal = ...,
+	} );
 
 	UpdateParticleSystem( &addParticleSystem, dt );
 	DrawParticleSystem( &addParticleSystem, dt );

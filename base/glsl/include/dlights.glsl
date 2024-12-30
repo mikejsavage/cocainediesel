@@ -1,23 +1,6 @@
-struct DynamicLightTile {
-	uint indices[ FORWARD_PLUS_TILE_CAPACITY ];
-};
-
-layout( std430 ) readonly buffer b_DynamicLightTiles {
-	DynamicLightTile dlight_tiles[];
-};
-
-struct DynamicLight {
-	vec3 origin_color;
-	float radius;
-};
-
-layout( std430 ) readonly buffer b_DynamicLights {
-	DynamicLight dlights[];
-};
-
-void applyDynamicLights( uint count, int tile_index, vec3 position, vec3 normal, vec3 viewDir, inout vec3 lambertlight, inout vec3 specularlight ) {
+void AddDynamicLights( uint count, int tile_index, vec3 position, vec3 normal, vec3 viewDir, inout vec3 lambertlight, inout vec3 specularlight ) {
 	for( uint i = 0; i < count; i++ ) {
-		DynamicLight dlight = dlights[ dlight_tiles[ tile_index ].indices[ i ] ];
+		DynamicLight dlight = u_Dlights[ u_DlightTiles[ tile_index ].indices[ i ] ];
 
 		vec3 origin = floor( dlight.origin_color.xyz );
 		vec3 dlight_color = fract( dlight.origin_color.xyz ) / 0.9;

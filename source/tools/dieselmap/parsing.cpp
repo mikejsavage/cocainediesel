@@ -17,12 +17,12 @@ static Span< const char > ParseRange( Span< const char > str, char lo, char hi )
 	return str.n > 0 && str[ 0 ] >= lo && str[ 0 ] <= hi ? str + 1 : NullSpan;
 }
 
-static Span< const char > ParseSet( Span< const char > str, const char * set ) {
+static Span< const char > ParseSet( Span< const char > str, Span< const char > set ) {
 	if( str.n == 0 )
 		return NullSpan;
 
-	for( size_t i = 0; i < strlen( set ); i++ ) {
-		if( str[ 0 ] == set[ i ] ) {
+	for( char c : set ) {
+		if( str[ 0 ] == c ) {
 			return str + 1;
 		}
 	}
@@ -30,12 +30,12 @@ static Span< const char > ParseSet( Span< const char > str, const char * set ) {
 	return NullSpan;
 }
 
-static Span< const char > ParseNotSet( Span< const char > str, const char * set ) {
+static Span< const char > ParseNotSet( Span< const char > str, Span< const char > set ) {
 	if( str.n == 0 )
 		return NullSpan;
 
-	for( size_t i = 0; i < strlen( set ); i++ ) {
-		if( str[ 0 ] == set[ i ] ) {
+	for( char c : set ) {
+		if( str[ 0 ] == c ) {
 			return NullSpan;
 		}
 	}
@@ -128,7 +128,7 @@ Span< const char > ParseUpToN( BoundedDynamicArray< T, N > * array, Span< const 
 	}
 }
 
-static constexpr const char * whitespace_chars = " \r\n\t";
+static constexpr Span< const char > whitespace_chars = " \r\n\t";
 
 static Span< const char > SkipWhitespace( Span< const char > str ) {
 	return ParseNOrMore( str, 0, []( Span< const char > str ) {
@@ -136,13 +136,11 @@ static Span< const char > SkipWhitespace( Span< const char > str ) {
 	} );
 }
 
-static Span< const char > SkipLiteral( Span< const char > str, const char * lit ) {
-	// TODO: startswith? should move string parsing shit from gameshared to common
-	size_t lit_len = strlen( lit );
-	return str.n >= lit_len && memcmp( str.ptr, lit, lit_len ) == 0 ? str + lit_len : NullSpan;
+static Span< const char > SkipLiteral( Span< const char > str, Span< const char > lit ) {
+	return StartsWith( str, lit ) ? str + lit.n : NullSpan;
 }
 
-static Span< const char > SkipToken( Span< const char > str, const char * token ) {
+static Span< const char > SkipToken( Span< const char > str, Span< const char > token ) {
 	str = SkipWhitespace( str );
 	str = SkipLiteral( str, token );
 	return str;

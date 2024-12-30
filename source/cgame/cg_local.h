@@ -372,8 +372,6 @@ void MaybeResetShadertoyTime( bool respawned );
 // cg_lents.c
 //
 
-void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius );
-
 void InitGibs();
 void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 team_color );
 void DrawGibs();

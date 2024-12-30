@@ -1160,8 +1160,6 @@ void CL_Init() {
 
 	CL_InitImGui();
 	UI_Init();
-
-	UI_ShowMainMenu();
 }
 
 void CL_Shutdown() {

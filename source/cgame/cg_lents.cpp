@@ -8,12 +8,6 @@ static float RandomRadians() {
 	return RandomUniformFloat( &cls.rng, 0.0f, Radians( 360.0f ) );
 }
 
-void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius ) {
-	// TODO: radius is just ignored?
-	DoVisualEffect( "loadout/_effects/explosion", pos, dir, 1.0f, white.vec4 );
-	PlaySFX( "models/bomb/explode", PlaySFXConfigPosition( pos ) );
-}
-
 struct Gib {
 	Vec3 origin;
 	Vec3 velocity;

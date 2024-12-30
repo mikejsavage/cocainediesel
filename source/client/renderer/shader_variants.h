@@ -50,9 +50,13 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 	pos_normal_uv_skinned.buffer_strides[ 0 ] = sizeof( u16 ) * 3;
 	pos_normal_uv_skinned.buffer_strides[ 1 ] = sizeof( u16 ) * 2 + sizeof( u16 ) * 2 + sizeof( u8 ) * 4 + sizeof( u16 ) * 4;
 
+	VertexDescriptor pos3_vertex_descriptor = { };
+	pos3_vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, 0 },
+	pos3_vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec3 );
+
 	VertexDescriptor skybox_vertex_descriptor = { };
-	skybox_vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, 0 },
-	skybox_vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec3 );
+	skybox_vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx4, 0, 0 },
+	skybox_vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec4 );
 
 	VertexDescriptor text_vertex_descriptor = { };
 	text_vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, 0 };
@@ -118,6 +122,12 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.src = "outline.hlsl",
 				.features = { "SKINNED" },
 				.mesh_variants = { pos_normal_uv_skinned },
+			},
+
+			GraphicsShaderDescriptor {
+				.field = &Shaders::scope,
+				.src = "scope.hlsl",
+				.mesh_variants = { pos3_vertex_descriptor },
 			},
 
 			GraphicsShaderDescriptor {

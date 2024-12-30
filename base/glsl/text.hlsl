@@ -48,7 +48,7 @@ float4 SampleMSDF( float2 uv, float half_pixel_size ) {
 #if DEPTH_ONLY
 void FragmentMain( VertexOutput v ) {
 #else
-float4 FragmentMain( VertexOutput v ) : SV_Target0 {
+float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
 #endif
 	float2 fw = fwidth( v.uv );
 	float2 texture_size;

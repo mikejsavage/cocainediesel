@@ -1,7 +1,7 @@
 const float FOG_STRENGTH = 0.0007f;
 
 float3 Fog( float3 color, float dist ) {
-	float3 fog_color = float3( 0.0f );
+	float3 fog_color = 0.0f;
 	float fog_amount = 1.0f - exp( -FOG_STRENGTH * dist );
 	return lerp( color, fog_color, fog_amount );
 }
@@ -27,8 +27,8 @@ float VoidFogAlpha( float alpha, float height ) {
 }
 
 float3 VoidFog( float3 color, float2 frag_coord, float depth ) {
-	float4 clip = float4( float3( frag_coord / u_View[ 0 ].viewport_size, depth ) * 2.0f - 1.0f, 1.0f );
-	float4 world = u_View[ 0 ].inverse_P * clip;
+	float4 clip_pos = float4( float3( frag_coord / u_View[ 0 ].viewport_size, depth ) * 2.0f - 1.0f, 1.0f );
+	float4 world = mul( u_View[ 0 ].inverse_P, clip_pos );
 	float height = mul( u_View[ 0 ].inverse_V, world / world.w ).z;
 	return VoidFog( color, height );
 }
@@ -38,8 +38,8 @@ float3 VoidFog( float3 color, float2 frag_coord ) {
 }
 
 float VoidFogAlpha( float alpha, float2 frag_coord, float depth ) {
-	float4 clip = float4( float3( frag_coord / u_View[ 0 ].viewport_size, depth ) * 2.0f - 1.0f, 1.0f );
-	float4 world = u_View[ 0 ].inverse_P * clip;
+	float4 clip_pos = float4( float3( frag_coord / u_View[ 0 ].viewport_size, depth ) * 2.0f - 1.0f, 1.0f );
+	float4 world = mul( u_View[ 0 ].inverse_P, clip_pos );
 	float height = mul( u_View[ 0 ].inverse_V, world / world.w ).z;
 	return VoidFogAlpha( alpha, height );
 }

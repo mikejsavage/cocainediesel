@@ -73,14 +73,14 @@ struct ViewUniforms {
 	Vec3 sun_direction;
 };
 
-struct ShadowMapUniforms {
+struct ShadowmapUniforms {
 	struct Cascade {
 		float plane;
 		Vec3 offset;
 		Vec3 scale;
 	};
 
-	Mat3x4 shadow_view_projection;
+	Mat3x4 VP;
 	Cascade cascades[ 4 ];
 	u32 num_cascades;
 };

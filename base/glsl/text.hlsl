@@ -1,4 +1,5 @@
 #include "../../source/client/renderer/shader_shared.h"
+#include "include/common.hlsl"
 
 struct VertexInput {
 	[[vk::location( VertexAttribute_Position )]] float4 position : SV_Position;
@@ -16,7 +17,7 @@ struct VertexOutput {
 
 VertexOutput VertexMain( VertexInput input ) {
 	VertexOutput output;
-	output.position = mul( u_View[ 0 ].P * u_View[ 0 ].V, input.position );
+	output.position = mul( u_View[ 0 ].P, mul34( u_View[ 0 ].V, input.position ) );
 	output.uv = input.uv;
 	return output;
 }

@@ -1,15 +1,7 @@
-struct Pose {
-	float3x4 pose[ SKINNED_MODEL_MAX_JOINTS ];
-};
+#if SKINNED
 
-float3x3 Adjugate( float3x4 m ) {
-    return float3x3(
-		cross( m[ 1 ], m[ 2 ] ),
-		cross( m[ 2 ], m[ 0 ] ),
-		cross( m[ 0 ], m[ 1 ] )
-	);
+float3x4 SkinningMatrix( uint4 indices, float4 weights ) {
+	return weights.x * u_Pose[ indices.x ] + weights.y * u_Pose[ indices.y ] + weights.z * u_Pose[ indices.z ] + weights.w * u_Pose[ indices.w ];
 }
 
-float3x4 SkinningMatrix( uint4 indices, float4 weights, Pose pose ) {
-	return weights.x * pose.pose[ indices.x ] + weights.y * pose.pose[ indices.y ] + weights.z * pose.pose[ indices.z ] + weights.w * pose.pose[ indices.w ];
-}
+#endif

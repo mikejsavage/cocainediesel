@@ -2,6 +2,10 @@
 #include "include/common.glsl"
 #include "include/fog.glsl"
 
+float LinearizeDepth( float ndc ) {
+	return u_NearClip / ( 1.0 - ndc );
+}
+
 layout( std140 ) uniform u_Outline {
 	vec4 u_OutlineColor;
 };

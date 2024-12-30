@@ -36,6 +36,10 @@ float2 DecalUV( float4 uvwh, float3 pos, float3 bottom_left, float3 basis_u, flo
 	return uv;
 }
 
+float3x3 float3x4_to_3x3( float3x4 m ) {
+	return float3x3( m[ 0 ].xyz, m[ 1 ].xyz, m[ 2 ].xyz );
+}
+
 void AddDecals( float3 vertex_position, uint count, int tile_index, inout float4 diffuse, inout float3 surface_normal ) {
 	float accumulated_alpha = 1.0f;
 	float3 accumulated_color = 0.0f;
@@ -80,7 +84,7 @@ void AddDecals( float3 vertex_position, uint count, int tile_index, inout float4
 			float2 dUV_dx = DecalUV( uvwh, vertex_position + dPos_dx, bottom_left, tangent, bitangent ) - uv;
 			float2 dUV_dy = DecalUV( uvwh, vertex_position + dPos_dy, bottom_left, tangent, bitangent ) - uv;
 
-			float alpha = u_DecalAtlases.SampleGrad( float3( uv, layer ), dUV_dx, dUV_dy );
+			float alpha = u_DecalAtlases.SampleGrad( u_StandardSampler, float3( uv, layer ), dUV_dx, dUV_dy );
 			float inv_cos_45_degrees = 1.41421356237f;
 			float decal_alpha = min( 1.0f, alpha * decal_color.a * max( 0.0f, dot( decal_normal, surface_normal ) * inv_cos_45_degrees ) );
 			accumulated_color += decal_color.rgb * decal_alpha * accumulated_alpha;
@@ -90,7 +94,7 @@ void AddDecals( float3 vertex_position, uint count, int tile_index, inout float4
 	}
 
 	float3 decal_normal = float3( ddx( accumulated_alpha ), ddy( accumulated_alpha ), 0.0f ) * accumulated_height;
-	decal_normal = float3x3( u_View[ 0 ].inverse_V ) * decal_normal;
+	decal_normal = mul( Adjugate( u_View[ 0 ].inverse_V ), decal_normal );
 	surface_normal = normalize( surface_normal + decal_normal );
 
 	diffuse.rgb = diffuse.rgb * accumulated_alpha + accumulated_color;

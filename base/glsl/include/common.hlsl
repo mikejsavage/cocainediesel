@@ -81,3 +81,26 @@ float3x3 Adjugate( float3x4 m ) {
 float4 mul34( float3x4 m, float4 v ) {
 	return float4( mul( m, v ), v.w );
 }
+
+float3x4 mul34( float3x4 lhs, float3x4 rhs ) {
+	float4 col0 = float4( rhs._m00_m10_m20, 0.0f );
+	float4 col1 = float4( rhs._m01_m11_m21, 0.0f );
+	float4 col2 = float4( rhs._m02_m12_m22, 0.0f );
+	float4 col3 = float4( rhs._m03_m13_m23, 1.0f );
+	return float3x4(
+		dot( lhs[ 0 ], col0 ),
+		dot( lhs[ 0 ], col1 ),
+		dot( lhs[ 0 ], col2 ),
+		dot( lhs[ 0 ], col3 ),
+
+		dot( lhs[ 1 ], col0 ),
+		dot( lhs[ 1 ], col1 ),
+		dot( lhs[ 1 ], col2 ),
+		dot( lhs[ 1 ], col3 ),
+
+		dot( lhs[ 2 ], col0 ),
+		dot( lhs[ 2 ], col1 ),
+		dot( lhs[ 2 ], col2 ),
+		dot( lhs[ 2 ], col3 )
+	);
+}

@@ -1,21 +1,24 @@
 #include "include/common.hlsl"
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
-[[vk::binding( 1, DescriptorSet_RenderPass )]] Texture2DArray< float > u_BlueNoiseTexture;
+[[vk::binding( 1, DescriptorSet_RenderPass )]] Texture2D< float > u_BlueNoiseTexture;
 [[vk::binding( 2, DescriptorSet_RenderPass )]] SamplerState u_StandardSampler;
 #if APPLY_SHADOWS
-[[vk::binding( 2, DescriptorSet_RenderPass )]] StructuredBuffer< ShadowmapUniforms > u_Shadowmap;
-[[vk::binding( 3, DescriptorSet_RenderPass )]] Texture2DArray< float > u_ShadowmapTextureArray;
+[[vk::binding( 3, DescriptorSet_RenderPass )]] StructuredBuffer< ShadowmapUniforms > u_Shadowmap;
+[[vk::binding( 4, DescriptorSet_RenderPass )]] Texture2DArray< float > u_ShadowmapTextureArray;
+[[vk::binding( 5, DescriptorSet_RenderPass )]] SamplerComparisonState u_ShadowmapSampler;
 #endif
 #if APPLY_DYNAMICS
-[[vk::binding( 4, DescriptorSet_RenderPass )]] StructuredBuffer< TileCullingDimensions > u_TileDimensions;
-[[vk::binding( 5, DescriptorSet_RenderPass )]] StructuredBuffer< TileCountsUniforms > u_TileCounts;
-[[vk::binding( 6, DescriptorSet_RenderPass )]] StructuredBuffer< TileIndices > u_DecalTiles;
-[[vk::binding( 7, DescriptorSet_RenderPass )]] StructuredBuffer< TileIndices > u_DlightTiles;
-[[vk::binding( 8, DescriptorSet_RenderPass )]] StructuredBuffer< Decal > u_Decals;
-[[vk::binding( 9, DescriptorSet_RenderPass )]] StructuredBuffer< DynamicLight > u_Dlights;
-[[vk::binding( 10, DescriptorSet_RenderPass )]] Texture2DArray< float > u_DecalAtlases;
+[[vk::binding( 6, DescriptorSet_RenderPass )]] StructuredBuffer< TileCullingDimensions > u_TileDimensions;
+[[vk::binding( 7, DescriptorSet_RenderPass )]] StructuredBuffer< TileCountsUniforms > u_TileCounts;
+[[vk::binding( 8, DescriptorSet_RenderPass )]] StructuredBuffer< TileIndices > u_DecalTiles;
+[[vk::binding( 9, DescriptorSet_RenderPass )]] StructuredBuffer< TileIndices > u_DlightTiles;
+[[vk::binding( 10, DescriptorSet_RenderPass )]] StructuredBuffer< Decal > u_Decals;
+[[vk::binding( 11, DescriptorSet_RenderPass )]] StructuredBuffer< DynamicLight > u_Dlights;
+[[vk::binding( 12, DescriptorSet_RenderPass )]] Texture2DArray< float > u_DecalAtlases;
 #endif
+
+#include "include/standard_material.hlsl"
 
 [[vk::binding( 0, DescriptorSet_DrawCall )]] StructuredBuffer< float3x4 > u_ModelTransform;
 
@@ -26,12 +29,11 @@
 
 #include "include/decals.hlsl"
 #include "include/dither.hlsl"
+#include "include/lighting.hlsl"
 #include "include/dlights.hlsl"
 #include "include/fog.hlsl"
-#include "include/lighting.hlsl"
 #include "include/shadows.hlsl"
 #include "include/skinning.hlsl"
-#include "include/standard_material.hlsl"
 
 struct VertexInput {
 	[[vk::location( VertexAttribute_Position )]] float3 position : SV_Position;
@@ -48,7 +50,7 @@ struct VertexInput {
 
 struct VertexOutput {
 	float3 world_position : POSITION;
-	float3 position : SV_Position;
+	float4 position : SV_Position;
 	float3 normal : NORMAL;
 #if VERTEX_COLORS
 	float4 color : COLOR;
@@ -60,12 +62,12 @@ VertexOutput VertexMain( VertexInput input ) {
 	float3x4 M = u_ModelTransform[ 0 ];
 
 #if SKINNED
-	M = mul( M, SkinningMatrix( input.indices, input.weights ) );
+	M = mul34( M, SkinningMatrix( input.indices, input.weights ) );
 #endif
 
 	VertexOutput output;
 	output.world_position = mul34( M, float4( input.position, 1.0f ) ).xyz;
-	output.position = mul( u_View[ 0 ].P, mul34( u_View[ 0 ].V, float4( output.world_position, 1.0f ) ) ).xyz;
+	output.position = mul( u_View[ 0 ].P, mul34( u_View[ 0 ].V, float4( output.world_position, 1.0f ) ) );
 	output.normal = mul( Adjugate( M ), input.normal );
 	output.uv = input.uv;
 #if VERTEX_COLORS
@@ -130,7 +132,7 @@ FragmentOutput FragmentMain( VertexOutput v ) {
 
 #if APPLY_FOG
 	albedo.rgb = Fog( albedo.rgb, length( v.world_position - u_View[ 0 ].camera_pos ) );
-	albedo.rgb += Dither();
+	albedo.rgb += Dither( v.position.xy );
 #endif
 
 	albedo.rgb = VoidFog( albedo.rgb, v.world_position.z );

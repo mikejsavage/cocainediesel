@@ -101,8 +101,8 @@ static bool CompileGraphicsShader( TempAllocator & temp, Span< const char > file
 		commands.add( temp( "spirv-cross --msl --msl-version 20000 --msl-argument-buffers --msl-argument-buffer-tier 1 --msl-force-active-argument-buffer-resources --rename-entry-point main vertex_main vert --output {}.vert.metal {}.vert.spv", out_path, out_path ) );
 		commands.add( temp( "spirv-cross --msl --msl-version 20000 --msl-argument-buffers --msl-argument-buffer-tier 1 --msl-force-active-argument-buffer-resources --rename-entry-point main fragment_main frag --output {}.frag.metal {}.frag.spv", out_path, out_path ) );
 
-		commands.add( temp( "xcrun -sdk macosx metal -c {}.vert.metal -o {}.vert.air 2> /dev/null", out_path, out_path ) );
-		commands.add( temp( "xcrun -sdk macosx metal -c {}.frag.metal -o {}.frag.air 2> /dev/null", out_path, out_path ) );
+		commands.add( temp( "xcrun -sdk macosx metal -c {}.vert.metal -o {}.vert.air", out_path, out_path ) );
+		commands.add( temp( "xcrun -sdk macosx metal -c {}.frag.metal -o {}.frag.air", out_path, out_path ) );
 		commands.add( temp( "xcrun -sdk macosx metallib {}.vert.air {}.frag.air -o {}.metallib", out_path, out_path, out_path ) );
 
 		files_to_remove.add( temp( "{}.vert.spv", out_path ) );

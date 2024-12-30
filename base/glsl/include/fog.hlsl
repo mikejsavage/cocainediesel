@@ -1,4 +1,4 @@
-const float FOG_STRENGTH = 0.0007f;
+static const float FOG_STRENGTH = 0.0007f;
 
 float3 Fog( float3 color, float dist ) {
 	float3 fog_color = 0.0f;
@@ -12,8 +12,8 @@ float FogAlpha( float color, float dist ) {
 	return lerp( color, fog_color, fog_amount );
 }
 
-const float VOID_FADE_START = -600.0f;
-const float VOID_FADE_END = -1300.0f;
+static const float VOID_FADE_START = -600.0f;
+static const float VOID_FADE_END = -1300.0f;
 
 float3 VoidFog( float3 color, float height ) {
 	float3 void_color = 0.01f;

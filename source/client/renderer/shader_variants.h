@@ -72,12 +72,12 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.features = { "VERTEX_COLORS" },
 				.mesh_variants = { pos_uv },
 			},
-			GraphicsShaderDescriptor {
-				.field = &Shaders::standard_skinned,
-				.src = "standard.hlsl",
-				.features = { "SKINNED" },
-				.mesh_variants = { pos_normal_uv_skinned },
-			},
+			// GraphicsShaderDescriptor {
+			// 	.field = &Shaders::standard_skinned,
+			// 	.src = "standard.hlsl",
+			// 	.features = { "SKINNED" },
+			// 	.mesh_variants = { pos_normal_uv_skinned },
+			// },
 			GraphicsShaderDescriptor {
 				.field = &Shaders::world,
 				.src = "standard.hlsl",
@@ -97,13 +97,13 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.mesh_variants = { pos_normal, pos_normal_uv },
 				// clamp depth
 			},
-			GraphicsShaderDescriptor {
-				.field = &Shaders::depth_only_skinned,
-				.src = "depth_only.hlsl",
-				.features = { "SKINNED" },
-				.mesh_variants = { pos_normal_uv_skinned },
-				// clamp depth
-			},
+			// GraphicsShaderDescriptor {
+			// 	.field = &Shaders::depth_only_skinned,
+			// 	.src = "depth_only.hlsl",
+			// 	.features = { "SKINNED" },
+			// 	.mesh_variants = { pos_normal_uv_skinned },
+			// 	// clamp depth
+			// },
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::outline,

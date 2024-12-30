@@ -3,7 +3,7 @@
 float SampleShadowmap( float2 base_uv, float u, float v, float2 inv_shadowmap_size, uint32_t cascadeIdx, float depth, float2 receiverPlaneDepthBias ) {
 	float2 uv = base_uv + float2( u, v ) * inv_shadowmap_size;
 	float z = depth + dot( float2( u, v ) * inv_shadowmap_size, receiverPlaneDepthBias );
-	return u_ShadowmapTextureArray.SampleCmp( float3( uv, cascadeIdx ), z );
+	return u_ShadowmapTextureArray.SampleCmp( u_ShadowmapSampler, float3( uv, cascadeIdx ), z );
 }
 
 float2 ComputeReceiverPlaneDepthBias( float3 texCoordDX, float3 texCoordDY ) {
@@ -17,7 +17,8 @@ float2 ComputeReceiverPlaneDepthBias( float3 texCoordDX, float3 texCoordDY ) {
 float3 GetShadowPosOffset( float nDotL, float3 normal ) {
 	const float offset_scale = 1.0f;
 	float2 shadowmap_size;
-	u_ShadowmapTextureArray.GetDimensions( shadowmap_size.x, shadowmap_size.y );
+	float dont_care_layers;
+	u_ShadowmapTextureArray.GetDimensions( shadowmap_size.x, shadowmap_size.y, dont_care_layers );
 	float2 inv_shadowmap_size = 1.0f / shadowmap_size;
 	float texelSize = 2.0f * inv_shadowmap_size.x;
 	float nmlOffsetScale = clamp( 1.0f - nDotL, 0.0f, 1.0f );
@@ -26,7 +27,8 @@ float3 GetShadowPosOffset( float nDotL, float3 normal ) {
 
 float SampleShadowmapOptimizedPCF( float3 shadowPos, float3 shadowPosDX, float3 shadowPosDY, uint32_t cascadeIdx ) {
 	float2 shadowmap_size;
-	u_ShadowmapTextureArray.GetDimensions( shadowmap_size.x, shadowmap_size.y );
+	float dont_care_layers;
+	u_ShadowmapTextureArray.GetDimensions( shadowmap_size.x, shadowmap_size.y, dont_care_layers );
 	float2 inv_shadowmap_size = 1.0f / shadowmap_size;
 
 	float lightDepth = shadowPos.z;
@@ -79,7 +81,7 @@ float SampleShadowmapOptimizedPCF( float3 shadowPos, float3 shadowPosDX, float3 
 	sum += uw1 * vw2 * SampleShadowmap( base_uv, u1, v2, inv_shadowmap_size, cascadeIdx, lightDepth, receiverPlaneDepthBias );
 	sum += uw2 * vw2 * SampleShadowmap( base_uv, u2, v2, inv_shadowmap_size, cascadeIdx, lightDepth, receiverPlaneDepthBias );
 
-	return sum * 1.0f / 144.0f;
+	return sum * ( 1.0f / 144.0f );
 }
 
 float ShadowCascade( float3 position, float3 normal, uint32_t cascadeIdx ) {

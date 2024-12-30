@@ -39,12 +39,17 @@ enum VertexAttributeType {
 	VertexAttribute_Count
 };
 
+#if __cplusplus
 enum FragmentShaderOutputType {
 	FragmentShaderOutput_Albedo,
 	FragmentShaderOutput_CurvedSurfaceMask,
 
 	FragmentShaderOutput_Count
 };
+#else
+#define FragmentShaderOutput_Albedo SV_Target0
+#define FragmentShaderOutput_CurvedSurfaceMask SV_Target1
+#endif
 
 enum DescriptorSetType {
 	DescriptorSet_RenderPass,
@@ -160,6 +165,12 @@ struct PostprocessUniforms {
 	float crt;
 	float brightness;
 	float contrast;
+};
+
+struct TileCullingInputs {
+	u32 rows, cols;
+	u32 num_decals;
+	u32 num_dlights;
 };
 
 struct TileCullingDimensions {

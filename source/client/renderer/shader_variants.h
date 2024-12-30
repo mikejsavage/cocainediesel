@@ -50,9 +50,9 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 	pos_normal_uv_skinned.buffer_strides[ 0 ] = sizeof( u16 ) * 3;
 	pos_normal_uv_skinned.buffer_strides[ 1 ] = sizeof( u16 ) * 2 + sizeof( u16 ) * 2 + sizeof( u8 ) * 4 + sizeof( u16 ) * 4;
 
-	VertexDescriptor pos3_vertex_descriptor = { };
-	pos3_vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, 0 },
-	pos3_vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec3 );
+	VertexDescriptor fullscreen_vertex_descriptor = { };
+	fullscreen_vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, 0 },
+	fullscreen_vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec3 );
 
 	VertexDescriptor skybox_vertex_descriptor = { };
 	skybox_vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx4, 0, 0 },
@@ -110,6 +110,23 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 			// },
 
 			GraphicsShaderDescriptor {
+				.field = &Shaders::write_silhouette_gbuffer,
+				.src = "write_silhouette_gbuffer.hlsl",
+				.mesh_variants = { pos_normal, pos_normal_uv },
+			},
+			// GraphicsShaderDescriptor {
+			// 	.field = &Shaders::write_silhouette_gbuffer_skinned,
+			// 	.src = "write_silhouette_gbuffer.hlsl",
+			// 	.features = { "SKINNED" },
+			// 	.mesh_variants = { pos_normal_uv_skinned },
+			// },
+			GraphicsShaderDescriptor {
+				.field = &Shaders::postprocess_silhouette_gbuffer,
+				.src = "postprocess_silhouette_gbuffer.hlsl",
+				.mesh_variants = { fullscreen_vertex_descriptor },
+			},
+
+			GraphicsShaderDescriptor {
 				.field = &Shaders::outline,
 				.src = "outline.hlsl",
 				.mesh_variants = {
@@ -117,17 +134,17 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 					{ pos_normal_uv },
 				},
 			},
-			GraphicsShaderDescriptor {
-				.field = &Shaders::outline_skinned,
-				.src = "outline.hlsl",
-				.features = { "SKINNED" },
-				.mesh_variants = { pos_normal_uv_skinned },
-			},
+			// GraphicsShaderDescriptor {
+			// 	.field = &Shaders::outline_skinned,
+			// 	.src = "outline.hlsl",
+			// 	.features = { "SKINNED" },
+			// 	.mesh_variants = { pos_normal_uv_skinned },
+			// },
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::scope,
 				.src = "scope.hlsl",
-				.mesh_variants = { pos3_vertex_descriptor },
+				.mesh_variants = { fullscreen_vertex_descriptor },
 			},
 
 			GraphicsShaderDescriptor {

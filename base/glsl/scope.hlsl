@@ -21,9 +21,9 @@ float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
 	const float4 crosshair_lines_color = float4( 0.0f, 0.0f, 0.0f, 1.0f );
 	const float4 vignette_color = float4( 0.0f, 0.0f, 0.0f, 1.0f );
 
-	float2 p = v.position.xy - u_View[ 0 ].viewport_size * 0.5;
+	float2 p = v.position.xy - u_View[ 0 ].viewport_size * 0.5f;
 
-	float radial_frac = length( p ) * 2.0 / min( u_View[ 0 ].viewport_size.x, u_View[ 0 ].viewport_size.y );
+	float radial_frac = length( p ) * 2.0f / min( u_View[ 0 ].viewport_size.x, u_View[ 0 ].viewport_size.y );
 	float cross_dist = min( abs( floor( p.x ) ), abs( floor( p.y ) ) );
 
 	float crosshair_frac = step( radial_frac, 0.035f );

@@ -56,7 +56,7 @@ T ClampedTextureLoad( Texture2D< T > tex, int2 uv ) {
 	float2 texture_size;
 	tex.GetDimensions( texture_size.x, texture_size.y );
 	uv = clamp( uv, 0, int2( texture_size ) - 1 );
-	return tex.Load( uv );
+	return tex.Load( int3( uv, 0 ) );
 }
 
 float4 ClampedTextureLoad( Texture2DMS< float > tex, int2 uv, int msaa_sample ) {

@@ -315,13 +315,6 @@ static void CreateRenderTargets() {
 		.msaa_samples = frame_static.msaa_samples,
 	}, frame_static.render_targets.curved_surface_mask );
 
-	frame_static.render_targets.depth = NewTexture( GPULifetime_Framebuffer, TextureConfig {
-		.format = TextureFormat_Depth,
-		.width = frame_static.viewport_width,
-		.height = frame_static.viewport_height,
-		.msaa_samples = frame_static.msaa_samples,
-	}, frame_static.render_targets.depth );
-
 	if( frame_static.msaa_samples > 1 ) {
 		frame_static.render_targets.msaa_color = NewTexture( GPULifetime_Framebuffer, TextureConfig {
 			.format = TextureFormat_RGBA_U8_sRGB,
@@ -329,9 +322,17 @@ static void CreateRenderTargets() {
 			.height = frame_static.viewport_height,
 			.msaa_samples = frame_static.msaa_samples,
 		}, frame_static.render_targets.msaa_color );
+
+		frame_static.render_targets.msaa_depth = NewTexture( GPULifetime_Framebuffer, TextureConfig {
+			.format = TextureFormat_Depth,
+			.width = frame_static.viewport_width,
+			.height = frame_static.viewport_height,
+			.msaa_samples = frame_static.msaa_samples,
+		}, frame_static.render_targets.msaa_depth );
 	}
 	else {
 		frame_static.render_targets.msaa_color = NONE;
+		frame_static.render_targets.msaa_depth = NONE;
 	}
 
 	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
@@ -361,7 +362,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadMaps();
 	HotloadVisualEffects();
 
-	RenderBackendBeginFrame( false );
+	frame_static.render_targets.swapchain = RenderBackendBeginFrame( false );
 
 	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer > 16 || r_samples->integer == 1 ) {
 		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
@@ -406,61 +407,27 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.identity_material_properties_uniforms = NewTempBuffer( MaterialProperties { .shininess = 64.0f } );
 	frame_static.identity_material_color_uniforms = NewTempBuffer( white.vec4 );
 
-	Vec4 clear_color = Vec4( 0.0f );
-	float clear_depth = 1.0f;
-
-	if( frame_static.msaa_samples > 1 ) {
-		frame_static.render_passes[ RenderPass_WorldOpaqueZPrepass ] = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.msaa, clear_color, clear_depth );
-		frame_static.render_passes[ RenderPass_WorldOpaque ] = AddRenderPass( RenderPassConfig {
-			.target = frame_static.render_targets.msaa_masked,
-			.barrier = true,
-			.tracy = &world_opaque_tracy,
-		} );
-
-		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.render_targets.msaa_masked );
-		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.render_targets.msaa );
-		AddRenderPass( RenderPassConfig {
-			.type = RenderPass_Blit,
-			.target = frame_static.render_targets.postprocess,
-			.blit_source = frame_static.render_targets.msaa,
-			.tracy = &msaa_tracy,
-		} );
-	}
-	else {
-		frame_static.render_passes[ RenderPass_WorldOpaqueZPrepass ] = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.postprocess, clear_color, clear_depth );
-		frame_static.render_passes[ RenderPass_WorldOpaque ] = AddRenderPass( RenderPassConfig {
-			.target = frame_static.render_targets.postprocess_masked,
-			.barrier = true,
-			.tracy = &world_opaque_tracy,
-		} );
-
-		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.render_targets.postprocess_masked );
-		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.render_targets.postprocess );
-	}
-
-	frame_static.render_passes[ RenderPass_SilhouetteGBuffer ] = AddRenderPass( &write_silhouette_buffer_tracy, frame_static.render_targets.silhouette_mask, clear_color, NONE );
-
-	frame_static.render_passes[ RenderPass_Transparent ] = AddRenderPass( RenderPassConfig {
-		.target = frame_static.render_targets.postprocess,
-		.barrier = true,
-		.tracy = &transparent_tracy,
-	} );
-
 	frame_static.render_passes[ RenderPass_UIBeforePostprocessing ] = AddRenderPass( RenderPassConfig {
 		.name = "UI before postprocessing",
-		.color_targets = { RenderPassConfig::ColorTarget { .texture = [to postprocess] } },
-		.wait = ...,
-		.signal = ...,
+		.color_targets = {
+			RenderPassConfig::ColorTarget {
+				.texture = frame_static.render_targets.swapchain,
+				.preserve_contents = false,
+			},
+		},
 		.representative_shader = shaders.standard_vertexcolors_blend,
-		.bindings = { { "u_View", frame_static.ortho_view_uniforms } },
+		.bindings = {
+			.buffers = { { "u_View", frame_static.ortho_view_uniforms } },
+		},
 	} );
 
 	frame_static.render_passes[ RenderPass_UIAfterPostprocessing ] = NewRenderPass( RenderPassConfig {
 		.name = "UI after postprocessing",
-		.color_targets = { RenderPassConfig::ColorTarget { .texture = swapchain } },
-		.wait = ...,
+		.color_targets = { RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.swapchain } },
 		.representative_shader = shaders.standard_vertexcolors_blend,
-		.bindings = { { "u_View", frame_static.ortho_view_uniforms } },
+		.bindings = {
+			.buffers = { { "u_View", frame_static.ortho_view_uniforms } },
+		},
 	} );
 }
 
@@ -528,14 +495,17 @@ void SetupShadowCascades() {
 			radius = Max2( radius, dist );
 		}
 		radius = roundf( radius * 16.0f ) / 16.0f;
-		shadow_camera_positions[ i ] = frustum_centers[ i ] - frame_static.light_direction * radius;
+		shadow_camera_positions[ i ] = frustum_centers[ i ] - frame_static.sun_direction * radius;
 
-		shadow_views[ i ] = ViewMatrix( shadow_camera_positions[ i ], frame_static.light_direction );
+		shadow_views[ i ] = ViewMatrix( shadow_camera_positions[ i ], frame_static.sun_direction );
 		shadow_projections[ i ] = OrthographicProjection( -radius, radius, radius, -radius, 0.0f, radius * 2.0f );
 	}
 
-	Vec3 cascade_offsets[ num_cascades ];
-	Vec3 cascade_scales[ num_cascades ];
+	ShadowmapUniforms uniforms = {
+		.VP = shadow_views[ 0 ],
+		.num_cascades = frame_static.shadow_parameters.num_cascades,
+	};
+
 	for( u32 i = 0; i < num_cascades; i++ ) {
 		Mat4 & shadow_projection = shadow_projections[ i + 1 ];
 		const Mat3x4 & shadow_view = shadow_views[ i + 1 ];
@@ -553,7 +523,13 @@ void SetupShadowCascades() {
 		}
 
 		Mat3x4 inv_shadow_view = InvertViewMatrix( shadow_view, shadow_camera_position );
-		frame_static.shadowmap_view_uniforms[ i ] = UploadViewUniforms( shadow_view, Mat3x4::Identity(), shadow_projection, Mat4::Identity(), shadow_camera_position, Vec2(), cascade_dist[ i ], 0, frame_static.light_direction );
+		frame_static.shadowmap_view_uniforms[ i ] = NewTempBuffer( ViewUniforms {
+			.V = shadow_view,
+			.P = shadow_projection,
+			.camera_pos = shadow_camera_position,
+			.near_clip = cascade_dist[ i ],
+			.sun_direction = frame_static.sun_direction,
+		} );
 
 		Mat4 inv_shadow_projection = InverseScaleTranslation( shadow_projection );
 
@@ -564,16 +540,14 @@ void SetupShadowCascades() {
 		Vec3 cascade_corner = ( inv_cascade * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xyz();
 		Vec3 other_corner = ( inv_cascade * Vec4( 1.0f, 1.0f, 1.0f, 1.0f ) ).xyz();
 
-		cascade_offsets[ i ] = -cascade_corner;
-		cascade_scales[ i ] = 1.0f / ( other_corner - cascade_corner );
+		uniforms.cascades[ i ] = {
+			.plane = cascade_dist[ i ],
+			.offset = -cascade_corner,
+			.scale = 1.0f / ( other_corner - cascade_corner ),
+		};
 	}
 
-	frame_static.shadow_uniforms = UploadUniformBlock(
-		s32( frame_static.shadow_parameters.num_cascades ), shadow_views[ 0 ],
-		cascade_dist[ 1 ], cascade_dist[ 2 ], cascade_dist[ 3 ], cascade_dist[ 4 ],
-		cascade_offsets[ 0 ], cascade_offsets[ 1 ], cascade_offsets[ 2 ], cascade_offsets[ 3 ],
-		cascade_scales[ 0 ], cascade_scales[ 1 ], cascade_scales[ 2 ], cascade_scales[ 3 ]
-	);
+	frame_static.shadow_uniforms = NewTempBuffer( uniforms );
 }
 
 void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) {
@@ -592,12 +566,12 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		t = Unlerp01( client_gs.gameState.sun_moved_from, cls.game_time, client_gs.gameState.sun_moved_to );
 	}
 	EulerDegrees3 sun_angles = LerpAngles( client_gs.gameState.sun_angles_from, t, client_gs.gameState.sun_angles_to );
-	AngleVectors( sun_angles, &frame_static.light_direction, NULL, NULL );
+	AngleVectors( sun_angles, &frame_static.sun_direction, NULL, NULL );
 
 	SetupShadowCascades();
 
 	frame_static.view_uniforms = NewTempBuffer( ViewUniforms {
-		.V = V,
+		.V = frame_static.V,
 		.inverse_V = frame_static.inverse_V,
 		.P = frame_static.P,
 		.inverse_P = frame_static.inverse_P,
@@ -605,23 +579,136 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		.viewport = frame_static.viewport,
 		.near_clip = near_plane,
 		.msaa_samples = frame_static.msaa_samples,
-		.sun_direction = frame_static.light_direction,
+		.sun_direction = frame_static.sun_direction,
 	} );
+
+	BoundedDynamicArray< BufferBinding, 16 > standard_buffers = {
+		{ "u_View", frame_static.view_uniforms },
+		{ "u_Shadowmap", frame_static.shadow_uniforms },
+		{ "u_TileDimensions", ... },
+		{ "u_TileCounts", ... },
+		{ "u_DecalTiles", ... },
+		{ "u_DlightTiles", ... },
+		{ "u_Decals", ... },
+		{ "u_Dlights", ... },
+	};
+
+	BoundedDynamicArray< GPUBindings::TextureBinding, 4 > standard_textures = {
+		{ "u_BlueNoiseTexture", BlueNoiseTexture() },
+		{ "u_ShadowmapTextureArray", ... },
+		{ "u_DecalAtlases", ... },
+	};
+
+	BoundedDynamicArray< GPUBindings::SamplerBinding, 2 > standard_samplers = {
+		{ "u_StandardSampler", Sampler_Standard },
+		{ "u_ShadowmapSampler", Sampler_Shadowmap },
+	};
+
+	GPUBindings standard_bindings = {
+		.buffers = standard_buffers.span(),
+		.textures = standard_textures.span(),
+		.samplers = standard_samplers.span(),
+	};
+
+	Vec4 clear_color = Vec4( 0.0f );
+	float clear_depth = 1.0f;
 
 	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
 		frame_static.render_passes[ RenderPass_ShadowmapCascade0 + i ] = NewRenderPass( RenderPassConfig {
 			.name = temp( "Shadowmap cascade {}", i ),
 			.depth_target = RenderPassConfig::DepthTarget {
-				.texture = frame_static.render_targets.shadowmaps[ i ],
+				.texture = frame_static.render_targets.shadowmaps[ i ].value,
 				.preserve_contents = false,
 				.clear = clear_depth,
 			},
 			.representative_shader = shaders.depth_only,
 			.bindings = {
-				{ "u_View", frame_static.view_uniforms },
+				.buffers = { { "u_View", frame_static.shadowmap_view_uniforms[ i ] } },
 			},
 		} );
 	}
+
+	if( frame_static.msaa_samples > 1 ) {
+		frame_static.render_passes[ RenderPass_WorldOpaqueZPrepass ] = NewRenderPass( RenderPassConfig {
+			.name = "World Z-prepass",
+			.depth_target = RenderPassConfig::DepthTarget {
+				.texture = frame_static.render_targets.msaa_depth.value,
+				.preserve_contents = false,
+				.clear = clear_depth,
+			},
+			.representative_shader = shaders.depth_only,
+			.bindings = {
+				.buffers = { { "u_View", frame_static.view_uniforms } },
+			},
+		} );
+
+		frame_static.render_passes[ RenderPass_WorldOpaque ] = NewRenderPass( RenderPassConfig {
+			.name = "World opaque",
+			.color_targets = {
+				RenderPassConfig::ColorTarget {
+					.texture = frame_static.render_targets.msaa_color.value,
+					.preserve_contents = false,
+					.clear = clear_color,
+				},
+				RenderPassConfig::ColorTarget {
+					.texture = frame_static.render_targets.curved_surface_mask.value,
+					.preserve_contents = false,
+					.clear = clear_color,
+				},
+			},
+			.depth_target = RenderPassConfig::DepthTarget {
+				.texture = frame_static.render_targets.msaa_depth.value,
+			},
+			.representative_shader = shaders.world,
+			.bindings = standard_bindings,
+		} );
+
+		frame_static.render_passes[ RenderPass_NonworldOpaqueOutlined ] = NewRenderPass( RenderPassConfig {
+			.name = "Nonworld opaque outlined",
+			.color_targets = {
+				RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.msaa_color.value },
+				RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.curved_surface_mask.value },
+			},
+			.depth_target = RenderPassConfig::DepthTarget { .texture = frame_static.render_targets.msaa_depth.value },
+			.representative_shader = shaders.world,
+			.bindings = standard_bindings,
+		} );
+
+		frame_static.render_passes[ RenderPass_NonworldOpaque ] = NewRenderPass( RenderPassConfig {
+			.name = "Nonworld opaque",
+			.color_targets = {
+				RenderPassConfig::ColorTarget {
+					.texture = frame_static.render_targets.msaa_color.value,
+					.resolve_target = frame_static.render_targets.resolved_color,
+				},
+			},
+			.depth_target = RenderPassConfig::DepthTarget {
+				.texture = frame_static.render_targets.msaa_depth.value,
+				.resolve_target = frame_static.render_targets.resolved_depth,
+			},
+			.representative_shader = shaders.world,
+			.bindings = standard_bindings,
+		} );
+	}
+	else {
+		frame_static.render_passes[ RenderPass_WorldOpaqueZPrepass ] = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.postprocess, clear_color, clear_depth );
+		frame_static.render_passes[ RenderPass_WorldOpaque ] = AddRenderPass( RenderPassConfig {
+			.target = frame_static.render_targets.postprocess_masked,
+			.barrier = true,
+			.tracy = &world_opaque_tracy,
+		} );
+
+		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.render_targets.postprocess_masked );
+		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.render_targets.postprocess );
+	}
+
+	frame_static.render_passes[ RenderPass_SilhouetteGBuffer ] = AddRenderPass( &write_silhouette_buffer_tracy, frame_static.render_targets.silhouette_mask, clear_color, NONE );
+
+	frame_static.render_passes[ RenderPass_Transparent ] = AddRenderPass( RenderPassConfig {
+		.target = frame_static.render_targets.postprocess,
+		.barrier = true,
+		.tracy = &transparent_tracy,
+	} );
 }
 
 void RendererSubmitFrame() {

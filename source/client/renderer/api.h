@@ -367,14 +367,12 @@ struct RenderPassConfig {
 		u32 layer = 0;
 		bool preserve_contents = true;
 		Optional< float > clear = NONE;
+		Optional< PoolHandle< Texture > > resolve_target = NONE;
 	};
 
 	const char * name;
 	Span< const ColorTarget > color_targets;
 	Optional< DepthTarget > depth_target;
-
-	Optional< u64 > wait;
-	Optional< u64 > signal;
 
 	PoolHandle< RenderPipeline > representative_shader;
 	GPUBindings bindings;
@@ -382,8 +380,6 @@ struct RenderPassConfig {
 
 Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & render_pass );
 void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitType type = SubmitCommandBuffer_Normal );
-
-u64 NewDependency();
 
 /*
  * Draw calls

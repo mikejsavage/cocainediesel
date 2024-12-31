@@ -48,7 +48,7 @@ struct FrameStatic {
 
 	Mat3x4 V, inverse_V;
 	Mat4 P, inverse_P;
-	Vec3 light_direction;
+	Vec3 sun_direction;
 	Vec3 position;
 	float vertical_fov;
 	float near_plane;
@@ -57,9 +57,11 @@ struct FrameStatic {
 		Optional< PoolHandle< Texture > > silhouette_mask;
 		Optional< PoolHandle< Texture > > curved_surface_mask;
 		Optional< PoolHandle< Texture > > msaa_color;
+		Optional< PoolHandle< Texture > > msaa_depth;
 		Optional< PoolHandle< Texture > > resolved_color;
-		Optional< PoolHandle< Texture > > depth;
+		Optional< PoolHandle< Texture > > resolved_depth;
 		Optional< PoolHandle< Texture > > shadowmaps[ 4 ];
+		PoolHandle< Texture > swapchain;
 	} render_targets;
 
 	Opaque< CommandBuffer > render_passes[ RenderPass_Count ];

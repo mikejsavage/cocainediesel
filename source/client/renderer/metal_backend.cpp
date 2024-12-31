@@ -76,7 +76,7 @@ struct MetalDevice {
 	MTL::Device * device;
 	MTL::CommandQueue * command_queue;
 	MTL::Event * event;
-	u64 event_counter;
+	u64 pass_counter;
 	MTL::ArgumentEncoder * material_argument_encoder;
 	MTL::ArgumentBuffersTier argument_buffers_tier;
 	u32 max_msaa;
@@ -114,6 +114,7 @@ static CA::MetalLayer * global_swapchain;
 static PoolHandle< ::Texture > swapchain_texture;
 static dispatch_semaphore_t frame_semaphore;
 static u64 frame_counter;
+static u64 pass_counter;
 static int old_framebuffer_width, old_framebuffer_height;
 
 static struct {
@@ -947,6 +948,7 @@ void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< Compute
 void InitRenderBackend( GLFWwindow * window ) {
 	frame_semaphore = dispatch_semaphore_create( MaxFramesInFlight );
 	frame_counter = 0;
+	pass_counter = 0;
 
 	MTL::Device * device = MTL::CreateSystemDefaultDevice();
 	MTL::CommandQueue * command_queue = device->newCommandQueue();
@@ -962,7 +964,7 @@ void InitRenderBackend( GLFWwindow * window ) {
 		.device = device,
 		.command_queue = command_queue,
 		.event = event,
-		.event_counter = 1,
+		.pass_counter = 1,
 		.argument_buffers_tier = device->argumentBuffersSupport(),
 	};
 
@@ -1130,8 +1132,8 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 	MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
 	command_buffer->setLabel( AutoReleaseString( config.name ) );
 
-	if( config.wait.exists ) {
-		command_buffer->encodeWait( global_device.event, config.wait.value );
+	if( global_device.pass_counter > 1 ) {
+		command_buffer->encodeWait( global_device.event, global_device.pass_counter );
 	}
 
 	for( size_t i = 0; i < config.color_targets.n; i++ ) {
@@ -1185,7 +1187,7 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 	return CommandBuffer {
 		.command_buffer = command_buffer,
 		.rce = encoder,
-		.signal = config.signal,
+		.signal = ++global_device.pass_counter,
 	};
 }
 
@@ -1196,8 +1198,8 @@ Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config ) {
 	MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
 	command_buffer->setLabel( AutoReleaseString( config.name ) );
 
-	if( config.wait.exists ) {
-		command_buffer->encodeWait( global_device.event, config.wait.value );
+	if( global_device.pass_counter > 1 ) {
+		command_buffer->encodeWait( global_device.event, global_device.pass_counter );
 	}
 
 	MTL::ComputeCommandEncoder * encoder = command_buffer->computeCommandEncoder( compute_pass );
@@ -1208,10 +1210,6 @@ Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config ) {
 	return CommandBuffer {
 		.command_buffer = command_buffer,
 		.cce = encoder,
-		.signal = config.signal,
+		.signal = ++global_device.pass_counter,
 	};
-}
-
-u64 NewDependency() {
-	return global_device.event_counter++;
 }

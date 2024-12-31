@@ -448,7 +448,7 @@ static void DrawOutlines() {
 				{ "u_OutlineColor", NewTempBuffer( sRGBToLinear( gray ) ) },
 			},
 			.textures = {
-				{ "u_DepthTexture", frame_static.resolved_depth },
+				{ "u_DepthTexture", frame_static.msaa_depth },
 				{ "u_CurvedSurfaceMask", frame_static.curved_surface_mask },
 			},
 		},
@@ -575,8 +575,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	DrawTrails();
 	DrawSkybox( cls.shadertoy_time );
 	DrawSprays();
-
-	DrawModelInstances();
 
 	CG_ReleaseAnnouncerEvents();
 

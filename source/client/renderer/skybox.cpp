@@ -44,7 +44,7 @@ void DrawSkybox( Time time ) {
 		.color_targets = {
 			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.msaa_color.value },
 		},
-		.depth_target = RenderPassConfig::DepthTarget { .texture = frame_static.render_targets.depth.value },
+		.depth_target = RenderPassConfig::DepthTarget { .texture = frame_static.render_targets.msaa_depth.value },
 		.representative_shader = shaders.skybox,
 		.bindings = {
 			.buffers = { { "u_View", frame_static.view_uniforms } },

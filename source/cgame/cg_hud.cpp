@@ -1412,6 +1412,14 @@ static Optional< Clay_FloatingElementConfig > CheckClayFloatConfig( lua_State * 
 	};
 }
 
+static Optional< Clay_CustomElementConfig > CheckClayCallbackConfig( lua_State * L, int idx ) {
+	lua_getfield( L, idx, "callback" );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
+	return Clay_CustomElementConfig { .callback_ref = lua_tointeger( L, -1 ) };
+}
+
 static void DrawClayNodeRecursive( lua_State * L ) {
 	luaL_checktype( L, -1, LUA_TTABLE );
 
@@ -1444,6 +1452,11 @@ static void DrawClayNodeRecursive( lua_State * L ) {
 	Optional< Clay_FloatingElementConfig > float_config = CheckClayFloatConfig( L, -1 );
 	if( float_config.exists ) {
 		Clay__AttachElementConfig( Clay_ElementConfigUnion { .floatingElementConfig = Clay__StoreFloatingElementConfig( float_config.value ) }, CLAY__ELEMENT_CONFIG_TYPE_FLOATING_CONTAINER );
+	}
+
+	Optional< Clay_CustomElementConfig > callback_config = CheckClayCallbackConfig( L, -1 );
+	if( callback_config.exists ) {
+		Clay__AttachElementConfig( Clay_ElementConfigUnion { .customElementConfig = Clay__StoreCustomElementConfig( callback_config.value ) }, CLAY__ELEMENT_CONFIG_TYPE_CUSTOM );
 	}
 
 	Clay__ElementPostConfiguration();
@@ -1498,6 +1511,12 @@ static int LuauNode( lua_State * L ) {
 		case LUA_TLIGHTUSERDATA:
 			lua_pushvalue( L, 2 );
 			lua_setfield( L, -2, "image" );
+			break;
+
+		case LUA_TFUNCTION:
+			int ref = lua_ref( L, 2 );
+			lua_pushinteger( L, ref );
+			lua_setfield( L, -2, "callback" );
 			break;
 	}
 
@@ -1960,6 +1979,7 @@ void CG_DrawHUD() {
 
 	// don't run clay layout if hud.lua failed because it might have left clay in a bad state
 	if( !hud_lua_ran_ok )
+		// TODO: put custom element callbacks in their own table and delete the table here so they don't leak
 		return;
 
 	Clay_RenderCommandArray render_commands;
@@ -2027,6 +2047,17 @@ void CG_DrawHUD() {
 				case CLAY_RENDER_COMMAND_TYPE_SCISSOR_END:
 					ImGui::PopClipRect();
 					break;
+
+				case CLAY_RENDER_COMMAND_TYPE_CUSTOM: {
+					const Clay_CustomElementConfig * config = command.config.customElementConfig;
+					lua_getref( hud_L, config->callback_ref );
+					lua_pushnumber( hud_L, bounds.x );
+					lua_pushnumber( hud_L, bounds.y );
+					lua_pushnumber( hud_L, bounds.width );
+					lua_pushnumber( hud_L, bounds.height );
+					CallWithStackTrace( hud_L, 4, 0 );
+					lua_unref( hud_L, config->callback_ref );
+				} break;
 
 				default:
 					assert( false );

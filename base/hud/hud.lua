@@ -805,7 +805,7 @@ return function( state )
 
 		cd.drawCrosshair()
 		cd.drawDamageNumbers( state.viewport_height / 30, state.viewport_height / 50 ) -- obituary msg size, dmg numbers size
-		cd.drawPointed( state.viewport_height / 80, "#fff", 1 ) -- font size, color, border
+		cd.drawPointed( state.viewport_height / 80, "#fff" )
 
 		DrawLagging( state )
 

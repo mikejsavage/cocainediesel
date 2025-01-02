@@ -753,11 +753,9 @@ static int LuauDrawText( lua_State * L ) {
 	float font_size = lua_tonumber( L, -1 );
 	lua_pop( L, 1 );
 
-	bool border = false;
-	Vec4 border_color = black.vec4;
+	Optional< Vec4 > border_color = NONE;
 	lua_getfield( L, 1, "border" );
 	if( !lua_isnil( L, -1 ) ) {
-		border = true;
 		border_color = CheckColor( L, -1 );
 	}
 	lua_pop( L, 1 );
@@ -770,12 +768,7 @@ static int LuauDrawText( lua_State * L ) {
 	float y = luaL_checknumber( L, 3 );
 	const char * str = luaL_checkstring( hud_L, 4 );
 
-	if( border ) {
-		DrawText( font, font_size, str, alignment, x, y, color, border_color );
-	}
-	else {
-		DrawText( font, font_size, str, alignment, x, y, color, false );
-	}
+	DrawText( font, font_size, str, alignment, x, y, color, border_color );
 
 	return 0;
 }
@@ -938,7 +931,7 @@ static int HUD_DrawDamageNumbers( lua_State * L ) {
 }
 
 static int HUD_DrawPointed( lua_State * L ) {
-	CG_DrawPlayerNames( cgs.fontNormalBold, luaL_checknumber( L, 1 ), CheckColor( L, 2 ), luaL_checknumber( L, 3 ) );
+	CG_DrawPlayerNames( cgs.fontNormalBold, luaL_checknumber( L, 1 ), CheckColor( L, 2 ) );
 	return 0;
 }
 
@@ -1028,7 +1021,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 		int obituary_y = y + yoffset + ( line_height - font_size ) / 2;
 		if( obr->type != OBITUARY_ACCIDENT ) {
 			Vec4 color = CG_TeamColorVec4( obr->attacker_team );
-			DrawText( font, font_size, obr->attacker, x + xoffset, obituary_y, color, true );
+			DrawText( font, font_size, obr->attacker, x + xoffset, obituary_y, color, black.vec4 );
 			xoffset += attacker_width;
 		}
 
@@ -1043,7 +1036,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 		}
 
 		Vec4 color = CG_TeamColorVec4( obr->victim_team );
-		DrawText( font, font_size, obr->victim, x + xoffset, obituary_y, color, true );
+		DrawText( font, font_size, obr->victim, x + xoffset, obituary_y, color, black.vec4 );
 
 		yoffset += line_height;
 	} while( i != next );

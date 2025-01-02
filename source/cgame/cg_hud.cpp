@@ -652,12 +652,12 @@ static int LuausRGBToLinear( lua_State * L ) {
 }
 
 static int LuauPrint( lua_State * L ) {
-	Com_Printf( "%s\n", luaL_checkstring( hud_L, 1 ) );
+	Com_Printf( "%s\n", luaL_checkstring( L, 1 ) );
 	return 0;
 }
 
 static int LuauAsset( lua_State * L ) {
-	StringHash hash( luaL_checkstring( hud_L, 1 ) );
+	StringHash hash( luaL_checkstring( L, 1 ) );
 	PushLuaAsset( L, hash );
 	return 1;
 }
@@ -768,7 +768,7 @@ static int LuauDrawText( lua_State * L ) {
 
 	float x = luaL_checknumber( L, 2 );
 	float y = luaL_checknumber( L, 3 );
-	const char * str = luaL_checkstring( hud_L, 4 );
+	const char * str = luaL_checkstring( L, 4 );
 
 	DrawText( font, font_size, str, alignment, x, y, color, border_color );
 
@@ -1217,6 +1217,33 @@ static Clay_CornerRadius CheckClayBorderRadius( lua_State * L, int idx ) {
 	return Clay_CornerRadius { r, r, r, r };
 }
 
+constexpr struct {
+	Span< const char > name;
+	const Font ** font;
+	u16 clay_font_id;
+} clay_fonts[] = {
+	{ "normal", &cgs.fontNormal },
+	{ "bold", &cgs.fontNormalBold },
+	{ "italic", &cgs.fontItalic },
+	{ "bold-italic", &cgs.fontBoldItalic },
+};
+
+static Optional< u16 > CheckClayFont( lua_State * L, int idx ) {
+	lua_getfield( L, idx, "font" );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
+
+	Span< const char > name = LuaToSpan( L, -1 );
+	for( u16 i = 0; i < ARRAY_COUNT( clay_fonts ); i++ ) {
+		if( StrEqual( clay_fonts[ i ].name, name ) ) {
+			return i;
+		}
+	}
+
+	luaL_error( L, "bad font name: %s", name.ptr );
+}
+
 struct ClayTextAndConfig {
 	Clay_String text;
 	Clay_TextElementConfig config;
@@ -1239,7 +1266,7 @@ static Optional< ClayTextAndConfig > CheckClayTextConfig( lua_State * L, int idx
 		.text = Clay_String { .length = text.n, .chars = text.ptr },
 		.config = {
 			.textColor = Default( CheckClayColor( L, -1, "color" ), { 255, 255, 255, 255 } ),
-			.fontId = 0,
+			.fontId = Default( CheckClayFont( L, -1 ), 0_u16 ),
 			.fontSize = u16( size ),
 			.letterSpacing = 0,
 			.lineHeight = u16( Default( CheckFloat( L, -1, "line_height" ), 1.0f ) * size ),
@@ -1460,17 +1487,17 @@ static int LuauNode( lua_State * L ) {
 	switch( lua_type( L, 2 ) ) {
 		case LUA_TTABLE:
 			lua_pushvalue( L, 2 );
-			lua_setfield( hud_L, -2, "children" );
+			lua_setfield( L, -2, "children" );
 			break;
 
 		case LUA_TSTRING:
 			lua_pushvalue( L, 2 );
-			lua_setfield( hud_L, -2, "text" );
+			lua_setfield( L, -2, "text" );
 			break;
 
 		case LUA_TLIGHTUSERDATA:
 			lua_pushvalue( L, 2 );
-			lua_setfield( hud_L, -2, "image" );
+			lua_setfield( L, -2, "image" );
 			break;
 	}
 
@@ -1912,7 +1939,6 @@ void CG_DrawHUD() {
 	}
 	lua_setfield( hud_L, -2, "teams" );
 
-
 	lua_pushnumber( hud_L, client_gs.gameState.teams[ Team_None ].num_players );
 	lua_setfield( hud_L, -2, "spectating" );
 
@@ -1983,7 +2009,7 @@ void CG_DrawHUD() {
 
 				case CLAY_RENDER_COMMAND_TYPE_TEXT: {
 					const Clay_TextElementConfig * config = command.config.textElementConfig;
-					DrawText( cgs.fontNormal, config->fontSize,
+					DrawText( *clay_fonts[ config->fontId ].font, config->fontSize,
 						Span< const char >( command.text.chars, command.text.length ),
 						bounds.x, bounds.y,
 						ClayToCD( config->textColor ), config->borderColor.exists ? MakeOptional( ClayToCD( config->borderColor.value ) ) : NONE );

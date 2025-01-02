@@ -2065,4 +2065,6 @@ void CG_DrawHUD() {
 			}
 		}
 	}
+
+	Assert( lua_gettop( hud_L ) == 2 );
 }

@@ -1417,7 +1417,9 @@ static Optional< Clay_CustomElementConfig > CheckClayCallbackConfig( lua_State *
 	defer { lua_pop( L, 1 ); };
 	if( lua_isnoneornil( L, -1 ) )
 		return NONE;
-	return Clay_CustomElementConfig { .callback_ref = lua_tointeger( L, -1 ) };
+	lua_getfield( L, idx - 1, "callback_arg" );
+	defer { lua_pop( L, 1 ); };
+	return Clay_CustomElementConfig { .callback_ref = lua_tointeger( L, -2 ), .arg_ref = lua_tointeger( L, -1 ) };
 }
 
 static void DrawClayNodeRecursive( lua_State * L ) {
@@ -1514,9 +1516,12 @@ static int LuauNode( lua_State * L ) {
 			break;
 
 		case LUA_TFUNCTION:
-			int ref = lua_ref( L, 2 );
-			lua_pushinteger( L, ref );
+			int callback_ref = lua_ref( L, 2 );
+			int arg_ref = lua_ref( L, 3 );
+			lua_pushinteger( L, callback_ref );
 			lua_setfield( L, -2, "callback" );
+			lua_pushinteger( L, arg_ref );
+			lua_setfield( L, -2, "callback_arg" );
 			break;
 	}
 
@@ -1650,7 +1655,7 @@ void CG_InitHUD() {
 	clay_arena = Clay_CreateArenaWithCapacityAndMemory( size, sys_allocator->allocate( size, 16 ) );
 
 	auto measure_text = []( Clay_String * text, Clay_TextElementConfig * config ) -> Clay_Dimensions {
-		MinMax2 bounds = TextBounds( cgs.fontNormal, config->fontSize, Span< const char >( text->chars, text->length ) );
+		MinMax2 bounds = TextBounds( *clay_fonts[ config->fontId ].font, config->fontSize, Span< const char >( text->chars, text->length ) );
 		return { bounds.maxs.x - bounds.mins.x, bounds.maxs.y - bounds.mins.y };
 	};
 	Clay_SetMeasureTextFunction( measure_text );
@@ -2055,8 +2060,10 @@ void CG_DrawHUD() {
 					lua_pushnumber( hud_L, bounds.y );
 					lua_pushnumber( hud_L, bounds.width );
 					lua_pushnumber( hud_L, bounds.height );
-					CallWithStackTrace( hud_L, 4, 0 );
+					lua_getref( hud_L, config->arg_ref );
+					CallWithStackTrace( hud_L, 5, 0 );
 					lua_unref( hud_L, config->callback_ref );
+					lua_unref( hud_L, config->arg_ref );
 				} break;
 
 				default:

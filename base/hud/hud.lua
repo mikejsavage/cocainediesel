@@ -752,37 +752,81 @@ end
 
 local function DrawClayStuff( state )
 	local perk_style = {
-		background = "#0f0",
-		border_radius = "0.25vh",
+		background = yellow,
+		border = 8,
+		border_color = dark_grey,
 		flow = "vertical",
-		width = "5vw",
-		height = "100%",
+		width = "5.75vw",
+		height = "fit",
+	}
+
+	local perk_icon_container_style = {
+		width = "100%",
+		padding = "0.5vh",
+	}
+
+	local perk_icon_style = {
+		color = dark_grey,
+		width = "100%",
+	}
+
+	local perk_ammo_style = {
+		float = "top-left top-left",
+		x_offset = "0.9vh",
+		y_offset = "0.4vh",
+		color = yellow,
+		text_border = "#000",
+		font_size = "1.75vh",
+	}
+
+	local perk_name_style = {
+		alignment = "top-center",
+		background = dark_grey,
+		height = "1.4vw",
+		width = "100%",
+		font_size = "1.5vh",
+	}
+
+	local perk_hotkey_style = {
+		float = "bottom-center top-center",
+		y_offset = "-1vh",
+		font_size = "1.75vh",
+		text_border = "#000",
 	}
 
 	cd.render(
 		cd.node( {
-			background = red,
-			border_radius = 4,
-			bottom = "2vh",
-			left = "2vh",
-			flow = "horizontal",
+			float = "bottom-left bottom-left",
+			-- x_offset = "1.5vh",
+			-- y_offset = "-1.5vh",
+			x_offset = "42vh",
+			y_offset = "-15vh",
 			width = "fit",
-			height = "8vh",
-			gap = "1vh",
-			padding = "1vh",
+			height = "fit",
+			gap = "0.5vh",
 		},
 		{
 			cd.node( perk_style, {
-				cd.node( { background = yellow } ),
-				cd.node( { background = yellow } ),
+				cd.node( perk_icon_container_style, {
+					cd.node( perk_icon_style, cd.getWeaponIcon( 2 ) ),
+					cd.node( perk_ammo_style, "12" ),
+				} ),
+				cd.node( perk_name_style, "HELLO" ),
+				cd.node( perk_hotkey_style, "1" ),
 			} ),
 			cd.node( perk_style, {
-				cd.node( { background = yellow } ),
-				cd.node( { background = yellow } ),
+				cd.node( perk_icon_container_style, {
+					cd.node( perk_icon_style, cd.getWeaponIcon( 3 ) ),
+					cd.node( perk_ammo_style, "69" ),
+				} ),
+				cd.node( perk_name_style, "HELLO" ),
 			} ),
 			cd.node( perk_style, {
-				cd.node( { background = yellow } ),
-				cd.node( { background = yellow } ),
+				cd.node( perk_icon_container_style, {
+					cd.node( perk_icon_style, cd.getWeaponIcon( 4 ) ),
+					cd.node( perk_ammo_style, "1000" ),
+				} ),
+				cd.node( perk_name_style, "HELLO" ),
 			} ),
 		} )
 	)

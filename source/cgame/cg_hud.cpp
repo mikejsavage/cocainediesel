@@ -1120,10 +1120,11 @@ static Optional< Clay_SizingAxis > CheckClaySize( lua_State * L, int idx, const 
 
 	Span< const char > str = LuaToSpan( L, -1 );
 	if( str == "fit" ) {
-		return Clay_SizingAxis {
-			.size = { .minMax = { 0.0f, FLT_MAX } },
-			.type = CLAY__SIZING_TYPE_FIT,
-		};
+		return CLAY_SIZING_FIT( 0.0f );
+	}
+
+	if( str == "grow" ) {
+		return CLAY_SIZING_GROW( 0.0f );
 	}
 
 	if( EndsWith( str, "%" ) ) {

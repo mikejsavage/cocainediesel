@@ -458,7 +458,8 @@ static void PushLuaAsset( lua_State * L, StringHash s ) {
 }
 
 static bool CallWithStackTrace( lua_State * L, int args, int results ) {
-	if( lua_pcall( L, args, results, 1 ) != 0 ) {
+	int debug_traceback_idx = 1;
+	if( lua_pcall( L, args, results, debug_traceback_idx ) != 0 ) {
 		Com_Printf( S_COLOR_YELLOW "%s\n", lua_tostring( L, -1 ) );
 		lua_pop( L, 1 );
 		return false;

@@ -449,7 +449,7 @@ void CG_EscapeKey() {
 
 static Vec4 CG_CalcColorBlend() {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	float flashed = Unlerp01( u16( 0 ), ps->flashed, u16( U16_MAX * 0.75f ) );
+	float flashed = Unlerp01( 0_u16, ps->flashed, u16( U16_MAX * 0.75f ) );
 	return Vec4( Vec3( 1.0f ), flashed * flashed );
 }
 

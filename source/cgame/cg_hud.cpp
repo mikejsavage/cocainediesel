@@ -1255,7 +1255,7 @@ static Clay_LayoutConfig CheckClayLayoutConfig( lua_State * L, int idx ) {
 			.height = Default( CheckClaySize( L, idx, "height" ), CLAY_LAYOUT_DEFAULT.sizing.height ),
 		},
 		.padding = CheckClayPadding( L, idx ),
-		.childGap = Default( CheckU16( L, idx, "gap" ), u16( 0 ) ),
+		.childGap = Default( CheckU16( L, idx, "gap" ), 0_u16 ),
 		.childAlignment = Default( CheckClayChildAlignment( L, idx, "alignment" ), CLAY_LAYOUT_DEFAULT.childAlignment ),
 		.layoutDirection = Default( CheckClayLayoutDirection( L, idx, "flow" ), CLAY_LEFT_TO_RIGHT ),
 	};

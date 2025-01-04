@@ -3,7 +3,7 @@
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 
 struct VertexInput {
-	[[vk::location( VertexAttribute_Position )]] float3 position : SV_Position;
+	[[vk::location( VertexAttribute_Position )]] float3 position : POSITION;
 };
 
 struct VertexOutput {

@@ -110,6 +110,18 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 			// },
 
 			GraphicsShaderDescriptor {
+				.field = &Shaders::postprocess_world_gbuffer,
+				.src = "postprocess_world_gbuffer.hlsl",
+				.mesh_variants = { fullscreen_vertex_descriptor },
+			},
+			GraphicsShaderDescriptor {
+				.field = &Shaders::postprocess_world_gbuffer_msaa,
+				.src = "postprocess_world_gbuffer.hlsl",
+				.features = { "MSAA" },
+				.mesh_variants = { fullscreen_vertex_descriptor },
+			},
+
+			GraphicsShaderDescriptor {
 				.field = &Shaders::write_silhouette_gbuffer,
 				.src = "write_silhouette_gbuffer.hlsl",
 				.mesh_variants = { pos_normal, pos_normal_uv },

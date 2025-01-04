@@ -419,6 +419,9 @@ static void DrawSilhouettes() {
 
 	frame_static.render_passes[ RenderPass_AddSilhouettes ] = NewRenderPass( RenderPassConfig {
 		.name = "Add silhouettes",
+		.color_targets = {
+			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.resolved_color },
+		},
 		.representative_shader = shaders.postprocess_silhouette_gbuffer,
 		.bindings = {
 			.textures = { { "u_SilhouetteTexture", rt.color_attachments[ FragmentShaderOutput_Albedo ] } },
@@ -441,6 +444,9 @@ static void DrawOutlines() {
 
 	frame_static.render_passes[ RenderPass_AddOutlines ] = NewRenderPass( RenderPassConfig {
 		.name = "Add outlines",
+		.color_targets = {
+			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.msaa_color },
+		},
 		.representative_shader = shaders.postprocess_world_gbuffer,
 		.bindings = {
 			.buffers = {

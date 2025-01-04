@@ -1079,7 +1079,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	RendererBeginFrame( viewport_width, viewport_height );
 
 	SCR_UpdateScreen();
-	RendererSubmitFrame();
+	RendererEndFrame();
 
 	// update audio
 	if( cls.state != CA_ACTIVE ) {

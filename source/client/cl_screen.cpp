@@ -172,7 +172,12 @@ static void SubmitPostprocessPass() {
 
 	frame_static.render_passes[ RenderPass_Postprocessing ] = NewRenderPass( RenderPassConfig {
 		.name = "Postprocessing",
-		.color_targets = ...,
+		.color_targets = {
+			RenderPassConfig::ColorTarget {
+				.texture = frame_static.render_targets.swapchain,
+				.preserve_contents = false,
+			},
+		},
 		.representative_shader = shaders.postprocess,
 		.bindings = {
 			.buffers = {

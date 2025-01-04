@@ -2,7 +2,7 @@
 #include "include/common.hlsl"
 
 struct VertexInput {
-	[[vk::location( VertexAttribute_Position )]] float4 position : SV_Position;
+	[[vk::location( VertexAttribute_Position )]] float4 position : POSITION;
 	[[vk::location( VertexAttribute_TexCoord )]] float2 uv : TEXCOORD0;
 };
 

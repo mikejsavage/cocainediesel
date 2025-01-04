@@ -2,6 +2,7 @@
 
 #include "qcommon/types.h"
 #include "qcommon/hash.h"
+#include "client/renderer/api.h"
 
 void InitDecals();
 void ResetDecals();
@@ -18,5 +19,12 @@ void DrawPersistentDynamicLights();
 void AllocateDecalBuffers();
 void UploadDecalBuffers();
 
-struct PipelineState;
-void AddDynamicsToPipeline( PipelineState * pipeline );
+struct DynamicsResources {
+	GPUBuffer tile_counts;
+	GPUBuffer decal_tiles;
+	GPUBuffer dlight_tiles;
+	GPUBuffer decals;
+	GPUBuffer dlights;
+};
+
+DynamicsResources GetDynamicsResources();

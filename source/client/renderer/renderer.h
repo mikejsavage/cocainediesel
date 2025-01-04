@@ -54,13 +54,13 @@ struct FrameStatic {
 	float near_plane;
 
 	struct {
-		Optional< PoolHandle< Texture > > silhouette_mask;
-		Optional< PoolHandle< Texture > > curved_surface_mask;
-		Optional< PoolHandle< Texture > > msaa_color;
-		Optional< PoolHandle< Texture > > msaa_depth;
-		Optional< PoolHandle< Texture > > resolved_color;
-		Optional< PoolHandle< Texture > > resolved_depth;
-		Optional< PoolHandle< Texture > > shadowmaps[ 4 ];
+		PoolHandle< Texture > silhouette_mask;
+		PoolHandle< Texture > curved_surface_mask;
+		PoolHandle< Texture > msaa_color;
+		PoolHandle< Texture > msaa_depth;
+		PoolHandle< Texture > resolved_color;
+		PoolHandle< Texture > resolved_depth;
+		PoolHandle< Texture > shadowmap;
 		PoolHandle< Texture > swapchain;
 	} render_targets;
 
@@ -74,7 +74,7 @@ void ShutdownRenderer();
 
 void RendererBeginFrame( u32 viewport_width, u32 viewport_height );
 void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov );
-void RendererSubmitFrame();
+void RendererEndFrame();
 
 size_t FrameSlot();
 

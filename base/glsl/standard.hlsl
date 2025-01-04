@@ -9,7 +9,7 @@
 [[vk::binding( 5, DescriptorSet_RenderPass )]] SamplerComparisonState u_ShadowmapSampler;
 #endif
 #if APPLY_DYNAMICS
-[[vk::binding( 6, DescriptorSet_RenderPass )]] StructuredBuffer< TileCullingDimensions > u_TileDimensions;
+/* [[vk::binding( 6, DescriptorSet_RenderPass )]] StructuredBuffer< TileCullingDimensions > u_TileDimensions; */
 [[vk::binding( 7, DescriptorSet_RenderPass )]] StructuredBuffer< TileCountsUniforms > u_TileCounts;
 [[vk::binding( 8, DescriptorSet_RenderPass )]] StructuredBuffer< TileIndices > u_DecalTiles;
 [[vk::binding( 9, DescriptorSet_RenderPass )]] StructuredBuffer< TileIndices > u_DlightTiles;
@@ -36,7 +36,7 @@
 #include "include/skinning.hlsl"
 
 struct VertexInput {
-	[[vk::location( VertexAttribute_Position )]] float3 position : SV_Position;
+	[[vk::location( VertexAttribute_Position )]] float3 position : POSITION;
 	[[vk::location( VertexAttribute_Normal )]] float3 normal : NORMAL;
 #if VERTEX_COLORS
 	[[vk::location( VertexAttribute_Color )]] float4 color : COLOR;

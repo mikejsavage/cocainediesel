@@ -15,6 +15,7 @@
 #include "client/renderer/text.h"
 
 #include "client/maps.h"
+#include "cgame/cg_dynamics.h"
 #include "cgame/cg_particles.h"
 
 #include "imgui/imgui.h"
@@ -23,7 +24,6 @@
 #include "stb/stb_image_write.h"
 
 FrameStatic frame_static;
-static u64 frame_counter;
 
 static PoolHandle< Texture > rgb_noise;
 static PoolHandle< Texture > blue_noise;
@@ -34,7 +34,7 @@ static char last_screenshot_date[ 256 ];
 static int same_date_count;
 
 static u32 last_viewport_width, last_viewport_height;
-static int last_msaa;
+static u32 last_msaa;
 static ShadowQuality last_shadow_quality;
 
 static Cvar * r_samples;
@@ -112,7 +112,6 @@ void InitRenderer( GLFWwindow * window ) {
 	r_shadow_quality = NewCvar( "r_shadow_quality", temp.sv( "{}", ShadowQuality_Ultra ), CvarFlag_Archive );
 
 	frame_static = { };
-	frame_counter = 0;
 	last_viewport_width = 0;
 	last_viewport_height = 0;
 	last_msaa = 0;
@@ -331,18 +330,16 @@ static void CreateRenderTargets() {
 		}, frame_static.render_targets.msaa_depth );
 	}
 	else {
-		frame_static.render_targets.msaa_color = NONE;
-		frame_static.render_targets.msaa_depth = NONE;
+		// frame_static.render_targets.msaa_color = NONE;
+		// frame_static.render_targets.msaa_depth = NONE;
 	}
 
-	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
-		frame_static.render_targets.shadowmaps[ i ] = NewTexture( GPULifetime_Framebuffer, TextureConfig {
-			.format = TextureFormat_Depth,
-			.width = frame_static.shadow_parameters.resolution,
-			.height = frame_static.shadow_parameters.resolution,
-			.num_layers = frame_static.shadow_parameters.num_cascades,
-		}, frame_static.render_targets.shadowmaps[ i ] );
-	}
+	frame_static.render_targets.shadowmap = NewTexture( GPULifetime_Framebuffer, TextureConfig {
+		.format = TextureFormat_Depth,
+		.width = frame_static.shadow_parameters.resolution,
+		.height = frame_static.shadow_parameters.resolution,
+		.num_layers = frame_static.shadow_parameters.num_cascades,
+	} );
 }
 
 namespace tracy {
@@ -407,11 +404,11 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.identity_material_properties_uniforms = NewTempBuffer( MaterialProperties { .shininess = 64.0f } );
 	frame_static.identity_material_color_uniforms = NewTempBuffer( white.vec4 );
 
-	frame_static.render_passes[ RenderPass_UIBeforePostprocessing ] = AddRenderPass( RenderPassConfig {
+	frame_static.render_passes[ RenderPass_UIBeforePostprocessing ] = NewRenderPass( RenderPassConfig {
 		.name = "UI before postprocessing",
 		.color_targets = {
 			RenderPassConfig::ColorTarget {
-				.texture = frame_static.render_targets.swapchain,
+				.texture = frame_static.render_targets.resolved_color,
 				.preserve_contents = false,
 			},
 		},
@@ -551,7 +548,9 @@ void SetupShadowCascades() {
 }
 
 void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) {
-	float near_plane = 4.0f;
+	TempAllocator temp = cls.frame_arena.temp();
+
+	constexpr float near_plane = 4.0f;
 
 	frame_static.V = ViewMatrix( position, angles );
 	frame_static.inverse_V = InvertViewMatrix( frame_static.V, position );
@@ -576,27 +575,29 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		.P = frame_static.P,
 		.inverse_P = frame_static.inverse_P,
 		.camera_pos = position,
-		.viewport = frame_static.viewport,
+		.viewport_size = frame_static.viewport,
 		.near_clip = near_plane,
 		.msaa_samples = frame_static.msaa_samples,
 		.sun_direction = frame_static.sun_direction,
 	} );
 
+	DynamicsResources dynamics_resources = GetDynamicsResources();
+
 	BoundedDynamicArray< BufferBinding, 16 > standard_buffers = {
 		{ "u_View", frame_static.view_uniforms },
 		{ "u_Shadowmap", frame_static.shadow_uniforms },
-		{ "u_TileDimensions", ... },
-		{ "u_TileCounts", ... },
-		{ "u_DecalTiles", ... },
-		{ "u_DlightTiles", ... },
-		{ "u_Decals", ... },
-		{ "u_Dlights", ... },
+		// { "u_TileDimensions", ... },
+		{ "u_TileCounts", dynamics_resources.tile_counts },
+		{ "u_DecalTiles", dynamics_resources.decal_tiles },
+		{ "u_DlightTiles", dynamics_resources.dlight_tiles },
+		{ "u_Decals", dynamics_resources.decals },
+		{ "u_Dlights", dynamics_resources.dlights },
 	};
 
 	BoundedDynamicArray< GPUBindings::TextureBinding, 4 > standard_textures = {
 		{ "u_BlueNoiseTexture", BlueNoiseTexture() },
-		{ "u_ShadowmapTextureArray", ... },
-		{ "u_DecalAtlases", ... },
+		{ "u_ShadowmapTextureArray", frame_static.render_targets.shadowmap },
+		{ "u_DecalAtlases", DecalAtlasTexture() },
 	};
 
 	BoundedDynamicArray< GPUBindings::SamplerBinding, 2 > standard_samplers = {
@@ -617,7 +618,8 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		frame_static.render_passes[ RenderPass_ShadowmapCascade0 + i ] = NewRenderPass( RenderPassConfig {
 			.name = temp( "Shadowmap cascade {}", i ),
 			.depth_target = RenderPassConfig::DepthTarget {
-				.texture = frame_static.render_targets.shadowmaps[ i ].value,
+				.texture = frame_static.render_targets.shadowmap,
+				.layer = i,
 				.preserve_contents = false,
 				.clear = clear_depth,
 			},
@@ -628,68 +630,70 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		} );
 	}
 
-	if( frame_static.msaa_samples > 1 ) {
-		frame_static.render_passes[ RenderPass_WorldOpaqueZPrepass ] = NewRenderPass( RenderPassConfig {
-			.name = "World Z-prepass",
-			.depth_target = RenderPassConfig::DepthTarget {
-				.texture = frame_static.render_targets.msaa_depth.value,
+	bool msaa = frame_static.msaa_samples > 1;
+
+	frame_static.render_passes[ RenderPass_WorldOpaqueZPrepass ] = NewRenderPass( RenderPassConfig {
+		.name = "World Z-prepass",
+		.depth_target = RenderPassConfig::DepthTarget {
+			.texture = Default( frame_static.render_targets.msaa_depth, frame_static.render_targets.resolved_depth ),
+			.preserve_contents = false,
+			.clear = clear_depth,
+		},
+		.representative_shader = shaders.depth_only,
+		.bindings = {
+			.buffers = { { "u_View", frame_static.view_uniforms } },
+		},
+	} );
+
+	frame_static.render_passes[ RenderPass_WorldOpaque ] = NewRenderPass( RenderPassConfig {
+		.name = "World opaque",
+		.color_targets = {
+			RenderPassConfig::ColorTarget {
+				.texture = Default( frame_static.render_targets.msaa_color, frame_static.render_targets.resolved_color ),
 				.preserve_contents = false,
-				.clear = clear_depth,
+				.clear = clear_color,
 			},
-			.representative_shader = shaders.depth_only,
-			.bindings = {
-				.buffers = { { "u_View", frame_static.view_uniforms } },
+			RenderPassConfig::ColorTarget {
+				.texture = frame_static.render_targets.curved_surface_mask,
+				.preserve_contents = false,
+				.clear = clear_color,
 			},
-		} );
+		},
+		.depth_target = RenderPassConfig::DepthTarget {
+			.texture = frame_static.render_targets.msaa_depth,
+		},
+		.representative_shader = shaders.world,
+		.bindings = standard_bindings,
+	} );
 
-		frame_static.render_passes[ RenderPass_WorldOpaque ] = NewRenderPass( RenderPassConfig {
-			.name = "World opaque",
-			.color_targets = {
-				RenderPassConfig::ColorTarget {
-					.texture = frame_static.render_targets.msaa_color.value,
-					.preserve_contents = false,
-					.clear = clear_color,
-				},
-				RenderPassConfig::ColorTarget {
-					.texture = frame_static.render_targets.curved_surface_mask.value,
-					.preserve_contents = false,
-					.clear = clear_color,
-				},
-			},
-			.depth_target = RenderPassConfig::DepthTarget {
-				.texture = frame_static.render_targets.msaa_depth.value,
-			},
-			.representative_shader = shaders.world,
-			.bindings = standard_bindings,
-		} );
+	frame_static.render_passes[ RenderPass_NonworldOpaqueOutlined ] = NewRenderPass( RenderPassConfig {
+		.name = "Nonworld opaque outlined",
+		.color_targets = {
+			RenderPassConfig::ColorTarget { .texture = Default( frame_static.render_targets.msaa_color, frame_static.render_targets.resolved_color ) },
+			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.curved_surface_mask },
+		},
+		.depth_target = RenderPassConfig::DepthTarget { .texture = Default( frame_static.render_targets.msaa_depth, frame_static.render_targets.resolved_depth ) },
+		.representative_shader = shaders.world,
+		.bindings = standard_bindings,
+	} );
 
-		frame_static.render_passes[ RenderPass_NonworldOpaqueOutlined ] = NewRenderPass( RenderPassConfig {
-			.name = "Nonworld opaque outlined",
-			.color_targets = {
-				RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.msaa_color.value },
-				RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.curved_surface_mask.value },
+	frame_static.render_passes[ RenderPass_NonworldOpaque ] = NewRenderPass( RenderPassConfig {
+		.name = "Nonworld opaque",
+		.color_targets = {
+			RenderPassConfig::ColorTarget {
+				.texture = frame_static.render_targets.msaa_color,
+				.resolve_target = frame_static.render_targets.resolved_color,
 			},
-			.depth_target = RenderPassConfig::DepthTarget { .texture = frame_static.render_targets.msaa_depth.value },
-			.representative_shader = shaders.world,
-			.bindings = standard_bindings,
-		} );
+		},
+		.depth_target = RenderPassConfig::DepthTarget {
+			.texture = frame_static.render_targets.msaa_depth,
+			.resolve_target = frame_static.render_targets.resolved_depth,
+		},
+		.representative_shader = shaders.world,
+		.bindings = standard_bindings,
+	} );
 
-		frame_static.render_passes[ RenderPass_NonworldOpaque ] = NewRenderPass( RenderPassConfig {
-			.name = "Nonworld opaque",
-			.color_targets = {
-				RenderPassConfig::ColorTarget {
-					.texture = frame_static.render_targets.msaa_color.value,
-					.resolve_target = frame_static.render_targets.resolved_color,
-				},
-			},
-			.depth_target = RenderPassConfig::DepthTarget {
-				.texture = frame_static.render_targets.msaa_depth.value,
-				.resolve_target = frame_static.render_targets.resolved_depth,
-			},
-			.representative_shader = shaders.world,
-			.bindings = standard_bindings,
-		} );
-	}
+	// }
 	else {
 		frame_static.render_passes[ RenderPass_WorldOpaqueZPrepass ] = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.postprocess, clear_color, clear_depth );
 		frame_static.render_passes[ RenderPass_WorldOpaque ] = AddRenderPass( RenderPassConfig {
@@ -711,17 +715,12 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	} );
 }
 
-void RendererSubmitFrame() {
-	RenderBackendSubmitFrame();
-	frame_counter++;
-}
-
-size_t FrameSlot() {
-	return frame_counter % MAX_FRAMES_IN_FLIGHT;
+void RendererEndFrame() {
+	RenderBackendEndFrame();
 }
 
 PoolHandle< Texture > RGBNoiseTexture() {
-	return &blue_noise;
+	return rgb_noise;
 }
 
 PoolHandle< Texture > BlueNoiseTexture() {
@@ -744,7 +743,7 @@ void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bott
 	RGBA8 rgba = LinearTosRGB( color );
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();
-	bg->PushTextureID( ImGuiShaderAndTexture( material ) );
+	bg->PushTextureID( ImGuiShaderAndMaterial( material ) );
 	bg->PrimReserve( 6, 4 );
 	bg->PrimRectUV( Vec2( x, y ), Vec2( x + w, y + h ), topleft_uv, bottomright_uv, IM_COL32( rgba.r, rgba.g, rgba.b, rgba.a ) );
 	bg->PopTextureID();

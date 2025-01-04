@@ -10,7 +10,7 @@
 #include "include/skinning.hlsl"
 
 struct VertexInput {
-	[[vk::location( VertexAttribute_Position )]] float3 position : SV_Position;
+	[[vk::location( VertexAttribute_Position )]] float3 position : POSITION;
 #if SKINNED
 	[[vk::location( VertexAttribute_JointIndices )]] uint4 indices : BLENDINDICES;
 	[[vk::location( VertexAttribute_JointWeights )]] float4 weights : BLENDWEIGHT;

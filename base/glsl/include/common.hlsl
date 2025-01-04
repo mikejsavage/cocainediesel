@@ -52,19 +52,19 @@ float4 LinearTosRGB( float4 lin ) {
 
 // out of bounds texture load is UB
 template< typename T >
-T ClampedTextureLoad( Texture2D< T > tex, int2 uv ) {
+T ClampedTextureLoad( Texture2D< T > tex, int2 uv, uint sample_index = 0 ) {
 	float2 texture_size;
 	tex.GetDimensions( texture_size.x, texture_size.y );
 	uv = clamp( uv, 0, int2( texture_size ) - 1 );
 	return tex.Load( int3( uv, 0 ) );
 }
 
-float4 ClampedTextureLoad( Texture2DMS< float > tex, int2 uv, int msaa_sample ) {
+float ClampedTextureLoad( Texture2DMS< float > tex, int2 uv, uint sample_index ) {
 	float2 texture_size;
 	float num_samples_dont_care;
 	tex.GetDimensions( texture_size.x, texture_size.y, num_samples_dont_care );
 	uv = clamp( uv, 0, int2( texture_size ) - 1 );
-	return tex.Load( uv, msaa_sample );
+	return tex.Load( uv, sample_index );
 }
 
 float3x3 Adjugate( float3x4 m ) {

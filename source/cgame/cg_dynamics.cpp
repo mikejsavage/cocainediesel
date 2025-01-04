@@ -219,11 +219,12 @@ void UploadDecalBuffers() {
 	dlights.clear();
 }
 
-void AddDynamicsToPipeline( PipelineState * pipeline ) {
-	// TODO: this is no good now
-	pipeline->bind_streaming_buffer( "b_Decals", this_frame_decals_buffer );
-	pipeline->bind_buffer( "b_DecalTiles", decal_tiles_buffer );
-	pipeline->bind_streaming_buffer( "b_DynamicLights", this_frame_dlights_buffer );
-	pipeline->bind_buffer( "b_DynamicLightTiles", dlight_tiles_buffer );
-	pipeline->bind_buffer( "b_DynamicTiles", dynamic_count );
+DynamicsResources GetDynamicsResources() {
+	return DynamicsResources {
+		.tile_counts = dynamic_count,
+		.decal_tiles = decal_tiles_buffer,
+		.dlight_tiles = dlight_tiles_buffer,
+		.decals = this_frame_decals_buffer,
+		.dlights = this_frame_dlights_buffer,
+	};
 }

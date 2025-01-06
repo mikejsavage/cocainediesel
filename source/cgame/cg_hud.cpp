@@ -2009,6 +2009,9 @@ void CG_DrawHUD() {
 				case CLAY_RENDER_COMMAND_TYPE_BORDER: {
 					const Clay_BorderElementConfig * border = command.config.borderElementConfig;
 
+					// TODO: rounded corners are wrong pretty much all of the time, transparent borders are drawn with overlap
+					// should probably draw the edges and corners separately
+
 					// top
 					Draw2DBox( bounds.x + border->cornerRadius.topLeft, bounds.y,
 						bounds.width - border->cornerRadius.topLeft - border->cornerRadius.topRight, border->top.width,

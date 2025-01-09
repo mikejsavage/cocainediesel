@@ -1660,6 +1660,8 @@ void CG_InitHUD() {
 		return { bounds.maxs.x - bounds.mins.x, bounds.maxs.y - bounds.mins.y };
 	};
 	Clay_SetMeasureTextFunction( measure_text );
+
+	Clay_Initialize( clay_arena, { }, { } );
 }
 
 void CG_ShutdownHUD() {
@@ -1972,7 +1974,7 @@ void CG_DrawHUD() {
 
 	{
 		TracyZoneScopedN( "Clay_BeginLayout" );
-		Clay_Initialize( clay_arena, Clay_Dimensions { frame_static.viewport.x, frame_static.viewport.y }, { } );
+		Clay_SetLayoutDimensions( Clay_Dimensions { frame_static.viewport.x, frame_static.viewport.y } );
 		Clay_BeginLayout();
 	}
 

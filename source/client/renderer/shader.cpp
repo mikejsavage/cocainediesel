@@ -17,8 +17,9 @@ static void LoadShaders( const ShaderDescriptors & desc ) {
 		shaders.*shader.field = NewRenderPipeline( RenderPipelineConfig {
 			.path = ShaderFilename( &temp, shader ),
 			.output_format = { }, // TODO
-			.blend_func = { }, // TODO
-			.alpha_to_coverage = false,
+			.blend_func = shader.blend_func,
+			.clamp_depth = shader.clamp_depth,
+			.alpha_to_coverage = shader.alpha_to_coverage,
 			.mesh_variants = shader.mesh_variants,
 		} );
 	}

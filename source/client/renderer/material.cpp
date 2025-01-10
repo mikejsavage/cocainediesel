@@ -7,8 +7,9 @@
 #include "gameshared/q_shared.h"
 #include "client/client.h"
 #include "client/assets.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
 #include "client/renderer/dds.h"
+#include "client/renderer/material.h"
 #include "cgame/cg_dynamics.h"
 
 #include "nanosort/nanosort.hpp"
@@ -17,8 +18,8 @@
 #include "stb/stb_rect_pack.h"
 
 struct MaterialSpecKey {
-	const char * keyword;
-	void ( *func )( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data );
+	Span< const char > keyword;
+	void ( *func )( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data );
 };
 
 constexpr u32 MAX_TEXTURES = 4096;
@@ -145,30 +146,30 @@ static Wave ParseWave( Span< const char > * data ) {
 	return wave;
 }
 
-static void ParseCull( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseCull( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "disable" || token == "none" || token == "twosided" ) {
 		material->double_sided = true;
 	}
 }
 
-static void ParseDecal( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseDecal( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->decal = true;
 }
 
-static void ParseShaded( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseShaded( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->shaded = true;
 }
 
-static void ParseSpecular( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseSpecular( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->specular = ParseMaterialFloat( data );
 }
 
-static void ParseShininess( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseShininess( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->shininess = ParseMaterialFloat( data );
 }
 
-static void ParseBlendFunc( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseBlendFunc( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "blend" ) {
 		material->blend_func = BlendFunc_Blend;
@@ -184,7 +185,7 @@ static Vec3 NormalizeColor( Vec3 color ) {
 	return f > 1.0f ? color / f : color;
 }
 
-static void ParseRGBGen( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseRGBGen( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "wave" ) {
 		material->rgbgen.type = ColorGenType_Wave;
@@ -219,7 +220,7 @@ static void ParseRGBGen( Material * material, Span< const char > name, Span< con
 	}
 }
 
-static void ParseAlphaGen( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseAlphaGen( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "entity" ) {
 		material->alphagen.type = ColorGenType_Entity;
@@ -235,11 +236,11 @@ static void ParseAlphaGen( Material * material, Span< const char > name, Span< c
 }
 
 static PoolHandle< Texture > FindTexture( Span< const char > name ) {
-	PoolHandle< Texture > * handle = textures.get( StringHash( name ).hash );
-	return handle == NULL ? missing_texture : *handle;
+	HighLevelTexture * handle = textures.get( StringHash( name ).hash );
+	return handle == NULL ? missing_texture : handle->texture;
 }
 
-static void ParseTexture( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseTexture( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( StartsWith( token, "." ) ) {
 		TempAllocator temp = cls.frame_arena.temp();
@@ -250,11 +251,11 @@ static void ParseTexture( Material * material, Span< const char > name, Span< co
 	}
 }
 
-static void SkipComment( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void SkipComment( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	SkipToEndOfLine( data );
 }
 
-static const MaterialSpecKey shaderkeys[] = {
+static constexpr MaterialSpecKey shaderkeys[] = {
 	{ "alphagen", ParseAlphaGen },
 	{ "blendfunc", ParseBlendFunc },
 	{ "cull", ParseCull },
@@ -267,7 +268,7 @@ static const MaterialSpecKey shaderkeys[] = {
 	{ "//", SkipComment },
 };
 
-static void ParseMaterialKey( Material * material, Span< const char > token, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseMaterialKey( MaterialDescriptor * material, Span< const char > token, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	for( MaterialSpecKey key : shaderkeys ) {
 		if( StrCaseEqual( token, key.keyword ) ) {
 			key.func( material, name, path, data );
@@ -280,7 +281,7 @@ static void ParseMaterialKey( Material * material, Span< const char > token, Spa
 	SkipToEndOfLine( data );
 }
 
-static bool ParseMaterial( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static bool ParseMaterial( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	TracyZoneScoped;
 
 	material->texture = FindTexture( MakeSpan( "white" ) );
@@ -584,7 +585,7 @@ static void PackDecalAtlas() {
 			continue;
 
 		if( texture->format != TextureFormat_RGBA_U8_sRGB && texture->format != TextureFormat_BC4 ) {
-			Com_GGPrint( S_COLOR_YELLOW "Decals must be RGBA or BC4 ({})", materials[ i ].name );
+			Com_GGPrint( S_COLOR_YELLOW "Decals must be RGBA or BC4 ({})", materials[ i ].name.span() );
 			continue;
 		}
 
@@ -1067,8 +1068,6 @@ PipelineState MaterialToPipelineState( const Material & material, Vec4 entity_co
 	else {
 		pipeline.pass = frame_static.transparent_pass;
 	}
-	pipeline.cull_face = material->double_sided ? CullFace_Disabled : CullFace_Back;
-	pipeline.blend_func = material->blend_func;
 
 	if( material->blend_func != BlendFunc_Disabled ) {
 		pipeline.write_depth = false;
@@ -1076,21 +1075,6 @@ PipelineState MaterialToPipelineState( const Material & material, Vec4 entity_co
 
 	pipeline.bind_texture_and_sampler( "u_BaseTexture", material->texture, Sampler_Standard );
 
-	if( material->world ) {
-		// TODO: most of these should be on the render pass
-		Assert( !skinned );
-		pipeline.shader = gpu_material == NULL ? &shaders.world : &shaders.world_instanced;
-		pipeline.pass = frame_static.world_opaque_pass;
-		pipeline.bind_texture_and_sampler( "u_BlueNoiseTexture", BlueNoiseTexture(), Sampler_Standard );
-		if( gpu_material == NULL ) {
-			pipeline.bind_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( material->specular, material->shininess ) );
-			pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color ) );
-		}
-		pipeline.bind_texture_and_sampler( "u_ShadowmapTextureArray", &frame_static.render_targets.shadowmaps[ 0 ].depth_attachment, Sampler_Shadowmap );
-		pipeline.bind_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
-		pipeline.bind_texture_and_sampler( "u_DecalAtlases", DecalAtlasTextureArray(), Sampler_Standard );
-		AddDynamicsToPipeline( &pipeline );
-	}
 	else if( skinned ) {
 		if( material->shaded ) {
 			pipeline.shader = &shaders.standard_skinned_shaded;

@@ -705,7 +705,6 @@ static void DrawSilhouetteNode( const Mesh & mesh, GPUBuffer model_uniforms, GPU
 	PipelineState pipeline = {
 		.shader = pose_uniforms.exists ? shaders.write_silhouette_gbuffer_skinned : shaders.write_silhouette_gbuffer,
 	};
-	// pipeline.write_depth = false;
 
 	BoundedDynamicArray< BufferBinding, 3 > buffers = {
 		{ "u_Model", model_uniforms },

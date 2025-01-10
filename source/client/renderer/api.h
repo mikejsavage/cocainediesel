@@ -224,6 +224,7 @@ struct RenderPipelineConfig {
 
 	RenderPipelineOutputFormat output_format;
 	BlendFunc blend_func = BlendFunc_Disabled;
+	bool clamp_depth = false;
 	bool alpha_to_coverage = false;
 
 	Span< const VertexDescriptor > mesh_variants;
@@ -286,30 +287,6 @@ enum SamplerType : u8 {
 
 struct BindGroup;
 template<> struct PoolHandleType< BindGroup > { using T = u16; };
-
-/*
- * Material
- */
-
-#include "material.h"
-
-struct MaterialDescriptor {
-	Span< const char > name;
-
-	PoolHandle< RenderPipeline > shader;
-	RenderPipelineDynamicState dynamic_state;
-
-	PoolHandle< Texture > texture;
-	SamplerType sampler = Sampler_Standard;
-
-	struct {
-		float specular;
-		float shininess;
-		float lod_bias;
-	} properties;
-};
-
-Material NewMaterial( const MaterialDescriptor & desc );
 
 /*
  * Frame
@@ -498,3 +475,33 @@ enum RenderPassDependency {
 void EncodeDrawCall( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers = { }, DrawCallExtras extras = DrawCallExtras() );
 void EncodeComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers );
 void EncodeIndirectComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, GPUBuffer indirect_args, Span< const BufferBinding > buffers );
+
+/*
+ * Material
+ */
+
+#include "material.h"
+
+struct MaterialDescriptor {
+	Span< const char > name;
+
+	PoolHandle< RenderPipeline > shader;
+	RenderPipelineDynamicState dynamic_state;
+
+	PoolHandle< Texture > texture;
+	SamplerType sampler = Sampler_Standard;
+
+	MaterialProperties properties;
+};
+
+struct Material2 {
+	Span< char > name;
+
+	RenderPass render_pass;
+	PoolHandle< RenderPipeline > shader;
+	PoolHandle< BindGroup > bind_group;
+	PoolHandle< Texture > texture;
+	RenderPipelineDynamicState dynamic_state;
+};
+
+Material2 NewMaterial( const MaterialDescriptor & desc );

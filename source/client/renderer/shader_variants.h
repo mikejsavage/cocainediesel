@@ -8,6 +8,10 @@ struct GraphicsShaderDescriptor {
 	Span< const char > src;
 	Span< Span< const char > > features;
 	Span< const VertexDescriptor > mesh_variants;
+
+	BlendFunc blend_func = BlendFunc_Disabled;
+	bool clamp_depth = false;
+	bool alpha_to_coverage = false;
 };
 
 struct ComputeShaderDescriptor {
@@ -99,26 +103,28 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.field = &Shaders::depth_only,
 				.src = "depth_only.hlsl",
 				.mesh_variants = { pos_normal, pos_normal_uv },
-				// clamp depth
+				.clamp_depth = true,
 			},
 			// GraphicsShaderDescriptor {
 			// 	.field = &Shaders::depth_only_skinned,
 			// 	.src = "depth_only.hlsl",
 			// 	.features = { "SKINNED" },
 			// 	.mesh_variants = { pos_normal_uv_skinned },
-			// 	// clamp depth
+			// 	.clamp_depth = true,
 			// },
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::postprocess_world_gbuffer,
 				.src = "postprocess_world_gbuffer.hlsl",
 				.mesh_variants = { fullscreen_vertex_descriptor },
+				.blend_func = BlendFunc_Blend,
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::postprocess_world_gbuffer_msaa,
 				.src = "postprocess_world_gbuffer.hlsl",
 				.features = { "MSAA" },
 				.mesh_variants = { fullscreen_vertex_descriptor },
+				.blend_func = BlendFunc_Blend,
 			},
 
 			GraphicsShaderDescriptor {
@@ -136,6 +142,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.field = &Shaders::postprocess_silhouette_gbuffer,
 				.src = "postprocess_silhouette_gbuffer.hlsl",
 				.mesh_variants = { fullscreen_vertex_descriptor },
+				.blend_func = BlendFunc_Blend,
 			},
 
 			GraphicsShaderDescriptor {
@@ -157,6 +164,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.field = &Shaders::scope,
 				.src = "scope.hlsl",
 				.mesh_variants = { fullscreen_vertex_descriptor },
+				.blend_func = BlendFunc_Blend,
 			},
 
 			GraphicsShaderDescriptor {
@@ -169,22 +177,26 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.field = &Shaders::text,
 				.src = "text.hlsl",
 				.mesh_variants = { { text_vertex_descriptor } },
+				.blend_func = BlendFunc_Blend,
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::text_depth_only,
 				.src = "text.hlsl",
 				.features = { "DEPTH_ONLY" },
 				.mesh_variants = { { text_vertex_descriptor } },
-				// alpha to coverage/clamp depth
+				.clamp_depth = true,
+				.alpha_to_coverage = true,
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::particle_add,
 				.src = "particle.hlsl",
+				.blend_func = BlendFunc_Add,
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::particle_blend,
 				.src = "particle.hlsl",
+				.blend_func = BlendFunc_Blend,
 			},
 		},
 

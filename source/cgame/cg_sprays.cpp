@@ -31,7 +31,13 @@ void InitSprays() {
 		if( !StartsWith( path, "textures/sprays/" ) || !ext_ok )
 			continue;
 
-		const Material * material = FindMaterial( StringHash( Hash64( StripExtension( path ) ) ) );
+		StringHash name = StringHash( Hash64( StripExtension( path ) ) );
+		const Material * material = FindMaterial( name );
+		// Vec4 uvwh; NOMERGE
+		// if( !TryFindDecal( name, &uvwh, NULL ) ) {
+		// 	Com_GGPrint( S_COLOR_YELLOW "Spray {} needs a decal material key", path );
+		// 	continue;
+		// }
 		if( !material->decal ) {
 			Com_GGPrint( S_COLOR_YELLOW "Spray {} needs a decal material", path );
 			continue;

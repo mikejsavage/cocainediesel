@@ -281,7 +281,7 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Alignmen
 	mesh.vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = { VertexFormat_Floatx2, 0, offsetof( TextVertex, uv ) };
 	mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( TextVertex );
 	mesh.index_format = IndexFormat_U16;
-	mesh.num_vertices = vertices.size();
+	mesh.num_vertices = indices.size();
 	mesh.vertex_buffers[ 0 ] = NewTempBuffer( vertices.span() );
 	mesh.index_buffer = NewTempBuffer( indices.span() );
 
@@ -291,12 +291,10 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Alignmen
 		.material_bind_group = font->bind_group,
 	};
 
-	// pipeline.alpha_to_coverage = true;
 	EncodeDrawCall( RenderPass_NonworldOpaque, pipeline, mesh, { { "u_Text", text_uniforms } } );
 
 	{
 		pipeline.shader = shaders.text_depth_only;
-		// pipeline.clamp_depth = true;
 		for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
 			EncodeDrawCall( RenderPass_ShadowmapCascade0 + i, pipeline, mesh, { { "u_Text", text_uniforms } } );
 		}

@@ -29,7 +29,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash materia
 	float end_width = Max2( width, 8.0f * end_w * pixel_scale );
 
 	const Material * material = FindMaterial( material_name );
-	float texture_aspect_ratio = float( material->texture->width ) / float( material->texture->height );
+	float texture_aspect_ratio = float( TextureWidth( material->texture ) ) / float( TextureHeight( material->texture ) );
 	float beam_aspect_ratio = Length( end - start ) / width;
 	float repetitions = beam_aspect_ratio / texture_aspect_ratio;
 	Vec2 half_pixel = HalfPixelSize( material );
@@ -65,19 +65,23 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash materia
 
 	constexpr u16 indices[] = { 0, 1, 2, 1, 3, 2 };
 
-	PipelineState pipeline = MaterialToPipelineState( material, color );
-	pipeline.shader = shaders.standard_vertexcolors;
-	pipeline.blend_func = BlendFunc_Add;
-	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
+	PipelineState pipeline = {
+		.shader = shaders.standard_vertexcolors_add,
+		.dynamic_state = { .depth_func = DepthFunc_LessNoWrite },
+		.material_bind_group = material->bind_group,
+	};
 
-	VertexDescriptor vertex_descriptor = { };
-	vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( BeamVertex, position ) };
-	vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( BeamVertex, uv ) };
-	vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( BeamVertex, color ) };
-	vertex_descriptor.buffer_strides[ 0 ] = sizeof( BeamVertex );
+	Mesh mesh = { };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( BeamVertex, position ) };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( BeamVertex, uv ) };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( BeamVertex, color ) };
+	mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( BeamVertex );
+	mesh.index_format = IndexFormat_U16;
+	mesh.num_vertices = ARRAY_COUNT( indices );
+	mesh.vertex_buffers[ 0 ] = NewTempBuffer( vertices );
+	mesh.index_buffer = NewTempBuffer( indices );
 
-	DrawDynamicGeometry( pipeline, StaticSpan( vertices ), StaticSpan( indices ), vertex_descriptor );
+	EncodeDrawCall( RenderPass_Transparent, pipeline, mesh, { { "u_Model", frame_static.identity_model_transform_uniforms } } );
 }
 
 struct PersistentBeam {

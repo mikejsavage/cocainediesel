@@ -37,11 +37,6 @@ struct BoundedString {
 
 	BoundedString() = default;
 
-	BoundedString( const char * str_ ) {
-		n = Min2( strlen( str_ ), N );
-		memcpy( str, str_, n );
-	}
-
 	BoundedString( Span< const char > str_ ) {
 		n = Min2( str_.n, N );
 		memcpy( str, str_.ptr, n );
@@ -55,20 +50,17 @@ struct Material {
 	u64 hash;
 
 	PoolHandle< RenderPipeline > shader;
-	RenderPipelineDynamicState dynamic_state;
 	PoolHandle< BindGroup > bind_group;
+	PoolHandle< Texture > texture;
+	RenderPipelineDynamicState renderer_dynamic_state;
 
 	ColorGen rgbgen;
 	ColorGen alphagen;
-	BlendFunc blend_func = BlendFunc_Disabled;
-	bool double_sided = false;
-	bool decal = false;
 	bool outlined = true;
 	bool shaded = false;
 	bool world = false;
 	float specular = 0.0f;
 	float shininess = 64.0f;
-	SamplerType sampler = Sampler_Standard;
 };
 
 bool CompressedTextureFormat( TextureFormat format );
@@ -86,3 +78,5 @@ bool TryFindDecal( StringHash name, Vec4 * uvwh, Vec4 * trim );
 PoolHandle< Texture > DecalAtlasTexture();
 
 Vec2 HalfPixelSize( const Material * material );
+
+Vec4 EvaluateMaterialColor( const Material & material, Vec4 entity_color );

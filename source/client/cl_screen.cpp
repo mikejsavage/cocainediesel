@@ -136,7 +136,6 @@ static void FlashStage( float begin, float t, float end, float from, float to, f
 static void SubmitPostprocessPass() {
 	TracyZoneScoped;
 
-	const RenderTarget & rt = frame_static.render_targets.postprocess;
 	float damage_effect = cg.view.type == ViewType_Player ? cg.damage_effect : 0.0f;
 
 	float contrast = 1.0f;
@@ -185,13 +184,12 @@ static void SubmitPostprocessPass() {
 				{ "u_PostProcess", NewTempBuffer( uniforms ) },
 			},
 			.textures = {
-				{ "u_Screen", ... },
+				{ "u_Screen", frame_static.render_targets.resolved_color },
 				{ "u_Noise", RGBNoiseTexture() },
 			},
 			.samplers = { { "u_Sampler", Sampler_Standard } },
 		},
 	} );
-	// pipeline.bind_texture_and_sampler( "u_Screen", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Standard );
 
 	PipelineState pipeline = {
 		.shader = shaders.postprocess,

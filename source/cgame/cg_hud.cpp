@@ -415,7 +415,6 @@ void CG_DrawScope() {
 			.shader = shaders.scope,
 			.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
 		};
-		// pipeline.blend_func = BlendFunc_Blend;
 
 		EncodeDrawCall( RenderPass_UIBeforePostprocessing, pipeline, FullscreenMesh() );
 

@@ -260,10 +260,10 @@ bool operator==( const VertexDescriptor & lhs, const VertexDescriptor & rhs ) {
 	return true;
 }
 
-Material NewMaterial( const MaterialDescriptor & desc ) {
+Material2 NewMaterial( const MaterialDescriptor & desc ) {
 	GPUBuffer properties = NewBuffer( GPULifetime_Persistent, "material properties", desc.properties );
-	return Material {
-		.name = desc.name,
+	return Material2 {
+		// .name = desc.name,
 		.shader = desc.shader,
 		.dynamic_state = desc.dynamic_state,
 		.bind_group = NewMaterialBindGroup( desc.name, desc.texture, desc.sampler, properties ),

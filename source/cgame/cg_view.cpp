@@ -424,7 +424,7 @@ static void DrawSilhouettes() {
 		},
 		.representative_shader = shaders.postprocess_silhouette_gbuffer,
 		.bindings = {
-			.textures = { { "u_SilhouetteTexture", rt.color_attachments[ FragmentShaderOutput_Albedo ] } },
+			.textures = { { "u_SilhouetteTexture", frame_static.render_targets.silhouette_mask } },
 		},
 	} );
 
@@ -432,7 +432,6 @@ static void DrawSilhouettes() {
 		.shader = shaders.postprocess_silhouette_gbuffer,
 		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
 	};
-	// pipeline.blend_func = BlendFunc_Blend;
 
 	EncodeDrawCall( RenderPass_AddSilhouettes, pipeline, FullscreenMesh() );
 }
@@ -454,8 +453,8 @@ static void DrawOutlines() {
 				{ "u_OutlineColor", NewTempBuffer( sRGBToLinear( gray ) ) },
 			},
 			.textures = {
-				{ "u_DepthTexture", frame_static.msaa_depth },
-				{ "u_CurvedSurfaceMask", frame_static.curved_surface_mask },
+				{ "u_DepthTexture", frame_static.render_targets.msaa_depth },
+				{ "u_CurvedSurfaceMask", frame_static.render_targets.curved_surface_mask },
 			},
 		},
 	} );
@@ -464,16 +463,8 @@ static void DrawOutlines() {
 		.shader = msaa ? shaders.postprocess_world_gbuffer_msaa : shaders.postprocess_world_gbuffer,
 		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
 	};
-	// pipeline.blend_func = BlendFunc_Blend;
 
 	EncodeDrawCall( RenderPass_AddOutlines, pipeline, FullscreenMesh() );
-
-	// const RenderTarget & rt = msaa ? frame_static.render_targets.msaa_masked : frame_static.render_targets.postprocess_masked;
-	// pipeline.bind_texture_and_sampler( "u_DepthTexture", &rt.depth_attachment, Sampler_Standard );
-	// pipeline.bind_texture_and_sampler( "u_CurvedSurfaceMask", &rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ], Sampler_Unfiltered );
-	// pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-	// pipeline.bind_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );
-	// DrawFullscreenMesh( pipeline );
 }
 
 void CG_RenderView( unsigned extrapolationTime ) {

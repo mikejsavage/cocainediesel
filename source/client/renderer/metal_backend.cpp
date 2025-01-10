@@ -58,6 +58,7 @@ struct RenderPipeline {
 
 	ArgumentBufferEncoder render_pass_args;
 	ArgumentBufferEncoder draw_call_args;
+	bool clamp_depth;
 
 	static constexpr size_t FirstVertexAttributeIndex = DescriptorSet_Count;
 };
@@ -607,6 +608,7 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 
 	RenderPipeline shader = { };
 	shader.name = config.path;
+	shader.clamp_depth = config.clamp_depth;
 
 	for( size_t i = 0; i < config.mesh_variants.n; i++ ) {
 		const VertexDescriptor & mesh_variant = config.mesh_variants[ i ];
@@ -655,6 +657,8 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 			if( config.output_format.has_depth ) {
 				pipeline->setDepthAttachmentPixelFormat( MTL::PixelFormat::PixelFormatDepth32Float );
 			}
+
+			pipeline->setAlphaToCoverageEnabled( config.alpha_to_coverage );
 
 			MTL::VertexDescriptor * vertex_descriptor = MTL::VertexDescriptor::alloc()->init();
 			defer { vertex_descriptor->release(); };
@@ -831,6 +835,7 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline
 	CommandBuffer * cb = ocb.unwrap();
 
 	cb->rce->setRenderPipelineState( pso );
+	cb->rce->setDepthClipMode( render_pipelines[ pipeline.shader ].clamp_depth ? MTL::DepthClipModeClamp : MTL::DepthClipModeClip );
 	cb->rce->setFrontFacingWinding( MTL::WindingCounterClockwise );
 	cb->rce->setCullMode( CullFaceToMetal( pipeline.dynamic_state.cull_face ) );
 	cb->rce->setDepthStencilState( depth_funcs[ pipeline.dynamic_state.depth_func ] );

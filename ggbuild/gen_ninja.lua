@@ -65,7 +65,7 @@ configs[ "linux" ] = {
 	cxx = zig .. " c++",
 	ar = zig .. " ar",
 
-	cxxflags = gcc_common_cxxflags .. " --target=x86_64-linux-musl",
+	cxxflags = gcc_common_cxxflags .. " --target=x86_64-linux-musl -ferror-limit=0",
 	ldflags = "--build-id=sha1",
 }
 
@@ -92,7 +92,7 @@ configs[ "macos" ] = copy( configs[ "linux" ], {
 	cxx = "clang++",
 	ar = "ar",
 	-- -march=haswell on x86
-	cxxflags = gcc_common_cxxflags .. " -arch arm64 -mmacosx-version-min=10.15",
+	cxxflags = gcc_common_cxxflags .. " -arch arm64 -mmacosx-version-min=10.15 -ferror-limit=0",
 	ldflags = "-arch arm64",
 } )
 configs[ "macos-debug" ] = { }

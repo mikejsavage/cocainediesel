@@ -132,11 +132,15 @@ void DrawText( const Font * font, float pixel_size, Span< const char > str, floa
 		const FontMetadata::Glyph * glyph = &font->metadata.glyphs[ c ];
 
 		if( Area( glyph->bounds ) > 0.0f ) {
+			// fonts are y-up, screen coords are y-down
+			constexpr Vec2 flip_y = Vec2( 1.0f, -1.0f );
+
 			// TODO: this is bogus. it should expand glyphs by 1 or
 			// 2 pixels to allow for border/antialiasing, up to a
 			// limit determined by font->glyph_padding
-			Vec2 mins = Vec2( x, y ) + pixel_size * ( glyph->bounds.mins - font->metadata.glyph_padding );
-			Vec2 maxs = Vec2( x, y ) + pixel_size * ( glyph->bounds.maxs + font->metadata.glyph_padding );
+			Vec2 mins = Vec2( x, y ) + pixel_size * flip_y * ( glyph->bounds.mins - font->metadata.glyph_padding );
+			Vec2 maxs = Vec2( x, y ) + pixel_size * flip_y * ( glyph->bounds.maxs + font->metadata.glyph_padding );
+
 			bg->PrimReserve( 6, 4 );
 			bg->PrimRectUV( mins, maxs, glyph->padded_uv_bounds.mins, glyph->padded_uv_bounds.maxs, IM_COL32_WHITE );
 		}

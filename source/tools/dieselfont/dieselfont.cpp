@@ -328,43 +328,40 @@ int main( int argc, char ** argv ) {
 
 	struct GlyphBox {
 		u32 codepoint;
+		size_t rect_idx;
 		int x0, y0, x1, y1;
 	};
 	GlyphBox * glyphs = AllocMany< GlyphBox >( &arena, max_codepoints );
 
+	size_t num_rects = 0;
 	size_t num_glyphs = 0;
 	for( auto [ lo, hi ] : codepoint_ranges ) {
 		for( u32 codepoint = lo; codepoint < hi; codepoint++ ) {
 			TempAllocator temp = arena.temp();
 			font.userdata = &temp;
 
-			int x0, y0, x1, y1;
-			if( stbtt_GetCodepointBox( &font, codepoint, &x0, &y0, &x1, &y1 ) == 0 )
+			GlyphBox * glyph = &glyphs[ num_glyphs++ ];
+			*glyph = {
+				.codepoint = codepoint,
+				.rect_idx = num_rects,
+			};
+			if( stbtt_GetCodepointBox( &font, codepoint, &glyph->x0, &glyph->y0, &glyph->x1, &glyph->y1 ) == 0 )
 				continue;
 
-			rects[ num_glyphs ] = {
-				.w = checked_cast< stbrp_coord >( ceilf( ( x1 - x0 ) * atlas_glyph_embox_size * scale + 2.0f * padding ) ),
-				.h = checked_cast< stbrp_coord >( ceilf( ( y1 - y0 ) * atlas_glyph_embox_size * scale + 2.0f * padding ) ),
+			rects[ num_rects++ ] = {
+				.w = checked_cast< stbrp_coord >( ceilf( ( glyph->x1 - glyph->x0 ) * atlas_glyph_embox_size * scale + 2.0f * padding ) ),
+				.h = checked_cast< stbrp_coord >( ceilf( ( glyph->y1 - glyph->y0 ) * atlas_glyph_embox_size * scale + 2.0f * padding ) ),
 			};
-			glyphs[ num_glyphs ] = {
-				.codepoint = codepoint,
-				.x0 = x0,
-				.y0 = y0,
-				.x1 = x1,
-				.y1 = y1,
-			};
-
-			num_glyphs++;
 		}
 	}
 
 	{
 		TracyZoneScopedN( "stbrp_pack_rects" );
 
-		stbrp_node * nodes = AllocMany< stbrp_node >( &arena, num_glyphs );
+		stbrp_node * nodes = AllocMany< stbrp_node >( &arena, num_rects );
 		stbrp_context packer;
-		stbrp_init_target( &packer, atlas_size, atlas_size, nodes, num_glyphs );
-		if( stbrp_pack_rects( &packer, rects, num_glyphs ) != 1 ) {
+		stbrp_init_target( &packer, atlas_size, atlas_size, nodes, num_rects );
+		if( stbrp_pack_rects( &packer, rects, num_rects ) != 1 ) {
 			Fatal( "Can't pack" );
 		}
 	}
@@ -402,7 +399,8 @@ int main( int argc, char ** argv ) {
 		);
 		msdfgen::Range range( -range_in_ems, range_in_ems );
 
-		Span2D< Vec3 > pixels = AllocSpan2D< Vec3 >( &temp, rects[ i ].w, rects[ i ].h );
+		stbrp_rect uvs = rects[ glyphs[ i ].rect_idx ];
+		Span2D< Vec3 > pixels = AllocSpan2D< Vec3 >( &temp, uvs.w, uvs.h );
 		msdfgen::BitmapRef< float, 3 > bitmap( pixels.ptr->ptr(), pixels.w, pixels.h );
 		{
 			TracyZoneScopedN( "edgeColoringSimple" );
@@ -430,7 +428,7 @@ int main( int argc, char ** argv ) {
 			}
 		}
 
-		CopySpan2DFlipY( atlas.slice( rects[ i ].x, rects[ i ].y, rects[ i ].w, rects[ i ].h ), pixels8 );
+		CopySpan2DFlipY( atlas.slice( uvs.x, uvs.y, uvs.w, uvs.h ), pixels8 );
 
 		int x0, y0, x1, y1;
 		stbtt_GetCodepointBox( &font, codepoint, &x0, &y0, &x1, &y1 );
@@ -439,7 +437,7 @@ int main( int argc, char ** argv ) {
 		metadata.glyphs[ codepoint ] = FontMetadata::Glyph {
 			.bounds = MinMax2( scale * Vec2( x0, y0 ), scale * Vec2( x1, y1 ) ),
 			// .tight_uv_bounds = { },
-			.padded_uv_bounds = MinMax2( Vec2( rects[ i ].x, rects[ i ].y ) / atlas_size, Vec2( rects[ i ].x + rects[ i ].w, rects[ i ].y + rects[ i ].h ) / atlas_size ),
+			.padded_uv_bounds = MinMax2( Vec2( uvs.x, uvs.y + uvs.h ) / atlas_size, Vec2( uvs.x + uvs.w, uvs.y ) / atlas_size ),
 			.advance = advance * scale,
 		};
 	}

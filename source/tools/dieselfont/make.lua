@@ -7,6 +7,7 @@ bin( "dieselfont", {
 		"source/qcommon/base.cpp",
 		"source/qcommon/fs.cpp",
 		"source/qcommon/hash.cpp",
+		"source/qcommon/serialization.cpp",
 		"source/qcommon/platform/*_fs.cpp",
 		"source/qcommon/platform/*_sys.cpp",
 		"source/qcommon/platform/*_threads.cpp",

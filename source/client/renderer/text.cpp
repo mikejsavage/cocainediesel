@@ -10,45 +10,28 @@
 #include "client/client.h"
 #include "client/assets.h"
 
+#include "tools/dieselfont/font_metadata.h"
+
 #include "imgui/imgui.h"
 
 #include "stb/stb_image.h"
-
-struct Glyph {
-	MinMax2 bounds;
-	MinMax2 uv_bounds;
-	float advance;
-};
 
 struct Font {
 	u32 path_hash;
 	Texture atlas;
 	Material material;
-
-	float glyph_padding;
-	float dSDF_dTexel;
-	float ascent;
-
-	Glyph glyphs[ 256 ];
+	FontMetadata metadata;
 };
 
-static Font fonts[ 64 ];
-static size_t num_fonts;
+static BoundedDynamicArray< Font, 64 > fonts;
 
 void InitText() {
-	num_fonts = 0;
+	fonts.clear();
 }
 
 void ShutdownText() {
-	for( size_t i = 0; i < num_fonts; i++ ) {
+	for( size_t i = 0; i < fonts.size(); i++ ) {
 		DeleteTexture( fonts[ i ].atlas );
-	}
-}
-
-static void Serialize( SerializationBuffer * buf, Font & font ) {
-	*buf & font.glyph_padding & font.dSDF_dTexel & font.ascent;
-	for( Glyph & glyph : font.glyphs ) {
-		*buf & glyph.bounds & glyph.uv_bounds & glyph.advance;
 	}
 }
 
@@ -56,16 +39,16 @@ const Font * RegisterFont( const char * path ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	u32 path_hash = Hash32( path );
-	for( size_t i = 0; i < num_fonts; i++ ) {
-		if( fonts[ i ].path_hash == path_hash ) {
-			return &fonts[ i ];
+	for( const Font & font : fonts ) {
+		if( font.path_hash == path_hash ) {
+			return &font; // TODO: use a hashmap lol
 		}
 	}
 
-	Assert( num_fonts < ARRAY_COUNT( fonts ) );
+	// TODO: can't refactor this to not be stupid yet because Font has an internal pointer
+	Assert( fonts.size() < ARRAY_COUNT( fonts ) );
 
-	Font * font = &fonts[ num_fonts ];
-	font->path_hash = path_hash;
+	Font font = { .path_hash = path_hash };
 
 	// load MSDF spec
 	{
@@ -76,7 +59,7 @@ const Font * RegisterFont( const char * path ) {
 			return NULL;
 		}
 
-		if( !Deserialize( NULL, font, data.ptr, data.n ) ) {
+		if( !Deserialize( NULL, &font.metadata, data.ptr, data.n ) ) {
 			Com_GGPrint( S_COLOR_RED "Couldn't load MSDF spec from {}", msdf_path );
 			return NULL;
 		}
@@ -102,13 +85,19 @@ const Font * RegisterFont( const char * path ) {
 		config.height = checked_cast< u32 >( h );
 		config.data = pixels;
 
-		font->atlas = NewTexture( config );
-		font->material.texture = &font->atlas;
+		font.atlas = NewTexture( config );
 	}
 
-	num_fonts++;
+	if( !fonts.add( font ) ) {
+		Com_Printf( S_COLOR_YELLOW "Too many fonts!\n" );
+		DeleteTexture( font.atlas );
+		return NULL;
+	}
 
-	return font;
+	Font * fontp = &fonts[ fonts.size() - 1 ];
+
+	fontp->material.texture = &fontp->atlas;
+	return fontp;
 }
 
 static float Area( const MinMax2 & rect ) {
@@ -121,13 +110,13 @@ static void DrawText( const Font * font, float pixel_size, Span< const char > st
 	if( font == NULL )
 		return;
 
-	y += pixel_size * font->ascent;
+	y += pixel_size * font->metadata.ascent;
 
 	ImGuiShaderAndMaterial sam;
 	sam.shader = &shaders.text;
 	sam.material = &font->material;
 	sam.uniform_name = "u_Text";
-	sam.uniform_block = UploadUniformBlock( color, border_color, font->dSDF_dTexel, border ? 1 : 0 );
+	sam.uniform_block = UploadUniformBlock( color, border_color, font->metadata.dSDF_dTexel, border ? 1 : 0 );
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();
 	bg->PushTextureID( sam );
@@ -140,16 +129,16 @@ static void DrawText( const Font * font, float pixel_size, Span< const char > st
 		if( c > 255 )
 			c = '?';
 
-		const Glyph * glyph = &font->glyphs[ c ];
+		const FontMetadata::Glyph * glyph = &font->metadata.glyphs[ c ];
 
 		if( Area( glyph->bounds ) > 0.0f ) {
 			// TODO: this is bogus. it should expand glyphs by 1 or
 			// 2 pixels to allow for border/antialiasing, up to a
 			// limit determined by font->glyph_padding
-			Vec2 mins = Vec2( x, y ) + pixel_size * ( glyph->bounds.mins - font->glyph_padding );
-			Vec2 maxs = Vec2( x, y ) + pixel_size * ( glyph->bounds.maxs + font->glyph_padding );
+			Vec2 mins = Vec2( x, y ) + pixel_size * ( glyph->bounds.mins - font->metadata.glyph_padding );
+			Vec2 maxs = Vec2( x, y ) + pixel_size * ( glyph->bounds.maxs + font->metadata.glyph_padding );
 			bg->PrimReserve( 6, 4 );
-			bg->PrimRectUV( mins, maxs, glyph->uv_bounds.mins, glyph->uv_bounds.maxs, IM_COL32_WHITE );
+			bg->PrimRectUV( mins, maxs, glyph->padded_uv_bounds.mins, glyph->padded_uv_bounds.maxs, IM_COL32_WHITE );
 		}
 
 		x += pixel_size * glyph->advance;
@@ -174,7 +163,7 @@ MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
 
 	u32 state = 0;
 	u32 c = 0;
-	const Glyph * glyph = NULL;
+	const FontMetadata::Glyph * glyph = NULL;
 
 	for( const char * p = str; *p != '\0'; p++ ) {
 		if( DecodeUTF8( &state, &c, *p ) != 0 )
@@ -182,7 +171,7 @@ MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
 		if( c > 255 )
 			c = '?';
 
-		glyph = &font->glyphs[ c ];
+		glyph = &font->metadata.glyphs[ c ];
 		width += glyph->advance;
 		y_extents.lo = Min2( glyph->bounds.mins.y, y_extents.lo );
 		y_extents.hi = Max2( glyph->bounds.maxs.y, y_extents.hi );
@@ -207,7 +196,7 @@ static void DrawText( const Font * font, float pixel_size, const char * str, Ali
 		x -= bounds.maxs.x;
 	}
 
-	y -= pixel_size * font->ascent;
+	y -= pixel_size * font->metadata.ascent;
 	if( align.y == YAlignment_Top ) {
 		y += bounds.maxs.y - bounds.mins.y;
 	}
@@ -250,31 +239,31 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Alignmen
 		if( c > 255 )
 			c = '?';
 
-		const Glyph * glyph = &font->glyphs[ c ];
+		const FontMetadata::Glyph * glyph = &font->metadata.glyphs[ c ];
 
 		if( Area( glyph->bounds ) > 0.0f ) {
 			size_t base_index = vertices.size();
 
-			Vec2 mins = glyph->bounds.mins - font->glyph_padding;
-			Vec2 maxs = glyph->bounds.maxs + font->glyph_padding;
+			Vec2 mins = glyph->bounds.mins - font->metadata.glyph_padding;
+			Vec2 maxs = glyph->bounds.maxs + font->metadata.glyph_padding;
 
 			// TODO: padding for antialiasing/borders!!!!!!!!!!!!!!!!!! very hard because size is in world space and not screen pixels now
 			// note that world mins.y goes with uv maxs.y because world space is y-up and textures are y-down
 			vertices.add( TextVertex {
 				.position = cursor + mins.x * dx + mins.y * dy,
-				.uv = Vec2( glyph->uv_bounds.mins.x, glyph->uv_bounds.maxs.y ),
+				.uv = Vec2( glyph->padded_uv_bounds.mins.x, glyph->padded_uv_bounds.maxs.y ),
 			} );
 			vertices.add( TextVertex {
 				.position = cursor + maxs.x * dx + mins.y * dy,
-				.uv = Vec2( glyph->uv_bounds.maxs.x, glyph->uv_bounds.maxs.y ),
+				.uv = Vec2( glyph->padded_uv_bounds.maxs.x, glyph->padded_uv_bounds.maxs.y ),
 			} );
 			vertices.add( TextVertex {
 				.position = cursor + mins.x * dx + maxs.y * dy,
-				.uv = Vec2( glyph->uv_bounds.mins.x, glyph->uv_bounds.mins.y ),
+				.uv = Vec2( glyph->padded_uv_bounds.mins.x, glyph->padded_uv_bounds.mins.y ),
 			} );
 			vertices.add( TextVertex {
 				.position = cursor + maxs.x * dx + maxs.y * dy,
-				.uv = Vec2( glyph->uv_bounds.maxs.x, glyph->uv_bounds.mins.y ),
+				.uv = Vec2( glyph->padded_uv_bounds.maxs.x, glyph->padded_uv_bounds.mins.y ),
 			} );
 
 			indices.add( base_index + 0 );
@@ -289,7 +278,7 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Alignmen
 		cursor += dx * glyph->advance;
 	}
 
-	UniformBlock text_uniforms = UploadUniformBlock( color, color, font->dSDF_dTexel, 0 );
+	UniformBlock text_uniforms = UploadUniformBlock( color, color, font->metadata.dSDF_dTexel, 0 );
 
 	VertexDescriptor vertex_descriptor = { };
 	vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( TextVertex, position ) };

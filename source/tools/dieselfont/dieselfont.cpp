@@ -4,35 +4,15 @@
 #include "qcommon/serialization.h"
 #include "qcommon/span2d.h"
 #include "gameshared/q_math.h"
+#include "gameshared/q_shared.h"
+
+#include "tools/dieselfont/font_metadata.h"
 
 #include "msdf/msdfgen.h"
 
 #include "stb/stb_image_write.h"
 #include "stb/stb_rect_pack.h"
 #include "stb/stb_truetype.h"
-
-// NOTE: this is copy pasted from text.cpp
-struct Glyph {
-	MinMax2 tight_bounds;
-	MinMax2 tight_uv_bounds;
-	MinMax2 padded_uv_bounds;
-	float advance;
-};
-
-struct Font {
-	float glyph_padding;
-	float dSDF_dTexel;
-	float ascent;
-
-	Glyph glyphs[ 256 ];
-};
-
-static void Serialize( SerializationBuffer * buf, Font & font ) {
-	*buf & font.glyph_padding & font.dSDF_dTexel & font.ascent;
-	for( Glyph & glyph : font.glyphs ) {
-		*buf & glyph.tight_bounds & glyph.tight_uv_bounds & glyph.padded_uv_bounds & glyph.advance;
-	}
-}
 
 static msdfgen::Point2 Point( stbtt_vertex_type x, stbtt_vertex_type y ) {
 	return msdfgen::Point2( x / 64.0, y / 64.0 );
@@ -295,22 +275,29 @@ static void CopySpan2DFlipY( Span2D< RGB8 > dst, Span2D< const RGB8 > src ) {
 	}
 }
 
-int main( int argv, char ** argc ) {
+int main( int argc, char ** argv ) {
+	if( argc == 1 ) {
+		printf( "Usage: %s <font.ttf>\n", argv[ 0 ] );
+		return 1;
+	}
+
 	constexpr u32 codepoint_ranges[][ 2 ] = {
 		{ 0x20, 0xff }, // ASCII
 		// { 0x3131, 0x3163 }, // Korean
 		// { 0xac00, 0xd7a3 }, // Korean
 	};
 
-	constexpr size_t sdf_embox_size = 64;
+	constexpr int atlas_size = 1024; // pixels
+	constexpr size_t atlas_glyph_embox_size = 64; // pixels
 	constexpr float range_in_ems = 4.0f;
 
 	constexpr size_t arena_size = 1024 * 1024 * 100; // 100MB
 	ArenaAllocator arena( sys_allocator->allocate( arena_size, 16 ), arena_size );
 
-	Span< u8 > ttf = ReadFileBinary( &arena, "base/fonts/Decalotype-Black.ttf" );
+	Span< const char > ttf_path = MakeSpan( argv[ 1 ] );
+	Span< u8 > ttf = ReadFileBinary( &arena, argv[ 1 ] );
 	if( ttf.ptr == NULL ) {
-		Fatal( "Can't read font" );
+		Fatal( "Can't read %s", argv[ 1 ] );
 	}
 
 	stbtt_fontinfo font;
@@ -324,11 +311,12 @@ int main( int argv, char ** argc ) {
 	// float scale = stbtt_ScaleForPixelHeight( &font, 1.0f );
 	float scale = stbtt_ScaleForMappingEmToPixels( &font, 1.0f );
 
-	float dSDF_dUV = 1.0f / ( scale * sdf_embox_size * 64.0f * range_in_ems * 2 );
-	float padding = range_in_ems * scale * sdf_embox_size * 64.0f; // TODO: give 64 a meaningful name
+	float dSDF_dUV = 1.0f / ( scale * atlas_glyph_embox_size * 64.0f * range_in_ems * 2 );
+	float padding = range_in_ems * scale * atlas_glyph_embox_size * 64.0f; // TODO: give 64 a meaningful name
 	printf( "dSDF_dUV %f\n", dSDF_dUV );
-	printf( "scale %f\n", scale );
-	printf( "padding %f\n", range_in_ems * scale * sdf_embox_size * 64 );
+	printf( "scale %g\n", scale );
+	printf( "padding %f\n", range_in_ems * scale * atlas_glyph_embox_size * 64 );
+	printf( "ascent %f descent %f\n", ascent * scale, descent * scale );
 
 	size_t max_codepoints = 0;
 	for( auto [ lo, hi ] : codepoint_ranges ) {
@@ -355,8 +343,8 @@ int main( int argv, char ** argc ) {
 				continue;
 
 			rects[ num_glyphs ] = {
-				.w = checked_cast< stbrp_coord >( ceilf( ( x1 - x0 ) * sdf_embox_size * scale + 2.0f * padding ) ),
-				.h = checked_cast< stbrp_coord >( ceilf( ( y1 - y0 ) * sdf_embox_size * scale + 2.0f * padding ) ),
+				.w = checked_cast< stbrp_coord >( ceilf( ( x1 - x0 ) * atlas_glyph_embox_size * scale + 2.0f * padding ) ),
+				.h = checked_cast< stbrp_coord >( ceilf( ( y1 - y0 ) * atlas_glyph_embox_size * scale + 2.0f * padding ) ),
 			};
 			glyphs[ num_glyphs ] = {
 				.codepoint = codepoint,
@@ -369,8 +357,6 @@ int main( int argv, char ** argc ) {
 			num_glyphs++;
 		}
 	}
-
-	constexpr int atlas_size = 1024;
 
 	{
 		TracyZoneScopedN( "stbrp_pack_rects" );
@@ -385,6 +371,14 @@ int main( int argv, char ** argc ) {
 
 	Span2D< RGB8 > atlas = AllocSpan2D< RGB8 >( &arena, atlas_size, atlas_size );
 	memset( atlas.ptr, 0, atlas.num_bytes() );
+
+	FontMetadata metadata = {
+		// .glyph_padding = 1.0f / padding,
+		.glyph_padding = 0.1335f,
+		.dSDF_dTexel = dSDF_dUV,
+		.ascent = ascent * ( 1.0f / 64.0f ),
+		// .descent = float( descent ) / ( float( atlas_glyph_embox_size ) * 64.0f ),
+	};
 
 	for( size_t i = 0; i < num_glyphs; i++ ) {
 		TempAllocator temp = arena.temp();
@@ -403,10 +397,10 @@ int main( int argv, char ** argc ) {
 		msdfgen::Shape shape = STBShapeToMSDFShape( &font, codepoint );
 		// no idea why the translation needs to be * 0.5f
 		msdfgen::Projection projection(
-			msdfgen::Vector2( scale * 64.0f * sdf_embox_size ),
+			msdfgen::Vector2( scale * 64.0f * atlas_glyph_embox_size ),
 			msdfgen::Vector2( ( padding - glyphs[ i ].x0 * scale * 64.0f ) * 0.5f, ( padding - glyphs[ i ].y0 * scale * 64.0f ) * 0.5f )
 		);
-		msdfgen::Range range( range_in_ems );
+		msdfgen::Range range( -range_in_ems, range_in_ems );
 
 		Span2D< Vec3 > pixels = AllocSpan2D< Vec3 >( &temp, rects[ i ].w, rects[ i ].h );
 		msdfgen::BitmapRef< float, 3 > bitmap( pixels.ptr->ptr(), pixels.w, pixels.h );
@@ -425,24 +419,41 @@ int main( int argv, char ** argc ) {
 			for( size_t y = 0; y < pixels.h; y++ ) {
 				for( size_t x = 0; x < pixels.w; x++ ) {
 					pixels8( x, y ) = RGB8(
-						Quantize11< u8 >( Clamp( -1.0f, pixels( x, y ).x / ( range_in_ems * 0.5f ), 1.0f ) ),
-						Quantize11< u8 >( Clamp( -1.0f, pixels( x, y ).y / ( range_in_ems * 0.5f ), 1.0f ) ),
-						Quantize11< u8 >( Clamp( -1.0f, pixels( x, y ).z / ( range_in_ems * 0.5f ), 1.0f ) )
+						// Quantize11< u8 >( Clamp( -1.0f, pixels( x, y ).x / ( range_in_ems * 0.5f ), 1.0f ) ),
+						// Quantize11< u8 >( Clamp( -1.0f, pixels( x, y ).y / ( range_in_ems * 0.5f ), 1.0f ) ),
+						// Quantize11< u8 >( Clamp( -1.0f, pixels( x, y ).z / ( range_in_ems * 0.5f ), 1.0f ) )
+						Quantize01< u8 >( Clamp01( pixels( x, y ).x ) ),
+						Quantize01< u8 >( Clamp01( pixels( x, y ).y ) ),
+						Quantize01< u8 >( Clamp01( pixels( x, y ).z ) )
 					);
 				}
 			}
 		}
 
 		CopySpan2DFlipY( atlas.slice( rects[ i ].x, rects[ i ].y, rects[ i ].w, rects[ i ].h ), pixels8 );
+
+		int x0, y0, x1, y1;
+		stbtt_GetCodepointBox( &font, codepoint, &x0, &y0, &x1, &y1 );
+
+		Assert( codepoint < ARRAY_COUNT( metadata.glyphs ) );
+		metadata.glyphs[ codepoint ] = FontMetadata::Glyph {
+			.bounds = MinMax2( scale * Vec2( x0, y0 ), scale * Vec2( x1, y1 ) ),
+			// .tight_uv_bounds = { },
+			.padded_uv_bounds = MinMax2( Vec2( rects[ i ].x, rects[ i ].y ) / atlas_size, Vec2( rects[ i ].x + rects[ i ].w, rects[ i ].y + rects[ i ].h ) / atlas_size ),
+			.advance = advance * scale,
+		};
 	}
 
 	{
 		TracyZoneScopedN( "stbi_write_png" );
-		CreatePathForFile( &arena, "msdf/atlas.png" );
-		stbi_write_png( "msdf/atlas.png", atlas.w, atlas.h, 3, atlas.ptr, 0 );
+		const char * atlas_path = arena( "{}.png", StripExtension( ttf_path ) );
+		CreatePathForFile( &arena, atlas_path );
+		stbi_write_png( atlas_path, atlas.w, atlas.h, 3, atlas.ptr, 0 );
 	}
 
-	// TODO: write font spec
+	DynamicArray< u8 > serialized( &arena );
+	Serialize( metadata, &serialized );
+	WriteFile( &arena, arena( "{}.msdf", StripExtension( ttf_path ) ), serialized.ptr(), serialized.num_bytes() );
 
 	Free( sys_allocator, arena.get_memory() );
 

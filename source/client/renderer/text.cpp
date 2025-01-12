@@ -30,25 +30,23 @@ void InitText() {
 }
 
 void ShutdownText() {
-	for( size_t i = 0; i < fonts.size(); i++ ) {
-		DeleteTexture( fonts[ i ].atlas );
+	for( Font font : fonts ) {
+		DeleteTexture( font.atlas );
 	}
 }
 
-const Font * RegisterFont( const char * path ) {
+const Font * RegisterFont( Span< const char > path ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	u32 path_hash = Hash32( path );
 	for( const Font & font : fonts ) {
 		if( font.path_hash == path_hash ) {
-			return &font; // TODO: use a hashmap lol
+			return &font;
 		}
 	}
 
-	// TODO: can't refactor this to not be stupid yet because Font has an internal pointer
-	Assert( fonts.size() < ARRAY_COUNT( fonts ) );
-
-	Font font = { .path_hash = path_hash };
+	Font font = { };
+	font.path_hash = path_hash;
 
 	// load MSDF spec
 	{
@@ -66,6 +64,7 @@ const Font * RegisterFont( const char * path ) {
 	}
 
 	// load MSDF atlas
+	// we need to load it ourselves because the normal texture loader treats 4 channel PNGs as sRGB
 	{
 		Span< const char > atlas_path = temp.sv( "{}.png", path );
 		Span< const u8 > data = AssetBinary( atlas_path );
@@ -75,29 +74,30 @@ const Font * RegisterFont( const char * path ) {
 		defer { stbi_image_free( pixels ); };
 
 		if( pixels == NULL || channels != 3 ) {
-			Com_Printf( S_COLOR_YELLOW "WARNING: couldn't load atlas from %s\n", path );
+			Com_GGPrint( S_COLOR_YELLOW "WARNING: couldn't load atlas from {}", path );
 			return NULL;
 		}
 
-		TextureConfig config;
-		config.format = TextureFormat_RGBA_U8;
-		config.width = checked_cast< u32 >( w );
-		config.height = checked_cast< u32 >( h );
-		config.data = pixels;
-
-		font.atlas = NewTexture( config );
+		font.atlas = NewTexture( TextureConfig {
+			.format = TextureFormat_RGBA_U8,
+			.width = checked_cast< u32 >( w ),
+			.height = checked_cast< u32 >( h ),
+			.data = pixels,
+		} );
 	}
 
-	if( !fonts.add( font ) ) {
-		Com_Printf( S_COLOR_YELLOW "Too many fonts!\n" );
+	// this is a little silly because Font has an internal pointer
+	Optional< Font * > slot = fonts.add();
+	if( !slot.exists ) {
+		Com_Printf( S_COLOR_YELLOW "Too many fonts\n" );
 		DeleteTexture( font.atlas );
 		return NULL;
 	}
 
-	Font * fontp = &fonts[ fonts.size() - 1 ];
+	*slot.value = font;
+	slot.value->material.texture = &slot.value->atlas;
 
-	fontp->material.texture = &fontp->atlas;
-	return fontp;
+	return slot.value;
 }
 
 static float Area( const MinMax2 & rect ) {
@@ -106,7 +106,7 @@ static float Area( const MinMax2 & rect ) {
 	return w * h;
 }
 
-static void DrawText( const Font * font, float pixel_size, Span< const char > str, float x, float y, Vec4 color, bool border, Vec4 border_color ) {
+void DrawText( const Font * font, float pixel_size, Span< const char > str, float x, float y, Vec4 color, Optional< Vec4 > border_color ) {
 	if( font == NULL )
 		return;
 
@@ -116,7 +116,7 @@ static void DrawText( const Font * font, float pixel_size, Span< const char > st
 	sam.shader = &shaders.text;
 	sam.material = &font->material;
 	sam.uniform_name = "u_Text";
-	sam.uniform_block = UploadUniformBlock( color, border_color, font->metadata.dSDF_dTexel, border ? 1 : 0 );
+	sam.uniform_block = UploadUniformBlock( color, Default( border_color, Vec4( 0.0f ) ), font->metadata.dSDF_dTexel, border_color.exists ? 1 : 0 );
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();
 	bg->PushTextureID( sam );
@@ -148,16 +148,11 @@ static void DrawText( const Font * font, float pixel_size, Span< const char > st
 	bg->PopTextureID();
 }
 
-void DrawText( const Font * font, float pixel_size, const char * str, float x, float y, Vec4 color, bool border ) {
-	Vec4 border_color = Vec4( 0, 0, 0, color.w );
-	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border, border_color );
+void DrawText( const Font * font, float pixel_size, const char * str, float x, float y, Vec4 color, Optional< Vec4 > border_color ) {
+	return DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border_color );
 }
 
-void DrawText( const Font * font, float pixel_size, const char * str, float x, float y, Vec4 color, Vec4 border_color ) {
-	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, true, border_color );
-}
-
-MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
+MinMax2 TextBounds( const Font * font, float pixel_size, Span< const char > str ) {
 	float width = 0.0f;
 	MinMax1 y_extents = MinMax1::Empty();
 
@@ -165,8 +160,8 @@ MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
 	u32 c = 0;
 	const FontMetadata::Glyph * glyph = NULL;
 
-	for( const char * p = str; *p != '\0'; p++ ) {
-		if( DecodeUTF8( &state, &c, *p ) != 0 )
+	for( size_t i = 0; i < str.n; i++ ) {
+		if( DecodeUTF8( &state, &c, str[ i ] ) != 0 )
 			continue;
 		if( c > 255 )
 			c = '?';
@@ -186,7 +181,11 @@ MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
 	return MinMax2( pixel_size * Vec2( 0, y_extents.lo ), pixel_size * Vec2( width, y_extents.hi ) );
 }
 
-static void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, bool border, Vec4 border_color ) {
+MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
+	return TextBounds( font, pixel_size, MakeSpan( str ) );
+}
+
+void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, Optional< Vec4 > border_color ) {
 	MinMax2 bounds = TextBounds( font, pixel_size, str );
 
 	if( align.x == XAlignment_Center ) {
@@ -204,16 +203,7 @@ static void DrawText( const Font * font, float pixel_size, const char * str, Ali
 		y += ( bounds.maxs.y - bounds.mins.y ) / 2.0f;
 	}
 
-	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border, border_color );
-}
-
-void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, bool border ) {
-	Vec4 border_color = Vec4( 0, 0, 0, color.w );
-	DrawText( font, pixel_size, str, align, x, y, color, border, border_color );
-}
-
-void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, Vec4 border_color ) {
-	DrawText( font, pixel_size, str, align, x, y, color, true, border_color );
+	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border_color );
 }
 
 void Draw3DText( const Font * font, float size, Span< const char > str, Alignment align, Vec3 origin, EulerDegrees3 angles, Vec4 color ) {

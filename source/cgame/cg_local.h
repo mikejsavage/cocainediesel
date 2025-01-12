@@ -283,7 +283,7 @@ void CG_ScreenCrosshairShootUpdate( u16 refire_time );
 
 void CG_DrawKeyState( int x, int y, int w, int h, const char *key );
 
-void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border );
+void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color );
 
 void CG_InitDamageNumbers();
 void CG_AddDamageNumber( SyncEntityState * ent, u64 parm );
@@ -372,8 +372,6 @@ void MaybeResetShadertoyTime( bool respawned );
 //
 // cg_lents.c
 //
-
-void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius );
 
 void InitGibs();
 void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 team_color );

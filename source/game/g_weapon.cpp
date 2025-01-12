@@ -423,7 +423,7 @@ static void W_Touch_Launcher( edict_t * ent, edict_t * other, Vec3 normal, Solid
 		float friction = 0.1f;
 		float velocity = Length( parallel ) + Length( perpendicular ) * friction;
 
-		u16 volume = Lerp( u16( 0 ), Unlerp01( 0.0f, velocity, float( def->speed ) ), U16_MAX );
+		u16 volume = Lerp( 0_u16, Unlerp01( 0.0f, velocity, float( def->speed ) ), U16_MAX );
 		G_AddEvent( ent, EV_LAUNCHER_BOUNCE, volume, true );
 
 		return;
@@ -1056,7 +1056,7 @@ static void ExplodeFlash( edict_t * grenade ) {
 		trace_t grenade_to_eye = G_Trace4D( grenade->s.origin, MinMax3( 0.0f ), eye, grenade, SolidMask_AnySolid, grenade->timeDelta );
 		if( grenade_to_eye.fraction == 1.0f ) {
 			float distance = Length( eye - grenade->s.origin );
-			u16 distance_flash = Lerp( u16( 0 ), Unlerp01( float( flash_distance ), distance, float( def->min_damage ) ), U16_MAX );
+			u16 distance_flash = Lerp( 0_u16, Unlerp01( float( flash_distance ), distance, float( def->min_damage ) ), U16_MAX );
 
 			Vec3 forward;
 			AngleVectors( ps->viewangles, &forward, NULL, NULL );

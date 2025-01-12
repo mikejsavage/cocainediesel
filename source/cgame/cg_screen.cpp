@@ -62,7 +62,7 @@ void CG_CenterPrint( Span< const char > str ) {
 }
 
 static void CG_DrawCenterString() {
-	DrawText( cgs.fontNormal, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, frame_static.viewport_width * 0.5f, frame_static.viewport_height * 0.75f, white.vec4, true );
+	DrawText( cgs.fontNormal, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, frame_static.viewport_width * 0.5f, frame_static.viewport_height * 0.75f, white.vec4, black.vec4 );
 }
 
 //============================================================================
@@ -129,7 +129,7 @@ void CG_DrawCrosshair( int x, int y ) {
 	CG_FillRect( x - 1 + gap, y - 1, 2 + size, 2, color );
 }
 
-void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border ) {
+void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color ) {
 	// static vec4_t alphagreen = { 0, 1, 0, 0 }, alphared = { 1, 0, 0, 0 }, alphayellow = { 1, 1, 0, 0 }, alphamagenta = { 1, 0, 1, 1 }, alphagrey = { 0.85, 0.85, 0.85, 1 };
 	for( int i = 0; i < client_gs.maxclients; i++ ) {
 		if( strlen( PlayerName( i ) ) == 0 || ISVIEWERENTITY( i + 1 ) ) {
@@ -194,7 +194,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 		}
 
 		float size = font_size * playerNamesZgrow * ( 1.0f - ( dist / ( playerNamesZfar * 1.8f ) ) );
-		DrawText( font, size, PlayerName( i ), Alignment_CenterBottom, coords.x, coords.y, tmpcolor, border );
+		DrawText( font, size, PlayerName( i ), Alignment_CenterBottom, coords.x, coords.y, tmpcolor, black.vec4 );
 	}
 }
 
@@ -290,7 +290,7 @@ void CG_DrawDamageNumbers( float obi_size, float dmg_size ) {
 		float alpha = 1 - Max2( 0.0f, frac - 0.75f ) / 0.25f;
 		color.w *= alpha;
 
-		DrawText( cgs.fontNormal, font_size, buf, Alignment_CenterBottom, coords.x, coords.y, color, true );
+		DrawText( cgs.fontNormal, font_size, buf, Alignment_CenterBottom, coords.x, coords.y, color, black.vec4 );
 	}
 }
 
@@ -380,12 +380,12 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 
 			char buf[ 4 ];
 			snprintf( buf, sizeof( buf ), "%c", site->letter );
-			DrawText( cgs.fontNormal, name_size, buf, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
+			DrawText( cgs.fontNormal, name_size, buf, Alignment_CenterMiddle, coords.x, coords.y, yellow, black.vec4 );
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
 				const char * msg = my_team == client_gs.gameState.bomb.attacking_team ? "ATTACK" : "DEFEND";
 				coords.y += name_size * 0.6f;
-				DrawText( cgs.fontNormal, goal_size, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
+				DrawText( cgs.fontNormal, goal_size, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, black.vec4 );
 			}
 		}
 	}
@@ -425,7 +425,7 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 				}
 
 				float y = coords.y - name_size / 3;
-				DrawText( cgs.fontNormal, goal_size, msg, Alignment_CenterMiddle, coords.x, y, color, true );
+				DrawText( cgs.fontNormal, goal_size, msg, Alignment_CenterMiddle, coords.x, y, color, black.vec4 );
 			}
 		}
 	}
@@ -449,7 +449,7 @@ void CG_EscapeKey() {
 
 static Vec4 CG_CalcColorBlend() {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	float flashed = Unlerp01( u16( 0 ), ps->flashed, u16( U16_MAX * 0.75f ) );
+	float flashed = Unlerp01( 0_u16, ps->flashed, u16( U16_MAX * 0.75f ) );
 	return Vec4( Vec3( 1.0f ), flashed * flashed );
 }
 

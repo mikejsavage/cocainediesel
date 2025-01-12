@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/text.h"
 #include "cgame/cg_local.h"
 
-#include "clay/clay.h"
+#include "clay/cdclay.h"
 
 #include "imgui/imgui.h"
 
@@ -40,6 +40,7 @@ static const Vec4 light_gray = sRGBToLinear( RGBA8( 96, 96, 96, 255 ) );
 static lua_State * hud_L;
 
 static Clay_Arena clay_arena;
+static u32 clay_element_counter;
 
 static bool show_debugger;
 
@@ -457,7 +458,8 @@ static void PushLuaAsset( lua_State * L, StringHash s ) {
 }
 
 static bool CallWithStackTrace( lua_State * L, int args, int results ) {
-	if( lua_pcall( L, args, results, 1 ) != 0 ) {
+	int debug_traceback_idx = 1;
+	if( lua_pcall( L, args, results, debug_traceback_idx ) != 0 ) {
 		Com_Printf( S_COLOR_YELLOW "%s\n", lua_tostring( L, -1 ) );
 		lua_pop( L, 1 );
 		return false;
@@ -650,12 +652,12 @@ static int LuausRGBToLinear( lua_State * L ) {
 }
 
 static int LuauPrint( lua_State * L ) {
-	Com_Printf( "%s\n", luaL_checkstring( hud_L, 1 ) );
+	Com_Printf( "%s\n", luaL_checkstring( L, 1 ) );
 	return 0;
 }
 
 static int LuauAsset( lua_State * L ) {
-	StringHash hash( luaL_checkstring( hud_L, 1 ) );
+	StringHash hash( luaL_checkstring( L, 1 ) );
 	PushLuaAsset( L, hash );
 	return 1;
 }
@@ -753,11 +755,9 @@ static int LuauDrawText( lua_State * L ) {
 	float font_size = lua_tonumber( L, -1 );
 	lua_pop( L, 1 );
 
-	bool border = false;
-	Vec4 border_color = black.vec4;
+	Optional< Vec4 > border_color = NONE;
 	lua_getfield( L, 1, "border" );
 	if( !lua_isnil( L, -1 ) ) {
-		border = true;
 		border_color = CheckColor( L, -1 );
 	}
 	lua_pop( L, 1 );
@@ -768,14 +768,9 @@ static int LuauDrawText( lua_State * L ) {
 
 	float x = luaL_checknumber( L, 2 );
 	float y = luaL_checknumber( L, 3 );
-	const char * str = luaL_checkstring( hud_L, 4 );
+	const char * str = luaL_checkstring( L, 4 );
 
-	if( border ) {
-		DrawText( font, font_size, str, alignment, x, y, color, border_color );
-	}
-	else {
-		DrawText( font, font_size, str, alignment, x, y, color, false );
-	}
+	DrawText( font, font_size, str, alignment, x, y, color, border_color );
 
 	return 0;
 }
@@ -938,7 +933,7 @@ static int HUD_DrawDamageNumbers( lua_State * L ) {
 }
 
 static int HUD_DrawPointed( lua_State * L ) {
-	CG_DrawPlayerNames( cgs.fontNormalBold, luaL_checknumber( L, 1 ), CheckColor( L, 2 ), luaL_checknumber( L, 3 ) );
+	CG_DrawPlayerNames( cgs.fontNormalBold, luaL_checknumber( L, 1 ), CheckColor( L, 2 ) );
 	return 0;
 }
 
@@ -1028,7 +1023,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 		int obituary_y = y + yoffset + ( line_height - font_size ) / 2;
 		if( obr->type != OBITUARY_ACCIDENT ) {
 			Vec4 color = CG_TeamColorVec4( obr->attacker_team );
-			DrawText( font, font_size, obr->attacker, x + xoffset, obituary_y, color, true );
+			DrawText( font, font_size, obr->attacker, x + xoffset, obituary_y, color, black.vec4 );
 			xoffset += attacker_width;
 		}
 
@@ -1043,7 +1038,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 		}
 
 		Vec4 color = CG_TeamColorVec4( obr->victim_team );
-		DrawText( font, font_size, obr->victim, x + xoffset, obituary_y, color, true );
+		DrawText( font, font_size, obr->victim, x + xoffset, obituary_y, color, black.vec4 );
 
 		yoffset += line_height;
 	} while( i != next );
@@ -1125,10 +1120,11 @@ static Optional< Clay_SizingAxis > CheckClaySize( lua_State * L, int idx, const 
 
 	Span< const char > str = LuaToSpan( L, -1 );
 	if( str == "fit" ) {
-		return Clay_SizingAxis {
-			.sizeMinMax = { 0.0f, FLT_MAX },
-			.type = CLAY__SIZING_TYPE_FIT,
-		};
+		return CLAY_SIZING_FIT( 0.0f );
+	}
+
+	if( str == "grow" ) {
+		return CLAY_SIZING_GROW( 0.0f );
 	}
 
 	if( EndsWith( str, "%" ) ) {
@@ -1203,7 +1199,7 @@ static Optional< Clay_ChildAlignment > CheckClayChildAlignment( lua_State * L, i
 		"bottom-left", "bottom-center", "bottom-right",
 	};
 
-	return alignments[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
+	return alignments[ luaL_checkoption( L, -1, names[ 0 ], names ) ];
 }
 
 static Optional< Clay_Color > CheckClayColor( lua_State * L, int idx, const char * key ) {
@@ -1222,6 +1218,65 @@ static Clay_CornerRadius CheckClayBorderRadius( lua_State * L, int idx ) {
 	return Clay_CornerRadius { r, r, r, r };
 }
 
+constexpr struct {
+	Span< const char > name;
+	const Font ** font;
+	u16 clay_font_id;
+} clay_fonts[] = {
+	{ "normal", &cgs.fontNormal },
+	{ "bold", &cgs.fontNormalBold },
+	{ "italic", &cgs.fontItalic },
+	{ "bold-italic", &cgs.fontBoldItalic },
+};
+
+static Optional< u16 > CheckClayFont( lua_State * L, int idx ) {
+	lua_getfield( L, idx, "font" );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
+
+	Span< const char > name = LuaToSpan( L, -1 );
+	for( u16 i = 0; i < ARRAY_COUNT( clay_fonts ); i++ ) {
+		if( StrEqual( clay_fonts[ i ].name, name ) ) {
+			return i;
+		}
+	}
+
+	luaL_error( L, "bad font name: %s", name.ptr );
+}
+
+struct ClayTextAndConfig {
+	Clay_String text;
+	Clay_TextElementConfig config;
+};
+
+static Optional< ClayTextAndConfig > CheckClayTextConfig( lua_State * L, int idx ) {
+	if( lua_getfield( L, -1, "text" ) == LUA_TNIL ) {
+		lua_pop( L, 1 );
+		return NONE;
+	}
+
+	Span< const char > text = LuaToSpan( L, -1 );
+	lua_pop( L, 1 );
+
+	// default 1vh
+	// TODO NOMERGE do u16s here need to be rounded or is floor ok? probably in checku16 too
+	u16 size = Default( CheckU16( L, -1, "font_size" ), u16( frame_static.viewport_height * 0.01f ) );
+
+	return ClayTextAndConfig {
+		.text = Clay_String { .length = text.n, .chars = text.ptr },
+		.config = {
+			.textColor = Default( CheckClayColor( L, -1, "color" ), { 255, 255, 255, 255 } ),
+			.fontId = Default( CheckClayFont( L, -1 ), 0_u16 ),
+			.fontSize = u16( size ),
+			.letterSpacing = 0,
+			.lineHeight = u16( Default( CheckFloat( L, -1, "line_height" ), 1.0f ) * size ),
+			.wrapMode = CLAY_TEXT_WRAP_NONE,
+			.borderColor = CheckClayColor( L, -1, "text_border" ),
+		},
+	};
+}
+
 static Clay_LayoutConfig CheckClayLayoutConfig( lua_State * L, int idx ) {
 	return Clay_LayoutConfig {
 		.sizing = {
@@ -1229,7 +1284,7 @@ static Clay_LayoutConfig CheckClayLayoutConfig( lua_State * L, int idx ) {
 			.height = Default( CheckClaySize( L, idx, "height" ), CLAY_LAYOUT_DEFAULT.sizing.height ),
 		},
 		.padding = CheckClayPadding( L, idx ),
-		.childGap = Default( CheckU16( L, idx, "gap" ), u16( 0 ) ),
+		.childGap = Default( CheckU16( L, idx, "gap" ), 0_u16 ),
 		.childAlignment = Default( CheckClayChildAlignment( L, idx, "alignment" ), CLAY_LAYOUT_DEFAULT.childAlignment ),
 		.layoutDirection = Default( CheckClayLayoutDirection( L, idx, "flow" ), CLAY_LEFT_TO_RIGHT ),
 	};
@@ -1280,15 +1335,106 @@ static Optional< Clay_BorderElementConfig > CheckClayBorderConfig( lua_State * L
 	return border;
 }
 
-static Clay_RenderCommandType CheckClayNodeType( lua_State * L, int idx ) {
-	luaL_checktype( L, -1, LUA_TLIGHTUSERDATA );
-	return checked_cast< Clay_RenderCommandType >( checked_cast< uintptr_t >( lua_touserdata( L, idx ) ) );
+static Optional< Clay_ImageElementConfig > CheckClayImageConfig( lua_State * L, int idx ) {
+	lua_getfield( L, idx, "image" );
+	StringHash name = CheckHash( L, -1 );
+	lua_pop( L, 1 );
+
+	if( name == EMPTY_HASH )
+		return NONE;
+
+	return Clay_ImageElementConfig {
+		.imageData = bit_cast< void * >( name.hash ),
+		.sourceDimensions = { 1, 1 }, // TODO
+		.tint = Default( CheckClayColor( L, -1, "color" ), Clay_Color { 255, 255, 255, 255 } ),
+	};
+}
+
+static Optional< Clay_FloatingAttachPoints > CheckClayFloatAttachment( lua_State * L, int idx ) {
+	lua_getfield( L, idx, "float" );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
+
+	Span< const char > element_parent = LuaToSpan( L, -1 );
+	Span< const char > cursor = element_parent;
+	Span< const char > element = ParseToken( &cursor, Parse_StopOnNewLine );
+	Span< const char > parent = ParseToken( &cursor, Parse_StopOnNewLine );
+
+	constexpr struct {
+		Clay_FloatingAttachPointType type;
+		Span< const char > name;
+	} attachments[] = {
+		{ CLAY_ATTACH_POINT_LEFT_TOP, "top-left" },
+		{ CLAY_ATTACH_POINT_CENTER_TOP, "top-center" },
+		{ CLAY_ATTACH_POINT_RIGHT_TOP, "top-right" },
+
+		{ CLAY_ATTACH_POINT_LEFT_CENTER, "middle-left" },
+		{ CLAY_ATTACH_POINT_CENTER_CENTER, "middle-center" },
+		{ CLAY_ATTACH_POINT_RIGHT_CENTER, "middle-right" },
+
+		{ CLAY_ATTACH_POINT_LEFT_BOTTOM, "bottom-left" },
+		{ CLAY_ATTACH_POINT_CENTER_BOTTOM, "bottom-center" },
+		{ CLAY_ATTACH_POINT_RIGHT_BOTTOM, "bottom-right" },
+	};
+
+	Optional< Clay_FloatingAttachPointType > clay_element = NONE;
+	Optional< Clay_FloatingAttachPointType > clay_parent = NONE;
+	for( auto [ type, name ] : attachments ) {
+		if( StrEqual( name, element ) ) {
+			clay_element = type;
+		}
+		if( StrEqual( name, parent ) ) {
+			clay_parent = type;
+		}
+	}
+
+	if( !clay_element.exists || !clay_parent.exists ) {
+		luaL_error( L, "bad float config: %s", element_parent.ptr );
+	}
+
+	return Clay_FloatingAttachPoints {
+		.element = clay_element.value,
+		.parent = clay_parent.value,
+	};
+}
+
+static Optional< Clay_FloatingElementConfig > CheckClayFloatConfig( lua_State * L, int idx ) {
+	Optional< Clay_FloatingAttachPoints > attachment = CheckClayFloatAttachment( L, idx );
+	if( !attachment.exists )
+		return NONE;
+
+	return Clay_FloatingElementConfig {
+		.offset = {
+			.x = Default( CheckFloat( L, -1, "x_offset" ), 0.0f ),
+			.y = Default( CheckFloat( L, -1, "y_offset" ), 0.0f ),
+		},
+		.attachment = attachment.value,
+	};
+}
+
+static Optional< Clay_CustomElementConfig > CheckClayCallbackConfig( lua_State * L, int idx ) {
+	lua_getfield( L, idx, "callback" );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
+	lua_getfield( L, idx - 1, "callback_arg" );
+	defer { lua_pop( L, 1 ); };
+	return Clay_CustomElementConfig { .callback_ref = lua_tointeger( L, -2 ), .arg_ref = lua_tointeger( L, -1 ) };
 }
 
 static void DrawClayNodeRecursive( lua_State * L ) {
 	luaL_checktype( L, -1, LUA_TTABLE );
 
 	Clay__OpenElement();
+	Clay__AttachId( Clay_ElementId { .id = clay_element_counter++ } );
+
+	Optional< ClayTextAndConfig > text_config = CheckClayTextConfig( L, -1 );
+	if( text_config.exists ) {
+		Clay__OpenTextElement( text_config.value.text, Clay__StoreTextElementConfig( text_config.value.config ) );
+	}
+
+	Clay__AttachId( Clay_ElementId { .id = clay_element_counter++ } );
 	Clay__AttachLayoutConfig( Clay__StoreLayoutConfig( CheckClayLayoutConfig( L, -1 ) ) );
 
 	Optional< Clay_RectangleElementConfig > rectangle_config = CheckClayRectangleConfig( L, -1 );
@@ -1299,6 +1445,21 @@ static void DrawClayNodeRecursive( lua_State * L ) {
 	Optional< Clay_BorderElementConfig > border_config = CheckClayBorderConfig( L, -1 );
 	if( border_config.exists ) {
 		Clay__AttachElementConfig( Clay_ElementConfigUnion { .borderElementConfig = Clay__StoreBorderElementConfig( border_config.value ) }, CLAY__ELEMENT_CONFIG_TYPE_BORDER_CONTAINER );
+	}
+
+	Optional< Clay_ImageElementConfig > image_config = CheckClayImageConfig( L, -1 );
+	if( image_config.exists ) {
+		Clay__AttachElementConfig( Clay_ElementConfigUnion { .imageElementConfig = Clay__StoreImageElementConfig( image_config.value ) }, CLAY__ELEMENT_CONFIG_TYPE_IMAGE );
+	}
+
+	Optional< Clay_FloatingElementConfig > float_config = CheckClayFloatConfig( L, -1 );
+	if( float_config.exists ) {
+		Clay__AttachElementConfig( Clay_ElementConfigUnion { .floatingElementConfig = Clay__StoreFloatingElementConfig( float_config.value ) }, CLAY__ELEMENT_CONFIG_TYPE_FLOATING_CONTAINER );
+	}
+
+	Optional< Clay_CustomElementConfig > callback_config = CheckClayCallbackConfig( L, -1 );
+	if( callback_config.exists ) {
+		Clay__AttachElementConfig( Clay_ElementConfigUnion { .customElementConfig = Clay__StoreCustomElementConfig( callback_config.value ) }, CLAY__ELEMENT_CONFIG_TYPE_CUSTOM );
 	}
 
 	Clay__ElementPostConfiguration();
@@ -1323,14 +1484,46 @@ static int LuauRender( lua_State * L ) {
 	return 0;
 }
 
+static void CopyLuaTable( lua_State * L, int idx ) {
+	lua_newtable( L );
+	lua_pushnil( L );
+	while( lua_next( L , idx ) != 0 ) {
+		lua_pushvalue( L, -2 );
+		lua_insert( L, -2 );
+		lua_settable( L, -4 );
+	}
+}
+
 static int LuauNode( lua_State * L ) {
 	luaL_checktype( L, 1, LUA_TTABLE );
-	luaL_argcheck( L, lua_type( L, 2 ) == LUA_TNONE || lua_type( L, 2 ) == LUA_TTABLE, 2, "children must be a table or none" );
+	// luaL_argcheck( L, lua_type( L, 2 ) == LUA_TNONE || lua_type( L, 2 ) == LUA_TTABLE, 2, "children must be a table or none" );
 
-	lua_pushvalue( L, 1 );
-	if( lua_type( L, 2 ) == LUA_TTABLE ) {
-		lua_pushvalue( L, 2 );
-		lua_setfield( hud_L, -2, "children" );
+	CopyLuaTable( L, 1 );
+
+	switch( lua_type( L, 2 ) ) {
+		case LUA_TTABLE:
+			lua_pushvalue( L, 2 );
+			lua_setfield( L, -2, "children" );
+			break;
+
+		case LUA_TSTRING:
+			lua_pushvalue( L, 2 );
+			lua_setfield( L, -2, "text" );
+			break;
+
+		case LUA_TLIGHTUSERDATA:
+			lua_pushvalue( L, 2 );
+			lua_setfield( L, -2, "image" );
+			break;
+
+		case LUA_TFUNCTION:
+			int callback_ref = lua_ref( L, 2 );
+			int arg_ref = lua_ref( L, 3 );
+			lua_pushinteger( L, callback_ref );
+			lua_setfield( L, -2, "callback" );
+			lua_pushinteger( L, arg_ref );
+			lua_setfield( L, -2, "callback_arg" );
+			break;
 	}
 
 	return 1;
@@ -1342,6 +1535,10 @@ bool CG_ScoreboardShown() {
 	}
 
 	return cg.showScoreboard;
+}
+
+static void ClayErrorHandler( Clay_ErrorData error ) {
+	Breakpoint();
 }
 
 void CG_InitHUD() {
@@ -1457,12 +1654,14 @@ void CG_InitHUD() {
 
 	u32 size = Clay_MinMemorySize();
 	clay_arena = Clay_CreateArenaWithCapacityAndMemory( size, sys_allocator->allocate( size, 16 ) );
-	Clay_Initialize( clay_arena, Clay_Dimensions { 1000, 1000 } );
 
 	auto measure_text = []( Clay_String * text, Clay_TextElementConfig * config ) -> Clay_Dimensions {
-		return { };
+		MinMax2 bounds = TextBounds( *clay_fonts[ config->fontId ].font, config->fontSize, Span< const char >( text->chars, text->length ) );
+		return { bounds.maxs.x - bounds.mins.x, bounds.maxs.y - bounds.mins.y };
 	};
 	Clay_SetMeasureTextFunction( measure_text );
+
+	Clay_Initialize( clay_arena, { }, { } );
 }
 
 void CG_ShutdownHUD() {
@@ -1767,20 +1966,20 @@ void CG_DrawHUD() {
 	}
 	lua_setfield( hud_L, -2, "teams" );
 
-
 	lua_pushnumber( hud_L, client_gs.gameState.teams[ Team_None ].num_players );
 	lua_setfield( hud_L, -2, "spectating" );
-
 
 	lua_pushboolean( hud_L, CG_ScoreboardShown() );
 	lua_setfield( hud_L, -2, "scoreboard" );
 
 	{
 		TracyZoneScopedN( "Clay_BeginLayout" );
+		Clay_SetLayoutDimensions( Clay_Dimensions { frame_static.viewport.x, frame_static.viewport.y } );
 		Clay_BeginLayout();
 	}
 
 	bool hud_lua_ran_ok;
+	clay_element_counter = 1;
 	{
 		TracyZoneScopedN( "Luau" );
 		hud_lua_ran_ok = CallWithStackTrace( hud_L, 1, 0 );
@@ -1788,6 +1987,7 @@ void CG_DrawHUD() {
 
 	// don't run clay layout if hud.lua failed because it might have left clay in a bad state
 	if( !hud_lua_ran_ok )
+		// TODO: put custom element callbacks in their own table and delete the table here so they don't leak
 		return;
 
 	Clay_RenderCommandArray render_commands;
@@ -1810,6 +2010,9 @@ void CG_DrawHUD() {
 
 				case CLAY_RENDER_COMMAND_TYPE_BORDER: {
 					const Clay_BorderElementConfig * border = command.config.borderElementConfig;
+
+					// TODO: rounded corners are wrong pretty much all of the time, transparent borders are drawn with overlap
+					// should probably draw the edges and corners separately
 
 					// top
 					Draw2DBox( bounds.x + border->cornerRadius.topLeft, bounds.y,
@@ -1836,12 +2039,16 @@ void CG_DrawHUD() {
 				} break;
 
 				case CLAY_RENDER_COMMAND_TYPE_TEXT: {
-					const Clay_TextElementConfig * text = command.config.textElementConfig;
+					const Clay_TextElementConfig * config = command.config.textElementConfig;
+					DrawText( *clay_fonts[ config->fontId ].font, config->fontSize,
+						Span< const char >( command.text.chars, command.text.length ),
+						bounds.x, bounds.y,
+						ClayToCD( config->textColor ), config->borderColor.exists ? MakeOptional( ClayToCD( config->borderColor.value ) ) : NONE );
 				} break;
 
 				case CLAY_RENDER_COMMAND_TYPE_IMAGE: {
 					const Clay_ImageElementConfig * image = command.config.imageElementConfig;
-					Draw2DBox( bounds.x, bounds.y, bounds.width, bounds.height, FindMaterial( StringHash( bit_cast< u64 >( image->imageData ) ) ) );
+					Draw2DBox( bounds.x, bounds.y, bounds.width, bounds.height, FindMaterial( StringHash( bit_cast< u64 >( image->imageData ) ) ), ClayToCD( image->tint ) );
 				} break;
 
 				case CLAY_RENDER_COMMAND_TYPE_SCISSOR_START:
@@ -1852,10 +2059,25 @@ void CG_DrawHUD() {
 					ImGui::PopClipRect();
 					break;
 
+				case CLAY_RENDER_COMMAND_TYPE_CUSTOM: {
+					const Clay_CustomElementConfig * config = command.config.customElementConfig;
+					lua_getref( hud_L, config->callback_ref );
+					lua_pushnumber( hud_L, bounds.x );
+					lua_pushnumber( hud_L, bounds.y );
+					lua_pushnumber( hud_L, bounds.width );
+					lua_pushnumber( hud_L, bounds.height );
+					lua_getref( hud_L, config->arg_ref );
+					CallWithStackTrace( hud_L, 5, 0 );
+					lua_unref( hud_L, config->callback_ref );
+					lua_unref( hud_L, config->arg_ref );
+				} break;
+
 				default:
 					assert( false );
 					break;
 			}
 		}
 	}
+
+	Assert( lua_gettop( hud_L ) == 2 );
 }

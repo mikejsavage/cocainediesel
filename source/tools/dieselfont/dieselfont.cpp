@@ -333,35 +333,34 @@ int main( int argc, char ** argv ) {
 	};
 	GlyphBox * glyphs = AllocMany< GlyphBox >( &arena, max_codepoints );
 
-	size_t num_rects = 0;
 	size_t num_glyphs = 0;
 	for( auto [ lo, hi ] : codepoint_ranges ) {
 		for( u32 codepoint = lo; codepoint < hi; codepoint++ ) {
 			TempAllocator temp = arena.temp();
 			font.userdata = &temp;
 
-			GlyphBox * glyph = &glyphs[ num_glyphs++ ];
+			GlyphBox * glyph = &glyphs[ num_glyphs ];
 			*glyph = {
 				.codepoint = codepoint,
-				.rect_idx = num_rects,
 			};
-			if( stbtt_GetCodepointBox( &font, codepoint, &glyph->x0, &glyph->y0, &glyph->x1, &glyph->y1 ) == 0 )
-				continue;
+			stbtt_GetCodepointBox( &font, codepoint, &glyph->x0, &glyph->y0, &glyph->x1, &glyph->y1 );
 
-			rects[ num_rects++ ] = {
+			rects[ num_glyphs ] = {
 				.w = checked_cast< stbrp_coord >( ceilf( ( glyph->x1 - glyph->x0 ) * atlas_glyph_embox_size * scale + 2.0f * padding ) ),
 				.h = checked_cast< stbrp_coord >( ceilf( ( glyph->y1 - glyph->y0 ) * atlas_glyph_embox_size * scale + 2.0f * padding ) ),
 			};
+
+			num_glyphs++;
 		}
 	}
 
 	{
 		TracyZoneScopedN( "stbrp_pack_rects" );
 
-		stbrp_node * nodes = AllocMany< stbrp_node >( &arena, num_rects );
+		stbrp_node * nodes = AllocMany< stbrp_node >( &arena, num_glyphs );
 		stbrp_context packer;
-		stbrp_init_target( &packer, atlas_size, atlas_size, nodes, num_rects );
-		if( stbrp_pack_rects( &packer, rects, num_rects ) != 1 ) {
+		stbrp_init_target( &packer, atlas_size, atlas_size, nodes, num_glyphs );
+		if( stbrp_pack_rects( &packer, rects, num_glyphs ) != 1 ) {
 			Fatal( "Can't pack" );
 		}
 	}
@@ -370,8 +369,7 @@ int main( int argc, char ** argv ) {
 	memset( atlas.ptr, 0, atlas.num_bytes() );
 
 	FontMetadata metadata = {
-		// .glyph_padding = 1.0f / padding,
-		.glyph_padding = 0.1335f,
+		.glyph_padding = 1.0f / padding,
 		.dSDF_dTexel = dSDF_dUV,
 		.ascent = ascent * ( 1.0f / 64.0f ),
 		// .descent = float( descent ) / ( float( atlas_glyph_embox_size ) * 64.0f ),
@@ -399,7 +397,7 @@ int main( int argc, char ** argv ) {
 		);
 		msdfgen::Range range( -range_in_ems, range_in_ems );
 
-		stbrp_rect uvs = rects[ glyphs[ i ].rect_idx ];
+		stbrp_rect uvs = rects[ i ];
 		Span2D< Vec3 > pixels = AllocSpan2D< Vec3 >( &temp, uvs.w, uvs.h );
 		msdfgen::BitmapRef< float, 3 > bitmap( pixels.ptr->ptr(), pixels.w, pixels.h );
 		{

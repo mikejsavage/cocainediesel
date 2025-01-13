@@ -210,7 +210,7 @@ void DrawText( const Font * font, float pixel_size, const char * str, Alignment 
 	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border_color );
 }
 
-void Draw3DText( const Font * font, float size, Span< const char > str, Alignment align, Vec3 origin, EulerDegrees3 angles, Vec4 color ) {
+void Draw3DText( const Font * font, float size, Span< const char > str, Vec3 origin, EulerDegrees3 angles, Vec4 color ) {
 	struct TextVertex {
 		Vec3 position;
 		Vec2 uv;
@@ -224,7 +224,7 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Alignmen
 	Vec3 dx = rotation.row0().xyz() * size;
 	Vec3 dy = rotation.row2().xyz() * size;
 
-	Vec3 cursor = origin + dy; // TODO: do alignment properly. really need baseline alignment for this
+	Vec3 cursor = origin;
 	u32 state = 0;
 	u32 c = 0;
 	for( size_t i = 0; i < str.n; i++ ) {
@@ -242,22 +242,21 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Alignmen
 			Vec2 maxs = glyph->bounds.maxs + font->metadata.glyph_padding;
 
 			// TODO: padding for antialiasing/borders!!!!!!!!!!!!!!!!!! very hard because size is in world space and not screen pixels now
-			// note that world mins.y goes with uv maxs.y because world space is y-up and textures are y-down
 			vertices.add( TextVertex {
 				.position = cursor + mins.x * dx + mins.y * dy,
-				.uv = Vec2( glyph->padded_uv_bounds.mins.x, glyph->padded_uv_bounds.maxs.y ),
-			} );
-			vertices.add( TextVertex {
-				.position = cursor + maxs.x * dx + mins.y * dy,
-				.uv = Vec2( glyph->padded_uv_bounds.maxs.x, glyph->padded_uv_bounds.maxs.y ),
-			} );
-			vertices.add( TextVertex {
-				.position = cursor + mins.x * dx + maxs.y * dy,
 				.uv = Vec2( glyph->padded_uv_bounds.mins.x, glyph->padded_uv_bounds.mins.y ),
 			} );
 			vertices.add( TextVertex {
-				.position = cursor + maxs.x * dx + maxs.y * dy,
+				.position = cursor + maxs.x * dx + mins.y * dy,
 				.uv = Vec2( glyph->padded_uv_bounds.maxs.x, glyph->padded_uv_bounds.mins.y ),
+			} );
+			vertices.add( TextVertex {
+				.position = cursor + mins.x * dx + maxs.y * dy,
+				.uv = Vec2( glyph->padded_uv_bounds.mins.x, glyph->padded_uv_bounds.maxs.y ),
+			} );
+			vertices.add( TextVertex {
+				.position = cursor + maxs.x * dx + maxs.y * dy,
+				.uv = Vec2( glyph->padded_uv_bounds.maxs.x, glyph->padded_uv_bounds.maxs.y ),
 			} );
 
 			indices.add( base_index + 0 );

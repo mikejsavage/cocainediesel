@@ -1,6 +1,7 @@
 bin( "bc4", {
 	srcs = {
 		"source/tools/bc4/bc4.cpp",
+	 	"source/tools/tools.cpp",
 		"source/qcommon/allocators.cpp",
 		"source/qcommon/base.cpp",
 		"source/qcommon/fs.cpp",

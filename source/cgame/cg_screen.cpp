@@ -384,7 +384,7 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
 				const char * msg = my_team == client_gs.gameState.bomb.attacking_team ? "ATTACK" : "DEFEND";
-				coords.y += name_size * 0.6f;
+				coords.y += name_size * 0.8f;
 				DrawText( cgs.fontNormal, goal_size, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, black.vec4 );
 			}
 		}

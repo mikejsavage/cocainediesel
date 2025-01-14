@@ -500,26 +500,12 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	cg.lerpfrac = Clamp01( cg.lerpfrac );
 
 	{
-		constexpr float SYSTEM_FONT_TINY_SIZE = 8;
-		constexpr float SYSTEM_FONT_EXTRASMALL_SIZE = 12;
-		constexpr float SYSTEM_FONT_SMALL_SIZE = 14;
-		constexpr float SYSTEM_FONT_MEDIUM_SIZE = 16;
-		constexpr float SYSTEM_FONT_BIG_SIZE = 24;
-
 		float scale = frame_static.viewport_height / 600.0f;
-
-		cgs.fontSystemTinySize = ceilf( SYSTEM_FONT_TINY_SIZE * scale );
-		cgs.fontSystemExtraSmallSize = ceilf( SYSTEM_FONT_EXTRASMALL_SIZE * scale );
-		cgs.fontSystemSmallSize = ceilf( SYSTEM_FONT_SMALL_SIZE * scale );
-		cgs.fontSystemMediumSize = ceilf( SYSTEM_FONT_MEDIUM_SIZE * scale );
-		cgs.fontSystemBigSize = ceilf( SYSTEM_FONT_BIG_SIZE * scale );
-
-		scale *= 1.3f;
-		cgs.textSizeTiny = SYSTEM_FONT_TINY_SIZE * scale;
-		cgs.textSizeExtraSmall = SYSTEM_FONT_EXTRASMALL_SIZE * scale;
-		cgs.textSizeSmall = SYSTEM_FONT_SMALL_SIZE * scale;
-		cgs.textSizeMedium = SYSTEM_FONT_MEDIUM_SIZE * scale;
-		cgs.textSizeBig = SYSTEM_FONT_BIG_SIZE * scale;
+		cgs.fontSystemMediumSize = ceilf( 12 * scale );
+		cgs.textSizeTiny = 8 * scale;
+		cgs.textSizeSmall = 14 * scale;
+		cgs.textSizeMedium = 16 * scale;
+		cgs.textSizeBig = 24 * scale;
 	}
 
 	AllocateDecalBuffers();

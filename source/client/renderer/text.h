@@ -28,5 +28,4 @@ void DrawText( const Font * font, float pixel_size,
 
 void Draw3DText( const Font * font, float size,
 	Span< const char > str,
-	Alignment align,
 	Vec3 origin, EulerDegrees3 angles, Vec4 color );

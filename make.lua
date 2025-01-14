@@ -42,6 +42,7 @@ require( "libs.luau" )
 require( "libs.mbedtls" )
 require( "libs.meshoptimizer" )
 require( "libs.monocypher" )
+require( "libs.msdfgen" )
 require( "libs.openal" )
 require( "libs.picohttpparser" )
 require( "libs.rgbcx" )
@@ -50,6 +51,7 @@ require( "libs.tracy" )
 require( "libs.zstd" )
 
 require( "source.tools.bc4" )
+require( "source.tools.dieselfont" )
 require( "source.tools.dieselmap" )
 
 local platform_curl_libs = {

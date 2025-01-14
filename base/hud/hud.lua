@@ -19,7 +19,7 @@ local function DrawClockOrBomb( state, posX )
 		return
 	end
 
-	local fontSize1 = state.viewport_height / 25
+	local fontSize1 = state.viewport_height / 35
 	local testPosY = state.viewport_height * 0.013
 	local options = {
 		color = "#ffff",
@@ -56,7 +56,7 @@ local function DrawClockOrBomb( state, posX )
 
 			options.alignment = "left bottom"
 			local ms_options = Override( options, { font_size = fontSize1 * 0.6 } )
-			cd.text( ms_options, posX + posX * 0.001, testPosY + fontSize1 * 0.6, string.format( ".%03i", milliseconds ))
+			cd.text( ms_options, posX + posX * 0.001, testPosY + fontSize1 * 0.8, string.format( ".%03i", milliseconds ))
 		elseif state.gametype == Gametype_Bomb then
 			local size = state.viewport_height * 0.055
 			cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, "#fff", assets.bomb )
@@ -69,7 +69,7 @@ local function DrawTopInfo( state )
 		color = "#ffff",
 		border = "#000b",
 		font = "bold",
-		font_size = state.viewport_height / 40,
+		font_size = state.viewport_height / 55,
 		alignment = "center top",
 	}
 
@@ -100,7 +100,7 @@ local function DrawTopInfo( state )
 		DrawClockOrBomb( state, posX )
 
 		if state.gametype == Gametype_Bomb then
-			options.font_size = state.viewport_height / 25
+			options.font_size = state.viewport_height / 35
 
 			options.color = cd.getTeamColor( Team_One )
 			cd.text( options, posX - posX / 11, state.viewport_height * 0.012, state.scoreAlpha )
@@ -144,8 +144,8 @@ local function DrawChasing( state, x1, y1, x2, y2 )
 		return
 	end
 
-	local scale_text = state.viewport_width * 0.0198
-	local scale_name = state.viewport_width * 0.03
+	local scale_text = state.viewport_width * 0.0145
+	local scale_name = state.viewport_width * 0.022
 
 	local options = {
 		color = "#eeef",
@@ -226,11 +226,11 @@ end
 
 local function DrawUtility( state, options, x, y, size, outline_size )
 	if state.gadget ~= Gadget_None and state.gadget_ammo ~= 0 then
-		options.font_size = size * 0.3
+		options.font_size = size * 0.22
 		if hotkeys( state ) then
 			options.color = "#fff"
 			options.alignment = "center middle"
-			cd.text( options, x + size / 2, y - options.font_size, cd.getBind("+gadget") )
+			cd.text( options, x + size / 2, y - options.font_size * 1.33, cd.getBind("+gadget") )
 		end
 
 		DrawBoxOutline( x, y, size, size, outline_size )
@@ -249,8 +249,8 @@ local function DrawWeapon( state, options, x, y, width, height, padding, weaponI
 	if show_bind then
 		options.color = "#fff"
 		options.alignment = "center middle"
-		options.font_size = width * 0.2
-		cd.text( options, x + width/2, y - options.font_size, cd.getBind( string.format("weapon %d", weaponID) ) )
+		options.font_size = width * 0.15
+		cd.text( options, x + width/2, y - options.font_size * 1.33, cd.getBind( string.format("weapon %d", weaponID) ) )
 	end
 
 
@@ -273,7 +273,7 @@ local function DrawWeapon( state, options, x, y, width, height, padding, weaponI
 
 	DrawBoxOutline( x, y, width, h, padding )
 
-	options.font_size = width * 0.22
+	options.font_size = width * 0.16
 	options.alignment = "left top"
 
 	DrawAmmoFrac( options, x, y, width, ammo, frac, cd.getWeaponIcon( weaponInfo.weapon ) )
@@ -288,7 +288,7 @@ local function DrawWeapon( state, options, x, y, width, height, padding, weaponI
 		options.color = "#999"
 	end
 	options.alignment = "center middle"
-	options.font_size = width * 0.18
+	options.font_size = width * 0.14
 	cd.text( options, x + width/2, y + width + (h - width + padding)/2, weaponInfo.name:upper() )
 end
 
@@ -423,7 +423,7 @@ local function DrawPlayerBar( state, offset, padding )
 		color = hp_color,
 		border = "#000a",
 		font = "bold",
-		font_size = empty_bar_height * 1.05,
+		font_size = empty_bar_height * 0.75,
 		alignment = "left top",
 	}
 
@@ -440,7 +440,7 @@ local function DrawDevInfo( state )
 		color = "#fffb",
 		border = "#000b",
 		font = "bold",
-		font_size = 20,
+		font_size = 16,
 		alignment = "right top",
 	}
 
@@ -465,7 +465,7 @@ local function DrawBombProgress( state )
 		cd.box( ( state.viewport_width - width ) * 0.5, y, width, height, "#2228" )
 		cd.box( ( state.viewport_width - width * progress ) * 0.5, y, width * progress, height, cd.allyColor() )
 
-		local text = { color = "#fff", border = "#000", font_size = height * 0.75, alignment = "center middle" }
+		local text = { color = "#fff", border = "#000", font_size = height * 0.55, alignment = "center middle" }
 		local message = if state.bomb_progress_type == BombProgress_Planting then "Planting..." else "Defusing..."
 		cd.text( text, state.viewport_width * 0.5, y + height * 0.4, message )
 	end
@@ -495,7 +495,7 @@ local function DrawScoreboardPlayer( state, options, X, Y, width, height, nameX,
 		teamColor.a = 0.2
 	end
 
-	options.font_size = height
+	options.font_size = height * 0.75
 	options.color = teamColor
 	options.alignment = "left middle"
 	cd.text( options, nameX, Y, string.sub( player.name, 1, (scoreX - nameX)/(height * 0.45) ) )
@@ -512,9 +512,9 @@ local function DrawScoreboardPlayer( state, options, X, Y, width, height, nameX,
 	if state.match_state == MatchState_Warmup and player.ready then
 		options.color = yellow
 		options.alignment = "left middle"
-		options.font_size = height * 0.8
+		options.font_size = height * 0.6
 		cd.text( options, readyX, Y, "READY" )
-		options.font_size = height
+		options.font_size = height * 0.75
 	end
 end
 
@@ -580,14 +580,14 @@ local function DrawScoreboard( state, offset, outline )
 		color = dark_grey,
 		border = "#0000",
 		font = "bolditalic",
-		font_size = titleHeight,
+		font_size = titleHeight * 0.7,
 		alignment = "center middle",
 	}
 
 	local text_options = {
 		border = "#0000",
 		font = "bolditalic",
-		font_size = lineHeight
+		font_size = lineHeight * 0.7,
 	}
 
 	if state.gametype == Gametype_Gladiator then
@@ -734,7 +734,7 @@ local function DrawCallvote( state )
 		color = text_color,
 		border = "#000b",
 		font = "bold",
-		font_size = height * 0.3,
+		font_size = height * 0.22,
 		alignment = "left top",
 	}
 
@@ -837,7 +837,7 @@ return function( state )
 	local padding = math.floor( offset * 0.3 )
 
 	if state.match_state < MatchState_PostMatch then
-		cd.drawBombIndicators( state.viewport_height / 26, state.viewport_height / 60, state.viewport_height / 50 ) -- site name size, site message size (ATTACK/DEFEND/...)
+		cd.drawBombIndicators( state.viewport_height / 36, state.viewport_height / 80, state.viewport_height / 70 ) -- site name size, site message size (ATTACK/DEFEND/...)
 
 		DrawTopInfo( state )
 
@@ -848,13 +848,13 @@ return function( state )
 		DrawBombProgress( state )
 
 		cd.drawCrosshair()
-		cd.drawDamageNumbers( state.viewport_height / 30, state.viewport_height / 50 ) -- obituary msg size, dmg numbers size
-		cd.drawPointed( state.viewport_height / 80, "#fff" )
+		cd.drawDamageNumbers( state.viewport_height / 40, state.viewport_height / 70 ) -- obituary msg size, dmg numbers size
+		cd.drawPointed( state.viewport_height / 110, "#fff" )
 
 		DrawLagging( state )
 
 		cd.drawObituaries( state.viewport_width - 10, 2, state.viewport_width / 10, state.viewport_width / 10,
-						   state.viewport_height / 20, state.viewport_width / 70, "right top" )
+						   state.viewport_height / 20, state.viewport_width / 95, "right top" )
 	end
 
 	DrawScoreboard( state, offset, padding )

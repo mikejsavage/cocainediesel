@@ -1144,12 +1144,21 @@ static Clay_Padding CheckClayPadding( lua_State * L, int idx ) {
 
 	Optional< u16 > all_padding = CheckU16( L, idx, "padding" );
 	if( all_padding.exists ) {
-		padding.x = all_padding.value;
-		padding.y = all_padding.value;
+		padding.left = all_padding.value;
+		padding.right = all_padding.value;
+		padding.top = all_padding.value;
+		padding.bottom = all_padding.value;
 	}
 
-	padding.x = Default( CheckU16( L, idx, "padding_x" ), padding.x );
-	padding.y = Default( CheckU16( L, idx, "padding_y" ), padding.y );
+	padding.left   = Default( CheckU16( L, idx, "padding_x" ), padding.left );
+	padding.right  = Default( CheckU16( L, idx, "padding_x" ), padding.right );
+	padding.top    = Default( CheckU16( L, idx, "padding_y" ), padding.top );
+	padding.bottom = Default( CheckU16( L, idx, "padding_y" ), padding.bottom );
+
+	padding.left   = Default( CheckU16( L, idx, "padding_left"   ), padding.left );
+	padding.right  = Default( CheckU16( L, idx, "padding_right"  ), padding.right );
+	padding.top    = Default( CheckU16( L, idx, "padding_top"    ), padding.top );
+	padding.bottom = Default( CheckU16( L, idx, "padding_bottom" ), padding.bottom );
 
 	return padding;
 }
@@ -1264,8 +1273,8 @@ static Optional< ClayTextAndConfig > CheckClayTextConfig( lua_State * L, int idx
 	u16 size = Default( CheckU16( L, -1, "font_size" ), u16( frame_static.viewport_height * 0.01f ) );
 
 	return ClayTextAndConfig {
-		.text = Clay_String { .length = text.n, .chars = text.ptr },
-		.config = {
+		.text = Clay_String { .length = checked_cast< s32 >( text.n ), .chars = text.ptr },
+		.config = Clay_TextElementConfig {
 			.textColor = Default( CheckClayColor( L, -1, "color" ), { 255, 255, 255, 255 } ),
 			.fontId = Default( CheckClayFont( L, -1 ), 0_u16 ),
 			.fontSize = u16( size ),
@@ -1321,9 +1330,9 @@ static Optional< Clay_BorderElementConfig > CheckClayBorderConfig( lua_State * L
 		border.bottom.color = color.value;
 	}
 
-	border.left.width = Default( CheckU16( L, idx, "border_left" ), u16( border.left.width ) );
-	border.right.width = Default( CheckU16( L, idx, "border_right" ), u16( border.right.width ) );
-	border.top.width = Default( CheckU16( L, idx, "border_top" ), u16( border.top.width ) );
+	border.left.width   = Default( CheckU16( L, idx, "border_left"   ), u16( border.left.width ) );
+	border.right.width  = Default( CheckU16( L, idx, "border_right"  ), u16( border.right.width ) );
+	border.top.width    = Default( CheckU16( L, idx, "border_top"    ), u16( border.top.width ) );
 	border.bottom.width = Default( CheckU16( L, idx, "border_bottom" ), u16( border.bottom.width ) );
 
 	if( border.left.width == 0 && border.right.width == 0 && border.top.width == 0 && border.bottom.width == 0 ) {
@@ -1670,6 +1679,7 @@ void CG_ShutdownHUD() {
 	}
 
 	Free( sys_allocator, clay_arena.memory );
+	Clay_SetCurrentContext( NULL );
 
 	RemoveCommand( "toggleuidebugger" );
 }

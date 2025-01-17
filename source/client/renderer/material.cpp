@@ -23,8 +23,6 @@ struct MaterialSpecKey {
 };
 
 constexpr u32 MAX_TEXTURES = 4096;
-constexpr u32 MAX_MATERIALS = 4096;
-
 constexpr u32 MAX_DECALS = 4096;
 constexpr int DECAL_ATLAS_SIZE = 2048;
 constexpr int DECAL_ATLAS_BLOCK_SIZE = DECAL_ATLAS_SIZE / 4;
@@ -36,17 +34,17 @@ struct HighLevelTexture {
 };
 
 static Hashmap< HighLevelTexture, MAX_TEXTURES > textures;
+static Hashmap< Material, 4096 > materials;
 
 static PoolHandle< Texture > missing_texture;
 static Material missing_material;
 
-static Material materials[ MAX_MATERIALS ];
-static Hashtable< MAX_MATERIALS * 2 > materials_hashtable;
+struct DecalCoords {
+	Vec4 uvwh;
+	Vec4 trim;
+};
 
-static Vec4 decal_uvwhs[ MAX_DECALS ];
-static Vec4 decal_trims[ MAX_DECALS ];
-static u32 num_decals;
-static Hashtable< MAX_DECALS * 2 > decals_hashtable;
+static Hashmap< DecalCoords, MAX_DECALS > decals;
 static PoolHandle< Texture > decals_atlases;
 
 bool CompressedTextureFormat( TextureFormat format ) {
@@ -162,11 +160,11 @@ static void ParseShaded( MaterialDescriptor * material, Span< const char > name,
 }
 
 static void ParseSpecular( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
-	material->specular = ParseMaterialFloat( data );
+	material->properties.specular = ParseMaterialFloat( data );
 }
 
 static void ParseShininess( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
-	material->shininess = ParseMaterialFloat( data );
+	material->properties.shininess = ParseMaterialFloat( data );
 }
 
 static void ParseBlendFunc( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
@@ -309,8 +307,6 @@ static void UnloadTexture( u64 idx ) {
 
 	texture_stb_data[ idx ] = NULL;
 	texture_bc4_data[ idx ] = Span< const BC4Block >();
-
-	DeleteTexture( textures[ idx ] );
 }
 
 static void AddMaterial( Span< const char > name, u64 hash, Material material ) {
@@ -817,10 +813,9 @@ static void LoadBuiltinMaterials() {
 void InitMaterials() {
 	TracyZoneScoped;
 
-	textures_hashtable.clear();
+	textures.clear();
 	materials_hashtable.clear();
 
-	CreateSamplers();
 	LoadBuiltinMaterials();
 
 	{
@@ -946,14 +941,10 @@ void ShutdownMaterials() {
 		UnloadTexture( i );
 	}
 
-	for( u32 i = 0; i < materials_hashtable.size(); i++ ) {
-		Free( sys_allocator, materials[ i ].name.ptr );
-	}
-	Free( sys_allocator, missing_material.name.ptr );
-
-	DeleteSamplers();
-	DeleteTexture( missing_texture );
-	DeleteTexture( decals_atlases );
+	// for( u32 i = 0; i < materials_hashtable.size(); i++ ) {
+	// 	Free( sys_allocator, materials[ i ].name.ptr );
+	// }
+	// Free( sys_allocator, missing_material.name.ptr );
 }
 
 bool TryFindMaterial( StringHash name, const Material ** material ) {
@@ -983,12 +974,12 @@ bool TryFindDecal( StringHash name, Vec4 * uvwh, Vec4 * trim ) {
 	return true;
 }
 
-const Texture * DecalAtlasTextureArray() {
-	return &decals_atlases;
+PoolHandle< Texture > DecalAtlasTextureArray() {
+	return decals_atlases;
 }
 
 Vec2 HalfPixelSize( const Material * material ) {
-	return 0.5f / Vec2( material->texture->width, material->texture->height );
+	return 0.5f / Vec2( TextureWidth( material->texture ), TextureHeight( material->texture ) );
 }
 
 static float EvaluateWaveFunc( Wave wave ) {
@@ -1000,7 +991,7 @@ static float EvaluateWaveFunc( Wave wave ) {
 			 break;
 
 		case WaveFunc_Triangle:
-			 v = t < 0.5f ? t * 4 - 1 : 1 - ( t - 0.5f ) * 4;
+			 v = t < 0.5f ? t * 4.0f - 1.0f : 1.0f - ( t - 0.5f ) * 4.0f;
 			 break;
 
 		case WaveFunc_Sawtooth:
@@ -1017,29 +1008,29 @@ static float EvaluateWaveFunc( Wave wave ) {
 
 Vec4 EvaluateMaterialColor( const Material & material, Vec4 entity_color ) {
 	Vec4 color = entity_color;
-	switch( material->rgbgen.type ) {
+	switch( material.rgbgen.type ) {
 		case ColorGenType_Constant:
-			color.x = material->rgbgen.args[ 0 ];
-			color.y = material->rgbgen.args[ 1 ];
-			color.z = material->rgbgen.args[ 2 ];
+			color.x = material.rgbgen.args[ 0 ];
+			color.y = material.rgbgen.args[ 1 ];
+			color.z = material.rgbgen.args[ 2 ];
 			break;
 
 		case ColorGenType_Entity:
-			color = Vec4( entity_color.xyz() * material->rgbgen.args[ 0 ], entity_color.w );
+			color = Vec4( entity_color.xyz() * material.rgbgen.args[ 0 ], entity_color.w );
 			break;
 
 		case ColorGenType_Wave:
-			color = Vec4( Vec3( EvaluateWaveFunc( material->rgbgen.wave ) ), entity_color.w );
+			color = Vec4( Vec3( EvaluateWaveFunc( material.rgbgen.wave ) ), entity_color.w );
 			break;
 
 		case ColorGenType_EntityWave:
-			color = Vec4( entity_color.xyz() + EvaluateWaveFunc( material->rgbgen.wave ), entity_color.w );
+			color = Vec4( entity_color.xyz() + EvaluateWaveFunc( material.rgbgen.wave ), entity_color.w );
 			break;
 	}
 
-	switch( material->alphagen.type ) {
+	switch( material.alphagen.type ) {
 		case ColorGenType_Constant:
-			color.w = material->alphagen.args[ 0 ];
+			color.w = material.alphagen.args[ 0 ];
 			break;
 
 		case ColorGenType_Entity:
@@ -1047,52 +1038,49 @@ Vec4 EvaluateMaterialColor( const Material & material, Vec4 entity_color ) {
 
 		case ColorGenType_Wave:
 		case ColorGenType_EntityWave: {
-			float wave = EvaluateWaveFunc( material->alphagen.wave );
-			color.w = ( material->alphagen.type == ColorGenType_EntityWave ? color.w : 0.0f ) + wave;
+			float wave = EvaluateWaveFunc( material.alphagen.wave );
+			color.w = ( material.alphagen.type == ColorGenType_EntityWave ? color.w : 0.0f ) + wave;
 		} break;
 	}
 
 	return color;
 }
 
-RenderPass RenderPassForMaterial( const Material & material, bool skinned ) {
-}
-
-PipelineState MaterialToPipelineState( const Material & material, Vec4 entity_color, bool skinned ) {
-	TracyZoneScoped;
-
-	PipelineState pipeline;
-	if( material->blend_func == BlendFunc_Disabled ) {
-		pipeline.pass = material->outlined ? frame_static.nonworld_opaque_outlined_pass : frame_static.nonworld_opaque_pass;
-	}
-	else {
-		pipeline.pass = frame_static.transparent_pass;
-	}
-
-	if( material->blend_func != BlendFunc_Disabled ) {
-		pipeline.write_depth = false;
-	}
-
-	pipeline.bind_texture_and_sampler( "u_BaseTexture", material->texture, Sampler_Standard );
-
-	else if( skinned ) {
-		if( material->shaded ) {
-			pipeline.shader = &shaders.standard_skinned_shaded;
-			AddDynamicsToPipeline( &pipeline );
-		}
-		else {
-			pipeline.shader = &shaders.standard_skinned;
-		}
-	}
-	else {
-		if( material->shaded ) {
-			pipeline.shader = &shaders.standard_shaded_instanced;
-			AddDynamicsToPipeline( &pipeline );
-		}
-		else {
-			pipeline.shader = &shaders.standard_instanced;
-		}
-	}
-
-	return pipeline;
-}
+// PipelineState MaterialToPipelineState( const Material & material, Vec4 entity_color, bool skinned ) {
+// 	TracyZoneScoped;
+//
+// 	PipelineState pipeline;
+// 	if( material->blend_func == BlendFunc_Disabled ) {
+// 		pipeline.pass = material->outlined ? frame_static.nonworld_opaque_outlined_pass : frame_static.nonworld_opaque_pass;
+// 	}
+// 	else {
+// 		pipeline.pass = frame_static.transparent_pass;
+// 	}
+//
+// 	if( material->blend_func != BlendFunc_Disabled ) {
+// 		pipeline.write_depth = false;
+// 	}
+//
+// 	pipeline.bind_texture_and_sampler( "u_BaseTexture", material->texture, Sampler_Standard );
+//
+// 	else if( skinned ) {
+// 		if( material->shaded ) {
+// 			pipeline.shader = &shaders.standard_skinned_shaded;
+// 			AddDynamicsToPipeline( &pipeline );
+// 		}
+// 		else {
+// 			pipeline.shader = &shaders.standard_skinned;
+// 		}
+// 	}
+// 	else {
+// 		if( material->shaded ) {
+// 			pipeline.shader = &shaders.standard_shaded_instanced;
+// 			AddDynamicsToPipeline( &pipeline );
+// 		}
+// 		else {
+// 			pipeline.shader = &shaders.standard_instanced;
+// 		}
+// 	}
+//
+// 	return pipeline;
+// }

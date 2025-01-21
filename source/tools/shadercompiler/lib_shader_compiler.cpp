@@ -120,8 +120,9 @@ static bool CompileGraphicsShader( TempAllocator & temp, Span< const char > file
 	};
 
 	for( const char * command : commands ) {
-		printf( "%s\n", command );
+		// printf( "%s\n", command );
 		if( system( command ) != 0 ) {
+			printf( "\e[1;33m%s failed\e[0m\n", command );
 			return false;
 		}
 	}
@@ -161,8 +162,9 @@ static bool CompileComputeShader( TempAllocator & temp, Span< const char > file,
 	};
 
 	for( const char * command : commands ) {
-		printf( "%s\n", command );
+		// printf( "%s\n", command );
 		if( system( command ) != 0 ) {
+			printf( "\e[1;33m%s failed\e[0m\n", command );
 			return false;
 		}
 	}

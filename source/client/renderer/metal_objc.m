@@ -8,7 +8,7 @@
 struct GLFWwindow;
 extern GLFWwindow * window;
 
-void GLFWShouldDoThisForUs( CAMetalLayer * swapchain ) {
+void PleaseGLFWDoThisForMe( CAMetalLayer * swapchain ) {
 	NSWindow * nswindow = glfwGetCocoaWindow( window );
 	nswindow.contentView.layer = swapchain;
 	nswindow.contentView.wantsLayer = YES;

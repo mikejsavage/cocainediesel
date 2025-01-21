@@ -22,7 +22,7 @@ namespace MTL {
 
 // #include "tracy/tracy/Tracy.hpp"
 
-extern "C" void shim( GLFWwindow * window, CA::MetalLayer * swapchain );
+extern "C" void PleaseGLFWDoThisForMe( GLFWwindow * window, CA::MetalLayer * swapchain );
 
 struct AutoReleaseString {
 	NS::AutoreleasePool * pool;

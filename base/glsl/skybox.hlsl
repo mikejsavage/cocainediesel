@@ -33,7 +33,7 @@ float value( float2 p ) {
 }
 
 float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
-	float2 uv = v.position.xy / v.position.z;
+	float2 uv = v.world_position.xy / v.world_position.z;
 
 	float3 cloud_color = 0.01f;
 	float3 sky_color = 0.06f;
@@ -43,7 +43,7 @@ float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
 	float iterations = 4.0f;
 
 	// sun
-	float sun_fract = max( 0.0f, dot( normalize( v.position.xyz ), -u_View[ 0 ].sun_direction ) );
+	float sun_fract = max( 0.0f, dot( normalize( v.world_position.xyz ), -u_View[ 0 ].sun_direction ) );
 	sun_fract = pow( sun_fract, 66.6f ) * 4.0f;
 	sky_color = lerp( sky_color, sun_color, sun_fract );
 
@@ -61,7 +61,7 @@ float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
 		h += float2( value( v_uv ), 1.0f ) / a;
 	}
 	float g = -h.x / h.y;
-	float n = smoothstep( 0.0f, 0.5f, v.position.z );
+	float n = smoothstep( 0.0f, 0.5f, v.world_position.z );
 	float m = smoothstep( 30.0f, 0.0f, length( uv ) );
 
 	float3 color = lerp( sky_color, cloud_color, exp( g ) * n * m );

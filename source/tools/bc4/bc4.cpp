@@ -12,10 +12,6 @@
 
 #include "zstd/zstd.h"
 
-void ShowErrorMessage( const char * msg, const char * file, int line ) {
-	printf( "%s (%s:%d)\n", msg, file, line );
-}
-
 static u32 BlockFormatMipLevels( u32 w, u32 h ) {
 	u32 dim = Min2( w, h );
 	u32 levels = 0;

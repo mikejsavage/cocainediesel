@@ -1,6 +1,8 @@
 bin( "dieselmap", {
 	srcs = {
 		"source/tools/dieselmap/*.cpp",
+	 	"source/tools/tools.cpp",
+
 		"source/qcommon/allocators.cpp",
 		"source/qcommon/base.cpp",
 		"source/qcommon/fs.cpp",

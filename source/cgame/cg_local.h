@@ -135,14 +135,9 @@ struct cg_static_t {
 	unsigned int playerNum;
 
 	// fonts
-	int fontSystemTinySize;
-	int fontSystemExtraSmallSize;
-	int fontSystemSmallSize;
 	int fontSystemMediumSize;
-	int fontSystemBigSize;
 
 	float textSizeTiny;
-	float textSizeExtraSmall;
 	float textSizeSmall;
 	float textSizeMedium;
 	float textSizeBig;

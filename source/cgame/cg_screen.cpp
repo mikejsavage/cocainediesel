@@ -384,7 +384,7 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
 				const char * msg = my_team == client_gs.gameState.bomb.attacking_team ? "ATTACK" : "DEFEND";
-				coords.y += name_size * 0.6f;
+				coords.y += name_size * 0.8f;
 				DrawText( cgs.fontNormal, goal_size, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, black.vec4 );
 			}
 		}
@@ -449,7 +449,7 @@ void CG_EscapeKey() {
 
 static Vec4 CG_CalcColorBlend() {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	float flashed = Unlerp01( u16( 0 ), ps->flashed, u16( U16_MAX * 0.75f ) );
+	float flashed = Unlerp01( 0_u16, ps->flashed, u16( U16_MAX * 0.75f ) );
 	return Vec4( Vec3( 1.0f ), flashed * flashed );
 }
 

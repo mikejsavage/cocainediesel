@@ -18,10 +18,6 @@
 #include "parsing.h"
 #include <vector>
 
-void ShowErrorMessage( const char * msg, const char * file, int line ) {
-	printf( "%s (%s:%d)\n", msg, file, line );
-}
-
 static void LogDebugInstructions() {
 	static bool done_once = false;
 	if( !done_once ) {

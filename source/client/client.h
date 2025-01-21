@@ -170,7 +170,6 @@ struct client_static_t {
 	ImFont * large_italic_font;
 	ImFont * big_italic_font;
 	ImFont * console_font;
-	ImFont * idi_nahui_font;
 	ImFont * license_italic_font;
 };
 

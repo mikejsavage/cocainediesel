@@ -10,39 +10,23 @@
 #include "client/client.h"
 #include "client/assets.h"
 
+#include "tools/dieselfont/font_metadata.h"
+
 #include "imgui/imgui.h"
 
 #include "stb/stb_image.h"
-
-struct Glyph {
-	MinMax2 bounds;
-	MinMax2 uv_bounds;
-	float advance;
-};
 
 struct Font {
 	u32 path_hash;
 	PoolHandle< Texture > atlas;
 	PoolHandle< BindGroup > bind_group;
-
-	float glyph_padding;
-	float dSDF_dTexel;
-	float ascent;
-
-	Glyph glyphs[ 256 ];
+	FontMetadata metadata;
 };
 
 static BoundedDynamicArray< Font, 64 > fonts;
 
 void InitText() {
 	fonts.clear();
-}
-
-static void Serialize( SerializationBuffer * buf, Font & font ) {
-	*buf & font.glyph_padding & font.dSDF_dTexel & font.ascent;
-	for( Glyph & glyph : font.glyphs ) {
-		*buf & glyph.bounds & glyph.uv_bounds & glyph.advance;
-	}
 }
 
 const Font * RegisterFont( Span< const char > path ) {
@@ -67,7 +51,7 @@ const Font * RegisterFont( Span< const char > path ) {
 			return NULL;
 		}
 
-		if( !Deserialize( NULL, &font, data.ptr, data.n ) ) {
+		if( !Deserialize( NULL, &font.metadata, data.ptr, data.n ) ) {
 			Com_GGPrint( S_COLOR_RED "Couldn't load MSDF spec from {}", msdf_path );
 			return NULL;
 		}
@@ -96,6 +80,7 @@ const Font * RegisterFont( Span< const char > path ) {
 		} );
 	}
 
+	// this is a little silly because Font has an internal pointer
 	Optional< Font * > slot = fonts.add();
 	if( !slot.exists ) {
 		Com_Printf( S_COLOR_YELLOW "Too many fonts\n" );
@@ -113,18 +98,18 @@ static float Area( const MinMax2 & rect ) {
 	return w * h;
 }
 
-void DrawText( const Font * font, float pixel_size, Span< const char > str, float x, float y, Vec4 color, Optional< Vec4 > border ) {
+void DrawText( const Font * font, float pixel_size, Span< const char > str, float x, float y, Vec4 color, Optional< Vec4 > border_color ) {
 	if( font == NULL )
 		return;
 
-	y += pixel_size * font->ascent;
+	y += pixel_size * font->metadata.ascent;
 
 	ImGuiShaderAndMaterial imgui = { };
 	imgui.shader = shaders.text;
 	imgui.material_bind_group = font->bind_group;
 	imgui.buffer = { "u_Text", NewTempBuffer( TextUniforms {
 		.color = color,
-		.border_color = Default( border, Vec4( 0.0f ) ),
+		.border_color = Default( border_color, Vec4( 0.0f ) ),
 		.dSDF_dTexel = font->dSDF_dTexel,
 		.has_border = border.exists ? 1_u32 : 0_u32,
 	} ) };
@@ -140,16 +125,20 @@ void DrawText( const Font * font, float pixel_size, Span< const char > str, floa
 		if( c > 255 )
 			c = '?';
 
-		const Glyph * glyph = &font->glyphs[ c ];
+		const FontMetadata::Glyph * glyph = &font->metadata.glyphs[ c ];
 
 		if( Area( glyph->bounds ) > 0.0f ) {
+			// fonts are y-up, screen coords are y-down
+			constexpr Vec2 flip_y = Vec2( 1.0f, -1.0f );
+
 			// TODO: this is bogus. it should expand glyphs by 1 or
 			// 2 pixels to allow for border/antialiasing, up to a
 			// limit determined by font->glyph_padding
-			Vec2 mins = Vec2( x, y ) + pixel_size * ( glyph->bounds.mins - font->glyph_padding );
-			Vec2 maxs = Vec2( x, y ) + pixel_size * ( glyph->bounds.maxs + font->glyph_padding );
+			Vec2 mins = Vec2( x, y ) + pixel_size * flip_y * ( glyph->bounds.mins - font->metadata.glyph_padding );
+			Vec2 maxs = Vec2( x, y ) + pixel_size * flip_y * ( glyph->bounds.maxs + font->metadata.glyph_padding );
+
 			bg->PrimReserve( 6, 4 );
-			bg->PrimRectUV( mins, maxs, glyph->uv_bounds.mins, glyph->uv_bounds.maxs, IM_COL32_WHITE );
+			bg->PrimRectUV( mins, maxs, glyph->padded_uv_bounds.mins, glyph->padded_uv_bounds.maxs, IM_COL32_WHITE );
 		}
 
 		x += pixel_size * glyph->advance;
@@ -159,21 +148,25 @@ void DrawText( const Font * font, float pixel_size, Span< const char > str, floa
 	bg->PopTextureID();
 }
 
-MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
+void DrawText( const Font * font, float pixel_size, const char * str, float x, float y, Vec4 color, Optional< Vec4 > border_color ) {
+	return DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border_color );
+}
+
+MinMax2 TextBounds( const Font * font, float pixel_size, Span< const char > str ) {
 	float width = 0.0f;
 	MinMax1 y_extents = MinMax1::Empty();
 
 	u32 state = 0;
 	u32 c = 0;
-	const Glyph * glyph = NULL;
+	const FontMetadata::Glyph * glyph = NULL;
 
-	for( const char * p = str; *p != '\0'; p++ ) {
-		if( DecodeUTF8( &state, &c, *p ) != 0 )
+	for( size_t i = 0; i < str.n; i++ ) {
+		if( DecodeUTF8( &state, &c, str[ i ] ) != 0 )
 			continue;
 		if( c > 255 )
 			c = '?';
 
-		glyph = &font->glyphs[ c ];
+		glyph = &font->metadata.glyphs[ c ];
 		width += glyph->advance;
 		y_extents.lo = Min2( glyph->bounds.mins.y, y_extents.lo );
 		y_extents.hi = Max2( glyph->bounds.maxs.y, y_extents.hi );
@@ -188,7 +181,11 @@ MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
 	return MinMax2( pixel_size * Vec2( 0, y_extents.lo ), pixel_size * Vec2( width, y_extents.hi ) );
 }
 
-void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, Optional< Vec4 > border ) {
+MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
+	return TextBounds( font, pixel_size, MakeSpan( str ) );
+}
+
+void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, Optional< Vec4 > border_color ) {
 	MinMax2 bounds = TextBounds( font, pixel_size, str );
 
 	if( align.x == XAlignment_Center ) {
@@ -198,7 +195,7 @@ void DrawText( const Font * font, float pixel_size, const char * str, Alignment 
 		x -= bounds.maxs.x;
 	}
 
-	y -= pixel_size * font->ascent;
+	y -= pixel_size * font->metadata.ascent;
 	if( align.y == YAlignment_Top ) {
 		y += bounds.maxs.y - bounds.mins.y;
 	}
@@ -206,10 +203,10 @@ void DrawText( const Font * font, float pixel_size, const char * str, Alignment 
 		y += ( bounds.maxs.y - bounds.mins.y ) / 2.0f;
 	}
 
-	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border );
+	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border_color );
 }
 
-void Draw3DText( const Font * font, float size, Span< const char > str, Alignment align, Vec3 origin, EulerDegrees3 angles, Vec4 color ) {
+void Draw3DText( const Font * font, float size, Span< const char > str, Vec3 origin, EulerDegrees3 angles, Vec4 color ) {
 	struct TextVertex {
 		Vec3 position;
 		Vec2 uv;
@@ -223,7 +220,7 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Alignmen
 	Vec3 dx = rotation.row0().xyz() * size;
 	Vec3 dy = rotation.row2().xyz() * size;
 
-	Vec3 cursor = origin + dy; // TODO: do alignment properly. really need baseline alignment for this
+	Vec3 cursor = origin;
 	u32 state = 0;
 	u32 c = 0;
 	for( size_t i = 0; i < str.n; i++ ) {
@@ -232,31 +229,30 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Alignmen
 		if( c > 255 )
 			c = '?';
 
-		const Glyph * glyph = &font->glyphs[ c ];
+		const FontMetadata::Glyph * glyph = &font->metadata.glyphs[ c ];
 
 		if( Area( glyph->bounds ) > 0.0f ) {
 			size_t base_index = vertices.size();
 
-			Vec2 mins = glyph->bounds.mins - font->glyph_padding;
-			Vec2 maxs = glyph->bounds.maxs + font->glyph_padding;
+			Vec2 mins = glyph->bounds.mins - font->metadata.glyph_padding;
+			Vec2 maxs = glyph->bounds.maxs + font->metadata.glyph_padding;
 
 			// TODO: padding for antialiasing/borders!!!!!!!!!!!!!!!!!! very hard because size is in world space and not screen pixels now
-			// note that world mins.y goes with uv maxs.y because world space is y-up and textures are y-down
 			vertices.add( TextVertex {
 				.position = cursor + mins.x * dx + mins.y * dy,
-				.uv = Vec2( glyph->uv_bounds.mins.x, glyph->uv_bounds.maxs.y ),
+				.uv = Vec2( glyph->padded_uv_bounds.mins.x, glyph->padded_uv_bounds.mins.y ),
 			} );
 			vertices.add( TextVertex {
 				.position = cursor + maxs.x * dx + mins.y * dy,
-				.uv = Vec2( glyph->uv_bounds.maxs.x, glyph->uv_bounds.maxs.y ),
+				.uv = Vec2( glyph->padded_uv_bounds.maxs.x, glyph->padded_uv_bounds.mins.y ),
 			} );
 			vertices.add( TextVertex {
 				.position = cursor + mins.x * dx + maxs.y * dy,
-				.uv = Vec2( glyph->uv_bounds.mins.x, glyph->uv_bounds.mins.y ),
+				.uv = Vec2( glyph->padded_uv_bounds.mins.x, glyph->padded_uv_bounds.maxs.y ),
 			} );
 			vertices.add( TextVertex {
 				.position = cursor + maxs.x * dx + maxs.y * dy,
-				.uv = Vec2( glyph->uv_bounds.maxs.x, glyph->uv_bounds.mins.y ),
+				.uv = Vec2( glyph->padded_uv_bounds.maxs.x, glyph->padded_uv_bounds.maxs.y ),
 			} );
 
 			indices.add( base_index + 0 );

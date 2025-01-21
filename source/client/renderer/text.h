@@ -35,18 +35,41 @@ struct Font;
 const Font * RegisterFont( Span< const char > path );
 
 void DrawText( const Font * font, float pixel_size,
+	Span< const char > str,
+	float x, float y,
+	Vec4 color, Optional< Vec4 > border_color = NONE );
+<<<<<<< HEAD
+||||||| d2aa44946
+	Vec4 color, bool border = false );
+void DrawText( const Font * font, float pixel_size,
+	const char * str,
+	float x, float y,
+	Vec4 color, Vec4 border_color );
+=======
+void DrawText( const Font * font, float pixel_size,
 	const char * str,
 	float x, float y,
 	Vec4 color, Optional< Vec4 > border_color = NONE );
+>>>>>>> master
 
+MinMax2 TextBounds( const Font * font, float pixel_size, Span< const char > str );
 MinMax2 TextBounds( const Font * font, float pixel_size, const char * str );
 
 void DrawText( const Font * font, float pixel_size,
 	const char * str,
 	Alignment align, float x, float y,
+<<<<<<< HEAD
 	Vec4 color, Optional< Vec4 > border = NONE );
+||||||| d2aa44946
+	Vec4 color, bool border = false );
+void DrawText( const Font * font, float pixel_size,
+	const char * str,
+	Alignment align, float x, float y,
+	Vec4 color, Vec4 border_color );
+=======
+	Vec4 color, Optional< Vec4 > border_color = NONE );
+>>>>>>> master
 
 void Draw3DText( const Font * font, float size,
 	Span< const char > str,
-	Alignment align,
 	Vec3 origin, EulerDegrees3 angles, Vec4 color );

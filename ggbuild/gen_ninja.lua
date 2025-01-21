@@ -494,6 +494,8 @@ rule lib
 			printf( "    extra_ldflags = %s", cfg[ ldflags_key ] )
 		end
 
-		printf( "default %s", full_name )
+		if not cfg.dont_build_by_default then
+			printf( "default %s", full_name )
+		end
 	end
 end

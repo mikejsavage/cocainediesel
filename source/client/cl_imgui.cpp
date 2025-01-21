@@ -15,16 +15,13 @@
 static PoolHandle< Texture > atlas_texture;
 static PoolHandle< BindGroup > atlas_bind_group;
 
-static ImFont * AddFontAsset( StringHash path, float pixel_size, bool idi_nahui = false ) {
+static ImFont * AddFontAsset( StringHash path, float pixel_size ) {
 	Span< const u8 > data = AssetBinary( path );
 	ImFontConfig config;
 	config.FontData = ( void * ) data.ptr;
 	config.FontDataOwnedByAtlas = false;
 	config.FontDataSize = data.n;
 	config.SizePixels = pixel_size;
-	if( idi_nahui ) {
-		config.GlyphRanges = ImGui::GetIO().Fonts->GetGlyphRangesCyrillic();
-	}
 	return ImGui::GetIO().Fonts->AddFont( &config );
 }
 
@@ -77,7 +74,6 @@ void CL_InitImGui() {
 		cls.big_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 48.0f );
 		cls.large_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 64.0f );
 		cls.console_font = AddFontAsset( "fonts/Decalotype-Bold.ttf", 14.0f );
-		cls.idi_nahui_font = AddFontAsset( "fonts/OpenSans-SemiBold.ttf", 24.0f, true );
 		cls.license_italic_font = AddFontAsset( "fonts/sofachrome-rg-it.otf", 128.0f );
 
 		io.Fonts->Build();

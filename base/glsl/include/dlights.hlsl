@@ -1,3 +1,5 @@
+#pragma once
+
 #if APPLY_DYNAMICS
 
 #include "../../source/client/renderer/shader_shared.h"

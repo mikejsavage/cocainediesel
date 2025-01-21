@@ -1,3 +1,5 @@
+#pragma once
+
 static const float FOG_STRENGTH = 0.0007f;
 
 float3 Fog( float3 color, float dist ) {

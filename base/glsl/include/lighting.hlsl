@@ -1,3 +1,5 @@
+#pragma once
+
 float LambertLight( float3 normal, float3 lightDir ) {
 	return dot( normal, lightDir );
 }

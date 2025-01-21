@@ -9,6 +9,7 @@
 #include "client/assets.h"
 #include "client/renderer/api.h"
 #include "client/renderer/dds.h"
+#include "client/renderer/shader.h"
 #include "client/renderer/material.h"
 #include "cgame/cg_dynamics.h"
 
@@ -37,7 +38,7 @@ static Hashmap< HighLevelTexture, MAX_TEXTURES > textures;
 static Hashmap< Material, 4096 > materials;
 
 static PoolHandle< Texture > missing_texture;
-static Material missing_material;
+static Material2 missing_material;
 
 struct DecalCoords {
 	Vec4 uvwh;
@@ -146,8 +147,11 @@ static Wave ParseWave( Span< const char > * data ) {
 
 static void ParseCull( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
-	if( token == "disable" || token == "none" || token == "twosided" ) {
-		material->double_sided = true;
+	if( token == "front" ) {
+		material->dynamic_state.cull_face = CullFace_Front;
+	}
+	else if( token == "disable" || token == "none" || token == "twosided" ) {
+		material->dynamic_state.cull_face = CullFace_Disabled;
 	}
 }
 
@@ -303,10 +307,9 @@ static bool ParseMaterial( MaterialDescriptor * material, Span< const char > nam
 }
 
 static void UnloadTexture( u64 idx ) {
-	stbi_image_free( texture_stb_data[ idx ] );
-
-	texture_stb_data[ idx ] = NULL;
-	texture_bc4_data[ idx ] = Span< const BC4Block >();
+	stbi_image_free( textures.span()[ idx ].stb_data );
+	textures.span()[ idx ].stb_data = NULL;
+	textures.span()[ idx ].bc4_data = Span< const BC4Block >();
 }
 
 static void AddMaterial( Span< const char > name, u64 hash, Material material ) {
@@ -567,7 +570,7 @@ static Vec4 TrimTexture( Span2D< const BC4Block > bc4, const Material * material
 static void PackDecalAtlas() {
 	TracyZoneScoped;
 
-	decals_hashtable.clear();
+	decals.clear();
 
 	// make a list of textures to be packed
 	stbrp_rect rects[ MAX_DECALS ];
@@ -711,7 +714,7 @@ static void PackDecalAtlas() {
 	}
 
 	// free temporary bc4s
-	for( u32 i = 0; i < num_decals; i++ ) {
+	for( size_t i = 0; i < decals.size(); i++ ) {
 		const Material * material = &materials[ rects[ i ].id ];
 		if( material->texture->format != TextureFormat_RGBA_U8_sRGB )
 			continue;
@@ -725,27 +728,25 @@ static void PackDecalAtlas() {
 	{
 		TracyZoneScopedN( "Upload atlas" );
 
-		DeleteTexture( decals_atlases );
-
-		TextureConfig config;
-		config.format = TextureFormat_BC4;
-		config.width = DECAL_ATLAS_SIZE;
-		config.height = DECAL_ATLAS_SIZE;
-		config.num_layers = num_layers;
-		config.num_mipmaps = num_mipmaps;
-		config.data = blocks.ptr;
-
-		decals_atlases = NewTexture( config );
+		decals_atlases = NewTexture( GPULifetime_Persistent, TextureConfig {
+			.format = TextureFormat_BC4,
+			.width = DECAL_ATLAS_SIZE,
+			.height = DECAL_ATLAS_SIZE,
+			.num_layers = num_layers,
+			.num_mipmaps = num_mipmaps,
+			.data = blocks.ptr,
+		}, decals_atlases );
 	}
 }
 
 static void LoadBuiltinMaterials() {
 	TracyZoneScoped;
 
-	missing_material = Material();
-	missing_material.name = "missing material"_sp;
-	missing_material.texture = &missing_texture;
-	missing_material.sampler = Sampler_Unfiltered;
+	missing_material = NewMaterial( MaterialDescriptor {
+		.name = "missing_material"_sp,
+		.shader = shaders.standard,
+		.texture = missing_texture,
+	} );
 
 	{
 		u8 white = 255;
@@ -768,13 +769,12 @@ static void LoadBuiltinMaterials() {
 			RGBA8( 255, 0, 255, 255 ),
 		};
 
-		TextureConfig config;
-		config.format = TextureFormat_RGBA_U8_sRGB;
-		config.width = 2;
-		config.height = 2;
-		config.data = pixels;
-
-		missing_texture = NewTexture( config );
+		missing_texture = NewTexture( GPULifetime_Persistent, TextureConfig {
+			.format = TextureFormat_RGBA_U8_sRGB,
+			.width = 2,
+			.height = 2,
+			.data = pixels,
+		} );
 	}
 
 	{
@@ -814,7 +814,7 @@ void InitMaterials() {
 	TracyZoneScoped;
 
 	textures.clear();
-	materials_hashtable.clear();
+	materials.clear();
 
 	LoadBuiltinMaterials();
 
@@ -937,7 +937,7 @@ void HotloadMaterials() {
 }
 
 void ShutdownMaterials() {
-	for( u32 i = 0; i < textures_hashtable.size(); i++ ) {
+	for( u32 i = 0; i < textures.size(); i++ ) {
 		UnloadTexture( i );
 	}
 
@@ -948,10 +948,10 @@ void ShutdownMaterials() {
 }
 
 bool TryFindMaterial( StringHash name, const Material ** material ) {
-	u64 idx;
-	if( !materials_hashtable.get( name.hash, &idx ) )
+	const Material * mat = materials.get( name.hash );
+	if( mat == NULL )
 		return false;
-	*material = &materials[ idx ];
+	*material = mat;
 	return true;
 }
 
@@ -965,12 +965,12 @@ const Material * FindMaterial( const char * name ) {
 }
 
 bool TryFindDecal( StringHash name, Vec4 * uvwh, Vec4 * trim ) {
-	u64 idx;
-	if( !decals_hashtable.get( name.hash, &idx ) )
+	const DecalCoords * decal = decals.get( name.hash );
+	if( decal == NULL )
 		return false;
-	*uvwh = decal_uvwhs[ idx ];
+	*uvwh = decal->uvwh;
 	if( trim != NULL )
-		*trim = decal_trims[ idx ];
+		*trim = decal->trim;
 	return true;
 }
 

@@ -1,3 +1,5 @@
+#pragma once
+
 float3 Dither( float2 screen_uv ) {
 	float2 texture_size;
 	u_BlueNoiseTexture.GetDimensions( texture_size.x, texture_size.y );

@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../../source/client/renderer/shader_shared.h"
 
 [[vk::binding( 0, DescriptorSet_Material )]] StructuredBuffer< MaterialProperties > u_MaterialProperties;

@@ -1,3 +1,5 @@
+#pragma once
+
 #if SKINNED
 
 float3x4 SkinningMatrix( uint4 indices, float4 weights ) {

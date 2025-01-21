@@ -1,3 +1,5 @@
+#pragma once
+
 #if APPLY_SHADOWS
 
 float SampleShadowmap( float2 base_uv, float u, float v, float2 inv_shadowmap_size, uint32_t cascadeIdx, float depth, float2 receiverPlaneDepthBias ) {

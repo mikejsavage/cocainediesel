@@ -1,5 +1,4 @@
-#ifndef SHADER_SHARED_H
-#define SHADER_SHARED_H
+#pragma once
 
 #if __cplusplus
   #include "qcommon/types.h"
@@ -185,5 +184,3 @@ struct TileCountsUniforms {
 struct TileIndices {
 	u32 indices[ FORWARD_PLUS_TILE_CAPACITY ];
 };
-
-#endif // header guard

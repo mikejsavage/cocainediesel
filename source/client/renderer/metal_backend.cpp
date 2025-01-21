@@ -993,7 +993,7 @@ void InitRenderBackend( GLFWwindow * window ) {
 
 	swapchain_texture = textures.allocate();
 
-	shim( window, global_swapchain );
+	PleaseGLFWDoThisForMe( window, global_swapchain );
 
 	global_window = window;
 	glfwGetFramebufferSize( global_window, &old_framebuffer_width, &old_framebuffer_height );

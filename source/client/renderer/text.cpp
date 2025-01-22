@@ -110,8 +110,8 @@ void DrawText( const Font * font, float pixel_size, Span< const char > str, floa
 	imgui.buffer = { "u_Text", NewTempBuffer( TextUniforms {
 		.color = color,
 		.border_color = Default( border_color, Vec4( 0.0f ) ),
-		.dSDF_dTexel = font->dSDF_dTexel,
-		.has_border = border.exists ? 1_u32 : 0_u32,
+		.dSDF_dTexel = font->metadata.dSDF_dTexel,
+		.has_border = border_color.exists ? 1_u32 : 0_u32,
 	} ) };
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();
@@ -269,7 +269,7 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Vec3 ori
 
 	GPUBuffer text_uniforms = NewTempBuffer( TextUniforms {
 		.color = color,
-		.dSDF_dTexel = font->dSDF_dTexel,
+		.dSDF_dTexel = font->metadata.dSDF_dTexel,
 	} );
 
 	Mesh mesh = { };

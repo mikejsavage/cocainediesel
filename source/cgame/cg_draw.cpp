@@ -1,22 +1,6 @@
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 
-int CG_HorizontalAlignForWidth( int x, Alignment alignment, int width ) {
-	if( alignment.x == XAlignment_Left )
-		return x;
-	if( alignment.x == XAlignment_Center )
-		return x - width / 2;
-	return x - width;
-}
-
-int CG_VerticalAlignForHeight( int y, Alignment alignment, int height ) {
-	if( alignment.y == YAlignment_Top )
-		return y;
-	if( alignment.y == YAlignment_Middle )
-		return y - height / 2;
-	return y - height;
-}
-
 static Vec2 ClipToScreen( Vec2 clip ) {
 	clip.y = -clip.y;
 	return ( clip + 1.0f ) / 2.0f * frame_static.viewport;

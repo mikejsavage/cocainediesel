@@ -106,11 +106,9 @@ static float Area( const MinMax2 & rect ) {
 	return w * h;
 }
 
-void DrawText( const Font * font, float pixel_size, Span< const char > str, float x, float y, Vec4 color, Optional< Vec4 > border_color ) {
+void DrawTextBaseline( const Font * font, float pixel_size, Span< const char > str, float x, float y, Vec4 color, Optional< Vec4 > border_color ) {
 	if( font == NULL )
 		return;
-
-	y += pixel_size * font->metadata.ascent;
 
 	ImGuiShaderAndMaterial sam;
 	sam.shader = &shaders.text;
@@ -152,6 +150,14 @@ void DrawText( const Font * font, float pixel_size, Span< const char > str, floa
 	bg->PopTextureID();
 }
 
+void DrawText( const Font * font, float pixel_size, Span< const char > str, float x, float y, Vec4 color, Optional< Vec4 > border_color ) {
+	if( font == NULL )
+		return;
+
+	y += Ascent( font, pixel_size );
+	DrawTextBaseline( font, pixel_size, str, x, y, color, border_color );
+}
+
 void DrawText( const Font * font, float pixel_size, const char * str, float x, float y, Vec4 color, Optional< Vec4 > border_color ) {
 	return DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border_color );
 }
@@ -189,7 +195,7 @@ MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
 	return TextBounds( font, pixel_size, MakeSpan( str ) );
 }
 
-void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, Optional< Vec4 > border_color ) {
+void DrawText( const Font * font, float pixel_size, Span< const char > str, Alignment align, float x, float y, Vec4 color, Optional< Vec4 > border_color ) {
 	MinMax2 bounds = TextBounds( font, pixel_size, str );
 
 	if( align.x == XAlignment_Center ) {
@@ -199,15 +205,20 @@ void DrawText( const Font * font, float pixel_size, const char * str, Alignment 
 		x -= bounds.maxs.x;
 	}
 
-	y -= pixel_size * font->metadata.ascent;
-	if( align.y == YAlignment_Top ) {
-		y += bounds.maxs.y - bounds.mins.y;
-	}
-	else if( align.y == YAlignment_Middle ) {
-		y += ( bounds.maxs.y - bounds.mins.y ) / 2.0f;
+	switch( align.y ) {
+		case YAlignment_Ascent: y += Ascent( font, pixel_size ); break;
+		case YAlignment_Baseline: break;
+		case YAlignment_Descent: y += Descent( font, pixel_size ); break;
+		case YAlignment_VisualTop: y += bounds.maxs.y; break;
+		case YAlignment_VisualMiddle: y += bounds.maxs.y - ( bounds.maxs.y - bounds.mins.y ) * 0.5f; break;
+		case YAlignment_VisualBottom: y += bounds.mins.y; break;
 	}
 
-	DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border_color );
+	DrawTextBaseline( font, pixel_size, str, x, y, color, border_color );
+}
+
+void DrawText( const Font * font, float pixel_size, const char * str, Alignment align, float x, float y, Vec4 color, Optional< Vec4 > border_color ) {
+	DrawText( font, pixel_size, MakeSpan( str ), align, x, y, color, border_color );
 }
 
 void Draw3DText( const Font * font, float size, Span< const char > str, Vec3 origin, EulerDegrees3 angles, Vec4 color ) {
@@ -306,4 +317,12 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Vec3 ori
 			DrawDynamicGeometry( pipeline, draw_data );
 		}
 	}
+}
+
+float Ascent( const Font * font, float pixel_size ) {
+	return font->metadata.ascent * pixel_size;
+}
+
+float Descent( const Font * font, float pixel_size ) {
+	return font->metadata.descent * pixel_size;
 }

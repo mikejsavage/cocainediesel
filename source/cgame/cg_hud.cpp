@@ -474,6 +474,12 @@ static Span< const char > LuaToSpan( lua_State * L, int idx ) {
 	return Span< const char >( str, len );
 }
 
+static Span< const char > LuaCheckSpan( lua_State * L, int idx ) {
+	size_t len;
+	const char * str = luaL_checklstring( L, idx, &len );
+	return Span< const char >( str, len );
+}
+
 static u8 CheckRGBA8Component( lua_State * L, int idx, int narg ) {
 	float val = lua_tonumber( L, idx );
 	luaL_argcheck( L, float( u8( val ) ) == val, narg, "RGBA8 colors must have u8 components" );
@@ -704,6 +710,16 @@ static Alignment CheckAlignment( lua_State * L, int idx ) {
 		Alignment_LeftBottom,
 		Alignment_CenterBottom,
 		Alignment_RightBottom,
+
+		{ XAlignment_Left, YAlignment_Ascent },
+		{ XAlignment_Center, YAlignment_Ascent },
+		{ XAlignment_Right, YAlignment_Ascent },
+		{ XAlignment_Left, YAlignment_Baseline },
+		{ XAlignment_Center, YAlignment_Baseline },
+		{ XAlignment_Right, YAlignment_Baseline },
+		{ XAlignment_Left, YAlignment_Descent },
+		{ XAlignment_Center, YAlignment_Descent },
+		{ XAlignment_Right, YAlignment_Descent },
 	};
 
 	constexpr const char * names[] = {
@@ -716,6 +732,16 @@ static Alignment CheckAlignment( lua_State * L, int idx ) {
 		"left bottom",
 		"center bottom",
 		"right bottom",
+
+		"left ascent",
+		"center ascent",
+		"right ascent",
+		"left baseline",
+		"center baseline",
+		"right baseline",
+		"left descent",
+		"center descent",
+		"right descent",
 	};
 
 	return alignments[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
@@ -768,7 +794,7 @@ static int LuauDrawText( lua_State * L ) {
 
 	float x = luaL_checknumber( L, 2 );
 	float y = luaL_checknumber( L, 3 );
-	const char * str = luaL_checkstring( L, 4 );
+	Span< const char > str = LuaCheckSpan( L, 4 );
 
 	DrawText( font, font_size, str, alignment, x, y, color, border_color );
 
@@ -935,6 +961,22 @@ static int HUD_DrawDamageNumbers( lua_State * L ) {
 static int HUD_DrawPointed( lua_State * L ) {
 	CG_DrawPlayerNames( cgs.fontNormalBold, luaL_checknumber( L, 1 ), CheckColor( L, 2 ) );
 	return 0;
+}
+
+static int CG_HorizontalAlignForWidth( int x, Alignment alignment, int width ) {
+	if( alignment.x == XAlignment_Left )
+		return x;
+	if( alignment.x == XAlignment_Center )
+		return x - width / 2;
+	return x - width;
+}
+
+static int CG_VerticalAlignForHeight( int y, Alignment alignment, int height ) {
+	if( alignment.y == YAlignment_VisualTop )
+		return y;
+	if( alignment.y == YAlignment_VisualMiddle )
+		return y - height / 2;
+	return y - height;
 }
 
 static int HUD_DrawObituaries( lua_State * L ) {
@@ -1665,8 +1707,9 @@ void CG_InitHUD() {
 	clay_arena = Clay_CreateArenaWithCapacityAndMemory( size, sys_allocator->allocate( size, 16 ) );
 
 	auto measure_text = []( Clay_String * text, Clay_TextElementConfig * config ) -> Clay_Dimensions {
-		MinMax2 bounds = TextBounds( *clay_fonts[ config->fontId ].font, config->fontSize, Span< const char >( text->chars, text->length ) );
-		return { bounds.maxs.x - bounds.mins.x, bounds.maxs.y - bounds.mins.y };
+		const Font * font = *clay_fonts[ config->fontId ].font;
+		MinMax2 bounds = TextBounds( font, config->fontSize, Span< const char >( text->chars, text->length ) );
+		return { bounds.maxs.x - bounds.mins.x, Ascent( font, config->fontSize ) + Descent( font, config->fontSize ) };
 	};
 	Clay_SetMeasureTextFunction( measure_text );
 

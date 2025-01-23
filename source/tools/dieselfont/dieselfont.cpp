@@ -309,8 +309,8 @@ int main( int argc, char ** argv ) {
 		Fatal( "bad font" );
 	}
 
-	int ascent;
-	stbtt_GetFontVMetrics( &font, &ascent, NULL, 0 );
+	int ascent, descent;
+	stbtt_GetFontVMetrics( &font, &ascent, &descent, 0 );
 	// float scale = stbtt_ScaleForPixelHeight( &font, 1.0f );
 	float scale = stbtt_ScaleForMappingEmToPixels( &font, 1.0f );
 
@@ -377,7 +377,7 @@ int main( int argc, char ** argv ) {
 		.glyph_padding = padding / atlas_glyph_embox_size,
 		.dSDF_dTexel = dSDF_dUV,
 		.ascent = ascent * scale,
-		// .descent = descent * scale,
+		.descent = descent * scale,
 	};
 
 	for( size_t i = 0; i < num_glyphs; i++ ) {

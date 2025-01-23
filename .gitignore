@@ -37,6 +37,7 @@
 /*.lib
 /*.pdb
 *.spv
+*.metal
 *.metallib
 
 *.cddemo

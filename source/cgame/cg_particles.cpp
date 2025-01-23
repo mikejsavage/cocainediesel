@@ -782,7 +782,7 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	PipelineState pipeline = {
 		.shader = ps->blend_func == BlendFunc_Add ? shaders.particle_add : shaders.particle_blend,
 		.dynamic_state = { .depth_func = DepthFunc_LessNoWrite },
-		.material_bind_group = SpriteBindGroup(),
+		.material_bind_group = SpriteAtlasBindGroup(),
 	};
 
 	Mesh mesh = { .num_vertices = 6 };
@@ -901,7 +901,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 	if( emitter->materials.size() > 0 ) {
 		Vec4 uvwh = Vec4( 0.0f );
 		Vec4 trim = Vec4( 0.0f, 0.0f, 1.0f, 1.0f );
-		if( TryFindDecal( RandomElement( &cls.rng, emitter->materials.span() ), &uvwh, &trim ) ) {
+		if( TryFindSprite( RandomElement( &cls.rng, emitter->materials.span() ), &uvwh, &trim ) ) {
 			EmitParticle( ps, lifetime, position, dir * speed, angle, angular_velocity, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, trim, start_color, end_color, size, emitter->end_size, emitter->flags );
 		}
 	}

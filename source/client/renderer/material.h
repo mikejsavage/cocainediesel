@@ -74,8 +74,9 @@ const Material * FindMaterial( StringHash name );
 const Material * FindMaterial( const char * name );
 bool TryFindMaterial( StringHash name, const Material ** material );
 
-bool TryFindDecal( StringHash name, Vec4 * uvwh, Vec4 * trim );
-PoolHandle< BindGroup > SpriteBindGroup();
+bool TryFindSprite( StringHash name, Vec4 * uvwh, Vec4 * trim );
+PoolHandle< BindGroup > SpriteAtlasBindGroup();
+PoolHandle< Texture > SpriteAtlasTexture();
 
 Vec2 HalfPixelSize( const Material * material );
 

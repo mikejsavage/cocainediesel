@@ -615,7 +615,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	BoundedDynamicArray< GPUBindings::TextureBinding, 4 > standard_textures = {
 		{ "u_BlueNoiseTexture", BlueNoiseTexture() },
 		{ "u_ShadowmapTextureArray", frame_static.render_targets.shadowmap },
-		{ "u_DecalAtlases", DecalAtlasTexture() },
+		{ "u_DecalAtlases", SpriteAtlasTexture() },
 	};
 
 	BoundedDynamicArray< GPUBindings::SamplerBinding, 2 > standard_samplers = {

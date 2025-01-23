@@ -177,12 +177,11 @@ void AllocateDecalBuffers() {
 
 	TracyZoneScopedN( "Reallocate tile buffers" );
 
-	u32 rows = PixelsToTiles( frame_static.viewport_height );
-	u32 cols = PixelsToTiles( frame_static.viewport_width );
+	u32 num_tiles = PixelsToTiles( frame_static.viewport_height ) * PixelsToTiles( frame_static.viewport_width );
 
-	decal_tiles_buffer = NewBuffer( GPULifetime_Framebuffer, "Decal tile indices", rows * cols * sizeof( GPUDecalTile ), sizeof( GPUDecalTile ), false );
-	dlight_tiles_buffer = NewBuffer( GPULifetime_Framebuffer, "Dynamic light tile indices", rows * cols * sizeof( GPUDynamicLightTile ), sizeof( GPUDynamicLightTile ), false );
-	dynamic_count = NewBuffer( GPULifetime_Framebuffer, "Dynamics tile counts", rows * cols * sizeof( GPUDynamicCount ), sizeof( GPUDynamicCount ), false );
+	decal_tiles_buffer = NewBuffer( GPULifetime_Framebuffer, "Decal tile indices", num_tiles * sizeof( GPUDecalTile ), sizeof( GPUDecalTile ), false );
+	dlight_tiles_buffer = NewBuffer( GPULifetime_Framebuffer, "Dynamic light tile indices", num_tiles * sizeof( GPUDynamicLightTile ), sizeof( GPUDynamicLightTile ), false );
+	dynamic_count = NewBuffer( GPULifetime_Framebuffer, "Dynamics tile counts", num_tiles * sizeof( GPUDynamicCount ), sizeof( GPUDynamicCount ), false );
 }
 
 void UploadDecalBuffers() {

@@ -1,16 +1,16 @@
 explosion_scorch1
 {
 	texture loadout/_effects/explosion_scorch1
-	decal
+	sprite
 }
 
 explosion_scorch2
 {
 	texture loadout/_effects/explosion_scorch2
-	decal
+	sprite
 }
 explosion_scorch3
 {
 	texture loadout/_effects/explosion_scorch3
-	decal
+	sprite
 }

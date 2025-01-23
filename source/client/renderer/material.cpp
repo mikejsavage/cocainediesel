@@ -728,7 +728,7 @@ static void PackDecalAtlas() {
 	{
 		TracyZoneScopedN( "Upload atlas" );
 
-		decals_atlases = NewTexture( GPULifetime_Persistent, TextureConfig {
+		decals_atlases = NewTexture( TextureConfig {
 			.format = TextureFormat_BC4,
 			.width = DECAL_ATLAS_SIZE,
 			.height = DECAL_ATLAS_SIZE,
@@ -769,7 +769,7 @@ static void LoadBuiltinMaterials() {
 			RGBA8( 255, 0, 255, 255 ),
 		};
 
-		missing_texture = NewTexture( GPULifetime_Persistent, TextureConfig {
+		missing_texture = NewTexture( TextureConfig {
 			.format = TextureFormat_RGBA_U8_sRGB,
 			.width = 2,
 			.height = 2,

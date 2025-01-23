@@ -197,10 +197,6 @@ CoherentMemory AllocateCoherentMemory( size_t size ) {
 	};
 }
 
-GPUAllocator * AllocatorForLifetime( GPULifetime lifetime ) {
-	return lifetime == GPULifetime_Persistent ? &global_device.persistent_allocator : &global_device.framebuffer_allocator;
-}
-
 GPUTempBuffer NewTempBuffer( size_t size, size_t alignment ) {
 	return NewTempBuffer( &global_device.temp_allocator, size, alignment );
 }
@@ -508,7 +504,7 @@ PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandl
 	// ArgumentEncoders can't write into private memory so we have to encode
 	// into a coherent buffer and upload that, i.e. run it through the staging
 	// buffer
-	GPUBuffer args = NewBuffer( GPULifetime_Persistent, "material argument buffer", encoder->encodedLength(), encoder->alignment(), false );
+	GPUBuffer args = NewBuffer( "material argument buffer", encoder->encodedLength(), encoder->alignment(), false );
 	GPUBuffer staging = StageArgumentBuffer( args, encoder->encodedLength(), encoder->alignment() );
 
 	encoder->setArgumentBuffer( allocations[ staging.allocation ].buffer, staging.offset );

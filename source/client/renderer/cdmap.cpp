@@ -7,8 +7,8 @@
 Mesh NewMapRenderData( const MapData & map, Span< const char > name ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	GPUBuffer positions_buffer = NewBuffer( GPULifetime_Persistent, temp( "{} positions", name ), map.vertex_positions );
-	GPUBuffer normals_buffer = NewBuffer( GPULifetime_Persistent, temp( "{} normals", name ), map.vertex_normals );
+	GPUBuffer positions_buffer = NewBuffer( temp( "{} positions", name ), map.vertex_positions );
+	GPUBuffer normals_buffer = NewBuffer( temp( "{} normals", name ), map.vertex_normals );
 
 	Mesh mesh = { };
 	mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx3, 0, 0 };
@@ -19,7 +19,7 @@ Mesh NewMapRenderData( const MapData & map, Span< const char > name ) {
 	mesh.num_vertices = map.vertex_positions.n;
 	mesh.vertex_buffers[ VertexAttribute_Position ] = positions_buffer;
 	mesh.vertex_buffers[ VertexAttribute_Position ] = normals_buffer;
-	mesh.index_buffer = NewBuffer( GPULifetime_Persistent, temp( "{} indices", name ), map.vertex_indices );
+	mesh.index_buffer = NewBuffer( temp( "{} indices", name ), map.vertex_indices );
 
 	return mesh;
 }

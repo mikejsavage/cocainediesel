@@ -72,7 +72,7 @@ const Font * RegisterFont( Span< const char > path ) {
 			return NULL;
 		}
 
-		font.atlas = NewTexture( GPULifetime_Persistent, TextureConfig {
+		font.atlas = NewTexture( TextureConfig {
 			.format = TextureFormat_RGBA_U8,
 			.width = checked_cast< u32 >( w ),
 			.height = checked_cast< u32 >( h ),

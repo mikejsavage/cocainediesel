@@ -56,8 +56,6 @@ GPUBuffer NewTempBuffer( GPUTempAllocator * a, const void * data, size_t size, s
 PoolHandle< Texture > NewTexture( GPUAllocator * a, const TextureConfig & config, Optional< PoolHandle< Texture > > = NONE );
 PoolHandle< Texture > UploadBC4( GPUAllocator * a, const char * path );
 
-GPUAllocator * AllocatorForLifetime( GPULifetime lifetime );
-
 void CopyGPUBufferToBuffer(
 	Opaque< CommandBuffer > cmd_buf,
 	PoolHandle< GPUAllocation > dest, size_t dest_offset,

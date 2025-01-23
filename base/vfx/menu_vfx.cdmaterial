@@ -1,110 +1,110 @@
 loadout/knife/icon
 {
 	texture loadout/knife/icon
-	decal
+	sprite
 }
 loadout/9mm/icon
 {
 	texture loadout/9mm/icon
-	decal
+	sprite
 }
 loadout/pistol/icon
 {
 	texture loadout/pistol/icon
-	decal
+	sprite
 }
 loadout/smg/icon
 {
 	texture loadout/smg/icon
-	decal
+	sprite
 }
 loadout/deagle/icon
 {
 	texture loadout/deagle/icon
-	decal
+	sprite
 }
 loadout/shotgun/icon
 {
 	texture loadout/shotgun/icon
-	decal
+	sprite
 }
 loadout/sawn-off/icon
 {
 	texture loadout/sawn-off/icon
-	decal
+	sprite
 }
 loadout/burst/icon
 {
 	texture loadout/burst/icon
-	decal
+	sprite
 }
 loadout/crossbow/icon
 {
 	texture loadout/crossbow/icon
-	decal
+	sprite
 }
 loadout/launcher/icon
 {
 	texture loadout/launcher/icon
-	decal
+	sprite
 }
 loadout/bazooka/icon
 {
 	texture loadout/bazooka/icon
-	decal
+	sprite
 }
 loadout/assault/icon
 {
 	texture loadout/assault/icon
-	decal
+	sprite
 }
 loadout/bubble/icon
 {
 	texture loadout/bubble/icon
-	decal
+	sprite
 }
 loadout/laser/icon
 {
 	texture loadout/laser/icon
-	decal
+	sprite
 }
 loadout/rail/icon
 {
 	texture loadout/rail/icon
-	decal
+	sprite
 }
 loadout/sniper/icon
 {
 	texture loadout/sniper/icon
-	decal
+	sprite
 }
 loadout/rifle/icon
 {
 	texture loadout/rifle/icon
-	decal
+	sprite
 }
 loadout/blaster/icon
 {
 	texture loadout/blaster/icon
-	decal
+	sprite
 }
 loadout/roadgun/icon
 {
 	texture loadout/roadgun/icon
-	decal
+	sprite
 }
 loadout/sticky/icon
 {
 	texture loadout/sticky/icon
-	decal
+	sprite
 }
 loadout/sawblade/icon
 {
 	texture loadout/sawblade/icon
-	decal
+	sprite
 }
 loadout/minigun/icon
 {
 	texture loadout/minigun/icon
-	decal
+	sprite
 }

@@ -48,26 +48,21 @@ GPUBuffer NewTempBuffer( const T & x, size_t alignment = alignof( T ) ) {
 // 	return NewTempBuffer( sizeof( T ), alignment, NULL );
 // }
 
-enum GPULifetime {
-	GPULifetime_Persistent,
-	GPULifetime_Framebuffer,
-};
-
-GPUBuffer NewBuffer( GPULifetime lifetime, const char * label, size_t size, size_t alignment, bool texture, const void * data = NULL );
+GPUBuffer NewBuffer( const char * label, size_t size, size_t alignment, bool texture, const void * data = NULL );
 
 template< typename T >
-GPUBuffer NewBuffer( GPULifetime lifetime, const char * label, Span< const T > xs, size_t alignment = alignof( T ) ) {
-	return NewBuffer( lifetime, label, sizeof( T ) * xs.n, alignment, false, xs.ptr );
+GPUBuffer NewBuffer( const char * label, Span< const T > xs, size_t alignment = alignof( T ) ) {
+	return NewBuffer( label, sizeof( T ) * xs.n, alignment, false, xs.ptr );
 }
 
 template< typename T >
-GPUBuffer NewBuffer( GPULifetime lifetime, const char * label, const T & x, size_t alignment = alignof( T ) ) {
-	return NewBuffer( lifetime, label, sizeof( T ), alignment, false, &x );
+GPUBuffer NewBuffer( const char * label, const T & x, size_t alignment = alignof( T ) ) {
+	return NewBuffer( label, sizeof( T ), alignment, false, &x );
 }
 
 template< typename T >
-GPUBuffer NewBuffer( GPULifetime lifetime, const char * label, size_t alignment = alignof( T ) ) {
-	return NewBuffer( lifetime, label, sizeof( T ), alignment, false, NULL );
+GPUBuffer NewBuffer( const char * label, size_t alignment = alignof( T ) ) {
+	return NewBuffer( label, sizeof( T ), alignment, false, NULL );
 }
 
 void FlushStagingBuffer();
@@ -134,6 +129,7 @@ struct TextureConfig {
 	u32 num_mipmaps = 1;
 	u32 msaa_samples = 1;
 	const void * data = NULL;
+	bool dedicated_allocation = false;
 };
 
 enum TextureLayout {
@@ -142,8 +138,7 @@ enum TextureLayout {
 	TextureLayout_Present,
 };
 
-PoolHandle< Texture > NewTexture( GPULifetime lifetime, const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture = NONE );
-PoolHandle< Texture > NewFramebufferTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture = NONE );
+PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture = NONE );
 
 u32 TextureWidth( PoolHandle< Texture > texture );
 u32 TextureHeight( PoolHandle< Texture > texture );

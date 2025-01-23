@@ -80,7 +80,7 @@ static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf
 
 		if( attr.type == cgltf_attribute_type_position ) {
 			mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx3, VertexAttribute_Position };
-			mesh.vertex_buffers[ VertexAttribute_Position ] = NewBuffer( GPULifetime_Persistent, temp( "{} positions", render_data->name ), AccessorToSpan( attr.data ) );
+			mesh.vertex_buffers[ VertexAttribute_Position ] = NewBuffer( temp( "{} positions", render_data->name ), AccessorToSpan( attr.data ) );
 
 			Vec3 min, max;
 			for( int j = 0; j < 3; j++ ) {
@@ -94,7 +94,7 @@ static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf
 
 		if( attr.type == cgltf_attribute_type_normal ) {
 			mesh.vertex_descriptor.attributes[ VertexAttribute_Normal ] = { VertexFormat_Floatx3, VertexAttribute_Normal };
-			mesh.vertex_buffers[ VertexAttribute_Normal ] = NewBuffer( GPULifetime_Persistent, temp( "{} normals", render_data->name ), AccessorToSpan( attr.data ) );
+			mesh.vertex_buffers[ VertexAttribute_Normal ] = NewBuffer( temp( "{} normals", render_data->name ), AccessorToSpan( attr.data ) );
 		}
 
 		if( attr.type == cgltf_attribute_type_texcoord ) {
@@ -104,30 +104,30 @@ static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf
 			else {
 				VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 				mesh.vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = { format, VertexAttribute_TexCoord };
-				mesh.vertex_buffers[ VertexAttribute_TexCoord ] = NewBuffer( GPULifetime_Persistent, temp( "{} uvs", render_data->name ), AccessorToSpan( attr.data ) );
+				mesh.vertex_buffers[ VertexAttribute_TexCoord ] = NewBuffer( temp( "{} uvs", render_data->name ), AccessorToSpan( attr.data ) );
 			}
 		}
 
 		if( attr.type == cgltf_attribute_type_color ) {
 			VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 			mesh.vertex_descriptor.attributes[ VertexAttribute_Color ] = { format, VertexAttribute_Color };
-			mesh.vertex_buffers[ VertexAttribute_Color ] = NewBuffer( GPULifetime_Persistent, temp( "{} colors", render_data->name ), AccessorToSpan( attr.data ) );
+			mesh.vertex_buffers[ VertexAttribute_Color ] = NewBuffer( temp( "{} colors", render_data->name ), AccessorToSpan( attr.data ) );
 		}
 
 		if( attr.type == cgltf_attribute_type_joints ) {
 			VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 			mesh.vertex_descriptor.attributes[ VertexAttribute_JointIndices ] = { format, VertexAttribute_JointIndices };
-			mesh.vertex_buffers[ VertexAttribute_JointIndices ] = NewBuffer( GPULifetime_Persistent, temp( "{} joint indices", render_data->name ), AccessorToSpan( attr.data ) );
+			mesh.vertex_buffers[ VertexAttribute_JointIndices ] = NewBuffer( temp( "{} joint indices", render_data->name ), AccessorToSpan( attr.data ) );
 		}
 
 		if( attr.type == cgltf_attribute_type_weights ) {
 			VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 			mesh.vertex_descriptor.attributes[ VertexAttribute_JointWeights ] = { format, VertexAttribute_JointWeights };
-			mesh.vertex_buffers[ VertexAttribute_JointWeights ] = NewBuffer( GPULifetime_Persistent, temp( "{} joint weights", render_data->name ), AccessorToSpan( attr.data ) );
+			mesh.vertex_buffers[ VertexAttribute_JointWeights ] = NewBuffer( temp( "{} joint weights", render_data->name ), AccessorToSpan( attr.data ) );
 		}
 	}
 
-	mesh.index_buffer = NewBuffer( GPULifetime_Persistent, temp( "{} indices", render_data->name ), AccessorToSpan( prim.indices ) );
+	mesh.index_buffer = NewBuffer( temp( "{} indices", render_data->name ), AccessorToSpan( prim.indices ) );
 	mesh.index_format = prim.indices->component_type == cgltf_component_type_r_16u ? IndexFormat_U16 : IndexFormat_U32;
 	mesh.num_vertices = prim.indices->count;
 

@@ -122,7 +122,7 @@ void InitRenderer( GLFWwindow * window ) {
 	// 	u8 * img = stbi_load_from_memory( rgb_noise_png, rgb_noise_png_len, &w, &h, NULL, 4 );
 	// 	Assert( img != NULL );
     //
-	// 	rgb_noise = NewTexture( GPULifetime_Persistent, TextureConfig {
+	// 	rgb_noise = NewTexture( TextureConfig {
 	// 		.format = TextureFormat_RGBA_U8_sRGB,
 	// 		.width = u32( w ),
 	// 		.height = u32( h ),
@@ -137,7 +137,7 @@ void InitRenderer( GLFWwindow * window ) {
 		u8 * img = stbi_load_from_memory( blue_noise_png, blue_noise_png_len, &w, &h, NULL, 1 );
 		Assert( img != NULL );
 
-		blue_noise = NewTexture( GPULifetime_Persistent, TextureConfig {
+		blue_noise = NewTexture( TextureConfig {
 			.format = TextureFormat_R_S8,
 			.width = u32( w ),
 			.height = u32( h ),
@@ -157,7 +157,7 @@ void InitRenderer( GLFWwindow * window ) {
 		fullscreen_mesh = { };
 		fullscreen_mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx3 };
 		fullscreen_mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec3 );
-		fullscreen_mesh.vertex_buffers[ 0 ] = NewBuffer( GPULifetime_Persistent, "Fullscreen triangle vertices", positions );
+		fullscreen_mesh.vertex_buffers[ 0 ] = NewBuffer( "Fullscreen triangle vertices", positions );
 	}
 
 	AddCommand( "screenshot", []( const Tokenized & args ) { TakeScreenshot(); } );
@@ -300,32 +300,36 @@ static Mat3x4 InvertViewMatrix( const Mat3x4 & V, Vec3 position ) {
 }
 
 static void CreateRenderTargets( bool first_time ) {
-	frame_static.render_targets.silhouette_mask = NewTexture( GPULifetime_Framebuffer, TextureConfig {
+	frame_static.render_targets.silhouette_mask = NewTexture( TextureConfig {
 		.format = TextureFormat_RGBA_U8_sRGB,
 		.width = frame_static.viewport_width,
 		.height = frame_static.viewport_height,
+		.dedicated_allocation = true,
 	}, first_time ? NONE : MakeOptional( frame_static.render_targets.silhouette_mask ) );
 
-	frame_static.render_targets.curved_surface_mask = NewTexture( GPULifetime_Framebuffer, TextureConfig {
+	frame_static.render_targets.curved_surface_mask = NewTexture( TextureConfig {
 		.format = TextureFormat_R_UI8,
 		.width = frame_static.viewport_width,
 		.height = frame_static.viewport_height,
 		.msaa_samples = frame_static.msaa_samples,
+		.dedicated_allocation = true,
 	}, first_time ? NONE : MakeOptional( frame_static.render_targets.curved_surface_mask ) );
 
 	if( frame_static.msaa_samples > 1 ) {
-		frame_static.render_targets.msaa_color = NewTexture( GPULifetime_Framebuffer, TextureConfig {
+		frame_static.render_targets.msaa_color = NewTexture( TextureConfig {
 			.format = TextureFormat_RGBA_U8_sRGB,
 			.width = frame_static.viewport_width,
 			.height = frame_static.viewport_height,
 			.msaa_samples = frame_static.msaa_samples,
+			.dedicated_allocation = true,
 		}, frame_static.render_targets.msaa_color );
 
-		frame_static.render_targets.msaa_depth = NewTexture( GPULifetime_Framebuffer, TextureConfig {
+		frame_static.render_targets.msaa_depth = NewTexture( TextureConfig {
 			.format = TextureFormat_Depth,
 			.width = frame_static.viewport_width,
 			.height = frame_static.viewport_height,
 			.msaa_samples = frame_static.msaa_samples,
+			.dedicated_allocation = true,
 		}, frame_static.render_targets.msaa_depth );
 	}
 	else {
@@ -333,23 +337,26 @@ static void CreateRenderTargets( bool first_time ) {
 		frame_static.render_targets.msaa_depth = NONE;
 	}
 
-	frame_static.render_targets.resolved_color = NewTexture( GPULifetime_Framebuffer, TextureConfig {
+	frame_static.render_targets.resolved_color = NewTexture( TextureConfig {
 		.format = TextureFormat_RGBA_U8_sRGB,
 		.width = frame_static.viewport_width,
 		.height = frame_static.viewport_height,
+		.dedicated_allocation = true,
 	}, first_time ? NONE : MakeOptional( frame_static.render_targets.resolved_color ) );
 
-	frame_static.render_targets.resolved_depth = NewTexture( GPULifetime_Framebuffer, TextureConfig {
+	frame_static.render_targets.resolved_depth = NewTexture( TextureConfig {
 		.format = TextureFormat_Depth,
 		.width = frame_static.viewport_width,
 		.height = frame_static.viewport_height,
+		.dedicated_allocation = true,
 	}, first_time ? NONE : MakeOptional( frame_static.render_targets.resolved_depth ) );
 
-	frame_static.render_targets.shadowmap = NewTexture( GPULifetime_Framebuffer, TextureConfig {
+	frame_static.render_targets.shadowmap = NewTexture( TextureConfig {
 		.format = TextureFormat_Depth,
 		.width = frame_static.shadow_parameters.resolution,
 		.height = frame_static.shadow_parameters.resolution,
 		.num_layers = frame_static.shadow_parameters.num_cascades,
+		.dedicated_allocation = true,
 	} );
 }
 

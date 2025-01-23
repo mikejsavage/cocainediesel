@@ -32,8 +32,8 @@ void InitSkybox() {
 	sky_mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec4 );
 	sky_mesh.index_format = IndexFormat_U16;
 	sky_mesh.num_vertices = ARRAY_COUNT( indices );
-	sky_mesh.vertex_buffers[ 0 ] = NewBuffer( GPULifetime_Persistent, "Skybox vertices", verts );
-	sky_mesh.index_buffer = NewBuffer( GPULifetime_Persistent, "Skybox indices", indices );
+	sky_mesh.vertex_buffers[ 0 ] = NewBuffer( "Skybox vertices", verts );
+	sky_mesh.index_buffer = NewBuffer( "Skybox indices", indices );
 }
 
 void DrawSkybox( Time time ) {

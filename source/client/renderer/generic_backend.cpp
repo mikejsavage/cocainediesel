@@ -177,8 +177,8 @@ GPUBuffer NewBuffer( GPUAllocator * a, const char * label, size_t size, size_t a
 	return buffer;
 }
 
-GPUBuffer NewBuffer( GPULifetime lifetime, const char * label, size_t size, size_t alignment, bool texture, const void * data ) {
-	return NewBuffer( AllocatorForLifetime( lifetime ), label, size, alignment, texture, data );
+GPUBuffer NewBuffer( const char * label, size_t size, size_t alignment, bool texture, const void * data ) {
+	return NewBuffer( label, size, alignment, texture, data );
 }
 
 void ResetGPUAllocator( GPUAllocator * a ) {
@@ -232,8 +232,8 @@ GPUBuffer NewTempBuffer( GPUTempAllocator * a, const void * data, size_t size, s
 	return temp.buffer;
 }
 
-PoolHandle< Texture > NewTexture( GPULifetime lifetime, const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {
-	return NewTexture( AllocatorForLifetime( lifetime ), config, old_texture );
+PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {
+	return NewTexture( config, old_texture );
 }
 
 PoolHandle< Texture > NewFramebufferTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {
@@ -261,7 +261,7 @@ bool operator==( const VertexDescriptor & lhs, const VertexDescriptor & rhs ) {
 }
 
 Material2 NewMaterial( const MaterialDescriptor & desc ) {
-	GPUBuffer properties = NewBuffer( GPULifetime_Persistent, "material properties", desc.properties );
+	GPUBuffer properties = NewBuffer( "material properties", desc.properties );
 	return Material2 {
 		// .name = desc.name,
 		.shader = desc.shader,

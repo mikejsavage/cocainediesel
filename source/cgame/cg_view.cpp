@@ -528,6 +528,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	}
 
 	AllocateDecalBuffers();
+	AllocateParticleBuffers();
 
 	MaybeResetShadertoyTime( false );
 

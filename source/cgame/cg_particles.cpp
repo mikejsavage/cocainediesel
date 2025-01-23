@@ -98,7 +98,7 @@ struct ParticleSystem {
 	GPUBuffer gpu_particles1;
 	GPUBuffer gpu_particles2;
 
-	GPUBuffer new_particles;
+	GPUTempBuffer new_particles;
 	u32 num_new_particles;
 	bool clear;
 
@@ -107,8 +107,6 @@ struct ParticleSystem {
 
 	GPUBuffer compute_indirect;
 	GPUBuffer draw_indirect;
-
-	Mesh mesh;
 };
 
 enum VisualEffectType : u8 {
@@ -225,15 +223,14 @@ static ParticleSystem NewParticleSystem( Allocator * a, BlendFunc blend_func, si
 		.max_particles = max_particles,
 		.blend_func = blend_func,
 
-		.gpu_particles1 = NewBuffer( GPULifetime_Persistent, "particles flip", max_particles * sizeof( Particle ), sizeof( Particle ) ),
-		.gpu_particles2 = NewBuffer( GPULifetime_Persistent, "particles flop",  max_particles * sizeof( Particle ), sizeof( Particle ) ),
-		.new_particles = NewStreamingBuffer( max_particles * sizeof( Particle ), "new particles" ),
+		.gpu_particles1 = NewBuffer( "particles flip", max_particles * sizeof( Particle ), sizeof( Particle ) ),
+		.gpu_particles2 = NewBuffer( "particles flop", max_particles * sizeof( Particle ), sizeof( Particle ) ),
 
-		.compute_count1 = NewBuffer( GPULifetime_Persistent, "compute_count flip", zero ),
-		.compute_count2 = NewBuffer( GPULifetime_Persistent, "compute_count flop", zero ),
+		.compute_count1 = NewBuffer( "compute_count flip", zero ),
+		.compute_count2 = NewBuffer( "compute_count flop", zero ),
 
-		.compute_indirect = NewBuffer( GPULifetime_Persistent, "particle compute indirect", &compute_indirect, sizeof( compute_indirect ) ),
-		.draw_indirect = NewBuffer( GPULifetime_Persistent, "particle draw indirect", &draw_indirect, sizeof( draw_indirect ) ),
+		.compute_indirect = NewBuffer( "particle compute indirect", &compute_indirect, sizeof( compute_indirect ) ),
+		.draw_indirect = NewBuffer( "particle draw indirect", &draw_indirect, sizeof( draw_indirect ) ),
 	};
 }
 
@@ -731,6 +728,11 @@ VisualEffectGroup * FindVisualEffectGroup( const char * name ) {
 	return FindVisualEffectGroup( StringHash( name ) );
 }
 
+void AllocateParticleBuffers() {
+	addParticleSystem.new_particles = NewTempBuffer( addParticleSystem.max_particles * sizeof( Particle ), alignof( Particle ) );
+	blendParticleSystem.new_particles = NewTempBuffer( blendParticleSystem.max_particles * sizeof( Particle ), alignof( Particle ) );
+}
+
 static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 	{
 		// u32 collision = cl.map == NULL ? 0 : 1;
@@ -750,7 +752,7 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		EncodeIndirectComputeCall( RenderPass_ParticleUpdate, shaders.particle_compute, ps->compute_indirect, {
 			{ "b_ParticlesIn", ps->gpu_particles1 },
 			{ "b_ParticlesOut", ps->gpu_particles2 },
-			{ "b_NewParticles", ... },
+			{ "b_NewParticles", ps->new_particles.buffer },
 			{ "b_ComputeCountIn", ps->compute_count1 },
 			{ "b_ComputeCountOut", ps->compute_count2 },
 			{ "b_ParticleUpdate", update },
@@ -780,7 +782,7 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	PipelineState pipeline = {
 		.shader = ps->blend_func == BlendFunc_Add ? shaders.particle_add : shaders.particle_blend,
 		.dynamic_state = { .depth_func = DepthFunc_LessNoWrite },
-		.material_bind_group = DecalAtlasBindGroup(),
+		.material_bind_group = SpriteBindGroup(),
 	};
 
 	Mesh mesh = { .num_vertices = 6 };
@@ -818,11 +820,10 @@ void DrawParticles() {
 }
 
 static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float angle, float angular_velocity, float acceleration, float drag, float restitution, Vec4 uvwh, Vec4 trim, Vec4 start_color, Vec4 end_color, float start_size, float end_size, ParticleFlags flags ) {
-	TracyZoneScopedN( "Store Particle" );
 	if( ps->num_new_particles == ps->max_particles )
 		return;
 
-	Particle * new_particles = ( Particle * ) GetStreamingBufferMemory( ps->new_particles );
+	Particle * new_particles = ( Particle * ) ps->new_particles.ptr;
 	new_particles[ ps->num_new_particles ] = Particle {
 		.position = position,
 		.angle = angle,

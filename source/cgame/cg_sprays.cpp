@@ -35,11 +35,11 @@ void InitSprays() {
 		const Material * material = FindMaterial( name );
 		// Vec4 uvwh; NOMERGE
 		// if( !TryFindDecal( name, &uvwh, NULL ) ) {
-		// 	Com_GGPrint( S_COLOR_YELLOW "Spray {} needs a decal material key", path );
+		// 	Com_GGPrint( S_COLOR_YELLOW "Spray {} needs a spray material key", path );
 		// 	continue;
 		// }
-		if( !material->decal ) {
-			Com_GGPrint( S_COLOR_YELLOW "Spray {} needs a decal material", path );
+		if( !material->spray ) {
+			Com_GGPrint( S_COLOR_YELLOW "Spray {} needs a spray material", path );
 			continue;
 		}
 

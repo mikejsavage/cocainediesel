@@ -12,6 +12,7 @@ struct GraphicsShaderDescriptor {
 	BlendFunc blend_func = BlendFunc_Disabled;
 	bool clamp_depth = false;
 	bool alpha_to_coverage = false;
+	bool viewmodel_depth = false;
 };
 
 struct ComputeShaderDescriptor {
@@ -97,6 +98,13 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 					"SHADED",
 				},
 				.mesh_variants = { pos_normal },
+			},
+
+			GraphicsShaderDescriptor {
+				.field = &Shaders::viewmodel,
+				.src = "standard.hlsl",
+				.mesh_variants = { pos_normal, pos_normal_uv },
+				.viewmodel_depth = true,
 			},
 
 			GraphicsShaderDescriptor {

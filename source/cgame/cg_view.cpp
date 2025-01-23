@@ -444,7 +444,9 @@ static void DrawOutlines() {
 	frame_static.render_passes[ RenderPass_AddOutlines ] = NewRenderPass( RenderPassConfig {
 		.name = "Add outlines",
 		.color_targets = {
-			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.msaa_color },
+			RenderPassConfig::ColorTarget {
+				.texture = Default( frame_static.render_targets.msaa_color, frame_static.render_targets.resolved_color ),
+			},
 		},
 		.representative_shader = shaders.postprocess_world_gbuffer,
 		.bindings = {
@@ -453,7 +455,7 @@ static void DrawOutlines() {
 				{ "u_OutlineColor", NewTempBuffer( sRGBToLinear( gray ) ) },
 			},
 			.textures = {
-				{ "u_DepthTexture", frame_static.render_targets.msaa_depth },
+				{ "u_DepthTexture", Default( frame_static.render_targets.msaa_depth, frame_static.render_targets.resolved_depth ) },
 				{ "u_CurvedSurfaceMask", frame_static.render_targets.curved_surface_mask },
 			},
 		},

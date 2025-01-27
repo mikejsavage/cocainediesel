@@ -42,6 +42,9 @@ static lua_State * hud_L;
 static Clay_Arena clay_arena;
 static u32 clay_element_counter;
 
+static constexpr size_t TEXT_ARENA_SIZE = Megabytes( 1 );
+static ArenaAllocator text_arena;
+
 static bool show_debugger;
 
 template< typename T >
@@ -1301,13 +1304,19 @@ struct ClayTextAndConfig {
 	Clay_TextElementConfig config;
 };
 
+static Clay_String CopyStringToArena( Span< const char > str ) {
+	char * r = AllocMany< char >( &text_arena, str.n );
+	memcpy( r, str.ptr, str.n );
+	return Clay_String { .length = checked_cast< s32 >( str.n ), .chars = r };
+}
+
 static Optional< ClayTextAndConfig > CheckClayTextConfig( lua_State * L, int idx ) {
 	if( lua_getfield( L, -1, "text" ) == LUA_TNIL ) {
 		lua_pop( L, 1 );
 		return NONE;
 	}
 
-	Span< const char > text = LuaToSpan( L, -1 );
+	Clay_String text = CopyStringToArena( LuaToSpan( L, -1 ) );
 	lua_pop( L, 1 );
 
 	// default 1vh
@@ -1315,7 +1324,7 @@ static Optional< ClayTextAndConfig > CheckClayTextConfig( lua_State * L, int idx
 	u16 size = Default( CheckU16( L, -1, "font_size" ), u16( frame_static.viewport_height * 0.01f ) );
 
 	return ClayTextAndConfig {
-		.text = Clay_String { .length = checked_cast< s32 >( text.n ), .chars = text.ptr },
+		.text = text,
 		.config = Clay_TextElementConfig {
 			.textColor = Default( CheckClayColor( L, -1, "color" ), { 255, 255, 255, 255 } ),
 			.fontId = Default( CheckClayFont( L, -1 ), 0_u16 ),
@@ -1705,6 +1714,7 @@ void CG_InitHUD() {
 
 	u32 size = Clay_MinMemorySize();
 	clay_arena = Clay_CreateArenaWithCapacityAndMemory( size, sys_allocator->allocate( size, 16 ) );
+	text_arena = ArenaAllocator( AllocMany< char >( sys_allocator, TEXT_ARENA_SIZE ), TEXT_ARENA_SIZE );
 
 	auto measure_text = []( Clay_String * text, Clay_TextElementConfig * config ) -> Clay_Dimensions {
 		const Font * font = *clay_fonts[ config->fontId ].font;
@@ -1722,6 +1732,7 @@ void CG_ShutdownHUD() {
 	}
 
 	Free( sys_allocator, clay_arena.memory );
+	Free( sys_allocator, text_arena.get_memory() );
 	Clay_SetCurrentContext( NULL );
 
 	RemoveCommand( "toggleuidebugger" );
@@ -2032,6 +2043,7 @@ void CG_DrawHUD() {
 	}
 
 	bool hud_lua_ran_ok;
+	text_arena.clear();
 	clay_element_counter = 1;
 	{
 		TracyZoneScopedN( "Luau" );

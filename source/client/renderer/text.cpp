@@ -150,11 +150,28 @@ void DrawTextBaseline( const Font * font, float pixel_size, Span< const char > s
 	bg->PopTextureID();
 }
 
+void DrawFittedText( const Font * font, Span< const char > str, MinMax2 bounds, XAlignment x_alignment, Vec4 color, Optional< Vec4 > border_color ) {
+	MinMax2 text_bounds = TextVisualBounds( font, 1.0f, str );
+	float fitted_size = Min2( Width( bounds ) / Width( text_bounds ), Height( bounds ) / Height( text_bounds ) );
+	text_bounds *= fitted_size;
+
+	float x = -text_bounds.mins.x;
+	switch( x_alignment ) {
+		case XAlignment_Left: x += bounds.mins.x; break;
+		case XAlignment_Center: x += ( bounds.maxs.x + bounds.mins.x ) * 0.5f - Width( text_bounds ) * 0.5f; break;
+		case XAlignment_Right: x += bounds.maxs.x - Width( text_bounds ); break;
+	}
+
+	float y = ( bounds.maxs.y + bounds.mins.y ) * 0.5f + text_bounds.maxs.y - ( text_bounds.maxs.y - text_bounds.mins.y ) * 0.5f;
+
+	DrawTextBaseline( font, fitted_size, str, x, y, color, border_color );
+}
+
 void DrawText( const Font * font, float pixel_size, Span< const char > str, float x, float y, Vec4 color, Optional< Vec4 > border_color ) {
 	if( font == NULL )
 		return;
 
-	y += Ascent( font, pixel_size );
+	y += font->metadata.ascent * pixel_size;
 	DrawTextBaseline( font, pixel_size, str, x, y, color, border_color );
 }
 
@@ -162,7 +179,7 @@ void DrawText( const Font * font, float pixel_size, const char * str, float x, f
 	return DrawText( font, pixel_size, MakeSpan( str ), x, y, color, border_color );
 }
 
-MinMax2 TextBounds( const Font * font, float pixel_size, Span< const char > str ) {
+MinMax2 TextVisualBounds( const Font * font, float pixel_size, Span< const char > str ) {
 	float width = 0.0f;
 	MinMax1 y_extents = MinMax1::Empty();
 
@@ -185,33 +202,32 @@ MinMax2 TextBounds( const Font * font, float pixel_size, Span< const char > str 
 	if( glyph == NULL )
 		return MinMax2( Vec2( 0 ), Vec2( 0 ) );
 
-	width -= glyph->advance;
-	width += glyph->bounds.maxs.x - glyph->bounds.mins.x;
-
 	return MinMax2( pixel_size * Vec2( 0, y_extents.lo ), pixel_size * Vec2( width, y_extents.hi ) );
 }
 
-MinMax2 TextBounds( const Font * font, float pixel_size, const char * str ) {
-	return TextBounds( font, pixel_size, MakeSpan( str ) );
+MinMax2 TextBaselineBounds( const Font * font, float pixel_size, Span< const char > str ) {
+	MinMax2 visual_bounds = TextVisualBounds( font, pixel_size, str );
+	return MinMax2(
+		Vec2( visual_bounds.mins.x, font->metadata.descent * pixel_size ),
+		Vec2( visual_bounds.maxs.x, font->metadata.ascent * pixel_size )
+	);
 }
 
 void DrawText( const Font * font, float pixel_size, Span< const char > str, Alignment align, float x, float y, Vec4 color, Optional< Vec4 > border_color ) {
-	MinMax2 bounds = TextBounds( font, pixel_size, str );
-
-	if( align.x == XAlignment_Center ) {
-		x -= bounds.maxs.x / 2.0f;
-	}
-	else if( align.x == XAlignment_Right ) {
-		x -= bounds.maxs.x;
+	if( align.x != XAlignment_Left ) {
+		MinMax2 bounds = TextVisualBounds( font, pixel_size, str );
+		if( align.x == XAlignment_Center ) {
+			x -= bounds.maxs.x / 2.0f;
+		}
+		else if( align.x == XAlignment_Right ) {
+			x -= bounds.maxs.x;
+		}
 	}
 
 	switch( align.y ) {
-		case YAlignment_Ascent: y += Ascent( font, pixel_size ); break;
+		case YAlignment_Ascent: y += font->metadata.ascent * pixel_size; break;
 		case YAlignment_Baseline: break;
-		case YAlignment_Descent: y += Descent( font, pixel_size ); break;
-		case YAlignment_VisualTop: y += bounds.maxs.y; break;
-		case YAlignment_VisualMiddle: y += bounds.maxs.y - ( bounds.maxs.y - bounds.mins.y ) * 0.5f; break;
-		case YAlignment_VisualBottom: y += bounds.mins.y; break;
+		case YAlignment_Descent: y += font->metadata.descent * pixel_size; break;
 	}
 
 	DrawTextBaseline( font, pixel_size, str, x, y, color, border_color );
@@ -317,12 +333,4 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Vec3 ori
 			DrawDynamicGeometry( pipeline, draw_data );
 		}
 	}
-}
-
-float Ascent( const Font * font, float pixel_size ) {
-	return font->metadata.ascent * pixel_size;
-}
-
-float Descent( const Font * font, float pixel_size ) {
-	return font->metadata.descent * pixel_size;
 }

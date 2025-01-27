@@ -35,36 +35,6 @@ struct InterpolatedEntity {
 	float animation_time;
 };
 
-enum XAlignment {
-	XAlignment_Left,
-	XAlignment_Center,
-	XAlignment_Right,
-};
-
-enum YAlignment {
-	YAlignment_Ascent,
-	YAlignment_Baseline,
-	YAlignment_Descent,
-	YAlignment_VisualTop,
-	YAlignment_VisualMiddle,
-	YAlignment_VisualBottom,
-};
-
-struct Alignment {
-	XAlignment x;
-	YAlignment y;
-};
-
-constexpr Alignment Alignment_LeftTop = { XAlignment_Left, YAlignment_VisualTop };
-constexpr Alignment Alignment_CenterTop = { XAlignment_Center, YAlignment_VisualTop };
-constexpr Alignment Alignment_RightTop = { XAlignment_Right, YAlignment_VisualTop };
-constexpr Alignment Alignment_LeftMiddle = { XAlignment_Left, YAlignment_VisualMiddle };
-constexpr Alignment Alignment_CenterMiddle = { XAlignment_Center, YAlignment_VisualMiddle };
-constexpr Alignment Alignment_RightMiddle = { XAlignment_Right, YAlignment_VisualMiddle };
-constexpr Alignment Alignment_LeftBottom = { XAlignment_Left, YAlignment_VisualBottom };
-constexpr Alignment Alignment_CenterBottom = { XAlignment_Center, YAlignment_VisualBottom };
-constexpr Alignment Alignment_RightBottom = { XAlignment_Right, YAlignment_VisualBottom };
-
 struct MultiTypeColor {
 	const RGBA8 rgba8;
 	const Vec4 vec4;

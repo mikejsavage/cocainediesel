@@ -975,9 +975,9 @@ static int CG_HorizontalAlignForWidth( int x, Alignment alignment, int width ) {
 }
 
 static int CG_VerticalAlignForHeight( int y, Alignment alignment, int height ) {
-	if( alignment.y == YAlignment_VisualTop )
+	if( alignment.y == YAlignment_Ascent )
 		return y;
-	if( alignment.y == YAlignment_VisualMiddle )
+	if( alignment.y == YAlignment_Descent )
 		return y - height / 2;
 	return y - height;
 }
@@ -1046,8 +1046,8 @@ static int HUD_DrawObituaries( lua_State * L ) {
 
 		const Material * pic = DamageTypeToIcon( obr->damage_type );
 
-		float attacker_width = TextBounds( font, font_size, obr->attacker ).maxs.x;
-		float victim_width = TextBounds( font, font_size, obr->victim ).maxs.x;
+		float attacker_width = TextVisualBounds( font, font_size, MakeSpan( obr->attacker ) ).maxs.x;
+		float victim_width = TextVisualBounds( font, font_size, MakeSpan( obr->victim ) ).maxs.x;
 
 		int w = 0;
 		if( obr->type != OBITUARY_ACCIDENT ) {
@@ -1302,6 +1302,13 @@ static Optional< u16 > CheckClayFont( lua_State * L, int idx ) {
 struct ClayTextAndConfig {
 	Clay_String text;
 	Clay_TextElementConfig config;
+
+	struct FittedText {
+		XAlignment x_alignment;
+		Clay_Padding padding;
+	};
+
+	Optional< FittedText > fitted_text;
 };
 
 static Clay_String CopyStringToArena( Span< const char > str ) {
@@ -1310,8 +1317,23 @@ static Clay_String CopyStringToArena( Span< const char > str ) {
 	return Clay_String { .length = checked_cast< s32 >( str.n ), .chars = r };
 }
 
+static Optional< ClayTextAndConfig::FittedText > CheckClayFittedText( lua_State * L, int idx ) {
+	lua_getfield( L, idx, "fit" );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
+
+	constexpr XAlignment alignments[] = { XAlignment_Left, XAlignment_Center, XAlignment_Right };
+	constexpr const char * names[] = { "left", "center", "right" };
+
+	return ClayTextAndConfig::FittedText {
+		.x_alignment = alignments[ luaL_checkoption( L, -1, names[ 0 ], names ) ],
+		.padding = CheckClayPadding( L, idx - 1 ),
+	};
+}
+
 static Optional< ClayTextAndConfig > CheckClayTextConfig( lua_State * L, int idx ) {
-	if( lua_getfield( L, -1, "text" ) == LUA_TNIL ) {
+	if( lua_getfield( L, idx, "text" ) == LUA_TNIL ) {
 		lua_pop( L, 1 );
 		return NONE;
 	}
@@ -1334,6 +1356,7 @@ static Optional< ClayTextAndConfig > CheckClayTextConfig( lua_State * L, int idx
 			.wrapMode = CLAY_TEXT_WRAP_NONE,
 			.borderColor = CheckClayColor( L, -1, "text_border" ),
 		},
+		.fitted_text = CheckClayFittedText( L, idx ),
 	};
 }
 
@@ -1480,7 +1503,13 @@ static Optional< Clay_CustomElementConfig > CheckClayCallbackConfig( lua_State *
 		return NONE;
 	lua_getfield( L, idx - 1, "callback_arg" );
 	defer { lua_pop( L, 1 ); };
-	return Clay_CustomElementConfig { .callback_ref = lua_tointeger( L, -2 ), .arg_ref = lua_tointeger( L, -1 ) };
+	return Clay_CustomElementConfig {
+		.type = ClayCustomElementType_Lua,
+		.lua = {
+			.callback_ref = lua_tointeger( L, -2 ),
+			.arg_ref = lua_tointeger( L, -1 ),
+		},
+	};
 }
 
 static void DrawClayNodeRecursive( lua_State * L ) {
@@ -1492,11 +1521,11 @@ static void DrawClayNodeRecursive( lua_State * L ) {
 	Clay__AttachId( Clay_ElementId { .id = clay_element_counter++ } );
 
 	Optional< ClayTextAndConfig > text_config = CheckClayTextConfig( L, -1 );
-	if( text_config.exists ) {
+	if( text_config.exists && !text_config.value.fitted_text.exists ) {
 		Clay__OpenTextElement( text_config.value.text, Clay__StoreTextElementConfig( text_config.value.config ) );
+		Clay__AttachId( Clay_ElementId { .id = clay_element_counter++ } );
 	}
 
-	Clay__AttachId( Clay_ElementId { .id = clay_element_counter++ } );
 	Clay__AttachLayoutConfig( Clay__StoreLayoutConfig( CheckClayLayoutConfig( L, -1 ) ) );
 
 	Optional< Clay_RectangleElementConfig > rectangle_config = CheckClayRectangleConfig( L, -1 );
@@ -1522,6 +1551,19 @@ static void DrawClayNodeRecursive( lua_State * L ) {
 	Optional< Clay_CustomElementConfig > callback_config = CheckClayCallbackConfig( L, -1 );
 	if( callback_config.exists ) {
 		Clay__AttachElementConfig( Clay_ElementConfigUnion { .customElementConfig = Clay__StoreCustomElementConfig( callback_config.value ) }, CLAY__ELEMENT_CONFIG_TYPE_CUSTOM );
+	}
+
+	if( text_config.exists && text_config.value.fitted_text.exists ) {
+		Clay_CustomElementConfig custom_config = {
+			.type = ClayCustomElementType_FittedText,
+			.fitted_text = {
+				.text = text_config.value.text, // TODO: copy text to arena
+				.config = text_config.value.config,
+				.alignment = text_config.value.fitted_text.value.x_alignment,
+				.padding = text_config.value.fitted_text.value.padding,
+			},
+		};
+		Clay__AttachElementConfig( Clay_ElementConfigUnion { .customElementConfig = Clay__StoreCustomElementConfig( custom_config ) }, CLAY__ELEMENT_CONFIG_TYPE_CUSTOM );
 	}
 
 	Clay__ElementPostConfiguration();
@@ -1720,8 +1762,9 @@ void CG_InitHUD() {
 
 	auto measure_text = []( Clay_String * text, Clay_TextElementConfig * config ) -> Clay_Dimensions {
 		const Font * font = *clay_fonts[ config->fontId ].font;
-		MinMax2 bounds = TextBounds( font, config->fontSize, Span< const char >( text->chars, text->length ) );
-		return { bounds.maxs.x - bounds.mins.x, Ascent( font, config->fontSize ) + Descent( font, config->fontSize ) };
+		MinMax2 bounds = TextBaselineBounds( font, config->fontSize, Span< const char >( text->chars, text->length ) );
+		Vec2 dims = bounds.maxs - bounds.mins;
+		return { dims.x, dims.y };
 	};
 	Clay_SetMeasureTextFunction( measure_text );
 
@@ -2128,15 +2171,31 @@ void CG_DrawHUD() {
 
 				case CLAY_RENDER_COMMAND_TYPE_CUSTOM: {
 					const Clay_CustomElementConfig * config = command.config.customElementConfig;
-					lua_getref( hud_L, config->callback_ref );
-					lua_pushnumber( hud_L, bounds.x );
-					lua_pushnumber( hud_L, bounds.y );
-					lua_pushnumber( hud_L, bounds.width );
-					lua_pushnumber( hud_L, bounds.height );
-					lua_getref( hud_L, config->arg_ref );
-					CallWithStackTrace( hud_L, 5, 0 );
-					lua_unref( hud_L, config->callback_ref );
-					lua_unref( hud_L, config->arg_ref );
+					switch( config->type ) {
+						case ClayCustomElementType_Lua:
+							lua_getref( hud_L, config->lua.callback_ref );
+							lua_pushnumber( hud_L, bounds.x );
+							lua_pushnumber( hud_L, bounds.y );
+							lua_pushnumber( hud_L, bounds.width );
+							lua_pushnumber( hud_L, bounds.height );
+							lua_getref( hud_L, config->lua.arg_ref );
+							CallWithStackTrace( hud_L, 5, 0 );
+							lua_unref( hud_L, config->lua.callback_ref );
+							lua_unref( hud_L, config->lua.arg_ref );
+							break;
+
+						case ClayCustomElementType_FittedText: {
+							const Clay_TextElementConfig & text_config = config->fitted_text.config;
+							const Clay_Padding & pad = config->fitted_text.padding;
+							Vec2 mins = Vec2( bounds.x + pad.left, bounds.y + pad.top );
+							Vec2 maxs = Vec2( bounds.x + bounds.width - pad.right, bounds.y + bounds.height - pad.bottom );
+							DrawFittedText(
+								*clay_fonts[ text_config.fontId ].font,
+								Span< const char >( config->fitted_text.text.chars, config->fitted_text.text.length ),
+								MinMax2( mins, maxs ), config->fitted_text.alignment, ClayToCD( text_config.textColor ),
+								text_config.borderColor.exists ? MakeOptional( ClayToCD( text_config.borderColor.value ) ) : NONE );
+						} break;
+					}
 				} break;
 
 				default:

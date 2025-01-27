@@ -235,7 +235,7 @@ local function DrawUtility( state, options, x, y, size, outline_size )
 
 		DrawBoxOutline( x, y, size, size, outline_size )
 		options.alignment = "left top"
-		DrawAmmoFrac( options, x, y, size, state.gadget_ammo, state.gadget_ammo/cd.getGadgetAmmo( state.gadget ), cd.getGadgetIcon( state.gadget ) )
+		DrawAmmoFrac( options, x, y, size, state.gadget_ammo, state.gadget_ammo/cd.getGadgetMaxAmmo( state.gadget ), cd.getGadgetIcon( state.gadget ) )
 	end
 end
 

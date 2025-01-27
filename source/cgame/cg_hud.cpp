@@ -1691,7 +1691,7 @@ void CG_InitHUD() {
 		{ "getWeaponReloadTime", LuauGetWeaponReloadTime },
 		{ "getWeaponStagedReload", LuauGetWeaponStagedReload },
 
-		{ "getGadgetAmmo", LuauGetGadgetAmmo },
+		{ "getGadgetMaxAmmo", LuauGetGadgetAmmo },
 
 		{ "getClockTime", LuauGetClockTime },
 

@@ -294,7 +294,7 @@ int main( int argc, char ** argv ) {
 	constexpr size_t atlas_glyph_embox_size = 64; // pixels
 	constexpr float range_in_ems = 8.0f;
 
-	constexpr size_t arena_size = 1024 * 1024 * 100; // 100MB
+	constexpr size_t arena_size = Megabytes( 100 );
 	ArenaAllocator arena( sys_allocator->allocate( arena_size, 16 ), arena_size );
 
 	Span< const char > ttf_path = MakeSpan( argv[ 1 ] );

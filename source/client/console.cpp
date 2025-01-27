@@ -9,7 +9,7 @@
 // TODO: revamp key_dest garbage
 // TODO: finish cleaning up old stuff
 
-static constexpr size_t CONSOLE_LOG_SIZE = 1000 * 1000; // 1MB
+static constexpr size_t CONSOLE_LOG_SIZE = Megabytes( 1 );
 static constexpr size_t CONSOLE_INPUT_SIZE = 1024;
 
 struct HistoryEntry {

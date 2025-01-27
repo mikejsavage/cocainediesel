@@ -28,7 +28,7 @@ static Texture blue_noise;
 static Mesh fullscreen_mesh;
 
 struct DynamicGeometry {
-	static constexpr size_t BufferSize = 1024 * 1024; // 1MB
+	static constexpr size_t BufferSize = Megabytes( 1 );
 
 	StreamingBuffer buffer;
 	size_t cursor;

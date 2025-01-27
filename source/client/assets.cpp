@@ -198,7 +198,7 @@ static void LoadAsset( TempAllocator * temp, Span< const char > game_path, const
 
 #if PLATFORM_WINDOWS
 
-static constexpr size_t MAX_ASYNC_READ_SIZE = 16 * 1024 * 1024; // 16MB
+static constexpr size_t MAX_ASYNC_READ_SIZE = Megabytes( 16 );
 
 struct LoadAssetResult {
 	Span< u8 > data;

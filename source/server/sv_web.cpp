@@ -394,7 +394,7 @@ void InitWebServer() {
 	memset( connections, 0, sizeof( connections ) );
 	web_server_running = true;
 
-	constexpr size_t web_server_arena_size = 128 * 1024; // 128KB
+	constexpr size_t web_server_arena_size = Kilobytes( 128 );
 	void * web_server_arena_memory = sys_allocator->allocate( web_server_arena_size, 16 );
 	web_server_arena = ArenaAllocator( web_server_arena_memory, web_server_arena_size );
 

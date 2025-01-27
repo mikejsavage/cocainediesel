@@ -115,6 +115,13 @@ bool operator!=( const Optional< T > & a, const Optional< T > & b ) {
 }
 
 /*
+ * KB/MB helpers
+ */
+
+constexpr size_t Kilobytes( size_t kb ) { return kb * 1024; }
+constexpr size_t Megabytes( size_t mb ) { return mb * 1024 * 1024; }
+
+/*
  * debug stuff
  */
 

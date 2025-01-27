@@ -1101,7 +1101,7 @@ void CL_Init() {
 
 	InitLivePP();
 
-	constexpr size_t frame_arena_size = 1024 * 1024; // 1MB
+	constexpr size_t frame_arena_size = Megabytes( 1 );
 	void * frame_arena_memory = sys_allocator->allocate( frame_arena_size, 16 );
 	cls.frame_arena = ArenaAllocator( frame_arena_memory, frame_arena_size );
 

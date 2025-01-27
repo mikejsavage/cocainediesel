@@ -2063,7 +2063,7 @@ void CG_DrawHUD() {
 
 	{
 		TracyZoneScopedN( "Clay submit draw calls" );
-		for( u32 i = 0; i < render_commands.length; i++ ) {
+		for( s32 i = 0; i < render_commands.length; i++ ) {
 			const Clay_RenderCommand & command = render_commands.internalArray[ i ];
 			const Clay_BoundingBox & bounds = command.boundingBox;
 			switch( command.commandType ) {

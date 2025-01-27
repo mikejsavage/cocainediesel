@@ -1484,6 +1484,8 @@ static Optional< Clay_CustomElementConfig > CheckClayCallbackConfig( lua_State *
 }
 
 static void DrawClayNodeRecursive( lua_State * L ) {
+	if( !lua_toboolean( L, -1 ) )
+		return;
 	luaL_checktype( L, -1, LUA_TTABLE );
 
 	Clay__OpenElement();

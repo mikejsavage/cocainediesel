@@ -1761,7 +1761,7 @@ enum Corner {
 	Corner_TopRight,
 };
 
-static float _0To1_1ToNeg1( float x ) {
+static float Remap_0To1_1ToNeg1( float x ) {
 	return ( 1.0f - x ) * 2.0f - 1.0f;
 }
 
@@ -1781,8 +1781,8 @@ static void DrawBorderCorner( Corner corner, Clay_BoundingBox bounds, const Clay
 	float angle = int( corner ) * 90.0f;
 
 	Vec2 arc_origin = Vec2(
-		Lerp( bounds.x, cx, bounds.x + bounds.width ) + r * _0To1_1ToNeg1( cx ),
-		Lerp( bounds.y, cy, bounds.y + bounds.height ) + r * _0To1_1ToNeg1( cy )
+		Lerp( bounds.x, cx, bounds.x + bounds.width ) + r * Remap_0To1_1ToNeg1( cx ),
+		Lerp( bounds.y, cy, bounds.y + bounds.height ) + r * Remap_0To1_1ToNeg1( cy )
 	);
 
 	ImDrawList * draw_list = ImGui::GetBackgroundDrawList();

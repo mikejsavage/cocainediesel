@@ -2,7 +2,7 @@ local dark_grey = "#222"
 local yellow = RGBALinear( 1, 0.64, 0.0225, 1 )
 local red = RGBALinear( 0.8, 0, 0.05, 1 )
 
-local function hotkeys( state )
+local function ShowHotkeys( state )
 	return state.show_hotkeys and state.chasing == NOT_CHASING
 end
 
@@ -38,276 +38,8 @@ local function DrawChasing( state, x1, y1, x2, y2 )
 	cd.text( options, x2, y2 - scale_name * 0.25, cd.getPlayerName( state.chasing ) )
 end
 
-local function DrawHotkeys( state, options, x, y )
-	options.alignment = "center middle"
-	options.font_size *= 0.8
-
-	y -= options.font_size * 0.1
-	if state.can_change_loadout then
-		options.color = "#fff"
-		cd.text( options, x, y, "Press "..cd.getBind( "loadoutmenu" ).." to change loadout" )
-	elseif state.can_plant then
-		options.color = cd.plantableColor()
-		cd.text( options, x, y, "Press "..cd.getBind( "+plant" ).." to plant" )
-	elseif state.is_carrier then
-		options.color = "#fff"
-		cd.text( options, x, y, "Press "..cd.getBind( "drop" ).." to drop the bomb" )
-	end
-end
-
 local function DrawBoxOutline( x, y, sizeX, sizeY, outline_size )
 	cd.box( x - outline_size, y - outline_size, sizeX + outline_size * 2, sizeY + outline_size * 2, dark_grey )
-end
-
-local function AmmoColor( frac )
-	return RGBALinear(
-		(red.r - red.r*frac + yellow.r*frac),
-		(red.g - red.g*frac + yellow.g*frac),
-		(red.b - red.b*frac + yellow.b*frac), 1 )
-end
-
-local function DrawAmmoFrac( options, x, y, size, ammo, frac, material )
-	if frac == -1 then
-		cd.box( x, y, size, size, yellow )
-		cd.box( x, y, size, size, dark_grey, material )
-		return
-	end
-
-	if frac > 1 then
-		frac = 1
-	end
-
-	local ammo_color = AmmoColor( frac )
-
-	cd.box( x, y, size, size, RGBA8( 45, 45, 45 ) )
-	cd.box( x, y, size, size, "#666", material )
-
-	cd.boxuv( x, y + size - size*frac, size, size*frac,
-		0, 1 - frac, 1, 1,
-		ammo_color, nil )
-	cd.boxuv( x, y + size - size*frac, size, size*frac,
-		0, 1 - frac, 1, 1,
-		dark_grey, material )
-
-	options.color = ammo_color
-	cd.text( options, x + options.font_size * 0.28, y + options.font_size * 0.28, ammo )
-end
-
-local function DrawPerk( state, x, y, size, outline_size )
-	DrawBoxOutline( x, y, size, size, outline_size )
-	cd.box( x, y, size, size, "#fff" )
-	cd.box( x, y, size, size, dark_grey, cd.getPerkIcon( state.perk ) )
-end
-
-local function DrawUtility( state, options, x, y, size, outline_size )
-	if state.gadget ~= Gadget_None and state.gadget_ammo ~= 0 then
-		options.font_size = size * 0.22
-		if hotkeys( state ) then
-			options.color = "#fff"
-			options.alignment = "center middle"
-			cd.text( options, x + size / 2, y - options.font_size * 1.33, cd.getBind("+gadget") )
-		end
-
-		DrawBoxOutline( x, y, size, size, outline_size )
-		options.alignment = "left top"
-		DrawAmmoFrac( options, x, y, size, state.gadget_ammo, state.gadget_ammo/cd.getGadgetMaxAmmo( state.gadget ), cd.getGadgetIcon( state.gadget ) )
-	end
-end
-
-local function DrawWeapon( state, options, x, y, width, height, padding, weaponID, weaponInfo, show_bind )
-	local h = height
-	local ammo = weaponInfo.ammo
-	local max_ammo = weaponInfo.max_ammo
-	local selected = state.weapon == weaponInfo.weapon
-	local whiteBarHeight = height * 0.0125
-
-	if show_bind then
-		options.color = "#fff"
-		options.alignment = "center middle"
-		options.font_size = width * 0.15
-		cd.text( options, x + width/2, y - options.font_size * 1.33, cd.getBind( string.format("weapon %d", weaponID) ) )
-	end
-
-
-	if selected then
-		h += whiteBarHeight * 2
-	end
-
-	local frac = -1
-	if max_ammo ~= 0 then
-		frac = ammo/max_ammo
-	end
-
-	if state.weapon == weaponInfo.weapon then
-		h *= 1.05
-		if state.weapon_state == WeaponState_Reloading or state.weapon_state == WeaponState_StagedReloading then
-			local reload_frac = state.weapon_state_time/cd.getWeaponReloadTime( weaponInfo.weapon )
-			frac = cd.getWeaponStagedReload( weaponInfo.weapon ) and frac + reload_frac / max_ammo or reload_frac
-		end
-	end
-
-	DrawBoxOutline( x, y, width, h, padding )
-
-	options.font_size = width * 0.16
-	options.alignment = "left top"
-
-	DrawAmmoFrac( options, x, y, width, ammo, frac, cd.getWeaponIcon( weaponInfo.weapon ) )
-	if selected then
-		cd.box( x, y + width + padding, width, whiteBarHeight, "#fff" )
-		cd.box( x, y + h, width, whiteBarHeight, "#fff" )
-	end
-
-	if selected then
-		options.color = "#fff"
-	else
-		options.color = "#999"
-	end
-	options.alignment = "center middle"
-	options.font_size = width * 0.14
-	cd.text( options, x + width/2, y + width + (h - width + padding)/2, weaponInfo.name:upper() )
-end
-
-local function DrawWeaponBar( state, options, x, y, width, height, padding )
-	x += padding
-	y += padding
-	height -= padding * 2
-	width -= padding * 2
-	local show_bind = hotkeys( state )
-
-	for k, v in ipairs( state.weapons ) do
-		DrawWeapon( state, options, x, y, width, height, padding, k, v, show_bind )
-		x += width + padding * 3
-	end
-
-	if state.is_carrier then
-		DrawBoxOutline( x, y, width, width, padding )
-		if state.can_plant then
-			cd.box( x, y, width, width, cd.plantableColor() )
-		else
-			cd.box( x, y, width, width, "#666" )
-		end
-		cd.box( x, y, width, width, dark_grey, assets.bomb )
-	end
-end
-
-local function DrawStaminaBar( state, x, y, width, height, padding, bg_color )
-	local stamina_color = cd.allyColor()
-
-	if state.perk == Perk_Hooligan then
-		DrawBoxOutline( x, y, width, height, padding )
-
-		local steps = 2
-		local cell_width = width/steps
-
-		for i = 0, steps - 1, 1 do
-			if (state.stamina * steps) >= (i + 1) then
-				cd.box( x + cell_width * i, y, cell_width, height, stamina_color )
-			else
-				stamina_color.a = 0.1
-				cd.box( x + cell_width * i, y, cell_width * (state.stamina * steps - i), height, stamina_color )
-				break
-			end
-		end
-
-		local uvwidth = width * math.floor( state.stamina * steps )/steps
-		if state.stamina > 0 then
-			cd.boxuv( x, y,
-				uvwidth, height,
-				0, 0, uvwidth/8, height/8, --8 is the size of the texture
-				RGBALinear( 0, 0, 0, 0.5 ), assets.diagonal_pattern )
-		end
-
-		for i = 1, steps - 1, 1 do
-			cd.box( x + cell_width * i - padding/2, y, padding, height, dark_grey )
-		end
-	else
-		if state.perk == Perk_Wheel or state.perk == Perk_Jetpack then
-			local s = 1 - math.min( 1.0, state.stamina + 0.3 )
-			if state.stamina_state == Stamina_Reloading then
-				s = 1 - math.min( 1.0, state.stamina - 0.15 )
-			end
-
-			stamina_color.r = math.min( 1.0, stamina_color.r + s )
-			stamina_color.g = math.max( 0.0, stamina_color.g - s )
-			stamina_color.b = math.max( 0.0, stamina_color.b - s * 2.0 )
-		else
-			cd.box( x, y, width, height, bg_color )
-		end
-
-		cd.box( x, y, width * state.stamina, height, stamina_color )
-		cd.boxuv( x, y,
-			width * state.stamina, height,
-			0, 0, (width * state.stamina)/8, height/8, --8 is the size of the texture
-			RGBALinear( 0, 0, 0, 0.5 ), assets.diagonal_pattern )
-	end
-end
-
-local function DrawPlayerBar( state, offset, padding )
-	if state.health <= 0 or state.ghost or state.zooming then
-		return
-	end
-
-	local stamina_bar_height = state.viewport_width * 0.015
-	local health_bar_height = state.viewport_width * 0.022
-	local empty_bar_height = state.viewport_width * 0.019
-
-	local width = state.viewport_width * 0.25
-	local height = stamina_bar_height + health_bar_height + empty_bar_height + padding * 4
-
-	local x = offset
-	local y = state.viewport_height - offset - height
-
-	local perks_utility_size = state.viewport_width * 0.03
-	local perkX = x + padding
-	local perkY = y - perks_utility_size - padding * 2
-	local weapons_options = {
-		border = "#000f",
-		font = "bolditalic",
-		alignment = "left top",
-	}
-	DrawChasing( state, perkX, perkY, perkX + perks_utility_size * 2 + padding * 5, perkY )
-	DrawPerk( state, perkX, perkY, perks_utility_size, padding )
-	DrawUtility( state, weapons_options, perkX + perks_utility_size + padding * 3 , perkY, perks_utility_size, padding )
-	DrawWeaponBar( state, weapons_options, x + width + padding, y, height * 0.85, height, padding )
-
-	cd.box( x, y, width, height, dark_grey )
-
-	x += padding
-	y += padding
-	width -= padding * 2
-
-	local bg_color = RGBALinear( 0.04, 0.04, 0.04, 1 )
-	DrawStaminaBar( state, x, y, width, stamina_bar_height, padding, bg_color )
-
-	y += stamina_bar_height + padding
-
-	cd.box( x, y, width, health_bar_height, bg_color )
-	local hp = state.health / state.max_health
-	local hp_color = RGBALinear( sRGBToLinear(1 - hp), sRGBToLinear(hp), sRGBToLinear(hp * 0.3), 1 )
-	cd.box( x, y, width * hp, health_bar_height, hp_color )
-
-	y += health_bar_height + padding * 2
-	x += padding
-	local cross_long = empty_bar_height - padding * 2
-	local cross_short = cross_long / 4
-	cd.box( x, y + cross_long/2 - cross_short/2, cross_long, cross_short, hp_color )
-	cd.box( x + cross_long/2 - cross_short/2, y, cross_short, cross_long, hp_color )
-
-	x += cross_long + padding * 3
-	local options = {
-		color = hp_color,
-		border = "#000a",
-		font = "bold",
-		font_size = empty_bar_height * 0.75,
-		alignment = "left top",
-	}
-
-	local hp_text = string.format("%d", state.health)
-	cd.text( options, x, y, hp_text )
-
-	if hotkeys( state ) then
-		DrawHotkeys( state, options, x + ( width - x + offset + options.font_size * 0.5 * string.len( hp_text ))/2, y + cross_long /2 )
-	end
 end
 
 local function DrawDevInfo( state )
@@ -744,91 +476,263 @@ local function DrawTop( state )
 	} ) )
 end
 
-local function DrawBottomLeft( state )
-	local perk_style = {
-		background = yellow,
+local function DrawPerk( state )
+	return cd.node( {
+		background = "#fff",
+		height = "100%",
+		width = "fit",
 		border = 8,
 		border_color = dark_grey,
-		flow = "vertical",
-		width = "5.75vw",
-		height = "fit",
-	}
+		padding = 8,
+	}, {
+		-- TODO: why can't clay solve the width here?
+		cd.node( { color = "#000", height = "100%", width = "4.5vh" }, cd.getPerkIcon( state.perk ) ),
+	} )
+end
 
-	local perk_icon_container_style = {
-		width = "100%",
-		padding = "0.5vh",
-	}
+local function Lerp( a, t, b )
+	return a * ( 1 - t ) + b * t
+end
 
-	local perk_icon_style = {
-		color = dark_grey,
-		width = "100%",
-	}
+local function AmmoColor( frac )
+	return RGBALinear( Lerp( red.r, frac, yellow.r ), Lerp( red.g, frac, yellow.g ), Lerp( red.b, frac, yellow.b ), 1 )
+end
 
-	local perk_ammo_style = {
-		float = "top-left top-left",
-		x_offset = "0.9vh",
-		y_offset = "0.4vh",
-		color = yellow,
-		text_border = "#000",
-		font_size = "1.75vh",
-	}
+local function DrawWeaponIconForeground( x, y, w, h, icon_and_ammo_frac )
+	local frac = icon_and_ammo_frac[ 2 ]
+	local overlay_height = h * frac
+	cd.box( x, y + h - overlay_height, w, overlay_height, AmmoColor( frac ) )
+	cd.boxuv( x, y + h - overlay_height, w, overlay_height,
+		0, 1 - frac, 1, 1,
+		dark_grey, icon_and_ammo_frac[ 1 ] )
+end
 
-	local perk_name_style = {
-		alignment = "top-center",
+local function DrawWeaponOrGadget( height, ammo_font_size, icon, ammo, ammo_frac, selected, name, hotkey )
+	local container = {
 		background = dark_grey,
-		height = "1.4vw",
-		width = "100%",
-		font_size = "1.5vh",
+		flow = "vertical",
+		width = height,
+		height = "fit",
+		padding = 8,
+		gap = 8,
+		border = 8,
+		border_color = dark_grey,
 	}
 
-	local perk_hotkey_style = {
+	local icon_container = {
+		width = "grow",
+	}
+
+	local icon_background = {
+		color = "#666",
+		width = "100%",
+	}
+
+	local icon_foreground = {
+		float = "top-left top-left",
+		width = "grow",
+		height = "grow",
+	}
+
+	local name_style = {
+		alignment = "middle-center",
+		background = dark_grey,
+		height = "1.1vh",
+		width = "100%",
+		font = "bold-italic",
+		fit = "center",
+		padding = "0.15vh",
+	}
+
+	local hotkey_style = {
 		float = "bottom-center top-center",
-		y_offset = "-1vh",
-		font_size = "1.75vh",
+		y_offset = "-0.75vh",
+		font = "italic",
+		font_size = "1.25vh",
 		text_border = "#000",
 	}
+
+	local ammo_color = AmmoColor( ammo_frac )
+
+	local ammo_style = {
+		float = "top-left top-left",
+		x_offset = "0.5vh",
+		y_offset = "0.5vh",
+		width = "fit",
+		height = "fit",
+		text_border = "#000",
+		font = "bold-italic",
+		font_size = ammo_font_size,
+		color = ammo_color,
+	}
+
+	return cd.node( container, {
+		cd.node( icon_container, {
+			cd.node( icon_background, icon ),
+			cd.node( icon_foreground, DrawWeaponIconForeground, { icon, ammo_frac } ),
+			ammo and cd.node( ammo_style, string.format( "%d", ammo ) ) or false,
+		} ),
+		name and cd.node( Override( name_style, { color = selected and "#fff" or "#999" } ), name ) or false,
+		hotkey and cd.node( hotkey_style, hotkey ) or false,
+	} )
+end
+
+local function DrawGadget( state, show_hotkeys )
+	local ammo_frac = state.gadget_ammo / cd.getGadgetMaxAmmo( state.gadget )
+	return DrawWeaponOrGadget( "100%", "1vh", cd.getGadgetIcon( state.gadget ), state.gadget_ammo, ammo_frac, false, nil, cd.getBind( "+gadget" ) )
+end
+
+local function DrawStaminaBarBackground( x, y, w, h, frac )
+	local texture_size = 8
+	local color = cd.allyColor()
+	color.a *= frac
+	cd.box( x, y, w, h, color )
+	cd.boxuv( x, y, w, h, 0, 0, w / texture_size, h / texture_size, RGBALinear( 0, 0, 0, 0.5 ), assets.diagonal_pattern )
+end
+
+local function DrawStaminaBar( state )
+	local steps = 1
+	if state.perk == Perk_Hooligan then
+		steps = 2
+	end
+
+	local nodes = { }
+	for i = 1, steps do
+		local w = state.stamina - ( i - 1 ) * ( 1 / steps )
+		w = math.max( 0, math.min( 1 / steps, w ) )
+		table.insert( nodes, cd.node( { height = "100%", width = string.format( "%f%%", w * 100 ) }, DrawStaminaBarBackground, w * steps ) )
+	end
+
+	return nodes
+end
+
+local function HealthColor( frac )
+	return RGBALinear( sRGBToLinear( 1 - frac ), sRGBToLinear( frac ), sRGBToLinear( frac * 0.3 ), 1 )
+end
+
+local function DrawHealthCross( x, y, w, h, color )
+	local thickness = w / 4
+	cd.box( x, y + h/2 - thickness/2, w, thickness, color )
+	cd.box( x + w/2 - thickness/2, y, thickness, h, color )
+end
+
+local function DrawHealthBarHotkey( state )
+	local style = {
+		width = "grow",
+		height = "100%",
+		font = "bold",
+		fit = "center",
+	}
+
+	if state.can_change_loadout then
+		style.color = "#fff"
+		return cd.node( style, string.format( "Press %s to change loadout", cd.getBind( "loadoutmenu" ) ) )
+	elseif state.can_plant then
+		style.color = cd.plantableColor()
+		return cd.node( style, string.format( "Press %s to plant", cd.getBind( "+plant" ) ) )
+	elseif state.is_carrier then
+		style.color = "#fff"
+		return cd.node( style, string.format( "Press %s to drop the bomb", cd.getBind( "drop" ) ) )
+	end
+
+	return false
+end
+
+local function AmmoFraction( weapon )
+	if weapon.max_ammo == 0 then
+		return 1
+	end
+
+	local frac = weapon.ammo / weapon.max_ammo
+
+	-- if state.weapon_state == WeaponState_Reloading or state.weapon_state == WeaponState_StagedReloading then
+	-- 	local reload_frac = state.weapon_state_time / cd.getWeaponReloadTime( weapon.weapon )
+	-- 	return state.weapon_state == WeaponState_StagedReloading and frac + reload_frac / max_ammo or reload_frac
+	-- end
+
+	return frac
+end
+
+local function DrawWeapon( i, weapon, selected_weapon, show_hotkeys )
+	local hotkey = show_hotkeys and cd.getBind( string.format( "weapon %d", i ) )
+	return DrawWeaponOrGadget( "9.1vh", "1.25vh", cd.getWeaponIcon( weapon.weapon ),
+		weapon.max_ammo > 0 and weapon.ammo or nil,
+		AmmoFraction( weapon ), weapon.weapon == selected_weapon,
+		weapon.name:upper(), hotkey )
+end
+
+local function DrawBottomLeft( state )
+	if state.health <= 0 or state.ghost or state.zooming then
+		return
+	end
+
+	local show_hotkeys = ShowHotkeys( state )
+
+	local perk_and_gadget = {
+		DrawPerk( state ),
+		DrawGadget( state, show_hotkeys ),
+	}
+
+	local health_color = HealthColor( state.health / state.max_health )
+	local health_percent = string.format( "%f%%", 100 * ( state.health / state.max_health ) )
+
+	local health_node = cd.node( {
+		flow = "vertical",
+		width = "40vh",
+		height = "100%",
+		background = dark_grey,
+		gap = 8,
+		border = 8,
+		padding = 8,
+		border_color = dark_grey,
+	}, {
+		cd.node( { height = "30%", width = "100%", gap = 8 }, DrawStaminaBar( state ) ),
+		cd.node( { height = "35%", width = "100%", background = RGBALinear( 0.04, 0.04, 0.04, 1 ) }, {
+			cd.node( { height = "100%", width = health_percent, background = health_color } ),
+		} ),
+		cd.node( { height = "35%", width = "grow", gap = "1vh", padding = "0.5vh" }, {
+			cd.node( { height = "100%", width = 39 }, DrawHealthCross, health_color ),
+			cd.node( { color = health_color, height = "100%", width = "5vh", font = "bold", fit = "left" }, string.format( "%d", state.health ) ),
+			DrawHealthBarHotkey( state ),
+		} ),
+	} )
+
+	local health_and_weapons = { }
+	table.insert( health_and_weapons, health_node )
+	for i, weapon in ipairs( state.weapons ) do
+		table.insert( health_and_weapons, DrawWeapon( i, weapon, state.weapon, show_hotkeys ) )
+	end
+
+	if state.is_carrier then
+		table.insert( health_and_weapons, cd.node( {
+			background = state.can_plant and cd.plantableColor() or "#666",
+			border = 8,
+			border_color = dark_grey,
+			padding = 8,
+			width = "9.1vh",
+			height = "fit",
+		}, { cd.node( { width = "100%", color = dark_grey }, assets.bomb ) } ) )
+	end
 
 	cd.render(
 		cd.node( {
 			float = "bottom-left bottom-left",
-			-- x_offset = "1.5vh",
-			-- y_offset = "-1.5vh",
-			x_offset = "42vh",
-			y_offset = "-15vh",
+			x_offset = "1.5vh",
+			y_offset = "-1.5vh",
 			width = "fit",
 			height = "fit",
 			gap = "0.5vh",
-		},
-		{
-			cd.node( perk_style, {
-				cd.node( perk_icon_container_style, {
-					cd.node( perk_icon_style, cd.getWeaponIcon( 2 ) ),
-					cd.node( perk_ammo_style, "12" ),
-				} ),
-				cd.node( perk_name_style, "HELLO" ),
-				cd.node( perk_hotkey_style, "1" ),
-			} ),
-			cd.node( perk_style, {
-				cd.node( perk_icon_container_style, {
-					cd.node( perk_icon_style, cd.getWeaponIcon( 3 ) ),
-					cd.node( perk_ammo_style, "69" ),
-				} ),
-				cd.node( perk_name_style, "HELLO" ),
-			} ),
-			cd.node( perk_style, {
-				cd.node( perk_icon_container_style, {
-					cd.node( perk_icon_style, cd.getWeaponIcon( 4 ) ),
-					cd.node( perk_ammo_style, "1000" ),
-				} ),
-				cd.node( perk_name_style, "HELLO" ),
-			} ),
+			flow = "vertical",
+		}, {
+			cd.node( { width = "fit", height = "5.5vh", gap = 8 }, perk_and_gadget ),
+			cd.node( { width = "fit", height = "fit", gap = "0.5vh" }, health_and_weapons ),
 		} )
 	)
 end
 
 local function DrawClayStuff( state )
 	DrawTop( state )
-	-- DrawBottomLeft( state )
+	DrawBottomLeft( state )
 end
 
 return function( state )
@@ -837,8 +741,6 @@ return function( state )
 
 	if state.match_state < MatchState_PostMatch then
 		cd.drawBombIndicators( state.viewport_height / 36, state.viewport_height / 80, state.viewport_height / 70 ) -- site name size, site message size (ATTACK/DEFEND/...)
-
-		DrawPlayerBar( state, offset, padding )
 
 		DrawDevInfo( state )
 

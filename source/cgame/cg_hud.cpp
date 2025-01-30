@@ -745,6 +745,8 @@ static Alignment CheckAlignment( lua_State * L, int idx ) {
 		"left descent",
 		"center descent",
 		"right descent",
+
+		NULL
 	};
 
 	return alignments[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
@@ -763,6 +765,8 @@ static const Font * CheckFont( lua_State * L, int idx ) {
 		"bold",
 		"italic",
 		"bolditalic",
+
+		NULL
 	};
 
 	return fonts[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
@@ -1222,6 +1226,8 @@ static Optional< Clay_LayoutDirection > CheckClayLayoutDirection( lua_State * L,
 	constexpr const char * names[] = {
 		"horizontal",
 		"vertical",
+
+		NULL
 	};
 
 	return layout_directions[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
@@ -1251,6 +1257,8 @@ static Optional< Clay_ChildAlignment > CheckClayChildAlignment( lua_State * L, i
 		"top-left", "top-center", "top-right",
 		"middle-left", "middle-center", "middle-right",
 		"bottom-left", "bottom-center", "bottom-right",
+
+		NULL
 	};
 
 	return alignments[ luaL_checkoption( L, -1, names[ 0 ], names ) ];
@@ -1324,7 +1332,7 @@ static Optional< ClayTextAndConfig::FittedText > CheckClayFittedText( lua_State 
 		return NONE;
 
 	constexpr XAlignment alignments[] = { XAlignment_Left, XAlignment_Center, XAlignment_Right };
-	constexpr const char * names[] = { "left", "center", "right" };
+	constexpr const char * names[] = { "left", "center", "right", NULL };
 
 	return ClayTextAndConfig::FittedText {
 		.x_alignment = alignments[ luaL_checkoption( L, -1, names[ 0 ], names ) ],

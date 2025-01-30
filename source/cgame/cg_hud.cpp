@@ -861,6 +861,10 @@ static int LuauPlantableColor( lua_State * L ) {
 	return Vec4ToLuauColor( L, PlantableColor() );
 }
 
+static int LuauAttentionGettingRed( lua_State * L ) {
+	return Vec4ToLuauColor( L, AttentionGettingRed() );
+}
+
 static int LuauGetPlayerName( lua_State * L ) {
 	int index = luaL_checknumber( L, 1 ) - 1;
 
@@ -1690,6 +1694,7 @@ void CG_InitHUD() {
 		{ "enemyColor", LuauEnemyColor },
 		{ "attentionGettingColor", LuauAttentionGettingColor },
 		{ "plantableColor", LuauPlantableColor },
+		{ "attentionGettingRed", LuauAttentionGettingRed },
 		{ "getPlayerName", LuauGetPlayerName },
 
 		{ "getWeaponIcon", LuauGetWeaponIcon },

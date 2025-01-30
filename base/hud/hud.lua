@@ -14,131 +14,6 @@ local function Override( t, overrides )
 	return t2
 end
 
-local function DrawClockOrBomb( state, posX )
-	if state.round_state < RoundState_Countdown or state.round_state > RoundState_Round then
-		return
-	end
-
-	local fontSize1 = state.viewport_height / 35
-	local testPosY = state.viewport_height * 0.013
-	local options = {
-		color = "#ffff",
-		border = "#000b",
-		font = "bold",
-		font_size = fontSize1,
-		alignment = "center top",
-	}
-
-	if state.round_state == RoundState_Countdown and state.gametype == Gametype_Bomb then
-		local text = "DEFUSE"
-		if state.attacking_team == team then
-			text = "PLANT"
-		end
-
-		options.font_size = fontSize1 * 0.8
-		options.alignement = "middle top"
-		cd.text( options, posX, testPosY * 1.2, text )
-	else
-		local time = cd.getClockTime()
-		local seconds = time * 0.001
-		local milliseconds = time % 1000
-
-		if seconds >= 0 then
-			local minutes = seconds / 60
-			seconds = seconds % 60
-
-			if minutes < 1 and seconds < 11 and seconds ~= 0 then
-				options.color = "#f00" -- TODO: attention getting red
-			end
-
-			options.alignment = "right top"
-			cd.text( options, posX, testPosY, string.format( "%02i", seconds ) )
-
-			options.alignment = "left bottom"
-			local ms_options = Override( options, { font_size = fontSize1 * 0.6 } )
-			cd.text( ms_options, posX + posX * 0.001, testPosY + fontSize1 * 0.8, string.format( ".%03i", milliseconds ))
-		elseif state.gametype == Gametype_Bomb then
-			local size = state.viewport_height * 0.055
-			cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, "#fff", assets.bomb )
-		end
-	end
-end
-
-local function DrawTopInfo( state )
-	local options = {
-		color = "#ffff",
-		border = "#000b",
-		font = "bold",
-		font_size = state.viewport_height / 55,
-		alignment = "center top",
-	}
-
-	local posX = state.viewport_width / 2
-	local posY = state.viewport_height * 0.05
-
-	if state.round_type == RoundType_MatchPoint then
-		cd.text( options, posX, posY, "MATCH POINT" )
-	elseif state.round_type == RoundType_Overtime then
-		cd.text( options, posX, posY, "OVERTIME" )
-	elseif state.round_type == RoundType_OvertimeMatchPoint then
-		cd.text( options, posX, posY, "OVERTIME MATCH POINT" )
-	end
-
-	if state.match_state < MatchState_Playing then
-		cd.text( options, posX, state.viewport_height * 0.015, "WARMUP" )
-
-		if state.real_team then
-			if state.ready or state.match_state == MatchState_Countdown then
-				options.color = "#5f6f"
-				cd.text( options, posX, posY, "READY" )
-			else
-				options.color = cd.attentionGettingColor()
-				cd.text( options, posX, state.viewport_height * 0.04, "Press [" .. cd.getBind( "toggleready" ) .. "] to ready up" )
-			end
-		end
-	elseif state.match_state == MatchState_Playing then
-		DrawClockOrBomb( state, posX )
-
-		if state.gametype == Gametype_Bomb then
-			options.font_size = state.viewport_height / 35
-
-			options.color = cd.getTeamColor( Team_One )
-			cd.text( options, posX - posX / 11, state.viewport_height * 0.012, state.scoreAlpha )
-			options.color = cd.getTeamColor( Team_Two )
-			cd.text( options, posX + posX / 11, state.viewport_height * 0.012, state.scoreBeta )
-
-			local y = state.viewport_height * 0.008
-			local scaleX = state.viewport_height / 40
-			local scaleY = scaleX * 1.6
-			local step = scaleX
-			local grey = "#222"
-			local material = assets.guy
-
-			local color = cd.getTeamColor( Team_One )
-			local x = posX - posX * 0.2
-
-			for i = 0, state.totalAlpha - 1, 1 do
-				if i < state.aliveAlpha then
-					cd.box( x - step * i, y, scaleX, scaleY, color, material )
-				else
-					cd.box( x - step * i, y, scaleX, scaleY, grey, material )
-				end
-			end
-
-			color = cd.getTeamColor( Team_Two )
-			x = posX + posX * 0.2
-
-			for i = 0, state.totalBeta - 1, 1 do
-				if i < state.aliveBeta then
-					cd.box( x + step * i, y, scaleX, scaleY, color, material )
-				else
-					cd.box( x + step * i, y, scaleX, scaleY, grey, material )
-				end
-			end
-		end
-	end
-end
-
 local function DrawChasing( state, x1, y1, x2, y2 )
 	if not state.chasing then
 		return
@@ -750,7 +625,126 @@ local function DrawCallvote( state )
 	cd.text( options, xright, ybottom, "["..cd.getBind("vote_no").."] Vote no" )
 end
 
-local function DrawClayStuff( state )
+local function DrawClock( state, top_style )
+	if state.round_state > RoundState_Round then
+		return false
+	end
+
+	local time = cd.getClockTime()
+	local seconds = math.floor( time / 1000 )
+	local milliseconds = time % 1000
+
+	local width = "13vh"
+
+	if seconds >= 0 then
+		local color = seconds < 10 and cd.attentionGettingRed() or "#fff"
+
+		return cd.node( { alignment = "bottom-center", width = width, height = "grow" }, {
+			cd.node( { alignment = "bottom-center" }, {
+				cd.node( Override( top_style, { color = color } ), tostring( seconds ) ),
+				cd.node( Override( top_style, { color = color, font_size = "1.5vh", padding_bottom = "0.2vh" } ), string.format( ".%03d", milliseconds ) ),
+			} )
+		} )
+	end
+
+	return cd.node( { width = width, height = "grow" }, {
+		cd.node( { height = "grow" }, assets.bomb ),
+	} )
+end
+
+local function DrawPlayerIcons( team, num_alive, total )
+	local color = cd.getTeamColor( team )
+	local icons = { }
+	for i = 1, total, 1 do
+		local alive
+		if team == Team_One then
+			alive = i > total - num_alive
+		else
+			alive = i <= num_alive
+		end
+		table.insert( icons, cd.node( { color = alive and color or "#222", height = "grow", width = 60 }, assets.guy ) )
+	end
+
+	return cd.node( { alignment = team == Team_One and "top-right" or "top-left", width = "20vh", height = "grow", padding_x = "5vh" }, icons )
+end
+
+local function DrawScore( team, score, top_style )
+	return cd.node( Override( top_style, { color = cd.getTeamColor( team ) } ), tostring( score ) )
+end
+
+local function DrawTop( state )
+	local top_style = {
+		width = "grow",
+		alignment = "top-center",
+		font = "bold",
+		font_size = "1.75vh",
+		text_border = "#000",
+	}
+
+	if state.match_state < MatchState_Playing then
+		local ready_node = false
+		if state.real_team then
+			if state.ready or state.match_state == MatchState_Countdown then
+				ready_node = cd.node( Override( top_style, { color = "#5f6" } ), "READY" )
+			else
+				local str = string.format( "Press [%s] to ready up", cd.getBind( "toggleready" ) )
+				ready_node = cd.node( Override( top_style, { color = cd.attentionGettingColor() } ), str )
+			end
+		end
+
+		cd.render( cd.node( {
+			float = "top-center top-center",
+			y_offset = "1.5vh",
+			width = "fit",
+			height = "fit",
+			flow = "vertical",
+			gap = "1vh",
+		}, {
+			cd.node( top_style, "WARMUP" ),
+			ready_node,
+		} ) )
+
+		return
+	end
+
+	local top_big_style = Override( top_style, { font_size = "3vh" } )
+
+	local match_point_text = false
+	if state.round_type == RoundType_MatchPoint then
+		match_point_text = "MATCH POINT"
+	elseif state.round_type == RoundType_Overtime then
+		match_point_text = "OVERTIME"
+	elseif state.round_type == RoundType_OvertimeMatchPoint then
+		match_point_text = "OVERTIME MATCH POINT"
+	end
+
+	local clock = DrawClock( state, top_big_style )
+	local clock_and_scores = { clock }
+	if state.gametype == Gametype_Bomb then
+		clock_and_scores = {
+			DrawPlayerIcons( Team_One, state.aliveAlpha, state.totalAlpha ),
+			DrawScore( Team_One, state.scoreAlpha, top_big_style ),
+			clock,
+			DrawScore( Team_Two, state.scoreBeta, top_big_style ),
+			DrawPlayerIcons( Team_Two, state.aliveBeta, state.totalBeta ),
+		}
+	end
+
+	cd.render( cd.node( {
+		alignment = "top-center",
+		float = "top-center top-center",
+		y_offset = "1.5vh",
+		width = "fit",
+		height = "fit",
+		flow = "vertical",
+		gap = "1vh",
+	}, {
+		cd.node( { flow = "horizontal" }, clock_and_scores ),
+		match_point_text and cd.node( top_style, match_point_text ),
+	} ) )
+end
+
+local function DrawBottomLeft( state )
 	local perk_style = {
 		background = yellow,
 		border = 8,
@@ -832,14 +826,17 @@ local function DrawClayStuff( state )
 	)
 end
 
+local function DrawClayStuff( state )
+	DrawTop( state )
+	-- DrawBottomLeft( state )
+end
+
 return function( state )
 	local offset = state.viewport_width * 0.01
 	local padding = math.floor( offset * 0.3 )
 
 	if state.match_state < MatchState_PostMatch then
 		cd.drawBombIndicators( state.viewport_height / 36, state.viewport_height / 80, state.viewport_height / 70 ) -- site name size, site message size (ATTACK/DEFEND/...)
-
-		DrawTopInfo( state )
 
 		DrawPlayerBar( state, offset, padding )
 
@@ -861,5 +858,5 @@ return function( state )
 
 	DrawCallvote( state )
 
-	-- DrawClayStuff( state )
+	DrawClayStuff( state )
 end

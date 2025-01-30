@@ -730,11 +730,6 @@ local function DrawBottomLeft( state )
 	)
 end
 
-local function DrawClayStuff( state )
-	DrawTop( state )
-	DrawBottomLeft( state )
-end
-
 return function( state )
 	local offset = state.viewport_width * 0.01
 	local padding = math.floor( offset * 0.3 )
@@ -742,6 +737,8 @@ return function( state )
 	if state.match_state < MatchState_PostMatch then
 		cd.drawBombIndicators( state.viewport_height / 36, state.viewport_height / 80, state.viewport_height / 70 ) -- site name size, site message size (ATTACK/DEFEND/...)
 
+		DrawTop( state )
+		DrawBottomLeft( state )
 		DrawDevInfo( state )
 
 		DrawBombProgress( state )
@@ -759,6 +756,4 @@ return function( state )
 	DrawScoreboard( state, offset, padding )
 
 	DrawCallvote( state )
-
-	DrawClayStuff( state )
 end

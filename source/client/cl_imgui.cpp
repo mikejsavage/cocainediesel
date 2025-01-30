@@ -329,7 +329,7 @@ void WindowCenterTextXY( Span< const char > str ) {
 }
 
 Vec4 CustomAttentionGettingColor( Vec4 from, Vec4 to, Time period ) {
-	float t = Sin( cls.monotonicTime, period ) * 0.5f + 1.0f;
+	float t = Sin( cls.monotonicTime, period ) * 0.5f + 0.5f;
 	return Lerp( from, t, to );
 }
 

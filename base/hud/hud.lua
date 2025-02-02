@@ -319,42 +319,39 @@ local function DrawCallvote( state )
 		return
 	end
 
-	local width = state.viewport_width * 0.25
-	local height = state.viewport_width * 0.08
-
-	local offset = state.viewport_width * 0.025
-	local padding = width / 20
-
-	local text_color = "#fff"
-
-	local xleft = offset + padding
-	local xright = offset + width - padding
-	local ytop = offset + padding
-	local ybottom = offset + height - padding
-
-	if not state.has_voted then
-		cd.box( offset, offset, width, height, "#000a" )
-		text_color = cd.attentionGettingColor()
-	end
-
-	local options = {
-		color = text_color,
-		border = "#000b",
+	local style = {
 		font = "bold",
-		font_size = height * 0.22,
-		alignment = "left top",
+		color = state.has_voted and "#fff" or cd.attentionGettingColor(),
 	}
 
-	cd.text( options, xleft, ytop, "Vote : " .. state.vote )
-	options.alignment = "right top"
-	cd.text( options, xright, ytop, state.votes_total .. "/" .. state.votes_required )
+	local top_row_style = Override( style, { font_size = "3vh" } )
+	local bottom_row_style = Override( style, { font_size = "2.5vh" } )
 
-	options.font_size *= 0.8
-	options.alignment = "left bottom"
-	cd.text( options, xleft, ybottom, "["..cd.getBind("vote_yes").."] Vote yes" )
+	local right_style = {
+		alignment = "top-right",
+		width = "grow",
+	}
 
-	options.alignment = "right bottom"
-	cd.text( options, xright, ybottom, "["..cd.getBind("vote_no").."] Vote no" )
+	cd.render( cd.node( {
+		float = "top-left top-left",
+		x_offset = "4vh",
+		y_offset = "4vh",
+		background = state.has_voted and "#0000" or "#000b",
+		width = "fit",
+		height = "fit",
+		gap = "3vh",
+		padding = "2vh",
+		flow = "vertical",
+	}, {
+		cd.node( { width = "grow", height = "fit", gap = "5vh" }, {
+			cd.node( top_row_style, string.format( "Vote: %s", state.vote ) ),
+			cd.node( Override( top_row_style, right_style ), string.format( "%d/%d", state.votes_total, state.votes_required ) ),
+		} ),
+		cd.node( { width = "grow", height = "fit", gap = "8vh" }, {
+			cd.node( bottom_row_style, string.format( "[%s] Vote yes", cd.getBind( "vote_yes" ) ) ),
+			cd.node( Override( bottom_row_style, right_style ), string.format( "[%s] Vote no", cd.getBind( "vote_no" ) ) ),
+		} ),
+	} ) )
 end
 
 local function DrawClock( state, top_style )

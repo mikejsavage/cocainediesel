@@ -1,6 +1,6 @@
 {
 	attenuation idle
-	sound gadgets/hatchet/trail
+	sound loadout/axe/trail
 	volume 1.5
 	pitch 1.5
 	pitch_random 0.2

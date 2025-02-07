@@ -677,7 +677,7 @@ static void UpdateSound( PlayingSFX * ps, float volume, float pitch ) {
 	ps->config.pitch = pitch;
 
 	for( size_t i = 0; i < ps->sfx->sounds.size(); i++ ) {
-		if( ps->started[ i ] ) {
+		if( ps->started[ i ] && !ps->stopped[ i ] ) {
 			const SoundEffect::PlaybackConfig * config = &ps->sfx->sounds[ i ];
 			CheckedALSource( ps->sources[ i ], AL_GAIN, ps->config.volume * config->volume * s_volume->number );
 			CheckedALSource( ps->sources[ i ], AL_PITCH, ps->config.pitch * config->pitch + ( RandomFloat11( &cls.rng ) * config->pitch_random * config->pitch * ps->config.pitch ) );

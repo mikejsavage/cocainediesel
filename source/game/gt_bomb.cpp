@@ -29,7 +29,7 @@ static constexpr Team initial_defenders = Team_Two;
 static constexpr MinMax3 bomb_bounds( Vec3( -16.0f ), Vec3( 16.0f, 16.0f, 48.0f ) );
 static constexpr float bomb_hud_offset = 32.0f;
 
-static constexpr StringHash model_bomb = "models/bomb/bomb";
+static constexpr StringHash model_bomb = "loadout/bomb/bomb";
 
 enum BombAnnouncement {
 	BombAnnouncement_RoundStarted,
@@ -428,7 +428,7 @@ static void BombStartPlanting( edict_t * carrier_ent, u32 site ) {
 	bomb_state.bomb.action_time = level.time;
 	bomb_state.bomb.state = BombState_Planting;
 
-	G_Sound( bomb_state.bomb.model, "models/bomb/plant" );
+	G_Sound( bomb_state.bomb.model, "loadout/bomb/plant" );
 }
 
 static void BombPlanted() {
@@ -436,7 +436,7 @@ static void BombPlanted() {
 	carrier_ent->r.client->ps.pmove.max_speed = -1;
 
 	bomb_state.bomb.action_time = level.time + int( g_bomb_bombtimer->number * 1000.0f );
-	bomb_state.bomb.model->s.sound = "models/bomb/fuse";
+	bomb_state.bomb.model->s.sound = "loadout/bomb/fuse";
 	bomb_state.bomb.model->s.effects &= ~EF_TEAM_SILHOUETTE;
 
 	// show to defs too
@@ -469,7 +469,7 @@ static void BombDefused() {
 	TempAllocator temp = svs.frame_arena.temp();
 	G_PrintMsg( NULL, "%s defused the bomb!\n", PLAYERENT( bomb_state.defuser )->r.client->name );
 
-	G_Sound( bomb_state.bomb.model, "models/bomb/tss" );
+	G_Sound( bomb_state.bomb.model, "loadout/bomb/tss" );
 
 	RoundWonBy( DefendingTeam() );
 
@@ -494,7 +494,7 @@ static void BombExplode() {
 
 	G_SpawnEvent( EV_BOMB_EXPLOSION, bomb_explosion_effect_radius, &bomb_state.bomb.model->s.origin );
 
-	G_Sound( bomb_state.bomb.model, "models/bomb/explode" );
+	G_Sound( bomb_state.bomb.model, "loadout/bomb/explode" );
 }
 
 static void BombThink() {
@@ -879,9 +879,9 @@ static void RoundThink() {
 			bomb_state.bomb.model->s.origin = G_PickRandomEnt( &edict_t::classname, "spawn_bomb_attacking" )->s.origin;
 			bomb_state.bomb.model->velocity = Vec3( 0.0f, 0.0f, bomb_throw_speed );
 
-			constexpr StringHash vfx_bomb_respawn = "models/bomb/respawn";
+			constexpr StringHash vfx_bomb_respawn = "loadout/bomb/respawn";
 
-			G_Sound( bomb_state.bomb.model, "models/bomb/respawn" );
+			G_Sound( bomb_state.bomb.model, "loadout/bomb/respawn" );
 			G_SpawnEvent( EV_VFX, vfx_bomb_respawn.hash, &bomb_state.bomb.model->s.origin );
 
 			return;

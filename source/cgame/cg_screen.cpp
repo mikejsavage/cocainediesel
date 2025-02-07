@@ -329,7 +329,7 @@ void CG_AddBombIndicator( const centity_t * cent ) {
 
 	// TODO: this really does not belong here...
 	if( cent->interpolated.animating ) {
-		const GLTFRenderData * model = FindGLTFRenderData( "models/bomb/bomb" );
+		const GLTFRenderData * model = FindGLTFRenderData( "loadout/bomb/bomb" );
 		if( model == NULL )
 			return;
 
@@ -347,7 +347,7 @@ void CG_AddBombIndicator( const centity_t * cent ) {
 		Mat3x4 transform = FromAxisAndOrigin( cent->interpolated.axis, bomb_origin );
 		Vec3 tip = ( transform * model->transform * palettes.node_transforms[ tip_node ] * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xyz();
 
-		DoVisualEffect( "models/bomb/fuse", tip );
+		DoVisualEffect( "loadout/bomb/fuse", tip );
 	}
 }
 
@@ -408,7 +408,7 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 					color = AttentionGettingColor();
 
 					// TODO: lol
-					DoVisualEffect( "models/bomb/pickup_sparkle", bomb.origin - Vec3( 0.0f, 0.0f, 32.0f ), Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, AttentionGettingColor() );
+					DoVisualEffect( "loadout/bomb/pickup_sparkle", bomb.origin - Vec3( 0.0f, 0.0f, 32.0f ), Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, AttentionGettingColor() );
 				}
 				else if( bomb.state == BombState_Planting ) {
 					msg = "PLANTING";

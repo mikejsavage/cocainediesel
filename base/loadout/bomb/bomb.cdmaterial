@@ -1,4 +1,4 @@
-models/bomb/body
+bomb
 {
 	shaded
 	specular 10
@@ -6,7 +6,7 @@ models/bomb/body
 	rgbGen const 0.12 0.12 0.12
 }
 
-models/bomb/fuse
+bomb_fuse
 {
 	shaded
 	rgbGen const 1 1 1

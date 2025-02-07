@@ -45,6 +45,10 @@ constexpr bool HasAllBits( T haystack, T needle ) {
 	return ( haystack & needle ) == needle;
 }
 
+constexpr bool NearlyEqual( float lhs, float rhs, float epsilon = 0.001f ) {
+	return Abs( lhs - rhs ) <= epsilon;
+}
+
 /*
  * defer
  */

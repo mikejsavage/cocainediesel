@@ -372,7 +372,7 @@ Quaternion QuaternionFromNormalAndRadians( Vec3 normal, float radians ) {
 
 	Vec3 axis;
 
-	if( Abs( d ) > 0.999f ) {
+	if( NearlyEqual( d, 1.0f ) ) {
 		axis = Vec3( 0.0f, 0.0f, 1.0f );
 	}
 	else {

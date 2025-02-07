@@ -954,11 +954,11 @@ static Mat3x4 TransformKToDir( Vec3 dir ) {
 	Vec3 K = Vec3( 0, 0, 1 );
 
 	Vec3 axis;
-	if( Abs( dir.z ) < 0.9999f ) {
-		axis = Normalize( Cross( K, dir ) );
+	if( NearlyEqual( Abs( dir.z ), 1.0f ) ) {
+		axis = Vec3( 1.0f, 0.0f, 0.0f );
 	}
 	else {
-		axis = Vec3( 1.0f, 0.0f, 0.0f );
+		axis = Normalize( Cross( K, dir ) );
 	}
 
 	float c = Dot( K, dir );

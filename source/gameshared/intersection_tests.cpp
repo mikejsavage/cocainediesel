@@ -513,7 +513,7 @@ static bool SweptShapeVsGLTFBrush( const GLTFCollisionData * gltf, GLTFCollision
 
 		bool is_bevel_axis = false;
 		for( const Vec3 & bevel_axis : bevel_axes ) {
-			if( Abs( Dot( plane.normal, bevel_axis ) ) >= 0.99999f ) {
+			if( NearlyEqual( Abs( Dot( plane.normal, bevel_axis ) ), 1.0f ) ) {
 				is_bevel_axis = true;
 				break;
 			}

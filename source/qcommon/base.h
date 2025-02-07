@@ -57,8 +57,7 @@ struct ScopeExit {
 };
 
 struct DeferHelper {
-	template< typename F >
-	ScopeExit< F > operator+( F f ) { return f; }
+	template< typename F > ScopeExit< F > operator+( F f ) { return f; }
 };
 
 #define defer [[maybe_unused]] const auto & COUNTER_NAME( DEFER_ ) = DeferHelper() + [&]()

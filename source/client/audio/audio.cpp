@@ -11,6 +11,8 @@
 #include "cgame/cg_local.h"
 #include "gameshared/gs_public.h"
 
+#include "dr_mp3/dr_mp3.h"
+
 #include "nanosort/nanosort.hpp"
 
 #define AL_LIBTYPE_STATIC
@@ -22,15 +24,22 @@
 #define STB_VORBIS_HEADER_ONLY
 #include "stb/stb_vorbis.h"
 
-struct Sound {
+enum SoundFormat {
+	SoundFormat_MP3,
+	SoundFormat_Ogg,
+};
+
+struct SoundAsset {
+	Span< char > name;
 	ALuint buf;
 	Span< s16 > samples;
 	bool mono;
+	SoundFormat format;
 };
 
 struct SoundEffect {
 	struct PlaybackConfig {
-		BoundedDynamicArray< StringHash, 128 > sounds;
+		BoundedDynamicArray< StringHash, 128 > assets;
 
 		Time delay;
 		float volume;
@@ -77,7 +86,7 @@ static u64 GetPlayingSFXKey( const PlayingSFX & sfx ) {
 	return sfx.handle.handle;
 }
 
-static Hashmap< Sound, MAX_SOUND_ASSETS > sounds;
+static Hashmap< SoundAsset, MAX_SOUND_ASSETS > sound_assets;
 static Hashmap< SoundEffect, MAX_SOUND_EFFECTS > sound_effects;
 static BoundedDynamicArray< ALuint, MAX_PLAYING_SOUNDS > free_sound_sources;
 static Hashmap< PlayingSFX, MAX_PLAYING_SOUNDS, GetPlayingSFXKey > playing_sounds;
@@ -225,7 +234,8 @@ static void ShutdownOpenAL() {
 struct DecodeSoundJob {
 	struct {
 		Span< const char > path;
-		Span< const u8 > ogg;
+		Span< const u8 > encoded;
+		SoundFormat format;
 	} in;
 
 	struct {
@@ -236,11 +246,17 @@ struct DecodeSoundJob {
 	} out;
 };
 
-static void AddSound( Span< const char > path, int num_samples, int channels, int sample_rate, s16 * samples ) {
+static void DeleteSoundAsset( SoundAsset * asset ) {
+	Free( sys_allocator, asset->name.ptr );
+	alDeleteBuffers( 1, &asset->buf );
+	free( asset->samples.ptr );
+}
+
+static void AddSoundAsset( Span< const char > path, int num_samples, int channels, int sample_rate, s16 * samples, SoundFormat format ) {
 	TracyZoneScoped;
 	TracyZoneSpan( path );
 
-	if( num_samples == -1 ) {
+	if( samples == NULL ) {
 		Com_GGPrint( S_COLOR_RED "Couldn't decode sound {}", path );
 		return;
 	}
@@ -249,9 +265,9 @@ static void AddSound( Span< const char > path, int num_samples, int channels, in
 
 	bool restart_music = false;
 
-	Sound * sound = sounds.get( hash );
-	if( sound == NULL ) {
-		if( sounds.full() ) {
+	SoundAsset * asset = sound_assets.get( hash );
+	if( asset == NULL ) {
+		if( sound_assets.full() ) {
 			Com_Printf( S_COLOR_YELLOW "Too many sounds!\n" );
 			return;
 		}
@@ -260,13 +276,13 @@ static void AddSound( Span< const char > path, int num_samples, int channels, in
 			return;
 		}
 
-		sound = sounds.add( hash );
+		asset = sound_assets.add( hash );
 
 		// add simple sound effect
 		sound_effects.add( hash, SoundEffect {
 			.sounds = {
 				SoundEffect::PlaybackConfig {
-					.sounds = { StringHash( hash ) },
+					.assets = { StringHash( hash ) },
 					.volume = 1.0f,
 					.pitch = 1.0f,
 					.attenuation = ATTN_NORM,
@@ -275,18 +291,24 @@ static void AddSound( Span< const char > path, int num_samples, int channels, in
 		} );
 	}
 	else {
+		if( asset->format != format ) {
+			Com_GGPrint( S_COLOR_YELLOW "Mixed MP3/ogg: {}", path );
+		}
+
 		restart_music = music_playing;
 		StopAllSounds( true );
-		alDeleteBuffers( 1, &sound->buf );
+		DeleteSoundAsset( asset );
 	}
 
-	ALenum format = channels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
-	alGenBuffers( 1, &sound->buf );
-	sound->samples = Span< s16 >( samples, num_samples );
-	sound->mono = channels == 1;
+	ALenum al_format = channels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
+	alGenBuffers( 1, &asset->buf );
+	asset->name = CloneSpan( sys_allocator, StripExtension( path ) );
+	asset->samples = Span< s16 >( samples, num_samples );
+	asset->mono = channels == 1;
+	asset->format = format;
 
-	alBufferDataStatic( sound->buf, format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
-	CheckALErrors( "AddSound" );
+	alBufferDataStatic( asset->buf, al_format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
+	CheckALErrors( "AddSoundAsset" );
 
 	if( restart_music ) {
 		StartMenuMusic();
@@ -301,32 +323,49 @@ static void LoadSounds() {
 		TracyZoneScopedN( "Build job list" );
 
 		for( Span< const char > path : AssetPaths() ) {
-			if( FileExtension( path ) == ".ogg" ) {
-				DecodeSoundJob job;
-				job.in.path = path;
-				job.in.ogg = AssetBinary( path );
-
-				jobs.add( job );
+			if( FileExtension( path ) == ".mp3" || FileExtension( path ) == ".ogg" ) {
+				jobs.add( DecodeSoundJob {
+					.in = {
+						.path = path,
+						.encoded = AssetBinary( path ),
+						.format = FileExtension( path ) == ".mp3" ? SoundFormat_MP3 : SoundFormat_Ogg,
+					},
+				} );
 			}
 		}
 
+		// decode large files first
 		nanosort( jobs.begin(), jobs.end(), []( const DecodeSoundJob & a, const DecodeSoundJob & b ) {
-			return a.in.ogg.n > b.in.ogg.n;
+			return a.in.encoded.n > b.in.encoded.n;
 		} );
 	}
 
 	ParallelFor( jobs.span(), []( TempAllocator * temp, void * data ) {
 		DecodeSoundJob * job = ( DecodeSoundJob * ) data;
 
-		TracyZoneScopedN( "stb_vorbis_decode_memory" );
-		TracyZoneSpan( job->in.path );
+		if( job->in.format == SoundFormat_MP3 ) {
+			TracyZoneScopedN( "drmp3_open_memory_and_read_pcm_frames_s16" );
+			TracyZoneSpan( job->in.path );
 
-		DisableFPEScoped;
-		job->out.num_samples = stb_vorbis_decode_memory( job->in.ogg.ptr, job->in.ogg.num_bytes(), &job->out.channels, &job->out.sample_rate, &job->out.samples );
+			drmp3_uint64 num_frames = { };
+			drmp3_config config = { };
+			job->out.samples = drmp3_open_memory_and_read_pcm_frames_s16( job->in.encoded.ptr, job->in.encoded.num_bytes(), &config, &num_frames, NULL );
+			job->out.num_samples = num_frames;
+			job->out.channels = config.channels;
+			job->out.sample_rate = config.sampleRate;
+		}
+		else {
+			TracyZoneScopedN( "stb_vorbis_decode_memory" );
+			TracyZoneSpan( job->in.path );
+
+			DisableFPEScoped;
+			job->out.samples = NULL;
+			job->out.num_samples = stb_vorbis_decode_memory( job->in.encoded.ptr, job->in.encoded.num_bytes(), &job->out.channels, &job->out.sample_rate, &job->out.samples );
+		}
 	} );
 
 	for( DecodeSoundJob job : jobs ) {
-		AddSound( job.in.path, job.out.num_samples, job.out.channels, job.out.sample_rate, job.out.samples );
+		AddSoundAsset( job.in.path, job.out.num_samples, job.out.channels, job.out.sample_rate, job.out.samples, job.in.format );
 	}
 }
 
@@ -334,11 +373,27 @@ static void HotloadSounds() {
 	TracyZoneScoped;
 
 	for( Span< const char > path : ModifiedAssetPaths() ) {
+		if( FileExtension( path ) == ".mp3" ) {
+			Span< const u8 > mp3 = AssetBinary( path );
+
+			drmp3_uint64 num_frames;
+			drmp3_config config;
+			s16 * samples;
+			{
+				TracyZoneScopedN( "drmp3_open_memory_and_read_pcm_frames_s16" );
+				TracyZoneSpan( path );
+				DisableFPEScoped;
+				samples = drmp3_open_memory_and_read_pcm_frames_s16( mp3.ptr, mp3.num_bytes(), &config, &num_frames, NULL );
+			}
+
+			AddSoundAsset( path, num_frames, config.channels, config.sampleRate, samples, SoundFormat_MP3 );
+		}
+
 		if( FileExtension( path ) == ".ogg" ) {
 			Span< const u8 > ogg = AssetBinary( path );
 
 			int num_samples, channels, sample_rate;
-			s16 * samples;
+			s16 * samples = NULL;
 			{
 				TracyZoneScopedN( "stb_vorbis_decode_memory" );
 				TracyZoneSpan( path );
@@ -346,7 +401,7 @@ static void HotloadSounds() {
 				num_samples = stb_vorbis_decode_memory( ogg.ptr, ogg.num_bytes(), &channels, &sample_rate, &samples );
 			}
 
-			AddSound( path, num_samples, channels, sample_rate, samples );
+			AddSoundAsset( path, num_samples, channels, sample_rate, samples, SoundFormat_Ogg );
 		}
 	}
 }
@@ -393,7 +448,7 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span
 				else {
 					hash = StringHash( value );
 				}
-				if( !config.sounds.add( hash ) ) {
+				if( !config.assets.add( hash ) ) {
 					Com_Printf( S_COLOR_YELLOW "SFX with too many random sounds\n" );
 					return false;
 				}
@@ -407,8 +462,8 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span
 				}
 
 				for( Span< const char > path : AssetPaths() ) {
-					if( FileExtension( path ) == ".ogg" && StartsWith( path, prefix ) ) {
-						if( !config.sounds.add( StringHash( StripExtension( path ) ) ) ) {
+					if( ( FileExtension( path ) == ".mp3" || FileExtension( path ) == ".ogg" ) && StartsWith( path, prefix ) ) {
+						if( !config.assets.add( StringHash( StripExtension( path ) ) ) ) {
 							Com_Printf( S_COLOR_YELLOW "SFX with too many random sounds\n" );
 							return false;
 						}
@@ -468,7 +523,7 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span
 			}
 		}
 
-		if( config.sounds.size() == 0 ) {
+		if( config.assets.size() == 0 ) {
 			Com_Printf( S_COLOR_YELLOW "Section with no sounds\n" );
 			return false;
 		}
@@ -531,7 +586,7 @@ void InitSound() {
 	TracyZoneScoped;
 
 	playing_sound_handle_autoinc = 1;
-	sounds.clear();
+	sound_assets.clear();
 	sound_effects.clear();
 	playing_sounds.clear();
 	music_playing = false;
@@ -570,17 +625,16 @@ void ShutdownSound() {
 
 	StopAllSounds( true );
 
-	for( size_t i = 0; i < sounds.size(); i++ ) {
-		alDeleteBuffers( 1, &sounds[ i ].buf );
-		free( sounds[ i ].samples.ptr );
+	for( SoundAsset & asset : sound_assets.span() ) {
+		DeleteSoundAsset( &asset );
 	}
 
 	ShutdownOpenAL();
 	ShutdownAudioBackend();
 }
 
-static const Sound * FindSound( StringHash name ) {
-	return backend_initialized ? sounds.get( name.hash ) : NULL;
+static const SoundAsset * FindSoundAsset( StringHash name ) {
+	return backend_initialized ? sound_assets.get( name.hash ) : NULL;
 }
 
 static const SoundEffect * FindSoundEffect( StringHash name ) {
@@ -592,15 +646,15 @@ static bool StartSound( PlayingSFX * ps, size_t i ) {
 
 	StringHash sound_name;
 	if( !ps->config.entropy.exists ) {
-		sound_name = RandomElement( &cls.rng, config.sounds.span() );
+		sound_name = RandomElement( &cls.rng, config.assets.span() );
 	}
 	else {
 		RNG rng = NewRNG( ps->config.entropy.value, 0 );
-		sound_name = RandomElement( &rng, config.sounds.span() );
+		sound_name = RandomElement( &rng, config.assets.span() );
 	}
 
-	const Sound * sound = FindSound( sound_name );
-	if( sound == NULL )
+	const SoundAsset * asset = FindSoundAsset( sound_name );
+	if( asset == NULL )
 		return false;
 
 	if( free_sound_sources.size() == 0 ) {
@@ -608,15 +662,20 @@ static bool StartSound( PlayingSFX * ps, size_t i ) {
 		return false;
 	}
 
-	if( !sound->mono && ps->config.spatialisation != SpatialisationMethod_None ) {
+	if( !asset->mono && ps->config.spatialisation != SpatialisationMethod_None ) {
 		Com_Printf( S_COLOR_YELLOW "Positioned sounds must be mono!\n" );
+		return false;
+	}
+
+	if( asset->format == SoundFormat_MP3 && ps->immediate ) {
+		Com_GGPrint( S_COLOR_YELLOW "Can't loop MP3: {}", asset->name );
 		return false;
 	}
 
 	ALuint source = free_sound_sources.pop();
 	ps->sources[ i ] = source;
 
-	CheckedALSource( source, AL_BUFFER, sound->buf );
+	CheckedALSource( source, AL_BUFFER, asset->buf );
 	CheckedALSource( source, AL_GAIN, ps->config.volume * config.volume * s_volume->number );
 	CheckedALSource( source, AL_PITCH, ps->config.pitch * config.pitch + ( RandomFloat11( &cls.rng ) * config.pitch_random * config.pitch * ps->config.pitch ) );
 	CheckedALSource( source, AL_REFERENCE_DISTANCE, S_DEFAULT_ATTENUATION_REFDISTANCE );
@@ -707,7 +766,7 @@ void SoundFrame( Vec3 origin, Vec3 velocity, Vec3 forward, Vec3 up ) {
 	CheckedALListenerOrientation( forward, up );
 
 	for( size_t i = 0; i < playing_sounds.size(); i++ ) {
-		PlayingSFX * ps = &playing_sounds[ i ];
+		PlayingSFX * ps = &playing_sounds.span()[ i ];
 		Time t = cls.monotonicTime - ps->start_time;
 		bool all_stopped = true;
 
@@ -879,7 +938,7 @@ void StopAllSounds( bool stop_music ) {
 		return;
 
 	while( playing_sounds.size() > 0 ) {
-		StopSFX( &playing_sounds[ 0 ] );
+		StopSFX( &playing_sounds.span()[ 0 ] );
 	}
 
 	if( stop_music ) {
@@ -893,7 +952,7 @@ void StartMenuMusic() {
 	if( !backend_device_initialized || music_playing )
 		return;
 
-	const Sound * music = FindSound( "sounds/music/longcovid" );
+	const SoundAsset * music = FindSoundAsset( "sounds/music/longcovid" );
 	if( music == NULL )
 		return;
 

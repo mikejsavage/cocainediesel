@@ -63,7 +63,7 @@ public:
 
 	size_t size() const { return hashtable.size(); }
 	bool full() const { return hashtable.size() == N; }
-	T & operator[]( size_t idx ) { return values[ idx ]; }
 
+	Span< T > span() { return Span< T >( values, hashtable.size() ); }
 	Span< const T > span() const { return Span< const T >( values, hashtable.size() ); }
 };

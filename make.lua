@@ -32,6 +32,7 @@ require( "libs.cgltf" )
 require( "libs.clay" )
 require( "libs.curl" )
 require( "libs.discord" )
+require( "libs.dr_mp3" )
 require( "libs.freetype" )
 require( "libs.gg" )
 require( "libs.glad" )
@@ -79,6 +80,7 @@ do
 			"cgltf",
 			"clay",
 			"discord",
+			"dr_mp3",
 			"freetype",
 			"ggentropy",
 			"ggformat",

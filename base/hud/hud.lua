@@ -482,7 +482,7 @@ local function DrawPerk( state )
 		border_color = dark_grey,
 		padding = 8,
 	}, {
-		-- TODO: why can't clay solve the width here?
+		-- TODO: clay can solve the width here but it doesn't bubble up properly yet
 		cd.node( { color = "#000", height = "100%", width = "4.5vh" }, cd.getPerkIcon( state.perk ) ),
 	} )
 end
@@ -504,11 +504,11 @@ local function DrawWeaponIconForeground( x, y, w, h, icon_and_ammo_frac )
 		dark_grey, icon_and_ammo_frac[ 1 ] )
 end
 
-local function DrawWeaponOrGadget( height, ammo_font_size, icon, ammo, ammo_frac, selected, name, hotkey )
+local function DrawWeaponOrGadget( width, ammo_font_size, icon, ammo, ammo_frac, selected, name, hotkey )
 	local container = {
 		background = dark_grey,
 		flow = "vertical",
-		width = height,
+		width = width,
 		height = "fit",
 		padding = 8,
 		gap = 8,

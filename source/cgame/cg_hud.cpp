@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/text.h"
 #include "cgame/cg_local.h"
 
-#include "clay/cdclay.h"
+#include "clay/clay.h"
 
 #include "imgui/imgui.h"
 
@@ -1180,6 +1180,10 @@ static Optional< Clay_SizingAxis > CheckClaySize( lua_State * L, int idx, const 
 		return CLAY_SIZING_GROW( 0.0f );
 	}
 
+	if( str == "growmax" ) { // TODO: remove this when clay#273 gets fixed
+		return CLAY_SIZING_GROW( FLT_MAX );
+	}
+
 	if( EndsWith( str, "%" ) ) {
 		float percent;
 		if( !TrySpanToFloat( str.slice( 0, str.n - 1 ), &percent ) ) {
@@ -1268,7 +1272,15 @@ static Optional< Clay_ChildAlignment > CheckClayChildAlignment( lua_State * L, i
 	return alignments[ luaL_checkoption( L, -1, names[ 0 ], names ) ];
 }
 
-static Optional< Clay_Color > CheckClayColor( lua_State * L, int idx, const char * key ) {
+static Optional< Vec4 > CheckOptionalColor( lua_State * L, int idx, const char * key ) {
+	lua_getfield( L, idx, key );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
+	return CheckColor( L, -1 );
+}
+
+static Optional< Clay_Color > GetOptionalClayColor( lua_State * L, int idx, const char * key ) {
 	lua_getfield( L, idx, key );
 	defer { lua_pop( L, 1 ); };
 	if( lua_isnoneornil( L, -1 ) )
@@ -1278,7 +1290,7 @@ static Optional< Clay_Color > CheckClayColor( lua_State * L, int idx, const char
 	return Clay_Color { float( srgb.r ), float( srgb.g ), float( srgb.b ), float( srgb.a ) };
 }
 
-static Clay_CornerRadius CheckClayBorderRadius( lua_State * L, int idx ) {
+static Clay_CornerRadius GetClayBorderRadius( lua_State * L, int idx ) {
 	Optional< float > radius = CheckFloat( L, idx, "border_radius" );
 	float r = Default( radius, 0.0f );
 	return Clay_CornerRadius { r, r, r, r };
@@ -1314,6 +1326,7 @@ static Optional< u16 > CheckClayFont( lua_State * L, int idx ) {
 struct ClayTextAndConfig {
 	Clay_String text;
 	Clay_TextElementConfig config;
+	Optional< Vec4 > border_color;
 
 	struct FittedText {
 		XAlignment x_alignment;
@@ -1344,7 +1357,14 @@ static Optional< ClayTextAndConfig::FittedText > CheckClayFittedText( lua_State 
 	};
 }
 
-static Optional< ClayTextAndConfig > CheckClayTextConfig( lua_State * L, int idx ) {
+template< typename T >
+T * ArenaAlloc( ArenaAllocator * arena, const T & x ) {
+	T * ptr = Alloc< T >( arena );
+	*ptr = x;
+	return ptr;
+}
+
+static Optional< ClayTextAndConfig > GetOptionalClayTextConfig( lua_State * L, int idx ) {
 	if( lua_getfield( L, idx, "text" ) == LUA_TNIL ) {
 		lua_pop( L, 1 );
 		return NONE;
@@ -1360,19 +1380,19 @@ static Optional< ClayTextAndConfig > CheckClayTextConfig( lua_State * L, int idx
 	return ClayTextAndConfig {
 		.text = text,
 		.config = Clay_TextElementConfig {
-			.textColor = Default( CheckClayColor( L, -1, "color" ), { 255, 255, 255, 255 } ),
+			.textColor = Default( GetOptionalClayColor( L, -1, "color" ), { 255, 255, 255, 255 } ),
 			.fontId = Default( CheckClayFont( L, -1 ), 0_u16 ),
 			.fontSize = u16( size ),
 			.letterSpacing = 0,
 			.lineHeight = u16( Default( CheckFloat( L, -1, "line_height" ), 1.0f ) * size ),
 			.wrapMode = CLAY_TEXT_WRAP_NONE,
-			.borderColor = CheckClayColor( L, -1, "text_border" ),
 		},
+		.border_color = CheckOptionalColor( L, -1, "text_border" ),
 		.fitted_text = CheckClayFittedText( L, idx ),
 	};
 }
 
-static Clay_LayoutConfig CheckClayLayoutConfig( lua_State * L, int idx ) {
+static Clay_LayoutConfig GetClayLayoutConfig( lua_State * L, int idx ) {
 	return Clay_LayoutConfig {
 		.sizing = {
 			.width = Default( CheckClaySize( L, idx, "width" ), CLAY_LAYOUT_DEFAULT.sizing.width ),
@@ -1385,63 +1405,40 @@ static Clay_LayoutConfig CheckClayLayoutConfig( lua_State * L, int idx ) {
 	};
 }
 
-static Optional< Clay_RectangleElementConfig > CheckClayRectangleConfig( lua_State * L, int idx ) {
-	Optional< Clay_Color > background = CheckClayColor( L, idx, "background" );
-	if( !background.exists ) {
-		return NONE;
-	}
-
-	return Clay_RectangleElementConfig {
-		.color = background.value,
-		.cornerRadius = CheckClayBorderRadius( L, idx ),
-	};
-}
-
-static Optional< Clay_BorderElementConfig > CheckClayBorderConfig( lua_State * L, int idx ) {
+static Clay_BorderElementConfig GetClayBorderConfig( lua_State * L, int idx ) {
 	Clay_BorderElementConfig border = { };
 
 	Optional< u16 > all_width = CheckU16( L, idx, "border" );
 	if( all_width.exists ) {
-		border.left.width = all_width.value;
-		border.right.width = all_width.value;
-		border.top.width = all_width.value;
-		border.bottom.width = all_width.value;
+		border.width.left = all_width.value;
+		border.width.right = all_width.value;
+		border.width.top = all_width.value;
+		border.width.bottom = all_width.value;
 	}
 
-	Optional< Clay_Color > color = CheckClayColor( L, idx, "border_color" );
-	if( color.exists ) {
-		border.left.color = color.value;
-		border.right.color = color.value;
-		border.top.color = color.value;
-		border.bottom.color = color.value;
-	}
+	border.color = Default( GetOptionalClayColor( L, idx, "border_color" ), { } );
 
-	border.left.width   = Default( CheckU16( L, idx, "border_left"   ), u16( border.left.width ) );
-	border.right.width  = Default( CheckU16( L, idx, "border_right"  ), u16( border.right.width ) );
-	border.top.width    = Default( CheckU16( L, idx, "border_top"    ), u16( border.top.width ) );
-	border.bottom.width = Default( CheckU16( L, idx, "border_bottom" ), u16( border.bottom.width ) );
-
-	if( border.left.width == 0 && border.right.width == 0 && border.top.width == 0 && border.bottom.width == 0 ) {
-		return NONE;
-	}
-
-	border.cornerRadius = CheckClayBorderRadius( L, -1 );
+	border.width.left   = Default( CheckU16( L, idx, "border_left"   ), u16( border.width.left ) );
+	border.width.right  = Default( CheckU16( L, idx, "border_right"  ), u16( border.width.right ) );
+	border.width.top    = Default( CheckU16( L, idx, "border_top"    ), u16( border.width.top ) );
+	border.width.bottom = Default( CheckU16( L, idx, "border_bottom" ), u16( border.width.bottom ) );
 
 	return border;
 }
 
-static Optional< Clay_ImageElementConfig > CheckClayImageConfig( lua_State * L, int idx ) {
+static Clay_ImageElementConfig GetClayImageConfig( lua_State * L, int idx, Vec4 * tint ) {
 	lua_getfield( L, idx, "image" );
 	StringHash name = CheckHash( L, -1 );
 	lua_pop( L, 1 );
 
 	if( name == EMPTY_HASH )
-		return NONE;
+		return { };
+
+	*tint = Default( CheckOptionalColor( L, -1, "color" ), white.vec4 );
 
 	return Clay_ImageElementConfig {
 		.imageData = bit_cast< void * >( name.hash ),
 		.sourceDimensions = { 1, 1 }, // TODO
-		.tint = Default( CheckClayColor( L, -1, "color" ), Clay_Color { 255, 255, 255, 255 } ),
 	};
 }
 
@@ -1494,28 +1491,52 @@ static Optional< Clay_FloatingAttachPoints > CheckClayFloatAttachment( lua_State
 	};
 }
 
-static Optional< Clay_FloatingElementConfig > CheckClayFloatConfig( lua_State * L, int idx ) {
+static Clay_FloatingElementConfig GetClayFloatConfig( lua_State * L, int idx ) {
 	Optional< Clay_FloatingAttachPoints > attachment = CheckClayFloatAttachment( L, idx );
 	if( !attachment.exists )
-		return NONE;
+		return { };
 
 	return Clay_FloatingElementConfig {
 		.offset = {
 			.x = Default( CheckFloat( L, -1, "x_offset" ), 0.0f ),
 			.y = Default( CheckFloat( L, -1, "y_offset" ), 0.0f ),
 		},
-		.attachment = attachment.value,
+		.zIndex = checked_cast< s16 >( Default( CheckU16( L, -1, "z_index" ), 0_u16 ) ),
+		.attachPoints = attachment.value,
+		.attachTo = CLAY_ATTACH_TO_PARENT,
 	};
 }
 
-static Optional< Clay_CustomElementConfig > CheckClayCallbackConfig( lua_State * L, int idx ) {
+enum ClayCustomElementType {
+	ClayCustomElementType_Lua,
+	ClayCustomElementType_FittedText,
+};
+
+struct ClayCustomElementConfig {
+	ClayCustomElementType type;
+	union {
+		struct {
+			int callback_ref;
+			int arg_ref;
+		} lua;
+		struct {
+			Clay_String text;
+			Clay_TextElementConfig config;
+			XAlignment alignment;
+			Clay_Padding padding;
+			Optional< Vec4 > border_color;
+		} fitted_text;
+	};
+};
+
+static Optional< ClayCustomElementConfig > GetOptionalClayCallbackConfig( lua_State * L, int idx ) {
 	lua_getfield( L, idx, "callback" );
 	defer { lua_pop( L, 1 ); };
 	if( lua_isnoneornil( L, -1 ) )
 		return NONE;
 	lua_getfield( L, idx - 1, "callback_arg" );
 	defer { lua_pop( L, 1 ); };
-	return Clay_CustomElementConfig {
+	return ClayCustomElementConfig {
 		.type = ClayCustomElementType_Lua,
 		.lua = {
 			.callback_ref = lua_tointeger( L, -2 ),
@@ -1529,67 +1550,60 @@ static void DrawClayNodeRecursive( lua_State * L ) {
 		return;
 	luaL_checktype( L, -1, LUA_TTABLE );
 
-	Clay__OpenElement();
-	Clay__AttachId( Clay_ElementId { .id = clay_element_counter++ } );
-
-	Optional< ClayTextAndConfig > text_config = CheckClayTextConfig( L, -1 );
-	if( text_config.exists && !text_config.value.fitted_text.exists ) {
-		Clay__OpenTextElement( text_config.value.text, Clay__StoreTextElementConfig( text_config.value.config ) );
-		Clay__AttachId( Clay_ElementId { .id = clay_element_counter++ } );
-	}
-
-	Clay__AttachLayoutConfig( Clay__StoreLayoutConfig( CheckClayLayoutConfig( L, -1 ) ) );
-
-	Optional< Clay_RectangleElementConfig > rectangle_config = CheckClayRectangleConfig( L, -1 );
-	if( rectangle_config.exists ) {
-		Clay__AttachElementConfig( Clay_ElementConfigUnion { .rectangleElementConfig = Clay__StoreRectangleElementConfig( rectangle_config.value ) }, CLAY__ELEMENT_CONFIG_TYPE_RECTANGLE );
-	}
-
-	Optional< Clay_BorderElementConfig > border_config = CheckClayBorderConfig( L, -1 );
-	if( border_config.exists ) {
-		Clay__AttachElementConfig( Clay_ElementConfigUnion { .borderElementConfig = Clay__StoreBorderElementConfig( border_config.value ) }, CLAY__ELEMENT_CONFIG_TYPE_BORDER_CONTAINER );
-	}
-
-	Optional< Clay_ImageElementConfig > image_config = CheckClayImageConfig( L, -1 );
-	if( image_config.exists ) {
-		Clay__AttachElementConfig( Clay_ElementConfigUnion { .imageElementConfig = Clay__StoreImageElementConfig( image_config.value ) }, CLAY__ELEMENT_CONFIG_TYPE_IMAGE );
-	}
-
-	Optional< Clay_FloatingElementConfig > float_config = CheckClayFloatConfig( L, -1 );
-	if( float_config.exists ) {
-		Clay__AttachElementConfig( Clay_ElementConfigUnion { .floatingElementConfig = Clay__StoreFloatingElementConfig( float_config.value ) }, CLAY__ELEMENT_CONFIG_TYPE_FLOATING_CONTAINER );
-	}
-
-	Optional< Clay_CustomElementConfig > callback_config = CheckClayCallbackConfig( L, -1 );
-	if( callback_config.exists ) {
-		Clay__AttachElementConfig( Clay_ElementConfigUnion { .customElementConfig = Clay__StoreCustomElementConfig( callback_config.value ) }, CLAY__ELEMENT_CONFIG_TYPE_CUSTOM );
-	}
-
-	if( text_config.exists && text_config.value.fitted_text.exists ) {
-		Clay_CustomElementConfig custom_config = {
-			.type = ClayCustomElementType_FittedText,
-			.fitted_text = {
-				.text = text_config.value.text, // TODO: copy text to arena
-				.config = text_config.value.config,
-				.alignment = text_config.value.fitted_text.value.x_alignment,
-				.padding = text_config.value.fitted_text.value.padding,
-			},
-		};
-		Clay__AttachElementConfig( Clay_ElementConfigUnion { .customElementConfig = Clay__StoreCustomElementConfig( custom_config ) }, CLAY__ELEMENT_CONFIG_TYPE_CUSTOM );
-	}
-
-	Clay__ElementPostConfiguration();
-
-	if( lua_getfield( L, -1, "children" ) != LUA_TNONE ) {
-		int n = lua_objlen( L, -1 );
-		for( int i = 0; i < n; i++ ) {
-			lua_pushnumber( L, i + 1 );
-			lua_gettable( L, -2 );
-			DrawClayNodeRecursive( L );
-			lua_pop( L, 1 );
+	Optional< ClayCustomElementConfig > custom = NONE;
+	Optional< ClayTextAndConfig > text_config = GetOptionalClayTextConfig( L, -1 );
+	if( text_config.exists ) {
+		if( text_config.value.fitted_text.exists ) {
+			custom = ClayCustomElementConfig {
+				.type = ClayCustomElementType_FittedText,
+				.fitted_text = {
+					.text = text_config.value.text,
+					.config = text_config.value.config,
+					.alignment = text_config.value.fitted_text.value.x_alignment,
+					.padding = text_config.value.fitted_text.value.padding,
+					.border_color = text_config.value.border_color,
+				},
+			};
 		}
 	}
-	lua_pop( L, 1 );
+	else {
+		custom = GetOptionalClayCallbackConfig( L, -1 );
+	}
+
+	Vec4 image_tint;
+	Clay_ImageElementConfig image_config = GetClayImageConfig( L, -1, &image_tint );
+
+	Clay__OpenElement();
+	Clay__ConfigureOpenElement( Clay_ElementDeclaration {
+		.id = clay_element_counter++,
+		.layout = GetClayLayoutConfig( L, -1 ),
+		.backgroundColor = Default( GetOptionalClayColor( L, -1, "background" ), { } ),
+		.cornerRadius = GetClayBorderRadius( L, -1 ),
+		.image = image_config,
+		.floating = GetClayFloatConfig( L, -1 ),
+		.custom = Clay_CustomElementConfig {
+			.customData = custom.exists ? ArenaAlloc( &text_arena, custom.value ) : NULL,
+		},
+		.border = GetClayBorderConfig( L, -1 ),
+		.userData = ArenaAlloc( &text_arena, image_tint ),
+	} );
+
+	if( text_config.exists && !text_config.value.fitted_text.exists ) {
+		text_config.value.config.userData = ArenaAlloc( &text_arena, text_config.value.border_color );
+		Clay__OpenTextElement( text_config.value.text, Clay__StoreTextElementConfig( text_config.value.config ) );
+	}
+	else {
+		if( lua_getfield( L, -1, "children" ) != LUA_TNONE ) {
+			int n = lua_objlen( L, -1 );
+			for( int i = 0; i < n; i++ ) {
+				lua_pushnumber( L, i + 1 );
+				lua_gettable( L, -2 );
+				DrawClayNodeRecursive( L );
+				lua_pop( L, 1 );
+			}
+		}
+		lua_pop( L, 1 );
+	}
 
 	Clay__CloseElement();
 }
@@ -1774,15 +1788,15 @@ void CG_InitHUD() {
 	clay_arena = Clay_CreateArenaWithCapacityAndMemory( size, sys_allocator->allocate( size, 16 ) );
 	text_arena = ArenaAllocator( AllocMany< char >( sys_allocator, TEXT_ARENA_SIZE ), TEXT_ARENA_SIZE );
 
-	auto measure_text = []( Clay_String * text, Clay_TextElementConfig * config ) -> Clay_Dimensions {
+	Clay_Initialize( clay_arena, { }, { .errorHandlerFunction = ClayErrorHandler } );
+
+	auto measure_text = []( Clay_StringSlice text, Clay_TextElementConfig * config, void * user_data ) -> Clay_Dimensions {
 		const Font * font = *clay_fonts[ config->fontId ].font;
-		MinMax2 bounds = TextBaselineBounds( font, config->fontSize, Span< const char >( text->chars, text->length ) );
+		MinMax2 bounds = TextBaselineBounds( font, config->fontSize, Span< const char >( text.chars, text.length ) );
 		Vec2 dims = bounds.maxs - bounds.mins;
 		return { dims.x, dims.y };
 	};
-	Clay_SetMeasureTextFunction( measure_text );
-
-	Clay_Initialize( clay_arena, { }, { .errorHandlerFunction = ClayErrorHandler } );
+	Clay_SetMeasureTextFunction( measure_text, NULL );
 }
 
 void CG_ShutdownHUD() {
@@ -1824,14 +1838,14 @@ static float Remap_0To1_1ToNeg1( float x ) {
 	return ( 1.0f - x ) * 2.0f - 1.0f;
 }
 
-static void DrawBorderCorner( Corner corner, Clay_BoundingBox bounds, const Clay_BorderElementConfig * border, float width, Clay_Color color ) {
+static void DrawBorderCorner( Corner corner, Clay_BoundingBox bounds, const Clay_BorderRenderData & border, float width, Clay_Color color ) {
 	struct {
 		float x, y, radius;
 	} corners[] = {
-		{ 1.0f, 1.0f, border->cornerRadius.bottomRight },
-		{ 0.0f, 1.0f, border->cornerRadius.bottomLeft },
-		{ 0.0f, 0.0f, border->cornerRadius.topLeft },
-		{ 1.0f, 0.0f, border->cornerRadius.topRight },
+		{ 1.0f, 1.0f, border.cornerRadius.bottomRight },
+		{ 0.0f, 1.0f, border.cornerRadius.bottomLeft },
+		{ 0.0f, 0.0f, border.cornerRadius.topLeft },
+		{ 1.0f, 0.0f, border.cornerRadius.topRight },
 	};
 
 	float cx = corners[ corner ].x;
@@ -2127,52 +2141,54 @@ void CG_DrawHUD() {
 			const Clay_BoundingBox & bounds = command.boundingBox;
 			switch( command.commandType ) {
 				case CLAY_RENDER_COMMAND_TYPE_RECTANGLE: {
-					const Clay_RectangleElementConfig * rect = command.config.rectangleElementConfig;
+					const Clay_RectangleRenderData & rect = command.renderData.rectangle;
 					ImDrawList * draw_list = ImGui::GetBackgroundDrawList();
-					draw_list->AddRectFilled( Vec2( bounds.x, bounds.y ), Vec2( bounds.x + bounds.width, bounds.y + bounds.height ), ClayToImGui( rect->color ), rect->cornerRadius.topLeft );
+					draw_list->AddRectFilled( Vec2( bounds.x, bounds.y ), Vec2( bounds.x + bounds.width, bounds.y + bounds.height ), ClayToImGui( rect.backgroundColor ), rect.cornerRadius.topLeft );
 				} break;
 
 				case CLAY_RENDER_COMMAND_TYPE_BORDER: {
-					const Clay_BorderElementConfig * border = command.config.borderElementConfig;
+					const Clay_BorderRenderData & border = command.renderData.border;
 
 					// TODO: rounded corners are wrong pretty much all of the time, transparent borders are drawn with overlap
 					// should probably draw the edges and corners separately
 
 					// top
-					Draw2DBox( bounds.x + border->cornerRadius.topLeft, bounds.y,
-						bounds.width - border->cornerRadius.topLeft - border->cornerRadius.topRight, border->top.width,
-						cls.white_material, ClayToCD( border->top.color ) );
+					Draw2DBox( bounds.x + border.cornerRadius.topLeft, bounds.y,
+						bounds.width - border.cornerRadius.topLeft - border.cornerRadius.topRight, border.width.top,
+						cls.white_material, ClayToCD( border.color ) );
 					// right
-					Draw2DBox( bounds.x + bounds.width - border->right.width, bounds.y + border->cornerRadius.topRight,
-						border->right.width, bounds.height - border->cornerRadius.topRight - border->cornerRadius.bottomRight,
-						cls.white_material, ClayToCD( border->right.color ) );
+					Draw2DBox( bounds.x + bounds.width - border.width.right, bounds.y + border.cornerRadius.topRight,
+						border.width.right, bounds.height - border.cornerRadius.topRight - border.cornerRadius.bottomRight,
+						cls.white_material, ClayToCD( border.color ) );
 					// left
-					Draw2DBox( bounds.x, bounds.y + border->cornerRadius.topLeft,
-						border->left.width, bounds.height - border->cornerRadius.topLeft - border->cornerRadius.bottomLeft,
-						cls.white_material, ClayToCD( border->left.color ) );
+					Draw2DBox( bounds.x, bounds.y + border.cornerRadius.topLeft,
+						border.width.left, bounds.height - border.cornerRadius.topLeft - border.cornerRadius.bottomLeft,
+						cls.white_material, ClayToCD( border.color ) );
 					// bottom
-					Draw2DBox( bounds.x + border->cornerRadius.bottomLeft, bounds.y + bounds.height - border->bottom.width,
-						bounds.width - border->cornerRadius.bottomLeft - border->cornerRadius.bottomRight, border->bottom.width,
-						cls.white_material, ClayToCD( border->bottom.color ) );
+					Draw2DBox( bounds.x + border.cornerRadius.bottomLeft, bounds.y + bounds.height - border.width.bottom,
+						bounds.width - border.cornerRadius.bottomLeft - border.cornerRadius.bottomRight, border.width.bottom,
+						cls.white_material, ClayToCD( border.color ) );
 
 					// this doesn't do the right thing for different border sizes/colours
-					DrawBorderCorner( Corner_TopLeft, bounds, border, border->top.width, border->top.color );
-					DrawBorderCorner( Corner_TopRight, bounds, border, border->right.width, border->right.color );
-					DrawBorderCorner( Corner_BottomLeft, bounds, border, border->bottom.width, border->bottom.color );
-					DrawBorderCorner( Corner_BottomRight, bounds, border, border->right.width, border->right.color );
+					DrawBorderCorner( Corner_TopLeft, bounds, border, border.width.top, border.color );
+					DrawBorderCorner( Corner_TopRight, bounds, border, border.width.right, border.color );
+					DrawBorderCorner( Corner_BottomLeft, bounds, border, border.width.bottom, border.color );
+					DrawBorderCorner( Corner_BottomRight, bounds, border, border.width.right, border.color );
 				} break;
 
 				case CLAY_RENDER_COMMAND_TYPE_TEXT: {
-					const Clay_TextElementConfig * config = command.config.textElementConfig;
-					DrawText( *clay_fonts[ config->fontId ].font, config->fontSize,
-						Span< const char >( command.text.chars, command.text.length ),
+					const Clay_TextRenderData & text = command.renderData.text;
+					const Optional< Vec4 > * border_color = ( const Optional< Vec4 > * ) command.userData;
+					DrawText( *clay_fonts[ text.fontId ].font, text.fontSize,
+						Span< const char >( text.stringContents.chars, text.stringContents.length ),
 						bounds.x, bounds.y,
-						ClayToCD( config->textColor ), config->borderColor.exists ? MakeOptional( ClayToCD( config->borderColor.value ) ) : NONE );
+						ClayToCD( text.textColor ), *border_color );
 				} break;
 
 				case CLAY_RENDER_COMMAND_TYPE_IMAGE: {
-					const Clay_ImageElementConfig * image = command.config.imageElementConfig;
-					Draw2DBox( bounds.x, bounds.y, bounds.width, bounds.height, FindMaterial( StringHash( bit_cast< u64 >( image->imageData ) ) ), ClayToCD( image->tint ) );
+					const Vec4 * tint = ( const Vec4 * ) command.userData;
+					const Clay_ImageRenderData & image = command.renderData.image;
+					Draw2DBox( bounds.x, bounds.y, bounds.width, bounds.height, FindMaterial( StringHash( bit_cast< u64 >( image.imageData ) ) ), *tint );
 				} break;
 
 				case CLAY_RENDER_COMMAND_TYPE_SCISSOR_START:
@@ -2184,7 +2200,7 @@ void CG_DrawHUD() {
 					break;
 
 				case CLAY_RENDER_COMMAND_TYPE_CUSTOM: {
-					const Clay_CustomElementConfig * config = command.config.customElementConfig;
+					const ClayCustomElementConfig * config = ( const ClayCustomElementConfig * ) command.renderData.custom.customData;
 					switch( config->type ) {
 						case ClayCustomElementType_Lua:
 							lua_getref( hud_L, config->lua.callback_ref );
@@ -2207,7 +2223,7 @@ void CG_DrawHUD() {
 								*clay_fonts[ text_config.fontId ].font,
 								Span< const char >( config->fitted_text.text.chars, config->fitted_text.text.length ),
 								MinMax2( mins, maxs ), config->fitted_text.alignment, ClayToCD( text_config.textColor ),
-								text_config.borderColor.exists ? MakeOptional( ClayToCD( text_config.borderColor.value ) ) : NONE );
+								config->fitted_text.border_color );
 						} break;
 					}
 				} break;

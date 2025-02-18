@@ -698,51 +698,51 @@ static void Settings() {
 		SettingsAudio();
 }
 
-static bool LicenseCategory( TempAllocator& temp, char c, const ImU32& color, const Vec2& size, const Vec2& pos ) {
-	constexpr auto draw_text = [] (ImDrawList * draw_list, ImFont * font, float font_size, const char * text, const Vec2& pos, const Vec2& size) {
-		ImGui::PushFont( font );
-
-		const Vec2 text_size = ImGui::CalcTextSize( text );
-		ImGui::SetCursorPos( Vec2( pos.x + (size.x - text_size.x) * 0.5f, pos.y + (size.y - text_size.y) * 0.5f ) );
-		const Vec2 global_pos = ImGui::GetCursorScreenPos();
-		draw_list->AddText( font, font_size, global_pos, IM_COL32( 255, 255, 255, 255 ), text );
-
-		ImGui::PopFont();
-	};
-
-	ImGui::SetCursorPos( pos );
-
-	Vec2 size2 = Vec2( size.x, size.y / 3.f );
-	Vec2 size1 = Vec2( size.x, size.y - size2.y );
-
-	Vec2 global_pos = ImGui::GetCursorScreenPos();
-	ImDrawList* draw_list = ImGui::GetForegroundDrawList();
-	draw_list->AddRectFilledMultiColor( global_pos, global_pos + size1, color, color, IM_COL32( 0, 0, 0, 255 ), IM_COL32( 0, 0, 0, 255 ) );
-	draw_list->AddRectFilled( global_pos + Vec2( 0.f, size1.y ), global_pos + size, color );
-
-	const char * text1 = temp( "{}", c );
-	draw_text( draw_list, cls.license_italic_font, 128.f, text1, pos, size1 );
-	draw_text( draw_list, cls.large_font, 64.f, temp( "{} LICENSE", c ), pos + Vec2( 0.f, size1.y ), size2 );
-
-	ImGui::SetCursorPos( pos );
-	ImGui::PushID( text1 );
-	bool pressed = ImGui::InvisibleButton( "", size );
-	ImGui::PopID();
-
-	return pressed;
-}
-
-static void License( const Vec2& size ) {
-	TempAllocator temp = cls.frame_arena.temp();
-
-	const float CATEGORY_X = 32.f;
-	const float CATEGORY_Y = 32.f;
-	const Vec2 LICENSE_CATEGORY_SIZE = Vec2( (size.x - CATEGORY_X) * 0.3f, (size.y - CATEGORY_Y * 4.f) / 3.f );
-
-	LicenseCategory( temp, 'B', IM_COL32( 125, 140, 255, 255 ), LICENSE_CATEGORY_SIZE, Vec2( CATEGORY_X, CATEGORY_Y ) );
-	LicenseCategory( temp, 'A', IM_COL32( 255, 140, 16, 255 ), LICENSE_CATEGORY_SIZE, Vec2( CATEGORY_X, CATEGORY_Y + (LICENSE_CATEGORY_SIZE.y + CATEGORY_Y) ) );
-	LicenseCategory( temp, 'S', IM_COL32( 255, 48, 48, 255 ), LICENSE_CATEGORY_SIZE, Vec2( CATEGORY_X, CATEGORY_Y + (LICENSE_CATEGORY_SIZE.y + CATEGORY_Y) * 2.f ) );
-}
+// static bool LicenseCategory( TempAllocator& temp, char c, const ImU32& color, const Vec2& size, const Vec2& pos ) {
+// 	constexpr auto draw_text = [] (ImDrawList * draw_list, ImFont * font, float font_size, const char * text, const Vec2& pos, const Vec2& size) {
+// 		ImGui::PushFont( font );
+//
+// 		const Vec2 text_size = ImGui::CalcTextSize( text );
+// 		ImGui::SetCursorPos( Vec2( pos.x + (size.x - text_size.x) * 0.5f, pos.y + (size.y - text_size.y) * 0.5f ) );
+// 		const Vec2 global_pos = ImGui::GetCursorScreenPos();
+// 		draw_list->AddText( font, font_size, global_pos, IM_COL32( 255, 255, 255, 255 ), text );
+//
+// 		ImGui::PopFont();
+// 	};
+//
+// 	ImGui::SetCursorPos( pos );
+//
+// 	Vec2 size2 = Vec2( size.x, size.y / 3.f );
+// 	Vec2 size1 = Vec2( size.x, size.y - size2.y );
+//
+// 	Vec2 global_pos = ImGui::GetCursorScreenPos();
+// 	ImDrawList* draw_list = ImGui::GetForegroundDrawList();
+// 	draw_list->AddRectFilledMultiColor( global_pos, global_pos + size1, color, color, IM_COL32( 0, 0, 0, 255 ), IM_COL32( 0, 0, 0, 255 ) );
+// 	draw_list->AddRectFilled( global_pos + Vec2( 0.f, size1.y ), global_pos + size, color );
+//
+// 	const char * text1 = temp( "{}", c );
+// 	draw_text( draw_list, cls.license_italic_font, 128.f, text1, pos, size1 );
+// 	draw_text( draw_list, cls.large_font, 64.f, temp( "{} LICENSE", c ), pos + Vec2( 0.f, size1.y ), size2 );
+//
+// 	ImGui::SetCursorPos( pos );
+// 	ImGui::PushID( text1 );
+// 	bool pressed = ImGui::InvisibleButton( "", size );
+// 	ImGui::PopID();
+//
+// 	return pressed;
+// }
+//
+// static void License( const Vec2& size ) {
+// 	TempAllocator temp = cls.frame_arena.temp();
+//
+// 	const float CATEGORY_X = 32.f;
+// 	const float CATEGORY_Y = 32.f;
+// 	const Vec2 LICENSE_CATEGORY_SIZE = Vec2( (size.x - CATEGORY_X) * 0.3f, (size.y - CATEGORY_Y * 4.f) / 3.f );
+//
+// 	LicenseCategory( temp, 'B', IM_COL32( 125, 140, 255, 255 ), LICENSE_CATEGORY_SIZE, Vec2( CATEGORY_X, CATEGORY_Y ) );
+// 	LicenseCategory( temp, 'A', IM_COL32( 255, 140, 16, 255 ), LICENSE_CATEGORY_SIZE, Vec2( CATEGORY_X, CATEGORY_Y + (LICENSE_CATEGORY_SIZE.y + CATEGORY_Y) ) );
+// 	LicenseCategory( temp, 'S', IM_COL32( 255, 48, 48, 255 ), LICENSE_CATEGORY_SIZE, Vec2( CATEGORY_X, CATEGORY_Y + (LICENSE_CATEGORY_SIZE.y + CATEGORY_Y) * 2.f ) );
+// }
 
 static void ServerBrowser() {
 	TempAllocator temp = cls.frame_arena.temp();

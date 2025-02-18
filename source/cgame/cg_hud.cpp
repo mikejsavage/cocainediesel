@@ -1654,7 +1654,8 @@ bool CG_ScoreboardShown() {
 }
 
 static void ClayErrorHandler( Clay_ErrorData error ) {
-	Breakpoint();
+	// NOTE(mike): normally you can't print a Clay_String with %s but they're all static strings so it works
+	Fatal( "%s", error.errorText.chars );
 }
 
 void CG_InitHUD() {
@@ -1781,7 +1782,7 @@ void CG_InitHUD() {
 	};
 	Clay_SetMeasureTextFunction( measure_text );
 
-	Clay_Initialize( clay_arena, { }, { } );
+	Clay_Initialize( clay_arena, { }, { .errorHandlerFunction = ClayErrorHandler } );
 }
 
 void CG_ShutdownHUD() {

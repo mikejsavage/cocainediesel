@@ -371,15 +371,14 @@ Quaternion QuaternionFromNormalAndRadians( Vec3 normal, float radians ) {
 	float d = Dot( normal, x );
 
 	Vec3 axis;
-
-	if( NearlyEqual( d, 1.0f ) ) {
+	if( NearlyEqual( Abs( d ), 1.0f ) ) {
 		axis = Vec3( 0.0f, 0.0f, 1.0f );
 	}
 	else {
 		axis = Normalize( Cross( x, normal ) );
 	}
 
-	return QuaternionFromAxisAndRadians( normal, radians ) * QuaternionFromAxisAndCosine( axis, Dot( x, normal ) );
+	return QuaternionFromAxisAndRadians( normal, radians ) * QuaternionFromAxisAndCosine( axis, d );
 }
 
 Quaternion BasisToQuaternion( Vec3 normal, Vec3 tangent, Vec3 bitangent ) {

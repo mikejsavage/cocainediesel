@@ -434,11 +434,5 @@ UserCommandButton CG_GetButtonDownEdges();
 EulerDegrees2 CG_GetDeltaViewAngles();
 Vec2 CG_GetMovement();
 
-/*
-* Returns angular movement vector (in euler angles) obtained from the input.
-* Doesn't take flipping into account.
-*/
-void CG_GetAngularMovement( Vec3 movement );
-
 bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize );
 int CG_GetBoundKeycodes( const char *cmd, int keys[ 2 ] );

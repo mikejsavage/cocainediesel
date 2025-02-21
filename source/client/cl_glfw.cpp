@@ -1,5 +1,6 @@
 #include "client/client.h"
 #include "client/icon.h"
+#include "client/keys.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/fpe.h"
 #include "qcommon/renderdoc.h"
@@ -57,35 +58,34 @@ static void OnWindowResized( GLFWwindow *, int w, int h ) {
 	}
 }
 
-static void OnMouseClicked( GLFWwindow *, int button, int action, int mods ) {
-	int key;
-	switch( button ) {
+static void OnMouseClicked( GLFWwindow *, int glfw, int action, int mods ) {
+	Key key;
+	Optional< ImGuiMouseButton > imgui = NONE;
+	Optional< ImGuiKey > imgui_key = NONE;
+	switch( glfw ) {
 		case GLFW_MOUSE_BUTTON_LEFT:
-			key = K_MOUSE1;
+			key = Key_MouseLeft;
+			imgui = ImGuiMouseButton_Left;
 			break;
 
 		case GLFW_MOUSE_BUTTON_RIGHT:
-			key = K_MOUSE2;
+			key = Key_MouseRight;
+			imgui = ImGuiMouseButton_Right;
 			break;
 
 		case GLFW_MOUSE_BUTTON_MIDDLE:
-			key = K_MOUSE3;
+			key = Key_MouseMiddle;
+			imgui = ImGuiMouseButton_Middle;
 			break;
 
 		case GLFW_MOUSE_BUTTON_4:
-			key = K_MOUSE4;
+			key = Key_Mouse4;
+			imgui = 3;
 			break;
 
 		case GLFW_MOUSE_BUTTON_5:
-			key = K_MOUSE5;
-			break;
-
-		case GLFW_MOUSE_BUTTON_6:
-			key = K_MOUSE6;
-			break;
-
-		case GLFW_MOUSE_BUTTON_7:
-			key = K_MOUSE7;
+			key = Key_Mouse5;
+			imgui = 4;
 			break;
 
 		default:
@@ -93,137 +93,27 @@ static void OnMouseClicked( GLFWwindow *, int button, int action, int mods ) {
 	}
 
 	bool down = action == GLFW_PRESS;
-	ImGui::GetIO().KeysDown[ key ] = down;
+	if( imgui.exists ) {
+		ImGui::GetIO().AddMouseButtonEvent( imgui.value, down );
+	}
 
 	if( !route_inputs_to_imgui ) {
-		Key_Event( key, down );
+		KeyEvent( key, down );
 	}
 }
 
 static void OnScroll( GLFWwindow *, double x, double y ) {
-	if( y != 0 ) {
-		int key = y > 0 ? K_MWHEELUP : K_MWHEELDOWN;
-		if( !route_inputs_to_imgui ) {
-			Key_Event( key, true );
-			Key_Event( key, false );
-		}
-		ImGui::GetIO().KeysDownDuration[ key ] = 0;
+	if( !route_inputs_to_imgui && y != 0 ) {
+		Key key = y > 0 ? Key_MouseWheelUp : Key_MouseWheelDown;
+		KeyEvent( key, true );
+		KeyEvent( key, false );
 	}
 
-	ImGui::GetIO().MouseWheelH += x;
-	ImGui::GetIO().MouseWheel += y;
+	ImGui::GetIO().AddMouseWheelEvent( x, y );
 }
 
-static int TranslateGLFWKey( int glfw ) {
-	switch( glfw ) {
-		case GLFW_KEY_TAB:           return K_TAB;
-		case GLFW_KEY_ENTER:         return K_ENTER;
-		case GLFW_KEY_ESCAPE:        return K_ESCAPE;
-		case GLFW_KEY_SPACE:         return K_SPACE;
-		case GLFW_KEY_CAPS_LOCK:     return K_CAPSLOCK;
-		case GLFW_KEY_SCROLL_LOCK:   return K_SCROLLLOCK;
-		case GLFW_KEY_NUM_LOCK:      return K_NUMLOCK;
-		case GLFW_KEY_BACKSPACE:     return K_BACKSPACE;
-		case GLFW_KEY_UP:            return K_UPARROW;
-		case GLFW_KEY_DOWN:          return K_DOWNARROW;
-		case GLFW_KEY_LEFT:          return K_LEFTARROW;
-		case GLFW_KEY_RIGHT:         return K_RIGHTARROW;
-		case GLFW_KEY_LEFT_ALT:      return K_LALT;
-		case GLFW_KEY_RIGHT_ALT:     return K_RALT;
-		case GLFW_KEY_LEFT_CONTROL:  return K_LCTRL;
-		case GLFW_KEY_RIGHT_CONTROL: return K_RCTRL;
-		case GLFW_KEY_LEFT_SHIFT:    return K_LSHIFT;
-		case GLFW_KEY_RIGHT_SHIFT:   return K_RSHIFT;
-		case GLFW_KEY_F1:            return K_F1;
-		case GLFW_KEY_F2:            return K_F2;
-		case GLFW_KEY_F3:            return K_F3;
-		case GLFW_KEY_F4:            return K_F4;
-		case GLFW_KEY_F5:            return K_F5;
-		case GLFW_KEY_F6:            return K_F6;
-		case GLFW_KEY_F7:            return K_F7;
-		case GLFW_KEY_F8:            return K_F8;
-		case GLFW_KEY_F9:            return K_F9;
-		case GLFW_KEY_F10:           return K_F10;
-		case GLFW_KEY_F11:           return K_F11;
-		case GLFW_KEY_F12:           return K_F12;
-		case GLFW_KEY_INSERT:        return K_INS;
-		case GLFW_KEY_DELETE:        return K_DEL;
-		case GLFW_KEY_PAGE_UP:       return K_PGUP;
-		case GLFW_KEY_PAGE_DOWN:     return K_PGDN;
-		case GLFW_KEY_HOME:          return K_HOME;
-		case GLFW_KEY_END:           return K_END;
-
-		case GLFW_KEY_A:             return 'a';
-		case GLFW_KEY_B:             return 'b';
-		case GLFW_KEY_C:             return 'c';
-		case GLFW_KEY_D:             return 'd';
-		case GLFW_KEY_E:             return 'e';
-		case GLFW_KEY_F:             return 'f';
-		case GLFW_KEY_G:             return 'g';
-		case GLFW_KEY_H:             return 'h';
-		case GLFW_KEY_I:             return 'i';
-		case GLFW_KEY_J:             return 'j';
-		case GLFW_KEY_K:             return 'k';
-		case GLFW_KEY_L:             return 'l';
-		case GLFW_KEY_M:             return 'm';
-		case GLFW_KEY_N:             return 'n';
-		case GLFW_KEY_O:             return 'o';
-		case GLFW_KEY_P:             return 'p';
-		case GLFW_KEY_Q:             return 'q';
-		case GLFW_KEY_R:             return 'r';
-		case GLFW_KEY_S:             return 's';
-		case GLFW_KEY_T:             return 't';
-		case GLFW_KEY_U:             return 'u';
-		case GLFW_KEY_V:             return 'v';
-		case GLFW_KEY_W:             return 'w';
-		case GLFW_KEY_X:             return 'x';
-		case GLFW_KEY_Y:             return 'y';
-		case GLFW_KEY_Z:             return 'z';
-
-		case GLFW_KEY_1:             return '1';
-		case GLFW_KEY_2:             return '2';
-		case GLFW_KEY_3:             return '3';
-		case GLFW_KEY_4:             return '4';
-		case GLFW_KEY_5:             return '5';
-		case GLFW_KEY_6:             return '6';
-		case GLFW_KEY_7:             return '7';
-		case GLFW_KEY_8:             return '8';
-		case GLFW_KEY_9:             return '9';
-		case GLFW_KEY_0:             return '0';
-
-		case GLFW_KEY_MINUS:         return '-';
-		case GLFW_KEY_EQUAL:         return '=';
-		case GLFW_KEY_BACKSLASH:     return '\\';
-		case GLFW_KEY_COMMA:         return ',';
-		case GLFW_KEY_PERIOD:        return '.';
-		case GLFW_KEY_SLASH:         return '/';
-		case GLFW_KEY_LEFT_BRACKET:  return '[';
-		case GLFW_KEY_RIGHT_BRACKET: return ']';
-		case GLFW_KEY_SEMICOLON:     return ';';
-		case GLFW_KEY_APOSTROPHE:    return '\'';
-		case GLFW_KEY_WORLD_1:       return '>';
-		case GLFW_KEY_WORLD_2:       return '<';
-
-		case GLFW_KEY_KP_0:          return KP_INS;
-		case GLFW_KEY_KP_1:          return KP_END;
-		case GLFW_KEY_KP_2:          return KP_DOWNARROW;
-		case GLFW_KEY_KP_3:          return KP_PGDN;
-		case GLFW_KEY_KP_4:          return KP_LEFTARROW;
-		case GLFW_KEY_KP_5:          return KP_5;
-		case GLFW_KEY_KP_6:          return KP_RIGHTARROW;
-		case GLFW_KEY_KP_7:          return KP_HOME;
-		case GLFW_KEY_KP_8:          return KP_UPARROW;
-		case GLFW_KEY_KP_9:          return KP_PGUP;
-		case GLFW_KEY_KP_ENTER:      return KP_ENTER;
-		case GLFW_KEY_KP_DECIMAL:    return KP_DEL;
-		case GLFW_KEY_KP_ADD:        return KP_PLUS;
-		case GLFW_KEY_KP_SUBTRACT:   return KP_MINUS;
-		case GLFW_KEY_KP_DIVIDE:     return KP_SLASH;
-		case GLFW_KEY_KP_MULTIPLY:   return KP_STAR;
-		case GLFW_KEY_KP_EQUAL:      return KP_EQUAL;
-	}
-	return 0;
-}
+ImGuiKey KeyToImGui( Key key );
+Optional< Key > KeyFromGLFW( int glfw );
 
 static void OnKeyPressed( GLFWwindow *, int glfw_key, int scancode, int action, int mods ) {
 	if( action == GLFW_REPEAT )
@@ -243,21 +133,15 @@ static void OnKeyPressed( GLFWwindow *, int glfw_key, int scancode, int action, 
 		return;
 	}
 
-	int key = TranslateGLFWKey( glfw_key );
-	if( key == 0 )
+	Optional< Key > key = KeyFromGLFW( glfw_key );
+	if( !key.exists )
 		return;
 
-	ImGuiIO & io = ImGui::GetIO();
+	ImGui::GetIO().AddKeyEvent( KeyToImGui( key.value ), down );
 
-	io.KeysDown[ key ] = down;
-
-	io.KeyCtrl = io.KeysDown[ K_LCTRL ] || io.KeysDown[ K_RCTRL ];
-	io.KeyShift = io.KeysDown[ K_LSHIFT ] || io.KeysDown[ K_RSHIFT ];
-	io.KeyAlt = io.KeysDown[ K_LALT ] || io.KeysDown[ K_RALT ];
-
-	bool is_f_key = key >= K_F1 && key <= K_F12;
+	bool is_f_key = key.value >= Key_F1 && key.value <= Key_F12;
 	if( !route_inputs_to_imgui || is_f_key ) {
-		Key_Event( key, down );
+		KeyEvent( key.value, down );
 	}
 }
 
@@ -510,7 +394,7 @@ static void InputFrame() {
 	if( route_inputs_to_imgui ) {
 		relative_mouse_movement = Vec2( 0.0f );
 		glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
-		Key_ClearStates();
+		AllKeysUp();
 	}
 	else if( running_in_debugger ) {
 		// don't grab input if we're running a debugger

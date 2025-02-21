@@ -10,8 +10,8 @@ bool CL_DemoPlaying() { return false; }
 
 void Con_Print( Span< const char > str ) { }
 
-void Key_Init() { }
-void Key_Shutdown() { }
+void InitKeys() { }
+void ShutdownKeys() { }
 
 void OSServerInit();
 bool OSServerShouldQuit();

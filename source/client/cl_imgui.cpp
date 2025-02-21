@@ -36,32 +36,8 @@ void CL_InitImGui() {
 	ImGui_ImplGlfw_InitForOpenGL( window, false );
 
 	ImGuiIO & io = ImGui::GetIO();
-
-	{
-		io.IniFilename = NULL;
-		io.KeyMap[ ImGuiKey_Tab ] = K_TAB;
-		io.KeyMap[ ImGuiKey_LeftArrow ] = K_LEFTARROW;
-		io.KeyMap[ ImGuiKey_RightArrow ] = K_RIGHTARROW;
-		io.KeyMap[ ImGuiKey_UpArrow ] = K_UPARROW;
-		io.KeyMap[ ImGuiKey_DownArrow ] = K_DOWNARROW;
-		io.KeyMap[ ImGuiKey_PageUp ] = K_PGUP;
-		io.KeyMap[ ImGuiKey_PageDown ] = K_PGDN;
-		io.KeyMap[ ImGuiKey_Home ] = K_HOME;
-		io.KeyMap[ ImGuiKey_End ] = K_END;
-		io.KeyMap[ ImGuiKey_Insert ] = K_INS;
-		io.KeyMap[ ImGuiKey_Delete ] = K_DEL;
-		io.KeyMap[ ImGuiKey_Backspace ] = K_BACKSPACE;
-		io.KeyMap[ ImGuiKey_Space ] = K_SPACE;
-		io.KeyMap[ ImGuiKey_Enter ] = K_ENTER;
-		io.KeyMap[ ImGuiKey_Escape ] = K_ESCAPE;
-		io.KeyMap[ ImGuiKey_KeyPadEnter ] = KP_ENTER;
-		io.KeyMap[ ImGuiKey_A ] = 'a';
-		io.KeyMap[ ImGuiKey_C ] = 'c';
-		io.KeyMap[ ImGuiKey_V ] = 'v';
-		io.KeyMap[ ImGuiKey_X ] = 'x';
-		io.KeyMap[ ImGuiKey_Y ] = 'y';
-		io.KeyMap[ ImGuiKey_Z ] = 'z';
-	}
+	io.IniFilename = NULL;
+	io.ConfigInputTrickleEventQueue = false; // so we can open the game menu with escape
 
 	{
 		AddFontAsset( "fonts/Decalotype-Bold.ttf", 18.0f );
@@ -111,9 +87,9 @@ void CL_InitImGui() {
 
 		style.Colors[ ImGuiCol_Tab ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
 		style.Colors[ ImGuiCol_TabHovered ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
-		style.Colors[ ImGuiCol_TabActive ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
-		style.Colors[ ImGuiCol_TabUnfocused ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
-		style.Colors[ ImGuiCol_TabUnfocusedActive ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_TabSelected ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_TabDimmed ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_TabDimmedSelected ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
 
 		style.Colors[ ImGuiCol_FrameBg ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
 		style.Colors[ ImGuiCol_FrameBgHovered ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
@@ -262,7 +238,7 @@ namespace ImGui {
 		ImGui::GetWindowDrawList()->AddCallback( NULL, ( void * ) 1 ); // TODO: this is a hack to separate drawcalls into 2 passes
 	}
 
-	bool Hotkey( int key ) {
+	bool Hotkey( ImGuiKey key ) {
 		return ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows ) && ImGui::IsKeyPressed( key, false );
 	}
 

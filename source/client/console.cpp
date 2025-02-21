@@ -294,7 +294,7 @@ void Con_Draw() {
 	{
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, bg );
 		ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8, 4 ) );
-		ImGui::BeginChild( "consoletext", ImVec2( 0, frame_static.viewport_height * 0.4f - ImGui::GetFrameHeightWithSpacing() - 3 ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
+		ImGui::BeginChild( "consoletext", ImVec2( 0, frame_static.viewport_height * 0.4f - ImGui::GetFrameHeightWithSpacing() - 3 ), ImGuiChildFlags_AlwaysUseWindowPadding );
 		{
 			Lock( console.log_mutex );
 			defer { Unlock( console.log_mutex ); };
@@ -313,10 +313,10 @@ void Con_Draw() {
 				console.scroll_to_bottom = false;
 			}
 
-			if( ImGui::IsKeyPressed( K_PGUP ) || ImGui::IsKeyPressed( K_PGDN ) ) {
+			if( ImGui::IsKeyPressed( ImGuiKey_PageUp ) || ImGui::IsKeyPressed( ImGuiKey_PageDown ) ) {
 				float scroll = ImGui::GetScrollY();
 				float page = ImGui::GetWindowSize().y - ImGui::GetTextLineHeight();
-				scroll += page * ( ImGui::IsKeyPressed( K_PGUP ) ? -1 : 1 );
+				scroll += page * ( ImGui::IsKeyPressed( ImGuiKey_PageUp ) ? -1 : 1 );
 				scroll = Clamp( 0.0f, scroll, ImGui::GetScrollMaxY() );
 				ImGui::SetScrollY( scroll );
 			}
@@ -357,7 +357,7 @@ void Con_Draw() {
 		ImGui::GetWindowDrawList()->AddRectFilled( top_left, bottom_right, ImGui::GetColorU32( ImGuiCol_Separator ) );
 	}
 
-	if( ImGui::Hotkey( K_ESCAPE ) ) {
+	if( ImGui::Hotkey( ImGuiKey_Escape ) ) {
 		Con_Close();
 	}
 

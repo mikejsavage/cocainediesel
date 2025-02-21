@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/maplist.h"
 #include "qcommon/threads.h"
 #include "qcommon/time.h"
+#include "client/keys.h"
 
 #include <errno.h>
 #include <setjmp.h>
@@ -225,9 +226,6 @@ void Com_SetClientState( connstate_t state ) {
 
 //============================================================================
 
-void Key_Init();
-void Key_Shutdown();
-
 void Qcommon_Init( int argc, char ** argv ) {
 	TracyZoneScoped;
 
@@ -249,7 +247,7 @@ void Qcommon_Init( int argc, char ** argv ) {
 	InitFS();
 	Cmd_Init();
 	Cvar_Init();
-	Key_Init(); // need to be able to bind keys before running configs
+	InitKeys(); // need to be able to bind keys before running configs
 
 	if( !is_dedicated_server ) {
 		ExecDefaultCfg();
@@ -340,7 +338,7 @@ void Qcommon_Shutdown() {
 
 	Netchan_Shutdown();
 	ShutdownNetworking();
-	Key_Shutdown();
+	ShutdownKeys();
 
 	RemoveCommand( "quit" );
 

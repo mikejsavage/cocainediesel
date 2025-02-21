@@ -1,129 +1,131 @@
-/*
-   Copyright (C) 1997-2001 Id Software, Inc.
-
-   This program is free software; you can redistribute it and/or
-   modify it under the terms of the GNU General Public License
-   as published by the Free Software Foundation; either version 2
-   of the License, or (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-   See the GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software
-   Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
- */
-
 #pragma once
 
 #include "qcommon/types.h"
 
-enum {
-	K_TAB = 9,
-	K_ENTER = 13,
-	K_ESCAPE = 27,
-	K_SPACE = 32,
+enum Key {
+	Key_Tab,
+	Key_Enter,
+	Key_Escape,
+	Key_Space,
+	Key_Backspace,
+	Key_CapsLock,
+	Key_ScrollLock,
+	Key_NumLock,
+	Key_Pause,
 
-	// normal keys should be passed as lowercased ascii
+	Key_UpArrow,
+	Key_DownArrow,
+	Key_LeftArrow,
+	Key_RightArrow,
 
-	K_BACKSPACE = 127,
+	Key_Insert,
+	Key_Delete,
+	Key_PageUp,
+	Key_PageDown,
+	Key_Home,
+	Key_End,
 
-	K_CAPSLOCK,
-	K_SCROLLLOCK,
-	K_PAUSE,
+	Key_LeftAlt,
+	Key_RightAlt,
+	Key_LeftCtrl,
+	Key_RightCtrl,
+	Key_LeftShift,
+	Key_RightShift,
 
-	K_UPARROW,
-	K_DOWNARROW,
-	K_LEFTARROW,
-	K_RIGHTARROW,
+	Key_F1,
+	Key_F2,
+	Key_F3,
+	Key_F4,
+	Key_F5,
+	Key_F6,
+	Key_F7,
+	Key_F8,
+	Key_F9,
+	Key_F10,
+	Key_F11,
+	Key_F12,
 
-	K_LALT,
-	K_RALT,
-	K_LCTRL,
-	K_RCTRL,
-	K_LSHIFT,
-	K_RSHIFT,
+	Key_0,
+	Key_1,
+	Key_2,
+	Key_3,
+	Key_4,
+	Key_5,
+	Key_6,
+	Key_7,
+	Key_8,
+	Key_9,
 
-	K_F1,
-	K_F2,
-	K_F3,
-	K_F4,
-	K_F5,
-	K_F6,
-	K_F7,
-	K_F8,
-	K_F9,
-	K_F10,
-	K_F11,
-	K_F12,
-	K_INS,
-	K_DEL,
-	K_PGDN,
-	K_PGUP,
-	K_HOME,
-	K_END,
+	Key_A,
+	Key_B,
+	Key_C,
+	Key_D,
+	Key_E,
+	Key_F,
+	Key_G,
+	Key_H,
+	Key_I,
+	Key_J,
+	Key_K,
+	Key_L,
+	Key_M,
+	Key_N,
+	Key_O,
+	Key_P,
+	Key_Q,
+	Key_R,
+	Key_S,
+	Key_T,
+	Key_U,
+	Key_V,
+	Key_W,
+	Key_X,
+	Key_Y,
+	Key_Z,
 
-	//
-	// Keypad stuff..
-	//
+	Key_KeypadDecimal,
+	Key_KeypadDivide,
+	Key_KeypadMultiply,
+	Key_KeypadSubtract,
+	Key_KeypadAdd,
+	Key_KeypadEnter,
+	Key_KeypadEqual,
+	Key_Keypad0,
+	Key_Keypad1,
+	Key_Keypad2,
+	Key_Keypad3,
+	Key_Keypad4,
+	Key_Keypad5,
+	Key_Keypad6,
+	Key_Keypad7,
+	Key_Keypad8,
+	Key_Keypad9,
 
-	K_NUMLOCK,
-	KP_SLASH,
-	KP_STAR,
-
-	KP_HOME,
-	KP_UPARROW,
-	KP_PGUP,
-	KP_MINUS,
-
-	KP_LEFTARROW,
-	KP_5,
-	KP_RIGHTARROW,
-	KP_PLUS,
-
-	KP_END,
-	KP_DOWNARROW,
-	KP_PGDN,
-
-	KP_INS,
-	KP_DEL,
-	KP_ENTER,
-
-	KP_MULT,        // Mac
-	KP_EQUAL,       // Mac
-
-	//
-	// mouse buttons generate virtual keys
-	//
-	K_MOUSE1 = 200,
-	K_MOUSE2,
-	K_MOUSE3,
-	K_MOUSE4,
-	K_MOUSE5,
-	K_MOUSE6,
-	K_MOUSE7,
-
-	K_MWHEELUP,
-	K_MWHEELDOWN,
+	Key_MouseLeft,
+	Key_MouseRight,
+	Key_MouseMiddle,
+	Key_Mouse4,
+	Key_Mouse5,
+	Key_MouseWheelUp,
+	Key_MouseWheelDown,
 
 	Key_Count
 };
 
-void Key_Event( int key, bool down );
-void Key_Init();
-void Key_Shutdown();
+void InitKeys();
+void ShutdownKeys();
 
-void Key_SetBinding( int keynum, Span< const char > binding );
-Span< const char > Key_GetBindingBuf( int binding );
-void Key_ClearStates();
-void Key_UnbindAll();
+void KeyEvent( Key key, bool down );
+void AllKeysUp();
 
-Span< const char > Key_KeynumToString( int id );
-Optional< int > Key_StringToKeynum( Span< const char > str );
+void SetKeyBind( Key key, Span< const char > command );
+Span< const char > GetKeyBind( Key key );
+void UnbindKey( Key key );
+void UnbindAllKeys();
+
+Span< const char > KeyName( Key key );
+
+void GetKeyBindsForCommand( Span< const char > command, Optional< Key > * key1, Optional< Key > * key2 );
 
 class DynamicString;
-void Key_WriteBindings( DynamicString * config );
+void WriteKeyBindingsConfig( DynamicString * config );

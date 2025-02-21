@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/fpe.h"
 #include "qcommon/time.h"
 #include "client/assets.h"
+#include "client/keys.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/text.h"
 #include "cgame/cg_local.h"
@@ -483,6 +484,10 @@ static Span< const char > LuaCheckSpan( lua_State * L, int idx ) {
 	return Span< const char >( str, len );
 }
 
+static void LuaPushSpan( lua_State * L, Span< const char > str ) {
+	lua_pushlstring( L, str.ptr, str.n );
+}
+
 static u8 CheckRGBA8Component( lua_State * L, int idx, int narg ) {
 	float val = lua_tonumber( L, idx );
 	luaL_argcheck( L, float( u8( val ) ) == val, narg, "RGBA8 colors must have u8 components" );
@@ -809,13 +814,25 @@ static int LuauDrawText( lua_State * L ) {
 }
 
 static int LuauGetBind( lua_State * L ) {
-	char keys[ 128 ];
-	if( !CG_GetBoundKeysString( luaL_checkstring( L, 1 ), keys, sizeof( keys ) ) ) {
-		snprintf( keys, sizeof( keys ), "[%s]", luaL_checkstring( L, 1 ) );
+	TempAllocator temp = cls.frame_arena.temp();
+
+	Span< const char > command = LuaCheckSpan( L, 1 );
+	Optional< Key > key1, key2;
+	GetKeyBindsForCommand( command, &key1, &key2 );
+
+	Span< const char > bind;
+	if( key1.exists && key2.exists ) {
+		bind = temp.sv( "{} or {}", KeyName( key1.value ), KeyName( key2.value ) );
+	}
+	else if( key1.exists ) {
+		bind = KeyName( key1.value );
+	}
+	else {
+		bind = temp.sv( "[{}]", command );
 	}
 
 	lua_newtable( L );
-	lua_pushstring( L, keys );
+	LuaPushSpan( L, bind );
 
 	return 1;
 }
@@ -2042,7 +2059,7 @@ void CG_DrawHUD() {
 
 		lua_pushnumber( hud_L, cg.predictedPlayerState.weapons[ i ].weapon );
 		lua_setfield( hud_L, -2, "weapon" );
-		lua_pushlstring( hud_L, def->name.ptr, def->name.n );
+		LuaPushSpan( hud_L, def->name );
 		lua_setfield( hud_L, -2, "name" );
 		lua_pushnumber( hud_L, cg.predictedPlayerState.weapons[ i ].ammo );
 		lua_setfield( hud_L, -2, "ammo" );
@@ -2076,7 +2093,7 @@ void CG_DrawHUD() {
 			const SyncScoreboardPlayer & player = client_gs.gameState.players[ team.player_indices[ p ] - 1 ];
 			lua_pushnumber( hud_L, team.player_indices[ p ] );
 			lua_setfield( hud_L, -2, "id" );
-			lua_pushlstring( hud_L, player.name, strlen( player.name ) );
+			lua_pushstring( hud_L, player.name );
 			lua_setfield( hud_L, -2, "name" );
 			lua_pushnumber( hud_L, player.ping );
 			lua_setfield( hud_L, -2, "ping" );

@@ -433,6 +433,3 @@ UserCommandButton CG_GetButtonBits();
 UserCommandButton CG_GetButtonDownEdges();
 EulerDegrees2 CG_GetDeltaViewAngles();
 Vec2 CG_GetMovement();
-
-bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize );
-int CG_GetBoundKeycodes( const char *cmd, int keys[ 2 ] );

@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/discord.h"
 #include "client/downloads.h"
 #include "client/gltf.h"
+#include "client/keys.h"
 #include "client/threadpool.h"
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
@@ -627,7 +628,7 @@ static void CL_WriteConfiguration() {
 
 	DynamicString config( &temp );
 
-	Key_WriteBindings( &config );
+	WriteKeyBindingsConfig( &config );
 	config += "\r\n";
 	config += Cvar_MakeConfig( &temp );
 

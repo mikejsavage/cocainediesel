@@ -4,6 +4,7 @@
 #include "client/assets.h"
 #include "client/audio/api.h"
 #include "client/client.h"
+#include "client/keys.h"
 #include "client/renderer/renderer.h"
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
@@ -79,12 +80,6 @@ static float sensivity_range[] = { 0.25f, 10.f };
 static size_t selected_mask = 0;
 static NonRAIIDynamicArray< char * > masks;
 static Span< const char > MASKS_DIR = "models/masks/";
-
-static void PushButtonColor( ImVec4 color ) {
-	ImGui::PushStyleColor( ImGuiCol_Button, color );
-	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( color.x + 0.125f, color.y + 0.125f, color.z + 0.125f, color.w ) );
-	ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( color.x - 0.125f, color.y - 0.125f, color.z - 0.125f, color.w ) );
-}
 
 static Vec4 RGBA8ToVec4NosRGB( RGBA8 rgba ) {
 	return Vec4(
@@ -163,6 +158,14 @@ static void SettingLabel( Span< const char > label ) {
 	ImGui::SameLine( 200 );
 }
 
+static bool ColorButton( const char * label, ImVec4 color ) {
+	ImGui::PushStyleColor( ImGuiCol_Button, color );
+	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( color.x + 0.125f, color.y + 0.125f, color.z + 0.125f, color.w ) );
+	ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( color.x - 0.125f, color.y - 0.125f, color.z - 0.125f, color.w ) );
+	defer { ImGui::PopStyleColor( 3 ); };
+	return ImGui::Button( label );
+}
+
 static void CvarTextbox( Span< const char > label, Span< const char > cvar_name, size_t max_len ) {
 	SettingLabel( label );
 
@@ -214,42 +217,73 @@ static void CvarSliderFloat( Span< const char > label, Span< const char > cvar_n
 	Cvar_Set( cvar_name, RemoveTrailingZeroesFloat( temp.sv( "{}", val ) ) );
 }
 
-static void KeyBindButton( Span< const char > label, const char * command ) {
+Optional< Key > KeyFromImGui( ImGuiKey imgui );
+
+static void KeyBindButton( Span< const char > label, Span< const char > command ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	SettingLabel( label );
 	ImGui::PushID( label );
 
-	char keys[ 128 ];
-	CG_GetBoundKeysString( command, keys, sizeof( keys ) );
-	if( ImGui::Button( keys, ImVec2( 200, 0 ) ) ) {
+	Optional< Key > key1, key2;
+	GetKeyBindsForCommand( command, &key1, &key2 );
+
+	ImGuiID modal = ImGui::GetID( "modal" );
+
+	int rebinding = 0;
+	if( ImGui::Button( key1.exists ? temp( "{}", KeyName( key1.value ) ) : "N/A", ImVec2( 200, 0 ) ) ) {
+		rebinding = 1;
+	}
+	ImGui::SameLine();
+	ImGui::BeginDisabled( !key1.exists );
+	if( ColorButton( "X", diesel_red.vec4 ) ) {
+		UnbindKey( key1.value );
+	}
+	ImGui::EndDisabled();
+
+	ImGui::SameLine( 0.0f, 50.0f );
+
+	ImGui::PushID( "key2" );
+	if( ImGui::Button( key2.exists ? temp( "{}", KeyName( key2.value ) ) : "N/A", ImVec2( 200, 0 ) ) ) {
+		rebinding = 2;
+	}
+	ImGui::SameLine();
+	ImGui::BeginDisabled( !key2.exists );
+	if( ColorButton( "X", diesel_red.vec4 ) ) {
+		UnbindKey( key2.value );
+	}
+	ImGui::PopID();
+	ImGui::EndDisabled();
+
+	if( rebinding != 0 ) {
 		ImGui::OpenPopup( "modal" );
 	}
 
 	if( ImGui::BeginPopupModal( "modal", NULL, ImGuiWindowFlags_NoDecoration ) ) {
-		ImGui::Text( "Press a key to set a new bind, or press DEL to delete it (ESCAPE to cancel)" );
+		ImGui::Text( "Press a key to set a new bind, or Escape to cancel" );
 
 		ImGuiIO & io = ImGui::GetIO();
-		for( size_t i = 0; i < ARRAY_COUNT( io.KeysDown ); i++ ) {
-			if( ImGui::IsKeyPressed( i ) ) {
-				if( i == K_DEL ) {
-					int binds[ 2 ];
-					int num_binds = CG_GetBoundKeycodes( command, binds );
-					for( int j = 0; j < num_binds; j++ ) {
-						Key_SetBinding( binds[ j ], "" );
-					}
-				} else if( i != K_ESCAPE ) {
-					Key_SetBinding( i, MakeSpan( command ) );
-				}
-				ImGui::CloseCurrentPopup();
-
-				// consume the escape so we don't close the ingame menu
-				io.KeysDown[ K_ESCAPE ] = false;
-				io.KeysDownDuration[ K_ESCAPE ] = -1.0f;
-			}
-		}
-
-		if( ImGui::IsKeyReleased( K_MWHEELUP ) || ImGui::IsKeyReleased( K_MWHEELDOWN ) ) {
-			Key_SetBinding( ImGui::IsKeyReleased( K_MWHEELUP ) ? K_MWHEELUP : K_MWHEELDOWN, MakeSpan( command ) );
+		if( ImGui::IsKeyPressed( ImGuiKey_Escape ) ) {
 			ImGui::CloseCurrentPopup();
+
+			// consume the escape so we don't close the ingame menu
+			ImGui::GetKeyData( ImGuiKey_Escape )->Down = false;
+		}
+		else {
+			for( ImGuiKey i = ImGuiKey_NamedKey_BEGIN; i < ImGuiKey_NamedKey_END; i++ ) {
+				if( ImGui::IsKeyPressed( i ) ) {
+					Optional< Key > key = KeyFromImGui( i );
+					if( key.exists ) {
+						SetKeyBind( key.value, command );
+						ImGui::CloseCurrentPopup();
+					}
+				}
+			}
+
+			if( io.MouseWheel != 0.0f ) {
+				SetKeyBind( io.MouseWheel > 0.0f ? Key_MouseWheelUp : Key_MouseWheelDown, command );
+				ImGui::CloseCurrentPopup();
+			}
 		}
 
 		ImGui::EndPopup();
@@ -352,12 +386,10 @@ static void SettingsControls() {
 
 	ImGui::BeginChild( "binds" );
 
-	PushButtonColor( diesel_red.vec4 );
-	if( ImGui::Button("Reset to default") ) {
-		Key_UnbindAll();
+	if( ColorButton( "Reset to default", diesel_red.vec4 ) ) {
+		UnbindAllKeys();
 		ExecDefaultCfg();
 	}
-	ImGui::PopStyleColor( 3 );
 
 	if( ImGui::BeginTabBar( "##binds", ImGuiTabBarFlags_None ) ) {
 		if( ImGui::BeginTabItem( "Game" ) ) {
@@ -411,7 +443,7 @@ static void SettingsControls() {
 
 		if( ImGui::BeginTabItem( "Voices" ) ) {
 			for( Vsay vsay : vsays ) {
-				KeyBindButton( vsay.description, temp( "vsay {}", vsay.short_name ) );
+				KeyBindButton( vsay.description, temp.sv( "vsay {}", vsay.short_name ) );
 			}
 			ImGui::EndTabItem();
 		}
@@ -544,11 +576,9 @@ static void SettingsVideo() {
 
 		ImGui::SameLine();
 
-		PushButtonColor( ImVec4( 0.5f, 0.5f, 0.5f, 1.f ) );
-		if( ImGui::Button( "Discard changes" ) ) {
+		if( ColorButton( "Discard changes", Vec4( Vec3( 0.5f ), 1.0f ) ) ) {
 			reset_video_settings = true;
 		}
-		ImGui::PopStyleColor( 3 );
 	}
 
 	ImGui::Separator();
@@ -863,7 +893,8 @@ static void CreateServer( bool gladiator ) {
 
 	if( ImGui::Button( "Create server" ) ) {
 		Cmd_Execute( &temp, "map \"{}\"", map_name );
-	} else if( ImGui::Hotkey( K_ESCAPE ) ) {
+	}
+	else if( ImGui::Hotkey( ImGuiKey_Escape ) ) {
 		mainmenu_state = MainMenuState_ServerBrowser;
 	}
 }
@@ -992,7 +1023,7 @@ static void MainMenu() {
 		ImGui::PopFont();
 
 		ImGui::SetCursorPosY( POSY );
-		if( ImGui::InvisibleButton( categories_text, categories_text_size ) || (ImGui::Hotkey( K_ESCAPE ) && mainmenu_state != MainMenuState_CreateServerGladiator && mainmenu_state != MainMenuState_CreateServerBomb) ) {
+		if( ImGui::InvisibleButton( categories_text, categories_text_size ) || ( ImGui::Hotkey( ImGuiKey_Escape ) && mainmenu_state != MainMenuState_CreateServerGladiator && mainmenu_state != MainMenuState_CreateServerBomb ) ) {
 			mainmenu_state = MainMenuState_Main;
 		}
 	}
@@ -1227,6 +1258,7 @@ static void Gadgets( Vec2 icon_size ) {
 	}
 }
 
+ImGuiKey KeyToImGui( Key key );
 static bool LoadoutMenu() {
 	ImVec2 displaySize = ImGui::GetIO().DisplaySize;
 
@@ -1263,18 +1295,18 @@ static bool LoadoutMenu() {
 
 		const Material * icon = FindMaterial( "textures/sprays/peekatyou" );
 		Vec2 half_pixel = HalfPixelSize( icon );
-		if( ImGui::ImageButton( icon, ImVec2( title_height, title_height ), half_pixel, 1.0f - half_pixel, 0, Vec4( 0.f ), Vec4( 1.0f ) ) ) {
-			for( int category = WeaponCategory_Melee; category < WeaponCategory_Count; ++category ) {
-				WeaponType w;
-				while(GS_GetWeaponDef(w = (WeaponType)RandomUniform( &cls.rng, Weapon_None + 1, Weapon_Count ))->category != category);
-				loadout.weapons[ category ] = w;
+		if( ImGui::ImageButton( "random", icon, ImVec2( title_height, title_height ), half_pixel, 1.0f - half_pixel, Vec4( 0.f ), Vec4( 1.0f ) ) ) {
+			for( WeaponCategory category = WeaponCategory( 0 ); category < WeaponCategory_Count; category++ ) {
+				do {
+					loadout.weapons[ category ] = WeaponType( RandomUniform( &cls.rng, Weapon_None + 1, Weapon_Count ) );
+				} while( GS_GetWeaponDef( loadout.weapons[ category ] )->category != category );
 			}
 
-			loadout.gadget = (GadgetType)RandomUniform( &cls.rng, Gadget_None + 1, Gadget_Count );
+			loadout.gadget = GadgetType( RandomUniform( &cls.rng, Gadget_None + 1, Gadget_Count ) );
 
-			PerkType p;
-			while(GetPerkDef(p = (PerkType)RandomUniform( &cls.rng, Perk_None + 1, Perk_Count))->disabled);
-			loadout.perk = p;
+			do {
+				loadout.perk = PerkType( RandomUniform( &cls.rng, Perk_None + 1, Perk_Count ) );
+			} while( GetPerkDef( loadout.perk )->disabled );
 
 			SendLoadout();
 		}
@@ -1389,10 +1421,10 @@ static bool LoadoutMenu() {
 	ImGui::PopStyleColor();
 	ImGui::PopFont();
 
-	int loadoutKeys[ 2 ] = { };
-	CG_GetBoundKeycodes( "loadoutmenu", loadoutKeys );
+	Optional< Key > key1, key2;
+	GetKeyBindsForCommand( "loadoutmenu", &key1, &key2 );
 
-	return should_close || ImGui::Hotkey( loadoutKeys[ 0 ] ) || ImGui::Hotkey( loadoutKeys[ 1 ] );
+	return should_close || ( key1.exists && ImGui::Hotkey( KeyToImGui( key1.value ) ) ) || ( key2.exists && ImGui::Hotkey( KeyToImGui( key2.value ) ) );
 }
 
 static void GameMenu() {
@@ -1408,7 +1440,7 @@ static void GameMenu() {
 		ready = true;
 	}
 
-	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 192 ) );
+	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 225 ) );
 	bool should_close = false;
 
 	ImVec2 displaySize = ImGui::GetIO().DisplaySize;
@@ -1437,20 +1469,13 @@ static void GameMenu() {
 		}
 		else {
 			if( client_gs.gameState.match_state <= MatchState_Countdown ) {
-				Vec4 color = ready ? diesel_red.vec4 : diesel_green.vec4;
-				color.w = 0.1f;
-
-				PushButtonColor( color );
+				ImGui::PushStyleColor( ImGuiCol_Text, ready ? diesel_red.vec4 : diesel_green.vec4 );
 				GameMenuButton( ready ? "Unready" : "Ready", "toggleready", &should_close );
-				ImGui::PopStyleColor( 3 );
+				ImGui::PopStyleColor();
 			}
 
 			GameMenuButton( "Spectate", "spectate", &should_close );
-
-			// TODO
-			if( true ) {
-				GameMenuButton( "Change weapons", "loadoutmenu", &should_close );
-			}
+			GameMenuButton( "Change weapons", "loadoutmenu", &should_close );
 		}
 
 		if( ImGui::Button( "Start a vote", ImVec2( -1, 0 ) ) ) {
@@ -1516,7 +1541,7 @@ static void GameMenu() {
 		Settings();
 	}
 
-	if( ImGui::Hotkey( K_ESCAPE ) || should_close ) {
+	if( ImGui::Hotkey( ImGuiKey_Escape ) || should_close ) {
 		uistate = UIState_Hidden;
 	}
 
@@ -1573,7 +1598,7 @@ static void DemoMenu() {
 		Settings();
 	}
 
-	if( ImGui::Hotkey( K_ESCAPE ) || should_close ) {
+	if( ImGui::Hotkey( ImGuiKey_Escape ) || should_close ) {
 		uistate = UIState_Hidden;
 	}
 
@@ -1635,7 +1660,7 @@ void UI_ShowMainMenu() {
 
 void UI_ShowGameMenu() {
 	// so the menu doesn't instantly close
-	ImGui::GetIO().KeysDown[ K_ESCAPE ] = false;
+	ImGui::GetIO().AddKeyEvent( ImGuiKey_Escape, false );
 
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Menu;
@@ -1643,7 +1668,7 @@ void UI_ShowGameMenu() {
 
 void UI_ShowDemoMenu() {
 	// so the menu doesn't instantly close
-	ImGui::GetIO().KeysDown[ K_ESCAPE ] = false;
+	ImGui::GetIO().AddKeyEvent( ImGuiKey_Escape, false );
 
 	uistate = UIState_DemoMenu;
 	demomenu_state = DemoMenuState_Menu;

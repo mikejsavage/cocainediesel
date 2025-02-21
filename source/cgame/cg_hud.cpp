@@ -1180,10 +1180,6 @@ static Optional< Clay_SizingAxis > CheckClaySize( lua_State * L, int idx, const 
 		return CLAY_SIZING_GROW( 0.0f );
 	}
 
-	if( str == "growmax" ) { // TODO: remove this when clay#273 gets fixed
-		return CLAY_SIZING_GROW( FLT_MAX );
-	}
-
 	if( EndsWith( str, "%" ) ) {
 		float percent;
 		if( !TrySpanToFloat( str.slice( 0, str.n - 1 ), &percent ) ) {

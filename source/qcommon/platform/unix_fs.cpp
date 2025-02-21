@@ -8,7 +8,6 @@
 #include "qcommon/platform/fs.h"
 #include "gameshared/q_shared.h"
 
-// these must come after qcommon because both tracy and one of these defines BLOCK_SIZE
 #include <dirent.h>
 #include <errno.h>
 #include <unistd.h>

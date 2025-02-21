@@ -137,7 +137,7 @@ bool DNS( const char * hostname, NetAddress * address, DNSFamily family ) {
 	return true;
 }
 
-static u64 OpenSocket( AddressFamily family, UDPOrTCP type, NonBlockingBool nonblocking, u16 port, const char * interface = NULL ) {
+static u64 OpenSocket( AddressFamily family, UDPOrTCP type, NonBlockingBool nonblocking, u16 port, const char * device = NULL ) {
 	u64 handle = OpenOSSocket( family, type, port );
 	if( handle == 0 ) {
 		return 0;
@@ -173,9 +173,9 @@ static u64 OpenSocket( AddressFamily family, UDPOrTCP type, NonBlockingBool nonb
 	address6.sin6_addr = in6addr_any;
 
 #if PLATFORM_LINUX
-	if( interface != NULL && !StrEqual( interface, "" ) ) {
-		if( !OSSocketBindToInterface( handle, interface ) ) {
-			Fatal( "sv_interface: %s isn't a valid interface name to bind to", interface );
+	if( device != NULL && !StrEqual( device, "" ) ) {
+		if( !OSSocketBindToInterface( handle, device ) ) {
+			Fatal( "sv_interface: %s isn't a valid interface name to bind to", device );
 		}
 	}
 #endif
@@ -199,20 +199,20 @@ Socket NewUDPClient( NonBlockingBool nonblocking ) {
 	return socket;
 }
 
-Socket NewUDPServer( const char * interface, u16 port, NonBlockingBool nonblocking ) {
+Socket NewUDPServer( const char * device, u16 port, NonBlockingBool nonblocking ) {
 	Socket socket = { };
 	socket.type = SocketType_UDPServer;
-	socket.ipv4 = OpenSocket( AddressFamily_IPv4, UDPOrTCP_UDP, nonblocking, port, interface );
-	socket.ipv6 = OpenSocket( AddressFamily_IPv6, UDPOrTCP_UDP, nonblocking, port, interface );
+	socket.ipv4 = OpenSocket( AddressFamily_IPv4, UDPOrTCP_UDP, nonblocking, port, device );
+	socket.ipv6 = OpenSocket( AddressFamily_IPv6, UDPOrTCP_UDP, nonblocking, port, device );
 	return socket;
 }
 
-Socket NewTCPServer( const char * interface, u16 port, NonBlockingBool nonblocking ) {
+Socket NewTCPServer( const char * device, u16 port, NonBlockingBool nonblocking ) {
 	Socket socket = { };
 	socket.type = SocketType_TCPServer;
-	socket.ipv4 = OpenSocket( AddressFamily_IPv4, UDPOrTCP_TCP, nonblocking, port, interface );
+	socket.ipv4 = OpenSocket( AddressFamily_IPv4, UDPOrTCP_TCP, nonblocking, port, device );
 	OSSocketListen( socket.ipv4 );
-	socket.ipv6 = OpenSocket( AddressFamily_IPv6, UDPOrTCP_TCP, nonblocking, port, interface );
+	socket.ipv6 = OpenSocket( AddressFamily_IPv6, UDPOrTCP_TCP, nonblocking, port, device );
 	OSSocketListen( socket.ipv6 );
 	return socket;
 }

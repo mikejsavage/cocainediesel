@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static bool sv_initialized = false;
 
 Cvar *sv_port;
+Cvar *sv_interface;
 
 Cvar *sv_downloadurl;
 
@@ -329,6 +330,7 @@ void SV_Init() {
 	NewCvar( "serverid", temp.sv( "{}", Random64( &svs.rng ) ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 
 	sv_port = NewCvar( "sv_port", temp.sv( "{}", PORT_SERVER ), CvarFlag_Archive | CvarFlag_ServerReadOnly );
+	sv_interface = NewCvar( "sv_interface", "", CvarFlag_ServerReadOnly | CvarFlag_LinuxOnly );
 
 	sv_downloadurl = NewCvar( "sv_downloadurl", "", CvarFlag_Archive | CvarFlag_ServerReadOnly );
 

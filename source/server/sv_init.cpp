@@ -130,7 +130,7 @@ static void SV_InitGame() {
 	svs.client_entities.entities = AllocMany< SyncEntityState >( sys_allocator, svs.client_entities.num_entities );
 	memset( svs.client_entities.entities, 0, sizeof( svs.client_entities.entities[ 0 ] ) * svs.client_entities.num_entities );
 
-	svs.socket = NewUDPServer( sv_port->integer, NonBlocking_Yes );
+	svs.socket = NewUDPServer( sv_interface->value, sv_port->integer, NonBlocking_Yes );
 
 	// init game
 	G_Init( svc.snapFrameTime );

@@ -398,7 +398,7 @@ void InitWebServer() {
 	void * web_server_arena_memory = sys_allocator->allocate( web_server_arena_size, 16 );
 	web_server_arena = ArenaAllocator( web_server_arena_memory, web_server_arena_size );
 
-	web_server_socket = NewTCPServer( sv_port->integer, NonBlocking_Yes );
+	web_server_socket = NewTCPServer( sv_interface->value, sv_port->integer, NonBlocking_Yes );
 	web_server_thread = NewThread( WebServerThread );
 }
 

@@ -171,6 +171,11 @@ void Cvar_Set( Span< const char > name, Span< const char > value ) {
 		return;
 	}
 
+	if( HasAllBits( cvar->flags, CvarFlag_LinuxOnly ) && !IFDEF( PLATFORM_LINUX ) ) {
+		Com_GGPrint( "{} is a Linux only cvar.", cvar->name );
+		return;
+	}
+
 	SetCvar( cvar, value );
 }
 

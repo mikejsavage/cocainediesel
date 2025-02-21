@@ -20,6 +20,7 @@ void CloseOSSocket( u64 handle );
 
 void OSSocketMakeNonblocking( u64 handle );
 void OSSocketSetSockOptOne( u64 handle, int level, int opt );
+bool OSSocketBindToInterface( u64 handle, const char * interface );
 
 // these return false if the tcp connection was closed
 bool OSSocketSend( u64 handle, const void * data, size_t n, const sockaddr_storage * destination, size_t destination_size, size_t * sent );

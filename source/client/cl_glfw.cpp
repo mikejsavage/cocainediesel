@@ -61,7 +61,6 @@ static void OnWindowResized( GLFWwindow *, int w, int h ) {
 static void OnMouseClicked( GLFWwindow *, int glfw, int action, int mods ) {
 	Key key;
 	Optional< ImGuiMouseButton > imgui = NONE;
-	Optional< ImGuiKey > imgui_key = NONE;
 	switch( glfw ) {
 		case GLFW_MOUSE_BUTTON_LEFT:
 			key = Key_MouseLeft;

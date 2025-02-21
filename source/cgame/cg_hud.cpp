@@ -1588,7 +1588,7 @@ static void DrawClayNodeRecursive( lua_State * L ) {
 
 	Clay__OpenElement();
 	Clay__ConfigureOpenElement( Clay_ElementDeclaration {
-		.id = clay_element_counter++,
+		.id = { clay_element_counter++ },
 		.layout = GetClayLayoutConfig( L, -1 ),
 		.backgroundColor = Default( GetOptionalClayColor( L, -1, "background" ), { } ),
 		.cornerRadius = GetClayBorderRadius( L, -1 ),

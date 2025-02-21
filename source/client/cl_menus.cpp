@@ -228,8 +228,6 @@ static void KeyBindButton( Span< const char > label, Span< const char > command 
 	Optional< Key > key1, key2;
 	GetKeyBindsForCommand( command, &key1, &key2 );
 
-	ImGuiID modal = ImGui::GetID( "modal" );
-
 	int rebinding = 0;
 	if( ImGui::Button( key1.exists ? temp( "{}", KeyName( key1.value ) ) : "N/A", ImVec2( 200, 0 ) ) ) {
 		rebinding = 1;

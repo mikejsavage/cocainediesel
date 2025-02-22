@@ -102,6 +102,17 @@ static constexpr KeyInfo keys[] = {
 	{ Key_Y,              ImGuiKey_Y,              GLFW_KEY_Y,             "Y",                "Y" },
 	{ Key_Z,              ImGuiKey_Z,              GLFW_KEY_Z,             "Z",                "Z" },
 
+	{ Key_Apostrophe,     ImGuiKey_Apostrophe,     GLFW_KEY_APOSTROPHE,    "'",                "'" },
+	{ Key_Comma,          ImGuiKey_Comma,          GLFW_KEY_COMMA,         ",",                "," },
+	{ Key_Minus,          ImGuiKey_Minus,          GLFW_KEY_MINUS,         "-",                "-" },
+	{ Key_Period,         ImGuiKey_Period,         GLFW_KEY_PERIOD,        ".",                "." },
+	{ Key_Slash,          ImGuiKey_Slash,          GLFW_KEY_SLASH,         "/",                "/" },
+	{ Key_Semicolon,      ImGuiKey_Semicolon,      GLFW_KEY_SEMICOLON,     ";",                ";" },
+	{ Key_Equal,          ImGuiKey_Equal,          GLFW_KEY_EQUAL,         "=",                "=" },
+	{ Key_LeftBracket,    ImGuiKey_LeftBracket,    GLFW_KEY_LEFT_BRACKET,  "[",                "[" },
+	{ Key_Backslash,      ImGuiKey_Backslash,      GLFW_KEY_BACKSLASH,     "\\",               "\\" },
+	{ Key_RightBracket,   ImGuiKey_RightBracket,   GLFW_KEY_RIGHT_BRACKET, "]",                "]" },
+
 	{ Key_KeypadDecimal,  ImGuiKey_KeypadDecimal,  GLFW_KEY_KP_DECIMAL,    "Keypad Decimal",   "KP_DEL" },
 	{ Key_KeypadDivide,   ImGuiKey_KeypadDivide,   GLFW_KEY_KP_DIVIDE,     "Keypad Divide",    "KP_SLASH" },
 	{ Key_KeypadMultiply, ImGuiKey_KeypadMultiply, GLFW_KEY_KP_MULTIPLY,   "Keypad Multiply",  "KP_MULT" },

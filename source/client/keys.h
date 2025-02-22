@@ -83,6 +83,17 @@ enum Key {
 	Key_Y,
 	Key_Z,
 
+	Key_Apostrophe,
+	Key_Comma,
+	Key_Minus,
+	Key_Period,
+	Key_Slash,
+	Key_Semicolon,
+	Key_Equal,
+	Key_LeftBracket,
+	Key_Backslash,
+	Key_RightBracket,
+
 	Key_KeypadDecimal,
 	Key_KeypadDivide,
 	Key_KeypadMultiply,

@@ -22,19 +22,6 @@ bool Sys_OpenInWebBrowser( const char * url ) {
 	return posix_spawnp( NULL, open, NULL, NULL, argv, environ ) == 0;
 }
 
-// https://developer.apple.com/library/archive/qa/qa1361/_index.html
-bool Sys_BeingDebugged() {
-	int mib[] = { CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid() };
-	struct kinfo_proc info = { };
-	size_t size = sizeof( info );
-	int ok = sysctl( mib, ARRAY_COUNT( mib ), &info, &size, NULL, 0 );
-	if( ok != 0 ) {
-		Fatal( "Sys_BeingDebugged" );
-	}
-
-	return ( info.kp_proc.p_flag & P_TRACED ) != 0;
-}
-
 bool IsRenderDocAttached() {
 	// RenderDoc doesn't run on macOS
 	return false;

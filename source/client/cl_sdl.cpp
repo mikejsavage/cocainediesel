@@ -22,7 +22,6 @@ const bool is_dedicated_server = false;
 SDL_Window * window;
 static SDL_GLContext gl_context;
 
-static bool running_in_debugger;
 static bool running_in_renderdoc;
 static bool route_inputs_to_imgui;
 
@@ -339,7 +338,6 @@ static void InputFrame() {
 }
 
 int main( int argc, char ** argv ) {
-	running_in_debugger = !is_public_build && Sys_BeingDebugged();
 	running_in_renderdoc = IsRenderDocAttached();
 
 	{

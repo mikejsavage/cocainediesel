@@ -26,10 +26,6 @@ void ShowErrorMessage( const char * msg, const char * file, int line ) {
 #endif
 }
 
-bool Sys_BeingDebugged() {
-	return IsDebuggerPresent() != 0;
-}
-
 bool IsRenderDocAttached() {
 	return GetModuleHandleA( "renderdoc.dll" ) != NULL;
 }

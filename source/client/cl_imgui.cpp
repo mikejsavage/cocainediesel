@@ -59,13 +59,12 @@ void CL_InitImGui() {
 		int width, height;
 		io.Fonts->GetTexDataAsAlpha8( &pixels, &width, &height );
 
-		TextureConfig config;
-		config.format = TextureFormat_A_U8;
-		config.width = width;
-		config.height = height;
-		config.data = pixels;
-
-		atlas_texture = NewTexture( config );
+		atlas_texture = NewTexture( TextureConfig {
+			.format = TextureFormat_A_U8,
+			.width = checked_cast< u32 >( width ),
+			.height = checked_cast< u32 >( height ),
+			.data = pixels,
+		} );
 		atlas_material.texture = &atlas_texture;
 		io.Fonts->TexID = ImGuiShaderAndMaterial( &atlas_material );
 	}

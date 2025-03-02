@@ -659,6 +659,10 @@ static void SettingsVideo() {
 	CvarCheckbox( "Vsync", "vid_vsync" );
 
 	CvarCheckbox( "Colorblind mode", "cg_colorBlind" );
+	for( Team i = Team_One; i < Team_Count; i++ ) {
+		ImGui::SameLine();
+		ImGui::Text( "%s", temp( "{}[Team {}]", ImGuiColorToken( CG_RealTeamColor( i ) ), i ) );
+	}
 }
 
 static void SettingsAudio() {

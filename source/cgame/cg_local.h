@@ -329,6 +329,7 @@ void CG_GameCommand( const char *command );
 //
 // cg_teams.c
 //
+RGB8 CG_RealTeamColor( Team team );
 RGB8 CG_TeamColor( Team team );
 RGB8 AllyColor();
 RGB8 EnemyColor();

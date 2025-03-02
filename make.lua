@@ -36,7 +36,6 @@ require( "libs.dr_mp3" )
 require( "libs.freetype" )
 require( "libs.gg" )
 require( "libs.glad" )
-require( "libs.glfw3" )
 require( "libs.imgui" )
 require( "libs.jsmn" )
 require( "libs.luau" )
@@ -47,6 +46,7 @@ require( "libs.msdfgen" )
 require( "libs.openal" )
 require( "libs.picohttpparser" )
 require( "libs.rgbcx" )
+require( "libs.sdl" )
 require( "libs.stb" )
 require( "libs.tracy" )
 require( "libs.zstd" )
@@ -59,6 +59,12 @@ local platform_curl_libs = {
 	{ OS ~= "macos" and "curl" or nil },
 	{ OS == "linux" and "mbedtls" or nil },
 }
+
+obj_cxxflags( "source/client/cl_imgui.cpp", "-I libs/sdl" )
+obj_cxxflags( "source/client/cl_menus.cpp", "-I libs/sdl" )
+obj_cxxflags( "source/client/cl_sdl.cpp", "-I libs/sdl" )
+obj_cxxflags( "source/client/keys.cpp", "-I libs/sdl" )
+obj_cxxflags( "source/client/renderer/backend.cpp", "-I libs/sdl" )
 
 obj_cxxflags( "source/client/audio/linux.cpp", "-Ilibs/alsa-headers -Ilibs/pulseaudio-headers" )
 obj_cxxflags( "source/qcommon/linear_algebra_kernels.cpp", "-O2" )
@@ -86,12 +92,12 @@ do
 			"ggformat",
 			"ggtime",
 			"glad",
-			"glfw3",
 			"jsmn",
 			"luau",
 			"monocypher",
 			"openal",
 			"picohttpparser",
+			"sdl",
 			"stb_image",
 			"stb_image_write",
 			"stb_rect_pack",
@@ -103,7 +109,7 @@ do
 
 		rc = "source/client/platform/client",
 
-		windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib /SUBSYSTEM:WINDOWS",
+		windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib Setupapi.lib /SUBSYSTEM:WINDOWS",
 		macos_ldflags = "-lcurl -framework AudioToolbox -framework Cocoa -framework CoreAudio -framework CoreVideo -framework IOKit",
 		linux_ldflags = "-lm -lpthread -ldl",
 		no_static_link = true,

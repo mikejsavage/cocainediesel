@@ -17,8 +17,7 @@
 
 #include "cgame/cg_local.h"
 
-#define GLFW_INCLUDE_NONE
-#include "glfw3/GLFW/glfw3.h"
+#include "sdl/SDL3/SDL_video.h"
 
 enum UIState {
 	UIState_Hidden,
@@ -501,21 +500,22 @@ static void SettingsVideo() {
 	ImGui::PopItemWidth();
 
 	if( mode.fullscreen != FullscreenMode_Fullscreen ) {
-		mode.video_mode.frequency = 0;
+		mode.video_mode.refresh_rate = 0.0f;
 	}
 
 	if( mode.fullscreen != FullscreenMode_Windowed ) {
 		int num_monitors;
-		GLFWmonitor ** monitors = glfwGetMonitors( &num_monitors );
+		SDL_DisplayID * monitors = SDL_GetDisplays( &num_monitors );
+		defer { SDL_free( monitors ); };
 
 		if( num_monitors > 1 ) {
 			SettingLabel( "Monitor" );
 			ImGui::PushItemWidth( 400 );
 
-			if( ImGui::BeginCombo( "##monitor", glfwGetMonitorName( monitors[ mode.monitor ] ) ) ) {
+			if( ImGui::BeginCombo( "##monitor", SDL_GetDisplayName( monitors[ mode.monitor ] ) ) ) {
 				for( int i = 0; i < num_monitors; i++ ) {
 					ImGui::PushID( i );
-					if( ImGui::Selectable( glfwGetMonitorName( monitors[ i ] ), mode.monitor == i ) ) {
+					if( ImGui::Selectable( SDL_GetDisplayName( monitors[ i ] ), mode.monitor == i ) ) {
 						mode.monitor = i;
 					}
 					ImGui::PopID();
@@ -530,23 +530,24 @@ static void SettingsVideo() {
 			SettingLabel( "Resolution" );
 			ImGui::PushItemWidth( 200 );
 
-			if( mode.video_mode.frequency == 0 ) {
+			if( mode.video_mode.refresh_rate == 0.0f ) {
 				mode.video_mode = GetVideoMode( mode.monitor );
 			}
 
 			if( ImGui::BeginCombo( "##resolution", temp( "{}", mode.video_mode ) ) ) {
 				int num_modes;
-				const GLFWvidmode * modes = glfwGetVideoModes( monitors[ mode.monitor ], &num_modes );
+				SDL_DisplayMode ** modes = SDL_GetFullscreenDisplayModes( monitors[ mode.monitor ], &num_modes );
+				defer { SDL_free( modes ); };
 
 				for( int i = 0; i < num_modes; i++ ) {
 					int idx = num_modes - i - 1;
 
 					VideoMode m = { };
-					m.width = modes[ idx ].width;
-					m.height = modes[ idx ].height;
-					m.frequency = modes[ idx ].refreshRate;
+					m.width = modes[ idx ]->w;
+					m.height = modes[ idx ]->h;
+					m.refresh_rate = modes[ idx ]->refresh_rate;
 
-					bool is_selected = mode.video_mode.width == m.width && mode.video_mode.height == m.height && mode.video_mode.frequency == m.frequency;
+					bool is_selected = mode.video_mode.width == m.width && mode.video_mode.height == m.height && mode.video_mode.refresh_rate == m.refresh_rate;
 					if( ImGui::Selectable( temp( "{}", m ), is_selected ) ) {
 						mode.video_mode = m;
 					}
@@ -560,10 +561,10 @@ static void SettingsVideo() {
 
 	if( mode != GetWindowMode() ) {
 		if( ImGui::Button( "Apply changes" ) ) {
-			if( !mode.fullscreen ) {
-				const GLFWvidmode * primary_mode = glfwGetVideoMode( glfwGetPrimaryMonitor() );
-				mode.video_mode.width = primary_mode->width * 0.8f;
-				mode.video_mode.height = primary_mode->height * 0.8f;
+			if( mode.fullscreen == FullscreenMode_Windowed ) {
+				const SDL_DisplayMode * primary_mode = SDL_GetDesktopDisplayMode( SDL_GetPrimaryDisplay() );
+				mode.video_mode.width = primary_mode->w * 0.8f;
+				mode.video_mode.height = primary_mode->h * 0.8f;
 				mode.x = -1;
 				mode.y = -1;
 			}

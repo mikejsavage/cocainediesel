@@ -1,5 +1,5 @@
 #include "imgui/imgui.h"
-#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_sdl3.h"
 #include "imgui/imgui_internal.h"
 
 #include "qcommon/base.h"
@@ -25,15 +25,15 @@ static ImFont * AddFontAsset( StringHash path, float pixel_size ) {
 	return ImGui::GetIO().Fonts->AddFont( &config );
 }
 
-struct GLFWwindow;
-extern GLFWwindow * window;
+struct SDL_Window;
+extern SDL_Window * window;
 
 void CL_InitImGui() {
 	TracyZoneScoped;
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGui_ImplGlfw_InitForOpenGL( window, false );
+	ImGui_ImplSDL3_InitForOther( window );
 
 	ImGuiIO & io = ImGui::GetIO();
 	io.IniFilename = NULL;
@@ -117,7 +117,7 @@ void CL_InitImGui() {
 void CL_ShutdownImGui() {
 	DeleteTexture( atlas_texture );
 
-	ImGui_ImplGlfw_Shutdown();
+	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext();
 }
 
@@ -211,7 +211,7 @@ static void SubmitDrawCalls() {
 void CL_ImGuiBeginFrame() {
 	TracyZoneScoped;
 
-	ImGui_ImplGlfw_NewFrame();
+	ImGui_ImplSDL3_NewFrame();
 	ImGui::NewFrame();
 }
 

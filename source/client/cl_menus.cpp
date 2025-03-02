@@ -294,6 +294,11 @@ static Span< const char > SelectableMapList( bool include_gladiator ) {
 	Span< Span< const char > > maps = GetMapList();
 	static size_t selected_map = 0;
 
+	// Don't select the gladiator map if it was selected
+	if ( StrEqual( maps[ selected_map ], "gladiator" ) ) {
+		selected_map = (selected_map + 1) % maps.n;
+	}
+
 	ImGui::PushItemWidth( 200 );
 	if( ImGui::BeginCombo( "##map", temp( "{}", maps[ selected_map ] ) ) ) {
 		for( size_t i = 0; i < maps.n; i++ ) {

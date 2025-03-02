@@ -343,7 +343,7 @@ int main( int argc, char ** argv ) {
 	{
 		TracyZoneScopedN( "Init SDL" );
 		TrySDL( SDL_SetAppMetadata, APPLICATION, APP_VERSION, "fun.cocainediesel" );
-		TrySDL( SDL_Init, SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD );
+		TrySDL( SDL_Init, SDL_INIT_VIDEO | SDL_INIT_GAMEPAD );
 	}
 
 	Con_Init();

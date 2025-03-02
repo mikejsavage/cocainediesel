@@ -1,1 +1,1 @@
-prebuilt_lib( "sdl", { "SDL3-static", "SDL_uclibc" } )
+prebuilt_lib( "sdl", { OS == "windows" and "SDL3-static" or "SDL3", "SDL_uclibc" } )

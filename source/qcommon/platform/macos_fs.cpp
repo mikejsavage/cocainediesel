@@ -20,6 +20,9 @@ Span< char > GetExePath( Allocator * a ) {
 			Fatal( "_NSGetExecutablePath" );
 		}
 	}
+	else {
+		buf.resize( len );
+	}
 
 	return buf.span();
 }

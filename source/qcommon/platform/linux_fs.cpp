@@ -27,7 +27,7 @@ Span< char > GetExePath( Allocator * a ) {
 		}
 
 		if( size_t( n ) < buf.size() ) {
-			buf[ n ] = '\0';
+			buf.resize( n );
 			break;
 		}
 

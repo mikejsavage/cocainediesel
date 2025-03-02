@@ -51,8 +51,10 @@ Span< char > GetExePath( Allocator * a ) {
 			FatalGLE( "GetModuleFileNameW" );
 		}
 
-		if( n < buf.size() )
+		if( n < buf.size() ) {
+			buf.resize( n );
 			break;
+		}
 
 		buf.resize( buf.size() * 2 );
 	}

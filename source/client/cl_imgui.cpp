@@ -38,6 +38,7 @@ void CL_InitImGui() {
 	ImGuiIO & io = ImGui::GetIO();
 	io.IniFilename = NULL;
 	io.ConfigInputTrickleEventQueue = false; // so we can open the game menu with escape
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
 	{
 		AddFontAsset( "fonts/Decalotype-Bold.ttf", 18.0f );

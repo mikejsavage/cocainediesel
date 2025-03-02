@@ -222,7 +222,7 @@ bool IsWindowFocused() {
 }
 
 Vec2 GetJoystickMovement() {
-	return ImGui::GetKeyMagnitude2d( ImGuiKey_GamepadLStickLeft, ImGuiKey_GamepadLStickRight, ImGuiKey_GamepadLStickUp, ImGuiKey_GamepadLStickDown );
+	return ImGui::GetKeyMagnitude2d( ImGuiKey_GamepadLStickLeft, ImGuiKey_GamepadLStickRight, ImGuiKey_GamepadLStickDown, ImGuiKey_GamepadLStickUp );
 }
 
 static Vec2 relative_mouse_movement;

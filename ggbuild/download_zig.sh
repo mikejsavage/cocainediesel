@@ -7,6 +7,7 @@ cd "$(dirname "$0")"
 version="$(cat zig_version.txt)"
 
 if [ -e "zig-$version/zig" ]; then
+	touch "zig-$version/zig" # let ninja know it doesn't need to rerun this
 	exit
 fi
 

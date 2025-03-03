@@ -72,6 +72,7 @@ struct PipelineState {
 	Optional< Scissor > scissor = NONE;
 	bool write_depth = true;
 	bool clamp_depth = false;
+	bool alpha_to_coverage = false;
 	bool view_weapon_depth_hack = false;
 	bool wireframe = false;
 
@@ -82,7 +83,7 @@ struct PipelineState {
 };
 
 struct MeshConfig {
-	const char * name;
+	Span< const char > name;
 
 	VertexDescriptor vertex_descriptor;
 	GPUBuffer vertex_buffers[ VertexAttribute_Count ];
@@ -91,13 +92,11 @@ struct MeshConfig {
 	GPUBuffer index_buffer;
 	u32 num_vertices;
 
-	bool cw_winding;
-
 	static constexpr VertexFormat default_attribute_formats[] = {
 		VertexFormat_Floatx3,
 		VertexFormat_Floatx3,
 		VertexFormat_Floatx2,
-		VertexFormat_U8x4_Norm,
+		VertexFormat_U8x4_01,
 		VertexFormat_U16x4,
 		VertexFormat_Floatx4,
 	};
@@ -184,24 +183,17 @@ u8 AddRenderPass( const tracy::SourceLocationData * tracy, RenderTarget target, 
 
 UniformBlock UploadUniforms( const void * data, size_t size );
 
-enum GPUBufferType {
-	GPUBuffer_Private,
-	GPUBuffer_Writeable,
-	GPUBuffer_Coherent,
-};
-
-GPUBuffer NewGPUBuffer( const void * data, u32 size, GPUBufferType type, const char * name = NULL );
-GPUBuffer NewGPUBuffer( const void * data, u32 size, const char * name = NULL );
+GPUBuffer NewGPUBuffer( const void * data, u32 size, Span< const char > name = { } );
 void DeleteGPUBuffer( GPUBuffer buf );
 void DeferDeleteGPUBuffer( GPUBuffer buf );
 
-StreamingBuffer NewStreamingBuffer( u32 size, const char * name = NULL );
+StreamingBuffer NewStreamingBuffer( u32 size, Span< const char > name = { } );
 void * GetStreamingBufferMemory( StreamingBuffer stream );
 void DeleteStreamingBuffer( StreamingBuffer buf );
 void DeferDeleteStreamingBuffer( StreamingBuffer buf );
 
 template< typename T >
-GPUBuffer NewGPUBuffer( Span< T > data, const char * name = NULL ) {
+GPUBuffer NewGPUBuffer( Span< T > data, Span< const char > name = { } ) {
 	return NewGPUBuffer( data.ptr, data.num_bytes(), name );
 }
 
@@ -215,13 +207,12 @@ RenderTarget NewRenderTarget( const RenderTargetConfig & config );
 void DeleteRenderTarget( RenderTarget rt );
 void DeleteRenderTargetAndTextures( RenderTarget rt );
 
-bool NewShader( Shader * shader, const char * src, const char * name );
-bool NewComputeShader( Shader * shader, const char * src, const char * name );
+bool NewShader( Shader * shader, Span< const char > src, Span< const char > name = { } );
+bool NewComputeShader( Shader * shader, Span< const char > src, Span< const char > name );
 void DeleteShader( Shader shader );
 
 Mesh NewMesh( const MeshConfig & config );
 void DeleteMesh( const Mesh & mesh );
-void DeferDeleteMesh( const Mesh & mesh );
 
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0, u32 base_vertex = 0 );
 void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_instances, u32 num_vertices_override = 0, u32 first_index = 0, u32 base_vertex = 0 );
@@ -238,6 +229,7 @@ template<> constexpr size_t Std140Alignment< float >() { return sizeof( float );
 template<> constexpr size_t Std140Alignment< Vec2 >() { return sizeof( Vec2 ); }
 template<> constexpr size_t Std140Alignment< Vec3 >() { return sizeof( Vec4 ); } // !
 template<> constexpr size_t Std140Alignment< Vec4 >() { return sizeof( Vec4 ); }
+template<> constexpr size_t Std140Alignment< Mat3x4 >() { return sizeof( Vec4 ); } // !
 template<> constexpr size_t Std140Alignment< Mat4 >() { return sizeof( Vec4 ); } // !
 
 template< typename T >

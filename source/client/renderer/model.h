@@ -7,7 +7,6 @@ struct DrawModelConfig {
 	struct DrawModel {
 		bool enabled;
 		bool view_weapon;
-		bool map_model;
 	} draw_model;
 
 	struct DrawShadows {
@@ -48,4 +47,4 @@ void InitModels();
 void HotloadModels();
 void ShutdownModels();
 
-void DrawModel( DrawModelConfig config, ModelRenderData render_data, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
+void DrawModel( DrawModelConfig config, ModelRenderData render_data, const Mat3x4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );

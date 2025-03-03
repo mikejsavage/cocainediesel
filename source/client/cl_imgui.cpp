@@ -1,5 +1,5 @@
 #include "imgui/imgui.h"
-#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_sdl3.h"
 #include "imgui/imgui_internal.h"
 
 #include "qcommon/base.h"
@@ -15,60 +15,35 @@
 static Texture atlas_texture;
 static Material atlas_material;
 
-static ImFont * AddFontAsset( StringHash path, float pixel_size, bool idi_nahui = false ) {
+static ImFont * AddFontAsset( StringHash path, float pixel_size ) {
 	Span< const u8 > data = AssetBinary( path );
 	ImFontConfig config;
 	config.FontData = ( void * ) data.ptr;
 	config.FontDataOwnedByAtlas = false;
 	config.FontDataSize = data.n;
 	config.SizePixels = pixel_size;
-	if( idi_nahui ) {
-		config.GlyphRanges = ImGui::GetIO().Fonts->GetGlyphRangesCyrillic();
-	}
 	return ImGui::GetIO().Fonts->AddFont( &config );
 }
 
-struct GLFWwindow;
-extern GLFWwindow * window;
+struct SDL_Window;
+extern SDL_Window * window;
 
 void CL_InitImGui() {
 	TracyZoneScoped;
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGui_ImplGlfw_InitForOpenGL( window, false );
+	ImGui_ImplSDL3_InitForOther( window );
 
 	ImGuiIO & io = ImGui::GetIO();
-
-	{
-		io.IniFilename = NULL;
-		io.KeyMap[ ImGuiKey_Tab ] = K_TAB;
-		io.KeyMap[ ImGuiKey_LeftArrow ] = K_LEFTARROW;
-		io.KeyMap[ ImGuiKey_RightArrow ] = K_RIGHTARROW;
-		io.KeyMap[ ImGuiKey_UpArrow ] = K_UPARROW;
-		io.KeyMap[ ImGuiKey_DownArrow ] = K_DOWNARROW;
-		io.KeyMap[ ImGuiKey_PageUp ] = K_PGUP;
-		io.KeyMap[ ImGuiKey_PageDown ] = K_PGDN;
-		io.KeyMap[ ImGuiKey_Home ] = K_HOME;
-		io.KeyMap[ ImGuiKey_End ] = K_END;
-		io.KeyMap[ ImGuiKey_Insert ] = K_INS;
-		io.KeyMap[ ImGuiKey_Delete ] = K_DEL;
-		io.KeyMap[ ImGuiKey_Backspace ] = K_BACKSPACE;
-		io.KeyMap[ ImGuiKey_Space ] = K_SPACE;
-		io.KeyMap[ ImGuiKey_Enter ] = K_ENTER;
-		io.KeyMap[ ImGuiKey_Escape ] = K_ESCAPE;
-		io.KeyMap[ ImGuiKey_KeyPadEnter ] = KP_ENTER;
-		io.KeyMap[ ImGuiKey_A ] = 'a';
-		io.KeyMap[ ImGuiKey_C ] = 'c';
-		io.KeyMap[ ImGuiKey_V ] = 'v';
-		io.KeyMap[ ImGuiKey_X ] = 'x';
-		io.KeyMap[ ImGuiKey_Y ] = 'y';
-		io.KeyMap[ ImGuiKey_Z ] = 'z';
-	}
+	io.IniFilename = NULL;
+	io.ConfigInputTrickleEventQueue = false; // so we can open the game menu with escape
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
 	{
 		AddFontAsset( "fonts/Decalotype-Bold.ttf", 18.0f );
 		cls.huge_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 128.0f );
+		cls.huge_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 128.0f );
 		cls.large_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 64.0f );
 		cls.big_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 48.0f );
 		cls.medium_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 28.0f );
@@ -76,7 +51,7 @@ void CL_InitImGui() {
 		cls.big_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 48.0f );
 		cls.large_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 64.0f );
 		cls.console_font = AddFontAsset( "fonts/Decalotype-Bold.ttf", 14.0f );
-		cls.idi_nahui_font = AddFontAsset( "fonts/OpenSans-SemiBold.ttf", 24.0f, true );
+		cls.license_italic_font = AddFontAsset( "fonts/sofachrome-rg-it.otf", 128.0f );
 
 		io.Fonts->Build();
 
@@ -84,13 +59,12 @@ void CL_InitImGui() {
 		int width, height;
 		io.Fonts->GetTexDataAsAlpha8( &pixels, &width, &height );
 
-		TextureConfig config;
-		config.format = TextureFormat_A_U8;
-		config.width = width;
-		config.height = height;
-		config.data = pixels;
-
-		atlas_texture = NewTexture( config );
+		atlas_texture = NewTexture( TextureConfig {
+			.format = TextureFormat_A_U8,
+			.width = checked_cast< u32 >( width ),
+			.height = checked_cast< u32 >( height ),
+			.data = pixels,
+		} );
 		atlas_material.texture = &atlas_texture;
 		io.Fonts->TexID = ImGuiShaderAndMaterial( &atlas_material );
 	}
@@ -99,6 +73,7 @@ void CL_InitImGui() {
 		ImGuiStyle & style = ImGui::GetStyle();
 		style.WindowRounding = 0;
 		style.FrameRounding = 0;
+		style.TabRounding = 0;
 		style.GrabRounding = 0;
 		style.FramePadding = ImVec2( 16, 16 );
 		style.FrameBorderSize = 0;
@@ -112,9 +87,9 @@ void CL_InitImGui() {
 
 		style.Colors[ ImGuiCol_Tab ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
 		style.Colors[ ImGuiCol_TabHovered ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
-		style.Colors[ ImGuiCol_TabActive ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
-		style.Colors[ ImGuiCol_TabUnfocused ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
-		style.Colors[ ImGuiCol_TabUnfocusedActive ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_TabSelected ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_TabDimmed ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_TabDimmedSelected ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
 
 		style.Colors[ ImGuiCol_FrameBg ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
 		style.Colors[ ImGuiCol_FrameBgHovered ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
@@ -142,7 +117,7 @@ void CL_InitImGui() {
 void CL_ShutdownImGui() {
 	DeleteTexture( atlas_texture );
 
-	ImGui_ImplGlfw_Shutdown();
+	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext();
 }
 
@@ -181,16 +156,17 @@ static void SubmitDrawCalls() {
 			continue;
 		}
 
-		MeshConfig config = { };
-		config.name = temp( "ImGui - {}", n );
-		config.vertex_buffers[ 0 ] = NewGPUBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ), temp( "ImGui vertices - {}", n ) );
-		config.vertex_descriptor.buffer_strides[ 0 ] = sizeof( ImDrawVert );
-		config.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, pos ) };
-		config.set_attribute( VertexAttribute_TexCoord, 0, offsetof( ImDrawVert, uv ) );
-		config.set_attribute( VertexAttribute_Color, 0, offsetof( ImDrawVert, col ) );
-		config.index_buffer = NewGPUBuffer( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof( u16 ), temp( "ImGui indices - {}", n ) );
-		Mesh mesh = NewMesh( config );
-		DeferDeleteMesh( mesh );
+		VertexDescriptor vertex_descriptor = { };
+		vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, pos ) };
+		vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, uv ) };
+		vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( ImDrawVert, col ) };
+		vertex_descriptor.buffer_strides[ 0 ] = sizeof( ImDrawVert );
+
+		DynamicDrawData dynamic_geometry = UploadDynamicGeometry(
+			Span< const ImDrawVert >( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size ).cast< const u8 >(),
+			Span< const ImDrawIdx >( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size ),
+			vertex_descriptor
+		);
 
 		for( int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++ ) {
 			const ImDrawCmd * pcmd = &cmd_list->CmdBuffer[ cmd_i ];
@@ -225,7 +201,7 @@ static void SubmitDrawCalls() {
 
 					pipeline.bind_texture_and_sampler( "u_BaseTexture", pcmd->TextureId.material->texture, Sampler_Standard );
 
-					DrawMesh( mesh, pipeline, pcmd->ElemCount, pcmd->IdxOffset );
+					DrawDynamicGeometry( pipeline, dynamic_geometry, pcmd->ElemCount, pcmd->IdxOffset );
 				}
 			}
 		}
@@ -235,7 +211,7 @@ static void SubmitDrawCalls() {
 void CL_ImGuiBeginFrame() {
 	TracyZoneScoped;
 
-	ImGui_ImplGlfw_NewFrame();
+	ImGui_ImplSDL3_NewFrame();
 	ImGui::NewFrame();
 }
 
@@ -262,8 +238,20 @@ namespace ImGui {
 		ImGui::GetWindowDrawList()->AddCallback( NULL, ( void * ) 1 ); // TODO: this is a hack to separate drawcalls into 2 passes
 	}
 
-	bool Hotkey( int key ) {
+	bool Hotkey( ImGuiKey key ) {
 		return ImGui::IsWindowFocused( ImGuiFocusedFlags_RootAndChildWindows ) && ImGui::IsKeyPressed( key, false );
+	}
+
+	ImVec2 CalcTextSize( Span< const char > str ) {
+		return ImGui::CalcTextSize( str.begin(), str.end() );
+	}
+
+	void Text( Span< const char > str ) {
+		ImGui::TextUnformatted( str.begin(), str.end() );
+	}
+
+	void PushID( Span< const char > id ) {
+		ImGui::PushID( id.begin(), id.end() );
 	}
 }
 
@@ -273,20 +261,19 @@ ImGuiColorToken::ImGuiColorToken( u8 r, u8 g, u8 b, u8 a ) {
 	token[ 2 ] = Max2( g, u8( 1 ) );
 	token[ 3 ] = Max2( b, u8( 1 ) );
 	token[ 4 ] = Max2( a, u8( 1 ) );
-	token[ 5 ] = 0;
 }
 
 ImGuiColorToken::ImGuiColorToken( RGB8 rgb ) : ImGuiColorToken( rgb.r, rgb.g, rgb.b, 255 ) { }
 ImGuiColorToken::ImGuiColorToken( RGBA8 rgba ) : ImGuiColorToken( rgba.r, rgba.g, rgba.b, rgba.a ) { }
 
 void format( FormatBuffer * fb, const ImGuiColorToken & token, const FormatOpts & opts ) {
-	format( fb, ( const char * ) token.token );
+	format( fb, Span< const char >( ( const char * ) token.token, sizeof( token.token ) ), FormatOpts() );
 }
 
-void CenterTextY( const char * str, float height ) {
+void CenterTextY( Span< const char > str, float height ) {
 	float text_height = ImGui::CalcTextSize( str ).y;
 	ImGui::SetCursorPosY( ImGui::GetCursorPosY() + 0.5f * ( height - text_height ) );
-	ImGui::Text( "%s", str );
+	ImGui::Text( str );
 }
 
 void CellCenter( float item_width ) {
@@ -294,38 +281,42 @@ void CellCenter( float item_width ) {
 	ImGui::SetCursorPosX( ImGui::GetCursorPosX() + 0.5f * ( cell_width - item_width ) );
 }
 
-void CellCenterText( const char * str ) {
+void CellCenterText( Span< const char > str ) {
 	CellCenter( ImGui::CalcTextSize( str ).x );
-	ImGui::Text( "%s", str );
+	ImGui::Text( str );
 }
 
-void ColumnCenterText( const char * str ) {
+void ColumnCenterText( Span< const char > str ) {
 	float width = ImGui::CalcTextSize( str ).x;
 	ImGui::SetCursorPosX( ImGui::GetColumnOffset() + 0.5f * ( ImGui::GetColumnWidth() - width ) );
-	ImGui::Text( "%s", str );
+	ImGui::Text( str );
 }
 
-void ColumnRightText( const char * str ) {
+void ColumnRightText( Span< const char > str ) {
 	float width = ImGui::CalcTextSize( str ).x;
 	ImGui::SetCursorPosX( ImGui::GetColumnOffset() + ImGui::GetColumnWidth() - width );
-	ImGui::Text( "%s", str );
+	ImGui::Text( str );
 }
 
-void WindowCenterTextXY( const char * str ) {
+void WindowCenterTextXY( Span< const char > str ) {
 	Vec2 text_size = ImGui::CalcTextSize( str );
 	ImGui::SetCursorPos( 0.5f * ( ImGui::GetWindowSize() - text_size ) );
-	ImGui::Text( "%s", str );
+	ImGui::Text( str );
 }
 
 Vec4 CustomAttentionGettingColor( Vec4 from, Vec4 to, Time period ) {
-	float t = Sin( cls.monotonicTime, period ) * 0.5f + 1.0f;
+	float t = Sin( cls.monotonicTime, period ) * 0.5f + 0.5f;
 	return Lerp( from, t, to );
 }
 
 Vec4 AttentionGettingColor() {
-	return CustomAttentionGettingColor( vec4_red, sRGBToLinear( rgba8_diesel_yellow ), Milliseconds( 125 ) );
+	return CustomAttentionGettingColor( red.vec4, sRGBToLinear( diesel_yellow.rgba8 ), Milliseconds( 125 ) );
 }
 
 Vec4 PlantableColor() {
-	return CustomAttentionGettingColor( vec4_dark, sRGBToLinear( rgba8_diesel_green ), Milliseconds( 125 ) );
+	return CustomAttentionGettingColor( dark.vec4, sRGBToLinear( diesel_green.rgba8 ), Milliseconds( 125 ) );
+}
+
+Vec4 AttentionGettingRed() {
+	return CustomAttentionGettingColor( sRGBToLinear( diesel_red.rgba8 ) * 0.8f, sRGBToLinear( diesel_red.rgba8 ), Milliseconds( 125 ) );
 }

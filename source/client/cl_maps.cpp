@@ -7,7 +7,7 @@
 #include "client/assets.h"
 #include "client/maps.h"
 #include "client/renderer/model.h"
-#include "game/hotload_map.h"
+#include "game/hotload.h"
 #include "gameshared/cdmap.h"
 #include "gameshared/collision.h"
 
@@ -25,7 +25,7 @@ static Hashtable< MAX_MAP_MODELS * 2 > map_models_hashtable;
 static CollisionModelStorage collision_models;
 
 static void DeleteMap( Map * map ) {
-	Free( sys_allocator, const_cast< char * >( map->name ) );
+	Free( sys_allocator, const_cast< char * >( map->name.ptr ) );
 	DeleteMapRenderData( map->render_data );
 }
 
@@ -38,7 +38,7 @@ static void FillMapModelsHashtable() {
 		const Map * map = &maps[ i ];
 		for( size_t j = 0; j < map->data.models.n; j++ ) {
 			String< 16 > suffix( "*{}", j );
-			u64 hash = Hash64( suffix.c_str(), suffix.length(), map->base_hash.hash );
+			u64 hash = Hash64( suffix.span(), map->base_hash.hash );
 
 			if( map_models_hashtable.size() == ARRAY_COUNT( map_models ) ) {
 				Fatal( "Too many map submodels" );
@@ -53,9 +53,9 @@ static void FillMapModelsHashtable() {
 	}
 }
 
-bool AddMap( Span< const u8 > data, const char * path ) {
+bool AddMap( Span< const u8 > data, Span< const char > path ) {
 	TracyZoneScoped;
-	TracyZoneText( path, strlen( path ) );
+	TracyZoneSpan( path );
 
 	Span< const char > name = StripPrefix( StripExtension( path ), "maps/" );
 	StringHash hash = StringHash( name );
@@ -67,7 +67,7 @@ bool AddMap( Span< const u8 > data, const char * path ) {
 		return false;
 	}
 
-	map.name = ( *sys_allocator )( "{}", name );
+	map.name = CloneSpan( sys_allocator, name );
 	map.base_hash = hash;
 	map.render_data = NewMapRenderData( map.data, path );
 
@@ -124,7 +124,7 @@ void InitMaps() {
 
 	InitCollisionModelStorage( &collision_models );
 
-	for( const char * path : AssetPaths() ) {
+	for( Span< const char > path : AssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
 		if( ext == ".cdmap" ) {
 			AddMap( AssetBinary( path ), path );
@@ -140,19 +140,22 @@ void HotloadMaps() {
 
 	bool hotloaded_anything = false;
 
-	for( const char * path : ModifiedAssetPaths() ) {
+	for( Span< const char > path : ModifiedAssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
-		if( ext != ".cdmap" )
-			continue;
-
-		AddMap( AssetBinary( path ), path );
-		hotloaded_anything = true;
+		if( ext == ".cdmap" ) {
+			AddMap( AssetBinary( path ), path );
+			hotloaded_anything = true;
+		}
+		else if( ext == ".glb" ) {
+			AddGLTFModel( AssetBinary( path ), StripExtension( path ) );
+			hotloaded_anything = true;
+		}
 	}
 
 	// if we hotload a map while playing a local game just assume we're
 	// playing on it and always hotload
 	if( hotloaded_anything && Com_ServerState() != ss_dead ) {
-		G_HotloadMap();
+		G_HotloadCollisionModels();
 	}
 }
 

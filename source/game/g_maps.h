@@ -6,7 +6,7 @@
 void InitServerCollisionModels();
 void ShutdownServerCollisionModels();
 
-bool LoadServerMap( const char * name );
+bool LoadServerMap( Span< const char > name );
 
 struct MapData;
 struct MapSubModelCollisionData;

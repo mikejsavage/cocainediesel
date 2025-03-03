@@ -10,18 +10,18 @@ enum BlendFunc : u8 {
 
 enum VertexFormat : u8 {
 	VertexFormat_U8x2,
-	VertexFormat_U8x2_Norm,
+	VertexFormat_U8x2_01,
 	VertexFormat_U8x3,
-	VertexFormat_U8x3_Norm,
+	VertexFormat_U8x3_01,
 	VertexFormat_U8x4,
-	VertexFormat_U8x4_Norm,
+	VertexFormat_U8x4_01,
 
 	VertexFormat_U16x2,
-	VertexFormat_U16x2_Norm,
+	VertexFormat_U16x2_01,
 	VertexFormat_U16x3,
-	VertexFormat_U16x3_Norm,
+	VertexFormat_U16x3_01,
 	VertexFormat_U16x4,
-	VertexFormat_U16x4_Norm,
+	VertexFormat_U16x4_01,
 
 	VertexFormat_Floatx2,
 	VertexFormat_Floatx3,
@@ -140,15 +140,15 @@ struct Mesh {
 	bool cw_winding;
 };
 
-struct TRS {
+struct Transform {
 	Quaternion rotation;
 	Vec3 translation;
 	float scale;
 };
 
 struct MatrixPalettes {
-	Span< Mat4 > node_transforms;
-	Span< Mat4 > skinning_matrices;
+	Span< Mat3x4 > node_transforms;
+	Span< Mat3x4 > skinning_matrices;
 };
 
 struct Font;
@@ -159,6 +159,4 @@ struct PipelineState;
 
 struct GPUMaterial {
 	Vec4 color;
-	alignas( 16 ) Vec3 tcmod_row0;
-	alignas( 16 ) Vec3 tcmod_row1;
 };

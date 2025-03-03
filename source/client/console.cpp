@@ -9,7 +9,7 @@
 // TODO: revamp key_dest garbage
 // TODO: finish cleaning up old stuff
 
-static constexpr size_t CONSOLE_LOG_SIZE = 1000 * 1000; // 1MB
+static constexpr size_t CONSOLE_LOG_SIZE = Megabytes( 1 );
 static constexpr size_t CONSOLE_INPUT_SIZE = 1024;
 
 struct HistoryEntry {
@@ -78,11 +78,10 @@ void Con_Close() {
 	}
 }
 
-static void MakeSpaceAndPrint( const char * str ) {
+static void MakeSpaceAndPrint( Span< const char > str ) {
 	// delete lines until we have enough space to add str
-	size_t len = strlen( str );
 	size_t trim = 0;
-	while( console.log.length() - trim + len >= CONSOLE_LOG_SIZE ) {
+	while( console.log.length() - trim + str.n >= CONSOLE_LOG_SIZE ) {
 		const char * newline = strchr( console.log.c_str() + trim, '\n' );
 		if( newline == NULL ) {
 			trim = console.log.length();
@@ -93,10 +92,10 @@ static void MakeSpaceAndPrint( const char * str ) {
 	}
 
 	console.log.remove( 0, trim );
-	console.log.append_raw( str, len );
+	console.log += str;
 }
 
-void Con_Print( const char * str ) {
+void Con_Print( Span< const char > str ) {
 	if( console.log_mutex == NULL )
 		return;
 
@@ -111,19 +110,19 @@ void Con_Print( const char * str ) {
 	}
 }
 
-static void PrintCompletions( Span< const char * > completions, const char * color, const char * type ) {
+static void PrintCompletions( Span< Span< const char > > completions, Span< const char > color, Span< const char > type ) {
 	if( completions.n == 0 )
 		return;
 
-	Com_Printf( "%s%zu possible %s%s\n", color, completions.n, type, completions.n > 1 ? "s" : "" );
-	for( const char * completion : completions ) {
-		Com_Printf( "%s ", completion );
+	Com_GGPrint( "{}{} possible {}{}", color, completions.n, type, completions.n > 1 ? "s" : "" );
+	for( Span< const char > completion : completions ) {
+		Com_GGPrintNL( "{} ", completion );
 	}
 	Com_Printf( "\n" );
 }
 
-static size_t CommonPrefixLength( const char * a, Span< const char > b ) {
-	size_t n = Min2( strlen( a ), b.n );
+static size_t CommonPrefixLength( Span< const char > a, Span< const char > b ) {
+	size_t n = Min2( a.n, b.n );
 	for( size_t i = 0; i < n; i++ ) {
 		if( ToLowerASCII( a[ i ] ) != ToLowerASCII( b[ i ] ) ) {
 			return i;
@@ -132,32 +131,28 @@ static size_t CommonPrefixLength( const char * a, Span< const char > b ) {
 	return n;
 }
 
-static Span< const char > FindCommonPrefix( Span< const char > prefix, Span< const char * > strings ) {
-	for( const char * str : strings ) {
+static Span< const char > FindCommonPrefix( Span< const char > prefix, Span< Span< const char > > strings ) {
+	for( Span< const char > str : strings ) {
 		if( prefix.ptr == NULL ) {
-			prefix = MakeSpan( str );
+			prefix = str;
 		}
 		prefix.n = CommonPrefixLength( str, prefix );
 	}
-
 	return prefix;
 }
 
 static void TabCompletion( char * buf, size_t buf_size ) {
-	char * input = buf;
-	if( *input == '\\' || *input == '/' )
-		input++;
-	if( strlen( input ) == 0 )
+	Span< char > input = MakeSpan( buf );
+	if( input == "" )
 		return;
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	Span< const char * > cvars, commands, arguments;
-	char * space = strchr( input, ' ' );
+	char * space = StrChr( input, ' ' );
 
 	if( space == NULL ) {
-		cvars = TabCompleteCvar( &temp, input );
-		commands = TabCompleteCommand( &temp, input );
+		Span< Span< const char > > cvars = TabCompleteCvar( &temp, input );
+		Span< Span< const char > > commands = TabCompleteCommand( &temp, input );
 		if( cvars.n == 0 && commands.n == 0 ) {
 			Com_Printf( "No matching commands or cvars were found.\n" );
 			return;
@@ -177,7 +172,7 @@ static void TabCompletion( char * buf, size_t buf_size ) {
 		}
 	}
 	else {
-		arguments = TabCompleteArgument( &temp, input );
+		Span< Span< const char > > arguments = TabCompleteArgument( &temp, input );
 		if( arguments.n == 0 ) {
 			return;
 		}
@@ -242,9 +237,9 @@ static void Con_Execute() {
 		skip_slash++;
 
 	bool try_chat = cls.state == CA_ACTIVE;
-	bool executed = Cbuf_ExecuteLine( MakeSpan( skip_slash ), !try_chat );
+	bool executed = Cmd_ExecuteLine( &temp, MakeSpan( skip_slash ), !try_chat );
 	if( !executed && try_chat ) {
-		Cbuf_ExecuteLine( temp( "say {}", console.input ) );
+		Cmd_Execute( &temp, "say {}", console.input );
 	}
 
 	const HistoryEntry * last = &console.input_history[ ( console.history_head + console.history_count - 1 ) % ARRAY_COUNT( console.input_history ) ];
@@ -299,7 +294,7 @@ void Con_Draw() {
 	{
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, bg );
 		ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8, 4 ) );
-		ImGui::BeginChild( "consoletext", ImVec2( 0, frame_static.viewport_height * 0.4f - ImGui::GetFrameHeightWithSpacing() - 3 ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
+		ImGui::BeginChild( "consoletext", ImVec2( 0, frame_static.viewport_height * 0.4f - ImGui::GetFrameHeightWithSpacing() - 3 ), ImGuiChildFlags_AlwaysUseWindowPadding );
 		{
 			Lock( console.log_mutex );
 			defer { Unlock( console.log_mutex ); };
@@ -318,10 +313,10 @@ void Con_Draw() {
 				console.scroll_to_bottom = false;
 			}
 
-			if( ImGui::IsKeyPressed( K_PGUP ) || ImGui::IsKeyPressed( K_PGDN ) ) {
+			if( ImGui::IsKeyPressed( ImGuiKey_PageUp ) || ImGui::IsKeyPressed( ImGuiKey_PageDown ) ) {
 				float scroll = ImGui::GetScrollY();
 				float page = ImGui::GetWindowSize().y - ImGui::GetTextLineHeight();
-				scroll += page * ( ImGui::IsKeyPressed( K_PGUP ) ? -1 : 1 );
+				scroll += page * ( ImGui::IsKeyPressed( ImGuiKey_PageUp ) ? -1 : 1 );
 				scroll = Clamp( 0.0f, scroll, ImGui::GetScrollMaxY() );
 				ImGui::SetScrollY( scroll );
 			}
@@ -362,7 +357,7 @@ void Con_Draw() {
 		ImGui::GetWindowDrawList()->AddRectFilled( top_left, bottom_right, ImGui::GetColorU32( ImGuiCol_Separator ) );
 	}
 
-	if( ImGui::Hotkey( K_ESCAPE ) ) {
+	if( ImGui::Hotkey( ImGuiKey_Escape ) ) {
 		Con_Close();
 	}
 

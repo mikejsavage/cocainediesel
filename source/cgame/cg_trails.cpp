@@ -1,6 +1,7 @@
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/hashtable.h"
+#include "qcommon/time.h"
 
 #define OPTIMIZED_TRAILS
 
@@ -18,6 +19,11 @@ public:
 	}
 
 	T & operator[]( size_t i ) {
+		Assert( i < n );
+		return buffer[ ( head + i ) % N ];
+	}
+
+	const T & operator[]( size_t i ) const {
 		Assert( i < n );
 		return buffer[ ( head + i ) % N ];
 	}
@@ -41,7 +47,7 @@ public:
 
 struct TrailPoint {
 	Vec3 p;
-	u64 t;
+	Time t;
 };
 
 struct Trail {
@@ -50,7 +56,7 @@ struct Trail {
 	float width;
 	Vec4 color;
 	StringHash material;
-	u64 duration;
+	Time duration;
 	float offset;
 };
 
@@ -64,7 +70,7 @@ void InitTrails() {
 	num_trails = 0;
 }
 
-void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash material, u64 duration ) {
+void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash material, Time duration ) {
 	u64 idx = num_trails;
 	if( !trails_hashtable.get( unique_id, &idx ) ) {
 		if( num_trails == MAX_TRAILS ) {
@@ -87,7 +93,7 @@ void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash m
 
 	TrailPoint new_point;
 	new_point.p = point;
-	new_point.t = cls.gametime;
+	new_point.t = cls.game_time;
 
 	float dist = 1.0f;
 	if( trail.points.n > 0 ) {
@@ -117,7 +123,7 @@ void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash m
 }
 
 static bool UpdateTrail( Trail & trail ) {
-	u64 tail_time = cls.gametime - trail.duration;
+	Time tail_time = cls.game_time - Min2( cls.game_time, trail.duration );
 	for( size_t i = 0; i < trail.points.n; i++ ) {
 		if( trail.points[ i ].t > tail_time ) {
 			break;
@@ -140,15 +146,19 @@ static bool UpdateTrail( Trail & trail ) {
 	return trail.points.n > 0;
 }
 
-static void DrawActualTrail( Trail & trail ) {
+static void DrawActualTrail( const Trail & trail ) {
 	if( trail.points.n <= 1 ) {
 		return;
 	}
 
+	struct TrailVertex {
+		Vec3 position;
+		Vec2 uv;
+		RGBA8 color;
+	};
+
 	TempAllocator temp = cls.frame_arena.temp();
-	Span< Vec3 > positions = AllocSpan< Vec3 >( &temp, trail.points.n * 2 );
-	Span< Vec2 > uvs = AllocSpan< Vec2 >( &temp, trail.points.n * 2 );
-	Span< RGBA8 > colors = AllocSpan< RGBA8 >( &temp, trail.points.n * 2 );
+	Span< TrailVertex > vertices = AllocSpan< TrailVertex >( &temp, trail.points.n * 2 );
 	Span< u16 > indices = AllocSpan< u16 >( &temp, ( trail.points.n - 1 ) * 6 );
 
 	const Material * material = FindMaterial( trail.material );
@@ -166,20 +176,20 @@ static void DrawActualTrail( Trail & trail ) {
 			Vec3 prev_a = trail.points[ i - 1 ].p;
 			dir = a.p - prev_a;
 		}
-		float fract = Clamp01( Unlerp01( cls.gametime - s64( trail.duration ), s64( a.t ), cls.gametime ) );
+		float fract = Unlerp01( cls.game_time - trail.duration, a.t, cls.game_time );
 
 		float len = Length( dir );
 		dir /= len;
 		Vec3 forward = SafeNormalize( a.p - frame_static.position );
 		Vec3 bitangent = SafeNormalize( Cross( -forward, dir ) );
 
-		positions[ i * 2 + 0 ] = a.p + bitangent * trail.width * 0.5f * fract;
-		positions[ i * 2 + 1 ] = a.p - bitangent * trail.width * 0.5f * fract;
+		vertices[ i * 2 + 0 ].position = a.p + bitangent * trail.width * 0.5f * fract;
+		vertices[ i * 2 + 1 ].position = a.p - bitangent * trail.width * 0.5f * fract;
 
 		float u = distance;
 
-		uvs[ i * 2 + 0 ] = Vec2( u, 0.0f );
-		uvs[ i * 2 + 1 ] = Vec2( u, 1.0f );
+		vertices[ i * 2 + 0 ].uv = Vec2( u, 0.0f );
+		vertices[ i * 2 + 1 ].uv = Vec2( u, 1.0f );
 
 		float beam_aspect_ratio = len / trail.width;
 		float repetitions = beam_aspect_ratio / texture_aspect_ratio;
@@ -187,8 +197,8 @@ static void DrawActualTrail( Trail & trail ) {
 
 		float alpha = fract;
 
-		colors[ i * 2 + 0 ] = RGBA8( 255, 255, 255, 255 * alpha );
-		colors[ i * 2 + 1 ] = RGBA8( 255, 255, 255, 255 * alpha );
+		vertices[ i * 2 + 0 ].color = RGBA8( 255, 255, 255, 255 * alpha );
+		vertices[ i * 2 + 1 ].color = RGBA8( 255, 255, 255, 255 * alpha );
 
 		if( i < trail.points.n - 1 ) {
 			indices[ i * 6 + 0 ] = i * 2 + 0;
@@ -206,15 +216,13 @@ static void DrawActualTrail( Trail & trail ) {
 	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 
-	DynamicMesh mesh = { };
-	mesh.positions = positions.ptr;
-	mesh.uvs = uvs.ptr;
-	mesh.colors = colors.ptr;
-	mesh.indices = indices.ptr;
-	mesh.num_vertices = positions.n;
-	mesh.num_indices = indices.n;
+	VertexDescriptor vertex_descriptor = { };
+	vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( TrailVertex, position ) };
+	vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( TrailVertex, uv ) };
+	vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( TrailVertex, color ) };
+	vertex_descriptor.buffer_strides[ 0 ] = sizeof( TrailVertex );
 
-	DrawDynamicMesh( pipeline, mesh );
+	DrawDynamicGeometry( pipeline, vertices, indices, vertex_descriptor );
 }
 
 void DrawTrails() {

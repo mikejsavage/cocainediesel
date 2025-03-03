@@ -140,7 +140,6 @@ void AnglesToAxis( EulerDegrees3 angles, mat3_t axis ) {
 	axis[8] = up.z;
 }
 
-// must match the GLSL OrthonormalBasis
 void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent ) {
 	float s = SignedOne( v.z );
 	float a = -1.0f / ( s + v.z );
@@ -310,74 +309,105 @@ Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p ) {
 	return Lerp( start, Clamp01( t ), end );
 }
 
-Mat4 TransformKToDir( Vec3 dir ) {
-	dir = Normalize( dir );
-
-	Vec3 K = Vec3( 0, 0, 1 );
-
-	Vec3 axis;
-	if( Abs( dir.z ) < 0.9999f ) {
-		axis = Normalize( Cross( K, dir ) );
-	}
-	else {
-		axis = Vec3( 1.0f, 0.0f, 0.0f );
-	}
-
-	float c = Dot( K, dir );
-	float s = sqrtf( 1.0f - c * c );
-
-	Mat4 rotation = Mat4(
-		c + axis.x * axis.x * ( 1.0f - c ),
-		axis.x * axis.y * ( 1.0f - c ) - axis.z * s,
-		axis.x * axis.z * ( 1.0f - c ) + axis.y * s,
-		0.0f,
-
-		axis.y * axis.x * ( 1.0f - c ) + axis.z * s,
-		c + axis.y * axis.y * ( 1.0f - c ),
-		axis.y * axis.z * ( 1.0f - c ) - axis.x * s,
-		0.0f,
-
-		axis.z * axis.x * ( 1.0f - c ) - axis.y * s,
-		axis.z * axis.y * ( 1.0f - c ) + axis.x * s,
-		c + axis.z * axis.z * ( 1.0f - c ),
-		0.0f,
-
-		0.0f, 0.0f, 0.0f, 1.0f
-	);
-
-	return rotation;
-}
-
-Mat4 Mat4Rotation( EulerDegrees3 angles ) {
+Mat3x4 Mat4Rotation( EulerDegrees3 angles ) {
 	float pitch = Radians( angles.pitch );
 	float sp = sinf( pitch );
 	float cp = cosf( pitch );
-	Mat4 rp(
+	Mat3x4 rp(
 		cp, 0, sp, 0,
 		0, 1, 0, 0,
-		-sp, 0, cp, 0,
-		0, 0, 0, 1
+		-sp, 0, cp, 0
 	);
 	float yaw = Radians( angles.yaw );
 	float sy = sinf( yaw );
 	float cy = cosf( yaw );
-	Mat4 ry(
+	Mat3x4 ry(
 		cy, -sy, 0, 0,
 		sy, cy, 0, 0,
-		0, 0, 1, 0,
-		0, 0, 0, 1
+		0, 0, 1, 0
 	);
 	float roll = Radians( angles.roll );
 	float sr = sinf( roll );
 	float cr = cosf( roll );
-	Mat4 rr(
+	Mat3x4 rr(
 		1, 0, 0, 0,
 		0, cr, -sr, 0,
-		0, sr, cr, 0,
-		0, 0, 0, 1
+		0, sr, cr, 0
 	);
 
 	return ry * rp * rr;
+}
+
+Quaternion EulerDegrees3ToQuaternion( EulerDegrees3 angles ) {
+	float cp = cosf( Radians( angles.pitch ) * 0.5f );
+	float sp = sinf( Radians( angles.pitch ) * 0.5f );
+	float cy = cosf( Radians( angles.yaw ) * 0.5f );
+	float sy = sinf( Radians( angles.yaw ) * 0.5f );
+	float cr = cosf( Radians( angles.roll ) * 0.5f );
+	float sr = sinf( Radians( angles.roll ) * 0.5f );
+
+	return Quaternion(
+		cp * cy * sr - sp * sy * cr,
+		sp * cy * cr + cp * sy * sr,
+		cp * sy * cr - sp * cy * sr,
+		cp * cy * cr + sp * sy * sr
+	);
+}
+
+Quaternion QuaternionFromAxisAndRadians( Vec3 axis, float radians ) {
+	float s = sinf( radians * 0.5f );
+	return Quaternion( axis.x * s, axis.y * s, axis.z * s, cosf( radians * 0.5f ) );
+}
+
+static Quaternion QuaternionFromAxisAndCosine( Vec3 axis, float cosine ) {
+	// using half angle identities, theta is always in [0..pi) so always take the positive
+	float c = sqrtf( ( 1.0f + cosine ) * 0.5f );
+	float s = sqrtf( ( 1.0f - cosine ) * 0.5f );
+	return Quaternion( axis.x * s, axis.y * s, axis.z * s, c );
+}
+
+Quaternion QuaternionFromNormalAndRadians( Vec3 normal, float radians ) {
+	constexpr Vec3 x = Vec3( 1.0f, 0.0f, 0.0f );
+	float d = Dot( normal, x );
+
+	Vec3 axis;
+	if( NearlyEqual( Abs( d ), 1.0f ) ) {
+		axis = Vec3( 0.0f, 0.0f, 1.0f );
+	}
+	else {
+		axis = Normalize( Cross( x, normal ) );
+	}
+
+	return QuaternionFromAxisAndRadians( normal, radians ) * QuaternionFromAxisAndCosine( axis, d );
+}
+
+Quaternion BasisToQuaternion( Vec3 normal, Vec3 tangent, Vec3 bitangent ) {
+	// https://d3cw3dd2w32x2b.cloudfront.net/wp-content/uploads/2015/01/matrix-to-quat.pdf
+	// "Converting a Rotation Matrix to a Quaternion - Mike Day, Insomniac Games"
+
+	Quaternion q;
+	float t;
+	if( bitangent.z < 0.0f ) {
+		if( normal.x > tangent.y ) {
+			t = 1.0f + normal.x - tangent.y - bitangent.z;
+			q = Quaternion( t, normal.y + tangent.x, bitangent.x + normal.z, tangent.z - bitangent.y );
+		}
+		else {
+			t = 1.0f - normal.x + tangent.y - bitangent.z;
+			q = Quaternion( normal.y + tangent.x, t, tangent.z + bitangent.y, bitangent.x - normal.z );
+		}
+	}
+	else {
+		if( normal.x < -tangent.y ) {
+			t = 1.0f - normal.x - tangent.y + bitangent.z;
+			q = Quaternion( bitangent.x + normal.z, tangent.z + bitangent.y, t, normal.y - tangent.x );
+		}
+		else {
+			t = 1.0f + normal.x + tangent.y + bitangent.z;
+			q = Quaternion( tangent.z - bitangent.y, bitangent.x - normal.z, normal.y - tangent.x, t );
+		}
+	}
+	return q * ( 0.5f / sqrtf( t ) );
 }
 
 MinMax3 Union( const MinMax3 & bounds, Vec3 p ) {
@@ -412,8 +442,4 @@ u32 Log2( u64 x ) {
 	}
 
 	return log;
-}
-
-u16 Bswap( u16 x ) {
-	return ( x >> 8 ) | ( x << 8 );
 }

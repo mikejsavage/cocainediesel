@@ -25,8 +25,7 @@ enum HTTPResponseCode {
 };
 
 struct HTTPResponse {
-	char headers[ 256 ];
-	size_t headers_size;
+	String< 256 > headers;
 	size_t headers_sent;
 
 	FILE * file;
@@ -106,10 +105,9 @@ static HTTPResponseCode RouteRequest( HTTPConnection * con, Span< const char > m
 	TempAllocator temp = web_server_arena.temp();
 
 	Span< const char > path = path_with_leading_slash + 1;
-	char * null_terminated_path = temp( "{}", path );
 
 	// check for malicious URLs
-	if( !COM_ValidateRelativeFilename( null_terminated_path ) ) {
+	if( !COM_ValidateRelativeFilename( path ) ) {
 		return HTTPResponseCode_Forbidden;
 	}
 
@@ -118,7 +116,7 @@ static HTTPResponseCode RouteRequest( HTTPConnection * con, Span< const char > m
 	}
 
 	HTTPResponse * response = &con->response;
-	response->file = OpenFile( sys_allocator, null_terminated_path, OpenFile_Read );
+	response->file = OpenFile( sys_allocator, temp( "{}", path ), OpenFile_Read );
 	if( response->file == NULL ) {
 		return HTTPResponseCode_NotFound;
 	}
@@ -142,27 +140,24 @@ static void MakeResponse( HTTPConnection * con, Span< const char > method, Span<
 		Com_GGPrint( "HTTP serving file '{}' to {}", path, con->address );
 	}
 
-	String< sizeof( con->response.headers ) - 1 > headers;
-	headers.append( "HTTP/1.1 {} {}\r\n", code, ResponseCodeMessage( code ) );
-	headers.append( "Server: " APPLICATION "\r\n" );
+	response->headers.clear();
+	response->headers.append( "HTTP/1.1 {} {}\r\n", code, ResponseCodeMessage( code ) );
+	response->headers.append( "Server: " APPLICATION "\r\n" );
 
 	if( code == HTTPResponseCode_Ok ) {
-		headers.append( "Content-Length: {}\r\n", response->file_size );
-		headers.append( "Content-Disposition: attachment; filename=\"{}\"\r\n", FileName( path ) );
-		headers += "\r\n";
+		response->headers.append( "Content-Length: {}\r\n", response->file_size );
+		response->headers.append( "Content-Disposition: attachment; filename=\"{}\"\r\n", FileName( path ) );
+		response->headers += "\r\n";
 	}
 	else {
 		String< 64 > error( "{} {}\n", code, ResponseCodeMessage( code ) );
-		headers.append( "Content-Type: text/plain\r\n" );
-		headers.append( "Content-Length: {}\r\n", error.length() );
-		headers += "\r\n";
-		headers += error;
+		response->headers.append( "Content-Type: text/plain\r\n" );
+		response->headers.append( "Content-Length: {}\r\n", error.length() );
+		response->headers += "\r\n";
+		response->headers += error;
 	}
 
-	Assert( headers.length() < headers.capacity() );
-
-	SafeStrCpy( response->headers, headers.c_str(), sizeof( response->headers ) );
-	response->headers_size = headers.length();
+	Assert( response->headers.length() < response->headers.capacity() );
 }
 
 static void ReceiveRequest( HTTPConnection * con ) {
@@ -247,9 +242,9 @@ static void SendResponse( HTTPConnection * con, Time now ) {
 		return;
 
 	HTTPResponse * response = &con->response;
-	while( response->headers_sent < response->headers_size ) {
+	while( response->headers_sent < response->headers.length() ) {
 		size_t sent;
-		if( !TCPSend( con->socket, response->headers + response->headers_sent, response->headers_size - response->headers_sent, &sent ) ) {
+		if( !TCPSend( con->socket, response->headers.c_str() + response->headers_sent, response->headers.length() - response->headers_sent, &sent ) ) {
 			con->should_close = true;
 			return;
 		}
@@ -261,7 +256,7 @@ static void SendResponse( HTTPConnection * con, Time now ) {
 		con->last_activity = now;
 	}
 
-	if( response->headers_sent < response->headers_size ) {
+	if( response->headers_sent < response->headers.length() ) {
 		return;
 	}
 
@@ -399,11 +394,11 @@ void InitWebServer() {
 	memset( connections, 0, sizeof( connections ) );
 	web_server_running = true;
 
-	constexpr size_t web_server_arena_size = 128 * 1024; // 128KB
+	constexpr size_t web_server_arena_size = Kilobytes( 128 );
 	void * web_server_arena_memory = sys_allocator->allocate( web_server_arena_size, 16 );
 	web_server_arena = ArenaAllocator( web_server_arena_memory, web_server_arena_size );
 
-	web_server_socket = NewTCPServer( sv_port->integer, NonBlocking_Yes );
+	web_server_socket = NewTCPServer( sv_interface->value, sv_port->integer, NonBlocking_Yes );
 	web_server_thread = NewThread( WebServerThread );
 }
 

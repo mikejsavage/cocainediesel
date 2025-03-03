@@ -19,9 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/base.h"
-#include "qcommon/compression.h"
-#include "qcommon/fs.h"
 #include "qcommon/srgb.h"
+#include "qcommon/time.h"
 #include "game/g_local.h"
 #include "game/g_maps.h"
 #include "gameshared/cdmap.h"
@@ -63,6 +62,8 @@ static constexpr EntitySpawnCallback spawn_callbacks[] = {
 	{ "jumppad", SP_jumppad },
 
 	{ "speaker_wall", SP_speaker_wall },
+
+	{ "cinematic_mapname", SP_cinematic_mapname },
 };
 
 static bool SpawnEntity( edict_t * ent, const spawn_temp_t * st ) {
@@ -204,6 +205,7 @@ static void ParseEntityKeyValue( Span< const char > key, Span< const char > valu
 	used = used || DoField( "size", &st->size, key, value );
 	used = used || DoField( "spawn_probability", &st->spawn_probability, key, value );
 	used = used || DoField( "power", &st->power, key, value );
+	used = used || key == "gametype";
 
 	if( !used && key.n > 0 && key[ 0 ] != '_' ) {
 		Com_GGPrint( "{} is not a valid entity key", key );
@@ -212,11 +214,11 @@ static void ParseEntityKeyValue( Span< const char > key, Span< const char > valu
 
 static void G_FreeEntities() {
 	if( !level.time ) {
-		memset( game.edicts, 0, game.maxentities * sizeof( game.edicts[0] ) );
+		memset( game.edicts, 0, sizeof( game.edicts ) );
 	}
 	else {
 		G_FreeEdict( world );
-		for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
+		for( size_t i = server_gs.maxclients + 1; i < ARRAY_COUNT( game.edicts ); i++ ) {
 			if( game.edicts[i].r.inuse ) {
 				G_FreeEdict( game.edicts + i );
 			}
@@ -227,7 +229,7 @@ static void G_FreeEntities() {
 }
 
 static void SpawnMapEntities() {
-	level.spawnedTimeStamp = svs.gametime;
+	level.spawnedTimeStamp = svs.monotonic_time;
 	level.canSpawnEntities = true;
 
 	const MapData * map = FindServerMap( server_gs.gameState.map );
@@ -270,7 +272,7 @@ static void SpawnMapEntities() {
 	}
 
 	// make sure server got the edicts data
-	SV_LocateEntities( game.edicts, game.numentities, game.maxentities );
+	SV_LocateEntities( game.edicts, game.numentities );
 }
 
 /*
@@ -279,7 +281,7 @@ static void SpawnMapEntities() {
 * Creates a server's entity / program execution context by
 * parsing textual entity definitions out of an ent file.
 */
-void G_InitLevel( const char *mapname, int64_t levelTime ) {
+void G_InitLevel( Span< const char > mapname, int64_t levelTime ) {
 	ResetEntityIDSequence();
 
 	memset( &level, 0, sizeof( level_locals_t ) );
@@ -290,7 +292,7 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	LoadServerMap( mapname );// TODO: errors???
 	GClip_ClearWorld(); // clear areas links
 
-	G_SunCycle( 0 );
+	G_SunCycle( Seconds( 0 ) );
 
 	G_FreeEntities();
 
@@ -331,7 +333,7 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 
 void G_ResetLevel() {
 	G_FreeEdict( world );
-	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
+	for( size_t i = server_gs.maxclients + 1; i < ARRAY_COUNT( game.edicts ); i++ ) {
 		G_FreeEdict( game.edicts + i );
 	}
 
@@ -340,7 +342,7 @@ void G_ResetLevel() {
 
 void G_RespawnLevel() {
 	ShutdownGametype();
-	G_InitLevel( sv.mapname, level.time );
+	G_InitLevel( MakeSpan( sv.mapname ), level.time );
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = &game.edicts[ i + 1 ];
@@ -350,10 +352,14 @@ void G_RespawnLevel() {
 	}
 }
 
-void G_HotloadMap() {
+void G_HotloadCollisionModels() {
 	ShutdownServerCollisionModels();
 	InitServerCollisionModels();
-	LoadServerMap( sv.mapname );
+	LoadServerMap( MakeSpan( sv.mapname ) );
+
+	if( level.gametype.MapHotloading != NULL ) {
+		level.gametype.MapHotloading();
+	}
 
 	G_ResetLevel();
 
@@ -363,6 +369,8 @@ void G_HotloadMap() {
 }
 
 static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st ) {
+	ent->s.type = ET_MAPMODEL;
 	ent->s.svflags &= ~SVF_NOCLIENT;
 	ent->movetype = MOVETYPE_PUSH;
+
 }

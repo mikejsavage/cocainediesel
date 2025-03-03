@@ -5,38 +5,28 @@
 void Cmd_Init();
 void Cmd_Shutdown();
 
-void Cbuf_AddLine( const char * text );
-void Cbuf_Execute();
-bool Cbuf_ExecuteLine( Span< const char > line, bool warn_on_invalid );
-void Cbuf_ExecuteLine( const char * line );
-
-void Cbuf_AddEarlyCommands( int argc, char ** argv );
-void Cbuf_AddLateCommands( int argc, char ** argv );
+bool Cmd_ExecuteLine( Allocator * a, Span< const char > line, bool warn_on_invalid );
 
 template< typename... Rest >
-void Cbuf_Add( const char * fmt, const Rest & ... rest ) {
-	char buf[ 1024 ];
-	ggformat( buf, sizeof( buf ), fmt, rest... );
-	Cbuf_AddLine( buf );
+void Cmd_Execute( Allocator * a, const char * fmt, const Rest & ... rest ) {
+	Span< char > command = a->sv( fmt, rest... );
+	defer { Free( a, command.ptr ); };
+	Cmd_ExecuteLine( a, command, true );
 }
 
-using ConsoleCommandCallback = void ( * )();
-using TabCompletionCallback = Span< const char * > ( * )( TempAllocator * a, const char * partial );
+void Cmd_ExecuteEarlyCommands( Span< const char * > args );
+void Cmd_ExecuteLateCommands( Span< const char * > args );
 
-void AddCommand( const char * name, ConsoleCommandCallback function );
-void SetTabCompletionCallback( const char * name, TabCompletionCallback callback );
-void RemoveCommand( const char * name );
+using ConsoleCommandCallback = void ( * )( const Tokenized & args );
+using TabCompletionCallback = Span< Span< const char > > ( * )( TempAllocator * temp, Span< const char > partial );
 
-Span< const char * > TabCompleteCommand( TempAllocator * a, const char * partial );
-Span< const char * > SearchCommands( Allocator * a, const char * partial );
-Span< const char * > TabCompleteArgument( TempAllocator * a, const char * partial );
-Span< const char * > TabCompleteFilename( TempAllocator * a, const char * partial, const char * search_dir, const char * extension );
-Span< const char * > TabCompleteFilenameHomeDir( TempAllocator * a, const char * partial, const char * search_dir, const char * extension );
+void AddCommand( Span< const char > name, ConsoleCommandCallback function );
+void SetTabCompletionCallback( Span< const char > name, TabCompletionCallback callback );
+void RemoveCommand( Span< const char > name );
 
-int Cmd_Argc();
-const char * Cmd_Argv( int arg );
-char * Cmd_Args();
-void Cmd_TokenizeString( const char * text );
+Span< Span< const char > > TabCompleteCommand( TempAllocator * temp, Span< const char > partial );
+Span< Span< const char > > TabCompleteArgument( TempAllocator * temp, Span< const char > partial );
+Span< Span< const char > > TabCompleteFilename( TempAllocator * temp, Span< const char > partial, Span< const char > search_dir, Span< const char > extension );
+Span< Span< const char > > TabCompleteFilenameHomeDir( TempAllocator * temp, Span< const char > partial, Span< const char > search_dir, Span< const char > extension );
 
 void ExecDefaultCfg();
-

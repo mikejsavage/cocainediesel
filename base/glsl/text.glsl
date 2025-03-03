@@ -1,4 +1,5 @@
 #include "include/uniforms.glsl"
+#include "include/common.glsl"
 
 uniform sampler2D u_BaseTexture;
 
@@ -17,13 +18,15 @@ layout( location = VertexAttribute_Position ) in vec4 a_Position;
 layout( location = VertexAttribute_TexCoord ) in vec2 a_TexCoord;
 
 void main() {
-	gl_Position = u_P * a_Position;
+	gl_Position = u_P * AffineToMat4( u_V ) * a_Position;
 	v_TexCoord = a_TexCoord;
 }
 
 #else
 
+#if !ALPHA_TEST
 layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
+#endif
 
 float Median( vec3 v ) {
 	return max( min( v.x, v.y ), min( max( v.x, v.y ), v.z ) );
@@ -52,7 +55,7 @@ void main() {
 	vec2 fw = fwidth( v_TexCoord );
 	float half_pixel_size = 0.5 * u_dSDF_dTexel * dot( fw, textureSize( u_BaseTexture, 0 ) );
 
-	float supersample_offset = 0.354; // rsqrt( 2 ) / 2
+	float supersample_offset = 0.35355; // rsqrt( 2 ) / 2
 	vec2 ssx = vec2( supersample_offset * fw.x, 0.0 );
 	vec2 ssy = vec2( 0.0, supersample_offset * fw.y );
 
@@ -61,8 +64,15 @@ void main() {
 	color += 0.5 * SampleMSDF( v_TexCoord + ssx, half_pixel_size );
 	color += 0.5 * SampleMSDF( v_TexCoord - ssy, half_pixel_size );
 	color += 0.5 * SampleMSDF( v_TexCoord + ssy, half_pixel_size );
+	color *= 1.0 / 3.0;
 
-	f_Albedo = color * ( 1.0 / 3.0 );
+#if ALPHA_TEST
+	if( color.a <= 0.5 ) {
+		discard;
+	}
+#else
+	f_Albedo = color;
+#endif
 }
 
 #endif

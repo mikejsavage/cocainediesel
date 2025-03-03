@@ -7,12 +7,14 @@ msvc_global_cxxflags( "/std:c++20 /W4 /wd4100 /wd4146 /wd4189 /wd4201 /wd4307 /w
 msvc_global_cxxflags( "/wd4244 /wd4267" ) -- silence conversion warnings because there are tons of them
 msvc_global_cxxflags( "/wd4611" ) -- setjmp warning
 msvc_global_cxxflags( "/wd5030" ) -- unrecognized [[gnu::...]] attribute
+msvc_global_cxxflags( "/we4130" ) -- warning C4130: '!=': logical operation on address of string constant
 msvc_global_cxxflags( "/GR- /EHs-c-" )
-msvc_obj_cxxflags( "source/*", "/RTC1" )
 
 gcc_global_cxxflags( "-std=c++20 -fno-exceptions -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fno-math-errno -fvisibility=hidden" )
 gcc_global_cxxflags( "-Wall -Wextra -Wcast-align -Wvla -Wformat-security -Wimplicit-fallthrough" ) -- -Wconversion
+gcc_global_cxxflags( "-Werror=format" )
 gcc_global_cxxflags( "-Wno-unused-parameter -Wno-missing-field-initializers" )
+gcc_global_cxxflags( "-Wno-switch" ) -- this is too annoying in practice
 
 if OS == "linux" then
 	gcc_global_cxxflags( "-msse4.2 -mpopcnt" )
@@ -27,35 +29,36 @@ else
 end
 
 require( "libs.cgltf" )
+require( "libs.clay" )
 require( "libs.curl" )
 require( "libs.discord" )
+require( "libs.dr_mp3" )
 require( "libs.freetype" )
 require( "libs.gg" )
 require( "libs.glad" )
-require( "libs.glfw3" )
 require( "libs.imgui" )
 require( "libs.jsmn" )
 require( "libs.luau" )
 require( "libs.mbedtls" )
 require( "libs.meshoptimizer" )
 require( "libs.monocypher" )
+require( "libs.msdfgen" )
 require( "libs.openal" )
 require( "libs.picohttpparser" )
 require( "libs.rgbcx" )
+require( "libs.sdl" )
 require( "libs.stb" )
 require( "libs.tracy" )
-require( "libs.yoga" )
 require( "libs.zstd" )
 
 require( "source.tools.bc4" )
+require( "source.tools.dieselfont" )
 require( "source.tools.dieselmap" )
 
 local platform_curl_libs = {
 	{ OS ~= "macos" and "curl" or nil },
 	{ OS == "linux" and "mbedtls" or nil },
 }
-
-obj_cxxflags( "source/client/audio/linux.cpp", "-Ilibs/alsa-headers -Ilibs/pulseaudio-headers" )
 
 bin( "audio", {
 	srcs = {
@@ -68,20 +71,27 @@ bin( "audio", {
 		"source/qcommon/platform/*_threads.cpp",
 		"source/qcommon/platform/windows_sys.cpp",
 		"source/qcommon/platform/windows_utf8.cpp",
-		"source/client/audio/windows.cpp",
-		"source/client/audio/macos.cpp",
-		"source/client/audio/linux.cpp",
 	},
 	libs = {
+		"dr_mp3",
 		"ggformat",
 		"ggtime",
-		"stb_vorbis",
+		"sdl",
 		"tracy",
 	},
 	windows_ldflags = "ole32.lib",
 	macos_ldflags = "-framework AudioToolbox -framework CoreAudio -framework Foundation",
 	no_static_link = true,
 } )
+obj_cxxflags( "source/neonmixer.cpp", "-I libs/sdl" )
+
+obj_cxxflags( "source/client/cl_imgui.cpp", "-I libs/sdl" )
+obj_cxxflags( "source/client/cl_menus.cpp", "-I libs/sdl" )
+obj_cxxflags( "source/client/cl_sdl.cpp", "-I libs/sdl" )
+obj_cxxflags( "source/client/keys.cpp", "-I libs/sdl" )
+obj_cxxflags( "source/client/renderer/backend.cpp", "-I libs/sdl" )
+
+obj_cxxflags( "source/qcommon/linear_algebra_kernels.cpp", "-O2" )
 
 do
 	bin( "client", {
@@ -98,31 +108,32 @@ do
 			"imgui",
 
 			"cgltf",
+			"clay",
 			"discord",
+			"dr_mp3",
 			"freetype",
 			"ggentropy",
 			"ggformat",
 			"ggtime",
 			"glad",
-			"glfw3",
 			"jsmn",
 			"luau",
 			"monocypher",
 			"openal",
 			"picohttpparser",
+			"sdl",
 			"stb_image",
 			"stb_image_write",
 			"stb_rect_pack",
 			"stb_vorbis",
 			"tracy",
-			"yoga",
 			"zstd",
 			platform_curl_libs,
 		},
 
 		rc = "source/client/platform/client",
 
-		windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib /SUBSYSTEM:WINDOWS",
+		windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib setupapi.lib /SUBSYSTEM:WINDOWS",
 		macos_ldflags = "-lcurl -framework AudioToolbox -framework Cocoa -framework CoreAudio -framework CoreVideo -framework IOKit",
 		linux_ldflags = "-lm -lpthread -ldl",
 		no_static_link = true,

@@ -18,7 +18,7 @@ struct MapSharedRenderData {
 };
 
 struct MapData;
-MapSharedRenderData NewMapRenderData( const MapData & map, const char * name );
+MapSharedRenderData NewMapRenderData( const MapData & map, Span< const char > name );
 void DeleteMapRenderData( const MapSharedRenderData & render_data );
 
-void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData * render_data, const Mat4 & transform, const Vec4 & color );
+void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData * render_data, const Mat3x4 & transform, const Vec4 & color );

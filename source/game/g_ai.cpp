@@ -41,7 +41,7 @@ static edict_t * ConnectFakeClient() {
 }
 
 void AI_SpawnBot() {
-	if( level.spawnedTimeStamp + 5000 > svs.realtime || !level.canSpawnEntities ) {
+	if( !level.canSpawnEntities ) {
 		return;
 	}
 
@@ -64,29 +64,11 @@ void AI_Respawn( edict_t * ent ) {
 }
 
 void AI_Think( edict_t * self ) {
-	if( G_ISGHOSTING( self ) ) {
+	if( self->r.client->team == Team_None ) {
 		G_Teams_JoinAnyTeam( self, false );
 	}
-	else if( server_gs.gameState.match_state == MatchState_Warmup ) {
-		bool all_humans_ready = true;
-		bool any_humans = false;
-
-		for( int i = 0; i < server_gs.maxclients; i++ ) {
-			const edict_t * player = PLAYERENT( i );
-			if( !player->r.inuse || ( player->s.svflags & SVF_FAKECLIENT ) ) {
-				continue;
-			}
-
-			any_humans = true;
-			if( !level.ready[ PLAYERNUM( player ) ] ) {
-				all_humans_ready = false;
-				break;
-			}
-		}
-
-		if( any_humans && all_humans_ready ) {
-			G_Match_Ready( self );
-		}
+	else if( server_gs.gameState.match_state == MatchState_Warmup && !level.ready[ PLAYERNUM( self ) ] ) {
+		G_Match_Ready( self );
 	}
 
 	UserCommand ucmd = { };

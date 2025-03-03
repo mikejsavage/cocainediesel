@@ -1,9 +1,5 @@
 #include "qcommon/base.h"
 #include "gameshared/collision.h"
-#include "gameshared/intersection_tests.h"
-#include "gameshared/q_math.h"
-
-#include "qcommon/hashtable.h"
 
 static inline u64 GetCellHash( s32 x, s32 y, s32 z ) {
 	u64 hash;

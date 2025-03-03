@@ -1,6 +1,4 @@
 #include "qcommon/base.h"
-#include "qcommon/array.h"
-
 #include "game/g_local.h"
 
 static Loadout loadouts[ MAX_CLIENTS ];
@@ -35,9 +33,9 @@ void GiveInventory( edict_t * ent ) {
 
 static Loadout DefaultLoadout() {
 	Loadout loadout = { };
-	loadout.weapons[ WeaponCategory_Primary ] = Weapon_RocketLauncher;
+	loadout.weapons[ WeaponCategory_Primary ] = Weapon_Bazooka;
 	loadout.weapons[ WeaponCategory_Secondary ] = Weapon_Shotgun;
-	loadout.weapons[ WeaponCategory_Backup ] = Weapon_StakeGun;
+	loadout.weapons[ WeaponCategory_Backup ] = Weapon_Crossbow;
 	loadout.weapons[ WeaponCategory_Melee ] = Weapon_Knife;
 
 	loadout.perk = Perk_Hooligan;
@@ -46,7 +44,7 @@ static Loadout DefaultLoadout() {
 		Assert( loadout.weapons[ i ] != Weapon_None );
 	}
 
-	loadout.gadget = Gadget_ThrowingAxe;
+	loadout.gadget = Gadget_Axe;
 
 	return loadout;
 }

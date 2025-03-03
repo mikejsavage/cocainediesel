@@ -1,5 +1,4 @@
 #include "qcommon/base.h"
-#include "qcommon/qcommon.h"
 #include "qcommon/asan.h"
 #include "qcommon/string.h"
 
@@ -66,9 +65,15 @@ struct AllocationTracker {
 		String< 2048 > msg( "Memory leaks:" );
 
 		size_t leaks = 0;
-		for( auto & alloc : allocations ) {
+		for( const auto & alloc : allocations ) {
 			const AllocInfo & info = alloc.second;
 			msg.append( "\n{} bytes at {} ({}:{})", info.size, info.src.function, info.src.file, info.src.line );
+
+			// sometimes this is useful
+#if 0
+			[[maybe_unused]] const char * mem_str = ( const char * ) alloc.first;
+			Breakpoint();
+#endif
 
 			leaks++;
 			if( leaks == 5 )
@@ -101,7 +106,7 @@ struct AllocationTracker {
 		if( allocations.erase( ptr ) == 0 )
 			Fatal( "Stray free in '%s' (%s:%d)", src.function, src.file, src.line );
 		Unlock( mutex );
-	};
+	}
 };
 
 #endif

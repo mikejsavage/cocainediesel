@@ -29,7 +29,6 @@ Vec3 knockbackOfDeath;
 int damageFlagsOfDeath;
 
 Cvar *sv_password;
-Cvar *g_select_empty;
 
 Cvar *g_maxvelocity;
 
@@ -109,7 +108,7 @@ void G_Init( unsigned int framemsec ) {
 
 	sv_password = NewCvar( "sv_password", "" );
 
-	g_projectile_prestep = NewCvar( "g_projectile_prestep", temp( "{}", PROJECTILE_PRESTEP ), CvarFlag_Developer );
+	g_projectile_prestep = NewCvar( "g_projectile_prestep", temp.sv( "{}", PROJECTILE_PRESTEP ), CvarFlag_Developer );
 	g_numbots = NewCvar( "g_numbots", "0", CvarFlag_Archive );
 	g_maxtimeouts = NewCvar( "g_maxtimeouts", "2", CvarFlag_Archive );
 	g_antilag_maxtimedelta = NewCvar( "g_antilag_maxtimedelta", "200", CvarFlag_Archive );
@@ -135,13 +134,12 @@ void G_Init( unsigned int framemsec ) {
 	// helper cvars to show current status in serverinfo reply
 	NewCvar( "g_needpass", "", CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 
-	game.maxentities = MAX_EDICTS;
 	memset( game.edicts, 0, sizeof( game.edicts ) );
 	memset( game.clients, 0, sizeof( game.clients ) );
 
 	game.numentities = server_gs.maxclients + 1;
 
-	SV_LocateEntities( game.edicts, game.numentities, game.maxentities );
+	SV_LocateEntities( game.edicts, game.numentities );
 
 	// server console commands
 	G_AddServerCommands();
@@ -178,7 +176,7 @@ void G_ExitLevel() {
 
 	level.exitNow = false;
 
-	const char *nextmapname = G_NextMap();
+	const char * nextmapname = G_NextMap();
 
 	// if it's the same map see if we can restart without loading
 	if( StrEqual( nextmapname, sv.mapname ) ) {
@@ -188,7 +186,7 @@ void G_ExitLevel() {
 
 	if( loadmap ) {
 		TempAllocator temp = svs.frame_arena.temp();
-		Cbuf_ExecuteLine( temp( "map \"{}\"", nextmapname ) );
+		Cmd_Execute( &temp, "map \"{}\"", nextmapname );
 	}
 
 	G_SnapClients();

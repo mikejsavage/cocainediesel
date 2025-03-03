@@ -19,9 +19,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/qcommon.h"
+#include "qcommon/array.h"
 
 #include <limits.h>
-#include <type_traits>
 
 /*
 * COM_SanitizeFilePath
@@ -55,21 +55,18 @@ bool COM_ValidateFilename( const char *filename ) {
 	return true;
 }
 
-bool COM_ValidateRelativeFilename( const char *filename ) {
+bool COM_ValidateRelativeFilename( Span< const char > filename ) {
 	// TODO: should probably use PathIsRelative on windows
 	// https://docs.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathisrelativea?redirectedfrom=MSDN
-	if( !COM_ValidateFilename( filename ) ) {
+	if( filename == "" ) {
 		return false;
 	}
-
-	if( strchr( filename, ':' ) || strstr( filename, ".." ) || strstr( filename, "//" ) ) {
+	if( filename[ 0 ] == '/' || filename[ 0 ] == '.' ) {
 		return false;
 	}
-
-	if( *filename == '/' || *filename == '.' ) {
+	if( StrChr( filename, ':' ) != NULL || CaseContains( filename, ".." ) || CaseContains( filename, "//" ) ) {
 		return false;
 	}
-
 	return true;
 }
 
@@ -126,6 +123,26 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 	*cursor = c;
 
 	return token;
+}
+
+Tokenized Tokenize( Allocator * a, Span< const char > str, SourceLocation src_loc ) {
+	NonRAIIDynamicArray< Span< const char > > tokens( a, 0, src_loc );
+	while( true ) {
+		Span< const char > token = ParseToken( &str, Parse_StopOnNewLine );
+		if( token.ptr == NULL )
+			break;
+		tokens.add( token, src_loc );
+	}
+
+	Span< const char > all_but_first = { };
+	if( tokens.size() >= 2 ) {
+		all_but_first = Span< const char >( tokens[ 1 ].begin(), tokens[ tokens.size() - 1 ].end() - tokens[ 1 ].begin() );
+	};
+
+	return {
+		.all_but_first = all_but_first,
+		.tokens = tokens.span(),
+	};
 }
 
 bool TrySpanToU64( Span< const char > str, u64 * x ) {
@@ -235,6 +252,14 @@ char ToUpperASCII( char c ) {
 	return c >= 'a' && c <= 'z' ? c + 'A' - 'a' : c;
 }
 
+Span< char > ToUpperASCII( Allocator * a, Span< const char > str ) {
+	Span< char > result = AllocSpan< char >( a, str.n );
+	for( size_t i = 0; i < str.n; i++ ) {
+		result[ i ] = ToUpperASCII( str[ i ] );
+	}
+	return result;
+}
+
 bool StrEqual( Span< const char > lhs, Span< const char > rhs ) {
 	return lhs.n == rhs.n && memcmp( lhs.ptr, rhs.ptr, lhs.n ) == 0;
 }
@@ -276,10 +301,30 @@ bool StrCaseEqual( const char * lhs, const char * rhs ) {
 	return StrCaseEqual( MakeSpan( lhs ), MakeSpan( rhs ) );
 }
 
+static Span< const char > StrRChrSpan( Span< const char > str, char c, bool empty_if_missing ) {
+	for( size_t i = 0; i < str.n; i++ ) {
+		if( str[ str.n - i - 1 ] == c ) {
+			return str + ( str.n - i - 1 );
+		}
+	}
+
+	return empty_if_missing ? Span< const char >() : str;
+}
+
+const char * StrChr( Span< const char > str, char c ) {
+	return ( const char * ) memchr( str.ptr, c, str.n );
+}
+
+char * StrChr( Span< char > str, char c ) {
+	return ( char * ) memchr( str.ptr, c, str.n );
+}
+
+const char * StrRChr( Span< const char > str, char c ) {
+	return StrRChrSpan( str, c, true ).ptr;
+}
+
 bool StartsWith( Span< const char > str, Span< const char > prefix ) {
-	if( str.n < prefix.n )
-		return false;
-	return memcmp( str.ptr, prefix.ptr, prefix.n ) == 0;
+	return prefix.n <= str.n && memcmp( str.ptr, prefix.ptr, prefix.n ) == 0;
 }
 
 bool StartsWith( Span< const char > str, const char * prefix ) {
@@ -290,35 +335,37 @@ bool StartsWith( const char * str, const char * prefix ) {
 	return StartsWith( MakeSpan( str ), prefix );
 }
 
-bool EndsWith( Span< const char > str, const char * suffix ) {
-	if( str.n < strlen( suffix ) )
+bool EndsWith( Span< const char > str, Span< const char > suffix ) {
+	return suffix.n <= str.n && memcmp( str.end() - suffix.n, suffix.ptr, suffix.n ) == 0;
+}
+
+bool CaseStartsWith( Span< const char > str, Span< const char > prefix ) {
+	return prefix.n <= str.n && StrCaseEqual( str.slice( 0, prefix.n ), prefix );
+}
+
+Span< const char > Trim( Span< const char > str ) {
+	while( str.n > 0 && str[ 0 ] == ' ' ) {
+		str++;
+	}
+
+	while( str.n > 0 && str[ str.n - 1 ] == ' ' ) {
+		str = str.slice( 0, str.n - 1 );
+	}
+
+	return str;
+}
+
+Span< const char > StripPrefix( Span< const char > str, Span< const char > prefix ) {
+	return StartsWith( str, prefix ) ? str + prefix.n : str;
+}
+
+bool CaseContains( Span< const char > haystack, Span< const char > needle ) {
+	if( needle.n > haystack.n )
 		return false;
-	return memcmp( str.end() - strlen( suffix ), suffix, strlen( suffix ) ) == 0;
-}
 
-bool EndsWith( const char * str, const char * suffix ) {
-	return EndsWith( MakeSpan( str ), suffix );
-}
-
-bool CaseStartsWith( const char * str, const char * prefix ) {
-	if( strlen( str ) < strlen( prefix ) )
-		return false;
-	return StrCaseEqual( Span< const char >( str, strlen( prefix ) ), prefix );
-}
-
-Span< const char > StripPrefix( Span< const char > str, const char * prefix ) {
-	return StartsWith( str, prefix ) ? str + strlen( prefix ) : str;
-}
-
-bool CaseContains( const char * haystack, const char * needle ) {
-	Span< const char > h = MakeSpan( haystack );
-	Span< const char > n = MakeSpan( needle );
-	if( n.n > h.n )
-		return false;
-
-	size_t diff = h.n - n.n;
+	size_t diff = haystack.n - needle.n;
 	for( size_t i = 0; i <= diff; i++ ) {
-		if( StrCaseEqual( h.slice( i, i + n.n ), n ) ) {
+		if( StrCaseEqual( haystack.slice( i, i + needle.n ), needle ) ) {
 			return true;
 		}
 	}
@@ -337,8 +384,8 @@ static Span< const char > MemRChr( Span< const char > str, char c, bool empty_if
 }
 
 Span< const char > FileExtension( Span< const char > path ) {
-	Span< const char > filename = MemRChr( path, '/', false );
-	return MemRChr( filename, '.', true );
+	Span< const char > filename = StrRChrSpan( path, '/', false );
+	return StrRChrSpan( filename, '.', true );
 }
 
 Span< const char > FileExtension( const char * path ) {
@@ -355,21 +402,21 @@ Span< const char > StripExtension( const char * path ) {
 }
 
 Span< const char > FileName( Span< const char > path ) {
-	Span< const char > name = MemRChr( path, '/', true );
+	Span< const char > name = StrRChrSpan( path, '/', true );
 	return name == "" ? path : name + 1;
 }
 
-Span< const char > FileName( const char * path ) {
-	return FileName( MakeSpan( path ) );
-}
-
-Span< const char > BasePath( const char * path ) {
-	const char * slash = strrchr( path, '/' );
-	return slash == NULL ? MakeSpan( path ) : Span< const char >( path, slash - path );
+Span< const char > BasePath( Span< const char > path ) {
+	Span< const char > slash = MemRChr( path, '/', true );
+	return path.slice( 0, path.n - slash.n );
 }
 
 bool SortCStringsComparator( const char * a, const char * b ) {
 	return strcmp( a, b ) < 0;
+}
+
+bool SortSpanStringsComparator( Span< const char > a, Span< const char > b ) {
+	return a.n != b.n ? a.n < b.n : memcmp( a.ptr, b.ptr, a.n ) < 0;
 }
 
 void SafeStrCpy( char * dst, const char * src, size_t dst_size ) {
@@ -394,25 +441,30 @@ void SafeStrCat( char * dst, const char * src, size_t dst_size ) {
 	dst[ dst_len + to_copy ] = '\0';
 }
 
-void RemoveTrailingZeroesFloat( char * str ) {
-	size_t len = strlen( str );
-	if( len == 0 )
-		return;
+Span< const char > RemoveTrailingZeroesFloat( Span< const char > str ) {
+	if( str == "" )
+		return "";
+	if( StrChr( str, '.' ) == NULL )
+		return str;
 
-	if( strchr( str, '.' ) == NULL )
-		return;
-
-	len--;
 	while( true ) {
-		char c = str[ len ];
-		if( c == '.' )
-			len--;
-		if( c != '0' )
+		char c = str[ str.n - 1 ];
+		if( c == '.' ) {
+			str.n--;
 			break;
-		len--;
+		}
+		if( c != '0' ) {
+			break;
+		}
+		str.n--;
 	}
 
-	str[ len + 1 ] = '\0';
+	// ".0" gets turned into ""
+	if( str == "" ) {
+		return "0";
+	}
+
+	return str;
 }
 
 //=====================================================================
@@ -704,35 +756,4 @@ Span< const char > ParseWorldspawnKey( Span< const char > entities, const char *
 	}
 
 	return Span< const char >();
-}
-
-void operator++( WeaponType & x, int ) {
-	using T = typename std::underlying_type< WeaponType >::type;
-	x = WeaponType( T( x ) + 1 );
-}
-
-void operator++( GadgetType & x, int ) {
-	using T = typename std::underlying_type< GadgetType >::type;
-	x = GadgetType( T( x ) + 1 );
-}
-
-void operator++( PerkType & x, int ) {
-	using T = typename std::underlying_type< PerkType >::type;
-	x = PerkType( T( x ) + 1 );
-}
-
-void operator&=( EntityFlags & lhs, EntityFlags rhs ) {
-	lhs = EntityFlags( lhs & rhs );
-}
-
-void operator|=( EntityFlags & lhs, EntityFlags rhs ) {
-	lhs = EntityFlags( lhs | rhs );
-}
-
-EntityFlags operator~( EntityFlags x ) {
-	return EntityFlags( ~u16( x ) );
-}
-
-void operator|=( UserCommandButton & lhs, UserCommandButton rhs ) {
-	lhs = UserCommandButton( lhs | rhs );
 }

@@ -20,17 +20,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 
-static void Cmd_ConsoleSay_f() {
-	G_ChatMsg( NULL, NULL, false, "%s", Cmd_Args() );
+static void Cmd_ConsoleSay_f( const Tokenized & args ) {
+	G_ChatMsg( NULL, NULL, false, args.all_but_first );
 }
 
-static void Cmd_ConsoleKick_f() {
-	if( Cmd_Argc() != 2 ) {
+static void Cmd_ConsoleKick_f( const Tokenized & args ) {
+	if( args.tokens.n != 2 ) {
 		Com_Printf( "Usage: kick <id or name>\n" );
 		return;
 	}
 
-	edict_t * ent = G_PlayerForText( Cmd_Argv( 1 ) );
+	edict_t * ent = G_PlayerForText( args.tokens[ 1 ] );
 	if( !ent ) {
 		Com_Printf( "No such player\n" );
 		return;
@@ -39,13 +39,13 @@ static void Cmd_ConsoleKick_f() {
 	PF_DropClient( ent, "Kicked" );
 }
 
-static void Cmd_ConsoleKill_f() {
-	if( Cmd_Argc() != 2 ) {
+static void Cmd_ConsoleKill_f( const Tokenized & args ) {
+	if( args.tokens.n != 2 ) {
 		Com_Printf( "Usage: kill <bot id or name>\n" );
 		return;
 	}
 
-	edict_t * ent = G_PlayerForText( Cmd_Argv( 1 ) );
+	edict_t * ent = G_PlayerForText( args.tokens[ 1 ] );
 	if( ent == NULL ) {
 		Com_Printf( S_COLOR_YELLOW "No such player\n" );
 		return;

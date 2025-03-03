@@ -4,13 +4,6 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 
-bool break1 = false;
-bool break2 = false;
-bool break3 = false;
-bool break4 = false;
-
-bool tracy_is_active = true;
-
 void FatalImpl( const char * file, int line, const char * format, ... ) {
 	va_list argptr;
 	char msg[ 1024 ];
@@ -23,8 +16,8 @@ void FatalImpl( const char * file, int line, const char * format, ... ) {
 	abort();
 }
 
-void FatalErrnoImpl( const char * msg, const char * file, int line ) {
-	FatalImpl( file, line, "%s: %s (%d)", msg, strerror( errno ), errno );
+void FatalErrno( const char * msg, SourceLocation src_loc ) {
+	FatalImpl( src_loc.file, src_loc.line, "%s: %s (%d)", msg, strerror( errno ), errno );
 }
 
 void AssertFail( const char * str, const char * file, int line ) {

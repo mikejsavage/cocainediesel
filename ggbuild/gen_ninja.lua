@@ -70,20 +70,15 @@ configs[ "linux" ] = {
 }
 
 configs[ "linux-debug" ] = { }
-configs[ "linux-asan" ] = {
-	bin_suffix = "-asan",
-	cxxflags = "-fsanitize=address",
-	ldflags = configs[ "linux" ].ldflags .. " -fsanitize=address -static-libasan",
-	prebuilt_lib_dir = "linux-debug",
-}
 configs[ "linux-tsan" ] = {
 	bin_suffix = "-tsan",
-	cxxflags = "-fsanitize=thread",
-	ldflags = configs[ "linux" ].ldflags .. " -fsanitize=thread -static-libtsan",
+	cxxflags = "-fsanitize=thread -D_LARGEFILE64_SOURCE",
+	ldflags = "-fsanitize-thread",
 	prebuilt_lib_dir = "linux-debug",
 }
 configs[ "linux-release" ] = {
 	cxxflags = "-O2 -DNDEBUG",
+	ldflags = "-target x86_64-linux-gnu.2.27",
 	output_dir = "release/",
 	can_static_link = true,
 }
@@ -101,6 +96,18 @@ configs[ "macos" ] = copy( configs[ "linux" ], {
 	ldflags = "-arch arm64",
 } )
 configs[ "macos-debug" ] = { }
+configs[ "macos-asan" ] = {
+	bin_suffix = "-asan",
+	cxxflags = "-fsanitize=address",
+	ldflags = "-fsanitize=address",
+	prebuilt_lib_dir = "macos-debug",
+}
+configs[ "macos-tsan" ] = {
+	bin_suffix = "-tsan",
+	cxxflags = "-fsanitize=thread",
+	ldflags = "-fsanitize=thread -static-libsan",
+	prebuilt_lib_dir = "macos-debug",
+}
 configs[ "macos-release" ] = {
 	cxxflags = "-O2 -DNDEBUG",
 	ldflags = "-Wl,-dead_strip -Wl,-x",
@@ -480,6 +487,8 @@ rule lib
 			printf( "    extra_ldflags = %s", cfg[ ldflags_key ] )
 		end
 
-		printf( "default %s", full_name )
+		if not cfg.dont_build_by_default then
+			printf( "default %s", full_name )
+		end
 	end
 end

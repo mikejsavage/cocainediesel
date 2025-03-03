@@ -22,11 +22,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client/client.h"
 #include "qcommon/fs.h"
+#include "qcommon/time.h"
 #include "qcommon/version.h"
 #include "gameshared/demo.h"
 
 static RecordDemoContext record_demo_context = { };
-static s64 record_demo_gametime;
+static Time record_demo_game_time;
 static time_t record_demo_utc_time;
 static bool record_demo_waiting = false;
 static char * record_demo_filename = NULL;
@@ -35,8 +36,7 @@ static DemoMetadata playing_demo_metadata;
 static msg_t playing_demo_contents = { };
 static bool playing_demo_paused;
 static bool playing_demo_seek;
-static bool playing_demo_seek_latch;
-static s64 playing_demo_seek_time;
+static Optional< Time > playing_demo_seek_time;
 
 static bool yolodemo;
 
@@ -70,7 +70,7 @@ void CL_DemoBaseline( const snapshot_t * snap ) {
 	if( !record_demo_waiting || snap->delta )
 		return;
 
-	record_demo_gametime = cls.gametime;
+	record_demo_game_time = cls.game_time;
 	record_demo_utc_time = time( NULL );
 	record_demo_waiting = false;
 
@@ -80,13 +80,13 @@ void CL_DemoBaseline( const snapshot_t * snap ) {
 	StartRecordingDemo( &temp, &record_demo_context, record_demo_filename, cl.servercount, cl.snapFrameTime, client_gs.maxclients, cl_baselines );
 }
 
-void CL_Record_f() {
+void CL_Record_f( const Tokenized & args ) {
 	if( cls.state != CA_ACTIVE ) {
 		Com_Printf( "You must be in a level to record.\n" );
 		return;
 	}
 
-	if( Cmd_Argc() < 2 ) {
+	if( args.tokens.n != 2 ) {
 		Com_Printf( "record <demoname>\n" );
 		return;
 	}
@@ -101,12 +101,7 @@ void CL_Record_f() {
 		return;
 	}
 
-	if( !COM_ValidateRelativeFilename( Cmd_Argv( 1 ) ) ) {
-		Com_Printf( "Invalid filename.\n" );
-		return;
-	}
-
-	record_demo_filename = ( *sys_allocator )( "{}/demos/{}" APP_DEMO_EXTENSION_STR, HomeDirPath(), Cmd_Argv( 1 ) );
+	record_demo_filename = ( *sys_allocator )( "{}/demos/{}" APP_DEMO_EXTENSION_STR, HomeDirPath(), args.tokens[ 1 ] );
 	COM_SanitizeFilePath( record_demo_filename );
 
 	Com_Printf( "Recording demo: %s\n", record_demo_filename );
@@ -138,10 +133,10 @@ void CL_StopRecording( bool silent ) {
 	DemoMetadata metadata = { };
 	metadata.metadata_version = DEMO_METADATA_VERSION;
 	metadata.game_version = MakeSpan( CopyString( &temp, APP_VERSION ) );
-	metadata.server = MakeSpan( cls.server_name );
-	metadata.map = MakeSpan( CopyString( &temp, cl.map->name ) );
+	metadata.server = cls.server_name;
+	metadata.map = CloneSpan( &temp, cl.map->name );
 	metadata.utc_time = record_demo_utc_time;
-	metadata.duration_seconds = ( cls.gametime - record_demo_gametime ) / 1000;
+	metadata.duration_seconds = ToSeconds( cls.game_time - record_demo_game_time );
 	metadata.decompressed_size = record_demo_context.decompressed_size;
 
 	StopRecordingDemo( &temp, &record_demo_context, metadata );
@@ -175,11 +170,11 @@ void CL_ReadDemoPackets() {
 }
 
 void CL_LatchedDemoJump() {
-	if( !playing_demo_seek_latch ) {
+	if( !playing_demo_seek_time.exists ) {
 		return;
 	}
 
-	cls.gametime = playing_demo_seek_time;
+	cls.game_time = playing_demo_seek_time.value;
 	cl.currentSnapNum = cl.pendingSnapNum = cl.receivedSnapNum = 0;
 
 	playing_demo_contents.readcount = 0;
@@ -187,13 +182,13 @@ void CL_LatchedDemoJump() {
 	CL_AdjustServerTime( 1 );
 
 	playing_demo_seek = true;
-	playing_demo_seek_latch = false;
+	playing_demo_seek_time = NONE;
 }
 
-static void CL_StartDemo( const char * demoname, bool yolo ) {
+static void CL_StartDemo( Span< const char > demoname, bool yolo ) {
 	CL_Disconnect( NULL );
 
-	const char * ext = FileExtension( demoname ) == "" ? APP_DEMO_EXTENSION_STR : "";
+	Span< const char > ext = FileExtension( demoname ) == "" ? Span< const char >( APP_DEMO_EXTENSION_STR ) : ""_sp;
 	char * filename;
 	if( COM_ValidateRelativeFilename( demoname ) ) {
 		filename = ( *sys_allocator )( "{}/demos/{}{}", HomeDirPath(), demoname, ext );
@@ -223,26 +218,26 @@ static void CL_StartDemo( const char * demoname, bool yolo ) {
 	playing_demo_contents = NewMSGReader( decompressed.ptr, decompressed.n, decompressed.n );
 	playing_demo_paused = false;
 	playing_demo_seek = false;
-	playing_demo_seek_latch = false;
+	playing_demo_seek_time = NONE;
 	yolodemo = yolo;
 
 	CL_SetClientState( CA_HANDSHAKE );
 }
 
-void CL_PlayDemo_f() {
-	if( Cmd_Argc() < 2 ) {
+void CL_PlayDemo_f( const Tokenized & args ) {
+	if( args.tokens.n != 2 ) {
 		Com_Printf( "demo <demoname>\n" );
 		return;
 	}
-	CL_StartDemo( Cmd_Argv( 1 ), false );
+	CL_StartDemo( args.tokens[ 1 ], false );
 }
 
-void CL_YoloDemo_f() {
-	if( Cmd_Argc() < 2 ) {
+void CL_YoloDemo_f( const Tokenized & args ) {
+	if( args.tokens.n != 2 ) {
 		Com_Printf( "demo <demoname>\n" );
 		return;
 	}
-	CL_StartDemo( Cmd_Argv( 1 ), true );
+	CL_StartDemo( args.tokens[ 1 ], true );
 }
 
 void CL_PauseDemo_f() {
@@ -254,42 +249,42 @@ void CL_PauseDemo_f() {
 	playing_demo_paused = !playing_demo_paused;
 }
 
-void CL_DemoJump_f() {
+void CL_DemoJump_f( const Tokenized & args ) {
 	if( !CL_DemoPlaying() ) {
 		Com_Printf( "Can only demojump when playing a demo\n" );
 		return;
 	}
 
-	if( Cmd_Argc() != 2 ) {
-		Com_Printf( "Usage: demojump <time>\n" );
-		Com_Printf( "Time format is [minutes:]seconds\n" );
-		Com_Printf( "Use '+' or '-' in front of the time to specify it in relation to current position\n" );
-		return;
+	auto bad_syntax = []() {
+		Com_Printf( "Usage: demojump [+/-]<seconds>\n" );
+	};
+
+	if( args.tokens.n != 2 ) {
+		return bad_syntax();
 	}
 
-	const char * p = Cmd_Argv( 1 );
-
+	Span< const char > time_str = args.tokens[ 1 ];
 	bool relative = false;
-	if( Cmd_Argv( 1 )[0] == '+' || Cmd_Argv( 1 )[0] == '-' ) {
+	bool negative = false;
+	if( time_str[ 0 ] == '+' || time_str[ 0 ] == '-' ) {
 		relative = true;
-		p++;
+		negative = time_str[ 0 ] == '-';
 	}
 
-	int time;
-	if( strchr( p, ':' ) ) {
-		time = ( atoi( p ) * 60 + atoi( strchr( p, ':' ) + 1 ) ) * 1000;
-	} else {
-		time = atoi( p ) * 1000;
+	s64 seconds;
+	if( !TrySpanToS64( time_str, &seconds ) ) {
+		return bad_syntax();
 	}
 
-	if( Cmd_Argv( 1 )[0] == '-' ) {
-		time = -time;
-	}
+	Time time = Seconds( seconds );
 
-	if( relative ) {
-		playing_demo_seek_time = Max2( s64( 0 ), cls.gametime + time );
-	} else {
-		playing_demo_seek_time = Max2( 0, time ); // gametime always starts from 0
+	if( !relative ) {
+		playing_demo_seek_time = time;
 	}
-	playing_demo_seek_latch = true;
+	else if( negative ) {
+		playing_demo_seek_time = cls.game_time - Min2( cls.game_time, time );
+	}
+	else {
+		playing_demo_seek_time = cls.game_time + time;
+	}
 }

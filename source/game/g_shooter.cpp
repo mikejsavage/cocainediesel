@@ -20,13 +20,13 @@ void SP_shooter( edict_t * shooter, const spawn_temp_t * st ) {
 	shooter->s.team = Team_One;
 	shooter->s.svflags &= ~SVF_NOCLIENT;
 	GClip_LinkEntity( shooter );
-	TempAllocator temp = svs.frame_arena.temp();
 
 	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
+		TempAllocator temp = svs.frame_arena.temp();
 		const WeaponDef * weapon = GS_GetWeaponDef( i );
-		if( st->weapon == StringHash( weapon->short_name ) ) {
+		if( st->weapon == StringHash( weapon->name ) ) {
 			shooter->s.weapon = i;
-			shooter->s.model = StringHash( temp( "weapons/{}/model", weapon->short_name ) );
+			shooter->s.model = StringHash( temp( "loadout/{}/weapon", weapon->name ) );
 			shooter->nextThink = level.time + 2000;
 			return;
 		}

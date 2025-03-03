@@ -1,7 +1,0 @@
-{
-	attenuation idle
-	volume 0.75
-	pitch 1.25
-	pitch_random 0.1
-	find_sounds weapons/bullet_impact
-}

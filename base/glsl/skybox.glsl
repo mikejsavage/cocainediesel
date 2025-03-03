@@ -11,7 +11,7 @@ layout( location = VertexAttribute_Position ) in vec4 a_Position;
 
 void main() {
 	v_Position = a_Position.xyz;
-	gl_Position = u_P * u_V * vec4( a_Position );
+	gl_Position = u_P * AffineToMat4( u_V ) * vec4( a_Position );
 }
 
 #else

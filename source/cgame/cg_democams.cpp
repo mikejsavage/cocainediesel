@@ -20,7 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "qcommon/fs.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/string.h"
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 
@@ -77,33 +76,23 @@ static void CG_DemoCamFreeFly() {
 	cam_origin = cam_origin + wishvel * ( (float)cls.realFrameTime * 0.001f );
 }
 
-static void CG_DemoCamSetCameraPositionFromView() {
-	if( cg.view.type == VIEWDEF_PLAYERVIEW ) {
-		cam_origin = cg.view.origin;
-		cam_angles = EulerDegrees2( cg.view.angles.pitch, cg.view.angles.yaw );
-		cam_velocity = cg.view.velocity;
-	}
-}
-
-int CG_DemoCamUpdate() {
+ViewType CG_DemoCamUpdate() {
 	if( !cgs.demoPlaying ) {
-		return VIEWDEF_PLAYERVIEW;
+		return ViewType_Player;
 	}
 
 	if( CamIsFree ) {
 		CG_DemoCamFreeFly();
 	}
 
-	CG_DemoCamSetCameraPositionFromView();
-
-	return CamIsFree ? VIEWDEF_DEMOCAM : VIEWDEF_PLAYERVIEW;
+	return CamIsFree ? ViewType_Player : ViewType_Demo;
 }
 
-static void CG_DemoFreeFly_Cmd_f() {
-	if( Cmd_Argc() > 1 ) {
-		if( StrCaseEqual( Cmd_Argv( 1 ), "on" ) ) {
+static void CG_DemoFreeFly_Cmd_f( const Tokenized & args ) {
+	if( args.tokens.n > 1 ) {
+		if( StrCaseEqual( args.tokens[ 1 ], "on" ) ) {
 			CamIsFree = true;
-		} else if( StrCaseEqual( Cmd_Argv( 1 ), "off" ) ) {
+		} else if( StrCaseEqual( args.tokens[ 1 ], "off" ) ) {
 			CamIsFree = false;
 		}
 	} else {

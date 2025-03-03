@@ -1,5 +1,4 @@
 #include "gameshared/movement.h"
-#include "gameshared/gs_weapons.h"
 
 static constexpr float pm_wallclimbspeed = 200.0f;
 
@@ -10,7 +9,6 @@ static constexpr float stamina_use = 0.2f;
 static constexpr float stamina_use_moving = 0.3f;
 static constexpr float stamina_recover = 1.0f;
 
-
 static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
 	if( !StaminaAvailable( ps, pml, stamina_use ) ) {
 		return false;
@@ -20,7 +18,6 @@ static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Sy
 	trace_t trace = pmove_gs->api.Trace( pml->origin, pm->bounds, spot, pm->playerState->POVnum, pm->solid_mask, 0 );
 	return trace.HitSomething();
 }
-
 
 static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( pm->groundentity == -1 ) {
@@ -43,14 +40,12 @@ static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 	Dash( pm, pml, pmove_gs, dashdir, pm_dashspeed, pm_dashupspeed );
 }
 
-
-
 static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( ps->pmove.stamina_state == Stamina_Normal && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
 		StaminaRecover( ps, pml, stamina_recover );
 	}
 
-	if( ps->pmove.knockback_time > 0 ) { // can not start a new dash during knockback time
+	if( ps->pmove.no_friction_time > 0 ) {
 		return;
 	}
 
@@ -84,7 +79,6 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 	}
 }
-
 
 void PM_NinjaInit( pmove_t * pm, pml_t * pml ) {
 	PM_InitPerk( pm, pml, Perk_Ninja, PM_NinjaJump, PM_NinjaSpecial );

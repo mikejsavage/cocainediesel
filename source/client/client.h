@@ -27,7 +27,6 @@
 
 #include "client/vid.h"
 #include "client/ui.h"
-#include "client/keys.h"
 #include "client/maps.h"
 #include "client/console.h"
 #include "client/audio/types.h"
@@ -35,9 +34,6 @@
 
 struct ImFont;
 struct snapshot_t;
-
-constexpr RGBA8 rgba8_diesel_yellow = RGBA8( 255, 204, 38, 255 );
-constexpr RGBA8 rgba8_diesel_green = RGBA8( 44, 209, 89, 255 ); //yolo
 
 //=============================================================================
 
@@ -106,8 +102,10 @@ struct client_static_t {
 	connstate_t state;          // only set through CL_SetClientState
 
 	Time monotonicTime; // starts at 0 when the game is launched, increases forever
-
-	Time shadertoy_time; // starts at 0 when the game is launched, periodically gets reset
+	Time game_time; // starts at 0 when you connect to a server, scaled by timescale
+	// starts at 0 when the game is launched, periodically gets reset, used to
+	// limit float precision loss for timestamps in shaders
+	Time shadertoy_time;
 
 	int64_t framecount;
 	int64_t realtime;               // always increasing, no clamping, etc
@@ -125,8 +123,8 @@ struct client_static_t {
 	Optional< Time > connect_time; // for connection retransmits
 	int connect_count;
 
-	char * server_name;
-	char * download_url;              // http://<httpaddress>/
+	Span< char > server_name;
+	Span< char > download_url;              // http://<httpaddress>/
 
 	bool rejected;          // these are used when the server rejects our connection
 	char rejectmessage[80];
@@ -163,6 +161,7 @@ struct client_static_t {
 	int64_t lastPacketReceivedTime;
 
 	ImFont * huge_font;
+	ImFont * huge_italic_font;
 	ImFont * large_font;
 	ImFont * big_font;
 	ImFont * medium_font;
@@ -170,7 +169,7 @@ struct client_static_t {
 	ImFont * large_italic_font;
 	ImFont * big_italic_font;
 	ImFont * console_font;
-	ImFont * idi_nahui_font;
+	ImFont * license_italic_font;
 };
 
 extern client_static_t cls;
@@ -203,7 +202,7 @@ extern SyncEntityState cl_baselines[MAX_EDICTS];
 void CL_Init();
 
 msg_t * CL_AddReliableCommand( ClientCommandType command );
-void CL_Netchan_Transmit( msg_t *msg );
+void CL_Netchan_Transmit( msg_t * msg );
 void CL_SendMessagesToServer( bool sendNow );
 void CL_RestartTimeDeltas( int newTimeDelta );
 void CL_AdjustServerTime( unsigned int gamemsec );
@@ -211,15 +210,14 @@ void CL_AdjustServerTime( unsigned int gamemsec );
 void CL_SetClientState( connstate_t state );
 void CL_ClearState();
 void CL_ReadPackets();
-void CL_Disconnect_f();
 
 void CL_Connect( const NetAddress & address );
 void CL_Reconnect_f();
 void CL_FinishConnect();
 void CL_ServerReconnect_f();
 void CL_Changing_f();
-void CL_Precache_f();
-void CL_ServerDisconnect_f();
+void CL_Precache_f( const Tokenized & args );
+void CL_ServerDisconnect_f( const Tokenized & args );
 
 void CL_ForceVsync( bool force );
 
@@ -256,17 +254,17 @@ void CL_WriteUcmdsToMessage( msg_t *msg );
 void CL_WriteDemoMessage( msg_t msg, size_t offset );
 void CL_DemoBaseline( const snapshot_t * snap );
 void CL_DemoCompleted();
-void CL_PlayDemo_f();
-void CL_YoloDemo_f();
+void CL_PlayDemo_f( const Tokenized & args );
+void CL_YoloDemo_f( const Tokenized & args );
 void CL_ReadDemoPackets();
 void CL_LatchedDemoJump();
-void CL_Record_f();
+void CL_Record_f( const Tokenized & args );
 bool CL_DemoPaused();
 bool CL_DemoSeeking();
 bool CL_YoloDemo();
 void CL_StopRecording( bool silent );
 void CL_PauseDemo_f();
-void CL_DemoJump_f();
+void CL_DemoJump_f( const Tokenized & args );
 
 //
 // cl_parse.c
@@ -274,9 +272,9 @@ void CL_DemoJump_f();
 void CL_ParseServerMessage( msg_t *msg );
 #define SHOWNET( msg,s ) _SHOWNET( msg,s,cl_shownet->integer );
 
-using DownloadCompleteCallback = void ( * )( const char * filename, Span< const u8 > data );
+using DownloadCompleteCallback = void ( * )( Span< const char > filename, Span< const u8 > data );
 
-bool CL_DownloadFile( const char * filename, DownloadCompleteCallback cb );
+bool CL_DownloadFile( Span< const char > filename, DownloadCompleteCallback cb );
 bool CL_IsDownloading();
 void CL_CancelDownload();
 

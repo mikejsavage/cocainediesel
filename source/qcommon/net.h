@@ -57,12 +57,12 @@ enum DNSFamily {
 	DNSFamily_IPv6,
 };
 
-char * SplitIntoHostnameAndPort( Allocator * a, const char * str, u16 * port );
+Span< const char > SplitIntoHostnameAndPort( Span< const char > str, u16 * port );
 bool DNS( const char * hostname, NetAddress * address, DNSFamily family = DNSFamily_Any );
 
 Socket NewUDPClient( NonBlockingBool nonblocking );
-Socket NewUDPServer( u16 port, NonBlockingBool nonblocking );
-Socket NewTCPServer( u16 port, NonBlockingBool nonblocking );
+Socket NewUDPServer( const char * interface, u16 port, NonBlockingBool nonblocking );
+Socket NewTCPServer( const char * interface, u16 port, NonBlockingBool nonblocking );
 void CloseSocket( Socket socket );
 
 size_t UDPSend( Socket socket, NetAddress destination, const void * data, size_t n );

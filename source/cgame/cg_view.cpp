@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/time.h"
 
 #include "gameshared/collision.h"
-#include "gameshared/intersection_tests.h"
 
 ChasecamState chaseCam;
 
@@ -78,7 +77,8 @@ bool CG_ChaseStep( int step ) {
 	}
 
 	if( !cgs.demoPlaying ) {
-		Cbuf_ExecuteLine( step > 0 ? "chasenext" : "chaseprev" );
+		TempAllocator temp = cls.frame_arena.temp();
+		Cmd_Execute( &temp, step > 0 ? "chasenext" : "chaseprev" );
 		return true;
 	}
 
@@ -262,7 +262,7 @@ static void CG_UpdateChaseCam( UserCommand * cmd ) {
 
 	int chaseStep = 0;
 
-	if( cg.view.type == VIEWDEF_PLAYERVIEW ) {
+	if( cg.view.type == ViewType_Player ) {
 		if( cmd->sidemove > 0 || ( cmd->buttons & Button_Attack2 ) ) {
 			chaseStep = 1;
 		}
@@ -308,90 +308,97 @@ static void ScreenShake( cg_viewdef_t * view ) {
 	view->origin.z += shake_amount * RandomFloat11( &cls.rng );
 }
 
-static void CG_SetupViewDef( cg_viewdef_t *view, int type, UserCommand * cmd ) {
-	memset( view, 0, sizeof( cg_viewdef_t ) );
+static void CG_SetupViewDef( cg_viewdef_t *view, ViewType type, UserCommand * cmd ) {
+	*view = { .type = type };
 
-	view->type = type;
-
-	if( view->type == VIEWDEF_PLAYERVIEW ) {
+	if( view->type == ViewType_Player ) {
 		view->POVent = cg.frame.playerState.POVnum;
-		view->draw2D = true;
-		view->thirdperson = cg_thirdPerson->integer != 0;
 
-		if( cg_entities[view->POVent].serverFrame != cg.frame.serverFrame ) {
-			view->thirdperson = false;
+		if( cg.oldFrame.gameState.camera_override.exists ) {
+			const SyncGameState::CameraOverride & a = cg.oldFrame.gameState.camera_override.value;
+			const SyncGameState::CameraOverride & b = cg.frame.gameState.camera_override.exists ? cg.frame.gameState.camera_override.value : a;
+
+			view->origin = Lerp( a.origin, cg.lerpfrac, b.origin );
+			view->angles = LerpAngles( a.angles, cg.lerpfrac, b.angles );
+
+			float dt = float( cg.frame.serverTime - cg.oldFrame.serverTime ) / 1000.0f;
+			view->velocity = ( b.origin - a.origin ) / dt;
 		}
+		else {
+			view->draw2D = true;
+			view->thirdperson = cg_thirdPerson->integer != 0;
 
-		// check for drawing gun
-		if( !view->thirdperson && view->POVent > 0 && view->POVent <= client_gs.maxclients ) {
-			if( cg_entities[view->POVent].serverFrame == cg.frame.serverFrame ) {
-				view->drawWeapon = true;
+			if( cg_entities[view->POVent].serverFrame != cg.frame.serverFrame ) {
+				view->thirdperson = false;
 			}
-		}
 
-		// check for chase cams
-		if( !( cg.frame.playerState.pmove.pm_flags & PMF_NO_PREDICTION ) ) {
-			if( (unsigned)view->POVent == cgs.playerNum + 1 ) {
-				if( !cgs.demoPlaying ) {
-					view->playerPrediction = true;
+			// check for drawing gun
+			if( !view->thirdperson && view->POVent > 0 && view->POVent <= client_gs.maxclients ) {
+				if( cg_entities[view->POVent].serverFrame == cg.frame.serverFrame ) {
+					view->drawWeapon = true;
+				}
+			}
+
+			// check for chase cams
+			if( !( cg.frame.playerState.pmove.pm_flags & PMF_NO_PREDICTION ) ) {
+				if( (unsigned)view->POVent == cgs.playerNum + 1 ) {
+					if( !cgs.demoPlaying ) {
+						view->playerPrediction = true;
+					}
+				}
+			}
+
+			if( view->playerPrediction ) {
+				CG_PredictMovement();
+
+				Vec3 viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
+				view->origin = cg.predictedPlayerState.pmove.origin + viewoffset - ( 1.0f - cg.lerpfrac ) * cg.predictionError;
+
+				view->angles = cg.predictedPlayerState.viewangles;
+
+				CG_Recoil( cg.predictedPlayerState.weapon );
+
+				CG_ViewSmoothPredictedSteps( &view->origin ); // smooth out stair climbing
+			}
+			else {
+				cg.predictingTimeStamp = cl.serverTime;
+				cg.predictFrom = 0;
+
+				// we don't run prediction, but we still set cg.predictedPlayerState with the interpolation
+				CG_InterpolatePlayerState( &cg.predictedPlayerState );
+
+				Vec3 viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
+
+				view->origin = cg.predictedPlayerState.pmove.origin + viewoffset;
+				view->angles = cg.predictedPlayerState.viewangles;
+			}
+
+			CG_CalcViewBob();
+
+			view->velocity = cg.predictedPlayerState.pmove.velocity;
+
+			ScreenShake( view );
+
+			if( cg.predictedPlayerState.health <= 0 && cg.predictedPlayerState.team != Team_None ) {
+				AddDamageEffect();
+			}
+			else {
+				cg.damage_effect *= 0.97f;
+				if( cg.damage_effect <= 0.001f ) {
+					cg.damage_effect = 0.0f;
 				}
 			}
 		}
 	}
-	else {
+	else if( view->type == ViewType_Demo ) {
 		CG_DemoCamGetViewDef( view );
-	}
 
-	if( view->type == VIEWDEF_PLAYERVIEW ) {
-		if( view->playerPrediction ) {
-			CG_PredictMovement();
-
-			Vec3 viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
-			view->origin = cg.predictedPlayerState.pmove.origin + viewoffset - ( 1.0f - cg.lerpfrac ) * cg.predictionError;
-
-			view->angles = cg.predictedPlayerState.viewangles;
-
-			CG_Recoil( cg.predictedPlayerState.weapon );
-
-			CG_ViewSmoothPredictedSteps( &view->origin ); // smooth out stair climbing
-		}
-		else {
-			cg.predictingTimeStamp = cl.serverTime;
-			cg.predictFrom = 0;
-
-			// we don't run prediction, but we still set cg.predictedPlayerState with the interpolation
-			CG_InterpolatePlayerState( &cg.predictedPlayerState );
-
-			Vec3 viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
-
-			view->origin = cg.predictedPlayerState.pmove.origin + viewoffset;
-			view->angles = cg.predictedPlayerState.viewangles;
-		}
-
-		CG_CalcViewBob();
-
-		view->velocity = cg.predictedPlayerState.pmove.velocity;
-	}
-	else if( view->type == VIEWDEF_DEMOCAM ) {
 		EulerDegrees2 angles2;
 		CG_DemoCamGetOrientation( &view->origin, &angles2, &view->velocity );
 		view->angles = EulerDegrees3( angles2 );
 	}
 
 	view->fov_y = WidescreenFov( CG_CalcViewFov() );
-
-	ScreenShake( view );
-
-	if( cg.predictedPlayerState.health <= 0 && cg.predictedPlayerState.team != Team_None ) {
-		AddDamageEffect();
-	}
-	else {
-		cg.damage_effect *= 0.97f;
-		if( cg.damage_effect <= 0.001f ) {
-			cg.damage_effect = 0.0f;
-		}
-	}
-
 	view->fov_x = CalcHorizontalFov( "SetupViewDef", view->fov_y, frame_static.viewport_width, frame_static.viewport_height );
 
 	Matrix3_FromAngles( view->angles, view->axis );
@@ -399,7 +406,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type, UserCommand * cmd ) {
 	view->fracDistFOV = tanf( Radians( view->fov_x ) * 0.5f );
 
 	if( view->thirdperson ) {
-		CG_ThirdPersonOffsetView( view, view->type == VIEWDEF_PLAYERVIEW && cg_thirdPerson->integer == 2 );
+		CG_ThirdPersonOffsetView( view, view->type == ViewType_Player && cg_thirdPerson->integer == 2 );
 	}
 
 	if( !view->playerPrediction ) {
@@ -493,26 +500,12 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	cg.lerpfrac = Clamp01( cg.lerpfrac );
 
 	{
-		constexpr float SYSTEM_FONT_TINY_SIZE = 8;
-		constexpr float SYSTEM_FONT_EXTRASMALL_SIZE = 12;
-		constexpr float SYSTEM_FONT_SMALL_SIZE = 14;
-		constexpr float SYSTEM_FONT_MEDIUM_SIZE = 16;
-		constexpr float SYSTEM_FONT_BIG_SIZE = 24;
-
 		float scale = frame_static.viewport_height / 600.0f;
-
-		cgs.fontSystemTinySize = ceilf( SYSTEM_FONT_TINY_SIZE * scale );
-		cgs.fontSystemExtraSmallSize = ceilf( SYSTEM_FONT_EXTRASMALL_SIZE * scale );
-		cgs.fontSystemSmallSize = ceilf( SYSTEM_FONT_SMALL_SIZE * scale );
-		cgs.fontSystemMediumSize = ceilf( SYSTEM_FONT_MEDIUM_SIZE * scale );
-		cgs.fontSystemBigSize = ceilf( SYSTEM_FONT_BIG_SIZE * scale );
-
-		scale *= 1.3f;
-		cgs.textSizeTiny = SYSTEM_FONT_TINY_SIZE * scale;
-		cgs.textSizeExtraSmall = SYSTEM_FONT_EXTRASMALL_SIZE * scale;
-		cgs.textSizeSmall = SYSTEM_FONT_SMALL_SIZE * scale;
-		cgs.textSizeMedium = SYSTEM_FONT_MEDIUM_SIZE * scale;
-		cgs.textSizeBig = SYSTEM_FONT_BIG_SIZE * scale;
+		cgs.fontSystemMediumSize = ceilf( 12 * scale );
+		cgs.textSizeTiny = 8 * scale;
+		cgs.textSizeSmall = 14 * scale;
+		cgs.textSizeMedium = 16 * scale;
+		cgs.textSizeBig = 24 * scale;
 	}
 
 	AllocateDecalBuffers();
@@ -521,10 +514,10 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	CG_UpdateChaseCam( &cmd );
 
-	int view_type = CG_DemoCamUpdate();
+	ViewType view_type = CG_DemoCamUpdate();
 	CG_SetupViewDef( &cg.view, view_type, &cmd );
 
-	RendererSetView( cg.view.origin, EulerDegrees3( cg.view.angles ), cg.view.fov_y );
+	RendererSetView( cg.view.origin, cg.view.angles, cg.view.fov_y );
 
 	CG_LerpEntities();
 

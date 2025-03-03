@@ -161,10 +161,6 @@ static void G_KnockBackPush( edict_t * targ, const edict_t * attacker, Vec3 base
 	constexpr float VERTICAL_KNOCKBACK_SCALE = 1.25f;
 	dir.z *= VERTICAL_KNOCKBACK_SCALE;
 
-	if( targ->r.client && targ != attacker && !( dflags & DAMAGE_KNOCKBACK_SOFT ) ) {
-		targ->r.client->ps.pmove.knockback_time = Clamp( 100, 3 * knockback, 250 );
-	}
-
 	targ->velocity = targ->velocity + dir * push;
 	knockbackOfDeath = dir * push;
 }
@@ -277,7 +273,7 @@ void G_Damage( edict_t * targ, edict_t * inflictor, edict_t * attacker, Vec3 pus
 
 		// shotgun calls G_Damage for every bullet, so we accumulate damage
 		// in W_Fire_Shotgun and send events from there instead
-		if( damage_type != Weapon_Shotgun && damage_type != Weapon_DoubleBarrel ) {
+		if( damage_type != Weapon_Shotgun && damage_type != Weapon_SawnOff ) {
 			bool headshot = dflags & DAMAGE_HEADSHOT;
 			SpawnDamageEvents( attacker, targ, take, headshot, point, dmgdir, statDmg );
 		}

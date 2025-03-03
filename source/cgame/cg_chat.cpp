@@ -1,7 +1,6 @@
 #include "cgame/cg_local.h"
 #include "client/audio/api.h"
 #include "client/renderer/renderer.h"
-#include "qcommon/string.h"
 #include "qcommon/time.h"
 
 #include "imgui/imgui.h"
@@ -51,8 +50,8 @@ static void CloseChat() {
 void CG_InitChat() {
 	chat = { };
 
-	AddCommand( "chat", []() { OpenChat( ChatMode_All ); } );
-	AddCommand( "teamchat", []() { OpenChat( ChatMode_Team ); } );
+	AddCommand( "chat", []( const Tokenized & args ) { OpenChat( ChatMode_All ); } );
+	AddCommand( "teamchat", []( const Tokenized & args ) { OpenChat( ChatMode_Team ); } );
 }
 
 void CG_ShutdownChat() {
@@ -60,10 +59,10 @@ void CG_ShutdownChat() {
 	RemoveCommand( "teamchat" );
 }
 
-void CG_AddChat( const char * str ) {
+void CG_AddChat( Span< const char > str ) {
 	size_t idx = ( chat.history_head + chat.history_len ) % ARRAY_COUNT( chat.history );
 	chat.history[ idx ].time = cls.monotonicTime;
-	SafeStrCpy( chat.history[ idx ].text, str, sizeof( chat.history[ idx ].text ) );
+	ggformat( chat.history[ idx ].text, sizeof( chat.history[ idx ].text ), "{}", str );
 
 	if( chat.history_len < ARRAY_COUNT( chat.history ) ) {
 		chat.history_len++;
@@ -80,10 +79,7 @@ void CG_AddChat( const char * str ) {
 static void SendChat() {
 	if( strlen( chat.input ) > 0 ) {
 		TempAllocator temp = cls.frame_arena.temp();
-
-		const char * cmd = chat.mode == ChatMode_Team ? "say_team" : "say";
-		Cbuf_Add( "{} {}", cmd, chat.input );
-
+		Cmd_Execute( &temp, "{} {}", chat.mode == ChatMode_Team ? "say_team" : "say", chat.input );
 		PlaySFX( "sounds/typewriter/return" );
 	}
 
@@ -117,7 +113,7 @@ void CG_DrawChat() {
 	Vec2 size = frame_static.viewport * Vec2( width_frac, 0.25f );
 
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground;
-	ImGuiWindowFlags log_flags = ImGuiWindowFlags_AlwaysUseWindowPadding;
+	ImGuiWindowFlags log_flags = ImGuiWindowFlags_None;
 	if( chat.mode == ChatMode_None ) {
 		flags |= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
 		log_flags |= ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoInputs;
@@ -140,9 +136,9 @@ void CG_DrawChat() {
 	ImGui::SetNextWindowPos( ImVec2( 8, size.y * 3 ), ImGuiCond_Always, ImVec2( 0, 1.0f ) );
 	ImGui::Begin( "chat", WindowZOrder_Chat, flags );
 
-	ImGui::BeginChild( "chatlog", ImVec2( 0, -ImGui::GetFrameHeight() ), false, log_flags );
+	ImGui::BeginChild( "chatlog", ImVec2( 0, -ImGui::GetFrameHeight() ), ImGuiChildFlags_AlwaysUseWindowPadding, log_flags );
 
-	float wrap_width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
+	float wrap_width = ImGui::GetContentRegionAvail().x;
 
 	for( size_t i = 0; i < chat.history_len; i++ ) {
 		size_t idx = ( chat.history_head + i ) % ARRAY_COUNT( chat.history );
@@ -161,10 +157,10 @@ void CG_DrawChat() {
 		chat.scroll_to_bottom = false;
 	}
 
-	if( chat.mode != ChatMode_None && ( ImGui::IsKeyPressed( K_PGUP ) || ImGui::IsKeyPressed( K_PGDN ) ) ) {
+	if( chat.mode != ChatMode_None && ( ImGui::IsKeyPressed( ImGuiKey_PageUp ) || ImGui::IsKeyPressed( ImGuiKey_PageDown ) ) ) {
 		float scroll = ImGui::GetScrollY();
 		float page = ImGui::GetWindowSize().y - ImGui::GetTextLineHeight();
-		scroll += page * ( ImGui::IsKeyPressed( K_PGUP ) ? -1 : 1 );
+		scroll += page * ( ImGui::IsKeyPressed( ImGuiKey_PageUp ) ? -1 : 1 );
 		scroll = Clamp( 0.0f, scroll, ImGui::GetScrollMaxY() );
 		ImGui::SetScrollY( scroll );
 	}
@@ -196,7 +192,7 @@ void CG_DrawChat() {
 		ImGui::PopStyleColor();
 	}
 
-	if( ImGui::Hotkey( K_ESCAPE ) ) {
+	if( ImGui::Hotkey( ImGuiKey_Escape ) ) {
 		CloseChat();
 	}
 

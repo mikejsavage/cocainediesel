@@ -1,4 +1,5 @@
-#include "qcommon/qcommon.h"
+#include "qcommon/types.h"
+#include "gameshared/gs_public.h"
 
 enum LadderMovement : u8 {
 	Ladder_Off,

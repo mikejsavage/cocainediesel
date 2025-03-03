@@ -13,7 +13,6 @@ v2f vec2 v_TexCoord;
 struct Instance {
 	AffineTransform transform;
 	vec4 color;
-	vec3 texture_matrix[ 2 ];
 };
 
 layout( std430 ) readonly buffer b_Instances {
@@ -22,7 +21,6 @@ layout( std430 ) readonly buffer b_Instances {
 
 v2f flat int v_Instance;
 #endif
-
 
 #if VERTEX_COLORS
 v2f vec4 v_Color;
@@ -39,20 +37,14 @@ layout( location = VertexAttribute_Normal ) in vec3 a_Normal;
 layout( location = VertexAttribute_Color ) in vec4 a_Color;
 layout( location = VertexAttribute_TexCoord ) in vec2 a_TexCoord;
 
-vec2 ApplyTCMod( vec2 uv ) {
-#if INSTANCED
-	mat3x2 m = transpose( mat2x3( instances[ gl_InstanceID ].texture_matrix[ 0 ], instances[ gl_InstanceID ].texture_matrix[ 1 ] ) );
-#else
-	mat3x2 m = transpose( mat2x3( u_TextureMatrix[ 0 ], u_TextureMatrix[ 1 ] ) );
-#endif
-	return ( m * vec3( uv, 1.0 ) ).xy;
-}
-
 void main() {
 #if INSTANCED
-	mat4 u_M = AffineToMat4( instances[ gl_InstanceID ].transform );
+	mat4 M = AffineToMat4( instances[ gl_InstanceID ].transform );
 	v_Instance = gl_InstanceID;
+#else
+	mat4 M = AffineToMat4( u_M );
 #endif
+
 	vec4 Position = a_Position;
 	vec3 Normal = a_Normal;
 	vec2 TexCoord = a_TexCoord;
@@ -61,18 +53,18 @@ void main() {
 	Skin( Position, Normal );
 #endif
 
-	v_Position = ( u_M * Position ).xyz;
+	v_Position = ( M * Position ).xyz;
 
-	mat3 m = transpose( inverse( mat3( u_M ) ) );
+	mat3 m = transpose( inverse( mat3( M ) ) );
 	v_Normal = m * Normal;
 
-	v_TexCoord = ApplyTCMod( a_TexCoord );
+	v_TexCoord = a_TexCoord;
 
 #if VERTEX_COLORS
 	v_Color = sRGBToLinear( a_Color );
 #endif
 
-	gl_Position = u_P * u_V * u_M * Position;
+	gl_Position = u_P * AffineToMat4( u_V ) * M * Position;
 }
 
 #else
@@ -133,11 +125,6 @@ void main() {
 	vec4 diffuse = texture( u_BaseTexture, v_TexCoord, u_LodBias ) * color;
 #endif
 
-#if ALPHA_TEST
-	if( diffuse.a < u_AlphaCutoff )
-		discard;
-#endif
-
 #if APPLY_DECALS || APPLY_DLIGHTS
 	float tile_size = float( FORWARD_PLUS_TILE_SIZE );
 	int tile_row = int( ( u_ViewportSize.y - gl_FragCoord.y - 1.0 ) / tile_size );
@@ -166,9 +153,9 @@ void main() {
 	#endif
 	shadowlight = shadowlight * 0.5 + 0.5;
 
-#if APPLY_DLIGHTS
-	applyDynamicLights( dynamic_tile.num_dlights, tile_index, v_Position, normal, viewDir, lambertlight, specularlight );
-#endif
+	#if APPLY_DLIGHTS
+		applyDynamicLights( dynamic_tile.num_dlights, tile_index, v_Position, normal, viewDir, lambertlight, specularlight );
+	#endif
 	lambertlight = lambertlight * 0.5 + 0.5;
 
 	#if APPLY_DRAWFLAT
@@ -176,7 +163,6 @@ void main() {
 	#endif
 
 	diffuse.rgb *= shadowlight * ( lambertlight + specularlight );
-
 #endif
 
 #if APPLY_FOG

@@ -2,7 +2,6 @@
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "client/assets.h"
-#include "client/maps.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
 #include "client/renderer/gltf.h"
@@ -17,9 +16,9 @@ static GLTFRenderData gltf_models[ MAX_MODELS ];
 static u32 num_gltf_models;
 static Hashtable< MAX_MODELS * 2 > gltf_models_hashtable;
 
-static bool LoadGLTFRenderData( GLTFRenderData * render_data, const char * path ) {
+static bool LoadGLTFRenderData( GLTFRenderData * render_data, Span< const char > path ) {
 	TracyZoneScoped;
-	TracyZoneText( path, strlen( path ) );
+	TracyZoneSpan( path );
 
 	Span< const u8 > data = AssetBinary( path );
 
@@ -28,35 +27,35 @@ static bool LoadGLTFRenderData( GLTFRenderData * render_data, const char * path 
 
 	cgltf_data * gltf;
 	if( cgltf_parse( &options, data.ptr, data.num_bytes(), &gltf ) != cgltf_result_success ) {
-		Com_Printf( S_COLOR_YELLOW "%s isn't a GLTF file\n", path );
+		Com_GGPrint( S_COLOR_YELLOW "{} isn't a GLTF file", path );
 		return false;
 	}
 
 	defer { cgltf_free( gltf ); };
 
 	if( !LoadGLBBuffers( gltf ) ) {
-		Com_Printf( S_COLOR_YELLOW "Couldn't load buffers in %s\n", path );
+		Com_GGPrint( S_COLOR_YELLOW "Couldn't load buffers in {}", path );
 		return false;
 	}
 
 	if( cgltf_validate( gltf ) != cgltf_result_success ) {
-		Com_Printf( S_COLOR_YELLOW "%s is invalid GLTF\n", path );
+		Com_GGPrint( S_COLOR_YELLOW "{} is invalid GLTF", path );
 		return false;
 	}
 
 	if( gltf->scenes_count != 1 || gltf->skins_count > 1 || gltf->cameras_count > 1 ) {
-		Com_Printf( S_COLOR_YELLOW "Trivial models only please (%s)\n", path );
+		Com_GGPrint( S_COLOR_YELLOW "Trivial models only please ({})", path );
 		return false;
 	}
 
 	if( gltf->lights_count != 0 ) {
-		Com_Printf( S_COLOR_YELLOW "We can't load models that have lights in them (%s)\n", path );
+		Com_GGPrint( S_COLOR_YELLOW "We can't load models that have lights in them ({})", path );
 		return false;
 	}
 
 	for( size_t i = 0; i < gltf->meshes_count; i++ ) {
 		if( gltf->meshes[ i ].primitives_count != 1 ) {
-			Com_Printf( S_COLOR_YELLOW "Meshes with multiple primitives are unsupported (%s)\n", path );
+			Com_GGPrint( S_COLOR_YELLOW "Meshes with multiple primitives are unsupported ({})", path );
 			return false;
 		}
 	}
@@ -64,7 +63,7 @@ static bool LoadGLTFRenderData( GLTFRenderData * render_data, const char * path 
 	return NewGLTFRenderData( render_data, gltf, path );
 }
 
-static void LoadGLTF( const char * path ) {
+static void LoadGLTF( Span< const char > path ) {
 	GLTFRenderData render_data;
 	if( !LoadGLTFRenderData( &render_data, path ) )
 		return;
@@ -89,7 +88,7 @@ void InitGLTFModels() {
 
 	num_gltf_models = 0;
 
-	for( const char * path : AssetPaths() ) {
+	for( Span< const char > path : AssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
 		if( ext != ".glb" )
 			continue;
@@ -110,7 +109,7 @@ void ShutdownGLTFModels() {
 void HotloadGLTFModels() {
 	TracyZoneScoped;
 
-	for( const char * path : ModifiedAssetPaths() ) {
+	for( Span< const char > path : ModifiedAssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
 		if( ext != ".glb" )
 			continue;

@@ -482,7 +482,7 @@ again:
 
 	ent = G_PickTarget( self->target );
 	if( !ent ) {
-		Com_GGPrint( "train_next: bad target {}\n", self->target );
+		Com_GGPrint( "train_next: bad target {}", self->target );
 		return;
 	}
 
@@ -499,7 +499,6 @@ again:
 		first = false;
 		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &self->s );
 		self->s.origin = ent->s.origin - bounds.mins;
-		self->olds.origin = self->s.origin;
 		GClip_LinkEntity( self );
 		self->s.teleported = true;
 		goto again;
@@ -544,7 +543,7 @@ static void func_train_find( edict_t *self ) {
 
 	ent = G_PickTarget( self->target );
 	if( !ent ) {
-		Com_GGPrint( "train_find: target {} not found\n", self->target );
+		Com_GGPrint( "train_find: target {} not found", self->target );
 		return;
 	}
 

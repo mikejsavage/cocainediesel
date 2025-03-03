@@ -77,11 +77,10 @@ struct timeout_t {
 //
 struct level_locals_t {
 	int64_t time; // time in milliseconds
-	int64_t spawnedTimeStamp; // time when map was restarted
+	Time spawnedTimeStamp; // time when map was restarted
 	int64_t finalMatchDuration;
 
 	char callvote_map[128];
-	char autorecord_name[128];
 
 	bool canSpawnEntities; // security check to prevent entities being spawned before map entities
 
@@ -145,8 +144,6 @@ extern Cvar *g_floodprotection_seconds;
 extern Cvar *g_floodprotection_penalty;
 
 extern Cvar *g_inactivity_maxtime;
-
-extern Cvar *g_scorelimit;
 
 extern Cvar *g_projectile_prestep;
 extern Cvar *g_numbots;
@@ -233,6 +230,12 @@ void SP_speaker_wall( edict_t * ent, const spawn_temp_t * st );
 void SP_jumppad( edict_t * ent, const spawn_temp_t * st );
 
 //
+// g_cinematic
+//
+
+void SP_cinematic_mapname( edict_t * ent, const spawn_temp_t * st );
+
+//
 // g_cmds.c
 //
 
@@ -274,7 +277,7 @@ void G_CallPain( edict_t * ent, edict_t * attacker, float kick, float damage );
 void G_CallDie( edict_t * ent, edict_t * inflictor, edict_t * attacker, int assistorNo, DamageType damage_type, int damage );
 
 [[gnu::format( printf, 2, 3 )]] void G_PrintMsg( edict_t * ent, const char * format, ... );
-[[gnu::format( printf, 4, 5 )]] void G_ChatMsg( edict_t * ent, const edict_t * who, bool teamonly, const char * format, ... );
+void G_ChatMsg( edict_t * ent, const edict_t * who, bool teamonly, Span< const char > msg );
 [[gnu::format( printf, 2, 3 )]] void G_CenterPrintMsg( edict_t * ent, const char * format, ... );
 void G_ClearCenterPrint( edict_t * ent );
 
@@ -294,9 +297,9 @@ void G_ClearPlayerStateEvents( gclient_t *client );
 
 // announcer events
 void G_AnnouncerSound( edict_t * targ, StringHash sound, Team team, bool queued, edict_t * ignore );
-edict_t * G_PlayerForText( const char *text );
+edict_t * G_PlayerForText( Span< const char > text );
 
-void G_SunCycle( u64 time );
+void G_SunCycle( Time duration );
 
 //
 // g_callvotes.c
@@ -307,8 +310,8 @@ void G_CallVotes_ResetClient( int n );
 void G_CallVotes_Think();
 bool G_Callvotes_HasVoted( edict_t * ent );
 void G_CallVote_Cmd( edict_t * ent, msg_t args );
-void G_CallVotes_VoteYes( edict_t * ent, msg_t args );
-void G_CallVotes_VoteNo( edict_t * ent, msg_t args );
+void G_CallVotes_VoteYes( edict_t * ent );
+void G_CallVotes_VoteNo( edict_t * ent );
 
 //
 // g_trigger.c
@@ -351,9 +354,8 @@ void G_RadiusDamage( edict_t * inflictor, edict_t * attacker, Optional< Vec3 > n
 
 // damage flags
 #define DAMAGE_RADIUS         ( 1 << 0 )  // damage was indirect
-#define DAMAGE_KNOCKBACK_SOFT ( 1 << 1 )
-#define DAMAGE_HEADSHOT       ( 1 << 2 )
-#define DAMAGE_WALLBANG       ( 1 << 3 )
+#define DAMAGE_HEADSHOT       ( 1 << 1 )
+#define DAMAGE_WALLBANG       ( 1 << 2 )
 
 //
 // g_misc.c
@@ -372,11 +374,11 @@ void G_AltFireWeapon( edict_t * ent, u64 parm );
 void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm, bool dead );
 
 //
-// g_chasecam	//newgametypes
+// g_chasecam
 //
 void G_ChasePlayer( edict_t * ent );
 void G_ChaseStep( edict_t * ent, int step );
-void Cmd_ToggleFreeFly( edict_t * ent );
+void Cmd_ToggleFreeFly( edict_t * ent, msg_t args );
 void Cmd_Spectate( edict_t * ent );
 void G_EndServerFrames_UpdateChaseCam();
 
@@ -462,7 +464,7 @@ void G_SnapFrame();
 //
 void G_RespawnLevel();
 void G_ResetLevel();
-void G_InitLevel( const char * mapname, int64_t levelTime );
+void G_InitLevel( Span< const char > mapname, int64_t levelTime );
 
 //============================================================================
 
@@ -481,7 +483,7 @@ struct chasecam_t {
 	bool active;
 	int target;
 	int mode;                   //3rd or 1st person
-	int64_t timeout;           //delay after loosing target
+	Time timeout;           //delay after loosing target
 };
 
 struct assistinfo_t {
@@ -543,21 +545,21 @@ struct client_respawnreset_t {
 struct client_levelreset_t {
 	int64_t timeStamp;				// last time it was reset
 
-	int64_t last_vsay;				// time when last vsay was said
+	Time last_vsay;
 	int64_t last_activity;
-	int64_t last_spray;
+	Time last_spray;
 
 	score_stats_t stats;
 
 	// flood protection
-	int64_t flood_locktill;			// locked from talking
-	int64_t flood_when[MAX_FLOOD_MESSAGES];        // when messages were said
+	Time flood_locktill;			// locked from talking
+	Time flood_when[MAX_FLOOD_MESSAGES];        // when messages were said
 	int flood_whenhead;             // head pointer for when said
 	// team only
-	int64_t flood_team_when[MAX_FLOOD_MESSAGES];   // when messages were said
+	Time flood_team_when[MAX_FLOOD_MESSAGES];   // when messages were said
 	int flood_team_whenhead;        // head pointer for when said
 
-	int64_t callvote_when;
+	Time callvote_when;
 };
 
 struct client_teamreset_t {
@@ -567,7 +569,7 @@ struct client_teamreset_t {
 	bool position_saved;
 	Vec3 position_origin;
 	EulerDegrees3 position_angles;
-	int64_t position_lastcmd;
+	Time position_lastcmd;
 };
 
 struct gclient_t {
@@ -605,11 +607,9 @@ struct edict_t {
 
 	//================================
 
-	SyncEntityState olds; // state in the last sent frame snap
-
 	int movetype;
 
-	int64_t freetime;          // time when the object was freed
+	Time freetime;
 
 	int numEvents;
 	bool eventPriority[2];
@@ -693,7 +693,6 @@ struct game_locals_t {
 	gclient_t clients[ MAX_CLIENTS ];
 
 	// store latched cvars here that we want to get at often
-	int maxentities;
 	int numentities;
 
 	// cross level triggers

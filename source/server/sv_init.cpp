@@ -20,7 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "server/server.h"
 #include "qcommon/csprng.h"
-#include "qcommon/hash.h"
 #include "game/g_maps.h"
 
 server_constant_t svc;              // constant server info (trully persistant since sv_init)
@@ -66,12 +65,11 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	SafeStrCpy( sv.mapname, mapname, sizeof( sv.mapname ) );
 
 	SV_ResetClientFrameCounters();
-	svs.realtime = Sys_Milliseconds();
 	svs.gametime = 0;
 
 	sv.nextSnapTime = 1000;
 
-	Cvar_ForceSet( "mapname", sv.mapname );
+	Cvar_ForceSet( "mapname", MakeSpan( sv.mapname ) );
 
 	//
 	// spawn the rest of the entities on the map
@@ -83,7 +81,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	Com_SetServerState( sv.state );
 
 	// load and spawn all other entities
-	G_InitLevel( sv.mapname, 0 );
+	G_InitLevel( MakeSpan( sv.mapname ), 0 );
 	G_CallVotes_Init();
 
 	// run two frames to allow everything to settle
@@ -132,7 +130,7 @@ static void SV_InitGame() {
 	svs.client_entities.entities = AllocMany< SyncEntityState >( sys_allocator, svs.client_entities.num_entities );
 	memset( svs.client_entities.entities, 0, sizeof( svs.client_entities.entities[ 0 ] ) * svs.client_entities.num_entities );
 
-	svs.socket = NewUDPServer( sv_port->integer, NonBlocking_Yes );
+	svs.socket = NewUDPServer( sv_interface->value, sv_port->integer, NonBlocking_Yes );
 
 	// init game
 	G_Init( svc.snapFrameTime );

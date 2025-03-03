@@ -9,6 +9,7 @@ struct Particle {
 	float restitution;
 	float PADDING;
 	vec4 uvwh;
+	vec4 trim;
 	uint start_color;
 	uint end_color;
 	float start_size;

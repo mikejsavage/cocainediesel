@@ -1,0 +1,11 @@
+{
+	attenuation distant
+	sound ./fire
+	volume 0.7
+}
+
+{
+	attenuation distant
+	sound loadout/_sounds/noammo
+	volume 0.75
+}

@@ -6,7 +6,6 @@
 
 #include <pthread.h>
 #include <unistd.h>
-#include <errno.h>
 
 struct Thread { pthread_t thread; };
 struct Mutex { pthread_mutex_t mutex; };

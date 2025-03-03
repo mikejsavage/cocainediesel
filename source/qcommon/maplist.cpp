@@ -6,7 +6,7 @@
 
 #include "nanosort/nanosort.hpp"
 
-static NonRAIIDynamicArray< char * > maps;
+static NonRAIIDynamicArray< Span< char > > maps;
 
 void InitMapList() {
 	TracyZoneScoped;
@@ -16,8 +16,8 @@ void InitMapList() {
 }
 
 static void FreeMaps() {
-	for( char * map : maps ) {
-		Free( sys_allocator, map );
+	for( Span< char > map : maps ) {
+		Free( sys_allocator, map.ptr );
 	}
 
 	maps.clear();
@@ -45,20 +45,19 @@ void RefreshMapList( Allocator * a ) {
 			continue;
 
 		if( FileExtension( name ) == ".cdmap" || FileExtension( StripExtension( name ) ) == ".cdmap" ) {
-			char * map = ( *sys_allocator )( "{}", StripExtension( StripExtension( name ) ) );
-			maps.add( map );
+			maps.add( CloneSpan( sys_allocator, StripExtension( StripExtension( name ) ) ) );
 		}
 	}
 
-	nanosort( maps.begin(), maps.end(), SortCStringsComparator );
+	nanosort( maps.begin(), maps.end(), SortSpanStringsComparator );
 }
 
-Span< const char * const > GetMapList() {
-	return maps.span().cast< const char * const >();
+Span< Span< const char > > GetMapList() {
+	return maps.span().cast< Span< const char > >();
 }
 
-bool MapExists( const char * name ) {
-	for( const char * map : maps ) {
+bool MapExists( Span< const char > name ) {
+	for( Span< const char > map : maps ) {
 		if( StrEqual( map, name ) ) {
 			return true;
 		}
@@ -67,10 +66,10 @@ bool MapExists( const char * name ) {
 	return false;
 }
 
-Span< const char * > CompleteMapName( TempAllocator * a, const char * prefix ) {
-	NonRAIIDynamicArray< const char * > completions( a );
+Span< Span< const char > > CompleteMapName( TempAllocator * a, Span< const char > prefix ) {
+	NonRAIIDynamicArray< Span< const char > > completions( a );
 
-	for( const char * map : maps ) {
+	for( Span< const char > map : maps ) {
 		if( CaseStartsWith( map, prefix ) ) {
 			completions.add( map );
 		}

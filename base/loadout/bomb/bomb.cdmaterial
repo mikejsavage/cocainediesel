@@ -1,0 +1,13 @@
+bomb
+{
+	shaded
+	specular 10
+	shininess 8
+	rgbGen const 0.12 0.12 0.12
+}
+
+bomb_fuse
+{
+	shaded
+	rgbGen const 1 1 1
+}

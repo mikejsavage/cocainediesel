@@ -1,5 +1,17 @@
 // include base.h instead of this
 
+// some ops are so much slower in debug than -O2 that it makes the game
+// unplayable in debug builds, so we put manually vectorised and optimised
+// kernels in their own TU in debug builds and inline it in release builds
+// Mat4 * Mat4: ~30x speedup
+// Mat3x4 * Vec4: ~10x speedup
+#if PUBLIC_BUILD
+#undef PUBLIC_BUILD // to break the cyclic include of types.h -> kernels -> types.h
+#define INLINE_IN_RELEASE_BUILDS inline
+#include "linear_algebra_kernels.cpp"
+#define PUBLIC_BUILD 1
+#endif
+
 /*
  * Vec2
  */
@@ -222,61 +234,11 @@ constexpr Vec4 Clamp( Vec4 lo, Vec4 v, Vec4 hi ) {
  * Mat4
  */
 
-constexpr Mat4 Mat4Translation( float x, float y, float z ) {
-	return Mat4(
-		1, 0, 0, x,
-		0, 1, 0, y,
-		0, 0, 1, z,
-		0, 0, 0, 1
-	);
-}
+#if !PUBLIC_BUILD
+Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs );
+#endif
 
-constexpr Mat4 Mat4Translation( Vec3 v ) {
-	return Mat4Translation( v.x, v.y, v.z );
-}
-
-constexpr Mat4 Mat4Scale( float x, float y, float z ) {
-	return Mat4(
-		x, 0, 0, 0,
-		0, y, 0, 0,
-		0, 0, z, 0,
-		0, 0, 0, 1
-	);
-}
-
-constexpr Mat4 Mat4Scale( float s ) {
-	return Mat4Scale( s, s, s );
-}
-
-constexpr Mat4 Mat4Scale( Vec3 v ) {
-	return Mat4Scale( v.x, v.y, v.z );
-}
-
-constexpr Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
-	return Mat4(
-		Dot( lhs.row0(), rhs.col0 ),
-		Dot( lhs.row0(), rhs.col1 ),
-		Dot( lhs.row0(), rhs.col2 ),
-		Dot( lhs.row0(), rhs.col3 ),
-
-		Dot( lhs.row1(), rhs.col0 ),
-		Dot( lhs.row1(), rhs.col1 ),
-		Dot( lhs.row1(), rhs.col2 ),
-		Dot( lhs.row1(), rhs.col3 ),
-
-		Dot( lhs.row2(), rhs.col0 ),
-		Dot( lhs.row2(), rhs.col1 ),
-		Dot( lhs.row2(), rhs.col2 ),
-		Dot( lhs.row2(), rhs.col3 ),
-
-		Dot( lhs.row3(), rhs.col0 ),
-		Dot( lhs.row3(), rhs.col1 ),
-		Dot( lhs.row3(), rhs.col2 ),
-		Dot( lhs.row3(), rhs.col3 )
-	);
-}
-
-constexpr void operator*=( Mat4 & lhs, const Mat4 & rhs ) {
+inline void operator*=( Mat4 & lhs, const Mat4 & rhs ) {
 	lhs = lhs * rhs;
 }
 
@@ -292,6 +254,61 @@ constexpr Vec4 operator*( const Mat4 & m, const Vec4 & v ) {
 constexpr Mat4 operator-( const Mat4 & m ) {
 	return Mat4( -m.col0, -m.col1, -m.col2, -m.col3 );
 }
+
+/*
+ * Mat3x4
+ */
+
+constexpr Mat3x4 Mat4Translation( float x, float y, float z ) {
+	return Mat3x4(
+		1.0f, 0.0f, 0.0f, x,
+		0.0f, 1.0f, 0.0f, y,
+		0.0f, 0.0f, 1.0f, z
+	);
+}
+
+constexpr Mat3x4 Mat4Translation( Vec3 v ) {
+	return Mat4Translation( v.x, v.y, v.z );
+}
+
+constexpr Mat3x4 Mat4Scale( float x, float y, float z ) {
+	return Mat3x4(
+		x,    0.0f, 0.0f, 0.0f,
+		0.0f, y,    0.0f, 0.0f,
+		0.0f, 0.0f, z,    0.0f
+	);
+}
+
+constexpr Mat3x4 Mat4Scale( float s ) {
+	return Mat4Scale( s, s, s );
+}
+
+constexpr Mat3x4 Mat4Scale( Vec3 v ) {
+	return Mat4Scale( v.x, v.y, v.z );
+}
+
+constexpr Mat3x4 operator*( const Mat3x4 & lhs, const Mat3x4 & rhs ) {
+	return Mat3x4(
+		Dot( lhs.row0(), Vec4( rhs.col0, 0.0f ) ),
+		Dot( lhs.row0(), Vec4( rhs.col1, 0.0f ) ),
+		Dot( lhs.row0(), Vec4( rhs.col2, 0.0f ) ),
+		Dot( lhs.row0(), Vec4( rhs.col3, 1.0f ) ),
+
+		Dot( lhs.row1(), Vec4( rhs.col0, 0.0f ) ),
+		Dot( lhs.row1(), Vec4( rhs.col1, 0.0f ) ),
+		Dot( lhs.row1(), Vec4( rhs.col2, 0.0f ) ),
+		Dot( lhs.row1(), Vec4( rhs.col3, 1.0f ) ),
+
+		Dot( lhs.row2(), Vec4( rhs.col0, 0.0f ) ),
+		Dot( lhs.row2(), Vec4( rhs.col1, 0.0f ) ),
+		Dot( lhs.row2(), Vec4( rhs.col2, 0.0f ) ),
+		Dot( lhs.row2(), Vec4( rhs.col3, 1.0f ) )
+	);
+}
+
+#if !PUBLIC_BUILD
+Vec4 operator*( const Mat3x4 & m, const Vec4 & v );
+#endif
 
 /*
  * EulerDegrees2
@@ -374,6 +391,17 @@ inline Quaternion NLerp( Quaternion from, float t, Quaternion to ) {
 	float rt = Dot( from, to ) > 0 ? t : -t;
 	return Normalize( from * lt + to * rt );
 }
+
+/*
+ * MinMax2
+ */
+
+constexpr MinMax2 operator*( const MinMax2 & bounds, float scale ) { return MinMax2( bounds.mins * scale, bounds.maxs * scale ); }
+
+constexpr void operator*=( MinMax2 & bounds, float scale ) { bounds = bounds * scale; }
+
+constexpr float Width( MinMax2 bounds ) { return bounds.maxs.x - bounds.mins.x; }
+constexpr float Height( MinMax2 bounds ) { return bounds.maxs.y - bounds.mins.y; }
 
 /*
  * MinMax3

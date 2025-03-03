@@ -147,7 +147,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 			0.0f, 0.0f, 0.0f, 1.0f
 		);
 
-		gunOffset = ( y_up_to_camera_space * Vec4( -model->nodes[ model->camera_node.value ].global_transform.col3.xyz(), 1.0f ) ).xyz();
+		gunOffset = ( y_up_to_camera_space * Vec4( -model->nodes[ model->camera_node.value ].global_transform.col3, 1.0f ) ).xyz();
 		gunAngles = EulerDegrees3( 0.0f, 0.0f, 0.0f );
 	}
 
@@ -164,13 +164,13 @@ void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 	// finish
 	AnglesToAxis( gunAngles, viewweapon->axis );
 
-	Mat4 gun_transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
+	Mat3x4 gun_transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
 	u8 muzzle;
 	if( FindNodeByName( model, "muzzle", &muzzle ) ) {
 		viewweapon->muzzle_transform = gun_transform * model->transform * model->nodes[ muzzle ].global_transform;
 	}
 	else {
-		Mat4 hardcoded_offset = Mat4Translation( Vec3( 16, 0, 8 ) );
+		constexpr Mat3x4 hardcoded_offset = Mat4Translation( Vec3( 16, 0, 8 ) );
 		viewweapon->muzzle_transform = gun_transform * hardcoded_offset;
 	}
 }
@@ -186,7 +186,7 @@ void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
 		return;
 	}
 
-	Mat4 transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
+	Mat3x4 transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
 
 	DrawModelConfig config = { };
 	config.draw_model.enabled = true;
@@ -196,7 +196,7 @@ void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
 	if( FindAnimationByName( model, viewweapon->eventAnim, &animation ) ) {
 		float t = float( cl.serverTime - viewweapon->eventAnimStartTime ) * 0.001f;
 		TempAllocator temp = cls.frame_arena.temp();
-		Span< TRS > pose = SampleAnimation( &temp, model, t, animation );
+		Span< Transform > pose = SampleAnimation( &temp, model, t, animation );
 		MatrixPalettes palettes = ComputeMatrixPalettes( &temp, model, pose );
 		DrawGLTFModel( config, model, transform, CG_TeamColorVec4( ps->team ), palettes );
 	}

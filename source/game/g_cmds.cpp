@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
+#include "qcommon/time.h"
+#include "gameshared/vsays.h"
 
 /*
 * G_Teleport
@@ -42,7 +44,6 @@ static bool G_Teleport( edict_t * ent, Vec3 origin, EulerDegrees3 angles ) {
 	}
 
 	ent->s.origin = origin;
-	ent->olds.origin = origin;
 	ent->s.teleported = true;
 
 	ent->velocity = Vec3( 0.0f );
@@ -97,7 +98,7 @@ void Cmd_ChasePrev_f( edict_t * ent, msg_t args ) {
 	G_ChaseStep( ent, -1 );
 }
 
-static void Cmd_Position_f( edict_t * ent, msg_t args ) {
+static void Cmd_Position_f( edict_t * ent, msg_t msg ) {
 	if( !sv_cheats->integer && server_gs.gameState.match_state > MatchState_Warmup &&
 		ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
 		G_PrintMsg( ent, "Position command is only available in warmup and in spectator mode.\n" );
@@ -105,40 +106,58 @@ static void Cmd_Position_f( edict_t * ent, msg_t args ) {
 	}
 
 	// flood protect
-	if( ent->r.client->teamstate.position_lastcmd + 500 > svs.realtime ) {
+	if( ent->r.client->teamstate.position_lastcmd + Milliseconds( 500 ) > svs.monotonic_time ) {
 		return;
 	}
-	ent->r.client->teamstate.position_lastcmd = svs.realtime;
+	ent->r.client->teamstate.position_lastcmd = svs.monotonic_time;
 
-	Cmd_TokenizeString( MSG_ReadString( &args ) );
+	TempAllocator temp = svs.frame_arena.temp();
+	Tokenized args = Tokenize( &temp, MakeSpan( MSG_ReadString( &msg ) ) );
 
-	const char * action = Cmd_Argv( 0 );
+	if( args.tokens.n == 0 ) {
+		G_PrintMsg( ent,
+			"Usage:\n"
+			"position save - Save current position\n"
+			"position load - Teleport to saved position\n"
+			"position set <x> <y> <z> <pitch> <yaw> - Teleport to specified position\n"
+			"Current position: %.4f %.4f %.4f %.4f %.4f\n",
+			ent->s.origin.x, ent->s.origin.y, ent->s.origin.z, ent->s.angles.pitch, ent->s.angles.yaw );
+		return;
+	}
 
-	if( StrCaseEqual( action, "save" ) ) {
+	Span< const char > action = args.tokens[ 0 ];
+
+	if( action == "save" && args.tokens.n == 1 ) {
 		ent->r.client->teamstate.position_saved = true;
 		ent->r.client->teamstate.position_origin = ent->s.origin;
 		ent->r.client->teamstate.position_angles = ent->s.angles;
 		G_PrintMsg( ent, "Position saved.\n" );
-	} else if( StrCaseEqual( action, "load" ) ) {
+	}
+	else if( action == "load" && args.tokens.n == 1 ) {
 		if( !ent->r.client->teamstate.position_saved ) {
 			G_PrintMsg( ent, "No position saved.\n" );
-		} else {
+		}
+		else {
 			if( G_Teleport( ent, ent->r.client->teamstate.position_origin, ent->r.client->teamstate.position_angles ) ) {
 				G_PrintMsg( ent, "Position loaded.\n" );
-			} else {
+			}
+			else {
 				G_PrintMsg( ent, "Position not available.\n" );
 			}
 		}
-	} else if( StrCaseEqual( action, "set" ) && Cmd_Argc() == 6 ) {
-		Vec3 origin = Vec3( atof( Cmd_Argv( 1 ) ), atof( Cmd_Argv( 2 ) ), atof( Cmd_Argv( 3 ) ) );
-		EulerDegrees3 angles = EulerDegrees3( atof( Cmd_Argv( 4 ) ), atof( Cmd_Argv( 5 ) ), 0.0f );
+	}
+	else if( action == "set" && args.tokens.n == 6 ) {
+		Vec3 origin = Vec3( SpanToFloat( args.tokens[ 1 ], 0.0f ), SpanToFloat( args.tokens[ 2 ], 0.0f ), SpanToFloat( args.tokens[ 3 ], 0.0f ) );
+		EulerDegrees3 angles = EulerDegrees3( SpanToFloat( args.tokens[ 4 ], 0.0f ), SpanToFloat( args.tokens[ 5 ], 0.0f ), 0.0f );
 
 		if( G_Teleport( ent, origin, angles ) ) {
 			G_PrintMsg( ent, "Position set.\n" );
-		} else {
+		}
+		else {
 			G_PrintMsg( ent, "Position not available.\n" );
 		}
-	} else {
+	}
+	else {
 		G_PrintMsg( ent,
 			"Usage:\n"
 			"position save - Save current position\n"
@@ -194,9 +213,8 @@ bool CheckFlood( edict_t * ent, bool teamonly ) {
 
 	// old protection still active
 	if( !teamonly || g_floodprotection_team->integer ) {
-		if( svs.realtime < client->level.flood_locktill ) {
-			G_PrintMsg( ent, "You can't talk for %d more seconds\n",
-						(int)( ( client->level.flood_locktill - svs.realtime ) / 1000.0f ) + 1 );
+		if( svs.monotonic_time < client->level.flood_locktill ) {
+			G_PrintMsg( ent, "You can't talk for %d more seconds\n", int( ToSeconds( client->level.flood_locktill - svs.monotonic_time ) ) + 1 );
 			return true;
 		}
 	}
@@ -208,16 +226,16 @@ bool CheckFlood( edict_t * ent, bool teamonly ) {
 				i = ARRAY_COUNT( client->level.flood_when ) + i;
 			}
 
-			if( client->level.flood_team_when[i] && client->level.flood_team_when[i] <= svs.realtime &&
-				( svs.realtime < client->level.flood_team_when[i] + g_floodprotection_seconds->integer * 1000 ) ) {
-				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->integer * 1000;
+			if( client->level.flood_team_when[i] != Seconds( 0 ) && client->level.flood_team_when[i] <= svs.monotonic_time &&
+				( svs.monotonic_time < client->level.flood_team_when[i] + Seconds( g_floodprotection_seconds->integer ) ) ) {
+				client->level.flood_locktill = svs.monotonic_time + Seconds( g_floodprotection_penalty->integer );
 				G_PrintMsg( ent, "Flood protection: You can't talk for %d seconds.\n", g_floodprotection_penalty->integer );
 				return true;
 			}
 		}
 
 		client->level.flood_team_whenhead = ( client->level.flood_team_whenhead + 1 ) % ARRAY_COUNT( client->level.flood_when );
-		client->level.flood_team_when[client->level.flood_team_whenhead] = svs.realtime;
+		client->level.flood_team_when[client->level.flood_team_whenhead] = svs.monotonic_time;
 	} else {
 		if( g_floodprotection_messages->integer && g_floodprotection_penalty->number > 0 ) {
 			i = client->level.flood_whenhead - g_floodprotection_messages->integer + 1;
@@ -225,16 +243,16 @@ bool CheckFlood( edict_t * ent, bool teamonly ) {
 				i = ARRAY_COUNT( client->level.flood_when ) + i;
 			}
 
-			if( client->level.flood_when[i] && client->level.flood_when[i] <= svs.realtime &&
-				( svs.realtime < client->level.flood_when[i] + g_floodprotection_seconds->integer * 1000 ) ) {
-				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->integer * 1000;
+			if( client->level.flood_when[i] != Seconds( 0 ) && client->level.flood_when[i] <= svs.monotonic_time &&
+				( svs.monotonic_time < client->level.flood_when[i] + Seconds( g_floodprotection_seconds->integer ) ) ) {
+				client->level.flood_locktill = svs.monotonic_time + Seconds( g_floodprotection_penalty->integer );
 				G_PrintMsg( ent, "Flood protection: You can't talk for %d seconds.\n", g_floodprotection_penalty->integer );
 				return true;
 			}
 		}
 
 		client->level.flood_whenhead = ( client->level.flood_whenhead + 1 ) % ARRAY_COUNT( client->level.flood_when );
-		client->level.flood_when[client->level.flood_whenhead] = svs.realtime;
+		client->level.flood_when[client->level.flood_whenhead] = svs.monotonic_time;
 	}
 
 	return false;
@@ -253,7 +271,7 @@ static void Say( edict_t * ent, const char * message, bool teamonly, bool checkf
 		return;
 	}
 	TypewriterSound( ent, "sounds/typewriter/return" );
-	G_ChatMsg( NULL, ent, teamonly, "%s", message );
+	G_ChatMsg( NULL, ent, teamonly, MakeSpan( message ) );
 }
 
 static void Cmd_SayCmd_f( edict_t * ent, msg_t args ) {
@@ -264,11 +282,11 @@ static void Cmd_SayTeam_f( edict_t * ent, msg_t args ) {
 	Say( ent, MSG_ReadString( &args ), true, true );
 }
 
-static void Cmd_Clack_f( edict_t * ent, msg_t args ) {
+static void Cmd_TypewriterClack_f( edict_t * ent, msg_t args ) {
 	TypewriterSound( ent, "sounds/typewriter/clack" );
 }
 
-static void Cmd_ClackSpace_f( edict_t * ent, msg_t args ) {
+static void Cmd_TypewriterSpace_f( edict_t * ent, msg_t args ) {
 	TypewriterSound( ent, "sounds/typewriter/space" );
 }
 
@@ -276,7 +294,7 @@ static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 	if( G_ISGHOSTING( ent ) )
 		return;
 
-	if( ent->r.client->level.last_spray + 2500 > svs.realtime )
+	if( ent->r.client->level.last_spray + Milliseconds( 2500 ) > svs.monotonic_time )
 		return;
 
 	Vec3 forward;
@@ -294,7 +312,7 @@ static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 	if( target->s.type != ET_MAPMODEL && target != world )
 		return;
 
-	ent->r.client->level.last_spray = svs.realtime;
+	ent->r.client->level.last_spray = svs.monotonic_time;
 
 	edict_t * event = G_SpawnEvent( EV_SPRAY, Random64( &svs.rng ), &trace.endpos );
 	event->s.angles = ent->r.client->ps.viewangles;
@@ -302,47 +320,24 @@ static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 	event->s.origin2 = trace.normal;
 }
 
-struct g_vsays_t {
-	const char *name;
-	int id;
-};
-
-static const g_vsays_t g_vsays[] = {
-	{ "sorry", Vsay_Sorry },
-	{ "thanks", Vsay_Thanks },
-	{ "goodgame", Vsay_GoodGame },
-	{ "boomstick", Vsay_BoomStick },
-	{ "acne", Vsay_Acne },
-	{ "valley", Vsay_Valley },
-	{ "fam", Vsay_Fam },
-	{ "mike", Vsay_Mike },
-	{ "user", Vsay_User },
-	{ "guyman", Vsay_Guyman },
-	{ "dodonga", Vsay_Dodonga },
-	{ "helena", Vsay_Helena },
-	{ "fart", Vsay_Fart },
-	{ "zombie", Vsay_Zombie },
-	{ "larp", Vsay_Larp },
-};
-
 static void G_vsay_f( edict_t * ent, msg_t args ) {
 	if( G_ISGHOSTING( ent ) && server_gs.gameState.match_state < MatchState_PostMatch ) {
 		return;
 	}
 
-	if( ent->r.client->level.last_vsay > svs.realtime - 500 ) {
+	if( ent->r.client->level.last_vsay > svs.monotonic_time - Milliseconds( 500 ) ) {
 		return;
 	}
-	ent->r.client->level.last_vsay = svs.realtime;
+	ent->r.client->level.last_vsay = svs.monotonic_time;
 
 	const char * arg = MSG_ReadString( &args );
 
-	for( auto vsay : g_vsays ) {
-		if( !StrCaseEqual( arg, vsay.name ) )
+	for( size_t i = 0; i < ARRAY_COUNT( vsays ); i++ ) {
+		if( !StrCaseEqual( arg, vsays[ i ].short_name ) )
 			continue;
 
 		u64 entropy = Random32( &svs.rng );
-		u64 parm = u64( vsay.id ) | ( entropy << 16 );
+		u64 parm = u64( i ) | ( entropy << 16 );
 
 		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NULL );
 		event->s.ownerNum = ent->s.number;
@@ -445,16 +440,16 @@ void G_InitGameCommands() {
 	G_AddCommand( ClientCommand_Spectate, []( edict_t * ent, msg_t args ) { Cmd_Spectate( ent ); } );
 	G_AddCommand( ClientCommand_ChaseNext, Cmd_ChaseNext_f );
 	G_AddCommand( ClientCommand_ChasePrev, Cmd_ChasePrev_f );
-	G_AddCommand( ClientCommand_ToggleFreeFly, []( edict_t * ent, msg_t args ) { Cmd_ToggleFreeFly( ent ); } );
+	G_AddCommand( ClientCommand_ToggleFreeFly, Cmd_ToggleFreeFly );
 	G_AddCommand( ClientCommand_Timeout, Cmd_Timeout_f );
 	G_AddCommand( ClientCommand_Timein, Cmd_Timein_f );
-	G_AddCommand( ClientCommand_DemoList, []( edict_t * ent, msg_t args ) { SV_DemoList_f( ent ); } );
+	G_AddCommand( ClientCommand_DemoList, SV_DemoList_f );
 	G_AddCommand( ClientCommand_DemoGetURL, SV_DemoGetUrl_f );
 
 	// callvotes commands
 	G_AddCommand( ClientCommand_Callvote, G_CallVote_Cmd );
-	G_AddCommand( ClientCommand_VoteYes, G_CallVotes_VoteYes );
-	G_AddCommand( ClientCommand_VoteNo, G_CallVotes_VoteNo );
+	G_AddCommand( ClientCommand_VoteYes, []( edict_t * ent, msg_t args ) { G_CallVotes_VoteYes( ent ); } );
+	G_AddCommand( ClientCommand_VoteNo, []( edict_t * ent, msg_t args ) { G_CallVotes_VoteNo( ent ); } );
 
 	// teams commands
 	G_AddCommand( ClientCommand_Ready, []( edict_t * ent, msg_t args ) { G_Match_Ready( ent ); } );
@@ -462,8 +457,8 @@ void G_InitGameCommands() {
 	G_AddCommand( ClientCommand_ToggleReady, []( edict_t * ent, msg_t args ) { G_Match_ToggleReady( ent ); } );
 	G_AddCommand( ClientCommand_Join, Cmd_Join_f );
 
-	G_AddCommand( ClientCommand_TypewriterClack, Cmd_Clack_f );
-	G_AddCommand( ClientCommand_TypewriterSpace, Cmd_ClackSpace_f );
+	G_AddCommand( ClientCommand_TypewriterClack, Cmd_TypewriterClack_f );
+	G_AddCommand( ClientCommand_TypewriterSpace, Cmd_TypewriterSpace_f );
 
 	G_AddCommand( ClientCommand_Spray, Cmd_Spray_f );
 

@@ -456,7 +456,7 @@ bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, In
 	return true;
 }
 
-static bool SweptShapeVsGLTFBrush( const GLTFCollisionData * gltf, GLTFCollisionBrush & brush, Mat4 transform, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection ) {
+static bool SweptShapeVsGLTFBrush( const GLTFCollisionData * gltf, GLTFCollisionBrush & brush, const Mat3x4 & transform, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection ) {
 	constexpr Vec3 bevel_axes[] = {
 		Vec3( 1, 0, 0 ),
 		Vec3( 0, 1, 0 ),
@@ -513,7 +513,7 @@ static bool SweptShapeVsGLTFBrush( const GLTFCollisionData * gltf, GLTFCollision
 
 		bool is_bevel_axis = false;
 		for( const Vec3 & bevel_axis : bevel_axes ) {
-			if( Abs( Dot( plane.normal, bevel_axis ) ) >= 0.99999f ) {
+			if( NearlyEqual( Abs( Dot( plane.normal, bevel_axis ) ), 1.0f ) ) {
 				is_bevel_axis = true;
 				break;
 			}
@@ -551,8 +551,28 @@ static bool SweptShapeVsGLTFBrush( const GLTFCollisionData * gltf, GLTFCollision
 	return true;
 }
 
-bool SweptShapeVsGLTF( const GLTFCollisionData * gltf, Mat4 transform, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection ) {
+bool SweptShapeVsGLTF( const GLTFCollisionData * gltf, const Mat3x4 & transform, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection ) {
+	TracyZoneScoped;
+
 	Optional< Intersection > best = NONE;
+
+	if( gltf->brushes.n > 1 ) {
+		const Vec3 * bounds[ 2 ] = { &gltf->bounds.mins, &gltf->bounds.maxs };
+		MinMax3 transformed_bounds = MinMax3::Empty();
+		for( int i = 0; i < 8; i++ ) {
+			Vec3 corner = Vec3(
+				bounds[ i % 2 ]->x,
+				bounds[ ( i / 2 ) % 2 ]->y,
+				bounds[ i / 4 ]->z
+			);
+			transformed_bounds = Union( transformed_bounds, ( transform * Vec4( corner, 1.0f ) ).xyz() );
+		}
+
+		Intersection dont_care;
+		if( !RayVsAABB( ray, MinkowskiSum( transformed_bounds, shape ), &dont_care, &dont_care ) ) {
+			return false;
+		}
+	}
 
 	for( GLTFCollisionBrush & brush : gltf->brushes ) {
 		Intersection brush_intersection;

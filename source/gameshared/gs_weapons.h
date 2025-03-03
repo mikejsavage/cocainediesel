@@ -4,12 +4,9 @@
 #include "gameshared/gs_synctypes.h"
 
 struct gs_state_t;
-struct SyncPlayerState;
-struct UserCommand;
 
 struct WeaponDef {
-	const char * name;
-	const char * short_name;
+	Span< const char > name;
 
 	WeaponCategory category;
 
@@ -48,8 +45,7 @@ struct WeaponDef {
 };
 
 struct GadgetDef {
-	const char * name;
-	const char * short_name;
+	Span< const char > name;
 	int uses;
 	bool drop_on_death;
 
@@ -71,8 +67,7 @@ struct GadgetDef {
 
 struct PerkDef {
 	bool disabled;
-	const char * name;
-	const char * short_name;
+	Span< const char > name;
 	float health;
 	Vec3 scale;
 	float weight;

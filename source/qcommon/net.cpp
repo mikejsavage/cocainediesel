@@ -93,25 +93,26 @@ void format( FormatBuffer * fb, const NetAddress & address, const FormatOpts & o
 	format( fb, buf, opts );
 }
 
-char * SplitIntoHostnameAndPort( Allocator * a, const char * str, u16 * port ) {
+Span< const char > SplitIntoHostnameAndPort( Span< const char > str, u16 * port ) {
 	*port = 0;
 
 	bool is_portless_ipv6 = false;
 	if( str[ 0 ] != '[' ) {
-		const char * first_colon = strchr( str, ':' );
+		const char * first_colon = StrChr( str, ':' );
 		if( first_colon != NULL ) {
-			const char * second_colon = strchr( first_colon + 1, ':' );
+			Span< const char > after_first_colon = str + ( first_colon - str.ptr ) + 1;
+			const char * second_colon = StrChr( after_first_colon, ':' );
 			is_portless_ipv6 = second_colon != NULL;
 		}
 	}
 
-	const char * last_colon = strrchr( str, ':' );
+	const char * last_colon = StrRChr( str, ':' );
 	if( last_colon == NULL || is_portless_ipv6 ) {
-		return CopyString( a, str );
+		return str;
 	}
 
-	*port = SpanToU64( MakeSpan( last_colon + 1 ), 0 );
-	return ( *a )( "{}", Span< const char >( str, last_colon - str ) );
+	*port = SpanToU64( str.slice( last_colon - str.ptr + 1, str.n ), 0 );
+	return str.slice( 0, last_colon - str.ptr );
 }
 
 bool DNS( const char * hostname, NetAddress * address, DNSFamily family ) {
@@ -136,7 +137,7 @@ bool DNS( const char * hostname, NetAddress * address, DNSFamily family ) {
 	return true;
 }
 
-static u64 OpenSocket( AddressFamily family, UDPOrTCP type, NonBlockingBool nonblocking, u16 port ) {
+static u64 OpenSocket( AddressFamily family, UDPOrTCP type, NonBlockingBool nonblocking, u16 port, const char * device = NULL ) {
 	u64 handle = OpenOSSocket( family, type, port );
 	if( handle == 0 ) {
 		return 0;
@@ -171,6 +172,14 @@ static u64 OpenSocket( AddressFamily family, UDPOrTCP type, NonBlockingBool nonb
 	address6.sin6_port = htons( port );
 	address6.sin6_addr = in6addr_any;
 
+#if PLATFORM_LINUX
+	if( device != NULL && !StrEqual( device, "" ) ) {
+		if( !OSSocketBindToInterface( handle, device ) ) {
+			Fatal( "sv_interface: %s isn't a valid interface name to bind to", device );
+		}
+	}
+#endif
+
 	const sockaddr * address = family == AddressFamily_IPv4 ? ( const sockaddr * ) &address4 : ( const sockaddr * ) &address6;
 	int address_size = family == AddressFamily_IPv4 ? sizeof( address4 ) : sizeof( address6 );
 
@@ -190,20 +199,20 @@ Socket NewUDPClient( NonBlockingBool nonblocking ) {
 	return socket;
 }
 
-Socket NewUDPServer( u16 port, NonBlockingBool nonblocking ) {
+Socket NewUDPServer( const char * device, u16 port, NonBlockingBool nonblocking ) {
 	Socket socket = { };
 	socket.type = SocketType_UDPServer;
-	socket.ipv4 = OpenSocket( AddressFamily_IPv4, UDPOrTCP_UDP, nonblocking, port );
-	socket.ipv6 = OpenSocket( AddressFamily_IPv6, UDPOrTCP_UDP, nonblocking, port );
+	socket.ipv4 = OpenSocket( AddressFamily_IPv4, UDPOrTCP_UDP, nonblocking, port, device );
+	socket.ipv6 = OpenSocket( AddressFamily_IPv6, UDPOrTCP_UDP, nonblocking, port, device );
 	return socket;
 }
 
-Socket NewTCPServer( u16 port, NonBlockingBool nonblocking ) {
+Socket NewTCPServer( const char * device, u16 port, NonBlockingBool nonblocking ) {
 	Socket socket = { };
 	socket.type = SocketType_TCPServer;
-	socket.ipv4 = OpenSocket( AddressFamily_IPv4, UDPOrTCP_TCP, nonblocking, port );
+	socket.ipv4 = OpenSocket( AddressFamily_IPv4, UDPOrTCP_TCP, nonblocking, port, device );
 	OSSocketListen( socket.ipv4 );
-	socket.ipv6 = OpenSocket( AddressFamily_IPv6, UDPOrTCP_TCP, nonblocking, port );
+	socket.ipv6 = OpenSocket( AddressFamily_IPv6, UDPOrTCP_TCP, nonblocking, port, device );
 	OSSocketListen( socket.ipv6 );
 	return socket;
 }

@@ -1,6 +1,5 @@
 #include "qcommon/base.h"
-#include "qcommon/array.h"
-
+#include "qcommon/time.h"
 #include "game/g_local.h"
 #include "gameshared/collision.h"
 
@@ -30,7 +29,7 @@ static constexpr Team initial_defenders = Team_Two;
 static constexpr MinMax3 bomb_bounds( Vec3( -16.0f ), Vec3( 16.0f, 16.0f, 48.0f ) );
 static constexpr float bomb_hud_offset = 32.0f;
 
-static constexpr StringHash model_bomb = "models/bomb/bomb";
+static constexpr StringHash model_bomb = "loadout/bomb/bomb";
 
 enum BombAnnouncement {
 	BombAnnouncement_RoundStarted,
@@ -301,7 +300,7 @@ static void SpawnBomb() {
 
 	bomb_state.bomb.model->s.override_collision_model = CollisionModelAABB( bomb_bounds );
 
-	bomb_state.bomb.model->s.solidity = SolidBits( Solid_World | Solid_Trigger );
+	bomb_state.bomb.model->s.solidity = Solid_World | Solid_Trigger;
 	bomb_state.bomb.model->s.model = model_bomb;
 	bomb_state.bomb.model->s.effects |= EF_TEAM_SILHOUETTE;
 	bomb_state.bomb.model->s.silhouetteColor = RGBA8( 255, 255, 255, 255 );
@@ -392,7 +391,7 @@ static void DropBomb( BombDropReason reason ) {
 	bomb_state.bomb.model->r.owner = carrier_ent;
 	bomb_state.bomb.model->s.origin = trace.endpos;
 	bomb_state.bomb.model->velocity = velocity;
-	bomb_state.bomb.model->s.solidity = SolidBits( Solid_World | Solid_Trigger );
+	bomb_state.bomb.model->s.solidity = Solid_World | Solid_Trigger;
 	Show( bomb_state.bomb.model );
 	RemoveCarrier();
 	bomb_state.bomb.state = BombState_Dropped;
@@ -429,7 +428,7 @@ static void BombStartPlanting( edict_t * carrier_ent, u32 site ) {
 	bomb_state.bomb.action_time = level.time;
 	bomb_state.bomb.state = BombState_Planting;
 
-	G_Sound( bomb_state.bomb.model, "models/bomb/plant" );
+	G_Sound( bomb_state.bomb.model, "loadout/bomb/plant" );
 }
 
 static void BombPlanted() {
@@ -437,7 +436,7 @@ static void BombPlanted() {
 	carrier_ent->r.client->ps.pmove.max_speed = -1;
 
 	bomb_state.bomb.action_time = level.time + int( g_bomb_bombtimer->number * 1000.0f );
-	bomb_state.bomb.model->s.sound = "models/bomb/fuse";
+	bomb_state.bomb.model->s.sound = "loadout/bomb/fuse";
 	bomb_state.bomb.model->s.effects &= ~EF_TEAM_SILHOUETTE;
 
 	// show to defs too
@@ -470,7 +469,7 @@ static void BombDefused() {
 	TempAllocator temp = svs.frame_arena.temp();
 	G_PrintMsg( NULL, "%s defused the bomb!\n", PLAYERENT( bomb_state.defuser )->r.client->name );
 
-	G_Sound( bomb_state.bomb.model, "models/bomb/tss" );
+	G_Sound( bomb_state.bomb.model, "loadout/bomb/tss" );
 
 	RoundWonBy( DefendingTeam() );
 
@@ -495,7 +494,7 @@ static void BombExplode() {
 
 	G_SpawnEvent( EV_BOMB_EXPLOSION, bomb_explosion_effect_radius, &bomb_state.bomb.model->s.origin );
 
-	G_Sound( bomb_state.bomb.model, "models/bomb/explode" );
+	G_Sound( bomb_state.bomb.model, "loadout/bomb/explode" );
 }
 
 static void BombThink() {
@@ -702,15 +701,14 @@ static void PlayXvXSound( Team team_that_died ) {
 }
 
 static void SetTeams() {
-	u32 limit = g_scorelimit->integer;
 	u8 round_num = server_gs.gameState.round_num;
-	if( limit == 0 || round_num > ( limit - 1 ) * 2 ) {
+	if( server_gs.gameState.scorelimit == 0 || round_num > ( server_gs.gameState.scorelimit - 1 ) * 2 ) {
 		bool odd = round_num % 2 == 1;
 		server_gs.gameState.bomb.attacking_team = odd ? initial_attackers : initial_defenders;
 		return;
 	}
 
-	bool first_half = round_num < limit;
+	bool first_half = round_num < server_gs.gameState.scorelimit;
 	server_gs.gameState.bomb.attacking_team = first_half ? initial_attackers : initial_defenders;
 }
 
@@ -745,12 +743,10 @@ static bool ScoreLimitHit() {
 static void SetRoundType() {
 	RoundType type = RoundType_Normal;
 
-	u32 limit = g_scorelimit->integer;
-
 	u8 alpha_score = server_gs.gameState.teams[ Team_One ].score;
 	u8 beta_score = server_gs.gameState.teams[ Team_Two ].score;
-	bool match_point = alpha_score == limit - 1 || beta_score == limit - 1;
-	bool overtime = server_gs.gameState.round_num > ( limit - 1 ) * 2;
+	bool match_point = alpha_score == server_gs.gameState.scorelimit - 1 || beta_score == server_gs.gameState.scorelimit - 1;
+	bool overtime = server_gs.gameState.round_num > ( server_gs.gameState.scorelimit - 1 ) * 2;
 
 	if( overtime ) {
 		type = alpha_score == beta_score ? RoundType_Overtime : RoundType_OvertimeMatchPoint;
@@ -794,7 +790,7 @@ static void RoundNewState( RoundState state ) {
 			SetRoundType();
 			BombGiveToRandom();
 			G_SpawnEvent( EV_FLASH_WINDOW, 0, NULL );
-			G_SunCycle( 3000 );
+			G_SunCycle( Seconds( 3 ) );
 		} break;
 
 		case RoundState_Round: {
@@ -883,9 +879,9 @@ static void RoundThink() {
 			bomb_state.bomb.model->s.origin = G_PickRandomEnt( &edict_t::classname, "spawn_bomb_attacking" )->s.origin;
 			bomb_state.bomb.model->velocity = Vec3( 0.0f, 0.0f, bomb_throw_speed );
 
-			constexpr StringHash vfx_bomb_respawn = "models/bomb/respawn";
+			constexpr StringHash vfx_bomb_respawn = "loadout/bomb/respawn";
 
-			G_Sound( bomb_state.bomb.model, "models/bomb/respawn" );
+			G_Sound( bomb_state.bomb.model, "loadout/bomb/respawn" );
 			G_SpawnEvent( EV_VFX, vfx_bomb_respawn.hash, &bomb_state.bomb.model->s.origin );
 
 			return;
@@ -1097,6 +1093,7 @@ static void Bomb_MatchStateStarted() {
 
 static void Bomb_Init() {
 	server_gs.gameState.gametype = Gametype_Bomb;
+	server_gs.gameState.scorelimit = 10;
 	server_gs.gameState.bomb.attacking_team = initial_attackers;
 
 	bomb_state = { };
@@ -1117,7 +1114,7 @@ static void Bomb_Init() {
 		SetLoadout( ent, MSG_ReadString( &args ), false );
 	} );
 
-	g_bomb_roundtime = NewCvar( "g_bomb_roundtime", "61", CvarFlag_Archive );
+	g_bomb_roundtime = NewCvar( "g_bomb_roundtime", "60", CvarFlag_Archive );
 	g_bomb_bombtimer = NewCvar( "g_bomb_bombtimer", "30", CvarFlag_Archive );
 }
 

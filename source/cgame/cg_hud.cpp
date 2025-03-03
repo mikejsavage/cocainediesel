@@ -23,9 +23,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/fpe.h"
 #include "qcommon/time.h"
 #include "client/assets.h"
+#include "client/keys.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/text.h"
 #include "cgame/cg_local.h"
+
+#include "clay/clay.h"
 
 #include "imgui/imgui.h"
 
@@ -33,38 +36,35 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "luau/lualib.h"
 #include "luau/luacode.h"
 
-#include "yoga/Yoga.h"
-
 static const Vec4 light_gray = sRGBToLinear( RGBA8( 96, 96, 96, 255 ) );
 
 static lua_State * hud_L;
 
-static YGConfigRef yoga_config;
+static Clay_Arena clay_arena;
+static u32 clay_element_counter;
 
-static constexpr size_t yoga_arena_size = 1024 * 64; // 64KB
-static void * yoga_arena_memory;
-static ArenaAllocator yoga_arena;
+static constexpr size_t TEXT_ARENA_SIZE = Megabytes( 1 );
+static ArenaAllocator text_arena;
 
-static bool show_inspector;
-static struct {
-	bool hovered;
-	float x, y, w, h;
-	float margin_top, margin_left, margin_right, margin_bottom;
-	float padding_top, padding_left, padding_right, padding_bottom;
-} inspecting;
+static bool show_debugger;
 
-template <typename T>
+template< typename T >
 struct LuauConst {
 	const char * name;
 	T value;
 };
 
-static const LuauConst<int> numeric_constants[] = {
+static constexpr LuauConst< int > numeric_constants[] = {
 	{ "Team_None", Team_None },
 	{ "Team_One", Team_One },
 	{ "Team_Two", Team_Two },
 	{ "Team_Three", Team_Three },
 	{ "Team_Four", Team_Four },
+	{ "Team_Five", Team_Five },
+	{ "Team_Six", Team_Six },
+	{ "Team_Sevent", Team_Seven },
+	{ "Team_Eight", Team_Eight },
+	{ "Team_Count", Team_Count },
 
 	{ "WeaponState_Reloading", WeaponState_Reloading },
 	{ "WeaponState_StagedReloading", WeaponState_StagedReloading },
@@ -110,11 +110,12 @@ static const LuauConst<int> numeric_constants[] = {
 	{ "BombProgress_Defusing", BombProgress_Defusing },
 };
 
-static const LuauConst<StringHash> asset_constants[] = {
-	{ "diagonal_pattern", StringHash( "hud/diagonal_pattern" ) },
-	{ "bomb", StringHash( "hud/icons/bomb" ) },
-	{ "guy", StringHash( "hud/icons/guy" ) },
-	{ "net", StringHash( "hud/icons/net" ) },
+static constexpr LuauConst< StringHash > asset_constants[] = {
+	{ "diagonal_pattern", "hud/diagonal_pattern" },
+	{ "bomb", "hud/icons/bomb" },
+	{ "guy", "hud/icons/guy" },
+	{ "net", "hud/icons/net" },
+	{ "star", "hud/icons/star" },
 };
 
 static int CG_GetSpeed() {
@@ -271,14 +272,14 @@ static char * MakeObituary( Allocator * a, RNG * rng, int type, DamageType damag
 	return ( *a )( "{}{}{}{}", prefix1, prefix2, prefix3, obituaries[ RandomUniform( rng, 0, obituaries.n ) ] );
 }
 
-void CG_SC_Obituary() {
-	int victimNum = atoi( Cmd_Argv( 1 ) );
-	int attackerNum = atoi( Cmd_Argv( 2 ) );
-	int topAssistorNum = atoi( Cmd_Argv( 3 ) );
+void CG_SC_Obituary( const Tokenized & args ) {
+	int victimNum = SpanToInt( args.tokens[ 1 ], 0 );
+	int attackerNum = SpanToInt( args.tokens[ 2 ], 0 );
+	int topAssistorNum = SpanToInt( args.tokens[ 3 ], 0 );
 	DamageType damage_type;
-	damage_type.encoded = atoi( Cmd_Argv( 4 ) );
-	bool wallbang = atoi( Cmd_Argv( 5 ) ) == 1;
-	u64 entropy = SpanToU64( MakeSpan( Cmd_Argv( 6 ) ), 0 );
+	damage_type.encoded = SpanToInt( args.tokens[ 4 ], 0 );
+	bool wallbang = SpanToInt( args.tokens[ 5 ], 0 ) == 1;
+	u64 entropy = SpanToU64( args.tokens[ 6 ], 0 );
 
 	const char * victim = PlayerName( victimNum - 1 );
 	const char * attacker = attackerNum == 0 ? NULL : PlayerName( attackerNum - 1 );
@@ -317,10 +318,10 @@ void CG_SC_Obituary() {
 		current->type = OBITUARY_ACCIDENT;
 
 		if( damage_type == WorldDamage_Void ) {
-			attacker_name = temp( "{}{}", ImGuiColorToken( rgba8_black ), "THE VOID" );
+			attacker_name = temp( "{}{}", ImGuiColorToken( black.rgba8 ), "THE VOID" );
 		}
 		else if( damage_type == WorldDamage_Spike ) {
-			attacker_name = temp( "{}{}", ImGuiColorToken( rgba8_black ), "A SPIKE" );
+			attacker_name = temp( "{}{}", ImGuiColorToken( black.rgba8 ), "A SPIKE" );
 		}
 		else {
 			return;
@@ -337,25 +338,25 @@ void CG_SC_Obituary() {
 	}
 
 	if( assistor == NULL ) {
-		CG_AddChat( temp( "{} {}{} {}",
+		CG_AddChat( temp.sv( "{} {}{} {}",
 			attacker_name,
-			ImGuiColorToken( rgba8_diesel_yellow ), obituary,
+			ImGuiColorToken( diesel_yellow.rgba8 ), obituary,
 			victim_name
 		) );
 	}
 	else {
 		const char * conjugation = RandomElement( &rng, conjunctions );
-		CG_AddChat( temp( "{} {}{} {} {}{} {}",
+		CG_AddChat( temp.sv( "{} {}{} {} {}{} {}",
 			attacker_name,
 			ImGuiColorToken( 255, 255, 255, 255 ), conjugation,
 			assistor_name,
-			ImGuiColorToken( rgba8_diesel_yellow ), obituary,
+			ImGuiColorToken( diesel_yellow.rgba8 ), obituary,
 			victim_name
 		) );
 	}
 
 	if( ISVIEWERENTITY( attackerNum ) && attacker != victim ) {
-		CG_CenterPrint( temp( "{} {}", obituary, Uppercase( &temp, victim ) ) );
+		CG_CenterPrint( temp.sv( "{} {}", obituary, Uppercase( &temp, victim ) ) );
 	}
 }
 
@@ -437,7 +438,7 @@ void CG_DrawScope() {
 				char * msg = temp( "{.2}m", distance / 32.0f );
 				GlitchText( Span< char >( msg + strlen( msg ) - 3, 2 ) );
 
-				DrawText( cgs.fontItalic, cgs.textSizeSmall, msg, Alignment_RightTop, frame_static.viewport_width / 2 - offset, frame_static.viewport_height / 2 + offset, vec4_red );
+				DrawText( cgs.fontItalic, cgs.textSizeSmall, msg, Alignment_RightTop, frame_static.viewport_width / 2 - offset, frame_static.viewport_height / 2 + offset, red.vec4 );
 			}
 
 			if( trace.ent > 0 && trace.ent <= MAX_CLIENTS ) {
@@ -448,7 +449,7 @@ void CG_DrawScope() {
 				char * msg = temp( "{}?", RandomElement( &obituary_rng, normal_obituaries ) );
 				GlitchText( Span< char >( msg, strlen( msg ) - 1 ) );
 
-				DrawText( cgs.fontItalic, cgs.textSizeSmall, msg, Alignment_LeftTop, frame_static.viewport_width / 2 + offset, frame_static.viewport_height / 2 + offset, color, vec4_black );
+				DrawText( cgs.fontItalic, cgs.textSizeSmall, msg, Alignment_LeftTop, frame_static.viewport_width / 2 + offset, frame_static.viewport_height / 2 + offset, color, black.vec4 );
 			}
 		}
 	}
@@ -461,7 +462,8 @@ static void PushLuaAsset( lua_State * L, StringHash s ) {
 }
 
 static bool CallWithStackTrace( lua_State * L, int args, int results ) {
-	if( lua_pcall( L, args, results, 1 ) != 0 ) {
+	int debug_traceback_idx = 1;
+	if( lua_pcall( L, args, results, debug_traceback_idx ) != 0 ) {
 		Com_Printf( S_COLOR_YELLOW "%s\n", lua_tostring( L, -1 ) );
 		lua_pop( L, 1 );
 		return false;
@@ -474,6 +476,16 @@ static Span< const char > LuaToSpan( lua_State * L, int idx ) {
 	size_t len;
 	const char * str = lua_tolstring( L, idx, &len );
 	return Span< const char >( str, len );
+}
+
+static Span< const char > LuaCheckSpan( lua_State * L, int idx ) {
+	size_t len;
+	const char * str = luaL_checklstring( L, idx, &len );
+	return Span< const char >( str, len );
+}
+
+static void LuaPushSpan( lua_State * L, Span< const char > str ) {
+	lua_pushlstring( L, str.ptr, str.n );
 }
 
 static u8 CheckRGBA8Component( lua_State * L, int idx, int narg ) {
@@ -654,12 +666,12 @@ static int LuausRGBToLinear( lua_State * L ) {
 }
 
 static int LuauPrint( lua_State * L ) {
-	Com_Printf( "%s\n", luaL_checkstring( hud_L, 1 ) );
+	Com_Printf( "%s\n", luaL_checkstring( L, 1 ) );
 	return 0;
 }
 
 static int LuauAsset( lua_State * L ) {
-	StringHash hash( luaL_checkstring( hud_L, 1 ) );
+	StringHash hash( luaL_checkstring( L, 1 ) );
 	PushLuaAsset( L, hash );
 	return 1;
 }
@@ -706,6 +718,16 @@ static Alignment CheckAlignment( lua_State * L, int idx ) {
 		Alignment_LeftBottom,
 		Alignment_CenterBottom,
 		Alignment_RightBottom,
+
+		{ XAlignment_Left, YAlignment_Ascent },
+		{ XAlignment_Center, YAlignment_Ascent },
+		{ XAlignment_Right, YAlignment_Ascent },
+		{ XAlignment_Left, YAlignment_Baseline },
+		{ XAlignment_Center, YAlignment_Baseline },
+		{ XAlignment_Right, YAlignment_Baseline },
+		{ XAlignment_Left, YAlignment_Descent },
+		{ XAlignment_Center, YAlignment_Descent },
+		{ XAlignment_Right, YAlignment_Descent },
 	};
 
 	constexpr const char * names[] = {
@@ -718,6 +740,18 @@ static Alignment CheckAlignment( lua_State * L, int idx ) {
 		"left bottom",
 		"center bottom",
 		"right bottom",
+
+		"left ascent",
+		"center ascent",
+		"right ascent",
+		"left baseline",
+		"center baseline",
+		"right baseline",
+		"left descent",
+		"center descent",
+		"right descent",
+
+		NULL
 	};
 
 	return alignments[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
@@ -736,6 +770,8 @@ static const Font * CheckFont( lua_State * L, int idx ) {
 		"bold",
 		"italic",
 		"bolditalic",
+
+		NULL
 	};
 
 	return fonts[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
@@ -757,11 +793,9 @@ static int LuauDrawText( lua_State * L ) {
 	float font_size = lua_tonumber( L, -1 );
 	lua_pop( L, 1 );
 
-	bool border = false;
-	Vec4 border_color = vec4_black;
+	Optional< Vec4 > border_color = NONE;
 	lua_getfield( L, 1, "border" );
 	if( !lua_isnil( L, -1 ) ) {
-		border = true;
 		border_color = CheckColor( L, -1 );
 	}
 	lua_pop( L, 1 );
@@ -772,26 +806,33 @@ static int LuauDrawText( lua_State * L ) {
 
 	float x = luaL_checknumber( L, 2 );
 	float y = luaL_checknumber( L, 3 );
-	const char * str = luaL_checkstring( hud_L, 4 );
+	Span< const char > str = LuaCheckSpan( L, 4 );
 
-	if( border ) {
-		DrawText( font, font_size, str, alignment, x, y, color, border_color );
-	}
-	else {
-		DrawText( font, font_size, str, alignment, x, y, color, false );
-	}
+	DrawText( font, font_size, str, alignment, x, y, color, border_color );
 
 	return 0;
 }
 
 static int LuauGetBind( lua_State * L ) {
-	char keys[ 128 ];
-	if( !CG_GetBoundKeysString( luaL_checkstring( L, 1 ), keys, sizeof( keys ) ) ) {
-		snprintf( keys, sizeof( keys ), "[%s]", luaL_checkstring( L, 1 ) );
+	TempAllocator temp = cls.frame_arena.temp();
+
+	Span< const char > command = LuaCheckSpan( L, 1 );
+	Optional< Key > key1, key2;
+	GetKeyBindsForCommand( command, &key1, &key2 );
+
+	Span< const char > bind;
+	if( key1.exists && key2.exists ) {
+		bind = temp.sv( "{} or {}", KeyName( key1.value ), KeyName( key2.value ) );
+	}
+	else if( key1.exists ) {
+		bind = KeyName( key1.value );
+	}
+	else {
+		bind = temp.sv( "[{}]", command );
 	}
 
 	lua_newtable( L );
-	lua_pushstring( L, keys );
+	LuaPushSpan( L, bind );
 
 	return 1;
 }
@@ -837,6 +878,10 @@ static int LuauPlantableColor( lua_State * L ) {
 	return Vec4ToLuauColor( L, PlantableColor() );
 }
 
+static int LuauAttentionGettingRed( lua_State * L ) {
+	return Vec4ToLuauColor( L, AttentionGettingRed() );
+}
+
 static int LuauGetPlayerName( lua_State * L ) {
 	int index = luaL_checknumber( L, 1 ) - 1;
 
@@ -875,6 +920,13 @@ static int LuauGetWeaponReloadTime( lua_State * L ) {
 	u8 w = luaL_checknumber( L, 1 );
 	lua_newtable( L );
 	lua_pushnumber( L, GS_GetWeaponDef( WeaponType( w ) )->reload_time );
+	return 1;
+}
+
+static int LuauGetWeaponStagedReload( lua_State * L ) {
+	u8 w = luaL_checknumber( L, 1 );
+	lua_newtable( L );
+	lua_pushboolean( L, GS_GetWeaponDef( WeaponType( w ) )->staged_reload );
 	return 1;
 }
 
@@ -935,8 +987,24 @@ static int HUD_DrawDamageNumbers( lua_State * L ) {
 }
 
 static int HUD_DrawPointed( lua_State * L ) {
-	CG_DrawPlayerNames( cgs.fontNormalBold, luaL_checknumber( L, 1 ), CheckColor( L, 2 ), luaL_checknumber( L, 3 ) );
+	CG_DrawPlayerNames( cgs.fontNormalBold, luaL_checknumber( L, 1 ), CheckColor( L, 2 ) );
 	return 0;
+}
+
+static int CG_HorizontalAlignForWidth( int x, Alignment alignment, int width ) {
+	if( alignment.x == XAlignment_Left )
+		return x;
+	if( alignment.x == XAlignment_Center )
+		return x - width / 2;
+	return x - width;
+}
+
+static int CG_VerticalAlignForHeight( int y, Alignment alignment, int height ) {
+	if( alignment.y == YAlignment_Ascent )
+		return y;
+	if( alignment.y == YAlignment_Descent )
+		return y - height / 2;
+	return y - height;
 }
 
 static int HUD_DrawObituaries( lua_State * L ) {
@@ -1003,8 +1071,8 @@ static int HUD_DrawObituaries( lua_State * L ) {
 
 		const Material * pic = DamageTypeToIcon( obr->damage_type );
 
-		float attacker_width = TextBounds( font, font_size, obr->attacker ).maxs.x;
-		float victim_width = TextBounds( font, font_size, obr->victim ).maxs.x;
+		float attacker_width = TextVisualBounds( font, font_size, MakeSpan( obr->attacker ) ).maxs.x;
+		float victim_width = TextVisualBounds( font, font_size, MakeSpan( obr->victim ) ).maxs.x;
 
 		int w = 0;
 		if( obr->type != OBITUARY_ACCIDENT ) {
@@ -1025,7 +1093,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 		int obituary_y = y + yoffset + ( line_height - font_size ) / 2;
 		if( obr->type != OBITUARY_ACCIDENT ) {
 			Vec4 color = CG_TeamColorVec4( obr->attacker_team );
-			DrawText( font, font_size, obr->attacker, x + xoffset, obituary_y, color, true );
+			DrawText( font, font_size, obr->attacker, x + xoffset, obituary_y, color, black.vec4 );
 			xoffset += attacker_width;
 		}
 
@@ -1035,12 +1103,12 @@ static int HUD_DrawObituaries( lua_State * L ) {
 		xoffset += icon_size + icon_padding;
 
 		if( obr->wallbang ) {
-			Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, FindMaterial( "weapons/wallbang_icon" ), AttentionGettingColor() );
+			Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, FindMaterial( "loadout/wallbang_icon" ), AttentionGettingColor() );
 			xoffset += icon_size + icon_padding;
 		}
 
 		Vec4 color = CG_TeamColorVec4( obr->victim_team );
-		DrawText( font, font_size, obr->victim, x + xoffset, obituary_y, color, true );
+		DrawText( font, font_size, obr->victim, x + xoffset, obituary_y, color, black.vec4 );
 
 		yoffset += line_height;
 	} while( i != next );
@@ -1071,470 +1139,566 @@ static int HUD_DrawObituaries( lua_State * L ) {
 	return 0;
 }
 
-using YogaLengthCallback = void ( * )( YGNodeRef node, float x );
-
-template< typename T >
-using YogaLengthCallbackArg = void ( * )( YGNodeRef node, T arg, float x );
-
-static void CheckYogaLength( lua_State * L, int idx, const char * key, YGNodeRef node, YogaLengthCallback set_pixels, YogaLengthCallback set_percent ) {
+static Optional< float > CheckFloat( lua_State * L, int idx, const char * key, bool dont_error = false ) {
 	lua_getfield( L, idx, key );
 	defer { lua_pop( L, 1 ); };
-	if( lua_isnil( L, -1 ) )
-		return;
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
 
 	if( lua_type( L, -1 ) == LUA_TNUMBER ) {
-		set_pixels( node, lua_tonumber( L, -1 ) );
-		return;
+		return lua_tonumber( L, -1 );
 	}
 
 	if( lua_type( L, -1 ) == LUA_TSTRING ) {
 		Span< const char > str = LuaToSpan( L, -1 );
-
-		if( EndsWith( str, "%" ) ) {
-			float percent;
-			if( !TrySpanToFloat( str.slice( 0, str.n - 1 ), &percent ) )
-				luaL_error( L, "length doesn't parse as a percent: %s", str.ptr );
-			set_percent( node, percent );
-			return;
+		if( EndsWith( str, "vw" ) || EndsWith( str, "vh" ) ) {
+			float v;
+			if( !TrySpanToFloat( str.slice( 0, str.n - 2 ), &v ) ) {
+				luaL_error( L, "%s doesn't parse as a vw/vh: %s", key, str.ptr );
+			}
+			return v * 0.01f * checked_cast< float >( EndsWith( str, "vw" ) ? frame_static.viewport_width : frame_static.viewport_height );
 		}
-
-		if( EndsWith( str, "vw" ) ) {
-			float vw;
-			if( !TrySpanToFloat( str.slice( 0, str.n - 2 ), &vw ) )
-				luaL_error( L, "length doesn't parse as a vw: %s", str.ptr );
-			set_pixels( node, floorf( vw * 0.01f * frame_static.viewport_width ) );
-			return;
-		}
-
-		luaL_error( L, "length doesn't parse as anything: %s", str.ptr );
-		return;
 	}
 
-	luaL_error( L, "nah" );
+	if( !dont_error ) {
+		luaL_error( L, "%s isn't a number", key );
+	}
+
+	return NONE;
 }
 
-template< typename T >
-void CheckYogaLengthArg( lua_State * L, int idx, const char * key, YGNodeRef node, YogaLengthCallbackArg< T > set_pixels, YogaLengthCallbackArg< T > set_percent, T arg ) {
+static Optional< u16 > CheckU16( lua_State * L, int idx, const char * key ) {
+	Optional< float > x = CheckFloat( L, idx, key );
+	if( !x.exists )
+		return NONE;
+	if( x.value < 0.0f || x.value > U16_MAX ) {
+		luaL_error( L, "%s doesn't fit in a u16: %f", key, x.value );
+	}
+	return u16( x.value );
+}
+
+static Optional< Clay_SizingAxis > CheckClaySize( lua_State * L, int idx, const char * key ) {
+	Optional< float > x = CheckFloat( L, idx, key, true );
+	if( x.exists ) {
+		return CLAY_SIZING_FIXED( x.value );
+	}
+
 	lua_getfield( L, idx, key );
 	defer { lua_pop( L, 1 ); };
-	if( lua_isnil( L, -1 ) )
-		return;
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
 
-	if( lua_type( L, -1 ) == LUA_TNUMBER ) {
-		set_pixels( node, arg, lua_tonumber( L, -1 ) );
-		return;
+	Span< const char > str = LuaToSpan( L, -1 );
+	if( str == "fit" ) {
+		return CLAY_SIZING_FIT( 0.0f );
 	}
 
-	if( lua_type( L, -1 ) == LUA_TSTRING ) {
-		Span< const char > str = LuaToSpan( L, -1 );
-
-		if( EndsWith( str, "%" ) ) {
-			float percent;
-			if( !TrySpanToFloat( str.slice( 0, str.n - 1 ), &percent ) )
-				luaL_error( L, "length doesn't parse as a percent: %s", str.ptr );
-			set_percent( node, arg, percent );
-			return;
-		}
-
-		if( EndsWith( str, "vw" ) ) {
-			float vw;
-			if( !TrySpanToFloat( str.slice( 0, str.n - 2 ), &vw ) )
-				luaL_error( L, "length doesn't parse as a vw: %s", str.ptr );
-			set_pixels( node, arg, vw * 0.01f * frame_static.viewport_width );
-			return;
-		}
-
-		luaL_error( L, "length doesn't parse as anything: %s", str.ptr );
-		return;
+	if( str == "grow" ) {
+		return CLAY_SIZING_GROW( 0.0f );
 	}
 
-	luaL_error( L, "nah" );
+	if( EndsWith( str, "%" ) ) {
+		float percent;
+		if( !TrySpanToFloat( str.slice( 0, str.n - 1 ), &percent ) ) {
+			luaL_error( L, "size doesn't parse as a percent: %s", str.ptr );
+		}
+		return CLAY_SIZING_PERCENT( 0.01f * percent );
+	}
+
+	luaL_error( L, "bad size: %s = %s", key, str.ptr );
+	return NONE;
 }
 
-static void CheckYogaLengthAllEdges( lua_State * L, int idx, const char * key, YGNodeRef node, YogaLengthCallbackArg< YGEdge > set_pixels, YogaLengthCallbackArg< YGEdge > set_percent ) {
-	CheckYogaLengthArg( L, idx, key, node, set_pixels, set_percent, YGEdgeTop );
-	CheckYogaLengthArg( L, idx, key, node, set_pixels, set_percent, YGEdgeLeft );
-	CheckYogaLengthArg( L, idx, key, node, set_pixels, set_percent, YGEdgeRight );
-	CheckYogaLengthArg( L, idx, key, node, set_pixels, set_percent, YGEdgeBottom );
+static Clay_Padding CheckClayPadding( lua_State * L, int idx ) {
+	Clay_Padding padding = { };
+
+	Optional< u16 > all_padding = CheckU16( L, idx, "padding" );
+	if( all_padding.exists ) {
+		padding.left = all_padding.value;
+		padding.right = all_padding.value;
+		padding.top = all_padding.value;
+		padding.bottom = all_padding.value;
+	}
+
+	padding.left   = Default( CheckU16( L, idx, "padding_x" ), padding.left );
+	padding.right  = Default( CheckU16( L, idx, "padding_x" ), padding.right );
+	padding.top    = Default( CheckU16( L, idx, "padding_y" ), padding.top );
+	padding.bottom = Default( CheckU16( L, idx, "padding_y" ), padding.bottom );
+
+	padding.left   = Default( CheckU16( L, idx, "padding_left"   ), padding.left );
+	padding.right  = Default( CheckU16( L, idx, "padding_right"  ), padding.right );
+	padding.top    = Default( CheckU16( L, idx, "padding_top"    ), padding.top );
+	padding.bottom = Default( CheckU16( L, idx, "padding_bottom" ), padding.bottom );
+
+	return padding;
 }
 
-template< typename T >
-void CheckYogaNumberArg( lua_State * L, int idx, const char * key, YGNodeRef node, YogaLengthCallbackArg< T > set, T arg ) {
-	lua_getfield( L, -1, key );
+static Optional< Clay_LayoutDirection > CheckClayLayoutDirection( lua_State * L, int idx, const char * key ) {
+	lua_getfield( L, idx, key );
 	defer { lua_pop( L, 1 ); };
-	if( lua_isnoneornil( L, -1 ) ) {
-		return;
-	}
-	if( lua_type( L, -1 ) != LUA_TNUMBER ) {
-		luaL_error( L, "%s must be a number", key );
-	}
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
 
-	set( node, arg, lua_tonumber( L, -1 ) );
-}
-
-static void CheckYogaNumberAllEdges( lua_State * L, int idx, const char * key, YGNodeRef node, YogaLengthCallbackArg< YGEdge > set ) {
-	CheckYogaNumberArg( L, idx, key, node, set, YGEdgeTop );
-	CheckYogaNumberArg( L, idx, key, node, set, YGEdgeLeft );
-	CheckYogaNumberArg( L, idx, key, node, set, YGEdgeRight );
-	CheckYogaNumberArg( L, idx, key, node, set, YGEdgeBottom );
-}
-
-static YGFlexDirection CheckYogaFlexDirection( lua_State * L, int idx ) {
-	constexpr YGFlexDirection flex_directions[] = {
-		YGFlexDirectionRow,
-		YGFlexDirectionRowReverse,
-		YGFlexDirectionColumn,
-		YGFlexDirectionColumnReverse,
+	constexpr Clay_LayoutDirection layout_directions[] = {
+		CLAY_LEFT_TO_RIGHT,
+		CLAY_TOP_TO_BOTTOM,
 	};
 
 	constexpr const char * names[] = {
-		"row",
-		"row-reverse",
-		"column",
-		"column-reverse",
+		"horizontal",
+		"vertical",
+
+		NULL
 	};
 
-	return flex_directions[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
+	return layout_directions[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
 }
 
-static YGAlign CheckYogaAlign( lua_State * L, int idx ) {
-	constexpr YGAlign aligns[] = {
-		YGAlignStretch,
-		YGAlignFlexStart,
-		YGAlignCenter,
-		YGAlignFlexEnd,
-		YGAlignBaseline,
-		YGAlignSpaceBetween,
-		YGAlignSpaceAround,
+static Optional< Clay_ChildAlignment > CheckClayChildAlignment( lua_State * L, int idx, const char * key ) {
+	lua_getfield( L, idx, key );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
+
+	constexpr Clay_ChildAlignment alignments[] = {
+		{ CLAY_ALIGN_X_LEFT, CLAY_ALIGN_Y_TOP },
+		{ CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_TOP },
+		{ CLAY_ALIGN_X_RIGHT, CLAY_ALIGN_Y_TOP },
+
+		{ CLAY_ALIGN_X_LEFT, CLAY_ALIGN_Y_CENTER },
+		{ CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER },
+		{ CLAY_ALIGN_X_RIGHT, CLAY_ALIGN_Y_CENTER },
+
+		{ CLAY_ALIGN_X_LEFT, CLAY_ALIGN_Y_BOTTOM },
+		{ CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_BOTTOM },
+		{ CLAY_ALIGN_X_RIGHT, CLAY_ALIGN_Y_BOTTOM },
 	};
 
 	constexpr const char * names[] = {
-		"stretch",
-		"flex-start",
-		"center",
-		"flex-end",
-		"baseline",
-		"space-between",
-		"space-around",
+		"top-left", "top-center", "top-right",
+		"middle-left", "middle-center", "middle-right",
+		"bottom-left", "bottom-center", "bottom-right",
+
+		NULL
 	};
 
-	return aligns[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
+	return alignments[ luaL_checkoption( L, -1, names[ 0 ], names ) ];
 }
 
-static YGJustify CheckYogaJustify( lua_State * L, int idx ) {
-	constexpr YGJustify justifies[] = {
-		YGJustifyFlexStart,
-		YGJustifyCenter,
-		YGJustifyFlexEnd,
-		YGJustifySpaceBetween,
-		YGJustifySpaceAround,
-		YGJustifySpaceEvenly,
-	};
-
-	constexpr const char * names[] = {
-		"flex-start",
-		"center",
-		"flex-end",
-		"space-between",
-		"space-around",
-		"space-evenly",
-	};
-
-	return justifies[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
+static Optional< Vec4 > CheckOptionalColor( lua_State * L, int idx, const char * key ) {
+	lua_getfield( L, idx, key );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
+	return CheckColor( L, -1 );
 }
 
-struct OurYogaNodeStuff {
-	Vec4 background_color;
-	Vec4 border_color;
+static Optional< Clay_Color > GetOptionalClayColor( lua_State * L, int idx, const char * key ) {
+	lua_getfield( L, idx, key );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
 
-	const char * text;
-	StringHash material;
-	int render_callback;
+	RGBA8 srgb = LinearTosRGB( CheckColor( L, -1 ) );
+	return Clay_Color { float( srgb.r ), float( srgb.g ), float( srgb.b ), float( srgb.a ) };
+}
+
+static Clay_CornerRadius GetClayBorderRadius( lua_State * L, int idx ) {
+	Optional< float > radius = CheckFloat( L, idx, "border_radius" );
+	float r = Default( radius, 0.0f );
+	return Clay_CornerRadius { r, r, r, r };
+}
+
+constexpr struct {
+	Span< const char > name;
+	const Font ** font;
+	u16 clay_font_id;
+} clay_fonts[] = {
+	{ "normal", &cgs.fontNormal },
+	{ "bold", &cgs.fontNormalBold },
+	{ "italic", &cgs.fontItalic },
+	{ "bold-italic", &cgs.fontBoldItalic },
 };
 
-static OurYogaNodeStuff OurYogaNodeStuffDefaults() {
-	OurYogaNodeStuff defaults;
+static Optional< u16 > CheckClayFont( lua_State * L, int idx ) {
+	lua_getfield( L, idx, "font" );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
 
-	defaults.background_color = Vec4( 0.0f );
-	defaults.border_color = vec4_black;
+	Span< const char > name = LuaToSpan( L, -1 );
+	for( u16 i = 0; i < ARRAY_COUNT( clay_fonts ); i++ ) {
+		if( StrEqual( clay_fonts[ i ].name, name ) ) {
+			return i;
+		}
+	}
 
-	defaults.text = NULL;
-	defaults.material = EMPTY_HASH;
-	defaults.render_callback = LUA_NOREF;
-
-	return defaults;
+	luaL_error( L, "bad font name: %s", name.ptr );
 }
 
-static YGNodeRef NewYogaNode( YGConfigRef config ) {
-	YGNodeRef node = YGNodeNewWithConfig( yoga_config );
+struct ClayTextAndConfig {
+	Clay_String text;
+	Clay_TextElementConfig config;
+	Optional< Vec4 > border_color;
 
-	// set borders to 0 or they come out as nans on the other side, we
-	// can't do isnan in this file because we compile the game with fastmath
-	YGNodeStyleSetBorder( node, YGEdgeTop, 0.0f );
-	YGNodeStyleSetBorder( node, YGEdgeLeft, 0.0f );
-	YGNodeStyleSetBorder( node, YGEdgeRight, 0.0f );
-	YGNodeStyleSetBorder( node, YGEdgeBottom, 0.0f );
+	struct FittedText {
+		XAlignment x_alignment;
+		Clay_Padding padding;
+	};
 
-	return node;
+	Optional< FittedText > fitted_text;
+};
+
+static Clay_String CopyStringToArena( Span< const char > str ) {
+	char * r = AllocMany< char >( &text_arena, str.n );
+	memcpy( r, str.ptr, str.n );
+	return Clay_String { .length = checked_cast< s32 >( str.n ), .chars = r };
 }
 
-static YGNodeRef LuauYogaNodeRecursive( ArenaAllocator * temp, lua_State * L ) {
+static Optional< ClayTextAndConfig::FittedText > CheckClayFittedText( lua_State * L, int idx ) {
+	lua_getfield( L, idx, "fit" );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
+
+	constexpr XAlignment alignments[] = { XAlignment_Left, XAlignment_Center, XAlignment_Right };
+	constexpr const char * names[] = { "left", "center", "right", NULL };
+
+	return ClayTextAndConfig::FittedText {
+		.x_alignment = alignments[ luaL_checkoption( L, -1, names[ 0 ], names ) ],
+		.padding = CheckClayPadding( L, idx - 1 ),
+	};
+}
+
+template< typename T >
+T * ArenaAlloc( ArenaAllocator * arena, const T & x ) {
+	T * ptr = Alloc< T >( arena );
+	*ptr = x;
+	return ptr;
+}
+
+static Optional< ClayTextAndConfig > GetOptionalClayTextConfig( lua_State * L, int idx ) {
+	if( lua_getfield( L, idx, "text" ) == LUA_TNIL ) {
+		lua_pop( L, 1 );
+		return NONE;
+	}
+
+	Clay_String text = CopyStringToArena( LuaToSpan( L, -1 ) );
+	lua_pop( L, 1 );
+
+	// default 1vh
+	// TODO NOMERGE do u16s here need to be rounded or is floor ok? probably in checku16 too
+	u16 size = Default( CheckU16( L, -1, "font_size" ), u16( frame_static.viewport_height * 0.01f ) );
+
+	return ClayTextAndConfig {
+		.text = text,
+		.config = Clay_TextElementConfig {
+			.textColor = Default( GetOptionalClayColor( L, -1, "color" ), { 255, 255, 255, 255 } ),
+			.fontId = Default( CheckClayFont( L, -1 ), 0_u16 ),
+			.fontSize = u16( size ),
+			.letterSpacing = 0,
+			.lineHeight = u16( Default( CheckFloat( L, -1, "line_height" ), 1.0f ) * size ),
+			.wrapMode = CLAY_TEXT_WRAP_NONE,
+		},
+		.border_color = CheckOptionalColor( L, -1, "text_border" ),
+		.fitted_text = CheckClayFittedText( L, idx ),
+	};
+}
+
+static Clay_LayoutConfig GetClayLayoutConfig( lua_State * L, int idx ) {
+	return Clay_LayoutConfig {
+		.sizing = {
+			.width = Default( CheckClaySize( L, idx, "width" ), CLAY_LAYOUT_DEFAULT.sizing.width ),
+			.height = Default( CheckClaySize( L, idx, "height" ), CLAY_LAYOUT_DEFAULT.sizing.height ),
+		},
+		.padding = CheckClayPadding( L, idx ),
+		.childGap = Default( CheckU16( L, idx, "gap" ), 0_u16 ),
+		.childAlignment = Default( CheckClayChildAlignment( L, idx, "alignment" ), CLAY_LAYOUT_DEFAULT.childAlignment ),
+		.layoutDirection = Default( CheckClayLayoutDirection( L, idx, "flow" ), CLAY_LEFT_TO_RIGHT ),
+	};
+}
+
+static Clay_BorderElementConfig GetClayBorderConfig( lua_State * L, int idx ) {
+	Clay_BorderElementConfig border = { };
+
+	Optional< u16 > all_width = CheckU16( L, idx, "border" );
+	if( all_width.exists ) {
+		border.width.left = all_width.value;
+		border.width.right = all_width.value;
+		border.width.top = all_width.value;
+		border.width.bottom = all_width.value;
+	}
+
+	border.color = Default( GetOptionalClayColor( L, idx, "border_color" ), { } );
+
+	border.width.left   = Default( CheckU16( L, idx, "border_left"   ), u16( border.width.left ) );
+	border.width.right  = Default( CheckU16( L, idx, "border_right"  ), u16( border.width.right ) );
+	border.width.top    = Default( CheckU16( L, idx, "border_top"    ), u16( border.width.top ) );
+	border.width.bottom = Default( CheckU16( L, idx, "border_bottom" ), u16( border.width.bottom ) );
+
+	return border;
+}
+
+static Clay_ImageElementConfig GetClayImageConfig( lua_State * L, int idx, Vec4 * tint ) {
+	lua_getfield( L, idx, "image" );
+	StringHash name = CheckHash( L, -1 );
+	lua_pop( L, 1 );
+
+	if( name == EMPTY_HASH )
+		return { };
+
+	*tint = Default( CheckOptionalColor( L, -1, "color" ), white.vec4 );
+
+	return Clay_ImageElementConfig {
+		.imageData = bit_cast< void * >( name.hash ),
+		.sourceDimensions = { 1, 1 }, // TODO
+	};
+}
+
+static Optional< Clay_FloatingAttachPoints > CheckClayFloatAttachment( lua_State * L, int idx ) {
+	lua_getfield( L, idx, "float" );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
+
+	Span< const char > element_parent = LuaToSpan( L, -1 );
+	Span< const char > cursor = element_parent;
+	Span< const char > element = ParseToken( &cursor, Parse_StopOnNewLine );
+	Span< const char > parent = ParseToken( &cursor, Parse_StopOnNewLine );
+
+	constexpr struct {
+		Clay_FloatingAttachPointType type;
+		Span< const char > name;
+	} attachments[] = {
+		{ CLAY_ATTACH_POINT_LEFT_TOP, "top-left" },
+		{ CLAY_ATTACH_POINT_CENTER_TOP, "top-center" },
+		{ CLAY_ATTACH_POINT_RIGHT_TOP, "top-right" },
+
+		{ CLAY_ATTACH_POINT_LEFT_CENTER, "middle-left" },
+		{ CLAY_ATTACH_POINT_CENTER_CENTER, "middle-center" },
+		{ CLAY_ATTACH_POINT_RIGHT_CENTER, "middle-right" },
+
+		{ CLAY_ATTACH_POINT_LEFT_BOTTOM, "bottom-left" },
+		{ CLAY_ATTACH_POINT_CENTER_BOTTOM, "bottom-center" },
+		{ CLAY_ATTACH_POINT_RIGHT_BOTTOM, "bottom-right" },
+	};
+
+	Optional< Clay_FloatingAttachPointType > clay_element = NONE;
+	Optional< Clay_FloatingAttachPointType > clay_parent = NONE;
+	for( auto [ type, name ] : attachments ) {
+		if( StrEqual( name, element ) ) {
+			clay_element = type;
+		}
+		if( StrEqual( name, parent ) ) {
+			clay_parent = type;
+		}
+	}
+
+	if( !clay_element.exists || !clay_parent.exists ) {
+		luaL_error( L, "bad float config: %s", element_parent.ptr );
+	}
+
+	return Clay_FloatingAttachPoints {
+		.element = clay_element.value,
+		.parent = clay_parent.value,
+	};
+}
+
+static Clay_FloatingElementConfig GetClayFloatConfig( lua_State * L, int idx ) {
+	Optional< Clay_FloatingAttachPoints > attachment = CheckClayFloatAttachment( L, idx );
+	if( !attachment.exists )
+		return { };
+
+	return Clay_FloatingElementConfig {
+		.offset = {
+			.x = Default( CheckFloat( L, -1, "x_offset" ), 0.0f ),
+			.y = Default( CheckFloat( L, -1, "y_offset" ), 0.0f ),
+		},
+		.zIndex = checked_cast< s16 >( Default( CheckU16( L, -1, "z_index" ), 0_u16 ) ),
+		.attachPoints = attachment.value,
+		.attachTo = CLAY_ATTACH_TO_PARENT,
+	};
+}
+
+enum ClayCustomElementType {
+	ClayCustomElementType_Lua,
+	ClayCustomElementType_FittedText,
+};
+
+struct ClayCustomElementConfig {
+	ClayCustomElementType type;
+	union {
+		struct {
+			int callback_ref;
+			int arg_ref;
+		} lua;
+		struct {
+			Clay_String text;
+			Clay_TextElementConfig config;
+			XAlignment alignment;
+			Clay_Padding padding;
+			Optional< Vec4 > border_color;
+		} fitted_text;
+	};
+};
+
+static Optional< ClayCustomElementConfig > GetOptionalClayCallbackConfig( lua_State * L, int idx ) {
+	lua_getfield( L, idx, "callback" );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnoneornil( L, -1 ) )
+		return NONE;
+	lua_getfield( L, idx - 1, "callback_arg" );
+	defer { lua_pop( L, 1 ); };
+	return ClayCustomElementConfig {
+		.type = ClayCustomElementType_Lua,
+		.lua = {
+			.callback_ref = lua_tointeger( L, -2 ),
+			.arg_ref = lua_tointeger( L, -1 ),
+		},
+	};
+}
+
+static void DrawClayNodeRecursive( lua_State * L ) {
+	if( !lua_toboolean( L, -1 ) )
+		return;
+	luaL_checktype( L, -1, LUA_TTABLE );
+
+	Optional< ClayCustomElementConfig > custom = NONE;
+	Optional< ClayTextAndConfig > text_config = GetOptionalClayTextConfig( L, -1 );
+	if( text_config.exists ) {
+		if( text_config.value.fitted_text.exists ) {
+			custom = ClayCustomElementConfig {
+				.type = ClayCustomElementType_FittedText,
+				.fitted_text = {
+					.text = text_config.value.text,
+					.config = text_config.value.config,
+					.alignment = text_config.value.fitted_text.value.x_alignment,
+					.padding = text_config.value.fitted_text.value.padding,
+					.border_color = text_config.value.border_color,
+				},
+			};
+		}
+	}
+	else {
+		custom = GetOptionalClayCallbackConfig( L, -1 );
+	}
+
+	Vec4 image_tint;
+	Clay_ImageElementConfig image_config = GetClayImageConfig( L, -1, &image_tint );
+
+	Clay__OpenElement();
+	Clay__ConfigureOpenElement( Clay_ElementDeclaration {
+		.id = { clay_element_counter++ },
+		.layout = GetClayLayoutConfig( L, -1 ),
+		.backgroundColor = Default( GetOptionalClayColor( L, -1, "background" ), { } ),
+		.cornerRadius = GetClayBorderRadius( L, -1 ),
+		.image = image_config,
+		.floating = GetClayFloatConfig( L, -1 ),
+		.custom = Clay_CustomElementConfig {
+			.customData = custom.exists ? ArenaAlloc( &text_arena, custom.value ) : NULL,
+		},
+		.border = GetClayBorderConfig( L, -1 ),
+		.userData = ArenaAlloc( &text_arena, image_tint ),
+	} );
+
+	if( text_config.exists && !text_config.value.fitted_text.exists ) {
+		text_config.value.config.userData = ArenaAlloc( &text_arena, text_config.value.border_color );
+		Clay__OpenTextElement( text_config.value.text, Clay__StoreTextElementConfig( text_config.value.config ) );
+	}
+	else {
+		if( lua_getfield( L, -1, "children" ) != LUA_TNONE ) {
+			int n = lua_objlen( L, -1 );
+			for( int i = 0; i < n; i++ ) {
+				lua_pushnumber( L, i + 1 );
+				lua_gettable( L, -2 );
+				DrawClayNodeRecursive( L );
+				lua_pop( L, 1 );
+			}
+		}
+		lua_pop( L, 1 );
+	}
+
+	Clay__CloseElement();
+}
+
+static int LuauRender( lua_State * L ) {
 	TracyZoneScoped;
-
-	if( lua_type( L, -1 ) != LUA_TTABLE ) {
-		luaL_error( L, "node should be a table" );
-	}
-
-	YGNodeRef node = NewYogaNode( yoga_config );
-	OurYogaNodeStuff * ours = Alloc< OurYogaNodeStuff >( temp );
-	*ours = OurYogaNodeStuffDefaults();
-	YGNodeSetContext( node, ours );
-
-	lua_getfield( L, -1, "absolute_position" );
-	if( lua_toboolean( L, -1 ) ) {
-		YGNodeStyleSetPositionType( node, YGPositionTypeAbsolute );
-	}
-	lua_pop( L, 1 );
-
-	lua_getfield( L, -1, "aspect_ratio" );
-	if( !lua_isnil( L, -1 ) ) {
-		YGNodeStyleSetAspectRatio( node, luaL_checknumber( L, -1 ) );
-	}
-	lua_pop( L, 1 );
-
-	lua_getfield( L, -1, "background_color" );
-	if( !lua_isnil( L, -1 ) ) {
-		ours->background_color = CheckColor( L, -1 );
-	}
-	lua_pop( L, 1 );
-
-	lua_getfield( L, -1, "border_color" );
-	if( !lua_isnil( L, -1 ) ) {
-		ours->border_color = CheckColor( L, -1 );
-	}
-	lua_pop( L, 1 );
-
-	lua_getfield( L, -1, "flow" );
-	YGNodeStyleSetFlexDirection( node, CheckYogaFlexDirection( L, -1 ) );
-	lua_pop( L, 1 );
-
-	lua_getfield( L, -1, "align_items" );
-	YGNodeStyleSetAlignItems( node, CheckYogaAlign( L, -1 ) );
-	lua_pop( L, 1 );
-
-	lua_getfield( L, -1, "justify_content" );
-	YGNodeStyleSetJustifyContent( node, CheckYogaJustify( L, -1 ) );
-	lua_pop( L, 1 );
-
-	lua_getfield( L, -1, "grow" );
-	if( !lua_isnil( L, -1 ) ) {
-		YGNodeStyleSetFlexGrow( node, luaL_checknumber( L, -1 ) );
-	}
-	lua_pop( L, 1 );
-
-	CheckYogaLengthArg( L, -1, "top", node, YGNodeStyleSetPosition, YGNodeStyleSetPositionPercent, YGEdgeTop );
-	CheckYogaLengthArg( L, -1, "left", node, YGNodeStyleSetPosition, YGNodeStyleSetPositionPercent, YGEdgeLeft );
-	CheckYogaLengthArg( L, -1, "right", node, YGNodeStyleSetPosition, YGNodeStyleSetPositionPercent, YGEdgeRight );
-	CheckYogaLengthArg( L, -1, "bottom", node, YGNodeStyleSetPosition, YGNodeStyleSetPositionPercent, YGEdgeBottom );
-
-	CheckYogaNumberAllEdges( L, -1, "border", node, YGNodeStyleSetBorder );
-	CheckYogaNumberArg( L, -1, "border_top", node, YGNodeStyleSetBorder, YGEdgeTop );
-	CheckYogaNumberArg( L, -1, "border_left", node, YGNodeStyleSetBorder, YGEdgeLeft );
-	CheckYogaNumberArg( L, -1, "border_right", node, YGNodeStyleSetBorder, YGEdgeRight );
-	CheckYogaNumberArg( L, -1, "border_bottom", node, YGNodeStyleSetBorder, YGEdgeBottom );
-
-	CheckYogaLengthAllEdges( L, -1, "margin", node, YGNodeStyleSetMargin, YGNodeStyleSetMarginPercent );
-	CheckYogaLengthArg( L, -1, "margin_top", node, YGNodeStyleSetMargin, YGNodeStyleSetMarginPercent, YGEdgeTop );
-	CheckYogaLengthArg( L, -1, "margin_left", node, YGNodeStyleSetMargin, YGNodeStyleSetMarginPercent, YGEdgeLeft );
-	CheckYogaLengthArg( L, -1, "margin_right", node, YGNodeStyleSetMargin, YGNodeStyleSetMarginPercent, YGEdgeRight );
-	CheckYogaLengthArg( L, -1, "margin_bottom", node, YGNodeStyleSetMargin, YGNodeStyleSetMarginPercent, YGEdgeBottom );
-
-	CheckYogaLengthAllEdges( L, -1, "padding", node, YGNodeStyleSetPadding, YGNodeStyleSetPaddingPercent );
-	CheckYogaLengthArg( L, -1, "padding_top", node, YGNodeStyleSetPadding, YGNodeStyleSetPaddingPercent, YGEdgeTop );
-	CheckYogaLengthArg( L, -1, "padding_left", node, YGNodeStyleSetPadding, YGNodeStyleSetPaddingPercent, YGEdgeLeft );
-	CheckYogaLengthArg( L, -1, "padding_right", node, YGNodeStyleSetPadding, YGNodeStyleSetPaddingPercent, YGEdgeRight );
-	CheckYogaLengthArg( L, -1, "padding_bottom", node, YGNodeStyleSetPadding, YGNodeStyleSetPaddingPercent, YGEdgeBottom );
-
-	CheckYogaLength( L, -1, "width", node, YGNodeStyleSetWidth, YGNodeStyleSetWidthPercent );
-	CheckYogaLength( L, -1, "height", node, YGNodeStyleSetHeight, YGNodeStyleSetHeightPercent );
-
-	lua_getfield( L, -1, "content" );
-	if( lua_type( L, -1 ) == LUA_TSTRING ) {
-		ours->text = CopyString( temp, lua_tostring( L, -1 ) );
-	}
-	if( lua_type( L, -1 ) == LUA_TLIGHTUSERDATA ) {
-		ours->material = CheckHash( L, -1 );
-	}
-	lua_pop( L, 1 );
-
-	lua_getfield( L, -1, "children" );
-	if( !lua_isnil( L, -1 ) ) {
-		luaL_checktype( L, 1, LUA_TTABLE );
-
-		for( int i = 0; i < lua_objlen( L, -1 ); i++ ) {
-			lua_pushnumber( L, i + 1 );
-			lua_gettable( L, -2 );
-			YGNodeRef child = LuauYogaNodeRecursive( temp, L );
-			YGNodeInsertChild( node, child, i );
-			lua_pop( L, 1 );
-		}
-	}
-	lua_pop( L, 1 );
-
-	return node;
-}
-
-static void RenderYogaNodeRecursive( Vec2 cursor, YGNodeRef node, bool show_in_inspector ) {
-	TracyZoneScoped;
-
-	cursor += Vec2( YGNodeLayoutGetLeft( node ), YGNodeLayoutGetTop( node ) );
-
-	bool pop = false;
-
-	const OurYogaNodeStuff * ours = ( const OurYogaNodeStuff * ) YGNodeGetContext( node );
-	if( ours != NULL ) {
-		float w = YGNodeLayoutGetWidth( node );
-		float h = YGNodeLayoutGetHeight( node );
-		float border_top = YGNodeLayoutGetBorder( node, YGEdgeTop );
-		float border_left = YGNodeLayoutGetBorder( node, YGEdgeLeft );
-		float border_right = YGNodeLayoutGetBorder( node, YGEdgeRight );
-		float border_bottom = YGNodeLayoutGetBorder( node, YGEdgeBottom );
-
-		float padding_top = YGNodeLayoutGetPadding( node, YGEdgeTop );
-		float padding_left = YGNodeLayoutGetPadding( node, YGEdgeLeft );
-		float padding_right = YGNodeLayoutGetPadding( node, YGEdgeRight );
-		float padding_bottom = YGNodeLayoutGetPadding( node, YGEdgeBottom );
-
-		float content_top = cursor.y + border_top + padding_top;
-		float content_left = cursor.x + border_left + padding_left;
-		float content_width = w - border_left - padding_left - border_right - padding_right;
-		float content_height = h - border_top - padding_top - border_bottom - padding_bottom;
-
-		Draw2DBox(
-			cursor.x + border_left,
-			cursor.y + border_top,
-			w - border_left - border_right,
-			h - border_top - border_bottom,
-			cls.white_material,
-			ours->background_color );
-
-		// draw the borders like a table with legs on the floor
-		Draw2DBox( cursor.x, cursor.y,
-			w, border_top,
-			cls.white_material, ours->border_color );
-		Draw2DBox( cursor.x, cursor.y + border_top,
-			border_left, h - border_top - border_bottom,
-			cls.white_material, ours->border_color );
-		Draw2DBox( cursor.x + w - border_right, cursor.y + border_top,
-			border_right, h - border_top - border_bottom,
-			cls.white_material, ours->border_color );
-		Draw2DBox( cursor.x, cursor.y + h - border_bottom,
-			w, border_bottom,
-			cls.white_material, ours->border_color );
-
-		if( ours->text != NULL ) {
-			DrawText( cgs.fontNormal, h, ours->text,
-				Alignment_LeftTop, content_left, content_top,
-				vec4_white );
-		}
-
-		if( ours->material != EMPTY_HASH ) {
-			Draw2DBox( content_left, content_top, content_width, content_height, FindMaterial( ours->material ), vec4_white );
-		}
-
-
-		if( show_in_inspector ) {
-			const char * label = "Node";
-			if( ours->text != NULL ) {
-				label = ours->text;
-			}
-			else if( ours->material != EMPTY_HASH ) {
-				label = "Icon";
-			}
-			else if( ours->render_callback != LUA_NOREF ) {
-				label = "Custom render callback";
-			}
-
-			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen;
-			if( YGNodeGetChildCount( node ) == 0 ) {
-				flags = ImGuiTreeNodeFlags_Leaf;
-			}
-
-			if( show_inspector ) {
-				pop = ImGui::TreeNodeEx( label, flags );
-				if( ImGui::IsItemHovered() ) {
-					inspecting.hovered = true;
-
-					inspecting.x = content_left;
-					inspecting.y = content_top;
-					inspecting.w = content_width;
-					inspecting.h = content_height;
-
-					inspecting.margin_top = YGNodeLayoutGetMargin( node, YGEdgeTop );
-					inspecting.margin_left = YGNodeLayoutGetMargin( node, YGEdgeLeft );
-					inspecting.margin_right = YGNodeLayoutGetMargin( node, YGEdgeRight );
-					inspecting.margin_bottom = YGNodeLayoutGetMargin( node, YGEdgeBottom );
-
-					inspecting.padding_top = padding_top;
-					inspecting.padding_left = padding_left;
-					inspecting.padding_right = padding_right;
-					inspecting.padding_bottom = padding_bottom;
-				}
-			}
-		}
-	}
-
-	for( u32 i = 0; i < YGNodeGetChildCount( node ); i++ ) {
-		RenderYogaNodeRecursive( cursor, YGNodeGetChild( node, i ), pop || ours == NULL );
-	}
-
-	if( show_inspector && pop ) {
-		ImGui::TreePop();
-	}
-}
-
-static int LuauYoga( lua_State * L ) {
-	TracyZoneScoped;
-	DisableFPEScoped;
-
-	YGNodeRef root = NewYogaNode( yoga_config );
-	YGNodeStyleSetWidth( root, frame_static.viewport_width );
-	YGNodeStyleSetHeight( root, frame_static.viewport_height );
-
-	// if we error out of this we leak all the node contexts. facebook
-	// deleted the allocator overrides so we can't do anything on the yoga
-	// side, but we temp allocate our per-node data so at least it doesn't assert
-	YGNodeRef node = LuauYogaNodeRecursive( &yoga_arena, L );
-	YGNodeInsertChild( root, node, 0 );
-
-	{
-		TracyZoneScopedN( "Yoga layout" );
-		YGNodeCalculateLayout( root, frame_static.viewport_width, frame_static.viewport_height, YGDirectionLTR );
-	}
-
-	RenderYogaNodeRecursive( Vec2( 0.0f ), root, true );
-	YGNodeFreeRecursive( node );
-
+	DrawClayNodeRecursive( L );
 	return 0;
 }
 
-static int YogaLog( YGConfigRef config, YGNodeRef node, YGLogLevel level, const char * format, va_list args ) {
-	char buf[ 1024 ];
-	int len = vsnprintf( buf, sizeof( buf ), format, args );
-	Com_Printf( "%s\n", buf );
-	return len;
+static void CopyLuaTable( lua_State * L, int idx ) {
+	lua_newtable( L );
+	lua_pushnil( L );
+	while( lua_next( L , idx ) != 0 ) {
+		lua_pushvalue( L, -2 );
+		lua_insert( L, -2 );
+		lua_settable( L, -4 );
+	}
+}
+
+static int LuauNode( lua_State * L ) {
+	luaL_checktype( L, 1, LUA_TTABLE );
+	// luaL_argcheck( L, lua_type( L, 2 ) == LUA_TNONE || lua_type( L, 2 ) == LUA_TTABLE, 2, "children must be a table or none" );
+
+	CopyLuaTable( L, 1 );
+
+	switch( lua_type( L, 2 ) ) {
+		case LUA_TTABLE:
+			lua_pushvalue( L, 2 );
+			lua_setfield( L, -2, "children" );
+			break;
+
+		case LUA_TSTRING:
+			lua_pushvalue( L, 2 );
+			lua_setfield( L, -2, "text" );
+			break;
+
+		case LUA_TLIGHTUSERDATA:
+			lua_pushvalue( L, 2 );
+			lua_setfield( L, -2, "image" );
+			break;
+
+		case LUA_TFUNCTION:
+			int callback_ref = lua_ref( L, 2 );
+			int arg_ref = lua_ref( L, 3 );
+			lua_pushinteger( L, callback_ref );
+			lua_setfield( L, -2, "callback" );
+			lua_pushinteger( L, arg_ref );
+			lua_setfield( L, -2, "callback_arg" );
+			break;
+	}
+
+	return 1;
+}
+
+bool CG_ScoreboardShown() {
+	if( client_gs.gameState.match_state > MatchState_Playing ) {
+		return true;
+	}
+
+	return cg.showScoreboard;
+}
+
+static void ClayErrorHandler( Clay_ErrorData error ) {
+	// NOTE(mike): normally you can't print a Clay_String with %s but they're all static strings so it works
+	Fatal( "%s", error.errorText.chars );
 }
 
 void CG_InitHUD() {
 	TracyZoneScoped;
 
 	hud_L = NULL;
-	show_inspector = false;
+	show_debugger = false;
 
-	AddCommand( "toggleuiinspector", []() { show_inspector = !show_inspector; } );
+	AddCommand( "toggleuidebugger", []( const Tokenized & args ) {
+		show_debugger = !show_debugger;
+		Clay_SetDebugModeEnabled( show_debugger );
+	} );
 
+	Span< const char > src = AssetString( StringHash( "hud/hud.lua" ) );
 	size_t bytecode_size;
-	char * bytecode = luau_compile( AssetString( "hud/hud.lua" ).ptr, AssetBinary( "hud/hud.lua" ).n, NULL, &bytecode_size );
+	char * bytecode = luau_compile( src.ptr, src.n, NULL, &bytecode_size );
 	defer { free( bytecode ); };
 	if( bytecode == NULL ) {
 		Fatal( "luau_compile" );
@@ -1558,6 +1722,7 @@ void CG_InitHUD() {
 		{ "enemyColor", LuauEnemyColor },
 		{ "attentionGettingColor", LuauAttentionGettingColor },
 		{ "plantableColor", LuauPlantableColor },
+		{ "attentionGettingRed", LuauAttentionGettingRed },
 		{ "getPlayerName", LuauGetPlayerName },
 
 		{ "getWeaponIcon", LuauGetWeaponIcon },
@@ -1565,8 +1730,9 @@ void CG_InitHUD() {
 		{ "getPerkIcon", LuauGetPerkIcon },
 
 		{ "getWeaponReloadTime", LuauGetWeaponReloadTime },
+		{ "getWeaponStagedReload", LuauGetWeaponStagedReload },
 
-		{ "getGadgetAmmo", LuauGetGadgetAmmo },
+		{ "getGadgetMaxAmmo", LuauGetGadgetAmmo },
 
 		{ "getClockTime", LuauGetClockTime },
 
@@ -1576,7 +1742,8 @@ void CG_InitHUD() {
 		{ "drawPointed", HUD_DrawPointed },
 		{ "drawDamageNumbers", HUD_DrawDamageNumbers },
 
-		{ "yoga", LuauYoga },
+		{ "render", LuauRender },
+		{ "node", LuauNode },
 
 		{ NULL, NULL }
 	};
@@ -1586,7 +1753,6 @@ void CG_InitHUD() {
 		lua_setfield( hud_L, LUA_GLOBALSINDEX, kv.name );
 	}
 
-	//assets
 	{
 		lua_newtable( hud_L );
 
@@ -1631,12 +1797,19 @@ void CG_InitHUD() {
 		hud_L = NULL;
 	}
 
-	yoga_config = YGConfigNew();
-	YGConfigSetUseWebDefaults( yoga_config, true );
-	YGConfigSetLogger( yoga_config, YogaLog );
+	u32 size = Clay_MinMemorySize();
+	clay_arena = Clay_CreateArenaWithCapacityAndMemory( size, sys_allocator->allocate( size, 16 ) );
+	text_arena = ArenaAllocator( AllocMany< char >( sys_allocator, TEXT_ARENA_SIZE ), TEXT_ARENA_SIZE );
 
-	yoga_arena_memory = sys_allocator->allocate( yoga_arena_size, 16 );
-	yoga_arena = ArenaAllocator( yoga_arena_memory, yoga_arena_size );
+	Clay_Initialize( clay_arena, { }, { .errorHandlerFunction = ClayErrorHandler } );
+
+	auto measure_text = []( Clay_StringSlice text, Clay_TextElementConfig * config, void * user_data ) -> Clay_Dimensions {
+		const Font * font = *clay_fonts[ config->fontId ].font;
+		MinMax2 bounds = TextBaselineBounds( font, config->fontSize, Span< const char >( text.chars, text.length ) );
+		Vec2 dims = bounds.maxs - bounds.mins;
+		return { dims.x, dims.y };
+	};
+	Clay_SetMeasureTextFunction( measure_text, NULL );
 }
 
 void CG_ShutdownHUD() {
@@ -1644,19 +1817,70 @@ void CG_ShutdownHUD() {
 		lua_close( hud_L );
 	}
 
-	YGConfigFree( yoga_config );
-	Free( sys_allocator, yoga_arena_memory );
+	Free( sys_allocator, clay_arena.memory );
+	Free( sys_allocator, text_arena.get_memory() );
+	Clay_SetCurrentContext( NULL );
 
-	RemoveCommand( "toggleuiinspector" );
+	RemoveCommand( "toggleuidebugger" );
+}
+
+static Vec4 ClayToCD( Clay_Color color ) {
+	RGBA8 clamped = RGBA8(
+		Clamp( 0.0f, color.r, 255.0f ),
+		Clamp( 0.0f, color.g, 255.0f ),
+		Clamp( 0.0f, color.b, 255.0f ),
+		Clamp( 0.0f, color.a, 255.0f )
+	);
+	return Vec4( sRGBToLinear( clamped ) );
+}
+
+static ImU32 ClayToImGui( Clay_Color clay ) {
+	RGBA8 rgba8 = LinearTosRGB( ClayToCD( clay ) );
+	return IM_COL32( rgba8.r, rgba8.g, rgba8.b, rgba8.a );
+}
+
+enum Corner {
+	// ordered by CW rotations where 0deg = +X
+	Corner_BottomRight,
+	Corner_BottomLeft,
+	Corner_TopLeft,
+	Corner_TopRight,
+};
+
+static float Remap_0To1_1ToNeg1( float x ) {
+	return ( 1.0f - x ) * 2.0f - 1.0f;
+}
+
+static void DrawBorderCorner( Corner corner, Clay_BoundingBox bounds, const Clay_BorderRenderData & border, float width, Clay_Color color ) {
+	struct {
+		float x, y, radius;
+	} corners[] = {
+		{ 1.0f, 1.0f, border.cornerRadius.bottomRight },
+		{ 0.0f, 1.0f, border.cornerRadius.bottomLeft },
+		{ 0.0f, 0.0f, border.cornerRadius.topLeft },
+		{ 1.0f, 0.0f, border.cornerRadius.topRight },
+	};
+
+	float cx = corners[ corner ].x;
+	float cy = corners[ corner ].y;
+	float r = corners[ corner ].radius;
+	float angle = int( corner ) * 90.0f;
+
+	Vec2 arc_origin = Vec2(
+		Lerp( bounds.x, cx, bounds.x + bounds.width ) + r * Remap_0To1_1ToNeg1( cx ),
+		Lerp( bounds.y, cy, bounds.y + bounds.height ) + r * Remap_0To1_1ToNeg1( cy )
+	);
+
+	ImDrawList * draw_list = ImGui::GetBackgroundDrawList();
+	draw_list->PathArcTo( arc_origin, r - width * 0.5f, Radians( angle ), Radians( angle + 90.0f ) );
+	draw_list->PathStroke( ClayToImGui( color ), 0, width );
 }
 
 void CG_DrawHUD() {
 	TracyZoneScoped;
 
-	yoga_arena.clear();
-
 	bool hotload = false;
-	for( const char * path : ModifiedAssetPaths() ) {
+	for( Span< const char > path : ModifiedAssetPaths() ) {
 		if( StartsWith( path, "hud/" ) && EndsWith( path, ".lua" ) ) {
 			hotload = true;
 			break;
@@ -1664,10 +1888,10 @@ void CG_DrawHUD() {
 	}
 
 	if( hotload ) {
-		bool was_showing_inspector = show_inspector;
+		bool was_showing_debugger = show_debugger;
 		CG_ShutdownHUD();
 		CG_InitHUD();
-		show_inspector = was_showing_inspector;
+		show_debugger = was_showing_debugger;
 	}
 
 	if( hud_L == NULL )
@@ -1675,6 +1899,9 @@ void CG_DrawHUD() {
 
 	lua_pushvalue( hud_L, -1 );
 	lua_newtable( hud_L );
+
+	lua_pushnumber( hud_L, cg.predictedPlayerState.POVnum );
+	lua_setfield( hud_L, -2, "current_player" );
 
 	lua_pushboolean( hud_L, cg.predictedPlayerState.ready );
 	lua_setfield( hud_L, -2, "ready" );
@@ -1749,6 +1976,12 @@ void CG_DrawHUD() {
 	lua_pushnumber( hud_L, client_gs.gameState.match_state );
 	lua_setfield( hud_L, -2, "match_state" );
 
+	lua_pushnumber( hud_L, client_gs.gameState.scorelimit );
+	lua_setfield( hud_L, -2, "scorelimit" );
+
+	lua_pushnumber( hud_L, client_gs.gameState.bomb.attacking_team );
+	lua_setfield( hud_L, -2, "attacking_team" );
+
 	lua_pushnumber( hud_L, client_gs.gameState.round_state );
 	lua_setfield( hud_L, -2, "round_state" );
 
@@ -1815,7 +2048,6 @@ void CG_DrawHUD() {
 	lua_setfield( hud_L, -2, "viewport_height" );
 
 	lua_createtable( hud_L, Weapon_Count - 1, 0 );
-
 	for( size_t i = 0; i < ARRAY_COUNT( cg.predictedPlayerState.weapons ); i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapons[ i ].weapon );
 
@@ -1827,7 +2059,7 @@ void CG_DrawHUD() {
 
 		lua_pushnumber( hud_L, cg.predictedPlayerState.weapons[ i ].weapon );
 		lua_setfield( hud_L, -2, "weapon" );
-		lua_pushstring( hud_L, def->name );
+		LuaPushSpan( hud_L, def->name );
 		lua_setfield( hud_L, -2, "name" );
 		lua_pushnumber( hud_L, cg.predictedPlayerState.weapons[ i ].ammo );
 		lua_setfield( hud_L, -2, "ammo" );
@@ -1839,39 +2071,182 @@ void CG_DrawHUD() {
 	}
 	lua_setfield( hud_L, -2, "weapons" );
 
-	bool still_showing_inspector = show_inspector;
-	ImGuiStyle old_style = ImGui::GetStyle();
-	ImGui::GetStyle() = ImGuiStyle();
-	if( show_inspector ) {
-		ImGui::Begin( "UI inspector", &still_showing_inspector, ImGuiWindowFlags_Interactive );
+	lua_createtable( hud_L, Team_Count, 0 );
+	for( int i = Team_One; i < Team_Count; i++ ) {
+		lua_pushnumber( hud_L, i );
+		lua_createtable( hud_L, 0, 3 );
+
+		const SyncTeamState & team = client_gs.gameState.teams[ i ];
+
+		lua_pushnumber( hud_L, team.score );
+		lua_setfield( hud_L, -2, "score" );
+
+		lua_pushnumber( hud_L, team.num_players );
+		lua_setfield( hud_L, -2, "num_players" );
+
+		lua_createtable( hud_L, 0, team.num_players );
+		for( u8 p = 0; p < team.num_players; p++ ) {
+			lua_pushnumber( hud_L, p + 1 );
+
+			lua_createtable( hud_L, 0, 7 );
+
+			const SyncScoreboardPlayer & player = client_gs.gameState.players[ team.player_indices[ p ] - 1 ];
+			lua_pushnumber( hud_L, team.player_indices[ p ] );
+			lua_setfield( hud_L, -2, "id" );
+			lua_pushstring( hud_L, player.name );
+			lua_setfield( hud_L, -2, "name" );
+			lua_pushnumber( hud_L, player.ping );
+			lua_setfield( hud_L, -2, "ping" );
+			lua_pushnumber( hud_L, player.score );
+			lua_setfield( hud_L, -2, "score" );
+			lua_pushnumber( hud_L, player.kills );
+			lua_setfield( hud_L, -2, "kills" );
+			lua_pushboolean( hud_L, player.ready );
+			lua_setfield( hud_L, -2, "ready" );
+			lua_pushboolean( hud_L, player.carrier );
+			lua_setfield( hud_L, -2, "carrier" );
+			lua_pushboolean( hud_L, player.alive );
+			lua_setfield( hud_L, -2, "alive" );
+
+			lua_settable( hud_L, -3 );
+		}
+		lua_setfield( hud_L, -2, "players" );
+
+		lua_settable( hud_L, -3 );
+	}
+	lua_setfield( hud_L, -2, "teams" );
+
+	lua_pushnumber( hud_L, client_gs.gameState.teams[ Team_None ].num_players );
+	lua_setfield( hud_L, -2, "spectating" );
+
+	lua_pushboolean( hud_L, CG_ScoreboardShown() );
+	lua_setfield( hud_L, -2, "scoreboard" );
+
+	{
+		TracyZoneScopedN( "Clay_BeginLayout" );
+		Clay_SetLayoutDimensions( Clay_Dimensions { frame_static.viewport.x, frame_static.viewport.y } );
+		Clay_BeginLayout();
 	}
 
-	inspecting = { };
+	bool hud_lua_ran_ok;
+	text_arena.clear();
+	clay_element_counter = 1;
 	{
 		TracyZoneScopedN( "Luau" );
-		CallWithStackTrace( hud_L, 1, 0 );
+		hud_lua_ran_ok = CallWithStackTrace( hud_L, 1, 0 );
 	}
 
-	if( inspecting.hovered ) {
-		Draw2DBox( inspecting.x, inspecting.y, inspecting.w, inspecting.h, cls.white_material, Vec4( 0.0f, 1.0f, 1.0f, 0.25f ) );
+	// don't run clay layout if hud.lua failed because it might have left clay in a bad state
+	if( !hud_lua_ran_ok )
+		// TODO: put custom element callbacks in their own table and delete the table here so they don't leak
+		return;
 
-		Vec4 margin_color = Vec4( 1.0f, 1.0f, 0.0f, 0.25f );
-		Draw2DBox( inspecting.x - inspecting.margin_left - inspecting.padding_left, inspecting.y - inspecting.margin_top - inspecting.padding_top, inspecting.w + inspecting.margin_left + inspecting.margin_right + inspecting.padding_left + inspecting.padding_right, inspecting.margin_top, cls.white_material, margin_color );
-		Draw2DBox( inspecting.x - inspecting.margin_left - inspecting.padding_left, inspecting.y - inspecting.padding_top, inspecting.margin_left, inspecting.h + inspecting.padding_top + inspecting.padding_bottom, cls.white_material, margin_color );
-		Draw2DBox( inspecting.x + inspecting.w + inspecting.padding_right, inspecting.y - inspecting.padding_top, inspecting.margin_right, inspecting.h + inspecting.padding_top + inspecting.padding_bottom, cls.white_material, margin_color );
-		Draw2DBox( inspecting.x - inspecting.margin_left - inspecting.padding_left, inspecting.y + inspecting.h + inspecting.padding_bottom, inspecting.w + inspecting.margin_left + inspecting.margin_right + inspecting.padding_left + inspecting.padding_right, inspecting.margin_bottom, cls.white_material, margin_color );
-
-		Vec4 padding_color = Vec4( 1.0f, 0.0f, 1.0f, 0.25f );
-		Draw2DBox( inspecting.x - inspecting.padding_left, inspecting.y - inspecting.padding_top, inspecting.w + inspecting.padding_left + inspecting.padding_right, inspecting.padding_top, cls.white_material, padding_color );
-		Draw2DBox( inspecting.x - inspecting.padding_left, inspecting.y, inspecting.padding_left, inspecting.h, cls.white_material, padding_color );
-		Draw2DBox( inspecting.x + inspecting.w, inspecting.y, inspecting.padding_right, inspecting.h, cls.white_material, padding_color );
-		Draw2DBox( inspecting.x - inspecting.padding_left, inspecting.y + inspecting.h, inspecting.w + inspecting.padding_left + inspecting.padding_right, inspecting.padding_bottom, cls.white_material, padding_color );
+	Clay_RenderCommandArray render_commands;
+	{
+		TracyZoneScopedN( "Clay_EndLayout" );
+		render_commands = Clay_EndLayout();
 	}
 
-	if( show_inspector ) {
-		ImGui::End();
-		show_inspector = still_showing_inspector;
+	{
+		TracyZoneScopedN( "Clay submit draw calls" );
+		for( s32 i = 0; i < render_commands.length; i++ ) {
+			const Clay_RenderCommand & command = render_commands.internalArray[ i ];
+			const Clay_BoundingBox & bounds = command.boundingBox;
+			switch( command.commandType ) {
+				case CLAY_RENDER_COMMAND_TYPE_RECTANGLE: {
+					const Clay_RectangleRenderData & rect = command.renderData.rectangle;
+					ImDrawList * draw_list = ImGui::GetBackgroundDrawList();
+					draw_list->AddRectFilled( Vec2( bounds.x, bounds.y ), Vec2( bounds.x + bounds.width, bounds.y + bounds.height ), ClayToImGui( rect.backgroundColor ), rect.cornerRadius.topLeft );
+				} break;
+
+				case CLAY_RENDER_COMMAND_TYPE_BORDER: {
+					const Clay_BorderRenderData & border = command.renderData.border;
+
+					// TODO: rounded corners are wrong pretty much all of the time, transparent borders are drawn with overlap
+					// should probably draw the edges and corners separately
+
+					// top
+					Draw2DBox( bounds.x + border.cornerRadius.topLeft, bounds.y,
+						bounds.width - border.cornerRadius.topLeft - border.cornerRadius.topRight, border.width.top,
+						cls.white_material, ClayToCD( border.color ) );
+					// right
+					Draw2DBox( bounds.x + bounds.width - border.width.right, bounds.y + border.cornerRadius.topRight,
+						border.width.right, bounds.height - border.cornerRadius.topRight - border.cornerRadius.bottomRight,
+						cls.white_material, ClayToCD( border.color ) );
+					// left
+					Draw2DBox( bounds.x, bounds.y + border.cornerRadius.topLeft,
+						border.width.left, bounds.height - border.cornerRadius.topLeft - border.cornerRadius.bottomLeft,
+						cls.white_material, ClayToCD( border.color ) );
+					// bottom
+					Draw2DBox( bounds.x + border.cornerRadius.bottomLeft, bounds.y + bounds.height - border.width.bottom,
+						bounds.width - border.cornerRadius.bottomLeft - border.cornerRadius.bottomRight, border.width.bottom,
+						cls.white_material, ClayToCD( border.color ) );
+
+					// this doesn't do the right thing for different border sizes/colours
+					DrawBorderCorner( Corner_TopLeft, bounds, border, border.width.top, border.color );
+					DrawBorderCorner( Corner_TopRight, bounds, border, border.width.right, border.color );
+					DrawBorderCorner( Corner_BottomLeft, bounds, border, border.width.bottom, border.color );
+					DrawBorderCorner( Corner_BottomRight, bounds, border, border.width.right, border.color );
+				} break;
+
+				case CLAY_RENDER_COMMAND_TYPE_TEXT: {
+					const Clay_TextRenderData & text = command.renderData.text;
+					const Optional< Vec4 > * border_color = ( const Optional< Vec4 > * ) command.userData;
+					DrawText( *clay_fonts[ text.fontId ].font, text.fontSize,
+						Span< const char >( text.stringContents.chars, text.stringContents.length ),
+						bounds.x, bounds.y,
+						ClayToCD( text.textColor ), *border_color );
+				} break;
+
+				case CLAY_RENDER_COMMAND_TYPE_IMAGE: {
+					const Vec4 * tint = ( const Vec4 * ) command.userData;
+					const Clay_ImageRenderData & image = command.renderData.image;
+					Draw2DBox( bounds.x, bounds.y, bounds.width, bounds.height, FindMaterial( StringHash( bit_cast< u64 >( image.imageData ) ) ), *tint );
+				} break;
+
+				case CLAY_RENDER_COMMAND_TYPE_SCISSOR_START:
+					ImGui::PushClipRect( Vec2( bounds.x, bounds.y ), Vec2( bounds.x + bounds.width, bounds.y + bounds.height ), true );
+					break;
+
+				case CLAY_RENDER_COMMAND_TYPE_SCISSOR_END:
+					ImGui::PopClipRect();
+					break;
+
+				case CLAY_RENDER_COMMAND_TYPE_CUSTOM: {
+					const ClayCustomElementConfig * config = ( const ClayCustomElementConfig * ) command.renderData.custom.customData;
+					switch( config->type ) {
+						case ClayCustomElementType_Lua:
+							lua_getref( hud_L, config->lua.callback_ref );
+							lua_pushnumber( hud_L, bounds.x );
+							lua_pushnumber( hud_L, bounds.y );
+							lua_pushnumber( hud_L, bounds.width );
+							lua_pushnumber( hud_L, bounds.height );
+							lua_getref( hud_L, config->lua.arg_ref );
+							CallWithStackTrace( hud_L, 5, 0 );
+							lua_unref( hud_L, config->lua.callback_ref );
+							lua_unref( hud_L, config->lua.arg_ref );
+							break;
+
+						case ClayCustomElementType_FittedText: {
+							const Clay_TextElementConfig & text_config = config->fitted_text.config;
+							const Clay_Padding & pad = config->fitted_text.padding;
+							Vec2 mins = Vec2( bounds.x + pad.left, bounds.y + pad.top );
+							Vec2 maxs = Vec2( bounds.x + bounds.width - pad.right, bounds.y + bounds.height - pad.bottom );
+							DrawFittedText(
+								*clay_fonts[ text_config.fontId ].font,
+								Span< const char >( config->fitted_text.text.chars, config->fitted_text.text.length ),
+								MinMax2( mins, maxs ), config->fitted_text.alignment, ClayToCD( text_config.textColor ),
+								config->fitted_text.border_color );
+						} break;
+					}
+				} break;
+
+				default:
+					assert( false );
+					break;
+			}
+		}
 	}
 
-	ImGui::GetStyle() = old_style;
+	Assert( lua_gettop( hud_L ) == 2 );
 }

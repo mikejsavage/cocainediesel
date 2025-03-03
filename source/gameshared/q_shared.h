@@ -24,14 +24,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 char *COM_SanitizeFilePath( char *filename );
 bool COM_ValidateFilename( const char *filename );
-bool COM_ValidateRelativeFilename( const char *filename );
+bool COM_ValidateRelativeFilename( Span< const char > filename );
 
 enum ParseStopOnNewLine {
 	Parse_DontStopOnNewLine,
 	Parse_StopOnNewLine,
 };
 
+struct Tokenized {
+	Span< const char > all_but_first;
+	Span< Span< const char > > tokens;
+};
+
 Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine stop );
+Tokenized Tokenize( Allocator * a, Span< const char > str, SourceLocation src_loc = CurrentSourceLocation() );
 
 bool TrySpanToU64( Span< const char > str, u64 * x );
 bool TrySpanToS64( Span< const char > str, s64 * x );
@@ -48,6 +54,8 @@ float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine sto
 
 char ToLowerASCII( char c );
 char ToUpperASCII( char c );
+
+Span< char > ToUpperASCII( Allocator * a, Span< const char > str );
 
 bool StrEqual( Span< const char > lhs, Span< const char > rhs );
 bool StrEqual( Span< const char > lhs, const char * rhs );
@@ -68,31 +76,35 @@ template< size_t N > bool operator==( const char ( &str )[ N ], Span< const char
 template< size_t N > bool operator!=( Span< const char > span, const char ( &str )[ N ] ) { return !( span == str ); }
 template< size_t N > bool operator!=( const char ( &str )[ N ], Span< const char > span ) { return !( span == str ); }
 
+const char * StrChr( Span< const char > str, char c );
+char * StrChr( Span< char > str, char c );
+const char * StrRChr( Span< const char > str, char c );
+
 bool StartsWith( Span< const char > str, Span< const char > prefix );
 bool StartsWith( Span< const char > str, const char * prefix );
 bool StartsWith( const char * str, const char * prefix );
-bool EndsWith( Span< const char > str, const char * suffix );
-bool EndsWith( const char * str, const char * suffix );
+bool EndsWith( Span< const char > str, Span< const char > suffix );
 
-bool CaseStartsWith( const char * str, const char * prefix );
+bool CaseStartsWith( Span< const char > str, Span< const char > prefix );
 
-Span< const char > StripPrefix( Span< const char > str, const char * prefix );
+Span< const char > Trim( Span< const char > str );
+Span< const char > StripPrefix( Span< const char > str, Span< const char > prefix );
 
-bool CaseContains( const char * haystack, const char * needle );
+bool CaseContains( Span< const char > haystack, Span< const char > needle );
 
 Span< const char > FileExtension( Span< const char > path );
 Span< const char > FileExtension( const char * path );
 Span< const char > StripExtension( Span< const char > path );
 Span< const char > StripExtension( const char * path );
 Span< const char > FileName( Span< const char > path );
-Span< const char > FileName( const char * path );
-Span< const char > BasePath( const char * path );
+Span< const char > BasePath( Span< const char > path );
 
 bool SortCStringsComparator( const char * a, const char * b );
+bool SortSpanStringsComparator( Span< const char > a, Span< const char > b );
 
 void SafeStrCpy( char * dst, const char * src, size_t dst_size );
 void SafeStrCat( char * dst, const char * src, size_t dst_size );
-void RemoveTrailingZeroesFloat( char * str );
+Span< const char > RemoveTrailingZeroesFloat( Span< const char > str );
 
 //==============================================================
 //
@@ -101,7 +113,6 @@ void RemoveTrailingZeroesFloat( char * str );
 //==============================================================
 
 #define MAX_STRING_CHARS            1024        // max length of a string passed to Cmd_TokenizeString
-#define MAX_STRING_TOKENS           256         // max tokens resulting from Cmd_TokenizeString
 #define MAX_NAME_CHARS              32          // max length of a player name, not including trailing \0
 
 //=============================================

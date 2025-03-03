@@ -27,8 +27,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "nanosort/nanosort.hpp"
 
 struct ConfigEntry {
-	char * name;
-	char * value;
+	Span< char > name;
+	Span< char > value;
 };
 
 constexpr size_t MAX_CVARS = 1024;
@@ -45,15 +45,12 @@ bool Cvar_CheatsAllowed() {
 	return Com_ClientState() < CA_CONNECTED || CL_DemoPlaying() || ( Com_ServerState() && Cvar_Bool( "sv_cheats" ) );
 }
 
-static bool Cvar_InfoValidate( const char *s, bool name ) {
+static bool Cvar_InfoValidate( Span< const char > s, bool name ) {
 	size_t max_len = name ? MAX_INFO_KEY : MAX_INFO_VALUE;
-	return strlen( s ) < max_len
-		&& strchr( s, '\\' ) == NULL
-		&& strchr( s, '"' ) == NULL
-		&& strchr( s, ';' ) == NULL;
+	return s.n < max_len && StrChr( s, '\\' ) == NULL && StrChr( s, '"' ) == NULL && StrChr( s, ';' ) == NULL;
 }
 
-static Cvar * FindCvar( const char * name ) {
+static Cvar * FindCvar( Span< const char > name ) {
 	u64 hash = CaseHash64( name );
 	u64 idx;
 	if( !cvars_hashtable.get( hash, &idx ) )
@@ -61,33 +58,29 @@ static Cvar * FindCvar( const char * name ) {
 	return &cvars[ idx ];
 }
 
-bool IsCvar( const char * name ) {
-	return FindCvar( name ) != NULL;
+Span< const char > Cvar_String( Span< const char > name ) {
+	return MakeSpan( FindCvar( name )->value );
 }
 
-const char * Cvar_String( const char * name ) {
-	return FindCvar( name )->value;
-}
-
-int Cvar_Integer( const char * name ) {
+int Cvar_Integer( Span< const char > name ) {
 	return FindCvar( name )->integer;
 }
 
-float Cvar_Float( const char * name ) {
+float Cvar_Float( Span< const char > name ) {
 	return FindCvar( name )->number;
 }
 
-bool Cvar_Bool( const char * name ) {
+bool Cvar_Bool( Span< const char > name ) {
 	return Cvar_Integer( name ) != 0;
 }
 
-void SetCvar( Cvar * cvar, const char * value ) {
+void SetCvar( Cvar * cvar, Span< const char > value ) {
 	if( cvar->value != NULL && StrEqual( value, cvar->value ) ) {
 		return;
 	}
 
 	Free( sys_allocator, cvar->value );
-	cvar->value = CopyString( sys_allocator, value );
+	cvar->value = ( *sys_allocator )( "{}", value );
 	cvar->number = SpanToFloat( MakeSpan( cvar->value ), 0.0f );
 	cvar->integer = SpanToInt( MakeSpan( cvar->value ), 0 );
 	cvar->modified = true;
@@ -97,13 +90,13 @@ void SetCvar( Cvar * cvar, const char * value ) {
 	}
 }
 
-void Cvar_SetInteger( const char * name, int value ) {
+void Cvar_SetInteger( Span< const char > name, int value ) {
 	char buf[ 32 ];
 	snprintf( buf, sizeof( buf ), "%d", value );
-	Cvar_Set( name, buf );
+	Cvar_Set( name, MakeSpan( buf ) );
 }
 
-Cvar * NewCvar( const char * name, const char * value, CvarFlags flags ) {
+Cvar * NewCvar( Span< const char > name, Span< const char > value, CvarFlags flags ) {
 	if( HasAnyBit( flags, CvarFlag_UserInfo | CvarFlag_ServerInfo ) ) {
 		Assert( Cvar_InfoValidate( name, true ) );
 		Assert( Cvar_InfoValidate( value, true ) );
@@ -120,8 +113,8 @@ Cvar * NewCvar( const char * name, const char * value, CvarFlags flags ) {
 
 	Cvar * cvar = &cvars[ cvars_hashtable.size() ];
 	*cvar = { };
-	cvar->name = CopyString( sys_allocator, name );
-	cvar->default_value = CopyString( sys_allocator, value );
+	cvar->name = ( *sys_allocator )( "{}", name );
+	cvar->default_value = CloneSpan( sys_allocator, value );
 	cvar->flags = CvarFlags( flags );
 
 	u64 hash = CaseHash64( name );
@@ -140,16 +133,16 @@ Cvar * NewCvar( const char * name, const char * value, CvarFlags flags ) {
 	return cvar;
 }
 
-void Cvar_ForceSet( const char * name, const char * value ) {
+void Cvar_ForceSet( Span< const char > name, Span< const char > value ) {
 	Cvar * cvar = FindCvar( name );
 	Assert( cvar != NULL );
 	SetCvar( cvar, value );
 }
 
-void Cvar_Set( const char * name, const char * value ) {
+void Cvar_Set( Span< const char > name, Span< const char > value ) {
 	Cvar * cvar = FindCvar( name );
 	if( cvar == NULL ) {
-		Com_Printf( "No such cvar: %s\n", name );
+		Com_GGPrint( "No such cvar: {}", name );
 		return;
 	}
 
@@ -160,21 +153,26 @@ void Cvar_Set( const char * name, const char * value ) {
 		}
 	}
 
-	bool read_only = HasAnyBit( cvar->flags, CvarFlag_ReadOnly | CvarFlag_Developer );
+	bool read_only = HasAnyBit( cvar->flags, CvarFlag_ReadOnly ) || ( is_public_build && HasAnyBit( cvar->flags, CvarFlag_Developer ) );
 	if( read_only ) {
-		Com_Printf( "%s is write protected.\n", name );
+		Com_GGPrint( "{} is write protected.", name );
 		return;
 	}
 
 	if( HasAllBits( cvar->flags, CvarFlag_Cheat ) && !StrEqual( value, cvar->default_value ) ) {
 		if( !Cvar_CheatsAllowed() ) {
-			Com_Printf( "%s is cheat protected.\n", name );
+			Com_GGPrint( "{} is cheat protected.", name );
 			return;
 		}
 	}
 
 	if( HasAllBits( cvar->flags, CvarFlag_ServerReadOnly ) && Com_ServerState() ) {
-		Com_Printf( "Can't change %s while the server is running.\n", cvar->name );
+		Com_GGPrint( "Can't change {} while the server is running.", cvar->name );
+		return;
+	}
+
+	if( HasAllBits( cvar->flags, CvarFlag_LinuxOnly ) && !IFDEF( PLATFORM_LINUX ) ) {
+		Com_GGPrint( "{} is a Linux only cvar.", cvar->name );
 		return;
 	}
 
@@ -194,67 +192,63 @@ void ResetCheatCvars() {
 	}
 }
 
-Span< const char * > TabCompleteCvar( TempAllocator * a, const char * partial ) {
-	NonRAIIDynamicArray< const char * > results( a );
+Span< Span< const char > > TabCompleteCvar( TempAllocator * a, Span< const char > partial ) {
+	NonRAIIDynamicArray< Span< const char > > results( a );
 
 	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
 		const Cvar * cvar = &cvars[ i ];
-		if( CaseStartsWith( cvar->name, partial ) ) {
-			results.add( cvar->name );
+		if( CaseStartsWith( MakeSpan( cvar->name ), partial ) ) {
+			results.add( MakeSpan( cvar->name ) );
 		}
 	}
 
-	nanosort( results.begin(), results.end(), SortCStringsComparator );
+	nanosort( results.begin(), results.end(), SortSpanStringsComparator );
 
 	return results.span();
 }
 
-Span< const char * > SearchCvars( Allocator * a, const char * partial ) {
-	NonRAIIDynamicArray< const char * > results( a );
+Span< Span< const char > > SearchCvars( Allocator * a, Span< const char > partial ) {
+	NonRAIIDynamicArray< Span< const char > > results( a );
 
 	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
 		const Cvar * cvar = &cvars[ i ];
-		if( CaseContains( cvar->name, partial ) ) {
-			results.add( cvar->name );
+		if( CaseContains( MakeSpan( cvar->name ), partial ) ) {
+			results.add( MakeSpan( cvar->name ) );
 		}
 	}
 
-	nanosort( results.begin(), results.end(), SortCStringsComparator );
+	nanosort( results.begin(), results.end(), SortSpanStringsComparator );
 
 	return results.span();
 }
 
-/*
-* Cvar_Command
-*
-* Handles variable inspection and changing from the console
-*
-* Called by Cmd_ExecuteString when Cmd_Argv(0) doesn't match a known
-* command.  Returns true if the command was a variable reference that
-* was handled. (print or change)
-*/
-bool Cvar_Command() {
-	Cvar * cvar = FindCvar( Cmd_Argv( 0 ) );
+bool Cvar_Command( const Tokenized & args ) {
+	Cvar * cvar = FindCvar( args.tokens[ 0 ] );
 	if( cvar == NULL )
 		return false;
 
-	if( Cmd_Argc() > 1 ) {
-		Cvar_Set( Cmd_Argv( 0 ), Cmd_Argv( 1 ) );
+	if( args.tokens.n == 2 ) {
+		Cvar_Set( args.tokens[ 0 ], args.tokens[ 1 ] );
+	}
+	else if( args.tokens.n == 1 ) {
+		Com_GGPrint( "\"{}\" is \"{}\" default: \"{}\"", cvar->name, cvar->value, cvar->default_value );
 	}
 	else {
-		Com_Printf( "\"%s\" is \"%s\" default: \"%s\"\n", cvar->name, cvar->value, cvar->default_value );
+		Com_Printf( "Usage: <cvar> <value>\n" );
 	}
 
 	return true;
 }
 
-static void SetConfigCvar() {
-	if( Cmd_Argc() != 3 ) {
+static void SetConfigCvar( const Tokenized & args ) {
+	if( args.tokens.n != 3 ) {
 		Com_Printf( "usage: set <variable> <value>\n" );
 		return;
 	}
 
-	u64 hash = CaseHash64( Cmd_Argv( 1 ) );
+	// TODO: if the variable already exists we should set it
+
+	u64 hash = CaseHash64( args.tokens[ 1 ] );
 	u64 idx = config_entries_hashtable.size();
 	if( !config_entries_hashtable.get( hash, &idx ) ) {
 		if( !config_entries_hashtable.add( hash, idx ) ) {
@@ -262,29 +256,31 @@ static void SetConfigCvar() {
 			return;
 		}
 
-		config_entries[ idx ].name = CopyString( sys_allocator, Cmd_Argv( 1 ) );
-		config_entries[ idx ].value = NULL;
+		config_entries[ idx ].name = CloneSpan( sys_allocator, args.tokens[ 1 ] );
+		config_entries[ idx ].value = { };
 	}
 
-	Free( sys_allocator, config_entries[ idx ].value );
-	config_entries[ idx ].value = CopyString( sys_allocator, Cmd_Argv( 2 ) );
+	Free( sys_allocator, config_entries[ idx ].value.ptr );
+	config_entries[ idx ].value = CloneSpan( sys_allocator, args.tokens[ 2 ] );
 }
 
-static void Cvar_Reset_f() {
-	if( Cmd_Argc() != 2 ) {
+static void Cvar_Reset_f( const Tokenized & args ) {
+	if( args.tokens.n != 2 ) {
 		Com_Printf( "usage: reset <variable>\n" );
 		return;
 	}
 
-	Cvar * cvar = FindCvar( Cmd_Argv( 1 ) );
-	if( cvar == NULL )
+	Cvar * cvar = FindCvar( args.tokens[ 1 ] );
+	if( cvar == NULL ) {
+		Com_GGPrint( "No such cvar: {}", args.tokens[ 1 ] );
 		return;
-	Cvar_Set( cvar->name, cvar->default_value );
+	}
+	Cvar_Set( args.tokens[ 1 ], cvar->default_value );
 	cvar->from_config = false;
 }
 
-void Cvar_WriteVariables( DynamicString * config ) {
-	DynamicArray< char * > lines( sys_allocator );
+Span< const char > Cvar_MakeConfig( Allocator * a ) {
+	DynamicArray< Span< char > > lines( a );
 
 	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
 		const Cvar * cvar = &cvars[ i ];
@@ -292,22 +288,25 @@ void Cvar_WriteVariables( DynamicString * config ) {
 			continue;
 		if( !cvar->from_config && StrEqual( cvar->value, cvar->default_value ) )
 			continue;
-		lines.add( ( *sys_allocator )( "set {} \"{}\"\r\n", cvar->name, cvar->value ) );
+		lines.add( a->sv( "set {} \"{}\"\r\n", cvar->name, cvar->value ) );
 	}
 
 	for( size_t i = 0; i < config_entries_hashtable.size(); i++ ) {
 		const ConfigEntry * entry = &config_entries[ i ];
-		if( IsCvar( entry->name ) )
+		if( FindCvar( entry->name ) != NULL )
 			continue;
-		lines.add( ( *sys_allocator )( "set {} \"{}\"\r\n", entry->name, entry->value ) );
+		lines.add( a->sv( "set {} \"{}\"\r\n", entry->name, entry->value ) );
 	}
 
-	nanosort( lines.begin(), lines.end(), SortCStringsComparator );
+	nanosort( lines.begin(), lines.end(), SortSpanStringsComparator );
 
-	for( char * line : lines ) {
-		config->append_raw( line, strlen( line ) );
-		Free( sys_allocator, line );
+	NonRAIIDynamicArray< char > config( a );
+	for( Span< char > line : lines ) {
+		config.add_many( line );
+		Free( a, line.ptr );
 	}
+
+	return config.span();
 }
 
 static const char * MakeInfoString( CvarFlags flag ) {
@@ -346,11 +345,11 @@ void Cvar_Shutdown() {
 	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
 		Free( sys_allocator, cvars[ i ].name );
 		Free( sys_allocator, cvars[ i ].value );
-		Free( sys_allocator, cvars[ i ].default_value );
+		Free( sys_allocator, cvars[ i ].default_value.ptr );
 	}
 
 	for( size_t i = 0; i < config_entries_hashtable.size(); i++ ) {
-		Free( sys_allocator, config_entries[ i ].name );
-		Free( sys_allocator, config_entries[ i ].value );
+		Free( sys_allocator, config_entries[ i ].name.ptr );
+		Free( sys_allocator, config_entries[ i ].value.ptr );
 	}
 }

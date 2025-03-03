@@ -6,7 +6,7 @@
 #include "gameshared/cdmap.h"
 
 struct Map {
-	const char * name;
+	Span< const char > name;
 	StringHash base_hash;
 	MapData data;
 	MapSharedRenderData render_data;
@@ -17,7 +17,7 @@ void ShutdownMaps();
 
 void HotloadMaps();
 
-bool AddMap( Span< const u8 > data, const char * path );
+bool AddMap( Span< const u8 > data, Span< const char > path );
 
 const Map * FindMap( StringHash name );
 const Map * FindMap( const char * name );

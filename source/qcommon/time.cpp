@@ -6,14 +6,8 @@
 static u64 zero_time;
 
 void InitTime() {
-	if( is_public_build ) {
-		zero_time = ggtime();
-	}
-	else {
-		// start at 1 year to catch float precision bugs
-		// we still have such bugs so only do it in debug for now
-		zero_time = ggtime() - Days( 365 ).flicks;
-	}
+	// start at 1 year to catch float precision bugs
+	zero_time = ggtime() - Days( 365 ).flicks;
 }
 
 static void AssertSmallEnoughToCastToFloat( Time t ) {

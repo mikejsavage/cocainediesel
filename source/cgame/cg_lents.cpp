@@ -1,15 +1,11 @@
 #include "cgame/cg_local.h"
+#include "qcommon/array.h"
+#include "qcommon/time.h"
 #include "client/audio/api.h"
 #include "client/renderer/renderer.h"
 
 static float RandomRadians() {
 	return RandomUniformFloat( &cls.rng, 0.0f, Radians( 360.0f ) );
-}
-
-void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius ) {
-	// TODO: radius is just ignored?
-	DoVisualEffect( "vfx/explosion", pos, dir, 1.0f, vec4_white );
-	PlaySFX( "models/bomb/explode", PlaySFXConfigPosition( pos ) );
 }
 
 struct Gib {
@@ -20,11 +16,10 @@ struct Gib {
 	Vec4 color;
 };
 
-static Gib gibs[ 512 ];
-static u32 num_gibs;
+static BoundedDynamicArray< Gib, 512 > gibs;
 
 void InitGibs() {
-	num_gibs = 0;
+	gibs.clear();
 }
 
 void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
@@ -44,21 +39,20 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 	float radius = player_radius - gib_radius - epsilon;
 
 	for( int i = 0; i < count; i++ ) {
-		if( num_gibs == ARRAY_COUNT( gibs ) )
+		Optional< Gib * > gib = gibs.add();
+		if( !gib.exists )
 			break;
 
-		Gib * gib = &gibs[ num_gibs ];
-		num_gibs++;
-
 		Vec3 dir = Vec3( UniformSampleInsideCircle( &cls.rng ), 0.0f );
-		gib->origin = origin + dir * radius;
-
 		dir.z = RandomFloat01( &cls.rng );
-		gib->velocity = velocity * 0.5f + dir * Length( velocity ) * 0.5f;
 
-		gib->scale = RandomUniformFloat( &cls.rng, 0.5f, 1.0f );
-		gib->lifetime = 10.0f;
-		gib->color = color;
+		*gib.value = Gib {
+			.origin = origin + dir * radius,
+			.velocity = velocity * 0.5f + dir * Length( velocity ) * 0.5f,
+			.scale = RandomUniformFloat( &cls.rng, 0.5f, 1.0f ),
+			.lifetime = 10.0f,
+			.color = color,
+		};
 	}
 }
 
@@ -81,7 +75,7 @@ static void GibImpact( Vec3 pos, Vec3 normal, Vec4 color, float scale ) {
 		};
 
 		if( Probability( &cls.rng, 0.25f ) ) {
-			AddPersistentDecal( pos, normal, scale * 64.0f, RandomRadians(), RandomElement( &cls.rng, decals ), color, 30000, 10.0f );
+			AddPersistentDecal( pos, QuaternionFromNormalAndRadians( normal, RandomRadians() ), scale * 64.0f, RandomElement( &cls.rng, decals ), color, Seconds( 30 ), 10.0f );
 		}
 	}
 }
@@ -94,7 +88,7 @@ void DrawGibs() {
 	const GLTFRenderData * model = FindGLTFRenderData( "models/gibs/gib" );
 	Vec3 gravity = Vec3( 0, 0, -GRAVITY );
 
-	for( u32 i = 0; i < num_gibs; i++ ) {
+	for( size_t i = 0; i < gibs.size(); i++ ) {
 		Gib * gib = &gibs[ i ];
 
 		gib->velocity += gravity * dt;
@@ -103,7 +97,7 @@ void DrawGibs() {
 		float size = 0.5f * gib->scale;
 		MinMax3 bounds = model->bounds * size;
 
-		trace_t trace = CG_Trace( gib->origin, bounds, next_origin, 0, SolidMask_AnySolid );
+		trace_t trace = CG_Trace( gib->origin, bounds, next_origin, -1, Solid_World );
 
 		if( trace.GotNowhere() ) {
 			gib->lifetime = 0;
@@ -116,13 +110,12 @@ void DrawGibs() {
 
 		gib->lifetime -= dt;
 		if( gib->lifetime <= 0 ) {
-			num_gibs--;
+			gibs.remove_swap( i );
 			i--;
-			Swap2( gib, &gibs[ num_gibs ] );
 			continue;
 		}
 
-		Mat4 transform = Mat4Translation( gib->origin ) * Mat4Scale( size );
+		Mat3x4 transform = Mat4Translation( gib->origin ) * Mat4Scale( size );
 		DrawModelConfig config = { };
 		config.draw_model.enabled = true;
 		config.draw_shadows.enabled = true;

@@ -19,7 +19,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "qcommon/string.h"
 #include "game/g_local.h"
 
 void G_Timeout_Reset() {
@@ -172,8 +171,6 @@ static StringHash entity_sound_backup[MAX_EDICTS];
 * it's now time to clean up snap specific data to start the next snap from clean.
 */
 void G_ClearSnap() {
-	svs.realtime = Sys_Milliseconds(); // level.time etc. might not be real time
-
 	// clear gametype's clock override
 	server_gs.gameState.clock_override = 0;
 
@@ -217,9 +214,6 @@ void G_ClearSnap() {
 void G_SnapFrame() {
 	TracyZoneScoped;
 
-	edict_t *ent;
-	svs.realtime = Sys_Milliseconds(); // level.time etc. might not be real time
-
 	Cvar_ForceSet( "g_needpass", StrEqual( sv_password->value, "" ) ? "0" : "1" );
 
 	// exit level
@@ -233,7 +227,7 @@ void G_SnapFrame() {
 	G_SnapEntities(); // add effects based on accumulated info along the frame
 
 	// set entity bits (prepare entities for being sent in the snap)
-	for( ent = &game.edicts[0]; ENTNUM( ent ) < game.numentities; ent++ ) {
+	for( edict_t * ent = &game.edicts[0]; ENTNUM( ent ) < game.numentities; ent++ ) {
 		Assert( ent->s.number == ENTNUM( ent ) );
 
 		// temporary filter (Q2 system to ensure reliability)
@@ -268,9 +262,6 @@ static void G_RunEntities() {
 			continue; // events do not think
 		}
 		level.current_entity = ent;
-
-		// backup oldstate ( for world frame ).
-		ent->olds = ent->s;
 
 		// if the ground entity moved, make sure we are still on it
 		if( !ent->r.client ) {

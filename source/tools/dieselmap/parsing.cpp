@@ -4,10 +4,10 @@
 #include "qcommon/array.h"
 #include "qcommon/hash.h"
 #include "qcommon/span2d.h"
+#include "gameshared/q_shared.h"
 
 #include "parsing.h"
 
-#include <algorithm>
 #include <vector>
 
 static constexpr Span< const char > NullSpan( NULL, 0 );
@@ -16,12 +16,12 @@ static Span< const char > ParseRange( Span< const char > str, char lo, char hi )
 	return str.n > 0 && str[ 0 ] >= lo && str[ 0 ] <= hi ? str + 1 : NullSpan;
 }
 
-static Span< const char > ParseSet( Span< const char > str, const char * set ) {
+static Span< const char > ParseSet( Span< const char > str, Span< const char > set ) {
 	if( str.n == 0 )
 		return NullSpan;
 
-	for( size_t i = 0; i < strlen( set ); i++ ) {
-		if( str[ 0 ] == set[ i ] ) {
+	for( char c : set ) {
+		if( str[ 0 ] == c ) {
 			return str + 1;
 		}
 	}
@@ -29,12 +29,12 @@ static Span< const char > ParseSet( Span< const char > str, const char * set ) {
 	return NullSpan;
 }
 
-static Span< const char > ParseNotSet( Span< const char > str, const char * set ) {
+static Span< const char > ParseNotSet( Span< const char > str, Span< const char > set ) {
 	if( str.n == 0 )
 		return NullSpan;
 
-	for( size_t i = 0; i < strlen( set ); i++ ) {
-		if( str[ 0 ] == set[ i ] ) {
+	for( char c : set ) {
+		if( str[ 0 ] == c ) {
 			return NullSpan;
 		}
 	}
@@ -108,9 +108,9 @@ Span< const char > CaptureNOrMore( std::vector< T > * array, Span< const char > 
 	return res;
 }
 
-template< typename T, typename F >
-Span< const char > ParseUpToN( T * array, size_t * num_parsed, size_t n, Span< const char > str, F parser ) {
-	*num_parsed = 0;
+template< typename T, size_t N, typename F >
+Span< const char > ParseUpToN( BoundedDynamicArray< T, N > * array, Span< const char > str, F parser ) {
+	array->clear();
 
 	while( true ) {
 		T elem;
@@ -118,21 +118,16 @@ Span< const char > ParseUpToN( T * array, size_t * num_parsed, size_t n, Span< c
 		if( res.ptr == NULL )
 			return str;
 
-		if( *num_parsed == n )
+		if( !array->add( elem ) ) {
+			array->clear();
 			return NullSpan;
+		}
 
-		array[ *num_parsed ] = elem;
-		*num_parsed += 1;
 		str = res;
 	}
 }
 
-template< typename T, size_t N, typename F >
-Span< const char > ParseUpToN( StaticArray< T, N > * array, Span< const char > str, F parser ) {
-	return ParseUpToN( array->elems, &array->n, N, str, parser );
-}
-
-static constexpr const char * whitespace_chars = " \r\n\t";
+static constexpr Span< const char > whitespace_chars = " \r\n\t";
 
 static Span< const char > SkipWhitespace( Span< const char > str ) {
 	return ParseNOrMore( str, 0, []( Span< const char > str ) {
@@ -140,13 +135,11 @@ static Span< const char > SkipWhitespace( Span< const char > str ) {
 	} );
 }
 
-static Span< const char > SkipLiteral( Span< const char > str, const char * lit ) {
-	// TODO: startswith? should move string parsing shit from gameshared to common
-	size_t lit_len = strlen( lit );
-	return str.n >= lit_len && memcmp( str.ptr, lit, lit_len ) == 0 ? str + lit_len : NullSpan;
+static Span< const char > SkipLiteral( Span< const char > str, Span< const char > lit ) {
+	return StartsWith( str, lit ) ? str + lit.n : NullSpan;
 }
 
-static Span< const char > SkipToken( Span< const char > str, const char * token ) {
+static Span< const char > SkipToken( Span< const char > str, Span< const char > token ) {
 	str = SkipWhitespace( str );
 	str = SkipLiteral( str, token );
 	return str;
@@ -263,7 +256,7 @@ static Span< const char > ParseQ1Brush( ParsedBrush * brush, Span< const char > 
 	brush->first_char = str.ptr - 1;
 	str = ParseUpToN( &brush->faces, str, ParseQ1Face );
 	str = SkipToken( str, "}" );
-	return brush->faces.n >= 4 ? str : NullSpan;
+	return brush->faces.size() >= 4 ? str : NullSpan;
 }
 
 static Span< const char > ParseQ3Face( ParsedBrushFace * face, Span< const char > str ) {
@@ -283,8 +276,7 @@ static Span< const char > ParseQ3Face( ParsedBrushFace * face, Span< const char 
 	);
 
 	str = ParseWord( &face->material, str );
-	constexpr u64 base_hash = Hash64_CT( "textures/", 9 );
-	face->material_hash = Hash64( face->material.ptr, face->material.num_bytes(), base_hash );
+	face->material_hash = Hash64( face->material.ptr, face->material.num_bytes() );
 	str = SkipFlags( str );
 
 	return str;
@@ -298,7 +290,7 @@ static Span< const char > ParseQ3Brush( ParsedBrush * brush, Span< const char > 
 	str = ParseUpToN( &brush->faces, str, ParseQ3Face );
 	str = SkipToken( str, "}" );
 	str = SkipToken( str, "}" );
-	return brush->faces.n >= 4 ? str : NullSpan;
+	return brush->faces.size() >= 4 ? str : NullSpan;
 }
 
 static Span< const char > ParsePatch( ParsedPatch * patch, Span< const char > str ) {
@@ -311,8 +303,7 @@ static Span< const char > ParsePatch( ParsedPatch * patch, Span< const char > st
 	str = SkipToken( str, "{" );
 
 	str = ParseWord( &patch->material, str );
-	constexpr u64 base_hash = Hash64_CT( "textures/", 9 );
-	patch->material_hash = Hash64( patch->material.ptr, patch->material.num_bytes(), base_hash );
+	patch->material_hash = Hash64( patch->material.ptr, patch->material.num_bytes() );
 
 	str = SkipToken( str, "(" );
 

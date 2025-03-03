@@ -1,0 +1,6 @@
+{
+	attenuation idle
+	sound loadout/_sounds/switch1
+	sound loadout/_sounds/switch2
+	sound loadout/_sounds/switch3
+}

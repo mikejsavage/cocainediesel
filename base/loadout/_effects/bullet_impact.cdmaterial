@@ -1,0 +1,17 @@
+loadout/bullet_impact1
+{
+	texture loadout/_effects/bullet_impact1
+	decal
+}
+
+loadout/bullet_impact2
+{
+	texture loadout/_effects/bullet_impact2
+	decal
+}
+
+loadout/bullet_impact3
+{
+	texture loadout/_effects/bullet_impact3
+	decal
+}

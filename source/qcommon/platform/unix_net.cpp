@@ -72,6 +72,16 @@ void OSSocketSetSockOptOne( u64 handle, int level, int opt ) {
 	}
 }
 
+#if PLATFORM_LINUX
+bool OSSocketBindToInterface( u64 handle, const char * interface ) {
+	if( setsockopt( HandleToOSSocket( handle ), SOL_SOCKET, SO_BINDTODEVICE, interface, strlen( interface ) ) == 0 )
+		return true;
+	if( errno == ENODEV )
+		return false;
+	FatalErrno( "setsockopt SO_BINDTODEVICE" );
+}
+#endif
+
 bool OSSocketSend( u64 handle, const void * data, size_t n, const sockaddr_storage * destination, size_t destination_size, size_t * sent ) {
 #if PLATFORM_MACOS
 	constexpr int sendto_flags = 0;

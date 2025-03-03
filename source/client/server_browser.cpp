@@ -9,6 +9,8 @@
 
 #include "nanosort/nanosort.hpp"
 
+#include <inttypes.h>
+
 struct MasterServer {
 	NetAddress address;
 	Thread * resolver_thread;
@@ -110,6 +112,10 @@ void RefreshServerBrowser() {
 			}
 		}
 	} );
+}
+
+static u16 Bswap( u16 x ) {
+	return ( x >> 8 ) | ( x << 8 );
 }
 
 void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {

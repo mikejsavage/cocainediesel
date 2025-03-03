@@ -38,6 +38,13 @@ constexpr u64 U64_MAX = UINT64_MAX;
 
 inline void integer_constant_too_big() { }
 
+consteval u16 operator""_u16( unsigned long long value ) {
+	if( value > U16_MAX ) {
+		integer_constant_too_big();
+	}
+	return value;
+}
+
 consteval u32 operator""_u32( unsigned long long value ) {
 	if( value > U32_MAX ) {
 		integer_constant_too_big();
@@ -50,48 +57,6 @@ consteval u64 operator""_u64( unsigned long long value ) {
 		integer_constant_too_big();
 	}
 	return value;
-}
-
-/*
- * Allocator
- */
-
-struct Allocator {
-	virtual void * try_allocate( size_t size, size_t alignment, SourceLocation src = CurrentSourceLocation() ) = 0;
-	virtual void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src = CurrentSourceLocation() ) = 0;
-	void * allocate( size_t size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
-	void * reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
-	virtual void deallocate( void * ptr, SourceLocation src = CurrentSourceLocation() ) = 0;
-
-	template< typename... Rest >
-	char * operator()( SourceLocation src, const char * fmt, const Rest & ... rest );
-
-	template< typename... Rest >
-	char * operator()( const char * fmt, const Rest & ... rest );
-};
-
-struct TempAllocator;
-
-void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, SourceLocation src );
-void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t new_n, size_t size, size_t alignment, SourceLocation src );
-
-template< typename T >
-T * Alloc( Allocator * a, SourceLocation src = CurrentSourceLocation() ) {
-	return ( T * ) a->allocate( sizeof( T ), alignof( T ), src );
-}
-
-template< typename T >
-T * AllocMany( Allocator * a, size_t n, SourceLocation src = CurrentSourceLocation() ) {
-	return ( T * ) AllocManyHelper( a, n, sizeof( T ), alignof( T ), src );
-}
-
-template< typename T >
-T * ReallocMany( Allocator * a, T * ptr, size_t current_n, size_t new_n, SourceLocation src = CurrentSourceLocation() ) {
-	return ( T * ) ReallocManyHelper( a, ptr, current_n, new_n, sizeof( T ), alignof( T ), src );
-}
-
-inline void Free( Allocator * a, void * p, SourceLocation src = CurrentSourceLocation() ) {
-	a->deallocate( p, src );
 }
 
 /*
@@ -150,8 +115,7 @@ To * align_cast( From * from ) {
 }
 #endif
 
-template< typename T >
-constexpr T AlignPow2( T x, T alignment ) {
+constexpr size_t AlignPow2( size_t x, size_t alignment ) {
 	return ( x + alignment - 1 ) & ~( alignment - 1 );
 }
 
@@ -204,6 +168,16 @@ struct Span {
 	constexpr Span( T * ptr_, size_t n_ ) : ptr( ptr_ ), n( n_ ) { }
 	constexpr Span( std::initializer_list< T > && elems ) : ptr( elems.begin() ), n( elems.size() ) { }
 
+	/*
+	 * require S is explicitly const char so this doesn't compile:
+	 *
+	 * char buf[ 128 ];
+	 * sprintf( buf, "hello" );
+	 * ThingThatTakesSpan( buf );
+	 */
+	template< size_t N, typename S >
+	constexpr Span( S ( &str )[ N ] ) requires( SameType< T, const char > && SameType< S, const char > ) : ptr( str ), n( N - 1 ) { }
+
 	// allow implicit conversion to Span< const T >
 	operator Span< const T >() const { return Span< const T >( ptr, n ); }
 
@@ -243,11 +217,61 @@ struct Span {
 		Assert( num_bytes() % sizeof( S ) == 0 );
 		return Span< S >( align_cast< S >( ptr ), num_bytes() / sizeof( S ) );
 	}
+
+	template< typename S >
+	Span< S > constcast() const {
+		return Span< S >( const_cast< S * >( ptr ), num_bytes() );
+	}
 };
+
+/*
+ * Allocator
+ */
+
+struct Allocator {
+	virtual void * try_allocate( size_t size, size_t alignment, SourceLocation src = CurrentSourceLocation() ) = 0;
+	virtual void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src = CurrentSourceLocation() ) = 0;
+	void * allocate( size_t size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
+	void * reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
+	virtual void deallocate( void * ptr, SourceLocation src = CurrentSourceLocation() ) = 0;
+
+	template< typename... Rest >
+	char * operator()( SourceLocation src, const char * fmt, const Rest & ... rest );
+
+	template< typename... Rest >
+	char * operator()( const char * fmt, const Rest & ... rest );
+
+	template< typename... Rest >
+	Span< char > sv( const char * fmt, const Rest & ... rest );
+};
+
+struct TempAllocator;
+
+void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, SourceLocation src );
+void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t new_n, size_t size, size_t alignment, SourceLocation src );
+
+template< typename T >
+T * Alloc( Allocator * a, SourceLocation src = CurrentSourceLocation() ) {
+	return ( T * ) a->allocate( sizeof( T ), alignof( T ), src );
+}
+
+template< typename T >
+T * AllocMany( Allocator * a, size_t n, SourceLocation src = CurrentSourceLocation() ) {
+	return ( T * ) AllocManyHelper( a, n, sizeof( T ), alignof( T ), src );
+}
+
+template< typename T >
+T * ReallocMany( Allocator * a, T * ptr, size_t current_n, size_t new_n, SourceLocation src = CurrentSourceLocation() ) {
+	return ( T * ) ReallocManyHelper( a, ptr, current_n, new_n, sizeof( T ), alignof( T ), src );
+}
 
 template< typename T >
 Span< T > AllocSpan( Allocator * a, size_t n, SourceLocation src = CurrentSourceLocation() ) {
 	return Span< T >( AllocMany< T >( a, n, src ), n );
+}
+
+inline void Free( Allocator * a, void * p, SourceLocation src = CurrentSourceLocation() ) {
+	a->deallocate( p, src );
 }
 
 /*
@@ -264,13 +288,19 @@ struct Optional {
 
 	Optional() = default;
 
-	Optional( NoneType ) { exists = false; }
-	Optional( const T & other ) {
+	constexpr Optional( NoneType ) {
+		value = { };
+		exists = false;
+	}
+	constexpr Optional( const T & other ) {
 		value = other;
 		exists = true;
 	}
 
-	void operator=( NoneType ) { exists = false; }
+	void operator=( NoneType ) {
+		value = { };
+		exists = false;
+	}
 	void operator=( const T & other ) {
 		value = other;
 		exists = true;
@@ -382,6 +412,7 @@ struct Mat3 {
 	}
 };
 
+struct Mat3x4;
 struct alignas( 16 ) Mat4 {
 	Vec4 col0, col1, col2, col3;
 
@@ -393,6 +424,8 @@ struct alignas( 16 ) Mat4 {
 		float e20, float e21, float e22, float e23,
 		float e30, float e31, float e32, float e33
 	) : col0( e00, e10, e20, e30 ), col1( e01, e11, e21, e31 ), col2( e02, e12, e22, e32 ), col3( e03, e13, e23, e33 ) { }
+
+	constexpr explicit Mat4( const Mat3x4 & m34 );
 
 	constexpr Vec4 row0() const { return Vec4( col0.x, col1.x, col2.x, col3.x ); }
 	constexpr Vec4 row1() const { return Vec4( col0.y, col1.y, col2.y, col3.y ); }
@@ -415,17 +448,20 @@ struct alignas( 16 ) Mat3x4 {
 	Vec3 col0, col1, col2, col3;
 
 	Mat3x4() = default;
+	constexpr Mat3x4( Vec3 c0, Vec3 c1, Vec3 c2, Vec3 c3 ) : col0( c0 ), col1( c1 ), col2( c2 ), col3( c3 ) { }
 	constexpr Mat3x4(
 		float e00, float e01, float e02, float e03,
 		float e10, float e11, float e12, float e13,
 		float e20, float e21, float e22, float e23
 	) : col0( e00, e10, e20 ), col1( e01, e11, e21 ), col2( e02, e12, e22 ), col3( e03, e13, e23 ) { }
 
-	constexpr explicit Mat3x4( Mat4 m4 ) :
-		col0( m4.col0.xyz() ),
-		col1( m4.col1.xyz() ),
-		col2( m4.col2.xyz() ),
-		col3( m4.col3.xyz() ) { }
+	explicit Mat3x4( const Mat4 & m4 ) {
+		Assert( m4.col0.w == 0.0f && m4.col1.w == 0.0f && m4.col2.w == 0.0f );
+		col0 = m4.col0.xyz();
+		col1 = m4.col1.xyz();
+		col2 = m4.col2.xyz();
+		col3 = m4.col3.xyz();
+	}
 
 	constexpr Vec4 row0() const { return Vec4( col0.x, col1.x, col2.x, col3.x ); }
 	constexpr Vec4 row1() const { return Vec4( col0.y, col1.y, col2.y, col3.y ); }
@@ -433,7 +469,21 @@ struct alignas( 16 ) Mat3x4 {
 	constexpr Vec4 row3() const { return Vec4( 0.0f, 0.0f, 0.0f, 1.0f ); }
 
 	float * ptr() { return col0.ptr(); }
+
+	static constexpr Mat3x4 Identity() {
+		return Mat3x4(
+			1, 0, 0, 0,
+			0, 1, 0, 0,
+			0, 0, 1, 0
+		);
+	}
 };
+
+constexpr Mat4::Mat4( const Mat3x4 & m34 ) :
+		col0( Vec4( m34.col0, 0.0f ) ),
+		col1( Vec4( m34.col1, 0.0f ) ),
+		col2( Vec4( m34.col2, 0.0f ) ),
+		col3( Vec4( m34.col3, 1.0f ) ) { }
 
 struct EulerDegrees2 {
 	float pitch, yaw;
@@ -459,6 +509,8 @@ struct Quaternion {
 
 	Quaternion() = default;
 	constexpr Quaternion( float x_, float y_, float z_, float w_ ) : x( x_ ), y( y_ ), z( z_ ), w( w_ ) { }
+
+	Vec3 im() const { return Vec3( x, y, z ); }
 
 	float * ptr() { return &x; }
 
@@ -499,8 +551,8 @@ struct MinMax3 {
 
 	MinMax3() = default;
 	constexpr MinMax3( Vec3 mins_, Vec3 maxs_ ) : mins( mins_ ), maxs( maxs_ ) { }
-	constexpr MinMax3( Vec3 half_size ) : mins( Vec3( -half_size.x, -half_size.y, -half_size.z ) ), maxs( half_size ) { }
-	constexpr MinMax3( float half_size ) : mins( Vec3( -half_size ) ), maxs( Vec3( half_size ) ) { }
+	explicit constexpr MinMax3( Vec3 half_size ) : mins( Vec3( -half_size.x, -half_size.y, -half_size.z ) ), maxs( half_size ) { }
+	explicit constexpr MinMax3( float half_size ) : mins( Vec3( -half_size ) ), maxs( Vec3( half_size ) ) { }
 
 	static constexpr MinMax3 Empty() {
 		return MinMax3( Vec3( FLT_MAX ), Vec3( -FLT_MAX ) );
@@ -537,3 +589,23 @@ struct RGBA8 {
 
 	constexpr RGB8 rgb() const { return RGB8( r, g, b ); }
 };
+
+/*
+ * forward declarations
+ */
+
+struct Tokenized;
+
+/*
+ * enum arithmetic
+ */
+
+template< typename E > concept IsEnum = __is_enum( E );
+template< typename E > using UnderlyingType = __underlying_type( E );
+
+template< IsEnum E > void operator++( E & x, int ) { x = E( UnderlyingType< E >( x ) + 1 ); }
+template< IsEnum E > constexpr E operator&( E lhs, E rhs ) { return E( UnderlyingType< E >( lhs ) & UnderlyingType< E >( rhs ) ); }
+template< IsEnum E > constexpr E operator|( E lhs, E rhs ) { return E( UnderlyingType< E >( lhs ) | UnderlyingType< E >( rhs ) ); }
+template< IsEnum E > constexpr E operator~( E x ) { return E( ~UnderlyingType< E >( x ) ); }
+template< IsEnum E > void operator&=( E & lhs, E rhs ) { lhs = lhs & rhs; }
+template< IsEnum E > void operator|=( E & lhs, E rhs ) { lhs = lhs | rhs; }

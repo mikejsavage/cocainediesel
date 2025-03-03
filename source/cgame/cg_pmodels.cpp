@@ -34,31 +34,12 @@ static PlayerModelMetadata player_model_metadatas[ MAX_PLAYER_MODELS ];
 static u32 num_player_models;
 static Hashtable< MAX_PLAYER_MODELS * 2 > player_models_hashtable;
 
-static Mat4 EulerAnglesToMat4( float pitch, float yaw, float roll ) {
-	mat3_t axis;
-	AnglesToAxis( EulerDegrees3( pitch, yaw, roll ), axis );
-
-	Mat4 m = Mat4::Identity();
-
-	m.col0.x = axis[ 0 ];
-	m.col0.y = axis[ 1 ];
-	m.col0.z = axis[ 2 ];
-	m.col1.x = axis[ 3 ];
-	m.col1.y = axis[ 4 ];
-	m.col1.z = axis[ 5 ];
-	m.col2.x = axis[ 6 ];
-	m.col2.y = axis[ 7 ];
-	m.col2.z = axis[ 8 ];
-
-	return m;
-}
-
-static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * filename ) {
+static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, Span< const char > filename ) {
 	int num_clips = 1;
 
 	Span< const char > cursor = AssetString( filename );
 	if( cursor.ptr == NULL ) {
-		Com_Printf( "Couldn't find animation script: %s\n", filename );
+		Com_GGPrint( "Couldn't find animation script: {}", filename );
 		return false;
 	}
 
@@ -109,7 +90,7 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 				float roll = ParseFloat( &cursor, 0.0f, Parse_StopOnNewLine );
 
 				tag->node_idx = node_idx;
-				tag->transform = Mat4Translation( forward, right, up ) * EulerAnglesToMat4( pitch, yaw, roll );
+				tag->transform = Mat4Translation( forward, right, up ) * Mat4Rotation( EulerDegrees3( pitch, yaw, roll ) );
 			}
 			else {
 				Com_GGPrint( "{}: Unknown node name: {}", filename, node_name );
@@ -120,7 +101,7 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 		}
 		else if( cmd == "clip" ) {
 			if( num_clips == PMODEL_TOTAL_ANIMATIONS ) {
-				Com_Printf( "%s: Too many animations\n", filename );
+				Com_GGPrint( "{}: Too many animations", filename );
 				break;
 			}
 
@@ -143,7 +124,7 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 	}
 
 	if( num_clips < PMODEL_TOTAL_ANIMATIONS ) {
-		Com_Printf( "%s: Not enough animations (%i)\n", filename, num_clips );
+		Com_GGPrint( "{}: Not enough animations ({})", filename, num_clips );
 		return false;
 	}
 
@@ -154,7 +135,7 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 	return true;
 }
 
-static bool FindTag( const GLTFRenderData * model, PlayerModelMetadata::Tag * tag, StringHash node_name, const char * model_name ) {
+static bool FindTag( const GLTFRenderData * model, PlayerModelMetadata::Tag * tag, StringHash node_name, Span< const char > model_name ) {
 	u8 idx;
 	if( !FindNodeByName( model, node_name, &idx ) ) {
 		Com_GGPrint( S_COLOR_YELLOW "Can't find node {} in {}", node_name, model_name );
@@ -162,12 +143,12 @@ static bool FindTag( const GLTFRenderData * model, PlayerModelMetadata::Tag * ta
 	}
 
 	tag->node_idx = idx;
-	tag->transform = Mat4::Identity();
+	tag->transform = Mat3x4::Identity(); // TODO: use node local transform
 
 	return true;
 }
 
-static bool LoadPlayerModelMetadata( PlayerModelMetadata * meta, const char * model_name ) {
+static bool LoadPlayerModelMetadata( PlayerModelMetadata * meta, Span< const char > model_name ) {
 	const GLTFRenderData * model = FindGLTFRenderData( meta->model );
 	if( model == NULL )
 		return false;
@@ -181,7 +162,7 @@ static bool LoadPlayerModelMetadata( PlayerModelMetadata * meta, const char * mo
 	return ok;
 }
 
-static constexpr const char * PLAYER_SOUND_NAMES[] = {
+static constexpr Span< const char > PLAYER_SOUND_NAMES[] = {
 	"death",
 	"void_death",
 	"smackdown",
@@ -196,7 +177,7 @@ STATIC_ASSERT( ARRAY_COUNT( PLAYER_SOUND_NAMES ) == PlayerSound_Count );
 static void FindPlayerSounds( PlayerModelMetadata * meta, Span< const char > dir ) {
 	for( size_t i = 0; i < ARRAY_COUNT( meta->sounds ); i++ ) {
 		TempAllocator temp = cls.frame_arena.temp();
-		const char * path = temp( "{}/{}", dir, PLAYER_SOUND_NAMES[ i ] );
+		Span< const char > path = temp.sv( "{}/{}", dir, PLAYER_SOUND_NAMES[ i ] );
 		meta->sounds[ i ] = StringHash( path );
 	}
 }
@@ -204,7 +185,7 @@ static void FindPlayerSounds( PlayerModelMetadata * meta, Span< const char > dir
 void InitPlayerModels() {
 	num_player_models = 0;
 
-	for( const char * path : AssetPaths() ) {
+	for( Span< const char > path : AssetPaths() ) {
 		if( num_player_models == ARRAY_COUNT( player_model_metadatas ) ) {
 			Com_Printf( S_COLOR_RED "Too many player models!\n" );
 			break;
@@ -220,7 +201,7 @@ void InitPlayerModels() {
 			meta->model = StringHash( hash );
 
 			TempAllocator temp = cls.frame_arena.temp();
-			const char * config_path = temp( "{}/model.cfg", dir );
+			Span< const char > config_path = temp.sv( "{}/model.cfg", dir );
 			if( AssetString( config_path ).ptr == NULL ) {
 				if( !LoadPlayerModelMetadata( meta, path ) ) {
 					continue;
@@ -315,14 +296,14 @@ static int CG_MoveFlagsToUpperAnimation( uint32_t moveflags, int carried_weapon 
 		case Weapon_Deagle:
 			return TORSO_HOLD_PISTOL;
 		case Weapon_Shotgun:
-		case Weapon_AssaultRifle:
-		case Weapon_BubbleGun:
+		case Weapon_Assault:
+		case Weapon_Bubble:
 			return TORSO_HOLD_LIGHTWEAPON;
-		case Weapon_BurstRifle:
-		case Weapon_RocketLauncher:
-		case Weapon_GrenadeLauncher:
+		case Weapon_Burst:
+		case Weapon_Bazooka:
+		case Weapon_Launcher:
 			return TORSO_HOLD_HEAVYWEAPON;
-		case Weapon_Railgun:
+		case Weapon_Rail:
 		case Weapon_Sniper:
 		case Weapon_Rifle:
 			return TORSO_HOLD_AIMWEAPON;
@@ -667,28 +648,17 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	CG_UpdatePModelAnimations( cent );
 }
 
-static Quaternion EulerAnglesToQuaternion( EulerDegrees3 angles ) {
-	float cp = cosf( Radians( angles.pitch ) * 0.5f );
-	float sp = sinf( Radians( angles.pitch ) * 0.5f );
-	float cy = cosf( Radians( angles.yaw ) * 0.5f );
-	float sy = sinf( Radians( angles.yaw ) * 0.5f );
-	float cr = cosf( Radians( angles.roll ) * 0.5f );
-	float sr = sinf( Radians( angles.roll ) * 0.5f );
-
-	return Quaternion(
-		cp * cy * sr - sp * sy * cr,
-		cp * sy * cr + sp * cy * sr,
-		sp * cy * cr - cp * sy * sr,
-		cp * cy * cr + sp * sy * sr
-	);
-}
-
-static Mat4 TransformTag( const GLTFRenderData * model, const Mat4 & transform, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
+static Mat3x4 TagTransform( const GLTFRenderData * model, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
 	if( pose.node_transforms.ptr != NULL ) {
-		return transform * model->transform * pose.node_transforms[ tag.node_idx ] * tag.transform;
+		return model->transform * pose.node_transforms[ tag.node_idx ] * tag.transform;
 	}
 
-	return transform * model->transform * model->nodes[ tag.node_idx ].global_transform * tag.transform;
+	return model->transform * model->nodes[ tag.node_idx ].global_transform * tag.transform;
+}
+
+static Mat3x4 InverseNodeTransform( const GLTFRenderData * model, StringHash node ) {
+	u8 idx;
+	return FindNodeByName( model, node, &idx ) ? model->nodes[ idx ].inverse_global_transform : Mat3x4::Identity();
 }
 
 void CG_DrawPlayer( centity_t * cent ) {
@@ -727,8 +697,8 @@ void CG_DrawPlayer( centity_t * cent ) {
 	if( model->animations.n > 0 ) {
 		float lower_time, upper_time;
 		CG_GetAnimationTimes( meta, pmodel, cl.serverTime, &lower_time, &upper_time );
-		Span< TRS > lower = SampleAnimation( &temp, model, lower_time );
-		Span< TRS > upper = SampleAnimation( &temp, model, upper_time );
+		Span< Transform > lower = SampleAnimation( &temp, model, lower_time );
+		Span< Transform > upper = SampleAnimation( &temp, model, upper_time );
 		MergeLowerUpperPoses( lower, upper, model, meta->upper_root_node );
 
 		if( !corpse ) {
@@ -748,23 +718,23 @@ void CG_DrawPlayer( centity_t * cent ) {
 			// also add rotations from velocity leaning
 			{
 				EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ UPPER ], cg.lerpfrac, pmodel->angles[ UPPER ] ) * 0.5f );
-				Swap2( &angles.pitch, &angles.yaw ); // hack for rigg model
 
-				Quaternion q = EulerAnglesToQuaternion( angles );
+				Quaternion q = EulerDegrees3ToQuaternion( angles );
 				lower[ meta->upper_rotator_nodes[ 0 ] ].rotation *= q;
 				lower[ meta->upper_rotator_nodes[ 1 ] ].rotation *= q;
 			}
 
 			{
 				EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ HEAD ], cg.lerpfrac, pmodel->angles[ HEAD ] ) );
-				lower[ meta->head_rotator_node ].rotation *= EulerAnglesToQuaternion( angles );
+				lower[ meta->head_rotator_node ].rotation *= EulerDegrees3ToQuaternion( angles );
 			}
 		}
 
 		pose = ComputeMatrixPalettes( &temp, model, lower );
 	}
 
-	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->interpolated.scale );
+	Mat3x4 unscaled_transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin );
+	Mat3x4 transform = unscaled_transform * Mat4Scale( cent->interpolated.scale );
 
 	Vec4 color = CG_TeamColorVec4( cent->current.team );
 	if( corpse ) {
@@ -796,14 +766,13 @@ void CG_DrawPlayer( centity_t * cent ) {
 		DrawGLTFModel( config, model, transform, color, pose );
 	}
 
-	Mat4 inverse_scale = Mat4Scale( 1.0f / cent->interpolated.scale );
 
 	// add weapon model
 	{
 		const GLTFRenderData * weapon_model = GetEquippedItemRenderData( &cent->current );
 		if( weapon_model != NULL ) {
 			PlayerModelMetadata::Tag tag = cent->current.gadget == Gadget_None ? meta->tag_weapon : meta->tag_gadget;
-			Mat4 tag_transform = TransformTag( weapon_model, transform, pose, tag ) * inverse_scale;
+			Mat3x4 weapon_transform = unscaled_transform * TagTransform( model, pose, tag ) * InverseNodeTransform( weapon_model, "hand" );
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -814,14 +783,14 @@ void CG_DrawPlayer( centity_t * cent ) {
 				config.draw_silhouette.silhouette_color = color;
 			}
 
-			DrawGLTFModel( config, weapon_model, tag_transform, color );
+			DrawGLTFModel( config, weapon_model, weapon_transform, color );
 
 			u8 muzzle;
 			if( FindNodeByName( weapon_model, "muzzle", &muzzle ) ) {
-				pmodel->muzzle_transform = tag_transform * weapon_model->transform * weapon_model->nodes[ muzzle ].global_transform;
+				pmodel->muzzle_transform = weapon_transform * weapon_model->transform * weapon_model->nodes[ muzzle ].global_transform;
 			}
 			else {
-				pmodel->muzzle_transform = tag_transform;
+				pmodel->muzzle_transform = weapon_transform;
 			}
 		}
 	}
@@ -834,7 +803,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			if( cent->current.effects & EF_HAT )
 				tag = meta->tag_hat;
 
-			Mat4 tag_transform = TransformTag( attached_model, transform, pose, tag ) * inverse_scale;
+			Mat3x4 tag_transform = unscaled_transform * TagTransform( model, pose, tag );
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -842,7 +811,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			config.draw_silhouette.enabled = draw_silhouette;
 			config.draw_silhouette.silhouette_color = color;
 
-			DrawGLTFModel( config, attached_model, tag_transform, vec4_white );
+			DrawGLTFModel( config, attached_model, tag_transform, white.vec4 );
 		}
 	}
 
@@ -852,7 +821,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 		if( mask_model != NULL ) {
 			PlayerModelMetadata::Tag tag = meta->tag_mask;
 
-			Mat4 tag_transform = TransformTag( mask_model, transform, pose, tag ) * inverse_scale;
+			Mat3x4 tag_transform = unscaled_transform * TagTransform( model, pose, tag );
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -860,7 +829,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			config.draw_silhouette.enabled = draw_silhouette;
 			config.draw_silhouette.silhouette_color = color;
 
-			DrawGLTFModel( config, mask_model, tag_transform, vec4_white );
+			DrawGLTFModel( config, mask_model, tag_transform, white.vec4 );
 		}
 	}
 }

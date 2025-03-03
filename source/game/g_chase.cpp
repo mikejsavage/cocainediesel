@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
+#include "qcommon/time.h"
 
 static void G_Chase_SetChaseActive( edict_t *ent, bool active ) {
 	ent->r.client->resp.chase.active = active;
@@ -69,7 +70,7 @@ static void G_EndFrame_UpdateChaseCam( edict_t *ent ) {
 	edict_t * targ = &game.edicts[ent->r.client->resp.chase.target];
 
 	if( !G_Chase_IsValidTarget( ent, targ ) ) {
-		if( svs.realtime < ent->r.client->resp.chase.timeout ) { // wait for timeout
+		if( svs.monotonic_time < ent->r.client->resp.chase.timeout ) { // wait for timeout
 			return;
 		}
 
@@ -80,7 +81,7 @@ static void G_EndFrame_UpdateChaseCam( edict_t *ent ) {
 		}
 	}
 
-	ent->r.client->resp.chase.timeout = svs.realtime + 1500; // update timeout
+	ent->r.client->resp.chase.timeout = svs.monotonic_time + Milliseconds( 1500 ); // update timeout
 
 	if( targ == ent ) {
 		return;
@@ -241,7 +242,7 @@ void Cmd_Spectate( edict_t * ent ) {
 	}
 }
 
-void Cmd_ToggleFreeFly( edict_t * ent ) {
+void Cmd_ToggleFreeFly( edict_t * ent, msg_t args ) {
 	if( ent->s.team == Team_None ) {
 		if( ent->r.client->resp.chase.active ) {
 			G_Chase_SetChaseActive( ent, false );

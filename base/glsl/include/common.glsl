@@ -60,13 +60,6 @@ float Unlerp( float lo, float x, float hi ) {
 	return ( x - lo ) / ( hi - lo );
 }
 
-// mat4x3 is what we actually want but even in std430 that gets aligned like
-// vec4[4] so we can't use it. do this funny looking swizzle instead, which you
-// can derive by checking renderdoc's ssbo viewer
-struct AffineTransform {
-	mat3x4 m;
-};
-
 mat4 AffineToMat4( AffineTransform t ) {
 	return mat4(
 		t.m[ 0 ][ 0 ], t.m[ 0 ][ 1 ], t.m[ 0 ][ 2 ], 0.0,
@@ -85,4 +78,28 @@ vec4 ClampedTexelFetch( sampler2D texture, ivec2 uv, int lod ) {
 vec4 ClampedTexelFetch( sampler2DMS texture, ivec2 uv, int msaa_sample ) {
 	uv = clamp( uv, ivec2( 0 ), ivec2( textureSize( texture ) ) - 1 );
 	return texelFetch( texture, uv, msaa_sample );
+}
+
+struct Quaternion {
+	vec4 q;
+};
+
+void QuaternionToBasis( Quaternion q, out vec3 normal, out vec3 tangent, out vec3 bitangent ) {
+	normal = vec3(
+		1.0 - 2.0 * ( q.q.y * q.q.y + q.q.z * q.q.z ),
+		2.0 * ( q.q.x * q.q.y + q.q.z * q.q.w ),
+		2.0 * ( q.q.x * q.q.z - q.q.y * q.q.w )
+	);
+
+	tangent = vec3(
+		2.0 * ( q.q.x * q.q.y - q.q.z * q.q.w ),
+		1.0 - 2.0 * ( q.q.x * q.q.x + q.q.z * q.q.z ),
+		2.0 * ( q.q.y * q.q.z + q.q.x * q.q.w )
+	);
+
+	bitangent = vec3(
+		2.0 * ( q.q.x * q.q.z + q.q.y * q.q.w ),
+		2.0 * ( q.q.y * q.q.z - q.q.x * q.q.w ),
+		1.0 - 2.0 * ( q.q.x * q.q.x + q.q.y * q.q.y )
+	);
 }

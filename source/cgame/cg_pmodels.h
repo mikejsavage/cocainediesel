@@ -153,7 +153,7 @@ enum PlayerSound {
 struct PlayerModelMetadata {
 	struct Tag {
 		u8 node_idx;
-		Mat4 transform;
+		Mat3x4 transform;
 	};
 
 	struct AnimationClip {
@@ -184,7 +184,7 @@ struct pmodel_t {
 	EulerDegrees3 angles[PMODEL_PARTS];                // for rotations
 	EulerDegrees3 oldangles[PMODEL_PARTS];             // for rotations
 
-	Mat4 muzzle_transform;
+	Mat3x4 muzzle_transform;
 };
 
 extern pmodel_t cg_entPModels[MAX_EDICTS];      //a pmodel handle for each cg_entity
@@ -227,5 +227,5 @@ struct cg_viewweapon_t {
 	StringHash eventAnim;
 	int64_t eventAnimStartTime;
 
-	Mat4 muzzle_transform;
+	Mat3x4 muzzle_transform;
 };

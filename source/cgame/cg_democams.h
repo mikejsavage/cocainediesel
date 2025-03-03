@@ -19,10 +19,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/types.h"
 
+enum ViewType {
+	ViewType_Player,
+	ViewType_Demo,
+};
+
 void CG_DemoCamInit();
 void CG_DemoCamShutdown();
 
-int CG_DemoCamUpdate();
+ViewType CG_DemoCamUpdate();
 void CG_DemoCamGetOrientation( Vec3 * origin, EulerDegrees2 * angles, Vec3 * velocity );
 
 struct cg_viewdef_t;

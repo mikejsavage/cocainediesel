@@ -32,8 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/audio/types.h"
 #include "client/renderer/types.h"
 
-#define VSAY_TIMEOUT 2500
-
 constexpr float FOV = 107.9f; // chosen to upset everyone equally
 
 enum {
@@ -106,20 +104,12 @@ struct centity_t {
 #include "cgame/cg_pmodels.h"
 
 struct cgs_media_t {
-	StringHash sfxVSaySounds[ Vsay_Count ];
-
 	StringHash shaderWeaponIcon[ Weapon_Count ];
 	StringHash shaderGadgetIcon[ Gadget_Count ];
 	StringHash shaderPerkIcon[ Perk_Count ];
 };
 
 #define PREDICTED_STEP_TIME 150 // stairs smoothing time
-
-// view types
-enum {
-	VIEWDEF_DEMOCAM,
-	VIEWDEF_PLAYERVIEW,
-};
 
 struct cg_viewdef_t {
 	int type;
@@ -144,14 +134,9 @@ struct cg_static_t {
 	unsigned int playerNum;
 
 	// fonts
-	int fontSystemTinySize;
-	int fontSystemExtraSmallSize;
-	int fontSystemSmallSize;
 	int fontSystemMediumSize;
-	int fontSystemBigSize;
 
 	float textSizeTiny;
-	float textSizeExtraSmall;
 	float textSizeSmall;
 	float textSizeMedium;
 	float textSizeBig;
@@ -225,7 +210,7 @@ struct cg_state_t {
 extern cg_static_t cgs;
 extern cg_state_t cg;
 
-#define ISVIEWERENTITY( entNum )  ( cg.predictedPlayerState.POVnum > 0 && (int)cg.predictedPlayerState.POVnum == ( entNum ) && cg.view.type == VIEWDEF_PLAYERVIEW )
+#define ISVIEWERENTITY( entNum )  ( cg.predictedPlayerState.POVnum > 0 && (int)cg.predictedPlayerState.POVnum == ( entNum ) && cg.view.type == ViewType_Player )
 
 #define ISREALSPECTATOR()       ( cg.frame.playerState.real_team == Team_None )
 
@@ -244,8 +229,6 @@ void CG_LerpGenericEnt( centity_t *cent );
 //
 // cg_draw.c
 //
-int CG_HorizontalAlignForWidth( int x, Alignment alignment, int width );
-int CG_VerticalAlignForHeight( int y, Alignment alignment, int height );
 Vec2 WorldToScreen( Vec3 v );
 Vec2 WorldToScreenClamped( Vec3 v, Vec2 screen_border, bool * clamped );
 
@@ -283,7 +266,7 @@ extern Cvar *cg_showFPS;
 void CG_ScreenInit();
 void CG_DrawScope();
 void CG_Draw2D();
-void CG_CenterPrint( const char *str );
+void CG_CenterPrint( Span< const char > str );
 
 void CG_EscapeKey();
 
@@ -291,9 +274,7 @@ void CG_DrawCrosshair( int x, int y );
 void CG_ScreenCrosshairDamageUpdate();
 void CG_ScreenCrosshairShootUpdate( u16 refire_time );
 
-void CG_DrawKeyState( int x, int y, int w, int h, const char *key );
-
-void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border );
+void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color );
 
 void CG_InitDamageNumbers();
 void CG_AddDamageNumber( SyncEntityState * ent, u64 parm );
@@ -311,17 +292,10 @@ void AddDamageEffect( float x = 0.0f );
 //
 void CG_InitHUD();
 void CG_ShutdownHUD();
-void CG_SC_ResetObituaries();
-void CG_SC_Obituary();
-void CG_DrawHUD();
-
-//
-// cg_scoreboard.c
-//
 void CG_DrawScoreboard();
-void CG_ScoresOn_f();
-void CG_ScoresOff_f();
-bool CG_ScoreboardShown();
+void CG_SC_ResetObituaries();
+void CG_SC_Obituary( const Tokenized & args );
+void CG_DrawHUD();
 
 //
 // cg_main.c
@@ -337,7 +311,7 @@ extern Cvar *cg_showServerDebugPrints;
 void CG_Init( unsigned int playerNum, int max_clients, bool demoplaying, const char *demoName, unsigned snapFrameTime );
 void CG_Shutdown();
 
-[[gnu::format( printf, 1, 2 )]] void CG_LocalPrint( const char *format, ... );
+void CG_LocalPrint( Span< const char > str );
 
 void CG_Reset();
 void CG_Precache();
@@ -355,6 +329,7 @@ void CG_GameCommand( const char *command );
 //
 // cg_teams.c
 //
+RGB8 CG_RealTeamColor( Team team );
 RGB8 CG_TeamColor( Team team );
 RGB8 AllyColor();
 RGB8 EnemyColor();
@@ -390,8 +365,6 @@ void MaybeResetShadertoyTime( bool respawned );
 // cg_lents.c
 //
 
-void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius );
-
 void InitGibs();
 void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 team_color );
 void DrawGibs();
@@ -402,13 +375,13 @@ void DrawGibs();
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material );
 
 void InitPersistentBeams();
-void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material, float duration, float fade_time );
+void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material, Time duration, Time fade_time );
 void DrawPersistentBeams();
 
 //
 // cg_trails.cpp
 //
-void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash material, u64 duration );
+void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash material, Time duration );
 void InitTrails();
 void DrawTrails();
 
@@ -444,7 +417,7 @@ void CG_LaserBeamEffect( centity_t *cent );
 //
 void CG_InitChat();
 void CG_ShutdownChat();
-void CG_AddChat( const char * str );
+void CG_AddChat( Span< const char > str );
 void CG_DrawChat();
 
 //
@@ -459,12 +432,3 @@ UserCommandButton CG_GetButtonBits();
 UserCommandButton CG_GetButtonDownEdges();
 EulerDegrees2 CG_GetDeltaViewAngles();
 Vec2 CG_GetMovement();
-
-/*
-* Returns angular movement vector (in euler angles) obtained from the input.
-* Doesn't take flipping into account.
-*/
-void CG_GetAngularMovement( Vec3 movement );
-
-bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize );
-int CG_GetBoundKeycodes( const char *cmd, int keys[ 2 ] );

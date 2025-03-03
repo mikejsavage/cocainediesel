@@ -18,22 +18,9 @@ enum ColorGenType {
 	ColorGenType_EntityWave,
 };
 
-enum TCModType {
-	TCModFunc_None,
-	TCModFunc_Scroll,
-	TCModFunc_Rotate,
-	TCModFunc_Stretch,
-};
-
 struct Wave {
 	WaveFunc type;
 	float args[ 4 ]; // offset, amplitude, phase_offset, rate
-};
-
-struct TCMod {
-	TCModType type;
-	float args[ 2 ];
-	Wave wave;
 };
 
 struct ColorGen {
@@ -43,7 +30,7 @@ struct ColorGen {
 };
 
 struct Material {
-	char * name;
+	Span< char > name;
 	u64 hash;
 
 	const Texture * texture;
@@ -56,15 +43,11 @@ struct Material {
 	bool mask_outlines = false;
 	bool outlined = true;
 	bool shaded = false;
+	bool world = false;
 	float specular = 0.0f;
 	float shininess = 64.0f;
 	SamplerType sampler = Sampler_Standard;
-
-	TCMod tcmod = { };
 };
-
-extern Material world_material;
-extern Material wallbang_material;
 
 bool CompressedTextureFormat( TextureFormat format );
 u32 BitsPerPixel( TextureFormat format );
@@ -73,13 +56,13 @@ void InitMaterials();
 void HotloadMaterials();
 void ShutdownMaterials();
 
-const Material * FindMaterial( StringHash name, const Material * def = NULL );
-const Material * FindMaterial( const char * name, const Material * def = NULL );
+const Material * FindMaterial( StringHash name );
+const Material * FindMaterial( const char * name );
 bool TryFindMaterial( StringHash name, const Material ** material );
 
 Sampler GetSampler( SamplerType sampler );
 
-bool TryFindDecal( StringHash name, Vec4 * uvwh );
+bool TryFindDecal( StringHash name, Vec4 * uvwh, Vec4 * trim );
 const Texture * DecalAtlasTextureArray();
 
 Vec2 HalfPixelSize( const Material * material );

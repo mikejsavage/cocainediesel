@@ -1,0 +1,31 @@
+weapon
+{
+	shaded
+	specular 4
+	shininess 14
+	rgbGen const 0.35 0.35 0.35
+}
+
+weapon_dark
+{
+	shaded
+	specular 3
+	shininess 20
+	rgbGen const 0.25 0.25 0.25
+}
+
+weapon_light
+{
+	shaded
+	specular 6
+	shininess 2
+	rgbGen const  0.4 0.4 0.4
+}
+
+weapon_color
+{
+	shaded
+	specular 3
+	shininess 30
+	rgbGen entity 1.0
+}

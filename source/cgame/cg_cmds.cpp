@@ -22,13 +22,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/ui.h"
 #include "qcommon/fs.h"
 
-static void CG_SC_Print() {
-	CG_LocalPrint( "%s", Cmd_Argv( 1 ) );
+static void CG_SC_Print( const Tokenized & args ) {
+	CG_LocalPrint( args.tokens[ 1 ] );
 }
 
-static void CG_SC_ChatPrint() {
-	bool teamonly = StrCaseEqual( Cmd_Argv( 0 ), "tch" );
-	int who = atoi( Cmd_Argv( 1 ) );
+static void CG_SC_ChatPrint( const Tokenized & args ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
+	bool teamonly = StrCaseEqual( args.tokens[ 0 ], "tch" );
+	int who = SpanToInt( args.tokens[ 1 ], -1 );
 
 	if( who < 0 || who > MAX_CLIENTS ) {
 		return;
@@ -42,10 +44,8 @@ static void CG_SC_ChatPrint() {
 		return;
 	}
 
-	const char * text = Cmd_Argv( 2 );
-
 	if( who == 0 ) {
-		CG_LocalPrint( "Console: %s\n", text );
+		CG_LocalPrint( temp.sv( "Console: {}\n", args.tokens[ 2 ] ) );
 		return;
 	}
 
@@ -53,42 +53,43 @@ static void CG_SC_ChatPrint() {
 	Team team = cg_entities[ who ].current.team;
 	RGB8 team_color = team == Team_None ? RGB8( 128, 128, 128 ) : CG_TeamColor( team );
 
-	const char * prefix = "";
+	Span< const char > prefix = "";
 	if( teamonly ) {
 		prefix = team == Team_None ? "[SPEC] " : "[TEAM] ";
 	}
 
 	ImGuiColorToken color( team_color );
-	CG_LocalPrint( "%s%s%s%s: %s\n",
+	CG_LocalPrint( temp.sv( "{}{}{}{}: {}\n",
 		prefix,
-		( const char * ) ImGuiColorToken( team_color ).token, name,
-		( const char * ) ImGuiColorToken( rgba8_white ).token, text );
+		ImGuiColorToken( team_color ), name,
+		ImGuiColorToken( white.rgba8 ), args.tokens[ 2 ]
+	) );
 }
 
-static void CG_SC_CenterPrint() {
-	CG_CenterPrint( Cmd_Argv( 1 ) );
+static void CG_SC_CenterPrint( const Tokenized & args ) {
+	CG_CenterPrint( args.tokens[ 1 ] );
 }
 
-static void CG_SC_Debug() {
+static void CG_SC_Debug( const Tokenized & args ) {
 	if( cg_showServerDebugPrints->integer != 0 ) {
-		Com_Printf( S_COLOR_ORANGE "Debug: %s\n", Cmd_Argv( 1 ) );
+		Com_GGPrint( S_COLOR_ORANGE "Debug: {}", args.tokens[ 1 ] );
 	}
 }
 
 static bool demo_requested = false;
-static void CG_Cmd_DemoGet_f() {
+static void CG_Cmd_DemoGet_f( const Tokenized & args ) {
 	if( demo_requested ) {
 		Com_Printf( "Already requesting a demo\n" );
 		return;
 	}
 
-	msg_t * args = CL_AddReliableCommand( ClientCommand_DemoGetURL );
-	MSG_WriteString( args, Cmd_Argv( 1 ) );
+	msg_t * msg = CL_AddReliableCommand( ClientCommand_DemoGetURL );
+	MSG_WriteString( msg, args.tokens[ 1 ] );
 
 	demo_requested = true;
 }
 
-static void CG_SC_DownloadDemo() {
+static void CG_SC_DownloadDemo( const Tokenized & args ) {
 	if( cgs.demoPlaying ) {
 		// ignore download commands coming from demo files
 		return;
@@ -101,19 +102,14 @@ static void CG_SC_DownloadDemo() {
 
 	demo_requested = false;
 
-	if( Cmd_Argc() < 2 ) {
-		Com_Printf( "Invalid demo ID\n" );
-		return;
-	}
-
-	const char * filename = Cmd_Argv( 1 );
+	Span< const char > filename = args.tokens[ 1 ];
 	Span< const char > extension = FileExtension( filename );
 	if( !COM_ValidateRelativeFilename( filename ) || extension != APP_DEMO_EXTENSION_STR ) {
 		Com_Printf( "Warning: demoget: Invalid filename, ignored\n" );
 		return;
 	}
 
-	CL_DownloadFile( filename, []( const char * filename, Span< const u8 > data ) {
+	CL_DownloadFile( filename, []( Span< const char > filename, Span< const u8 > data ) {
 		if( data.ptr == NULL )
 			return;
 
@@ -131,70 +127,71 @@ static void CG_SC_DownloadDemo() {
 	} );
 }
 
-static void CG_SC_ChangeLoadout() {
+static void CG_SC_ChangeLoadout( const Tokenized & args ) {
 	if( cgs.demoPlaying )
 		return;
 
 	Loadout loadout = { };
 
-	if( Cmd_Argc() != ARRAY_COUNT( loadout.weapons ) + 3 )
-		return;
-
 	for( size_t i = 0; i < ARRAY_COUNT( loadout.weapons ); i++ ) {
-		int weapon = atoi( Cmd_Argv( i + 1 ) );
-		if( weapon <= Weapon_None || weapon >= Weapon_Count )
+		u64 weapon = SpanToU64( args.tokens[ i + 1 ], Weapon_Count );
+		if( weapon == Weapon_None || weapon >= Weapon_Count )
 			return;
 		loadout.weapons[ i ] = WeaponType( weapon );
 	}
 
-	int perk = atoi( Cmd_Argv( ARRAY_COUNT( loadout.weapons ) + 1 ) );
-	if( perk < Perk_None || perk >= Perk_Count )
+	u64 perk = SpanToU64( args.tokens[ ARRAY_COUNT( loadout.weapons ) + 1 ], Perk_Count );
+	if( perk >= Perk_Count )
 		return;
 	loadout.perk = PerkType( perk );
 
-	int gadget = atoi( Cmd_Argv( ARRAY_COUNT( loadout.weapons ) + 2 ) );
-	if( gadget <= Gadget_None || gadget >= Gadget_Count )
+	u64 gadget = SpanToU64( args.tokens[ ARRAY_COUNT( loadout.weapons ) + 2 ], Gadget_Count );
+	if( gadget == Gadget_None || gadget >= Gadget_Count )
 		return;
 	loadout.gadget = GadgetType( gadget );
 
 	UI_ShowLoadoutMenu( loadout );
 }
 
-static void CG_SC_SaveLoadout() {
+static void CG_SC_SaveLoadout( const Tokenized & args ) {
 	if( !cgs.demoPlaying ) {
-		Cvar_Set( "cg_loadout", Cmd_Args() );
+		Cvar_Set( "cg_loadout", args.all_but_first );
 	}
 }
 
 struct ServerCommand {
-	const char * name;
-	void ( *func )();
+	Span< const char > name;
+	void ( *func )( const Tokenized & args );
+	Optional< size_t > num_args = NONE;
 };
 
 static const ServerCommand server_commands[] = {
-	{ "pr", CG_SC_Print },
-	{ "ch", CG_SC_ChatPrint },
-	{ "tch", CG_SC_ChatPrint },
-	{ "cp", CG_SC_CenterPrint },
-	{ "obry", CG_SC_Obituary },
-	{ "debug", CG_SC_Debug },
-	{ "downloaddemo", CG_SC_DownloadDemo },
-	{ "changeloadout", CG_SC_ChangeLoadout },
+	{ "pr", CG_SC_Print, 1 },
+	{ "ch", CG_SC_ChatPrint, 2 },
+	{ "tch", CG_SC_ChatPrint, 2 },
+	{ "cp", CG_SC_CenterPrint, 1 },
+	{ "obry", CG_SC_Obituary, 6 },
+	{ "debug", CG_SC_Debug, 1 },
+	{ "downloaddemo", CG_SC_DownloadDemo, 1 },
+	{ "changeloadout", CG_SC_ChangeLoadout, ARRAY_COUNT( &Loadout::weapons ) + 2 },
 	{ "saveloadout", CG_SC_SaveLoadout },
 };
 
 void CG_GameCommand( const char * command ) {
-	Cmd_TokenizeString( command );
-	const char * name = Cmd_Argv( 0 );
+	TempAllocator temp = cls.frame_arena.temp();
+	Tokenized args = Tokenize( &temp, MakeSpan( command ) );
+	Assert( args.tokens.n > 0 );
 
 	for( ServerCommand cmd : server_commands ) {
-		if( StrEqual( name, cmd.name ) ) {
-			cmd.func();
-			return;
+		if( StrEqual( args.tokens[ 0 ], cmd.name ) ) {
+			if( !cmd.num_args.exists || args.tokens.n == cmd.num_args.value + 1 ) {
+				cmd.func( args );
+				return;
+			}
 		}
 	}
 
-	Com_Printf( "Unknown game command: %s\n", name );
+	Assert( is_public_build );
 }
 
 /*
@@ -209,16 +206,15 @@ static void SwitchWeapon( WeaponType weapon ) {
 	cl.weaponSwitch = weapon;
 }
 
-static void CG_Cmd_UseItem_f() {
-	if( !Cmd_Argc() ) {
-		Com_Printf( "Usage: 'use <item name>' or 'use <item index>'\n" );
+static void CG_Cmd_UseWeapon_f( const Tokenized & args ) {
+	if( args.tokens.n != 2 ) {
+		Com_Printf( "Usage: use <weapon>\n" );
 		return;
 	}
 
-	const char * name = Cmd_Args();
 	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
 		const WeaponDef * weapon = GS_GetWeaponDef( i );
-		if( StrCaseEqual( weapon->short_name, name ) && GS_CanEquip( &cg.predictedPlayerState, i ) ) {
+		if( StrCaseEqual( weapon->name, args.tokens[ 1 ] ) && GS_CanEquip( &cg.predictedPlayerState, i ) ) {
 			SwitchWeapon( i );
 		}
 	}
@@ -281,11 +277,19 @@ static void CG_Cmd_LastWeapon_f() {
 	SwitchWeapon( cg.predictedPlayerState.last_weapon );
 }
 
-static void CG_Cmd_Weapon_f() {
-	WeaponType weap = cg.predictedPlayerState.weapons[ atoi( Cmd_Argv( 1 ) ) - 1 ].weapon;
+static void CG_Cmd_Weapon_f( const Tokenized & args ) {
+	if( args.tokens.n != 2 ) {
+		Com_Printf( "Usage: weapon <slot>\n" );
+		return;
+	}
 
-	if( weap != Weapon_None ) {
-		SwitchWeapon( weap );
+	u64 slot;
+	if( !TrySpanToU64( args.tokens[ 1 ], &slot ) || slot < 1 || slot > ARRAY_COUNT( cg.predictedPlayerState.weapons ) )
+		return;
+
+	WeaponType weapon = cg.predictedPlayerState.weapons[ slot - 1 ].weapon;
+	if( weapon != Weapon_None ) {
+		SwitchWeapon( weapon );
 	}
 }
 
@@ -296,26 +300,26 @@ static void CG_Viewpos_f() {
 
 // local cgame commands
 struct cgcmd_t {
-	const char * name;
-	void ( *func )();
+	Span< const char > name;
+	void ( *func )( const Tokenized & args );
 	bool allowdemo;
 };
 
 struct ClientToServerCommand {
-	const char * name;
+	Span< const char > name;
 	ClientCommandType command;
 };
 
 static const cgcmd_t cgcmds[] = {
-	{ "+scores", CG_ScoresOn_f, true },
-	{ "-scores", CG_ScoresOff_f, true },
+	{ "+scores", []( const Tokenized & args ) { []() { cg.showScoreboard = true; }(); }, true },
+	{ "-scores", []( const Tokenized & args ) { []() { cg.showScoreboard = false; }(); }, true },
 	{ "demoget", CG_Cmd_DemoGet_f, false },
-	{ "use", CG_Cmd_UseItem_f, false },
-	{ "lastweapon", CG_Cmd_LastWeapon_f, false },
-	{ "weapnext", CG_Cmd_NextWeapon_f, false },
-	{ "weapprev", CG_Cmd_PrevWeapon_f, false },
+	{ "use", CG_Cmd_UseWeapon_f, false },
+	{ "lastweapon", []( const Tokenized & args ) { CG_Cmd_LastWeapon_f(); }, false },
+	{ "weapnext", []( const Tokenized & args ) { CG_Cmd_NextWeapon_f(); }, false },
+	{ "weapprev", []( const Tokenized & args ) { CG_Cmd_PrevWeapon_f(); }, false },
 	{ "weapon", CG_Cmd_Weapon_f, false },
-	{ "viewpos", CG_Viewpos_f, true },
+	{ "viewpos", []( const Tokenized & args ) { CG_Viewpos_f(); }, true },
 };
 
 static const ClientToServerCommand game_commands_no_args[] = {
@@ -328,6 +332,8 @@ static const ClientToServerCommand game_commands_no_args[] = {
 	{ "timeout", ClientCommand_Timeout },
 	{ "timein", ClientCommand_Timein },
 	{ "demolist", ClientCommand_DemoList },
+	{ "vote_yes", ClientCommand_VoteYes },
+	{ "vote_no", ClientCommand_VoteNo },
 	{ "ready", ClientCommand_Ready },
 	{ "unready", ClientCommand_Unready },
 	{ "toggleready", ClientCommand_ToggleReady },
@@ -341,16 +347,14 @@ static const ClientToServerCommand game_commands_yes_args[] = {
 	{ "say", ClientCommand_Say },
 	{ "say_team", ClientCommand_SayTeam },
 	{ "callvote", ClientCommand_Callvote },
-	{ "vote_yes", ClientCommand_VoteYes },
-	{ "vote_no", ClientCommand_VoteNo },
 	{ "join", ClientCommand_Join },
 	{ "vsay", ClientCommand_Vsay },
 	{ "setloadout", ClientCommand_SetLoadout },
 };
 
-static void ReliableCommandNoArgs() {
+static void ReliableCommandNoArgs( const Tokenized & args ) {
 	for( ClientToServerCommand cmd : game_commands_no_args ) {
-		if( StrCaseEqual( cmd.name, Cmd_Argv( 0 ) ) ) {
+		if( StrCaseEqual( cmd.name, args.tokens[ 0 ] ) ) {
 			CL_AddReliableCommand( cmd.command );
 			return;
 		}
@@ -359,11 +363,11 @@ static void ReliableCommandNoArgs() {
 	Assert( false );
 }
 
-static void ReliableCommandYesArgs() {
+static void ReliableCommandYesArgs( const Tokenized & args ) {
 	for( ClientToServerCommand cmd : game_commands_yes_args ) {
-		if( StrCaseEqual( cmd.name, Cmd_Argv( 0 ) ) ) {
-			msg_t * args = CL_AddReliableCommand( cmd.command );
-			MSG_WriteString( args, Cmd_Args() );
+		if( StrCaseEqual( cmd.name, args.tokens[ 0 ] ) ) {
+			msg_t * msg = CL_AddReliableCommand( cmd.command );
+			MSG_WriteString( msg, args.all_but_first );
 			return;
 		}
 	}

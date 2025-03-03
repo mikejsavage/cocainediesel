@@ -33,7 +33,6 @@ struct ginfo_t {
 	client_t * clients;
 
 	int num_edicts;         // current number, <= max_edicts
-	int max_edicts;
 	int max_clients;        // <= sv_maxclients, <= max_edicts
 };
 
@@ -95,9 +94,9 @@ struct client_t {
 	int64_t UcmdReceived;          // last client-command we received
 	UserCommand ucmds[CMD_BACKUP];        // each message will send several old cmds
 
-	int64_t lastPacketSentTime;    // time when we sent the last message to this client
-	int64_t lastPacketReceivedTime; // time when we received the last message from this client
-	int64_t lastconnect;
+	Time lastPacketSentTime;    // time when we sent the last message to this client
+	Time lastPacketReceivedTime; // time when we received the last message from this client
+	Time lastconnect;
 
 	int64_t lastframe;                  // used for delta compression etc.
 	bool nodelta;               // send one non delta compressed frame trough
@@ -145,9 +144,9 @@ struct client_entities_t {
 };
 
 struct server_static_t {
-	bool initialized;               // sv_init has completed
-	int64_t realtime;               // real world time - always increasing, no clamping, etc
-	int64_t gametime;               // game world time - always increasing, no clamping, etc
+	bool initialized;
+	Time monotonic_time; // starts at 0 when the server starts, increases forever
+	int64_t gametime; // game world time - always increasing, no clamping, etc
 
 	ArenaAllocator frame_arena;
 
@@ -155,8 +154,7 @@ struct server_static_t {
 
 	Socket socket;
 
-	int spawncount;                     // incremented each server start
-	                                    // used to check late spawns
+	int spawncount; // incremented each server start, used to check late spawns
 
 	client_t * clients;
 	client_entities_t client_entities;
@@ -182,6 +180,7 @@ extern server_static_t svs;                // persistant server info
 extern server_t sv;                 // local server
 
 extern Cvar * sv_port;
+extern Cvar * sv_interface;
 
 extern Cvar * sv_downloadurl;
 
@@ -271,19 +270,19 @@ void SV_BuildClientFrameSnap( client_t * client );
 void PF_DropClient( edict_t * ent, const char * message );
 int PF_GetClientState( int numClient );
 void PF_GameCmd( edict_t * ent, const char * cmd );
-void SV_LocateEntities( edict_t * edicts, int num_edicts, int max_edicts );
+void SV_LocateEntities( edict_t * edicts, int num_edicts );
 
 //
 // sv_demos.c
 //
 void SV_Demo_WriteSnap();
 void SV_Demo_AddServerCommand( const char * command );
+void SV_Demo_Start_f( const Tokenized & args );
+void SV_Demo_Record( Span< const char > name );
 void SV_Demo_Stop( bool silent );
-void SV_Demo_Start_f();
-void SV_Demo_Stop_f();
-void SV_Demo_Purge_f();
+void SV_DeleteOldDemos();
 
-void SV_DemoList_f( edict_t * ent );
+void SV_DemoList_f( edict_t * ent, msg_t args );
 void SV_DemoGetUrl_f( edict_t * ent, msg_t args );
 
 //

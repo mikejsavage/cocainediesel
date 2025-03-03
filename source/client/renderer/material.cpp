@@ -18,7 +18,7 @@
 
 struct MaterialSpecKey {
 	const char * keyword;
-	void ( *func )( Material * material, Span< const char > name, Span< const char > * data );
+	void ( *func )( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data );
 };
 
 constexpr u32 MAX_TEXTURES = 4096;
@@ -31,22 +31,18 @@ constexpr int DECAL_ATLAS_BLOCK_SIZE = DECAL_ATLAS_SIZE / 4;
 static Texture textures[ MAX_TEXTURES ];
 static void * texture_stb_data[ MAX_TEXTURES ];
 static Span< const BC4Block > texture_bc4_data[ MAX_TEXTURES ];
-static u32 num_textures;
 static Hashtable< MAX_TEXTURES * 2 > textures_hashtable;
 
 static Texture missing_texture;
 static Material missing_material;
 
 static Material materials[ MAX_MATERIALS ];
-static u32 num_materials;
 static Hashtable< MAX_MATERIALS * 2 > materials_hashtable;
 
 static Sampler samplers[ Sampler_Count ];
 
-Material world_material;
-Material wallbang_material;
-
 static Vec4 decal_uvwhs[ MAX_DECALS ];
+static Vec4 decal_trims[ MAX_DECALS ];
 static u32 num_decals;
 static Hashtable< MAX_DECALS * 2 > decals_hashtable;
 static Texture decals_atlases;
@@ -103,17 +99,6 @@ static u32 MipmappedByteSize( u32 w, u32 h, u32 levels, TextureFormat format ) {
 	return size;
 }
 
-static u64 HashMaterialName( Span< const char > name ) {
-	// skip leading /
-	while( name != "" && name[ 0 ] == '/' )
-		name++;
-	return Hash64( name );
-}
-
-static u64 HashMaterialName( const char * str ) {
-	return HashMaterialName( MakeSpan( str ) );
-}
-
 static Span< const char > ParseMaterialToken( Span< const char > * data ) {
 	Span< const char > token = ParseToken( data, Parse_StopOnNewLine );
 	if( token == "" ) {
@@ -168,34 +153,34 @@ static Wave ParseWave( Span< const char > * data ) {
 	return wave;
 }
 
-static void ParseCull( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseCull( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "disable" || token == "none" || token == "twosided" ) {
 		material->double_sided = true;
 	}
 }
 
-static void ParseDecal( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseDecal( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->decal = true;
 }
 
-static void ParseMaskOutlines( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseMaskOutlines( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->mask_outlines = true;
 }
 
-static void ParseShaded( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseShaded( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->shaded = true;
 }
 
-static void ParseSpecular( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseSpecular( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->specular = ParseMaterialFloat( data );
 }
 
-static void ParseShininess( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseShininess( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->shininess = ParseMaterialFloat( data );
 }
 
-static void ParseBlendFunc( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseBlendFunc( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "blend" ) {
 		material->blend_func = BlendFunc_Blend;
@@ -211,7 +196,7 @@ static Vec3 NormalizeColor( Vec3 color ) {
 	return f > 1.0f ? color / f : color;
 }
 
-static void ParseRGBGen( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseRGBGen( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "wave" ) {
 		material->rgbgen.type = ColorGenType_Wave;
@@ -246,7 +231,7 @@ static void ParseRGBGen( Material * material, Span< const char > name, Span< con
 	}
 }
 
-static void ParseAlphaGen( Material * material, Span< const char > name, Span< const char > * data ) {
+static void ParseAlphaGen( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "entity" ) {
 		material->alphagen.type = ColorGenType_Entity;
@@ -261,42 +246,23 @@ static void ParseAlphaGen( Material * material, Span< const char > name, Span< c
 	}
 }
 
-static void ParseTCMod( Material * material, Span< const char > name, Span< const char > * data ) {
-	if( material->tcmod.type != TCModFunc_None ) {
-		Com_GGPrint( S_COLOR_YELLOW "WARNING: material {} has multiple tcmods", name );
-		SkipToEndOfLine( data );
-		return;
-	}
+static const Texture * FindTexture( Span< const char > name ) {
+	u64 idx;
+	return textures_hashtable.get( StringHash( name ).hash, &idx ) ? &textures[ idx ] : missing_material.texture;
+}
 
+static void ParseTexture( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
-	if( token == "rotate" ) {
-		material->tcmod.args[0] = -ParseMaterialFloat( data );
-		material->tcmod.type = TCModFunc_Rotate;
-	}
-	else if( token == "scroll" ) {
-		ParseVector( data, material->tcmod.args, 2 );
-		material->tcmod.type = TCModFunc_Scroll;
-	}
-	else if( token == "stretch" ) {
-		material->tcmod.wave = ParseWave( data );
-		material->tcmod.type = TCModFunc_Stretch;
+	if( StartsWith( token, "." ) ) {
+		TempAllocator temp = cls.frame_arena.temp();
+		material->texture = FindTexture( temp.sv( "{}{}", BasePath( path ), token + 1 ) );
 	}
 	else {
-		SkipToEndOfLine( data );
+		material->texture = FindTexture( token );
 	}
 }
 
-static Texture * FindTexture( Span< const char > name ) {
-	u64 idx;
-	return textures_hashtable.get( StringHash( name ).hash, &idx ) ? &textures[ idx ] : NULL;
-}
-
-static void ParseTexture( Material * material, Span< const char > name, Span< const char > * data ) {
-	Span< const char > token = ParseMaterialToken( data );
-	material->texture = FindTexture( token );
-}
-
-static void SkipComment( Material * material, Span< const char > name, Span< const char > * data ) {
+static void SkipComment( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	SkipToEndOfLine( data );
 }
 
@@ -310,15 +276,14 @@ static const MaterialSpecKey shaderkeys[] = {
 	{ "shaded", ParseShaded },
 	{ "shininess", ParseShininess },
 	{ "specular", ParseSpecular },
-	{ "tcmod", ParseTCMod },
 	{ "texture", ParseTexture },
 	{ "//", SkipComment },
 };
 
-static void ParseMaterialKey( Material * material, Span< const char > name, Span< const char > token, Span< const char > * data ) {
+static void ParseMaterialKey( Material * material, Span< const char > token, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	for( MaterialSpecKey key : shaderkeys ) {
 		if( StrCaseEqual( token, key.keyword ) ) {
-			key.func( material, name, data );
+			key.func( material, name, path, data );
 			return;
 		}
 	}
@@ -328,10 +293,10 @@ static void ParseMaterialKey( Material * material, Span< const char > name, Span
 	SkipToEndOfLine( data );
 }
 
-static bool ParseMaterial( Material * material, Span< const char > name, Span< const char > * data ) {
+static bool ParseMaterial( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	TracyZoneScoped;
 
-	material->texture = FindTexture( MakeSpan( "$whiteimage" ) );
+	material->texture = FindTexture( MakeSpan( "white" ) );
 
 	while( true ) {
 		Span< const char > token = ParseToken( data, Parse_DontStopOnNewLine );
@@ -344,7 +309,7 @@ static bool ParseMaterial( Material * material, Span< const char > name, Span< c
 			break;
 		}
 		else {
-			ParseMaterialKey( material, name, token, data );
+			ParseMaterialKey( material, token, name, path, data );
 		}
 	}
 
@@ -379,27 +344,46 @@ static void UnloadTexture( u64 idx ) {
 	DeleteTexture( textures[ idx ] );
 }
 
-static u64 AddTexture( const char * name, u64 hash, const TextureConfig & config ) {
+static void AddMaterial( Span< const char > name, u64 hash, Material material ) {
+	if( materials_hashtable.size() == ARRAY_COUNT( materials ) ) {
+		Com_Printf( S_COLOR_YELLOW "Too many materials!\n" );
+		return;
+	}
+
+	material.hash = hash;
+
+	u64 idx = materials_hashtable.size();
+	if( !materials_hashtable.get( material.hash, &idx ) ) {
+		materials_hashtable.add( material.hash, idx );
+		material.name = CloneSpan( sys_allocator, name );
+	}
+	else {
+		material.name = materials[ idx ].name;
+	}
+
+	materials[ idx ] = material;
+}
+
+static void AddMaterial( Span< const char > name, const Material & material ) {
+	AddMaterial( name, Hash64( name ), material );
+}
+
+static Optional< size_t > AddTexture( Span< const char > name, u64 hash, const TextureConfig & config ) {
 	TracyZoneScoped;
 
-	Assert( num_textures < ARRAY_COUNT( textures ) );
+	if( textures_hashtable.size() == ARRAY_COUNT( textures ) ) {
+		Com_Printf( S_COLOR_YELLOW "Too many textures!\n" );
+		return NONE;
+	}
 
-	u64 idx = num_textures;
+	u64 idx = textures_hashtable.size();
 	if( !textures_hashtable.get( hash, &idx ) ) {
-		textures_hashtable.add( hash, num_textures );
-
-		materials[ num_materials ] = Material();
-		materials[ num_materials ].texture = &textures[ num_textures ];
-		materials[ num_materials ].name = CopyString( sys_allocator, name );
-		materials[ num_materials ].hash = hash;
-		materials_hashtable.add( hash, num_materials );
-
-		num_textures++;
-		num_materials++;
+		textures_hashtable.add( hash, idx );
+		AddMaterial( name, hash, Material { .texture = &textures[ idx ] } );
 	}
 	else {
 		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( textures[ idx ].format ) ) {
-			return U64_MAX;
+			return NONE;
 		}
 
 		UnloadTexture( idx );
@@ -409,45 +393,13 @@ static u64 AddTexture( const char * name, u64 hash, const TextureConfig & config
 	return idx;
 }
 
-static void LoadBuiltinTextures() {
+static void LoadSTBTexture( Span< const char > path, u8 * pixels, int w, int h, int channels, const char * failure_reason ) {
 	TracyZoneScoped;
-
-	{
-		u8 white = 255;
-
-		TextureConfig config;
-		config.format = TextureFormat_R_U8;
-		config.width = 1;
-		config.height = 1;
-		config.data = &white;
-
-		AddTexture( "$whiteimage", Hash64( "$whiteimage" ), config );
-	}
-
-	{
-		constexpr RGBA8 pixels[] = {
-			RGBA8( 255, 0, 255, 255 ),
-			RGBA8( 0, 0, 0, 255 ),
-			RGBA8( 255, 255, 255, 255 ),
-			RGBA8( 255, 0, 255, 255 ),
-		};
-
-		TextureConfig config;
-		config.format = TextureFormat_RGBA_U8_sRGB;
-		config.width = 2;
-		config.height = 2;
-		config.data = pixels;
-
-		missing_texture = NewTexture( config );
-	}
-}
-
-static void LoadSTBTexture( const char * path, u8 * pixels, int w, int h, int channels, const char * failure_reason ) {
-	TracyZoneScoped;
-	TracyZoneText( path, strlen( path ) );
+	TracyZoneSpan( path );
 
 	if( pixels == NULL ) {
-		Com_Printf( S_COLOR_YELLOW "WARNING: couldn't load texture from %s: %s\n", path, failure_reason );
+		Assert( failure_reason != NULL );
+		Com_GGPrint( S_COLOR_YELLOW "WARNING: couldn't load texture from {}: {}", path, failure_reason );
 		return;
 	}
 
@@ -458,17 +410,20 @@ static void LoadSTBTexture( const char * path, u8 * pixels, int w, int h, int ch
 		TextureFormat_RGBA_U8_sRGB,
 	};
 
-	TextureConfig config;
-	config.format = formats[ channels - 1 ];
-	config.width = checked_cast< u32 >( w );
-	config.height = checked_cast< u32 >( h );
-	config.data = pixels;
+	TextureConfig config = {
+		.format = formats[ channels - 1 ],
+		.width = checked_cast< u32 >( w ),
+		.height = checked_cast< u32 >( h ),
+		.data = pixels,
+	};
 
-	size_t idx = AddTexture( path, Hash64( StripExtension( path ) ), config );
-	texture_stb_data[ idx ] = pixels;
+	Optional< size_t > idx = AddTexture( path, Hash64( StripExtension( path ) ), config );
+	if( idx.exists ) {
+		texture_stb_data[ idx.value ] = pixels;
+	}
 }
 
-static void LoadDDSTexture( const char * path ) {
+static void LoadDDSTexture( Span< const char > path ) {
 	Span< const u8 > dds = AssetBinary( path );
 	if( dds.num_bytes() < sizeof( DDSHeader ) ) {
 		Com_GGPrint( S_COLOR_YELLOW "{} is too small to be a DDS file", path );
@@ -476,12 +431,6 @@ static void LoadDDSTexture( const char * path ) {
 	}
 
 	const DDSHeader * header = align_cast< const DDSHeader >( dds.ptr );
-
-	TextureConfig config;
-	config.width = header->width;
-	config.height = header->height;
-	config.data = dds.ptr + sizeof( DDSHeader );
-
 	if( header->magic != DDSMagic ) {
 		Com_GGPrint( S_COLOR_YELLOW "{} isn't a DDS file", path );
 		return;
@@ -491,6 +440,11 @@ static void LoadDDSTexture( const char * path ) {
 		Com_GGPrint( S_COLOR_YELLOW "{} dimensions must be a multiple of 4 ({}x{})", path, header->width, header->height );
 		return;
 	}
+
+	TextureConfig config;
+	config.width = header->width;
+	config.height = header->height;
+	config.data = dds.ptr + sizeof( DDSHeader );
 
 	switch( header->format ) {
 		case DDSTextureFormat_BC1:
@@ -521,11 +475,13 @@ static void LoadDDSTexture( const char * path ) {
 		return;
 	}
 
-	size_t idx = AddTexture( path, Hash64( StripExtension( path ) ), config );
-	texture_bc4_data[ idx ] = ( dds + sizeof( DDSHeader ) ).cast< const BC4Block >();
+	Optional< size_t > idx = AddTexture( path, Hash64( StripExtension( path ) ), config );
+	if( idx.exists ) {
+		texture_bc4_data[ idx.value ] = ( dds + sizeof( DDSHeader ) ).cast< const BC4Block >();
+	}
 }
 
-static void LoadMaterialFile( const char * path ) {
+static void LoadMaterialFile( Span< const char > path ) {
 	Span< const char > data = AssetString( path );
 
 	while( data != "" ) {
@@ -533,31 +489,18 @@ static void LoadMaterialFile( const char * path ) {
 		if( name == "" )
 			break;
 
-		u64 hash = HashMaterialName( name );
 		ParseToken( &data, Parse_DontStopOnNewLine );
 
-		Material material = Material();
-		if( !ParseMaterial( &material, name, &data ) )
+		Material material;
+		if( !ParseMaterial( &material, name, path, &data ) )
 			break;
-
-		u64 idx = num_materials;
-		if( !materials_hashtable.get( hash, &idx ) ) {
-			materials_hashtable.add( hash, idx );
-			material.name = ( *sys_allocator )( "{}", name );
-			num_materials++;
-		}
-		else {
-			material.name = materials[ idx ].name;
-		}
-
-		material.hash = hash;
-		materials[ idx ] = material;
+		AddMaterial( name, material );
 	}
 }
 
 struct DecodeSTBTextureJob {
 	struct {
-		const char * path;
+		Span< const char > path;
 		Span< const u8 > data;
 	} in;
 
@@ -565,7 +508,7 @@ struct DecodeSTBTextureJob {
 		int width, height;
 		int channels;
 		u8 * pixels;
-		const char * failure_reason;
+		Span< const char > failure_reason;
 	} out;
 };
 
@@ -623,6 +566,39 @@ static Span2D< const BC4Block > GetMipmap( const Material * material, u32 mipmap
 	return Span2D< const BC4Block >( cursor.slice( 0, mip_w * mip_h ).ptr, mip_w, mip_h );
 }
 
+static Vec4 TrimTexture( Span2D< const BC4Block > bc4, const Material * material ) {
+	TracyZoneScoped;
+
+	u32 min_x = bc4.w;
+	u32 min_y = bc4.h;
+	u32 max_x = 0;
+	u32 max_y = 0;
+
+	for( u32 y = 0; y < bc4.h; y++ ) {
+		for( u32 x = 0; x < bc4.w; x++ ) {
+			const BC4Block & block = bc4( x, y );
+			if( block.endpoints[ 0 ] == 0 && block.endpoints[ 1 ] == 0 )
+				continue;
+
+			min_x = Min2( min_x, x );
+			min_y = Min2( min_y, y );
+			max_x = Max2( max_x, x );
+			max_y = Max2( max_y, y );
+		}
+	}
+
+	Vec4 trim = Vec4(
+		float( min_x ) / float( bc4.w ),
+		float( min_y ) / float( bc4.h ),
+		float( max_x - min_x + 1 ) / float( bc4.w ),
+		float( max_y - min_y + 1 ) / float( bc4.h )
+	);
+
+	// Com_GGPrint( "{} : {}", material->name, trim );
+
+	return trim;
+}
+
 static void PackDecalAtlas() {
 	TracyZoneScoped;
 
@@ -634,7 +610,7 @@ static void PackDecalAtlas() {
 
 	u32 num_mipmaps = U32_MAX;
 
-	for( u32 i = 0; i < num_materials; i++ ) {
+	for( u32 i = 0; i < materials_hashtable.size(); i++ ) {
 		const Texture * texture = materials[ i ].texture;
 		if( !materials[ i ].decal || texture == NULL )
 			continue;
@@ -759,6 +735,9 @@ static void PackDecalAtlas() {
 
 			Span2D< const BC4Block > bc4 = GetMipmap( material, mipmap_idx );
 
+			if( mipmap_idx == 0 )
+				decal_trims[ decal_idx ] = TrimTexture( bc4, material );
+
 			u32 mipped_x = rects[ i ].x >> mipmap_idx;
 			u32 mipped_y = rects[ i ].y >> mipmap_idx;
 			Assert( mipped_x % 4 == 0 && mipped_y % 4 == 0 );
@@ -795,31 +774,86 @@ static void PackDecalAtlas() {
 	}
 }
 
+static void LoadBuiltinMaterials() {
+	TracyZoneScoped;
+
+	missing_material = Material();
+	missing_material.name = CloneSpan( sys_allocator, "missing material"_sp );
+	missing_material.texture = &missing_texture;
+	missing_material.sampler = Sampler_Unfiltered;
+
+	{
+		u8 white = 255;
+		TextureConfig config = TextureConfig {
+			.format = TextureFormat_R_U8,
+			.width = 1,
+			.height = 1,
+			.data = &white,
+		};
+
+		AddTexture( "white", Hash64( "white" ), config );
+		AddTexture( "$whiteimage", Hash64( "$whiteimage" ), config );
+	}
+
+	{
+		constexpr RGBA8 pixels[] = {
+			RGBA8( 255, 0, 255, 255 ),
+			RGBA8( 0, 0, 0, 255 ),
+			RGBA8( 255, 255, 255, 255 ),
+			RGBA8( 255, 0, 255, 255 ),
+		};
+
+		TextureConfig config;
+		config.format = TextureFormat_RGBA_U8_sRGB;
+		config.width = 2;
+		config.height = 2;
+		config.data = pixels;
+
+		missing_texture = NewTexture( config );
+	}
+
+	{
+		Material world_material = Material {
+			.rgbgen = { .args = { 0.17f, 0.17f, 0.17f, 1.0f } },
+			.world = true,
+			.specular = 3.0f,
+			.shininess = 8.0f,
+		};
+
+		Material wallbang_material = Material {
+			.rgbgen = {
+				.args = {
+					world_material.rgbgen.args[ 0 ] * 0.45f,
+					world_material.rgbgen.args[ 1 ] * 0.45f,
+					world_material.rgbgen.args[ 2 ] * 0.45f,
+					1.0f,
+				},
+			},
+			.world = true,
+			.specular = world_material.specular,
+			.shininess = world_material.shininess,
+		};
+
+		AddMaterial( "editor/world", world_material );
+		AddMaterial( "world", world_material );
+
+		AddMaterial( "editor/wallbangable", wallbang_material );
+		AddMaterial( "wallbangable", wallbang_material );
+
+		// for use in models, wallbangable is for collision geometry
+		AddMaterial( "wallbang_visible", wallbang_material );
+	}
+}
+
 void InitMaterials() {
 	TracyZoneScoped;
 
-	num_textures = 0;
-	num_materials = 0;
+	textures_hashtable.clear();
+	materials_hashtable.clear();
 	ClearMaterialStaticUniforms();
 
-	world_material = Material();
-	world_material.rgbgen.args[ 0 ] = 0.17f;
-	world_material.rgbgen.args[ 1 ] = 0.17f;
-	world_material.rgbgen.args[ 2 ] = 0.17f;
-	world_material.rgbgen.args[ 3 ] = 1.0f;
-	world_material.specular = 3.0f;
-	world_material.shininess = 8.0f;
-
-	wallbang_material = Material();
-	wallbang_material.rgbgen.args[ 0 ] = 0.17f * 0.45f;
-	wallbang_material.rgbgen.args[ 1 ] = 0.17f * 0.45f;
-	wallbang_material.rgbgen.args[ 2 ] = 0.17f * 0.45f;
-	wallbang_material.rgbgen.args[ 3 ] = 1.0f;
-	wallbang_material.specular = 3.0f;
-	wallbang_material.shininess = 8.0f;
-
 	CreateSamplers();
-	LoadBuiltinTextures();
+	LoadBuiltinMaterials();
 
 	{
 		TracyZoneScopedN( "Load disk textures" );
@@ -828,12 +862,8 @@ void InitMaterials() {
 		{
 			TracyZoneScopedN( "Build job list" );
 
-			for( const char * path : AssetPaths() ) {
+			for( Span< const char > path : AssetPaths() ) {
 				Span< const char > ext = FileExtension( path );
-
-				if( StartsWith( path, "textures/editor" ) ) {
-					continue;
-				}
 
 				if( ext == ".png" || ext == ".jpg" ) {
 					DecodeSTBTextureJob job;
@@ -857,7 +887,7 @@ void InitMaterials() {
 			DecodeSTBTextureJob * job = ( DecodeSTBTextureJob * ) data;
 
 			TracyZoneScopedN( "stbi_load_from_memory" );
-			TracyZoneText( job->in.path, strlen( job->in.path ) );
+			TracyZoneSpan( job->in.path );
 
 			job->out.pixels = stbi_load_from_memory( job->in.data.ptr, job->in.data.num_bytes(), &job->out.width, &job->out.height, &job->out.channels, 0 );
 
@@ -891,16 +921,12 @@ void InitMaterials() {
 	{
 		TracyZoneScopedN( "Load materials" );
 
-		for( const char * path : AssetPaths() ) {
+		for( Span< const char > path : AssetPaths() ) {
 			if( FileExtension( path ) == ".cdmaterial" ) {
 				LoadMaterialFile( path );
 			}
 		}
 	}
-
-	missing_material = Material();
-	missing_material.texture = &missing_texture;
-	missing_material.sampler = Sampler_Unfiltered;
 
 	PackDecalAtlas();
 }
@@ -910,7 +936,7 @@ void HotloadMaterials() {
 
 	bool changes = false;
 
-	for( const char * path : ModifiedAssetPaths() ) {
+	for( Span< const char > path : ModifiedAssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
 
 		if( ext == ".png" || ext == ".jpg" ) {
@@ -920,7 +946,7 @@ void HotloadMaterials() {
 			u8 * pixels;
 			{
 				TracyZoneScopedN( "stbi_load_from_memory" );
-				TracyZoneText( path, strlen( path ) );
+				TracyZoneSpan( path );
 				pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
 			}
 
@@ -935,7 +961,7 @@ void HotloadMaterials() {
 		}
 	}
 
-	for( const char * path : ModifiedAssetPaths() ) {
+	for( Span< const char > path : ModifiedAssetPaths() ) {
 		if( FileExtension( path ) == ".cdmaterial" ) {
 			LoadMaterialFile( path );
 			changes = true;
@@ -948,13 +974,14 @@ void HotloadMaterials() {
 }
 
 void ShutdownMaterials() {
-	for( u32 i = 0; i < num_textures; i++ ) {
+	for( u32 i = 0; i < textures_hashtable.size(); i++ ) {
 		UnloadTexture( i );
 	}
 
-	for( u32 i = 0; i < num_materials; i++ ) {
-		Free( sys_allocator, materials[ i ].name );
+	for( u32 i = 0; i < materials_hashtable.size(); i++ ) {
+		Free( sys_allocator, materials[ i ].name.ptr );
 	}
+	Free( sys_allocator, missing_material.name.ptr );
 
 	DeleteSamplers();
 	DeleteTexture( missing_texture );
@@ -969,22 +996,22 @@ bool TryFindMaterial( StringHash name, const Material ** material ) {
 	return true;
 }
 
-const Material * FindMaterial( StringHash name, const Material * def ) {
+const Material * FindMaterial( StringHash name ) {
 	const Material * material;
-	if( !TryFindMaterial( name, &material ) )
-		return def != NULL ? def : &missing_material;
-	return material;
+	return TryFindMaterial( name, &material ) ? material : &missing_material;
 }
 
-const Material * FindMaterial( const char * name, const Material * def ) {
-	return FindMaterial( StringHash( HashMaterialName( name ) ), def );
+const Material * FindMaterial( const char * name ) {
+	return FindMaterial( StringHash( name ) );
 }
 
-bool TryFindDecal( StringHash name, Vec4 * uvwh ) {
+bool TryFindDecal( StringHash name, Vec4 * uvwh, Vec4 * trim ) {
 	u64 idx;
 	if( !decals_hashtable.get( name.hash, &idx ) )
 		return false;
 	*uvwh = decal_uvwhs[ idx ];
+	if( trim != NULL )
+		*trim = decal_trims[ idx ];
 	return true;
 }
 
@@ -1024,25 +1051,8 @@ static float EvaluateWaveFunc( Wave wave ) {
 	return wave.args[ 0 ] + wave.args[ 1 ] * v;
 }
 
-PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned, bool map_model, GPUMaterial * gpu_material ) {
+PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned, GPUMaterial * gpu_material ) {
 	TracyZoneScoped;
-
-	if( material == &world_material || material == &wallbang_material ) {
-		PipelineState pipeline;
-		pipeline.shader = &shaders.world;
-		pipeline.pass = frame_static.world_opaque_pass;
-		pipeline.bind_texture_and_sampler( "u_BlueNoiseTexture", BlueNoiseTexture(), Sampler_Standard );
-		color.x = material->rgbgen.args[ 0 ];
-		color.y = material->rgbgen.args[ 1 ];
-		color.z = material->rgbgen.args[ 2 ];
-		pipeline.bind_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( material->specular, material->shininess ) );
-		pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );
-		pipeline.bind_texture_and_sampler( "u_ShadowmapTextureArray", &frame_static.render_targets.shadowmaps[ 0 ].depth_attachment, Sampler_Shadowmap );
-		pipeline.bind_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
-		pipeline.bind_texture_and_sampler( "u_DecalAtlases", DecalAtlasTextureArray(), Sampler_Standard );
-		AddDynamicsToPipeline( &pipeline );
-		return pipeline;
-	}
 
 	if( material->mask_outlines ) {
 		PipelineState pipeline;
@@ -1085,32 +1095,6 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		}
 	}
 
-	// evaluate tcmod
-	Vec3 tcmod_row0 = Vec3( 1.0f, 0.0f, 0.0f );
-	Vec3 tcmod_row1 = Vec3( 0.0f, 1.0f, 0.0f );
-	if( material->tcmod.type == TCModFunc_Scroll ) {
-		float s = float( PositiveMod( double( material->tcmod.args[ 0 ] ) * double( cls.gametime / 1000.0 ), 1.0 ) );
-		float t = float( PositiveMod( double( material->tcmod.args[ 1 ] ) * double( cls.gametime / 1000.0 ), 1.0 ) );
-		tcmod_row0 = Vec3( 1, 0, s );
-		tcmod_row1 = Vec3( 0, 1, t );
-	}
-	else if( material->tcmod.type == TCModFunc_Rotate ) {
-		float degrees = float( PositiveMod( double( material->tcmod.args[ 0 ] ) * double( cls.gametime / 1000.0 ), 360.0 ) );
-		float s = sinf( Radians( degrees ) );
-		float c = cosf( Radians( degrees ) );
-		// keep centered on (0.5, 0.5)
-		tcmod_row0 = Vec3( c, -s, 0.5f * ( 1.0f + s - c ) );
-		tcmod_row1 = Vec3( s, c, 0.5f * ( 1.0f - s - c ) );
-	}
-	else if( material->tcmod.type == TCModFunc_Stretch ) {
-		float wave = EvaluateWaveFunc( material->rgbgen.wave );
-		float scale = wave == 0 ? 1.0f : 1.0f / wave;
-		// keep centered on (0.5, 0.5)
-		float offset = 0.5f - 0.5f * scale;
-		tcmod_row0 = Vec3( scale, 0, offset );
-		tcmod_row1 = Vec3( 0, scale, offset );
-	}
-
 	PipelineState pipeline;
 	if( material->blend_func == BlendFunc_Disabled ) {
 		pipeline.pass = material->outlined ? frame_static.nonworld_opaque_outlined_pass : frame_static.nonworld_opaque_pass;
@@ -1142,29 +1126,28 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 
 	if( skinned || gpu_material == NULL ) {
-		pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, tcmod_row0, tcmod_row1 ) );
+		pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color ) );
 	}
 	if( gpu_material != NULL ) {
-		// instanced matrial
+		// instanced material
 		gpu_material->color = color;
-		gpu_material->tcmod_row0 = tcmod_row0;
-		gpu_material->tcmod_row1 = tcmod_row1;
 	}
 
-	if( map_model ) {
-		// TODO: heavy duplication between here and MaterialToPipelineState
-		pipeline.shader = &shaders.world_instanced;
+	if( material->world ) {
+		Assert( !skinned );
+		pipeline.shader = gpu_material == NULL ? &shaders.world : &shaders.world_instanced;
+		pipeline.pass = frame_static.world_opaque_pass;
 		pipeline.bind_texture_and_sampler( "u_BlueNoiseTexture", BlueNoiseTexture(), Sampler_Standard );
-		// pipeline.bind_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( Vec2( 0.0f ), material->specular, material->shininess ) );
-		// pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );
+		if( gpu_material == NULL ) {
+			pipeline.bind_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( material->specular, material->shininess ) );
+			pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color ) );
+		}
 		pipeline.bind_texture_and_sampler( "u_ShadowmapTextureArray", &frame_static.render_targets.shadowmaps[ 0 ].depth_attachment, Sampler_Shadowmap );
 		pipeline.bind_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
 		pipeline.bind_texture_and_sampler( "u_DecalAtlases", DecalAtlasTextureArray(), Sampler_Standard );
 		AddDynamicsToPipeline( &pipeline );
-		return pipeline;
 	}
-
-	if( skinned ) {
+	else if( skinned ) {
 		if( material->shaded ) {
 			pipeline.shader = &shaders.standard_skinned_shaded;
 			AddDynamicsToPipeline( &pipeline );

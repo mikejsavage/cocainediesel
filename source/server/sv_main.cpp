@@ -26,11 +26,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static bool sv_initialized = false;
 
 Cvar *sv_port;
+Cvar *sv_interface;
 
 Cvar *sv_downloadurl;
 
 Cvar *sv_timeout;            // seconds without any message
-Cvar *sv_zombietime;         // seconds to sink messages after disconnect
 
 Cvar *sv_maxclients;
 
@@ -146,7 +146,7 @@ static void SV_ReadPackets() {
 		cl->netchan.remoteAddress = source;
 
 		if( SV_ProcessPacket( &cl->netchan, &msg ) ) { // this is a valid, sequenced packet, so process it
-			cl->lastPacketReceivedTime = svs.realtime;
+			cl->lastPacketReceivedTime = svs.monotonic_time;
 			SV_ParseClientMessage( cl, &msg );
 		}
 
@@ -154,50 +154,39 @@ static void SV_ReadPackets() {
 	}
 }
 
-/*
-* SV_CheckTimeouts
-*
-* If a packet has not been received from a client for timeout->number
-* seconds, drop the conneciton.  Server frames are used instead of
-* realtime to avoid dropping the local client while debugging.
-*
-* When a client is normally dropped, the client_t goes into a zombie state
-* for a few seconds to make sure any final reliable message gets resent
-* if necessary
-*/
 static void SV_CheckTimeouts() {
 	TracyZoneScoped;
 
-	client_t *cl;
-	int i;
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
+		client_t * cl = &svs.clients[ i ];
 
-	// timeout clients
-	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
 		// fake clients do not timeout
 		if( cl->edict && ( cl->edict->s.svflags & SVF_FAKECLIENT ) ) {
-			cl->lastPacketReceivedTime = svs.realtime;
-		}
-		// message times may be wrong across a changelevel
-		else if( cl->lastPacketReceivedTime > svs.realtime ) {
-			cl->lastPacketReceivedTime = svs.realtime;
+			cl->lastPacketReceivedTime = svs.monotonic_time;
 		}
 
-		if( cl->state == CS_ZOMBIE && cl->lastPacketReceivedTime + 1000 * sv_zombietime->number < svs.realtime ) {
+		// message times may be wrong across a changelevel
+		else if( cl->lastPacketReceivedTime > svs.monotonic_time ) {
+			cl->lastPacketReceivedTime = svs.monotonic_time;
+		}
+
+		if( cl->state == CS_ZOMBIE && svs.monotonic_time > cl->lastPacketReceivedTime + Seconds( 2 ) ) {
 			cl->state = CS_FREE; // can now be reused
 			continue;
 		}
 
 		if( cl->state != CS_FREE && cl->state != CS_ZOMBIE &&
-			cl->lastPacketReceivedTime + 1000 * sv_timeout->number < svs.realtime ) {
+			svs.monotonic_time > cl->lastPacketReceivedTime + Seconds( sv_timeout->number ) ) {
 			SV_DropClient( cl, "%s", "Error: Connection timed out" );
 			cl->state = CS_FREE; // don't bother with zombie state
 		}
 	}
 }
 
-#define WORLDFRAMETIME 16 // 62.5fps
 static bool SV_RunGameFrame( int msec ) {
 	TracyZoneScoped;
+
+	constexpr int WORLDFRAMETIME = 16; // 62.5fps
 
 	static int64_t accTime = 0;
 	bool refreshSnapshot;
@@ -289,7 +278,7 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 		return;
 	}
 
-	svs.realtime += realmsec;
+	svs.monotonic_time += Milliseconds( realmsec );
 	svs.gametime += gamemsec;
 
 	// check timeouts
@@ -337,16 +326,16 @@ void SV_Init() {
 
 	SV_InitOperatorCommands();
 
-	NewCvar( "protocol", temp( "{}", s32( APP_PROTOCOL_VERSION ) ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
-	NewCvar( "serverid", temp( "{}", Random64( &svs.rng ) ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
+	NewCvar( "protocol", temp.sv( "{}", s32( APP_PROTOCOL_VERSION ) ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
+	NewCvar( "serverid", temp.sv( "{}", Random64( &svs.rng ) ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 
-	sv_port = NewCvar( "sv_port", temp( "{}", PORT_SERVER ), CvarFlag_Archive | CvarFlag_ServerReadOnly );
+	sv_port = NewCvar( "sv_port", temp.sv( "{}", PORT_SERVER ), CvarFlag_Archive | CvarFlag_ServerReadOnly );
+	sv_interface = NewCvar( "sv_interface", "", CvarFlag_ServerReadOnly | CvarFlag_LinuxOnly );
 
 	sv_downloadurl = NewCvar( "sv_downloadurl", "", CvarFlag_Archive | CvarFlag_ServerReadOnly );
 
 	sv_hostname = NewCvar( "sv_hostname", APPLICATION " server", CvarFlag_ServerInfo | CvarFlag_Archive );
 	sv_timeout = NewCvar( "sv_timeout", "15" );
-	sv_zombietime = NewCvar( "sv_zombietime", "2" );
 	sv_showChallenge = NewCvar( "sv_showChallenge", "0" );
 	sv_showInfoQueries = NewCvar( "sv_showInfoQueries", "0" );
 
@@ -362,7 +351,7 @@ void SV_Init() {
 	if( sv_maxclients->integer < 1 ) {
 		Cvar_ForceSet( "sv_maxclients", "1" );
 	} else if( sv_maxclients->integer > MAX_CLIENTS ) {
-		Cvar_ForceSet( "sv_maxclients", temp( "{}", MAX_CLIENTS ) );
+		Cvar_ForceSet( "sv_maxclients", temp.sv( "{}", MAX_CLIENTS ) );
 	}
 
 	sv_demodir = NewCvar( "sv_demodir", "server", CvarFlag_ServerReadOnly );

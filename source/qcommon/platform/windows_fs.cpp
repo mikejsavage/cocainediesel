@@ -14,17 +14,21 @@
 #include "qcommon/fs.h"
 #include "qcommon/platform/fs.h"
 #include "qcommon/platform/windows_utf8.h"
+#include "gameshared/q_shared.h"
 
-static char * ReplaceBackslashes( char * path ) {
-	char * cursor = path;
-	while( ( cursor = strchr( cursor, '\\' ) ) != NULL ) {
-		*cursor = '/';
-		cursor++;
+static Span< char > ReplaceBackslashes( Span< char > path ) {
+	Span< char > cursor = path;
+	while( true ) {
+		char * slash = StrChr( cursor, '\\' );
+		if( slash == NULL )
+			break;
+		*slash = '/';
+		cursor = cursor.slice( slash - cursor.ptr, cursor.n );
 	}
 	return path;
 }
 
-char * FindHomeDirectory( Allocator * a ) {
+Span< char > FindHomeDirectory( Allocator * a ) {
 	wchar_t * wide_documents_path;
 	if( SHGetKnownFolderPath( FOLDERID_Documents, 0, NULL, &wide_documents_path ) != S_OK ) {
 		FatalGLE( "SHGetKnownFolderPath" );
@@ -34,10 +38,10 @@ char * FindHomeDirectory( Allocator * a ) {
 	char * documents_path = WideToUTF8( a, wide_documents_path );
 	defer { Free( a, documents_path ); };
 
-	return ReplaceBackslashes( ( *a )( "{}/My Games/{}", documents_path, APPLICATION ) );
+	return ReplaceBackslashes( a->sv( "{}/My Games/{}", documents_path, APPLICATION ) );
 }
 
-char * GetExePath( Allocator * a ) {
+Span< char > GetExePath( Allocator * a ) {
 	DynamicArray< wchar_t > buf( a );
 	buf.resize( 1024 );
 
@@ -47,13 +51,15 @@ char * GetExePath( Allocator * a ) {
 			FatalGLE( "GetModuleFileNameW" );
 		}
 
-		if( n < buf.size() )
+		if( n < buf.size() ) {
+			buf.resize( n );
 			break;
+		}
 
 		buf.resize( buf.size() * 2 );
 	}
 
-	return ReplaceBackslashes( WideToUTF8( a, buf.ptr() ) );
+	return ReplaceBackslashes( MakeSpan( WideToUTF8( a, buf.ptr() ) ) );
 }
 
 FILE * OpenFile( Allocator * a, const char * path, OpenFileMode mode ) {
@@ -123,7 +129,7 @@ ListDirHandle BeginListDir( Allocator * a, const char * path ) {
 	wchar_t * wide = UTF8ToWide( a, path_and_wildcard );
 	defer { Free( a, wide ); };
 
-	handle.handle = FindFirstFileW( wide, handle.ffd );
+	handle.handle = FindFirstFileExW( wide, FindExInfoBasic, handle.ffd, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH );
 	if( handle.handle == INVALID_HANDLE_VALUE ) {
 		Free( handle.a, handle.ffd );
 		handle.handle = NULL;
@@ -212,7 +218,9 @@ Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor 
 	while( num_results < n ) {
 		if( entry->Action == FILE_ACTION_ADDED || entry->Action == FILE_ACTION_MODIFIED || entry->Action == FILE_ACTION_RENAMED_NEW_NAME ) {
 			Span< const wchar_t > wide_path = Span< const wchar_t >( entry->FileName, entry->FileNameLength / 2 );
-			results[ num_results ] = ReplaceBackslashes( WideToUTF8( temp, wide_path ) );
+			char * utf8_path = WideToUTF8( temp, wide_path );
+			ReplaceBackslashes( MakeSpan( utf8_path ) );
+			results[ num_results ] = utf8_path;
 			num_results++;
 		}
 

@@ -46,7 +46,7 @@ struct FrameStatic {
 	UniformBlock identity_material_static_uniforms;
 	UniformBlock identity_material_dynamic_uniforms;
 
-	Mat4 V, inverse_V;
+	Mat3x4 V, inverse_V;
 	Mat4 P, inverse_P;
 	Vec3 light_direction;
 	Vec3 position;
@@ -89,16 +89,6 @@ struct FrameStatic {
 	u8 post_ui_pass;
 };
 
-struct DynamicMesh {
-	const Vec3 * positions;
-	const Vec2 * uvs;
-	const RGBA8 * colors;
-	const u16 * indices;
-
-	u32 num_vertices;
-	u32 num_indices;
-};
-
 extern FrameStatic frame_static;
 
 void InitRenderer();
@@ -114,17 +104,31 @@ const Texture * BlueNoiseTexture();
 
 void DrawFullscreenMesh( const PipelineState & pipeline );
 
-PipelineState MaterialToPipelineState( const Material * material, Vec4 color = vec4_white, bool skinned = false, bool map_model = false, GPUMaterial * gpu_material = NULL );
+PipelineState MaterialToPipelineState( const Material * material, Vec4 color = white.vec4, bool skinned = false, GPUMaterial * gpu_material = NULL );
 
-void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color = vec4_white );
+void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color = white.vec4 );
 void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color );
 // void DrawRotatedBox( float x, float y, float w, float h, float angle, const Material * material, RGBA8 color );
 
-void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh );
+struct DynamicDrawData {
+	VertexDescriptor vertex_descriptor;
+	size_t base_vertex;
+	size_t first_index;
+	size_t num_vertices;
+};
 
-UniformBlock UploadModelUniforms( const Mat4 & M );
+DynamicDrawData UploadDynamicGeometry( Span< const u8 > vertices, Span< const u16 > indices, const VertexDescriptor & vertex_descriptor );
+void DrawDynamicGeometry( const PipelineState & pipeline, const DynamicDrawData & data, Optional< size_t > override_num_vertices = NONE, size_t extra_first_index = 0 );
+
+template< typename T >
+void DrawDynamicGeometry( const PipelineState & pipeline, Span< T > vertices, Span< const u16 > indices, const VertexDescriptor & vertex_descriptor ) {
+	DynamicDrawData data = UploadDynamicGeometry( vertices.template cast< const u8 >(), indices, vertex_descriptor );
+	DrawDynamicGeometry( pipeline, data );
+}
+
+UniformBlock UploadModelUniforms( const Mat3x4 & M );
 UniformBlock UploadMaterialStaticUniforms( float specular, float shininess, float lod_bias = 0.0f );
-UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0 = Vec3( 1, 0, 0 ), Vec3 tcmod_row1 = Vec3( 0, 1, 0 ) );
+UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color );
 
 const char * ShadowQualityToString( ShadowQuality mode );
 

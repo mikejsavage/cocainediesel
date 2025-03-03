@@ -1,6 +1,13 @@
+// mat4x3 is what we actually want but even in std430 that gets aligned like
+// vec4[4] so we can't use it. do this funny looking swizzle instead, which you
+// can derive by checking renderdoc's ssbo viewer
+struct AffineTransform {
+	mat3x4 m;
+};
+
 layout( std140 ) uniform u_View {
-	mat4 u_V;
-	mat4 u_InverseV;
+	AffineTransform u_V;
+	AffineTransform u_InverseV;
 	mat4 u_P;
 	mat4 u_InverseP;
 	vec3 u_CameraPos;
@@ -12,7 +19,7 @@ layout( std140 ) uniform u_View {
 
 #ifndef INSTANCED
 layout( std140 ) uniform u_Model {
-	mat4 u_M;
+	AffineTransform u_M;
 };
 #endif
 
@@ -25,13 +32,12 @@ layout( std140 ) uniform u_MaterialStatic {
 #ifndef INSTANCED
 layout( std140 ) uniform u_MaterialDynamic {
 	vec4 u_MaterialColor;
-	vec3 u_TextureMatrix[ 2 ];
 };
 #endif
 
 layout( std140 ) uniform u_ShadowMaps {
 	int u_ShadowCascades;
-	mat4 u_ShadowMatrix;
+	AffineTransform u_ShadowMatrix;
 
 	float u_CascadePlaneA;
 	float u_CascadePlaneB;

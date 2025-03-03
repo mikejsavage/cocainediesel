@@ -10,6 +10,7 @@ enum CvarFlags : u32 {
 	CvarFlag_ReadOnly       = 1 << 4,
 	CvarFlag_ServerReadOnly = 1 << 5,
 	CvarFlag_Developer      = 1 << 6,
+	CvarFlag_LinuxOnly      = 1 << 7,
 };
 
 constexpr CvarFlags operator|( CvarFlags a, CvarFlags b ) {
@@ -19,7 +20,7 @@ constexpr CvarFlags operator|( CvarFlags a, CvarFlags b ) {
 struct Cvar {
 	char * name;
 	char * value;
-	char * default_value;
+	Span< char > default_value;
 
 	CvarFlags flags;
 	bool from_config;
@@ -32,28 +33,26 @@ struct Cvar {
 // that the client knows to send it to the server
 extern bool userinfo_modified;
 
-Cvar * NewCvar( const char * name, const char * value, CvarFlags flags = CvarFlags( 0 ) );
+Cvar * NewCvar( Span< const char > name, Span< const char > value, CvarFlags flags = CvarFlags( 0 ) );
 
-bool IsCvar( const char * name );
-const char * Cvar_String( const char * name );
-int Cvar_Integer( const char * name );
-float Cvar_Float( const char * name );
-bool Cvar_Bool( const char * name );
+Span< const char > Cvar_String( Span< const char > name );
+int Cvar_Integer( Span< const char > name );
+float Cvar_Float( Span< const char > name );
+bool Cvar_Bool( Span< const char > name );
 
-void Cvar_Set( const char * name, const char * value );
-void Cvar_SetInteger( const char * name, int value );
-void Cvar_ForceSet( const char * name, const char * value );
+void Cvar_Set( Span< const char > name, Span< const char > value );
+void Cvar_SetInteger( Span< const char > name, int value );
+void Cvar_ForceSet( Span< const char > name, Span< const char > value );
 
-bool Cvar_Command();
+bool Cvar_Command( const Tokenized & args );
 
-Span< const char * > TabCompleteCvar( TempAllocator * a, const char * partial );
-Span< const char * > SearchCvars( Allocator * a, const char * partial );
+Span< Span< const char > > TabCompleteCvar( TempAllocator * a, Span< const char > partial );
+Span< Span< const char > > SearchCvars( Allocator * a, Span< const char > partial );
 
 bool Cvar_CheatsAllowed();
 void ResetCheatCvars();
 
-class DynamicString;
-void Cvar_WriteVariables( DynamicString * config );
+Span< const char > Cvar_MakeConfig( Allocator * a );
 
 void Cvar_Init();
 void Cvar_Shutdown();

@@ -78,7 +78,7 @@ float Dequantize01( T x ) {
 }
 
 template< typename T, u64 Bits = sizeof( T ) * 8 >
-static T Quantize01( float x ) {
+T Quantize01( float x ) {
 	Assert( x >= 0.0f && x <= 1.0f );
 	return T( x * float( ( 1_u64 << Bits ) - 1 ) + 0.5f );
 }
@@ -90,7 +90,7 @@ float Dequantize11( T x ) {
 }
 
 template< typename T, u64 Bits = sizeof( T ) * 8 >
-static T Quantize11( float x ) {
+T Quantize11( float x ) {
 	Assert( x >= -1.0f && x <= 1.0f );
 	return T( ( x * 0.5f + 0.5f ) * float( ( 1_u64 << Bits ) - 2 ) + 0.5f );
 }
@@ -106,8 +106,12 @@ float SampleNormalDistribution( RNG * rng );
 Vec3 Project( Vec3 a, Vec3 b );
 Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p );
 
-Mat4 TransformKToDir( Vec3 dir );
-Mat4 Mat4Rotation( EulerDegrees3 angles );
+Mat3x4 Mat4Rotation( EulerDegrees3 angles );
+
+Quaternion EulerDegrees3ToQuaternion( EulerDegrees3 angles );
+Quaternion QuaternionFromAxisAndRadians( Vec3 axis, float radians );
+Quaternion QuaternionFromNormalAndRadians( Vec3 normal, float radians );
+Quaternion BasisToQuaternion( Vec3 normal, Vec3 tangent, Vec3 bitangent );
 
 MinMax3 Union( const MinMax3 & bounds, Vec3 p );
 MinMax3 Union( const MinMax3 & a, const MinMax3 & b );
@@ -116,5 +120,3 @@ MinMax1 Union( MinMax1 bounds, float x );
 MinMax1 Union( MinMax1 a, MinMax1 b );
 
 u32 Log2( u64 x );
-
-u16 Bswap( u16 x );

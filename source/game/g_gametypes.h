@@ -15,6 +15,7 @@ struct GametypeDef {
 	const edict_t * ( *SelectDeadcam )();
 	void ( *Shutdown )();
 	bool ( *SpawnEntity )( StringHash classname, edict_t * ent );
+	void ( *MapHotloading )();
 	void ( *MapHotloaded )();
 
 	int numTeams;

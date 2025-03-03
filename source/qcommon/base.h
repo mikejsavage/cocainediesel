@@ -11,6 +11,7 @@
 #include "qcommon/allocators.h"
 #include "qcommon/linear_algebra.h"
 #include "qcommon/tracy.h"
+#include "qcommon/unittest.h"
 
 /*
  * helpers
@@ -19,6 +20,7 @@
 #define CONCAT_HELPER( a, b ) a##b
 #define CONCAT( a, b ) CONCAT_HELPER( a, b )
 #define COUNTER_NAME( x ) CONCAT( x, __COUNTER__ )
+#define LINE_NAME( x ) CONCAT( x, __LINE__ )
 
 template< typename To, typename From >
 To bit_cast( const From & from ) {
@@ -29,10 +31,9 @@ To bit_cast( const From & from ) {
 }
 
 #define Fatal( format, ... ) FatalImpl( __FILE__, __LINE__, format, ##__VA_ARGS__ )
-#define FatalErrno( msg ) FatalErrnoImpl( msg, __FILE__, __LINE__ )
 
-[[gnu::format( printf, 3, 4 )]] void FatalImpl( const char * file, int line, const char * format, ... );
-void FatalErrnoImpl( const char * msg, const char * file, int line );
+[[noreturn]] [[gnu::format( printf, 3, 4 )]] void FatalImpl( const char * file, int line, const char * format, ... );
+[[noreturn]] void FatalErrno( const char * msg, SourceLocation src_loc = CurrentSourceLocation() );
 
 template< typename T >
 constexpr bool HasAnyBit( T haystack, T needle ) {
@@ -42,6 +43,10 @@ constexpr bool HasAnyBit( T haystack, T needle ) {
 template< typename T >
 constexpr bool HasAllBits( T haystack, T needle ) {
 	return ( haystack & needle ) == needle;
+}
+
+constexpr bool NearlyEqual( float lhs, float rhs, float epsilon = 0.001f ) {
+	return Abs( lhs - rhs ) <= epsilon;
 }
 
 /*
@@ -56,8 +61,7 @@ struct ScopeExit {
 };
 
 struct DeferHelper {
-	template< typename F >
-	ScopeExit< F > operator+( F f ) { return f; }
+	template< typename F > ScopeExit< F > operator+( F f ) { return f; }
 };
 
 #define defer [[maybe_unused]] const auto & COUNTER_NAME( DEFER_ ) = DeferHelper() + [&]()
@@ -65,6 +69,10 @@ struct DeferHelper {
 /*
  * Span
  */
+
+constexpr Span< const char > operator""_sp( const char * str, size_t n ) {
+	return Span< const char >( str, n );
+}
 
 Span< char > MakeSpan( char * str );
 Span< const char > MakeSpan( const char * str );
@@ -110,13 +118,28 @@ bool operator!=( const Optional< T > & a, const Optional< T > & b ) {
 }
 
 /*
+ * KB/MB helpers
+ */
+
+constexpr size_t Kilobytes( size_t kb ) { return kb * 1024; }
+constexpr size_t Megabytes( size_t mb ) { return mb * 1024 * 1024; }
+
+/*
  * debug stuff
  */
 
-extern bool break1;
-extern bool break2;
-extern bool break3;
-extern bool break4;
+inline bool break1 = false;
+inline bool break2 = false;
+inline bool break3 = false;
+inline bool break4 = false;
+
+#if COMPILER_MSVC
+#define Breakpoint() __debugbreak()
+#elif COMPILER_CLANG
+#define Breakpoint() __builtin_debugtrap()
+#elif COMPILER_GCC
+#define Breakpoint() asm( "int $3" )
+#endif
 
 /*
  * Com_Print

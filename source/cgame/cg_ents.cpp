@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/time.h"
 #include "client/audio/api.h"
 #include "client/renderer/renderer.h"
+#include "client/renderer/text.h"
 
 static void CG_UpdateEntities();
 
@@ -167,8 +168,8 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 		}
 
 		if( ( cent->current.type == ET_GENERIC || cent->current.type == ET_PLAYER
-			  || cent->current.type == ET_GRENADE
-			  || cent->current.type == ET_CORPSE || cent->current.type == ET_STUNGRENADE ) ) {
+			  || cent->current.type == ET_LAUNCHER
+			  || cent->current.type == ET_CORPSE || cent->current.type == ET_FLASH ) ) {
 			cent->canExtrapolate = true;
 		}
 	}
@@ -411,24 +412,23 @@ static void DrawEntityModel( centity_t * cent ) {
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( scale );
+	Mat3x4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( scale );
 
 	Vec4 color = sRGBToLinear( cent->interpolated.color );
 
 	MatrixPalettes palettes = { };
 	if( cent->interpolated.animating && model.type == ModelType_GLTF && model.gltf->animations.n > 0 ) { // TODO: this is fragile and we should do something better
-		Span< TRS > pose = SampleAnimation( &temp, model.gltf, cent->interpolated.animation_time );
+		Span< Transform > pose = SampleAnimation( &temp, model.gltf, cent->interpolated.animation_time );
 		palettes = ComputeMatrixPalettes( &temp, model.gltf, pose );
 	}
 	else if( cent->current.type == ET_MAPMODEL && model.type == ModelType_GLTF && model.gltf->animations.n > 0 ) {
 		float t = PositiveMod( ToSeconds( cls.monotonicTime ), model.gltf->animations[ 0 ].duration );
-		Span< TRS > pose = SampleAnimation( &temp, model.gltf, t );
+		Span< Transform > pose = SampleAnimation( &temp, model.gltf, t );
 		palettes = ComputeMatrixPalettes( &temp, model.gltf, pose );
 	}
 
 	DrawModelConfig config = { };
 	config.draw_model.enabled = true;
-	config.draw_model.map_model = cent->current.type == ET_MAPMODEL;
 	config.draw_shadows.enabled = true;
 
 	if( cent->current.silhouetteColor.a > 0 ) {
@@ -456,7 +456,7 @@ static void CG_LerpLaser( centity_t *cent ) {
 }
 
 static void CG_AddLaserEnt( centity_t *cent ) {
-	DrawBeam( cent->interpolated.origin, cent->interpolated.origin2, cent->current.radius, vec4_white, "entities/laser/laser" );
+	DrawBeam( cent->interpolated.origin, cent->interpolated.origin2, cent->current.radius, white.vec4, "entities/laser/laser" );
 }
 
 static void CG_UpdateLaserbeamEnt( centity_t *cent ) {
@@ -614,7 +614,7 @@ static void DrawEntityTrail( const centity_t * cent, StringHash name ) {
 
 	Vec4 color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 0.5f );
 	DoVisualEffect( name, cent->interpolated.origin, cent->trailOrigin, 1.0f, color );
-	DrawTrail( Hash64( cent->current.id.id ), cent->interpolated.origin, 16.0f, color, "simpletrail", 500 );
+	DrawTrail( Hash64( cent->current.id.id ), cent->interpolated.origin, 16.0f, color, "simpletrail", Milliseconds( 500 ) );
 }
 
 void DrawEntities() {
@@ -636,58 +636,58 @@ void DrawEntities() {
 				CG_EntityLoopSound( cent, state );
 				break;
 
-			case ET_ROCKET:
+			case ET_BAZOOKA:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/rl/trail" );
+				DrawEntityTrail( cent, "loadout/bazooka/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 25600.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_GRENADE:
+			case ET_LAUNCHER:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/gl/trail" );
+				DrawEntityTrail( cent, "loadout/launcher/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_STUNGRENADE:
+			case ET_FLASH:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "gadgets/flash/trail" );
+				DrawEntityTrail( cent, "loadout/flash/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_ARBULLET:
+			case ET_ASSAULT:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/ar/trail" );
+				DrawEntityTrail( cent, "loadout/assault/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_BUBBLE:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/bg/trail" );
+				DrawEntityTrail( cent, "loadout/bubble/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_RIFLEBULLET:
+			case ET_RIFLE:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/rifle/bullet_trail" );
+				DrawEntityTrail( cent, "loadout/rifle/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_PISTOLBULLET:
+			case ET_PISTOL:
 				//change angle after bounce
 				if( cent->velocity != Vec3( 0.0f ) ) {
 					AnglesToAxis( VecToAngles( cent->velocity ), cent->interpolated.axis );
 				}
 
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/pistol/bullet_trail" );
+				DrawEntityTrail( cent, "loadout/pistol/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_STAKE:
+			case ET_CROSSBOW:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/stake/trail" );
+				DrawEntityTrail( cent, "loadout/crossbow/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_BLAST:
-				DrawEntityTrail( cent, "weapons/mb/trail" );
+			case ET_BLASTER:
+				DrawEntityTrail( cent, "loadout/blaster/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 3200.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
@@ -696,9 +696,15 @@ void DrawEntities() {
 				DrawEntityTrail( cent, EMPTY_HASH );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_THROWING_AXE:
+			case ET_STICKY:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/axe/trail" );
+				DrawEntityTrail( cent, "loadout/sticky/trail" );
+				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
+				CG_EntityLoopSound( cent, state );
+				break;
+			case ET_AXE:
+				DrawEntityModel( cent );
+				DrawEntityTrail( cent, "loadout/axe/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_SHURIKEN:
@@ -723,9 +729,8 @@ void DrawEntities() {
 				break;
 
 			case ET_DECAL: {
-				Vec3 normal;
-				AngleVectors( cent->current.angles, &normal, NULL, NULL );
-				DrawDecal( cent->current.origin, normal, cent->current.scale.x, 0.0f, cent->current.material, sRGBToLinear( cent->current.color ) );
+				Quaternion orientation = EulerDegrees3ToQuaternion( cent->current.angles );
+				DrawDecal( cent->current.origin, orientation, cent->current.scale.x, cent->current.material, sRGBToLinear( cent->current.color ) );
 			} break;
 
 			case ET_LASERBEAM:
@@ -764,6 +769,12 @@ void DrawEntities() {
 				DrawEntityModel( cent );
 				break;
 
+			case ET_CINEMATIC_MAPNAME: {
+				TempAllocator temp = cls.frame_arena.temp();
+				Span< const char > big = ToUpperASCII( &temp, cl.map->name );
+				Draw3DText( cgs.fontBoldItalic, 256.0f, big, cent->current.origin, cent->current.angles, white.vec4 );
+			} break;
+
 			case ET_MAPMODEL:
 				DrawEntityModel( cent );
 				break;
@@ -794,22 +805,24 @@ void CG_LerpEntities() {
 			case ET_GENERIC:
 			case ET_JUMPPAD:
 			case ET_PAINKILLER_JUMPPAD:
-			case ET_ROCKET:
-			case ET_ARBULLET:
+			case ET_BAZOOKA:
+			case ET_STICKY:
+			case ET_ASSAULT:
 			case ET_BUBBLE:
-			case ET_GRENADE:
-			case ET_STUNGRENADE:
-			case ET_RIFLEBULLET:
-			case ET_PISTOLBULLET:
-			case ET_STAKE:
-			case ET_BLAST:
+			case ET_LAUNCHER:
+			case ET_FLASH:
+			case ET_RIFLE:
+			case ET_PISTOL:
+			case ET_CROSSBOW:
+			case ET_BLASTER:
 			case ET_SAWBLADE:
-			case ET_THROWING_AXE:
+			case ET_AXE:
 			case ET_SHURIKEN:
 			case ET_PLAYER:
 			case ET_CORPSE:
 			case ET_GHOST:
 			case ET_SPEAKER:
+			case ET_CINEMATIC_MAPNAME:
 			case ET_BOMB:
 			case ET_MAPMODEL:
 				if( state->linearMovement ) {
@@ -872,19 +885,21 @@ void CG_UpdateEntities() {
 
 		switch( cent->type ) {
 			case ET_GENERIC:
-			case ET_ROCKET:
-			case ET_ARBULLET:
+			case ET_BAZOOKA:
+			case ET_ASSAULT:
 			case ET_BUBBLE:
-			case ET_GRENADE:
-			case ET_STUNGRENADE:
-			case ET_RIFLEBULLET:
-			case ET_PISTOLBULLET:
-			case ET_STAKE:
-			case ET_BLAST:
+			case ET_LAUNCHER:
+			case ET_FLASH:
+			case ET_RIFLE:
+			case ET_PISTOL:
+			case ET_CROSSBOW:
+			case ET_BLASTER:
 			case ET_SAWBLADE:
+			case ET_STICKY:
 			case ET_RAILALT:
-			case ET_THROWING_AXE:
+			case ET_AXE:
 			case ET_SHURIKEN:
+			case ET_CINEMATIC_MAPNAME:
 			case ET_MAPMODEL:
 				break;
 

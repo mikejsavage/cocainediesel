@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/maplist.h"
 #include "qcommon/threads.h"
 #include "qcommon/time.h"
+#include "client/keys.h"
 
 #include <errno.h>
 #include <setjmp.h>
@@ -80,7 +81,7 @@ static void Com_ReopenConsoleLog() {
 
 	Com_CloseConsoleLog( false, false );
 
-	if( logconsole && logconsole->value && logconsole->value[0] ) {
+	if( !StrEqual( logconsole->value, "" ) ) {
 		OpenFileMode mode = logconsole_append && logconsole_append->integer ? OpenFile_AppendExisting : OpenFile_WriteOverwrite;
 		log_file = OpenFile( sys_allocator, logconsole->value, mode );
 		if( log_file == NULL ) {
@@ -168,7 +169,7 @@ void Com_Printf( const char *format, ... ) {
 
 	PrintStdout( msg );
 
-	Con_Print( msg );
+	Con_Print( MakeSpan( msg ) );
 
 	TracyCMessage( msg, strlen( msg ) );
 
@@ -225,9 +226,6 @@ void Com_SetClientState( connstate_t state ) {
 
 //============================================================================
 
-void Key_Init();
-void Key_Shutdown();
-
 void Qcommon_Init( int argc, char ** argv ) {
 	TracyZoneScoped;
 
@@ -249,22 +247,23 @@ void Qcommon_Init( int argc, char ** argv ) {
 	InitFS();
 	Cmd_Init();
 	Cvar_Init();
-	Key_Init(); // need to be able to bind keys before running configs
+	InitKeys(); // need to be able to bind keys before running configs
 
 	if( !is_dedicated_server ) {
 		ExecDefaultCfg();
-		Cbuf_ExecuteLine( "exec config.cfg" );
+		Cmd_Execute( sys_allocator, "exec config.cfg" );
 	}
 	else {
-		Cbuf_ExecuteLine( "config dedicated_autoexec.cfg" );
+		Cmd_Execute( sys_allocator, "config dedicated_autoexec.cfg" );
 	}
 
-	Cbuf_AddEarlyCommands( argc, argv );
+	Span< const char * > args = Span< const char * >( ( const char ** ) argv, checked_cast< size_t >( argc ) );
+	Cmd_ExecuteEarlyCommands( args );
 
-	AddCommand( "quit", Com_DeferQuit );
+	AddCommand( "quit", []( const Tokenized & args ) { Com_DeferQuit(); } );
 
 	timescale = NewCvar( "timescale", "1.0", CvarFlag_Cheat );
-	logconsole = NewCvar( "logconsole", is_dedicated_server ? "server.log" : "", CvarFlag_Archive );
+	logconsole = NewCvar( "logconsole", is_dedicated_server ? "server.log"_sp : ""_sp, CvarFlag_Archive );
 	logconsole_append = NewCvar( "logconsole_append", "1", CvarFlag_Archive );
 	logconsole_flush = NewCvar( "logconsole_flush", "0", CvarFlag_Archive );
 	logconsole_timestamp = NewCvar( "logconsole_timestamp", "0", CvarFlag_Archive );
@@ -281,15 +280,13 @@ void Qcommon_Init( int argc, char ** argv ) {
 	SV_Init();
 	CL_Init();
 
-	Cbuf_AddLateCommands( argc, argv );
+	Cmd_ExecuteLateCommands( args );
 }
 
 bool Qcommon_Frame( unsigned int realMsec ) {
-	if( IFDEF( TRACY_ENABLE ) ) {
+	if( IFDEF( TRACY_ENABLE ) && tracy_is_active ) {
 		if( Now() - disable_tracy_start_time > Minutes( 10 ) ) {
-			if( tracy_is_active ) {
-				Com_Printf( "Disabled Tracy to conserve memory\n" );
-			}
+			Com_Printf( "Disabled Tracy to conserve memory\n" );
 			tracy_is_active = false;
 		}
 	}
@@ -316,15 +313,13 @@ bool Qcommon_Frame( unsigned int realMsec ) {
 	}
 
 	if( is_dedicated_server ) {
+		// execute commands from stdin
 		while( true ) {
 			const char * s = Sys_ConsoleInput();
 			if( s == NULL )
 				break;
-			Cbuf_ExecuteLine( s );
+			Cmd_ExecuteLine( sys_allocator, MakeSpan( s ), true );
 		}
-
-		// process console commands
-		Cbuf_Execute();
 	}
 
 	SV_Frame( realMsec, gameMsec );
@@ -343,7 +338,7 @@ void Qcommon_Shutdown() {
 
 	Netchan_Shutdown();
 	ShutdownNetworking();
-	Key_Shutdown();
+	ShutdownKeys();
 
 	RemoveCommand( "quit" );
 

@@ -26,7 +26,7 @@ constexpr float Radians( float d ) { return d * PI / 180.0f; }
 constexpr float Degrees( float r ) { return r * 180.0f / PI; }
 
 template< typename T >
-T Abs( const T & x ) {
+constexpr T Abs( const T & x ) {
 	return x >= 0 ? x : -x;
 }
 
@@ -39,17 +39,17 @@ constexpr float Cube( float x ) {
 }
 
 template< typename T >
-T Lerp( T a, float t, T b ) {
+constexpr T Lerp( T a, float t, T b ) {
 	return a * ( 1.0f - t ) + b * t;
 }
 
 template< typename T >
-float Unlerp( T lo, T x, T hi ) {
+constexpr float Unlerp( T lo, T x, T hi ) {
 	return float( x - lo ) / float( hi - lo );
 }
 
 template< typename T >
-float Unlerp01( T lo, T x, T hi ) {
+constexpr float Unlerp01( T lo, T x, T hi ) {
 	return Clamp01( Unlerp( lo, x, hi ) );
 }
 

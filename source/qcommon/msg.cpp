@@ -19,9 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/qcommon.h"
-#include "qcommon/serialization.h"
-
-#include <type_traits>
+#include "qcommon/rng.h"
 
 #define MAX_MSG_STRING_CHARS    2048
 
@@ -99,13 +97,12 @@ static void MSG_FinishReadingDeltaBuffer( msg_t * msg, const DeltaBuffer & delta
 }
 
 static DeltaBuffer DeltaWriter( u8 * buf, size_t n ) {
-	DeltaBuffer delta = { };
-	delta.buf = buf;
-	delta.cursor = buf;
-	delta.end = delta.buf + n;
-	delta.serializing = true;
-
-	return delta;
+	return DeltaBuffer {
+		.buf = buf,
+		.cursor = buf,
+		.end = buf + n,
+		.serializing = true,
+	};
 }
 
 static void AddBit( DeltaBuffer * buf, bool b ) {
@@ -212,6 +209,10 @@ static void Delta( DeltaBuffer * buf, StringHash & hash, StringHash baseline ) {
 	DeltaFundamental( buf, hash.hash, baseline.hash );
 }
 
+static void Delta( DeltaBuffer * buf, Time & time, Time baseline ) {
+	DeltaFundamental( buf, time.flicks, baseline.flicks );
+}
+
 template< typename T, size_t N >
 void Delta( DeltaBuffer * buf, T ( &arr )[ N ], const T ( &baseline )[ N ] ) {
 	for( size_t i = 0; i < N; i++ ) {
@@ -250,7 +251,7 @@ static void Delta( DeltaBuffer * buf, Capsule & c, const Capsule & baseline ) {
 
 template< typename E >
 void DeltaEnum( DeltaBuffer * buf, E & x, E baseline, E count ) {
-	using T = typename std::underlying_type< E >::type;
+	using T = UnderlyingType< E >;
 	Delta( buf, ( T & ) x, ( const T & ) baseline );
 	if( x < 0 || x >= count ) {
 		buf->error = true;
@@ -263,7 +264,7 @@ void DeltaEnum( DeltaBuffer * buf, Optional< E > & x, Optional< E > baseline, E 
 
 	Delta( buf, x.exists, baseline.exists );
 
-	using T = typename std::underlying_type< E >::type;
+	using T = UnderlyingType< E >;
 	const T & baseline_to_delta_against = baseline.exists ? baseline.value : null_baseline;
 	if( x.exists ) {
 		Delta( buf, ( T & ) x.value, baseline_to_delta_against );
@@ -275,7 +276,7 @@ void DeltaEnum( DeltaBuffer * buf, Optional< E > & x, Optional< E > baseline, E 
 
 template< typename E >
 void DeltaBitfieldEnum( DeltaBuffer * buf, E & x, E baseline, E mask ) {
-	using T = typename std::underlying_type< E >::type;
+	using T = UnderlyingType< E >;
 	Delta( buf, ( T & ) x, ( const T & ) baseline );
 	if( ( x & ~mask ) != 0 ) {
 		buf->error = true;
@@ -288,7 +289,7 @@ void DeltaBitfieldEnum( DeltaBuffer * buf, Optional< E > & x, Optional< E > base
 
 	Delta( buf, x.exists, baseline.exists );
 
-	using T = typename std::underlying_type< E >::type;
+	using T = UnderlyingType< E >;
 	const T & baseline_to_delta_against = baseline.exists ? baseline.value : null_baseline;
 	if( x.exists ) {
 		Delta( buf, ( T & ) x.value, baseline_to_delta_against );
@@ -370,12 +371,12 @@ static void DeltaAngle( DeltaBuffer * buf, float & x, const float & baseline, fl
 	x = normalize( Dequantize01< u16 >( angle16 ) * 360.0f );
 }
 
-static void DeltaAngles( DeltaBuffer * buf, EulerDegrees2 & a, const EulerDegrees2 & baseline ) {
+static void Delta( DeltaBuffer * buf, EulerDegrees2 & a, const EulerDegrees2 & baseline ) {
 	DeltaAngle( buf, a.pitch, baseline.pitch, AngleNormalize180 );
 	DeltaAngle( buf, a.yaw, baseline.yaw, AngleNormalize360 );
 }
 
-static void DeltaAngles( DeltaBuffer * buf, EulerDegrees3 & a, const EulerDegrees3 & baseline ) {
+static void Delta( DeltaBuffer * buf, EulerDegrees3 & a, const EulerDegrees3 & baseline ) {
 	DeltaAngle( buf, a.pitch, baseline.pitch, AngleNormalize180 );
 	DeltaAngle( buf, a.yaw, baseline.yaw, AngleNormalize360 );
 	DeltaAngle( buf, a.roll, baseline.roll, AngleNormalize360 );
@@ -428,18 +429,14 @@ void MSG_WriteIntBase128( msg_t * msg, int64_t c ) {
 	MSG_WriteUintBase128( msg, cc );
 }
 
-void MSG_WriteString( msg_t * msg, const char *s ) {
-	if( !s ) {
-		MSG_Write( msg, "", 1 );
-	} else {
-		int l = strlen( s );
-		if( l >= MAX_MSG_STRING_CHARS ) {
-			Com_Printf( "MSG_WriteString: MAX_MSG_STRING_CHARS overflow" );
-			MSG_Write( msg, "", 1 );
-			return;
-		}
-		MSG_Write( msg, s, l + 1 );
-	}
+void MSG_WriteString( msg_t * msg, Span< const char > str ) {
+	Assert( str.n < MAX_MSG_STRING_CHARS );
+	MSG_Write( msg, str.ptr, str.n );
+	MSG_Write( msg, "", 1 );
+}
+
+void MSG_WriteString( msg_t * msg, const char * str ) {
+	MSG_WriteString( msg, MakeSpan( str ) );
 }
 
 void MSG_WriteMsg( msg_t * msg, msg_t other ) {
@@ -565,7 +562,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.events, baseline.events );
 
 	Delta( buf, ent.origin, baseline.origin );
-	DeltaAngles( buf, ent.angles, baseline.angles );
+	Delta( buf, ent.angles, baseline.angles );
 
 	Delta( buf, ent.override_collision_model, baseline.override_collision_model );
 	DeltaBitfieldEnum( buf, ent.solidity, baseline.solidity, SolidMask_Everything );
@@ -656,7 +653,7 @@ void MSG_ReadDeltaEntity( msg_t * msg, const SyncEntityState * baseline, SyncEnt
 //==================================================
 
 static void Delta( DeltaBuffer * buf, UserCommand & cmd, const UserCommand & baseline ) {
-	DeltaAngles( buf, cmd.angles, baseline.angles );
+	Delta( buf, cmd.angles, baseline.angles );
 	Delta( buf, cmd.forwardmove, baseline.forwardmove );
 	Delta( buf, cmd.sidemove, baseline.sidemove );
 	DeltaEnum( buf, cmd.buttons, baseline.buttons, UserCommandButton( U8_MAX ) ); // TODO: dunno how to represent bitfields here
@@ -691,14 +688,14 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 
 	Delta( buf, pmove.origin, baseline.origin );
 	Delta( buf, pmove.velocity, baseline.velocity );
-	DeltaAngles( buf, pmove.angles, baseline.angles );
+	Delta( buf, pmove.angles, baseline.angles );
 
 	Delta( buf, pmove.pm_flags, baseline.pm_flags );
 
 	Delta( buf, pmove.features, baseline.features );
 
 	Delta( buf, pmove.no_shooting_time, baseline.no_shooting_time );
-	Delta( buf, pmove.knockback_time, baseline.knockback_time );
+	Delta( buf, pmove.no_friction_time, baseline.no_friction_time );
 	Delta( buf, pmove.stamina, baseline.stamina );
 	Delta( buf, pmove.stamina_stored, baseline.stamina_stored );
 	Delta( buf, pmove.jump_buffering, baseline.jump_buffering );
@@ -717,7 +714,7 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 
 	Delta( buf, player.events, baseline.events );
 
-	DeltaAngles( buf, player.viewangles, baseline.viewangles );
+	Delta( buf, player.viewangles, baseline.viewangles );
 
 	Delta( buf, player.POVnum, baseline.POVnum );
 	Delta( buf, player.playerNum, baseline.playerNum );
@@ -802,6 +799,11 @@ static void Delta( DeltaBuffer * buf, SyncTeamState & team, const SyncTeamState 
 	Delta( buf, team.num_players, baseline.num_players );
 }
 
+static void Delta( DeltaBuffer * buf, SyncGameState::CameraOverride & cam, const SyncGameState::CameraOverride & baseline ) {
+	Delta( buf, cam.origin, baseline.origin );
+	Delta( buf, cam.angles, baseline.angles );
+}
+
 static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGameState & baseline ) {
 	DeltaEnum( buf, bomb.attacking_team, baseline.attacking_team, Team_Count );
 	Delta( buf, bomb.alpha_players_alive, baseline.alpha_players_alive );
@@ -817,6 +819,8 @@ static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState
 	Delta( buf, state.match_state_start_time, baseline.match_state_start_time );
 	Delta( buf, state.match_duration, baseline.match_duration );
 	Delta( buf, state.clock_override, baseline.clock_override );
+	Delta( buf, state.camera_override, baseline.camera_override );
+	Delta( buf, state.scorelimit, baseline.scorelimit );
 
 	DeltaString( buf, state.callvote, baseline.callvote );
 	Delta( buf, state.callvote_required_votes, baseline.callvote_required_votes );
@@ -835,8 +839,8 @@ static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState
 	Delta( buf, state.exploding, baseline.exploding );
 	Delta( buf, state.exploded_at, baseline.exploded_at );
 
-	DeltaAngles( buf, state.sun_angles_from, baseline.sun_angles_from );
-	DeltaAngles( buf, state.sun_angles_to, baseline.sun_angles_to );
+	Delta( buf, state.sun_angles_from, baseline.sun_angles_from );
+	Delta( buf, state.sun_angles_to, baseline.sun_angles_to );
 	Delta( buf, state.sun_moved_from, baseline.sun_moved_from );
 	Delta( buf, state.sun_moved_to, baseline.sun_moved_to );
 }
@@ -864,4 +868,51 @@ void MSG_ReadDeltaGameState( msg_t * msg, const SyncGameState * baseline, SyncGa
 	DeltaBuffer delta = MSG_StartReadingDeltaBuffer( msg );
 	Delta( &delta, *state, *baseline );
 	MSG_FinishReadingDeltaBuffer( msg, delta );
+}
+
+[[maybe_unused]] DeltaBuffer ReaderFromWriter( const DeltaBuffer & writer ) {
+	DeltaBuffer reader = {
+		.buf = writer.buf,
+		.cursor = writer.buf,
+		.end = writer.cursor,
+		.num_fields = writer.num_fields,
+		.serializing = false,
+	};
+
+	memcpy( reader.field_mask, writer.field_mask, sizeof( writer.field_mask ) );
+
+	return reader;
+}
+
+TEST( "Delta encoding" ) {
+	struct DeltaTester {
+		Optional< u32 > x;
+		u32 y;
+	};
+
+	auto D = []( DeltaBuffer * buf, DeltaTester & x, const DeltaTester & baseline ) {
+		Delta( buf, x.x, baseline.x );
+		Delta( buf, x.y, baseline.y );
+	};
+
+	RNG rng = NewRNG();
+
+	bool all_ok = true;
+
+	for( int i = 0; i < 100; i++ ) {
+		u8 buf[ 128 ];
+		DeltaTester baseline = { };
+		DeltaTester src = { .x = Probability( &rng, 0.5f ) ? NONE : MakeOptional( Random32( &rng ) ), .y = Random32( &rng ) };
+
+		DeltaBuffer writer = DeltaWriter( buf, sizeof( buf ) );
+		D( &writer, src, baseline );
+
+		DeltaTester dst = baseline;
+		DeltaBuffer reader = ReaderFromWriter( writer );
+		D( &reader, dst, baseline );
+
+		all_ok = all_ok && !writer.error && !reader.error && dst.x == src.x && dst.y == src.y;
+	}
+
+	return all_ok;
 }

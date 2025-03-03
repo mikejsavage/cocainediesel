@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/cdmap.h"
 
 Cvar *g_warmup_timelimit;
-Cvar *g_scorelimit;
 
 void G_Match_Autorecord_Start() {
 	if( !g_autorecord->integer )
@@ -50,18 +49,14 @@ void G_Match_Autorecord_Start() {
 	char date[ 128 ];
 	FormatCurrentTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
 
-	snprintf( level.autorecord_name, sizeof( level.autorecord_name ), "%s_%s_auto%04i", date, sv.mapname, RandomUniform( &svs.rng, 1, 10000 ) );
-
-	Cbuf_Add( "serverrecord {}", level.autorecord_name );
+	TempAllocator temp = svs.frame_arena.temp();
+	SV_Demo_Record( temp.sv( "{}_{}_auto{04}", date, sv.mapname, RandomUniform( &svs.rng, 1, 10000 ) ) );
 }
 
 void G_Match_Autorecord_Stop() {
 	if( g_autorecord->integer ) {
-		Cbuf_Add( "{}", "serverrecordstop 1" );
-
-		if( g_autorecord_maxdemos->integer > 0 ) {
-			Cbuf_Add( "{}", "serverrecordpurge" );
-		}
+		SV_Demo_Stop( true );
+		SV_DeleteOldDemos();
 	}
 }
 
@@ -146,10 +141,10 @@ bool G_Match_ScorelimitHit() {
 		return false;
 	}
 
-	if( g_scorelimit->integer > 0 ) {
+	if( server_gs.gameState.scorelimit > 0 ) {
 		for( int i = 0; i < level.gametype.numTeams; i++ ) {
 			u8 score = server_gs.gameState.teams[ Team_One + i ].score;
-			if( score >= u8( g_scorelimit->integer ) ) {
+			if( score >= server_gs.gameState.scorelimit ) {
 				return true;
 			}
 		}
@@ -183,9 +178,11 @@ void G_Match_CheckReadys() {
 
 	int teamsready = 0;
 	for( int team = Team_One; team < Team_Count; team++ ) {
-		int readys = 0;
-		int notreadys = 0;
 		SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
+		if( current_team->num_players == 0 ) {
+			continue;
+		}
+
 		for( u8 i = 0; i < current_team->num_players; i++ ) {
 			const edict_t * e = game.edicts + current_team->player_indices[ i ];
 
@@ -196,15 +193,12 @@ void G_Match_CheckReadys() {
 				continue;
 			}
 
-			if( level.ready[PLAYERNUM( e )] ) {
-				readys++;
-			} else {
-				notreadys++;
+			// if someone isn't ready, exit
+			if( !level.ready[PLAYERNUM( e )] ) {
+				return;
 			}
 		}
-		if( !notreadys && readys ) {
-			teamsready++;
-		}
+		teamsready++;
 	}
 
 	if( teamsready >= 2 ) {
@@ -287,7 +281,7 @@ static bool G_EachNewSecond() {
 }
 
 static void G_CheckNumBots() {
-	if( level.spawnedTimeStamp + 5000 > svs.realtime ) {
+	if( level.spawnedTimeStamp + Seconds( 2 ) > svs.monotonic_time ) {
 		return;
 	}
 
@@ -435,7 +429,6 @@ static bool IsGladiatorMap() {
 
 void InitGametype() {
 	g_warmup_timelimit = NewCvar( "g_warmup_timelimit", "5", CvarFlag_Archive );
-	g_scorelimit = NewCvar( "g_scorelimit", "10", CvarFlag_Archive );
 
 	level.gametype = IsGladiatorMap() ? GetGladiatorGametype() : GetBombGametype();
 	level.gametype.Init();

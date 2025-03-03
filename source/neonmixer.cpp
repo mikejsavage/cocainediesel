@@ -7,8 +7,10 @@
 
 #include "client/audio/backend.h"
 
-#define STB_VORBIS_HEADER_ONLY
-#include "stb/stb_vorbis.h"
+#include "dr_mp3/dr_mp3.h"
+
+#include "SDL3/SDL_audio.h"
+#include "SDL3/SDL_init.h"
 
 static const s16 samples[ 4 ] = { S16_MIN, 0, -5, S16_MAX };
 
@@ -16,7 +18,7 @@ void ShowErrorMessage( const char * msg, const char * file, int line ) {
 	printf( "%s (%s:%d)\n", msg, file, line );
 }
 
-#if ARCHITECTURE_X86
+#if ARCHITECTURE_X64
 
 #include <immintrin.h>
 #include <tmmintrin.h>
@@ -204,14 +206,25 @@ static void MixStereo( Span< Vec2 > buffer, const CubicCoefficients & cubic_coef
 	}
 }
 
-static void GenerateSamples( Span< Vec2 > buffer, void * userdata ) {
-	::MixContext * ctx = ( ::MixContext * ) userdata;
-
+static void GenerateSamples( Span< Vec2 > buffer, ::MixContext * ctx ) {
 	memset( buffer.ptr, 0, buffer.num_bytes() );
 
 	Time dt_44100_hz = Hz( AUDIO_BACKEND_SAMPLE_RATE );
 	MixStereo( buffer, ctx->cubic_coefficients, ctx->time, dt_44100_hz, ctx->longcovid );
 	ctx->time += u64( buffer.n ) * dt_44100_hz;
+}
+
+static void SDLAudioCallback( void * userdata, SDL_AudioStream * stream, int additional_amount, int total_amount ) {
+	::MixContext * ctx = ( ::MixContext * ) userdata;
+
+	Vec2 samples[ 4096 ];
+	size_t num_samples = additional_amount / sizeof( Vec2 );
+
+	for( size_t i = 0; i < num_samples; i += ARRAY_COUNT( samples ) ) {
+		size_t chunk = Min2( num_samples - i, ARRAY_COUNT( samples ) );
+		GenerateSamples( Span< Vec2 >( samples, chunk ), ctx );
+		SDL_PutAudioStreamData( stream, samples, chunk * sizeof( samples[ 0 ] ) );
+	}
 }
 
 static void Print( const char * name, float32x4_t simd ) {
@@ -221,23 +234,23 @@ static void Print( const char * name, float32x4_t simd ) {
 }
 
 static Sound LoadSound( const char * path ) {
-	int channels;
-	int sample_rate;
-	s16 * samples;
-	int num_samples = stb_vorbis_decode_filename( path, &channels, &sample_rate, &samples );
-	if( num_samples == -1 ) {
+	drmp3_uint64 num_frames;
+	drmp3_config config;
+	s16 * samples = drmp3_open_file_and_read_pcm_frames_s16( path, &config, &num_frames, NULL );
+	if( samples == NULL ) {
 		abort();
 	}
 	return Sound {
-		.samples = Span< s16 >( samples, num_samples ),
-		.sample_rate = sample_rate,
-		.mono = channels == 1,
+		.samples = Span< s16 >( samples, num_frames ),
+		.sample_rate = int( config.sampleRate ),
+		.mono = config.channels == 1,
 	};
 }
 
 int main() {
+	SDL_Init( SDL_INIT_AUDIO );
+
 	CubicCoefficients cubic_coefficients = InitCubicCoefficients();
-	printf( "%f\n", ResampleMono( cubic_coefficients, samples, 0.5f ) );
 
 	float32x4_t a = SetFloatx4( 1, 2, 3, 4 );
 	float32x4_t b = SetFloatx4( 5, 6, 7, 8 );
@@ -254,15 +267,18 @@ int main() {
 	void * mixer_arena_memory = sys_allocator->allocate( AUDIO_ARENA_SIZE, 16 );
 	defer { Free( sys_allocator, mixer_arena_memory ); };
 	mix_context.arena = ArenaAllocator( mixer_arena_memory, AUDIO_ARENA_SIZE );
-	mix_context.time = Seconds( 50 );
-	mix_context.longcovid = LoadSound( "base/sounds/music/longcovid.ogg" );
+	mix_context.time = Seconds( 0 );
+	mix_context.longcovid = LoadSound( "base/sounds/music/longcovid.mp3" );
 
-	if( !InitAudioBackend() ) {
-		Fatal( "Can't open audio backend" );
-	}
-	if( !InitAudioDevice( "", GenerateSamples, &mix_context ) ) {
-		Fatal( "Can't open audio device" );
-	}
+	SDL_AudioSpec sdl_audio_spec = {
+		.format = SDL_AUDIO_F32,
+		.channels = 2,
+		.freq = AUDIO_BACKEND_SAMPLE_RATE,
+	};
+
+	SDL_AudioStream * sdl_audio = SDL_OpenAudioDeviceStream( SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &sdl_audio_spec, SDLAudioCallback, &mix_context );
+	printf( "%p %s\n", sdl_audio, SDL_GetError() );
+	SDL_ResumeAudioStreamDevice( sdl_audio );
 
 	while( true ) {
 		Sys_Sleep( 50 );

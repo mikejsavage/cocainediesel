@@ -109,7 +109,7 @@ do
 
 		rc = "source/client/platform/client",
 
-		windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib Setupapi.lib /SUBSYSTEM:WINDOWS",
+		windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib setupapi.lib /SUBSYSTEM:WINDOWS",
 		macos_ldflags = "-lcurl -framework AudioToolbox -framework Cocoa -framework CoreAudio -framework CoreVideo -framework IOKit",
 		linux_ldflags = "-lm -lpthread -ldl",
 		no_static_link = true,

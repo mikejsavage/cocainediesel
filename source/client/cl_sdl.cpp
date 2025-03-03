@@ -374,6 +374,8 @@ Span< Span< const char > > GetAudioDeviceNames( TempAllocator * temp ) {
 }
 
 bool InitAudioDevice( const char * preferred_device, AudioBackendCallback callback ) {
+	TracyZoneScoped;
+
 	SDL_AudioSpec sdl_audio_spec = {
 		.format = SDL_AUDIO_F32,
 		.channels = 2,
@@ -411,6 +413,7 @@ bool InitAudioDevice( const char * preferred_device, AudioBackendCallback callba
 }
 
 void ShutdownAudioDevice() {
+	TracyZoneScoped;
 	SDL_DestroyAudioStream( sdl_audio );
 }
 

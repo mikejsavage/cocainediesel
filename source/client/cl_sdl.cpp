@@ -3,7 +3,6 @@
 #include "client/keys.h"
 #include "client/audio/backend.h"
 #include "qcommon/array.h"
-#include "qcommon/fpe.h"
 #include "qcommon/renderdoc.h"
 #include "qcommon/version.h"
 
@@ -53,10 +52,6 @@ static SDL_DisplayID DisplayIndexToID( int monitor ) {
 
 void CreateWindow( WindowMode mode ) {
 	TracyZoneScoped;
-
-#if PLATFORM_MACOS
-	DisableFPEScoped;
-#endif
 
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
 	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 4 );

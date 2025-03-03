@@ -348,13 +348,13 @@ static SDL_AudioStream * sdl_audio;
 static void SDLAudioCallback( void * userdata, SDL_AudioStream * stream, int additional_amount, int total_amount ) {
 	AudioBackendCallback callback = AudioBackendCallback( userdata );
 
+	Vec2 samples[ 4096 ];
 	size_t num_samples = additional_amount / sizeof( Vec2 );
 
-	Vec2 buf[ 4096 ];
-	for( size_t i = 0; i < num_samples; i += ARRAY_COUNT( buf ) ) {
-		size_t to_mix = Min2( num_samples - i, ARRAY_COUNT( buf ) );
-		callback( Span< Vec2 >( buf, to_mix ) );
-		TrySDL( SDL_PutAudioStreamData, stream, buf, to_mix * sizeof( buf[ 0 ] ) );
+	for( size_t i = 0; i < num_samples; i += ARRAY_COUNT( samples ) ) {
+		size_t chunk = Min2( num_samples - i, ARRAY_COUNT( samples ) );
+		callback( Span< Vec2 >( samples, chunk ) );
+		TrySDL( SDL_PutAudioStreamData, stream, samples, chunk * sizeof( samples[ 0 ] ) );
 	}
 }
 

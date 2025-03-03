@@ -70,8 +70,7 @@ struct PlayingSFX {
 static ALCdevice * al_device;
 static ALCcontext * al_context;
 
-static bool backend_initialized;
-static bool backend_device_initialized;
+static bool device_initialized;
 
 Cvar * s_device;
 static Cvar * s_volume;
@@ -575,7 +574,7 @@ static void HotloadSoundEffects() {
 	}
 }
 
-static void AudioCallback( Span< Vec2 > buffer, void * userdata ) {
+static void AudioCallback( Span< Vec2 > buffer ) {
 	TracyZoneScoped;
 
 	alcRenderSamplesSOFT( al_device, buffer.ptr, buffer.n );
@@ -590,8 +589,7 @@ void InitSound() {
 	sound_effects.clear();
 	playing_sounds.clear();
 	music_playing = false;
-	backend_initialized = false;
-	backend_device_initialized = false;
+	device_initialized = false;
 
 	s_device = NewCvar( "s_device", "", CvarFlag_Archive );
 	s_device->modified = false;
@@ -599,27 +597,17 @@ void InitSound() {
 	s_musicvolume = NewCvar( "s_musicvolume", "1", CvarFlag_Archive );
 	s_muteinbackground = NewCvar( "s_muteinbackground", "1", CvarFlag_Archive );
 
-	if( !InitAudioBackend() ) {
-		Com_Printf( S_COLOR_RED "Couldn't initialize audio backend!\n" );
-		return;
-	}
-
 	InitOpenAL();
 	LoadSounds();
 	LoadSoundEffects();
 
-	backend_initialized = true;
-	backend_device_initialized = InitAudioDevice( s_device->value, AudioCallback, NULL );
+	device_initialized = InitAudioDevice( s_device->value, AudioCallback );
 }
 
 void ShutdownSound() {
 	TracyZoneScoped;
 
-	if( !backend_initialized ) {
-		return;
-	}
-
-	if( backend_device_initialized ) {
+	if( device_initialized ) {
 		ShutdownAudioDevice();
 	}
 
@@ -630,15 +618,14 @@ void ShutdownSound() {
 	}
 
 	ShutdownOpenAL();
-	ShutdownAudioBackend();
 }
 
 static const SoundAsset * FindSoundAsset( StringHash name ) {
-	return backend_initialized ? sound_assets.get( name.hash ) : NULL;
+	return sound_assets.get( name.hash );
 }
 
 static const SoundEffect * FindSoundEffect( StringHash name ) {
-	return backend_initialized ? sound_effects.get( name.hash ) : NULL;
+	return sound_effects.get( name.hash );
 }
 
 static bool StartSound( PlayingSFX * ps, size_t i ) {
@@ -747,12 +734,9 @@ static void UpdateSound( PlayingSFX * ps, float volume, float pitch ) {
 void SoundFrame( Vec3 origin, Vec3 velocity, Vec3 forward, Vec3 up ) {
 	TracyZoneScoped;
 
-	if( !backend_initialized )
-		return;
-
 	if( s_device->modified ) {
 		ShutdownAudioDevice();
-		backend_device_initialized = InitAudioDevice( s_device->value, AudioCallback, NULL );
+		device_initialized = InitAudioDevice( s_device->value, AudioCallback );
 		s_device->modified = false;
 	}
 
@@ -870,7 +854,7 @@ PlaySFXConfig PlaySFXConfigLineSegment( Vec3 start, Vec3 end, float volume ) {
 }
 
 static PlayingSFX * PlaySFXInternal( StringHash name, const PlaySFXConfig & config ) {
-	if( !backend_device_initialized )
+	if( !device_initialized )
 		return NULL;
 
 	const SoundEffect * sfx = FindSoundEffect( name );
@@ -934,9 +918,6 @@ void StopSFX( PlayingSFXHandle handle ) {
 }
 
 void StopAllSounds( bool stop_music ) {
-	if( !backend_initialized )
-		return;
-
 	while( playing_sounds.size() > 0 ) {
 		StopSFX( &playing_sounds.span()[ 0 ] );
 	}
@@ -949,7 +930,7 @@ void StopAllSounds( bool stop_music ) {
 }
 
 void StartMenuMusic() {
-	if( !backend_device_initialized || music_playing )
+	if( !device_initialized || music_playing )
 		return;
 
 	const SoundAsset * music = FindSoundAsset( "sounds/music/longcovid" );
@@ -967,7 +948,7 @@ void StartMenuMusic() {
 }
 
 void StopMenuMusic() {
-	if( backend_device_initialized && music_playing ) {
+	if( device_initialized && music_playing ) {
 		CheckedALSourceStop( music_source );
 		CheckedALSource( music_source, AL_BUFFER, 0 );
 	}

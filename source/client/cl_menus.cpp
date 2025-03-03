@@ -671,7 +671,6 @@ static void SettingsVideo() {
 }
 
 static void SettingsAudio() {
-#if PLATFORM_WINDOWS
 	SettingLabel( "Audio device" );
 	ImGui::PushItemWidth( 400 );
 
@@ -682,6 +681,7 @@ static void SettingsAudio() {
 		}
 
 		TempAllocator temp = cls.frame_arena.temp();
+
 		for( Span< const char > device : GetAudioDeviceNames( &temp ) ) {
 			if( ImGui::Selectable( temp( "{}", device ), StrEqual( device, s_device->value ) ) ) {
 				Cvar_Set( "s_device", device );
@@ -695,7 +695,6 @@ static void SettingsAudio() {
 	}
 
 	ImGui::Separator();
-#endif
 
 	CvarSliderFloat( "Master volume", "s_volume", 0.0f, 1.0f );
 	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f );

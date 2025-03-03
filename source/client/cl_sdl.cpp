@@ -1,7 +1,8 @@
 #include "client/client.h"
 #include "client/icon.h"
 #include "client/keys.h"
-#include "client/renderer/renderer.h"
+#include "client/audio/backend.h"
+#include "qcommon/array.h"
 #include "qcommon/fpe.h"
 #include "qcommon/renderdoc.h"
 #include "qcommon/version.h"
@@ -10,6 +11,7 @@
 #include "imgui/imgui_internal.h"
 #include "imgui/imgui_impl_sdl3.h"
 
+#include "sdl/SDL3/SDL_audio.h"
 #include "sdl/SDL3/SDL_events.h"
 #include "sdl/SDL3/SDL_init.h"
 #include "sdl/SDL3/SDL_mouse.h"
@@ -337,13 +339,92 @@ static void InputFrame() {
 	}
 }
 
+/*
+ * audio
+ */
+
+static SDL_AudioStream * sdl_audio;
+
+static void SDLAudioCallback( void * userdata, SDL_AudioStream * stream, int additional_amount, int total_amount ) {
+	AudioBackendCallback callback = AudioBackendCallback( userdata );
+
+	size_t num_samples = additional_amount / sizeof( Vec2 );
+
+	Vec2 buf[ 4096 ];
+	for( size_t i = 0; i < num_samples; i += ARRAY_COUNT( buf ) ) {
+		size_t to_mix = Min2( num_samples - i, ARRAY_COUNT( buf ) );
+		callback( Span< Vec2 >( buf, to_mix ) );
+		TrySDL( SDL_PutAudioStreamData, stream, buf, to_mix * sizeof( buf[ 0 ] ) );
+	}
+}
+
+Span< Span< const char > > GetAudioDeviceNames( TempAllocator * temp ) {
+	NonRAIIDynamicArray< Span< const char > > names( temp );
+
+	int num_devices;
+	SDL_AudioDeviceID * devices = TrySDLR( SDL_AudioDeviceID *, SDL_GetAudioPlaybackDevices, &num_devices );
+	defer { SDL_free( devices ); };
+
+	for( int i = 0; i < num_devices; i++ ) {
+		const char * name = TrySDLR( const char *, SDL_GetAudioDeviceName, devices[ i ] );
+		names.add( CloneSpan( temp, MakeSpan( name ) ) );
+	}
+
+	return names.span();
+}
+
+bool InitAudioDevice( const char * preferred_device, AudioBackendCallback callback ) {
+	SDL_AudioSpec sdl_audio_spec = {
+		.format = SDL_AUDIO_F32,
+		.channels = 2,
+		.freq = AUDIO_BACKEND_SAMPLE_RATE,
+	};
+
+	SDL_AudioDeviceID id = SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK;
+	if( !StrEqual( preferred_device, "" ) ) {
+		int num_devices;
+		SDL_AudioDeviceID * devices = TrySDLR( SDL_AudioDeviceID *, SDL_GetAudioPlaybackDevices, &num_devices );
+		defer { SDL_free( devices ); };
+
+		for( int i = 0; i < num_devices; i++ ) {
+			const char * name = TrySDLR( const char *, SDL_GetAudioDeviceName, devices[ i ] );
+			if( StrEqual( name, preferred_device ) ) {
+				id = devices[ i ];
+				break;
+			}
+		}
+
+		if( id == SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK ) {
+			Com_Printf( S_COLOR_YELLOW "Can't find audio device %s, using default\n", preferred_device );
+		}
+	}
+
+	sdl_audio = SDL_OpenAudioDeviceStream( id, &sdl_audio_spec, SDLAudioCallback, callback );
+	if( sdl_audio == NULL ) {
+		Com_Printf( S_COLOR_RED "Can't open audio device: %s\n", SDL_GetError() );
+		return false;
+	}
+
+	TrySDL( SDL_ResumeAudioStreamDevice, sdl_audio );
+
+	return true;
+}
+
+void ShutdownAudioDevice() {
+	SDL_DestroyAudioStream( sdl_audio );
+}
+
+/*
+ * main
+ */
+
 int main( int argc, char ** argv ) {
 	running_in_renderdoc = IsRenderDocAttached();
 
 	{
 		TracyZoneScopedN( "Init SDL" );
 		TrySDL( SDL_SetAppMetadata, APPLICATION, APP_VERSION, "fun.cocainediesel" );
-		TrySDL( SDL_Init, SDL_INIT_VIDEO | SDL_INIT_GAMEPAD );
+		TrySDL( SDL_Init, SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD );
 	}
 
 	Con_Init();

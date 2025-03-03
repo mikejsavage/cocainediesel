@@ -1,7 +1,6 @@
 #pragma once
 
-#include <stddef.h>
-#include <string.h>
+#include "qcommon/types.h"
 
 template< typename T > constexpr size_t OpaqueSize = 0;
 template< typename T > constexpr size_t OpaqueAlignment = sizeof( void * );
@@ -14,16 +13,16 @@ struct Opaque {
 	Opaque() = default;
 
 	Opaque( const T & x ) {
-		memcpy( opaque, &x, sizeof( T ) );
+		*unwrap() = x;
 	}
 
 	T * unwrap() {
-		static_assert( sizeof( T ) <= Size && alignof( T ) <= Alignment, "gg" );
+		STATIC_ASSERT( sizeof( T ) <= Size && alignof( T ) <= Alignment );
 		return ( T * ) opaque;
 	}
 
 	const T * unwrap() const {
-		static_assert( sizeof( T ) <= Size && alignof( T ) <= Alignment, "gg" );
+		STATIC_ASSERT( sizeof( T ) <= Size && alignof( T ) <= Alignment );
 		return ( const T * ) opaque;
 	}
 };

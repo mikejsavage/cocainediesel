@@ -66,7 +66,6 @@ obj_cxxflags( "source/client/cl_sdl.cpp", "-I libs/sdl" )
 obj_cxxflags( "source/client/keys.cpp", "-I libs/sdl" )
 obj_cxxflags( "source/client/renderer/backend.cpp", "-I libs/sdl" )
 
-obj_cxxflags( "source/client/audio/linux.cpp", "-Ilibs/alsa-headers -Ilibs/pulseaudio-headers" )
 obj_cxxflags( "source/qcommon/linear_algebra_kernels.cpp", "-O2" )
 
 do

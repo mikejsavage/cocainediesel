@@ -345,19 +345,6 @@ static void InputFrame() {
 
 static SDL_AudioStream * sdl_audio;
 
-static void SDLAudioCallback( void * userdata, SDL_AudioStream * stream, int additional_amount, int total_amount ) {
-	AudioBackendCallback callback = AudioBackendCallback( userdata );
-
-	Vec2 samples[ 4096 ];
-	size_t num_samples = additional_amount / sizeof( Vec2 );
-
-	for( size_t i = 0; i < num_samples; i += ARRAY_COUNT( samples ) ) {
-		size_t chunk = Min2( num_samples - i, ARRAY_COUNT( samples ) );
-		callback( Span< Vec2 >( samples, chunk ) );
-		TrySDL( SDL_PutAudioStreamData, stream, samples, chunk * sizeof( samples[ 0 ] ) );
-	}
-}
-
 Span< Span< const char > > GetAudioDeviceNames( TempAllocator * temp ) {
 	NonRAIIDynamicArray< Span< const char > > names( temp );
 
@@ -371,6 +358,19 @@ Span< Span< const char > > GetAudioDeviceNames( TempAllocator * temp ) {
 	}
 
 	return names.span();
+}
+
+static void SDLAudioCallback( void * userdata, SDL_AudioStream * stream, int additional_amount, int total_amount ) {
+	AudioBackendCallback callback = AudioBackendCallback( userdata );
+
+	Vec2 samples[ 4096 ];
+	size_t num_samples = additional_amount / sizeof( Vec2 );
+
+	for( size_t i = 0; i < num_samples; i += ARRAY_COUNT( samples ) ) {
+		size_t chunk = Min2( num_samples - i, ARRAY_COUNT( samples ) );
+		callback( Span< Vec2 >( samples, chunk ) );
+		TrySDL( SDL_PutAudioStreamData, stream, samples, chunk * sizeof( samples[ 0 ] ) );
+	}
 }
 
 bool InitAudioDevice( const char * preferred_device, AudioBackendCallback callback ) {

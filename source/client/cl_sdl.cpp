@@ -399,7 +399,7 @@ bool InitAudioDevice( const char * preferred_device, AudioBackendCallback callba
 		}
 	}
 
-	sdl_audio = SDL_OpenAudioDeviceStream( id, &sdl_audio_spec, SDLAudioCallback, callback );
+	sdl_audio = SDL_OpenAudioDeviceStream( id, &sdl_audio_spec, SDLAudioCallback, ( void * ) callback );
 	if( sdl_audio == NULL ) {
 		Com_Printf( S_COLOR_RED "Can't open audio device: %s\n", SDL_GetError() );
 		return false;

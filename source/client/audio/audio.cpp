@@ -346,7 +346,7 @@ static void LoadSounds() {
 			TracyZoneScopedN( "drmp3_open_memory_and_read_pcm_frames_s16" );
 			TracyZoneSpan( job->in.path );
 
-			drmp3_uint64 num_frames = { };
+			drmp3_uint64 num_frames = 0;
 			drmp3_config config = { };
 			job->out.samples = drmp3_open_memory_and_read_pcm_frames_s16( job->in.encoded.ptr, job->in.encoded.num_bytes(), &config, &num_frames, NULL );
 			job->out.num_samples = num_frames;

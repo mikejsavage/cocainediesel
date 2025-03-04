@@ -275,7 +275,7 @@ void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip )
 		constexpr size_t overlap = 32;
 		OVERLAPPED overlapped[ overlap ];
 
-		for( size_t i = 0; i < files.n + overlap - 1; i++ ) {
+		for( size_t i = 0; i < files.n + overlap; i++ ) {
 			if( i < files.n && handles_and_paths[ i ].handle != INVALID_HANDLE_VALUE && buffers[ i ].value.n > 0 ) {
 				overlapped[ i % overlap ] = { };
 				if( ReadFile( handles_and_paths[ i ].handle, buffers[ i ].value.ptr, AlignPow2( buffers[ i ].value.n, 4096 ), NULL, &overlapped[ i % overlap ] ) != TRUE && GetLastError() != ERROR_IO_PENDING ) {
@@ -284,13 +284,13 @@ void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip )
 				}
 			}
 
-			if( i > overlap - 1 ) {
-				size_t prev = i - ( overlap - 1 );
+			if( i >= overlap ) {
+				size_t prev = i - overlap;
 				if( handles_and_paths[ prev ].handle != INVALID_HANDLE_VALUE && buffers[ prev ].exists ) {
 					if( buffers[ prev ].value.n > 0 ) {
 						DWORD r;
 						BOOL ok = GetOverlappedResult( handles_and_paths[ prev ].handle, &overlapped[ prev % overlap ], &r, TRUE );
-						if( ok == 0 && GetLastError() || r != buffers[ prev ].value.n ) {
+						if( ok == 0 ) {
 							CheckedVirtualFree( buffers[ prev ].value.ptr );
 							buffers[ prev ] = NONE;
 						}

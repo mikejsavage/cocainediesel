@@ -381,7 +381,6 @@ static void HotloadSounds() {
 			{
 				TracyZoneScopedN( "drmp3_open_memory_and_read_pcm_frames_s16" );
 				TracyZoneSpan( path );
-				DisableFPEScoped;
 				samples = drmp3_open_memory_and_read_pcm_frames_s16( mp3.ptr, mp3.num_bytes(), &config, &num_frames, NULL );
 			}
 

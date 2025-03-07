@@ -184,8 +184,8 @@ static void SubmitDrawCalls() {
 					pipeline.cull_face = CullFace_Disabled;
 					pipeline.write_depth = false;
 					pipeline.scissor = {
-						u32( scissor.mins.x ),
-						u32( scissor.mins.y ),
+						u32( Max2( scissor.mins.x, 0.f ) ),
+						u32( Max2( scissor.mins.y, 0.f ) ),
 						u32( scissor.maxs.x - scissor.mins.x ),
 						u32( scissor.maxs.y - scissor.mins.y ),
 					};

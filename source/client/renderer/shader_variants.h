@@ -113,13 +113,13 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.mesh_variants = { pos_normal, pos_normal_uv },
 				.clamp_depth = true,
 			},
-			// GraphicsShaderDescriptor {
-			// 	.field = &Shaders::depth_only_skinned,
-			// 	.src = "depth_only.hlsl",
-			// 	.features = { "SKINNED" },
-			// 	.mesh_variants = { pos_normal_uv_skinned },
-			// 	.clamp_depth = true,
-			// },
+			GraphicsShaderDescriptor {
+				.field = &Shaders::depth_only_skinned,
+				.src = "depth_only.hlsl",
+				.features = { "SKINNED" },
+				.mesh_variants = { pos_normal_uv_skinned },
+				.clamp_depth = true,
+			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::postprocess_world_gbuffer,

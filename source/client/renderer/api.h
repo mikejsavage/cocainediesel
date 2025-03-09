@@ -140,6 +140,7 @@ enum TextureLayout {
 
 PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture = NONE );
 
+TextureFormat GetTextureFormat( PoolHandle< Texture > texture );
 u32 TextureWidth( PoolHandle< Texture > texture );
 u32 TextureHeight( PoolHandle< Texture > texture );
 u32 TextureLayers( PoolHandle< Texture > texture );

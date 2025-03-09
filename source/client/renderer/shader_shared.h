@@ -1,6 +1,6 @@
 #pragma once
 
-#if __cplusplus
+#ifdef __cplusplus
   #include "qcommon/types.h"
   #define shaderconst constexpr
 #else
@@ -20,7 +20,7 @@ shaderconst u32 SKINNED_MODEL_MAX_JOINTS = 100;
 shaderconst float DLIGHT_CUTOFF = 0.5f;
 shaderconst u32 PARTICLE_THREADGROUP_SIZE = 64;
 
-enum ParticleFlags : u32 {
+enum ParticleFlags/* : u32*/ {
 	ParticleFlag_CollisionPoint = u32( 1 ) << u32( 0 ),
 	ParticleFlag_CollisionSphere = u32( 1 ) << u32( 1 ),
 	ParticleFlag_Rotate = u32( 1 ) << u32( 2 ),
@@ -38,7 +38,7 @@ enum VertexAttributeType {
 	VertexAttribute_Count
 };
 
-#if __cplusplus
+#ifdef __cplusplus
 enum FragmentShaderOutputType {
 	FragmentShaderOutput_Albedo,
 	FragmentShaderOutput_CurvedSurfaceMask,

@@ -350,7 +350,7 @@ static Optional< size_t > AddTexture( Span< const char > name, u64 hash, const T
 		AddMaterial( name, hash, Material { .texture = &textures[ idx ] } );
 	}
 	else {
-		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( textures[ idx ].format ) ) {
+		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( GetTextureFormat( textures[ idx ].format ) ) ) {
 			return NONE;
 		}
 
@@ -574,7 +574,7 @@ static void PackDecalAtlas() {
 
 	// make a list of textures to be packed
 	stbrp_rect rects[ MAX_DECALS ];
-	num_decals = 0;
+	size_t num_decals = 0;
 
 	u32 num_mipmaps = U32_MAX;
 
@@ -597,7 +597,10 @@ static void PackDecalAtlas() {
 			Com_GGPrint( S_COLOR_YELLOW "{} has a small number of mipmaps ({}) and will mess up the decal atlas", materials[ i ].name, texture->num_mipmaps );
 		}
 
-		Assert( num_decals < ARRAY_COUNT( rects ) );
+		if( num_decals == ARRAY_COUNT( rects ) ) {
+			Com_GGPrint( S_COLOR_YELLOW "Too many decals!" );
+			break;
+		}
 
 		stbrp_rect * rect = &rects[ num_decals ];
 		num_decals++;
@@ -634,12 +637,14 @@ static void PackDecalAtlas() {
 
 			const Material * material = &materials[ rects[ i ].id ];
 
-			size_t decal_idx = decals_hashtable.size();
-			decals_hashtable.add( material->hash, decal_idx );
-			decal_uvwhs[ decal_idx ].x = rects[ i ].x / float( DECAL_ATLAS_SIZE ) + num_layers;
-			decal_uvwhs[ decal_idx ].y = rects[ i ].y / float( DECAL_ATLAS_SIZE );
-			decal_uvwhs[ decal_idx ].z = material->texture->width / float( DECAL_ATLAS_SIZE );
-			decal_uvwhs[ decal_idx ].w = material->texture->height / float( DECAL_ATLAS_SIZE );
+			decals.add( material->hash, DecalCoords {
+				.uvwh = Vec4(
+					rects[ i ].x / float( DECAL_ATLAS_SIZE ) + num_layers,
+					rects[ i ].y / float( DECAL_ATLAS_SIZE ),
+					material->texture->width / float( DECAL_ATLAS_SIZE ),
+					material->texture->height / float( DECAL_ATLAS_SIZE )
+				),
+			} );
 		}
 
 		num_layers++;
@@ -668,7 +673,7 @@ static void PackDecalAtlas() {
 			continue;
 
 		u64 texture_idx = material->texture - textures;
-		Span2D< const RGBA8 > rgba = Span2D< const RGBA8 >( ( const RGBA8 * ) texture_stb_data[ texture_idx ], material->texture->width, material->texture->height );
+		Span2D< const RGBA8 > rgba = Span2D< const RGBA8 >( ( const RGBA8 * ) texture_stb_data[ texture_idx ], TextureWidth( material->texture ), TextureHeight( material->texture ) );
 		Span2D< const BC4Block > bc4 = RGBAToBC4( rgba );
 		texture_bc4_data[ texture_idx ] = Span< const BC4Block >( bc4.ptr, bc4.w * bc4.h );
 	}
@@ -716,7 +721,7 @@ static void PackDecalAtlas() {
 	// free temporary bc4s
 	for( size_t i = 0; i < decals.size(); i++ ) {
 		const Material * material = &materials[ rects[ i ].id ];
-		if( material->texture->format != TextureFormat_RGBA_U8_sRGB )
+		if( GetTextureFormat( material->texture ) != TextureFormat_RGBA_U8_sRGB )
 			continue;
 
 		u64 texture_idx = material->texture - textures;

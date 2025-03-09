@@ -786,7 +786,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_BOMB_EXPLOSION:
-			DoEntFX( ent, parm, white.vec4, "models/bomb/explosion", "models/bomb/explode" );
+			DoEntFX( ent, parm, white.vec4, "loadout/bomb/explosion", "loadout/bomb/explode" );
 			break;
 
 		case EV_GIB:

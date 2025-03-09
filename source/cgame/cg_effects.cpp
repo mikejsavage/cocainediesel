@@ -11,7 +11,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash materia
 	Vec3 dir = Normalize( end - start );
 	Vec3 forward = Normalize( start - frame_static.position );
 
-	if( Abs( Dot( dir, forward ) ) == 1.0f )
+	if( NearlyEqual( Abs( Dot( dir, forward ) ), 1.0f ) )
 		return;
 
 	Vec3 beam_across = Normalize( Cross( -forward, dir ) );

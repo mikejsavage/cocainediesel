@@ -209,43 +209,6 @@ Vec2 CG_GetMovement() {
 	);
 }
 
-bool CG_GetBoundKeysString( const char * cmd, char * keys, size_t keysSize ) {
-	int keyCodes[ 2 ];
-	int numKeys = CG_GetBoundKeycodes( cmd, keyCodes );
-
-	if( numKeys == 0 ) {
-		SafeStrCpy( keys, "UNBOUND", keysSize );
-	}
-	else if( numKeys == 1 ) {
-		ggformat( keys, keysSize, "{}", Key_KeynumToString( keyCodes[ 0 ] ) );
-	}
-	else {
-		ggformat( keys, keysSize, "{} or {}", Key_KeynumToString( keyCodes[ 0 ] ), Key_KeynumToString( keyCodes[ 1 ] ) );
-	}
-
-	return numKeys > 0;
-}
-
-int CG_GetBoundKeycodes( const char * cmd, int keys[ 2 ] ) {
-	int numKeys = 0;
-
-	for( int key = 0; key < Key_Count; key++ ) {
-		Span< const char > bind = Key_GetBindingBuf( key );
-		if( bind == "" || !StrCaseEqual( bind, cmd ) ) {
-			continue;
-		}
-
-		keys[ numKeys ] = key;
-		numKeys++;
-
-		if( numKeys == 2 ) {
-			break;
-		}
-	}
-
-	return numKeys;
-}
-
 /*
  * mouse
  */

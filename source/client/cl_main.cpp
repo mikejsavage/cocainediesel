@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/discord.h"
 #include "client/downloads.h"
 #include "client/gltf.h"
+#include "client/keys.h"
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
 #include "client/livepp.h"
@@ -627,7 +628,7 @@ static void CL_WriteConfiguration() {
 
 	DynamicString config( &temp );
 
-	Key_WriteBindings( &config );
+	WriteKeyBindingsConfig( &config );
 	config += "\r\n";
 	config += Cvar_MakeConfig( &temp );
 
@@ -1101,7 +1102,7 @@ void CL_Init() {
 
 	InitLivePP();
 
-	constexpr size_t frame_arena_size = 1024 * 1024; // 1MB
+	constexpr size_t frame_arena_size = Megabytes( 1 );
 	void * frame_arena_memory = sys_allocator->allocate( frame_arena_size, 16 );
 	cls.frame_arena = ArenaAllocator( frame_arena_memory, frame_arena_size );
 

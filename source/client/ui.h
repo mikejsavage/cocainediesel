@@ -34,3 +34,4 @@ void WindowCenterTextXY( Span< const char > str );
 Vec4 CustomAttentionGettingColor( Vec4 from, Vec4 to, Time period );
 Vec4 AttentionGettingColor();
 Vec4 PlantableColor();
+Vec4 AttentionGettingRed();

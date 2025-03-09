@@ -79,6 +79,7 @@ void InitThreadPool() {
 	constexpr size_t arena_size = 1024 * 1024; // 1MB
 
 	for( u32 i = 0; i < num_workers; i++ ) {
+		constexpr size_t arena_size = Megabytes( 1 );
 		void * arena_memory = sys_allocator->allocate( arena_size, 16 );
 		workers[ i ].arena = ArenaAllocator( arena_memory, arena_size );
 		workers[ i ].thread = NewThread( ThreadPoolWorker, &workers[ i ].arena );

@@ -275,8 +275,6 @@ void CG_DrawCrosshair( int x, int y );
 void CG_ScreenCrosshairDamageUpdate();
 void CG_ScreenCrosshairShootUpdate( u16 refire_time );
 
-void CG_DrawKeyState( int x, int y, int w, int h, const char *key );
-
 void CG_DrawPlayerNames( const Font * font, float font_size );
 
 void CG_InitDamageNumbers();
@@ -332,6 +330,7 @@ void CG_GameCommand( const char *command );
 //
 // cg_teams.c
 //
+RGB8 CG_RealTeamColor( Team team );
 RGB8 CG_TeamColor( Team team );
 RGB8 AllyColor();
 RGB8 EnemyColor();
@@ -434,12 +433,3 @@ UserCommandButton CG_GetButtonBits();
 UserCommandButton CG_GetButtonDownEdges();
 EulerDegrees2 CG_GetDeltaViewAngles();
 Vec2 CG_GetMovement();
-
-/*
-* Returns angular movement vector (in euler angles) obtained from the input.
-* Doesn't take flipping into account.
-*/
-void CG_GetAngularMovement( Vec3 movement );
-
-bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize );
-int CG_GetBoundKeycodes( const char *cmd, int keys[ 2 ] );

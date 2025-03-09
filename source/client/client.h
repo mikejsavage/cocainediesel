@@ -27,7 +27,6 @@
 
 #include "client/vid.h"
 #include "client/ui.h"
-#include "client/keys.h"
 #include "client/maps.h"
 #include "client/console.h"
 #include "client/audio/types.h"

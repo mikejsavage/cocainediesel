@@ -64,7 +64,7 @@ static size_t CurlDataCallback( char * data, size_t size, size_t nmemb, void * u
 	CurlRequestContext * context = ( CurlRequestContext * ) user_data;
 	size_t len = size * nmemb;
 
-	constexpr size_t DOWNLOAD_MAX_SIZE = 50 * 1000 * 1000; // 50MB
+	constexpr size_t DOWNLOAD_MAX_SIZE = Megabytes( 50 );
 	if( context->data.size() + len > DOWNLOAD_MAX_SIZE ) {
 		return 0;
 	}

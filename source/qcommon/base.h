@@ -32,8 +32,8 @@ To bit_cast( const From & from ) {
 
 #define Fatal( format, ... ) FatalImpl( __FILE__, __LINE__, format, ##__VA_ARGS__ )
 
-[[gnu::format( printf, 3, 4 )]] void FatalImpl( const char * file, int line, const char * format, ... );
-void FatalErrno( const char * msg, SourceLocation src_loc = CurrentSourceLocation() );
+[[noreturn]] [[gnu::format( printf, 3, 4 )]] void FatalImpl( const char * file, int line, const char * format, ... );
+[[noreturn]] void FatalErrno( const char * msg, SourceLocation src_loc = CurrentSourceLocation() );
 
 template< typename T >
 constexpr bool HasAnyBit( T haystack, T needle ) {
@@ -43,6 +43,10 @@ constexpr bool HasAnyBit( T haystack, T needle ) {
 template< typename T >
 constexpr bool HasAllBits( T haystack, T needle ) {
 	return ( haystack & needle ) == needle;
+}
+
+constexpr bool NearlyEqual( float lhs, float rhs, float epsilon = 0.001f ) {
+	return Abs( lhs - rhs ) <= epsilon;
 }
 
 /*
@@ -57,8 +61,7 @@ struct ScopeExit {
 };
 
 struct DeferHelper {
-	template< typename F >
-	ScopeExit< F > operator+( F f ) { return f; }
+	template< typename F > ScopeExit< F > operator+( F f ) { return f; }
 };
 
 #define defer [[maybe_unused]] const auto & COUNTER_NAME( DEFER_ ) = DeferHelper() + [&]()
@@ -113,6 +116,13 @@ template< typename T >
 bool operator!=( const Optional< T > & a, const Optional< T > & b ) {
 	return !( a == b );
 }
+
+/*
+ * KB/MB helpers
+ */
+
+constexpr size_t Kilobytes( size_t kb ) { return kb * 1024; }
+constexpr size_t Megabytes( size_t mb ) { return mb * 1024 * 1024; }
 
 /*
  * debug stuff

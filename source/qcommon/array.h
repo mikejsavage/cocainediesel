@@ -26,7 +26,7 @@ public:
 	}
 
 	Optional< T * > add() {
-		return n == N ? NULL : &elems[ n++ ];
+		return n == N ? NONE : Optional< T * >( &elems[ n++ ] );
 	}
 
 	[[nodiscard]] bool add( const T & x ) {

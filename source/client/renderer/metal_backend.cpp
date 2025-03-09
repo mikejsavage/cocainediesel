@@ -8,11 +8,6 @@
 #include "client/renderer/private.h"
 #include <math.h>
 
-#define GLFW_INCLUDE_NONE
-#define GLFW_EXPOSE_NATIVE_COCOA
-#include "glfw3/GLFW/glfw3.h"
-#include "glfw3/GLFW/glfw3native.h"
-
 namespace MTL {
 	class VertexDescriptor;
 }
@@ -21,8 +16,6 @@ namespace MTL {
 #include <dispatch/dispatch.h>
 
 // #include "tracy/tracy/Tracy.hpp"
-
-extern "C" void PleaseGLFWDoThisForMe( GLFWwindow * window, CA::MetalLayer * swapchain );
 
 struct AutoReleaseString {
 	NS::AutoreleasePool * pool;
@@ -110,7 +103,6 @@ struct BindGroup {
 };
 
 static MetalDevice global_device;
-static GLFWwindow * global_window;
 static CA::MetalLayer * global_swapchain;
 static PoolHandle< ::Texture > swapchain_texture;
 static dispatch_semaphore_t frame_semaphore;
@@ -946,7 +938,7 @@ void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< Compute
 	cb->cce->dispatchThreadgroups( allocations[ indirect_args.allocation ].buffer, indirect_args.offset, SubgroupSize( shader ) );
 }
 
-void InitRenderBackend( GLFWwindow * window ) {
+void InitRenderBackend() {
 	frame_semaphore = dispatch_semaphore_create( MaxFramesInFlight );
 	frame_counter = 0;
 	pass_counter = 0;
@@ -989,10 +981,7 @@ void InitRenderBackend( GLFWwindow * window ) {
 
 	swapchain_texture = textures.allocate();
 
-	PleaseGLFWDoThisForMe( window, global_swapchain );
-
-	global_window = window;
-	glfwGetFramebufferSize( global_window, &old_framebuffer_width, &old_framebuffer_height );
+	GetFramebufferSize( &old_framebuffer_width, &old_framebuffer_height );
 
 	CreateSamplers();
 	CreateDepthFuncs();
@@ -1069,7 +1058,7 @@ PoolHandle< Texture > RenderBackendBeginFrame( bool capture ) {
 	ClearGPUTempAllocator( &global_device.temp_allocator );
 
 	int framebuffer_width, framebuffer_height;
-	glfwGetFramebufferSize( global_window, &framebuffer_width, &framebuffer_height );
+	GetFramebufferSize( &framebuffer_width, &framebuffer_height );
 	bool resized = framebuffer_width != old_framebuffer_width || framebuffer_height != old_framebuffer_height;
 	bool nonzero = framebuffer_width > 0 && framebuffer_height > 0;
 

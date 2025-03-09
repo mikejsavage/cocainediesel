@@ -30,7 +30,7 @@ extern Cvar * s_device;
 void InitSound();
 void ShutdownSound();
 
-Span< Span< const char > > GetAudioDeviceNames( Allocator * a );
+Span< Span< const char > > GetAudioDeviceNames( TempAllocator * a );
 
 void SoundFrame( Vec3 origin, Vec3 velocity, Vec3 forward, Vec3 up );
 

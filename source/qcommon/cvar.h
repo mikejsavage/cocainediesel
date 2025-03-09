@@ -10,6 +10,7 @@ enum CvarFlags : u32 {
 	CvarFlag_ReadOnly       = 1 << 4,
 	CvarFlag_ServerReadOnly = 1 << 5,
 	CvarFlag_Developer      = 1 << 6,
+	CvarFlag_LinuxOnly      = 1 << 7,
 };
 
 constexpr CvarFlags operator|( CvarFlags a, CvarFlags b ) {

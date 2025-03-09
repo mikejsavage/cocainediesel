@@ -113,7 +113,7 @@ void CG_DrawChat() {
 	Vec2 size = frame_static.viewport * Vec2( width_frac, 0.25f );
 
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground;
-	ImGuiWindowFlags log_flags = ImGuiWindowFlags_AlwaysUseWindowPadding;
+	ImGuiWindowFlags log_flags = ImGuiWindowFlags_None;
 	if( chat.mode == ChatMode_None ) {
 		flags |= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
 		log_flags |= ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoInputs;
@@ -136,9 +136,9 @@ void CG_DrawChat() {
 	ImGui::SetNextWindowPos( ImVec2( 8, size.y * 3 ), ImGuiCond_Always, ImVec2( 0, 1.0f ) );
 	ImGui::Begin( "chat", WindowZOrder_Chat, flags );
 
-	ImGui::BeginChild( "chatlog", ImVec2( 0, -ImGui::GetFrameHeight() ), false, log_flags );
+	ImGui::BeginChild( "chatlog", ImVec2( 0, -ImGui::GetFrameHeight() ), ImGuiChildFlags_AlwaysUseWindowPadding, log_flags );
 
-	float wrap_width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
+	float wrap_width = ImGui::GetContentRegionAvail().x;
 
 	for( size_t i = 0; i < chat.history_len; i++ ) {
 		size_t idx = ( chat.history_head + i ) % ARRAY_COUNT( chat.history );
@@ -157,10 +157,10 @@ void CG_DrawChat() {
 		chat.scroll_to_bottom = false;
 	}
 
-	if( chat.mode != ChatMode_None && ( ImGui::IsKeyPressed( K_PGUP ) || ImGui::IsKeyPressed( K_PGDN ) ) ) {
+	if( chat.mode != ChatMode_None && ( ImGui::IsKeyPressed( ImGuiKey_PageUp ) || ImGui::IsKeyPressed( ImGuiKey_PageDown ) ) ) {
 		float scroll = ImGui::GetScrollY();
 		float page = ImGui::GetWindowSize().y - ImGui::GetTextLineHeight();
-		scroll += page * ( ImGui::IsKeyPressed( K_PGUP ) ? -1 : 1 );
+		scroll += page * ( ImGui::IsKeyPressed( ImGuiKey_PageUp ) ? -1 : 1 );
 		scroll = Clamp( 0.0f, scroll, ImGui::GetScrollMaxY() );
 		ImGui::SetScrollY( scroll );
 	}
@@ -192,7 +192,7 @@ void CG_DrawChat() {
 		ImGui::PopStyleColor();
 	}
 
-	if( ImGui::Hotkey( K_ESCAPE ) ) {
+	if( ImGui::Hotkey( ImGuiKey_Escape ) ) {
 		CloseChat();
 	}
 

@@ -39,7 +39,7 @@ static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 
 	// fullscreen
 	{
-		int comps = sscanf( str, "F %d %dx%d %dHz", &mode->monitor, &mode->video_mode.width, &mode->video_mode.height, &mode->video_mode.frequency );
+		int comps = sscanf( str, "F %d %dx%d %fHz", &mode->monitor, &mode->video_mode.width, &mode->video_mode.height, &mode->video_mode.refresh_rate );
 		if( comps == 4 ) {
 			mode->fullscreen = FullscreenMode_Fullscreen;
 			return mode->video_mode.width > 0 && mode->video_mode.height > 0;
@@ -50,7 +50,7 @@ static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 }
 
 void format( FormatBuffer * fb, VideoMode mode, const FormatOpts & opts ) {
-	ggformat_impl( fb, "{}x{} {}Hz", mode.width, mode.height, mode.frequency );
+	ggformat_impl( fb, "{}x{} {.1}Hz", mode.width, mode.height, mode.refresh_rate );
 }
 
 void format( FormatBuffer * fb, WindowMode mode, const FormatOpts & opts ) {
@@ -64,7 +64,7 @@ void format( FormatBuffer * fb, WindowMode mode, const FormatOpts & opts ) {
 			break;
 
 		case FullscreenMode_Fullscreen:
-			ggformat_impl( fb, "F {} {}x{} {}Hz", mode.monitor, mode.video_mode.width, mode.video_mode.height, mode.video_mode.frequency );
+			ggformat_impl( fb, "F {} {}x{} {.1}Hz", mode.monitor, mode.video_mode.width, mode.video_mode.height, mode.video_mode.refresh_rate );
 			break;
 	}
 }
@@ -73,8 +73,8 @@ bool operator!=( WindowMode lhs, WindowMode rhs ) {
 	if( lhs.fullscreen != rhs.fullscreen )
 		return true;
 
-	if( lhs.fullscreen ) {
-		if( lhs.video_mode.frequency != rhs.video_mode.frequency || lhs.monitor != rhs.monitor ) {
+	if( lhs.fullscreen != FullscreenMode_Windowed ) {
+		if( lhs.video_mode.refresh_rate != rhs.video_mode.refresh_rate || lhs.monitor != rhs.monitor ) {
 			return true;
 		}
 	}
@@ -127,7 +127,7 @@ void VID_Init() {
 	WindowMode mode;
 	if( !ParseWindowMode( vid_mode->value, &mode ) ) {
 		mode = { };
-		mode.video_mode = GetVideoMode( mode.monitor );
+		mode.video_mode = GetVideoMode( 0 );
 		mode.fullscreen = FullscreenMode_Fullscreen;
 	}
 

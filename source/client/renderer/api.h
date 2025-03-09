@@ -8,10 +8,8 @@
 
 constexpr size_t MaxFramesInFlight = 2;
 
-// TODO: generic InitRenderer, hide InitRenderBackend
-struct GLFWwindow;
-void InitRenderer( GLFWwindow * window );
-void ShutdownRenderer( GLFWwindow * window );
+void InitRenderer();
+void ShutdownRenderer();
 
 // TODO: not renderer specific
 void CreateAutoreleasePoolOnMacOS();

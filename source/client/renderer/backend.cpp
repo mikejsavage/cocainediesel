@@ -13,10 +13,9 @@
 
 #include "glad/glad.h"
 
-#define GLFW_INCLUDE_NONE
-#include "glfw3/GLFW/glfw3.h"
-
 #include "nanosort/nanosort.hpp"
+
+#include "SDL3/SDL_video.h"
 
 #include "tracy/tracy/Tracy.hpp"
 #include "tracy/tracy/TracyOpenGL.hpp"
@@ -298,7 +297,7 @@ void InitRenderBackend() {
 
 	{
 		TracyZoneScopedN( "Load OpenGL" );
-		if( gladLoadGLLoader( GLADloadproc( glfwGetProcAddress ) ) != 1 ) {
+		if( gladLoadGLLoader( GLADloadproc( SDL_GL_GetProcAddress ) ) != 1 ) {
 			Fatal( "Couldn't load GL" );
 		}
 	}

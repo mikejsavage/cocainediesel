@@ -34,9 +34,13 @@ static bool IsAlly( Team team ) {
 	return team == my_team;
 }
 
+RGB8 CG_RealTeamColor( Team team ) {
+	return Cvar_Bool( "cg_colorBlind" ) ? COLORBLIND_TEAM_COLORS[ team ] : TEAM_COLORS[ team ];
+}
+
 RGB8 CG_TeamColor( Team team ) {
 	if( cg.frame.gameState.gametype == Gametype_Gladiator )
-		return Cvar_Bool( "cg_colorBlind" ) ? COLORBLIND_TEAM_COLORS[ team ] : TEAM_COLORS[ team ];
+		return CG_RealTeamColor( team );
 	return IsAlly( team ) ? AllyColor() : EnemyColor();
 }
 

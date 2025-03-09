@@ -412,12 +412,6 @@ rule cpp
     description = $in
     deps = gcc
 
-rule m
-    command = $cpp -MD -MF $out.d -Ilibs -c -o $out $in
-    depfile = $out.d
-    description = $in
-    deps = gcc
-
 rule lib
     command = $ar cr $out $in
     description = $out
@@ -442,8 +436,7 @@ rule lib
 	end
 
 	for src_name, cfg in sort_by_key( objs ) do
-		local rule = src_name:match( "%.([^.]+)$" ) == "cpp" and "cpp" or "m"
-		printf( "build %s/%s%s: %s %s%s", dir, src_name, obj_suffix, rule, src_name, OS == "linux" and ( " | " .. zig ) or "" )
+		printf( "build %s/%s%s: cpp %s%s", dir, src_name, obj_suffix, src_name, OS == "linux" and ( " | " .. zig ) or "" )
 		if cfg.cxxflags then
 			printf( "    cxxflags = %s", cfg.cxxflags )
 		end

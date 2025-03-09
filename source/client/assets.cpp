@@ -62,7 +62,10 @@ static void CheckedVirtualFree( void * ptr ) {
 static void FreeAssetData( Asset * asset ) {
 #if PLATFORM_WINDOWS
 	if( asset->virtual_free ) {
-		CheckedVirtualFree( asset->data.ptr );
+		// this can be NULL because VirtualAlloc( 0 ) returns NULL
+		if( asset->data.ptr != NULL ) {
+			CheckedVirtualFree( asset->data.ptr );
+		}
 		return;
 	}
 #endif
@@ -198,7 +201,7 @@ static void LoadAsset( TempAllocator * temp, Span< const char > game_path, const
 
 #if PLATFORM_WINDOWS
 
-static constexpr size_t MAX_ASYNC_READ_SIZE = 16 * 1024 * 1024; // 16MB
+static constexpr size_t MAX_ASYNC_READ_SIZE = Megabytes( 16 );
 
 struct LoadAssetResult {
 	Span< u8 > data;
@@ -237,19 +240,29 @@ void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip )
 		} );
 	}
 
-	Span< Span< u8 > > buffers = AllocSpan< Span< u8 > >( temp, handles_and_paths.n );
+	Span< Optional< Span< u8 > > > buffers = AllocSpan< Optional< Span< u8 > > >( temp, handles_and_paths.n );
 	{
 		TracyZoneScopedN( "VirtualAllocs" );
 		for( size_t i = 0; i < handles_and_paths.n; i++ ) {
 			if( handles_and_paths[ i ].handle == INVALID_HANDLE_VALUE ) {
-				buffers[ i ] = Span< u8 >();
+				buffers[ i ] = NONE;
 				continue;
 			}
 
 			size_t actual_size = FileSize( handles_and_paths[ i ].handle );
 			size_t aligned_size = AlignPow2( actual_size, 4096 );
+
+			// VirtualAlloc( 0 ) fails so return a dummy but non-NONE Span here
+			if( actual_size == 0 ) {
+				buffers[ i ] = Span< u8 >();
+				continue;
+			}
+
 			// there's no particular reason to use VirtualAlloc beyond it returning 4k aligned allocs
 			buffers[ i ] = Span< u8 >( ( u8 * ) VirtualAlloc( NULL, aligned_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE ), actual_size );
+			if( buffers[ i ].value.ptr == NULL ) {
+				FatalGLE( "VirtualAlloc" );
+			}
 		}
 	}
 
@@ -263,32 +276,36 @@ void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip )
 		OVERLAPPED overlapped[ overlap ];
 
 		for( size_t i = 0; i < files.n + overlap - 1; i++ ) {
-			if( i < files.n && handles_and_paths[ i ].handle != INVALID_HANDLE_VALUE ) {
+			if( i < files.n && handles_and_paths[ i ].handle != INVALID_HANDLE_VALUE && buffers[ i ].value.n > 0 ) {
 				overlapped[ i % overlap ] = { };
-				if( ReadFile( handles_and_paths[ i ].handle, buffers[ i ].ptr, AlignPow2( buffers[ i ].n, 4096 ), NULL, &overlapped[ i % overlap ] ) != TRUE && GetLastError() != ERROR_IO_PENDING ) {
-					CheckedVirtualFree( buffers[ i ].ptr );
-					buffers[ i ] = Span< u8 >();
+				if( ReadFile( handles_and_paths[ i ].handle, buffers[ i ].value.ptr, AlignPow2( buffers[ i ].value.n, 4096 ), NULL, &overlapped[ i % overlap ] ) != TRUE && GetLastError() != ERROR_IO_PENDING ) {
+					CheckedVirtualFree( buffers[ i ].value.ptr );
+					buffers[ i ] = NONE;
 				}
 			}
 
 			if( i > overlap - 1 ) {
 				size_t prev = i - ( overlap - 1 );
-				if( handles_and_paths[ prev ].handle != INVALID_HANDLE_VALUE ) {
-					DWORD r;
-					BOOL ok = GetOverlappedResult( handles_and_paths[ prev ].handle, &overlapped[ prev % overlap ], &r, TRUE );
-					if( ok == 0 && GetLastError() || r != buffers[ prev ].n ) {
-						CheckedVirtualFree( buffers[ prev ].ptr );
-						buffers[ prev ] = Span< u8 >();
+				if( handles_and_paths[ prev ].handle != INVALID_HANDLE_VALUE && buffers[ prev ].exists ) {
+					if( buffers[ prev ].value.n > 0 ) {
+						DWORD r;
+						BOOL ok = GetOverlappedResult( handles_and_paths[ prev ].handle, &overlapped[ prev % overlap ], &r, TRUE );
+						if( ok == 0 && GetLastError() || r != buffers[ prev ].value.n ) {
+							CheckedVirtualFree( buffers[ prev ].value.ptr );
+							buffers[ prev ] = NONE;
+						}
 					}
 
-					Span< const char > game_path = MakeSpan( files[ prev ] + skip );
-					Span< const char > ext = FileExtension( game_path );
-					if( ext == ".zst" ) {
-						game_path.n -= ext.n;
-						LaunchDecompressAssetJob( game_path, Hash64( game_path ), buffers[ prev ], UseVirtualFree_Yes );
-					}
-					else {
-						AddAsset( game_path, Hash64( game_path ), buffers[ prev ], IsCompressed_No, UseVirtualFree_Yes );
+					if( buffers[ prev ].exists ) {
+						Span< const char > game_path = MakeSpan( files[ prev ] + skip );
+						Span< const char > ext = FileExtension( game_path );
+						if( ext == ".zst" ) {
+							game_path.n -= ext.n;
+							LaunchDecompressAssetJob( game_path, Hash64( game_path ), buffers[ prev ].value, UseVirtualFree_Yes );
+						}
+						else {
+							AddAsset( game_path, Hash64( game_path ), buffers[ prev ].value, IsCompressed_No, UseVirtualFree_Yes );
+						}
 					}
 				}
 			}

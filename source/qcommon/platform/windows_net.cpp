@@ -10,7 +10,7 @@
 #include "qcommon/base.h"
 #include "qcommon/platform/net.h"
 
-static void FatalWSA( const char * name ) {
+[[noreturn]] static void FatalWSA( const char * name ) {
 	int err = WSAGetLastError();
 
 	char buf[ 1024 ];

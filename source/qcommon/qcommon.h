@@ -232,8 +232,6 @@ const char * Sys_ConsoleInput();
 
 bool Sys_OpenInWebBrowser( const char * url );
 
-bool Sys_BeingDebugged();
-
 /*
 ==============================================================
 

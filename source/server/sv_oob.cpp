@@ -322,7 +322,7 @@ static void SVC_DirectConnect( const NetAddress & address, const Tokenized & arg
 	if( sv_iplimit->integer ) {
 		int previousclients = 0;
 		for( int i = 0; i < sv_maxclients->integer; i++ ) {
-			client_t * cl = &svs.clients[ i ];
+			const client_t * cl = &svs.clients[ i ];
 			if( cl->state == CS_FREE ) {
 				continue;
 			}

@@ -101,10 +101,10 @@ static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
 	return { };
 }
 
-void InitRenderer( GLFWwindow * window ) {
+void InitRenderer() {
 	TracyZoneScoped;
 
-	InitRenderBackend( window );
+	InitRenderBackend();
 
 	TempAllocator temp = cls.frame_arena.temp();
 

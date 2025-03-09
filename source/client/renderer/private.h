@@ -2,7 +2,7 @@
 
 #include "client/renderer/api.h"
 
-void InitRenderBackend( GLFWwindow * window );
+void InitRenderBackend();
 void ShutdownRenderBackend();
 
 struct CoherentMemory {
@@ -101,7 +101,3 @@ constexpr size_t MaxBufferBindings = 8;
 constexpr size_t MaxTextureBindings = 8;
 
 constexpr size_t MaxShaderVariants = 8;
-
-constexpr size_t Megabytes( size_t mb ) {
-	return mb * 1024 * 1024;
-}

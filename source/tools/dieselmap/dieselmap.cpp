@@ -530,7 +530,7 @@ static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & 
 
 static bool IsNearlyAxial( Vec3 v ) {
 	for( int i = 0; i < 3; i++ ) {
-		if( Abs( v[ i ] ) >= 0.99999f ) {
+		if( NearlyEqual( Abs( v[ i ] ), 1.0f ) ) {
 			return true;
 		}
 	}

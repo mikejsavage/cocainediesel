@@ -1,2 +1,2 @@
 #define CLAY_IMPLEMENTATION
-#include "cdclay.h"
+#include "clay.h"

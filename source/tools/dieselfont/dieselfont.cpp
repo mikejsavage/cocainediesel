@@ -294,7 +294,7 @@ int main( int argc, char ** argv ) {
 	constexpr size_t atlas_glyph_embox_size = 64; // pixels
 	constexpr float range_in_ems = 8.0f;
 
-	constexpr size_t arena_size = 1024 * 1024 * 100; // 100MB
+	constexpr size_t arena_size = Megabytes( 100 );
 	ArenaAllocator arena( sys_allocator->allocate( arena_size, 16 ), arena_size );
 
 	Span< const char > ttf_path = MakeSpan( argv[ 1 ] );
@@ -309,8 +309,8 @@ int main( int argc, char ** argv ) {
 		Fatal( "bad font" );
 	}
 
-	int ascent;
-	stbtt_GetFontVMetrics( &font, &ascent, NULL, 0 );
+	int ascent, descent;
+	stbtt_GetFontVMetrics( &font, &ascent, &descent, 0 );
 	// float scale = stbtt_ScaleForPixelHeight( &font, 1.0f );
 	float scale = stbtt_ScaleForMappingEmToPixels( &font, 1.0f );
 
@@ -377,7 +377,7 @@ int main( int argc, char ** argv ) {
 		.glyph_padding = padding / atlas_glyph_embox_size,
 		.dSDF_dTexel = dSDF_dUV,
 		.ascent = ascent * scale,
-		// .descent = descent * scale,
+		.descent = descent * scale,
 	};
 
 	for( size_t i = 0; i < num_glyphs; i++ ) {

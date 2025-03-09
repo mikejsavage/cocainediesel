@@ -2,7 +2,7 @@
 
 struct VideoMode {
 	int width, height;
-	int frequency;
+	float refresh_rate;
 };
 
 enum FullscreenMode {

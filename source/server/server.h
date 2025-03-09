@@ -180,6 +180,7 @@ extern server_static_t svs;                // persistant server info
 extern server_t sv;                 // local server
 
 extern Cvar * sv_port;
+extern Cvar * sv_interface;
 
 extern Cvar * sv_downloadurl;
 

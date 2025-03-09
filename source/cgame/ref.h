@@ -45,7 +45,7 @@ struct MultiTypeColor {
 	{}
 };
 
-constexpr MultiTypeColor diesel_yellow( 255, 204, 38, 255  );
+constexpr MultiTypeColor diesel_yellow( 255, 204, 38, 255 );
 constexpr MultiTypeColor diesel_green( 44, 209, 89, 255 ); //yolo
 constexpr MultiTypeColor diesel_red( 255, 0, 57, 255 );
 

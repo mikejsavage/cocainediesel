@@ -235,10 +235,6 @@ void G_Damage( edict_t * targ, edict_t * inflictor, edict_t * attacker, Vec3 pus
 		return;
 	}
 
-	if( statDmg ) {
-		G_ClientGetStats( targ )->total_damage_received += take;
-	}
-
 	// accumulate received damage for snapshot effects
 	{
 		Vec3 dorigin;

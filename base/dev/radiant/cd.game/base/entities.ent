@@ -156,4 +156,8 @@
 	<point name="cinematic_mapname" color="1 1 1" box="0 -1 0 1824 1 256" model="dev/cinematic_mapname.glb">
 		<angles key="angles" name="Pitch Yaw Roll"></angles>
 	</point>
+
+	<group name="window" color=".5 .5 .5">
+		A breakable window
+	</group>
 </classes>

@@ -89,7 +89,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 
 	body->s.override_collision_model = ent->s.override_collision_model;
 	body->s.solidity = Solid_NotSolid;
-	body->takedamage = DAMAGE_NO;
+	body->takedamage = false;
 	body->movetype = MOVETYPE_TOSS;
 
 	body->s.teleported = true;
@@ -150,7 +150,7 @@ static void G_GhostClient( edict_t *ent ) {
 	ent->s.effects = 0;
 	ent->s.sound = EMPTY_HASH;
 	ent->viewheight = 0;
-	ent->takedamage = DAMAGE_NO;
+	ent->takedamage = false;
 
 	ClearInventory( &ent->r.client->ps );
 
@@ -288,7 +288,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->s.team = client->team;
 
 	self->groundentity = NULL;
-	self->takedamage = DAMAGE_AIM;
+	self->takedamage = true;
 	self->die = player_die;
 	self->viewheight = playerbox_stand_viewheight;
 	self->r.inuse = true;

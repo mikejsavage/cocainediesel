@@ -777,10 +777,11 @@ static void PackDecalAtlas() {
 static void LoadBuiltinMaterials() {
 	TracyZoneScoped;
 
-	missing_material = Material();
-	missing_material.name = CloneSpan( sys_allocator, "missing material"_sp );
-	missing_material.texture = &missing_texture;
-	missing_material.sampler = Sampler_Unfiltered;
+	missing_material = Material {
+		.name = CloneSpan( sys_allocator, "missing material"_sp ),
+		.texture = &missing_texture,
+		.sampler = Sampler_Unfiltered,
+	};
 
 	{
 		u8 white = 255;
@@ -803,13 +804,12 @@ static void LoadBuiltinMaterials() {
 			RGBA8( 255, 0, 255, 255 ),
 		};
 
-		TextureConfig config;
-		config.format = TextureFormat_RGBA_U8_sRGB;
-		config.width = 2;
-		config.height = 2;
-		config.data = pixels;
-
-		missing_texture = NewTexture( config );
+		missing_texture = NewTexture( TextureConfig {
+			.format = TextureFormat_RGBA_U8_sRGB,
+			.width = 2,
+			.height = 2,
+			.data = pixels,
+		} );
 	}
 
 	{
@@ -843,6 +843,13 @@ static void LoadBuiltinMaterials() {
 		// for use in models, wallbangable is for collision geometry
 		AddMaterial( "wallbang_visible", wallbang_material );
 	}
+
+	AddMaterial( "textures/editor/glass", Material {
+		.rgbgen = { .args = { 0.0f, 0.35f, 0.8f } },
+		.world = true,
+		.specular = 100.0f,
+		.shininess = 100.0f,
+	} );
 }
 
 void InitMaterials() {

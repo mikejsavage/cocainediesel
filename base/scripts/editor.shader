@@ -3,6 +3,12 @@ textures/editor/world
 	qer_editorimage textures/editor/world
 }
 
+textures/editor/glass
+{
+	qer_trans 0.40
+	qer_editorimage textures/editor/world
+}
+
 textures/editor/discard
 {
 	qer_editorimage textures/editor/discard

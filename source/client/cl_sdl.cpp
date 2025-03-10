@@ -150,17 +150,16 @@ WindowMode GetWindowMode() {
 	TrySDL( SDL_GetWindowPosition, window, &mode.x, &mode.y );
 	TrySDL( SDL_GetWindowSizeInPixels, window, &mode.video_mode.width, &mode.video_mode.height );
 
-	const SDL_DisplayMode * fullscreen = SDL_GetWindowFullscreenMode( window );
-	if( fullscreen != NULL ) {
-		mode.fullscreen = FullscreenMode_Fullscreen;
-		mode.video_mode.refresh_rate = fullscreen->refresh_rate;
-		mode.monitor = SDL_GetDisplayIndex( fullscreen->displayID );
-	}
-	else {
-		bool borderless = HasAllBits( SDL_GetWindowFlags( window ), SDL_WINDOW_FULLSCREEN );
-		mode.fullscreen = borderless ? FullscreenMode_Borderless : FullscreenMode_Windowed;
+	if( HasAllBits( SDL_GetWindowFlags( window ), SDL_WINDOW_FULLSCREEN ) ) {
+		const SDL_DisplayMode * fullscreen = SDL_GetWindowFullscreenMode( window );
+		if( fullscreen != NULL ) {
+			mode.fullscreen = FullscreenMode_Fullscreen;
+			mode.video_mode.refresh_rate = fullscreen->refresh_rate;
+			mode.monitor = SDL_GetDisplayIndex( fullscreen->displayID );
+		}
+		else {
+			mode.fullscreen = FullscreenMode_Borderless;
 
-		if( borderless ) {
 			int num_monitors;
 			SDL_DisplayID * monitors = SDL_GetDisplays( &num_monitors );
 			defer { SDL_free( monitors ); };

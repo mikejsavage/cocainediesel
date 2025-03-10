@@ -60,6 +60,14 @@ float Unlerp( float lo, float x, float hi ) {
 	return ( x - lo ) / ( hi - lo );
 }
 
+mat3 Adjugate( mat3 m ) {
+	return mat3(
+		cross( m[ 1 ], m[ 2 ] ),
+		cross( m[ 2 ], m[ 0 ] ),
+		cross( m[ 0 ], m[ 1 ] )
+	);
+}
+
 mat4 AffineToMat4( AffineTransform t ) {
 	return mat4(
 		t.m[ 0 ][ 0 ], t.m[ 0 ][ 1 ], t.m[ 0 ][ 2 ], 0.0,

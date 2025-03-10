@@ -54,10 +54,7 @@ void main() {
 #endif
 
 	v_Position = ( M * Position ).xyz;
-
-	mat3 m = transpose( inverse( mat3( M ) ) );
-	v_Normal = m * Normal;
-
+	v_Normal = sign( determinant( mat3( M ) ) ) * Adjugate( mat3( M ) ) * Normal;
 	v_TexCoord = a_TexCoord;
 
 #if VERTEX_COLORS

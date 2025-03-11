@@ -14,8 +14,6 @@ void UI_ShowLoadoutMenu( Loadout loadout );
 void UI_ShowDemoMenu();
 void UI_HideMenu();
 
-void DrawModelViewer();
-
 struct ImGuiColorToken {
 	u8 token[ 5 ];
 	ImGuiColorToken( u8 r, u8 g, u8 b, u8 a );

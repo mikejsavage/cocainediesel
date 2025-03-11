@@ -4,6 +4,7 @@
 #include "client/assets.h"
 #include "client/audio/api.h"
 #include "client/client.h"
+#include "client/dev_tools.h"
 #include "client/keys.h"
 #include "client/renderer/renderer.h"
 #include "client/demo_browser.h"
@@ -59,16 +60,14 @@ enum SettingsState {
 	SettingsState_Audio,
 };
 
-enum DevTool {
-	DevTool_ModelViewer,
-};
-
 static UIState uistate;
 
 static MainMenuState mainmenu_state;
 static GameMenuState gamemenu_state;
 static DemoMenuState demomenu_state;
-static DevTool devtool;
+
+static DevToolRenderCallback devtool_render_callback;
+static DevToolCleanupCallback devtool_cleanup_callback;
 
 static Optional< size_t > selected_server;
 
@@ -146,11 +145,18 @@ void UI_Init() {
 
 	UI_ShowMainMenu();
 	reset_video_settings = true;
+
+	devtool_render_callback = NULL;
+	devtool_cleanup_callback = NULL;
 }
 
 void UI_Shutdown() {
 	ClearMasksList();
 	masks.shutdown();
+
+	if( devtool_cleanup_callback ) {
+		devtool_cleanup_callback();
+	}
 }
 
 static void SettingLabel( Span< const char > label ) {
@@ -997,7 +1003,7 @@ static void MainMenu() {
 	if( cl_devtools->integer ) {
 		if( ImGui::Button( "Model viewer" ) ) {
 			uistate = UIState_DevTool;
-			devtool = DevTool_ModelViewer;
+			devtool_render_callback = DrawModelViewer;
 		}
 	}
 
@@ -1635,9 +1641,12 @@ void UI_Refresh() {
 	TracyZoneScoped;
 
 	if( uistate == UIState_DevTool ) {
-		switch( devtool ) {
-			case DevTool_ModelViewer: DrawModelViewer(); break;
-		}
+		devtool_cleanup_callback = devtool_render_callback();
+	}
+	else if( devtool_cleanup_callback != NULL ) {
+		devtool_cleanup_callback();
+		devtool_render_callback = NULL;
+		devtool_cleanup_callback = NULL;
 	}
 
 	if( uistate == UIState_GameMenu ) {

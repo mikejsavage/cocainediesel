@@ -3,23 +3,25 @@
 #include "qcommon/base.h"
 #include "client/client.h"
 #include "client/assets.h"
+#include "client/dev_tools.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/skybox.h"
 #include "cgame/cg_local.h"
 
-static char * selected_model = NULL;
+static char * selected_model;
 static ImGuiTextFilter filter;
 
-void DrawModelViewer() {
-	if( selected_model == NULL ) {
+DevToolCleanupCallback DrawModelViewer() {
+	ImGui::SetNextWindowPos( ImVec2() );
+	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width * 0.2f, frame_static.viewport_height ) );
+	ImGui::Begin( "modelviewer", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
+	ImGui::BeginChild( "modelviewer2" ); // NOTE(mike): need a child window or the combo doesn't work, something to do with Z order sorting
+
+	if( ImGui::IsWindowAppearing() ) {
 		selected_model = CopyString( sys_allocator, "players/rigg/model" );
 		filter = ImGuiTextFilter();
 	}
 
-	ImGui::SetNextWindowPos( ImVec2() );
-	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width * 0.2f, frame_static.viewport_height ) );
-	ImGui::Begin( "modelviewer", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
-	ImGui::BeginChild( "modelviewer2" );
 
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text( "Model" );
@@ -47,9 +49,6 @@ void DrawModelViewer() {
 	}
 
 	if( ImGui::Button( "Exit" ) ) {
-		// TODO: maybe return a callback that cleans up so we can auto call it when leaving this screen or closing the game
-		// possible api would be SetUICleanupCallback( f ) { if( last != f ) { last(); } last = f; }
-		Free( sys_allocator, selected_model );
 		UI_ShowMainMenu();
 	}
 
@@ -69,4 +68,9 @@ void DrawModelViewer() {
 
 	ImGui::EndChild();
 	ImGui::End();
+
+	return []() {
+		Free( sys_allocator, selected_model );
+		selected_model = NULL;
+	};
 }

@@ -1114,7 +1114,6 @@ static void MainMenu() {
 	Draw2DBox( 0.0, frame_static.viewport_height - OFFSET, frame_static.viewport_width, OFFSET, cls.white_material, dark.vec4 );
 	Draw2DBoxUV( 0.0, frame_static.viewport_height - OFFSET - 32.0, frame_static.viewport_width, 32.0, TAPE_UV_START - TAPE_OFFSET, TAPE_UV_END - TAPE_OFFSET, TAPE, white.vec4 );
 
-/*
 	{
 		ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0, 0 ) );
 		ImGui::PushStyleColor( ImGuiCol_Button, IM_COL32( 0, 0, 0, 0 ) );
@@ -1123,38 +1122,41 @@ static void MainMenu() {
 
 		const char * buf = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
 		ImVec2 size = ImGui::CalcTextSize( buf );
-		ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - window_padding.x - 1.0f - Sin( cls.monotonicTime, Milliseconds( 182 ) ) );
+		ImGui::SetCursorPosY( ImGui::GetWindowHeight() - size.y - 8.0f );
+		ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - 8.0f - Sin( cls.monotonicTime, Milliseconds( 182 ) ) );
+		ImGui::Text( "%s", buf );
 
-		if( ImGui::Button( buf ) ) {
-			ImGui::OpenPopup( "Credits" );
-		}
+		// if( ImGui::Button( buf ) ) {
+		// 	ImGui::OpenPopup( "Credits" );
+		// }
 
 		ImGui::PopStyleColor( 3 );
 		ImGui::PopStyleVar();
 
-		ImGuiWindowFlags credits_flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
-		if( ImGui::BeginPopupModal( "Credits", NULL, credits_flags ) ) {
-			ImGui::Text( "Dexter - programming" );
-			ImGui::Text( "general adnic - voice acting" );
-			ImGui::Text( "goochie - art & programming" );
-			ImGui::Text( "MikeJS - programming" );
-			ImGui::Text( "MSC - programming & art" );
-			ImGui::Text( "Obani - music & fx & programming" );
-			ImGui::Text( "Rhodanathema - art" );
-			ImGui::Separator();
-			ImGui::Text( "jwzr - medical research" );
-			ImGui::Text( "naxeron - chief propagandist" );
-			ImGui::Text( "zmiles - american cultural advisor" );
-			ImGui::Separator();
-			ImGui::Text( "Special thanks to the Warsow team except for slk and MWAGA" );
-			ImGui::Spacing();
-
-			if( ImGui::Button( "Close" ) )
-				ImGui::CloseCurrentPopup();
-
-			ImGui::EndPopup();
-		}
-	}*/
+		// ImGuiWindowFlags credits_flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
+		// if( ImGui::BeginPopupModal( "Credits", NULL, credits_flags ) ) {
+		// 	ImGui::Text( "Dexter - programming" );
+		// 	ImGui::Text( "general adnic - voice acting" );
+		// 	ImGui::Text( "goochie - art & programming" );
+		// 	ImGui::Text( "MikeJS - programming" );
+		// 	ImGui::Text( "MSC - programming & art" );
+		// 	ImGui::Text( "Obani - music & fx & programming" );
+		// 	ImGui::Text( "Rhodanathema - art" );
+		// 	ImGui::Separator();
+		// 	ImGui::Text( "jwzr - medical research" );
+		// 	ImGui::Text( "naxeron - chief propagandist" );
+		// 	ImGui::Text( "zmiles - american cultural advisor" );
+		// 	ImGui::Separator();
+		// 	ImGui::Text( "Special thanks to the Warsow team except for slk and MWAGA" );
+		// 	ImGui::Spacing();
+        //
+		// 	if( ImGui::Button( "Close" ) ) {
+		// 		ImGui::CloseCurrentPopup();
+		// 	}
+        //
+		// 	ImGui::EndPopup();
+		// }
+	}
 
 	ImGui::End();
 }

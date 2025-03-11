@@ -25,6 +25,7 @@ enum UIState {
 	UIState_Connecting,
 	UIState_GameMenu,
 	UIState_DemoMenu,
+	UIState_DevTool,
 };
 
 enum MainMenuState {
@@ -37,8 +38,6 @@ enum MainMenuState {
 	MainMenuState_CreateServerGladiator,
 	MainMenuState_CreateServerBomb,
 	MainMenuState_Settings,
-
-	MainMenuState_ParticleEditor,
 };
 
 enum GameMenuState {
@@ -60,11 +59,16 @@ enum SettingsState {
 	SettingsState_Audio,
 };
 
+enum DevTool {
+	DevTool_ModelViewer,
+};
+
 static UIState uistate;
 
 static MainMenuState mainmenu_state;
 static GameMenuState gamemenu_state;
 static DemoMenuState demomenu_state;
+static DevTool devtool;
 
 static Optional< size_t > selected_server;
 
@@ -139,7 +143,6 @@ void UI_Init() {
 	masks.init( sys_allocator );
 	RefreshMasksList();
 	yolodemo = false;
-	// InitParticleMenuEffect();
 
 	UI_ShowMainMenu();
 	reset_video_settings = true;
@@ -148,7 +151,6 @@ void UI_Init() {
 void UI_Shutdown() {
 	ClearMasksList();
 	masks.shutdown();
-	// ShutdownParticleEditor();
 }
 
 static void SettingLabel( Span< const char > label ) {
@@ -980,7 +982,7 @@ static void MainMenu() {
 		{ "hud/replays", "REPLAYS", MainMenuState_Replays, diesel_yellow.vec4 },
 		{ "hud/bomb", "PLAY", MainMenuState_ServerBrowser, diesel_red.vec4 },
 		{ "hud/gladiator", "RANKED", MainMenuState_Ranked, diesel_red.vec4 },
-		{ "hud/settings", "SETTINGS", MainMenuState_Settings, diesel_yellow.vec4 }
+		{ "hud/settings", "SETTINGS", MainMenuState_Settings, diesel_yellow.vec4 },
 	};
 
 	TempAllocator temp = cls.frame_arena.temp();
@@ -991,6 +993,13 @@ static void MainMenu() {
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_Interactive;
 
 	ImGui::Begin( "mainmenu", WindowZOrder_Menu, flags );
+
+	if( cl_devtools->integer ) {
+		if( ImGui::Button( "Model viewer" ) ) {
+			uistate = UIState_DevTool;
+			devtool = DevTool_ModelViewer;
+		}
+	}
 
 	const float OFFSET = frame_static.viewport_height * 0.1f;
 	const Vec2 icon_size = Vec2( frame_static.viewport_height * 0.11f, frame_static.viewport_height * 0.11f );
@@ -1057,7 +1066,8 @@ static void MainMenu() {
 			Cmd_Execute( &temp, "quit" );
 		}
 		ImGui::PopFont();
-	} else {
+	}
+	else {
 		const ImVec2 submenus_offset = ImVec2( frame_static.viewport_width * 0.35f, OFFSET + 128.f );
 		const ImVec2 submenus_size = ImVec2( frame_static.viewport_width - submenus_offset.x - 32.f, frame_static.viewport_height - OFFSET * 2.f - 256.f );
 
@@ -1081,22 +1091,27 @@ static void MainMenu() {
 		if( mainmenu_state == MainMenuState_License ) {
 			NotImplemented();
 			//License( submenus_size );
-		} else if( mainmenu_state == MainMenuState_Locker ) {
+		}
+		else if( mainmenu_state == MainMenuState_Locker ) {
 			Locker();
-		} else if( mainmenu_state == MainMenuState_Replays ) {
+		}
+		else if( mainmenu_state == MainMenuState_Replays ) {
 			DemoBrowser();
-		} else if( mainmenu_state == MainMenuState_ServerBrowser ) {
+		}
+		else if( mainmenu_state == MainMenuState_ServerBrowser ) {
 			ServerBrowser();
-		} else if( mainmenu_state == MainMenuState_Ranked ) {
+		}
+		else if( mainmenu_state == MainMenuState_Ranked ) {
 			NotImplemented();
-		} else if( mainmenu_state == MainMenuState_CreateServerGladiator ) {
+		}
+		else if( mainmenu_state == MainMenuState_CreateServerGladiator ) {
 			CreateServer( true );
-		} else if( mainmenu_state == MainMenuState_CreateServerBomb ) {
+		}
+		else if( mainmenu_state == MainMenuState_CreateServerBomb ) {
 			CreateServer( false );
-		} else if( mainmenu_state == MainMenuState_Settings ) {
+		}
+		else if( mainmenu_state == MainMenuState_Settings ) {
 			Settings();
-		} else if( mainmenu_state == MainMenuState_ParticleEditor ) {
-			mainmenu_state = MainMenuState_Main;
 		}
 
 		ImGui::EndChild();
@@ -1619,6 +1634,12 @@ static void DemoMenu() {
 void UI_Refresh() {
 	TracyZoneScoped;
 
+	if( uistate == UIState_DevTool ) {
+		switch( devtool ) {
+			case DevTool_ModelViewer: DrawModelViewer(); break;
+		}
+	}
+
 	if( uistate == UIState_GameMenu ) {
 		GameMenu();
 	}
@@ -1628,18 +1649,10 @@ void UI_Refresh() {
 	}
 
 	if( uistate == UIState_MainMenu ) {
-		if( mainmenu_state != MainMenuState_ParticleEditor ) {
-			// DrawParticleMenuEffect();
-		}
-
 		MainMenu();
 	}
 
 	if( uistate == UIState_Connecting ) {
-		if( mainmenu_state != MainMenuState_ParticleEditor ) {
-			// DrawParticleMenuEffect();
-		}
-
 		ImGui::SetNextWindowPos( ImVec2() );
 		ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
 		ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration );

@@ -39,6 +39,8 @@ enum MainMenuState {
 	MainMenuState_CreateServerGladiator,
 	MainMenuState_CreateServerBomb,
 	MainMenuState_Settings,
+	MainMenuState_Extras,
+	MainMenuState_Career,
 };
 
 enum GameMenuState {
@@ -927,10 +929,11 @@ static void ShadowedText( Span<const char> text, float shadow_size ) {
 }
 
 template< bool BUTTON >
-static bool MainSectionButton( const ImVec2& pos, const Material * icon, const Vec2& size, Span<const char> name, const Vec4& bg_color ) {
+static bool MainSectionButton( const ImVec2& pos, const Material * icon, const Vec2& size, Span<const char> name, const Vec4& bg_color, const bool is_enabled ) {
 	const Vec2 half_pixel = HalfPixelSize( icon );
 	const Vec2 SQUARE_SIZE = Vec2( size.x + 8.f, size.y + 8.f );
 	const ImVec2 text_size = ImGui::CalcTextSize( name );
+	const Vec4 text_color = is_enabled ? white.vec4 : diesel_grey.vec4;
 
 	bool pressed = false;
 	bool hovered = false;
@@ -962,8 +965,9 @@ static bool MainSectionButton( const ImVec2& pos, const Material * icon, const V
 	else {
 		ImGui::SetCursorPos( ImVec2( pos.x + size.x + 32.f, pos.y + (size.y - text_size.y) * 0.5f + 4.f ) );
 	}
-
+	ImGui::PushStyleColor( ImGuiCol_Text, text_color );
 	ShadowedText( name, 4.f );
+	ImGui::PopStyleColor();
 
 	return pressed;
 }
@@ -973,6 +977,7 @@ struct MainMenuCategory {
 	Span< const char > name;
 	MainMenuState state;
 	Vec4 bg_color;
+	bool is_enabled;
 };
 
 static void NotImplemented() {
@@ -983,12 +988,14 @@ static void NotImplemented() {
 
 static void MainMenu() {
 	constexpr MainMenuCategory categories[] = {
-		{ "hud/license", "LICENSE", MainMenuState_License, diesel_green.vec4 },
-		{ "hud/locker", "LOCKER", MainMenuState_Locker, white.vec4 },
-		{ "hud/replays", "REPLAYS", MainMenuState_Replays, diesel_yellow.vec4 },
-		{ "hud/bomb", "PLAY", MainMenuState_ServerBrowser, diesel_red.vec4 },
-		{ "hud/gladiator", "RANKED", MainMenuState_Ranked, diesel_red.vec4 },
-		{ "hud/settings", "SETTINGS", MainMenuState_Settings, diesel_yellow.vec4 },
+		{ "hud/license", "LICENSE", MainMenuState_License, diesel_grey.vec4, false },
+		{ "hud/locker", "LOCKER", MainMenuState_Locker, diesel_grey.vec4, false },
+		{ "hud/gladiator", "RANKED", MainMenuState_Ranked, diesel_grey.vec4, false },
+		{ "hud/replays", "REPLAYS", MainMenuState_Replays, diesel_yellow.vec4, true },
+		{ "hud/bomb", "PLAY", MainMenuState_ServerBrowser, diesel_green.vec4, true },
+		{ "hud/settings", "SETTINGS", MainMenuState_Settings, diesel_yellow.vec4, true },
+		{ "hud/extras", "EXTRAS", MainMenuState_Extras, diesel_grey.vec4, false },
+		{ "hud/career", "CAREER", MainMenuState_Career, diesel_grey.vec4, false },
 	};
 
 	TempAllocator temp = cls.frame_arena.temp();
@@ -1008,7 +1015,7 @@ static void MainMenu() {
 	}
 
 	const float OFFSET = frame_static.viewport_height * 0.1f;
-	const Vec2 icon_size = Vec2( frame_static.viewport_height * 0.11f, frame_static.viewport_height * 0.11f );
+	const Vec2 icon_size = Vec2( frame_static.viewport_height * 0.10f, frame_static.viewport_height * 0.10f );
 
 	// background
 	Draw2DBox( 0.0, 0.0, frame_static.viewport_width, frame_static.viewport_height, FindMaterial( "hud/nk" ), white.vec4 );
@@ -1031,7 +1038,7 @@ static void MainMenu() {
 		//CATEGORY ICON
 		for( size_t i = 0; i < ARRAY_COUNT( categories ); i++ ) {
 			if( categories[ i ].state == mainmenu_state ) {
-				MainSectionButton< false >( ImGui::GetCursorPos(), FindMaterial( categories[ i ].icon_path ), icon_size, categories[ i ].name, categories[ i ].bg_color );
+				MainSectionButton< false >( ImGui::GetCursorPos(), FindMaterial( categories[ i ].icon_path ), icon_size, categories[ i ].name, categories[ i ].bg_color, categories[ i ].is_enabled );
 				break;
 			}
 		}
@@ -1062,20 +1069,20 @@ static void MainMenu() {
 		ImGui::PushFont( cls.big_font );
 		for( size_t i = 0; i < ARRAY_COUNT( categories ); i++ ) {
 			if( MainSectionButton< true >( ImVec2( BASE_COLUMN + (COLUMN_OFFSET * (i % 3)) + COLUMN_LINE_OFFSET * (i/3), BASE_LINE + LINE_OFFSET * (i/3) ),
-				FindMaterial( categories[ i ].icon_path ), icon_size, categories[ i ].name, categories[ i ].bg_color ) ) {
+				FindMaterial( categories[ i ].icon_path ), icon_size, categories[ i ].name, categories[ i ].bg_color, categories[ i ].is_enabled ) ) {
 				mainmenu_state = categories[ i ].state;
 			}
 		}
 
 		if( MainSectionButton<true>( ImVec2( BASE_COLUMN + COLUMN_OFFSET * 2.f + COLUMN_LINE_OFFSET * 2.f, BASE_LINE + LINE_OFFSET * 2.f ),
-			FindMaterial( "hud/exit" ), icon_size, "EXIT", Vec4( 0.5f, 0.5f, 0.5f, 1.f ) ) ) {
+			FindMaterial( "hud/exit" ), icon_size, "EXIT", diesel_red.vec4, true ) ) {
 			Cmd_Execute( &temp, "quit" );
 		}
 		ImGui::PopFont();
 	}
 	else {
-		const ImVec2 submenus_offset = ImVec2( frame_static.viewport_width * 0.35f, OFFSET + 128.f );
-		const ImVec2 submenus_size = ImVec2( frame_static.viewport_width - submenus_offset.x - 32.f, frame_static.viewport_height - OFFSET * 2.f - 256.f );
+		const ImVec2 submenus_offset = ImVec2( frame_static.viewport_width * 0.225f, OFFSET + 128.f );
+		const ImVec2 submenus_size = ImVec2( frame_static.viewport_width - submenus_offset.x - 512.f, frame_static.viewport_height - OFFSET * 2.f - 256.f );
 
 		ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
 		constexpr ImU32 DARK_COL32 = IM_COL32( 25, 25, 25, 255 );
@@ -1118,6 +1125,12 @@ static void MainMenu() {
 		}
 		else if( mainmenu_state == MainMenuState_Settings ) {
 			Settings();
+		}
+		else if( mainmenu_state == MainMenuState_Extras ) {
+			NotImplemented();
+		}
+		else if( mainmenu_state == MainMenuState_Career ) {
+			NotImplemented();
 		}
 
 		ImGui::EndChild();

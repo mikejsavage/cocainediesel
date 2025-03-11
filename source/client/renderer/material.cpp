@@ -813,6 +813,13 @@ static void LoadBuiltinMaterials() {
 		// for use in models, wallbangable is for collision geometry
 		AddMaterial( "wallbang_visible", wallbang_material );
 	}
+
+	AddMaterial( "textures/editor/glass", Material {
+		.rgbgen = { .args = { 0.0f, 0.35f, 0.8f } },
+		.world = true,
+		.specular = 100.0f,
+		.shininess = 100.0f,
+	} );
 }
 
 void InitMaterials() {

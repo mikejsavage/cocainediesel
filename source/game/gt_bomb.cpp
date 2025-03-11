@@ -1149,7 +1149,7 @@ GametypeDef GetBombGametype() {
 	gt.PlayerKilled = Bomb_PlayerKilled;
 	gt.SelectSpawnPoint = Bomb_SelectSpawnPoint;
 	gt.SelectDeadcam = Bomb_SelectDeadcam;
-	gt.MapHotloaded = ResetBombSites;
+	gt.MapHotloading = ResetBombSites;
 	gt.SpawnEntity = Bomb_SpawnEntity;
 
 	gt.numTeams = 2;

@@ -39,12 +39,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MAX_FLOOD_MESSAGES 32
 
-enum damage_t {
-	DAMAGE_NO,
-	DAMAGE_YES,     // will take damage if hit
-	DAMAGE_AIM      // auto targeting recognizes this
-};
-
 // deadflag
 #define DEAD_NO         0
 #define DEAD_DEAD       1
@@ -123,7 +117,6 @@ struct score_stats_t {
 	bool ready;
 
 	int total_damage_given;
-	int total_damage_received;
 };
 
 extern gs_state_t server_gs;
@@ -466,6 +459,11 @@ void G_RespawnLevel();
 void G_ResetLevel();
 void G_InitLevel( Span< const char > mapname, int64_t levelTime );
 
+//
+// window
+//
+void SP_window( edict_t * ent, const spawn_temp_t * st );
+
 //============================================================================
 
 struct projectileinfo_t {
@@ -665,7 +663,7 @@ struct edict_t {
 	int deadflag;
 
 	int viewheight;				// height above origin where eyesight is determined
-	int takedamage;
+	bool takedamage;
 
 	int count;
 

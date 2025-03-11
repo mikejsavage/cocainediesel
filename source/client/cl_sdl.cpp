@@ -81,20 +81,28 @@ void CreateWindow( WindowMode mode ) {
 	TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, mode.video_mode.width );
 	TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, mode.video_mode.height );
 
+	SDL_DisplayID monitor = DisplayIndexToID( mode.monitor );
+
 	if( mode.fullscreen == FullscreenMode_Windowed ) {
 		TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_X_NUMBER, mode.x == -1 ? SDL_WINDOWPOS_CENTERED : mode.x );
 		TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_Y_NUMBER, mode.y == -1 ? SDL_WINDOWPOS_CENTERED : mode.y );
 	}
 	else {
-		SDL_DisplayID monitor = DisplayIndexToID( mode.monitor );
 		TrySDL( SDL_SetBooleanProperty, props, SDL_PROP_WINDOW_CREATE_FULLSCREEN_BOOLEAN, true );
 		TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_X_NUMBER, SDL_WINDOWPOS_UNDEFINED_DISPLAY( monitor ) );
 		TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_Y_NUMBER, SDL_WINDOWPOS_UNDEFINED_DISPLAY( monitor ) );
 	}
 
-	// TODO: set display mode for exclusive fullscreen
-
 	window = TrySDLR( SDL_Window *, SDL_CreateWindowWithProperties, props );
+
+	if( mode.fullscreen == FullscreenMode_Fullscreen ) {
+		SDL_DisplayMode closest;
+		if( !SDL_GetClosestFullscreenDisplayMode( monitor, mode.video_mode.width, mode.video_mode.height, mode.video_mode.refresh_rate, true, &closest ) ) {
+			closest = *TrySDLR( const SDL_DisplayMode *, SDL_GetDesktopDisplayMode, monitor );
+		}
+		TrySDL( SDL_SetWindowFullscreenMode, window, &closest );
+	}
+
 	gl_context = TrySDLR( SDL_GLContext, SDL_GL_CreateContext, window );
 
 	TrySDL( SDL_GetWindowSizeInPixels, window, &framebuffer_width, &framebuffer_height );
@@ -146,17 +154,16 @@ WindowMode GetWindowMode() {
 	TrySDL( SDL_GetWindowPosition, window, &mode.x, &mode.y );
 	TrySDL( SDL_GetWindowSizeInPixels, window, &mode.video_mode.width, &mode.video_mode.height );
 
-	const SDL_DisplayMode * fullscreen = SDL_GetWindowFullscreenMode( window );
-	if( fullscreen != NULL ) {
-		mode.fullscreen = FullscreenMode_Fullscreen;
-		mode.video_mode.refresh_rate = fullscreen->refresh_rate;
-		mode.monitor = SDL_GetDisplayIndex( fullscreen->displayID );
-	}
-	else {
-		bool borderless = HasAllBits( SDL_GetWindowFlags( window ), SDL_WINDOW_FULLSCREEN );
-		mode.fullscreen = borderless ? FullscreenMode_Borderless : FullscreenMode_Windowed;
+	if( HasAllBits( SDL_GetWindowFlags( window ), SDL_WINDOW_FULLSCREEN ) ) {
+		const SDL_DisplayMode * fullscreen = SDL_GetWindowFullscreenMode( window );
+		if( fullscreen != NULL ) {
+			mode.fullscreen = FullscreenMode_Fullscreen;
+			mode.video_mode.refresh_rate = fullscreen->refresh_rate;
+			mode.monitor = SDL_GetDisplayIndex( fullscreen->displayID );
+		}
+		else {
+			mode.fullscreen = FullscreenMode_Borderless;
 
-		if( borderless ) {
 			int num_monitors;
 			SDL_DisplayID * monitors = SDL_GetDisplays( &num_monitors );
 			defer { SDL_free( monitors ); };

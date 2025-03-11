@@ -45,13 +45,14 @@ struct MultiTypeColor {
 	{}
 };
 
-constexpr MultiTypeColor diesel_yellow( 255, 204, 38, 255 );
 constexpr MultiTypeColor diesel_green( 44, 209, 89, 255 ); //yolo
+constexpr MultiTypeColor diesel_grey( 128, 128, 128, 255 ); //british spelling for mikeman
 constexpr MultiTypeColor diesel_red( 255, 0, 57, 255 );
+constexpr MultiTypeColor diesel_yellow( 255, 204, 38, 255 );
 
 constexpr MultiTypeColor white( 255, 255, 255, 255 );
 constexpr MultiTypeColor black( 0, 0, 0, 255 );
-constexpr MultiTypeColor dark( 5, 5, 5, 255 );
+constexpr MultiTypeColor dark( 1, 1, 1, 255 );
 constexpr MultiTypeColor red( 255, 0, 0, 255 );
 constexpr MultiTypeColor green( 0, 255, 0, 255 );
 constexpr MultiTypeColor yellow( 255, 255, 0, 255 );

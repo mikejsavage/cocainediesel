@@ -182,8 +182,8 @@ static void SubmitDrawCalls() {
 						},
 						.material_bind_group = pcmd->TextureId.material_bind_group,
 						.scissor = PipelineState::Scissor {
-							u32( scissor.mins.x ),
-							u32( scissor.mins.y ),
+							u32( Max2( scissor.mins.x, 0.0f ) ),
+							u32( Max2( scissor.mins.y, 0.0f ) ),
 							u32( scissor.maxs.x - scissor.mins.x ),
 							u32( scissor.maxs.y - scissor.mins.y ),
 						},

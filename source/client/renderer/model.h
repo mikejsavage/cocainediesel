@@ -33,7 +33,6 @@ Optional< ModelRenderData > FindModelRenderData( StringHash name );
 Optional< ModelRenderData > FindModelRenderData( const char * name );
 
 void InitModels();
-void HotloadModels();
 void ShutdownModels();
 
 void DrawModel( DrawModelConfig config, ModelRenderData render_data, const Mat3x4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );

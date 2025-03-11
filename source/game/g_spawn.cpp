@@ -64,6 +64,8 @@ static constexpr EntitySpawnCallback spawn_callbacks[] = {
 	{ "speaker_wall", SP_speaker_wall },
 
 	{ "cinematic_mapname", SP_cinematic_mapname },
+
+	{ "window", SP_window },
 };
 
 static bool SpawnEntity( edict_t * ent, const spawn_temp_t * st ) {

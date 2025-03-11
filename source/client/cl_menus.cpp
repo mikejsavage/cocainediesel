@@ -1109,10 +1109,10 @@ static void MainMenu() {
 	const Vec2 TAPE_UV_START = Vec2( 0.f, 0.02f );
 	const Vec2 TAPE_UV_END = Vec2( frame_static.viewport_width / 64.f, 0.98f );
 
-	Draw2DBox( 0.0, 0.0, frame_static.viewport_width, OFFSET, cls.white_material, dark.vec4 );
-	Draw2DBoxUV( 0.0, OFFSET, frame_static.viewport_width, 32.0, TAPE_UV_START + TAPE_OFFSET, TAPE_UV_END + TAPE_OFFSET, TAPE, white.vec4 );
-	Draw2DBox( 0.0, frame_static.viewport_height - OFFSET, frame_static.viewport_width, OFFSET, cls.white_material, dark.vec4 );
-	Draw2DBoxUV( 0.0, frame_static.viewport_height - OFFSET - 32.0, frame_static.viewport_width, 32.0, TAPE_UV_START - TAPE_OFFSET, TAPE_UV_END - TAPE_OFFSET, TAPE, white.vec4 );
+	Draw2DBox( 0.0f, 0.0f, frame_static.viewport_width, OFFSET, cls.white_material, dark.vec4 );
+	Draw2DBoxUV( 0.0f, OFFSET, frame_static.viewport_width, 32.0f, TAPE_UV_START + TAPE_OFFSET, TAPE_UV_END + TAPE_OFFSET, TAPE, white.vec4 );
+	Draw2DBox( 0.0f, frame_static.viewport_height - OFFSET, frame_static.viewport_width, OFFSET, cls.white_material, dark.vec4 );
+	Draw2DBoxUV( 0.0f, frame_static.viewport_height - OFFSET - 32.0f, frame_static.viewport_width, 32.0f, TAPE_UV_START - TAPE_OFFSET, TAPE_UV_END - TAPE_OFFSET, TAPE, white.vec4 );
 
 	{
 		ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0, 0 ) );

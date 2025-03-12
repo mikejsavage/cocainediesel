@@ -714,6 +714,34 @@ static void AddInstanceToCollection( ModelInstanceCollection< T > & collection, 
 	group->num_instances++;
 }
 
+static bool OddNumberOfReflections( const Mat3x4 & transform ) {
+	float determinant3 = 0.0f
+		+ transform.col0.x * ( transform.col1.y * transform.col2.z - transform.col1.z * transform.col2.y )
+		- transform.col1.x * ( transform.col0.y * transform.col2.z - transform.col0.z * transform.col2.y )
+		+ transform.col2.x * ( transform.col0.y * transform.col1.z - transform.col0.z * transform.col1.y );
+	return determinant3 < 0.0f;
+}
+
+static u64 HashMany() {
+	return Hash64_CT( NULL, 0 );
+}
+
+template< typename T, typename... Rest >
+u64 HashMany( const T & first, const Rest & ... rest ) {
+	return Hash64( &first, sizeof( first ), HashMany( rest... ) );
+}
+
+static CullFace FlipCullFace( CullFace cull ) {
+	switch( cull ) {
+		case CullFace_Back: return CullFace_Front;
+		case CullFace_Front: return CullFace_Back;
+		case CullFace_Disabled: return CullFace_Disabled;
+	}
+
+	Assert( false );
+	return { };
+}
+
 static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh, bool skinned, PipelineState pipeline, const Mat3x4 & transform, GPUMaterial gpu_material ) {
 	TracyZoneScoped;
 	if( !config.enabled )
@@ -723,12 +751,16 @@ static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh,
 		pipeline.view_weapon_depth_hack = true;
 	}
 
+	if( OddNumberOfReflections( transform ) ) {
+		pipeline.cull_face = FlipCullFace( pipeline.cull_face );
+	}
+
 	if( skinned ) {
 		DrawMesh( mesh, pipeline );
 		return;
 	}
 
-	u64 hash = Hash64( &config.view_weapon, sizeof( config.view_weapon ), Hash64( mesh.vertex_buffers->buffer ) );
+	u64 hash = HashMany( pipeline.cull_face, config.view_weapon, mesh.vertex_buffers->buffer );
 
 	GPUModelInstance instance = { };
 	instance.material = gpu_material;
@@ -747,6 +779,10 @@ static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Mesh & m
 	// pipeline.cull_face = CullFace_Disabled;
 	pipeline.write_depth = true;
 
+	if( OddNumberOfReflections( transform ) ) {
+		pipeline.cull_face = FlipCullFace( pipeline.cull_face );
+	}
+
 	for( u32 i = 0; i < frame_static.shadow_parameters.entity_cascades; i++ ) {
 		pipeline.pass = frame_static.shadowmap_pass[ i ];
 		pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ i ] );
@@ -756,7 +792,7 @@ static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Mesh & m
 			continue;
 		}
 
-		u64 hash = Hash64( &i, sizeof( i ), Hash64( mesh.vertex_buffers->buffer ) );
+		u64 hash = HashMany( i, pipeline.cull_face, mesh.vertex_buffers->buffer );
 
 		GPUModelShadowsInstance instance = { };
 		instance.transform = transform;
@@ -772,7 +808,11 @@ static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Mesh &
 
 	pipeline.shader = skinned ? &shaders.outline_skinned : &shaders.outline_instanced;
 	pipeline.pass = frame_static.nonworld_opaque_pass;
-	pipeline.cull_face = CullFace_Front;
+	pipeline.cull_face = FlipCullFace( pipeline.cull_face );
+
+	if( OddNumberOfReflections( transform ) ) {
+		pipeline.cull_face = FlipCullFace( pipeline.cull_face );
+	}
 
 	if( skinned ) {
 		pipeline.bind_uniform( "u_Outline", outline_uniforms );
@@ -785,7 +825,7 @@ static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Mesh &
 	instance.height = config.outline_height;
 	instance.transform = transform;
 
-	u64 hash = Hash64( mesh.vertex_buffers->buffer );
+	u64 hash = HashMany( pipeline.cull_face, mesh.vertex_buffers->buffer );
 	AddInstanceToCollection( model_outlines_instance_collection, mesh, pipeline, instance, hash );
 }
 

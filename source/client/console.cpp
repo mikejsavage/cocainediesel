@@ -357,7 +357,7 @@ void Con_Draw() {
 		ImGui::GetWindowDrawList()->AddRectFilled( top_left, bottom_right, ImGui::GetColorU32( ImGuiCol_Separator ) );
 	}
 
-	if( ImGui::Hotkey( ImGuiKey_Escape ) ) {
+	if( ImGui::Shortcut( ImGuiKey_Escape ) ) {
 		Con_Close();
 	}
 

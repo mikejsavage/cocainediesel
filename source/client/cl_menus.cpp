@@ -270,11 +270,8 @@ static void KeyBindButton( Span< const char > label, Span< const char > command 
 		ImGui::Text( "Press a key to set a new bind, or Escape to cancel" );
 
 		ImGuiIO & io = ImGui::GetIO();
-		if( ImGui::IsKeyPressed( ImGuiKey_Escape ) ) {
+		if( ImGui::Shortcut( ImGuiKey_Escape ) ) {
 			ImGui::CloseCurrentPopup();
-
-			// consume the escape so we don't close the ingame menu
-			ImGui::GetKeyData( ImGuiKey_Escape )->Down = false;
 		}
 		else {
 			for( ImGuiKey i = ImGuiKey_NamedKey_BEGIN; i < ImGuiKey_NamedKey_END; i++ ) {
@@ -911,7 +908,7 @@ static void CreateServer( bool gladiator ) {
 	if( ImGui::Button( "Create server" ) ) {
 		Cmd_Execute( &temp, "map \"{}\"", map_name );
 	}
-	else if( ImGui::Hotkey( ImGuiKey_Escape ) ) {
+	else if( ImGui::Shortcut( ImGuiKey_Escape ) ) {
 		mainmenu_state = MainMenuState_ServerBrowser;
 	}
 }
@@ -1052,7 +1049,7 @@ static void MainMenu() {
 		ImGui::PopFont();
 
 		ImGui::SetCursorPosY( POSY );
-		if( ImGui::InvisibleButton( categories_text, categories_text_size ) || ( ImGui::Hotkey( ImGuiKey_Escape ) && mainmenu_state != MainMenuState_CreateServerGladiator && mainmenu_state != MainMenuState_CreateServerBomb ) ) {
+		if( ImGui::InvisibleButton( categories_text, categories_text_size ) || ( ImGui::Shortcut( ImGuiKey_Escape ) && mainmenu_state != MainMenuState_CreateServerGladiator && mainmenu_state != MainMenuState_CreateServerBomb ) ) {
 			mainmenu_state = MainMenuState_Main;
 		}
 	}
@@ -1467,7 +1464,7 @@ static bool LoadoutMenu() {
 	Optional< Key > key1, key2;
 	GetKeyBindsForCommand( "loadoutmenu", &key1, &key2 );
 
-	return should_close || ( key1.exists && ImGui::Hotkey( KeyToImGui( key1.value ) ) ) || ( key2.exists && ImGui::Hotkey( KeyToImGui( key2.value ) ) );
+	return should_close || ( key1.exists && ImGui::Shortcut( KeyToImGui( key1.value ) ) ) || ( key2.exists && ImGui::Shortcut( KeyToImGui( key2.value ) ) );
 }
 
 static void GameMenu() {
@@ -1584,7 +1581,7 @@ static void GameMenu() {
 		Settings();
 	}
 
-	if( ImGui::Hotkey( ImGuiKey_Escape ) || should_close ) {
+	if( ImGui::Shortcut( ImGuiKey_Escape ) || should_close ) {
 		uistate = UIState_Hidden;
 	}
 
@@ -1641,7 +1638,7 @@ static void DemoMenu() {
 		Settings();
 	}
 
-	if( ImGui::Hotkey( ImGuiKey_Escape ) || should_close ) {
+	if( ImGui::Shortcut( ImGuiKey_Escape ) || should_close ) {
 		uistate = UIState_Hidden;
 	}
 
@@ -1679,8 +1676,10 @@ void UI_Refresh() {
 		ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
 		ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration );
 
+		constexpr Span< const char > connecting = "Connecting...";
 		ImGui::PushFont( cls.large_font );
-		WindowCenterTextXY( "Connecting..." );
+		ImGui::SetCursorPos( 0.5f * ( ImGui::GetContentRegionAvail() - ImGui::CalcTextSize( connecting ) ) );
+		ImGui::Text( connecting );
 		ImGui::PopFont();
 
 		ImGui::End();

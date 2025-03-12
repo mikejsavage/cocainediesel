@@ -276,34 +276,6 @@ void CenterTextY( Span< const char > str, float height ) {
 	ImGui::Text( str );
 }
 
-void CellCenter( float item_width ) {
-	float cell_width = ImGui::GetContentRegionAvail().x;
-	ImGui::SetCursorPosX( ImGui::GetCursorPosX() + 0.5f * ( cell_width - item_width ) );
-}
-
-void CellCenterText( Span< const char > str ) {
-	CellCenter( ImGui::CalcTextSize( str ).x );
-	ImGui::Text( str );
-}
-
-void ColumnCenterText( Span< const char > str ) {
-	float width = ImGui::CalcTextSize( str ).x;
-	ImGui::SetCursorPosX( ImGui::GetColumnOffset() + 0.5f * ( ImGui::GetColumnWidth() - width ) );
-	ImGui::Text( str );
-}
-
-void ColumnRightText( Span< const char > str ) {
-	float width = ImGui::CalcTextSize( str ).x;
-	ImGui::SetCursorPosX( ImGui::GetColumnOffset() + ImGui::GetColumnWidth() - width );
-	ImGui::Text( str );
-}
-
-void WindowCenterTextXY( Span< const char > str ) {
-	Vec2 text_size = ImGui::CalcTextSize( str );
-	ImGui::SetCursorPos( 0.5f * ( ImGui::GetWindowSize() - text_size ) );
-	ImGui::Text( str );
-}
-
 Vec4 CustomAttentionGettingColor( Vec4 from, Vec4 to, Time period ) {
 	float t = Sin( cls.monotonicTime, period ) * 0.5f + 0.5f;
 	return Lerp( from, t, to );

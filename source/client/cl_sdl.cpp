@@ -30,9 +30,6 @@ static bool route_inputs_to_imgui;
 
 static int framebuffer_width, framebuffer_height;
 
-// TODO
-extern Cvar * vid_mode;
-
 template< typename R = bool, typename F, typename... Rest >
 static R TrySDLImpl( const char * function_name, F f, const Rest & ... args ) {
 	R res = f( args... );

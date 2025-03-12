@@ -1,5 +1,8 @@
 #include "qcommon/types.h"
 
+struct Cvar;
+extern Cvar * vid_mode;
+
 struct VideoMode {
 	int width, height;
 	float refresh_rate;

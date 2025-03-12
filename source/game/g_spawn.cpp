@@ -85,28 +85,28 @@ static bool SpawnEntity( edict_t * ent, const spawn_temp_t * st ) {
 	return false;
 }
 
-static bool DoField( const char * name, int * x, Span< const char > key, Span< const char > value ) {
+static bool ParseEntityValue( Span< const char > name, int * x, Span< const char > key, Span< const char > value ) {
 	if( !StrEqual( name, key ) )
 		return false;
 	*x = SpanToInt( value, 0 );
 	return true;
 }
 
-static bool DoField( const char * name, s64 * x, Span< const char > key, Span< const char > value ) {
+static bool ParseEntityValue( Span< const char > name, s64 * x, Span< const char > key, Span< const char > value ) {
 	if( !StrEqual( name, key ) )
 		return false;
 	*x = SpanToU64( value, 0 ); // TODO: wrong type
 	return true;
 }
 
-static bool DoField( const char * name, float * x, Span< const char > key, Span< const char > value ) {
+static bool ParseEntityValue( Span< const char > name, float * x, Span< const char > key, Span< const char > value ) {
 	if( !StrEqual( name, key ) )
 		return false;
 	*x = SpanToFloat( value, 0.0f );
 	return true;
 }
 
-static bool DoField( const char * name, Vec3 * x, Span< const char > key, Span< const char > value ) {
+static bool ParseEntityValue( Span< const char > name, Vec3 * x, Span< const char > key, Span< const char > value ) {
 	if( !StrEqual( name, key ) )
 		return false;
 	for( int i = 0; i < 3; i++ ) {
@@ -115,7 +115,7 @@ static bool DoField( const char * name, Vec3 * x, Span< const char > key, Span< 
 	return true;
 }
 
-static bool DoField( const char * name, EulerDegrees3 * x, Span< const char > key, Span< const char > value ) {
+static bool ParseEntityValue( Span< const char > name, EulerDegrees3 * x, Span< const char > key, Span< const char > value ) {
 	if( !StrEqual( name, key ) )
 		return false;
 	x->pitch = AngleNormalize180( ParseFloat( &value, 0.0f, Parse_StopOnNewLine ) );
@@ -124,7 +124,7 @@ static bool DoField( const char * name, EulerDegrees3 * x, Span< const char > ke
 	return true;
 }
 
-static bool DoField( const char * name, RGBA8 * x, Span< const char > key, Span< const char > value ) {
+static bool ParseEntityValue( Span< const char > name, RGBA8 * x, Span< const char > key, Span< const char > value ) {
 	if( !StrEqual( name, key ) )
 		return false;
 	// TODO: accept hex colors etc
@@ -136,14 +136,14 @@ static bool DoField( const char * name, RGBA8 * x, Span< const char > key, Span<
 	return true;
 }
 
-static bool DoField( const char * name, StringHash * x, Span< const char > key, Span< const char > value ) {
+static bool ParseEntityValue( Span< const char > name, StringHash * x, Span< const char > key, Span< const char > value ) {
 	if( !StrEqual( name, key ) )
 		return false;
 	*x = StringHash( value );
 	return true;
 }
 
-static bool DoField( const char * name, StringHash * x, Span< const char > key, Span< const char > value, StringHash map_base_hash ) {
+static bool ParseEntityValue( Span< const char > name, StringHash * x, Span< const char > key, Span< const char > value, StringHash map_base_hash ) {
 	if( !StrEqual( name, key ) )
 		return false;
 
@@ -157,56 +157,73 @@ static bool DoField( const char * name, StringHash * x, Span< const char > key, 
 	return true;
 }
 
+static Optional< float > TryParseFloat( Span< const char > * cursor ) {
+	float x;
+	return TrySpanToFloat( ParseToken( cursor, Parse_StopOnNewLine ), &x ) ? MakeOptional( x ) : NONE;
+}
+
+static bool ParseModelScale( Span< const char > name, Vec3 * scale, Span< const char > key, Span< const char > value ) {
+	if( !StrEqual( name, key ) )
+		return false;
+
+	Optional< float > first = TryParseFloat( &value );
+	Optional< float > second = TryParseFloat( &value );
+	Optional< float > third = TryParseFloat( &value );
+
+	if( first.exists && !second.exists && !third.exists ) {
+		*scale = Vec3( first.value );
+	}
+	else {
+		*scale = Vec3( Default( first, 0.0f ), Default( second, 0.0f ), Default( third, 0.0f ) );
+	}
+
+	return true;
+}
+
 static void ParseEntityKeyValue( Span< const char > key, Span< const char > value, StringHash map_base_hash, edict_t * ent, spawn_temp_t * st ) {
 	bool used = false;
 
-	used = used || DoField( "classname", &ent->classname, key, value );
-	used = used || DoField( "origin", &ent->s.origin, key, value );
-	used = used || DoField( "model", &ent->s.model, key, value, map_base_hash );
-	used = used || DoField( "model2", &ent->s.model2, key, value, map_base_hash );
-	used = used || DoField( "material", &ent->s.material, key, value );
-	used = used || DoField( "color", &ent->s.color, key, value );
-	used = used || DoField( "spawnflags", &ent->spawnflags, key, value );
-	used = used || DoField( "speed", &ent->speed, key, value );
-	used = used || DoField( "target", &ent->target, key, value );
-	used = used || DoField( "targetname", &ent->name, key, value );
-	used = used || DoField( "pathtarget", &ent->pathtarget, key, value );
-	used = used || DoField( "killtarget", &ent->killtarget, key, value );
-	used = used || DoField( "deadcam", &ent->deadcam, key, value );
-	used = used || DoField( "wait", &ent->wait, key, value );
-	used = used || DoField( "delay", &ent->delay, key, value );
-	used = used || DoField( "count", &ent->count, key, value );
-	used = used || DoField( "health", &ent->health, key, value );
-	used = used || DoField( "dmg", &ent->dmg, key, value );
-	used = used || DoField( "angles", &ent->s.angles, key, value );
-	used = used || DoField( "modelscale", &ent->s.scale, key, value );
-	used = used || DoField( "modelscale_vec", &ent->s.scale, key, value );
-	used = used || DoField( "mass", &ent->mass, key, value );
-	used = used || DoField( "random", &ent->wait_randomness, key, value );
+	used = used || ParseEntityValue( "classname", &ent->classname, key, value );
+	used = used || ParseEntityValue( "origin", &ent->s.origin, key, value );
+	used = used || ParseEntityValue( "model", &ent->s.model, key, value, map_base_hash );
+	used = used || ParseEntityValue( "model2", &ent->s.model2, key, value, map_base_hash );
+	used = used || ParseEntityValue( "material", &ent->s.material, key, value );
+	used = used || ParseEntityValue( "color", &ent->s.color, key, value );
+	used = used || ParseEntityValue( "spawnflags", &ent->spawnflags, key, value );
+	used = used || ParseEntityValue( "speed", &ent->speed, key, value );
+	used = used || ParseEntityValue( "target", &ent->target, key, value );
+	used = used || ParseEntityValue( "targetname", &ent->name, key, value );
+	used = used || ParseEntityValue( "pathtarget", &ent->pathtarget, key, value );
+	used = used || ParseEntityValue( "killtarget", &ent->killtarget, key, value );
+	used = used || ParseEntityValue( "deadcam", &ent->deadcam, key, value );
+	used = used || ParseEntityValue( "wait", &ent->wait, key, value );
+	used = used || ParseEntityValue( "delay", &ent->delay, key, value );
+	used = used || ParseEntityValue( "count", &ent->count, key, value );
+	used = used || ParseEntityValue( "health", &ent->health, key, value );
+	used = used || ParseEntityValue( "dmg", &ent->dmg, key, value );
+	used = used || ParseEntityValue( "angles", &ent->s.angles, key, value );
+	used = used || ParseModelScale( "modelscale", &ent->s.scale, key, value );
+	used = used || ParseModelScale( "modelscale_vec", &ent->s.scale, key, value );
+	used = used || ParseEntityValue( "mass", &ent->mass, key, value );
+	used = used || ParseEntityValue( "random", &ent->wait_randomness, key, value );
 
 	// yaw
-	if( key == "angle" ) {
+	if( !used && key == "angle" ) {
 		ent->s.angles = EulerDegrees3( 0.0f, AngleNormalize360( SpanToFloat( value, 0.0f ) ), 0.0f );
 		used = true;
 	}
 
-	// 1d scale
-	if( key == "modelscale" ) {
-		ent->s.scale = Vec3( SpanToFloat( value, 1.0f ) );
-		used = true;
-	}
-
-	used = used || DoField( "lip", &st->lip, key, value );
-	used = used || DoField( "distance", &st->distance, key, value );
-	used = used || DoField( "height", &st->height, key, value );
-	used = used || DoField( "noise", &st->noise, key, value );
-	used = used || DoField( "noise_start", &st->noise_start, key, value );
-	used = used || DoField( "noise_stop", &st->noise_stop, key, value );
-	used = used || DoField( "pausetime", &st->pausetime, key, value );
-	used = used || DoField( "gameteam", &st->gameteam, key, value );
-	used = used || DoField( "size", &st->size, key, value );
-	used = used || DoField( "spawn_probability", &st->spawn_probability, key, value );
-	used = used || DoField( "power", &st->power, key, value );
+	used = used || ParseEntityValue( "lip", &st->lip, key, value );
+	used = used || ParseEntityValue( "distance", &st->distance, key, value );
+	used = used || ParseEntityValue( "height", &st->height, key, value );
+	used = used || ParseEntityValue( "noise", &st->noise, key, value );
+	used = used || ParseEntityValue( "noise_start", &st->noise_start, key, value );
+	used = used || ParseEntityValue( "noise_stop", &st->noise_stop, key, value );
+	used = used || ParseEntityValue( "pausetime", &st->pausetime, key, value );
+	used = used || ParseEntityValue( "gameteam", &st->gameteam, key, value );
+	used = used || ParseEntityValue( "size", &st->size, key, value );
+	used = used || ParseEntityValue( "spawn_probability", &st->spawn_probability, key, value );
+	used = used || ParseEntityValue( "power", &st->power, key, value );
 	used = used || key == "gametype";
 
 	if( !used && key.n > 0 && key[ 0 ] != '_' ) {

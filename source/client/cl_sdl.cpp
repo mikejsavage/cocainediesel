@@ -10,9 +10,11 @@
 #include "imgui/imgui_internal.h"
 #include "imgui/imgui_impl_sdl3.h"
 
+#define SDL_MAIN_USE_CALLBACKS
 #include "sdl/SDL3/SDL_audio.h"
 #include "sdl/SDL3/SDL_events.h"
 #include "sdl/SDL3/SDL_init.h"
+#include "sdl/SDL3/SDL_main.h"
 #include "sdl/SDL3/SDL_mouse.h"
 #include "sdl/SDL3/SDL_video.h"
 
@@ -329,8 +331,6 @@ static void InputFrame() {
 		}
 	}
 
-	relative_mouse_movement = Vec2( 0.0f );
-
 	// grab cursor
 	if( route_inputs_to_imgui ) {
 		TrySDL( SDL_SetWindowRelativeMouseMode, window, false );
@@ -423,7 +423,9 @@ void ShutdownAudioDevice() {
  * main
  */
 
-int main( int argc, char ** argv ) {
+static s64 oldtime;
+
+SDL_AppResult SDL_AppInit( void ** appstate, int argc, char ** argv ) {
 	running_in_renderdoc = IsRenderDocAttached();
 
 	{
@@ -435,67 +437,68 @@ int main( int argc, char ** argv ) {
 	Con_Init();
 	Qcommon_Init( argc, argv );
 
-	s64 oldtime = Sys_Milliseconds();
-	bool quit = false;
-	while( !quit ) {
-		s64 dt = 0;
-		{
-			TracyZoneScopedN( "Interframe" );
-			while( dt == 0 ) {
-				dt = Sys_Milliseconds() - oldtime;
-			}
-			oldtime += dt;
-		}
+	relative_mouse_movement = Vec2( 0.0f );
+	oldtime = Sys_Milliseconds();
 
-		InputFrame();
+	return SDL_APP_CONTINUE;
+}
 
-		{
-			TracyZoneScopedN( "SDL events" );
-			SDL_Event event;
-			while( SDL_PollEvent( &event ) ) {
-				ImGui_ImplSDL3_ProcessEvent( &event );
+SDL_AppResult SDL_AppEvent( void * appstate, SDL_Event * event ) {
+	ImGui_ImplSDL3_ProcessEvent( event );
 
-				switch( event.type ) {
-					case SDL_EVENT_QUIT:
-						quit = true;
-						break;
+	switch( event->type ) {
+		case SDL_EVENT_QUIT:
+			return SDL_APP_SUCCESS;
 
-					case SDL_EVENT_KEY_DOWN:
-					case SDL_EVENT_KEY_UP:
-						OnKeyPressed( event.key );
-						break;
-
-					case SDL_EVENT_MOUSE_MOTION:
-						OnMouseMoved( event.motion );
-						break;
-
-					case SDL_EVENT_MOUSE_BUTTON_DOWN:
-					case SDL_EVENT_MOUSE_BUTTON_UP:
-						OnMouseClicked( event.button );
-						break;
-
-					case SDL_EVENT_MOUSE_WHEEL:
-						OnScroll( event.wheel );
-						break;
-
-					case SDL_EVENT_WINDOW_RESIZED:
-					case SDL_EVENT_WINDOW_MOVED:
-						OnWindowResizedOrMoved( event.window );
-						break;
-
-					default: break;
-				}
-			}
-		}
-
-		if( !Qcommon_Frame( dt ) ) {
+		case SDL_EVENT_KEY_DOWN:
+		case SDL_EVENT_KEY_UP:
+			OnKeyPressed( event->key );
 			break;
-		}
+
+		case SDL_EVENT_MOUSE_MOTION:
+			OnMouseMoved( event->motion );
+			break;
+
+		case SDL_EVENT_MOUSE_BUTTON_DOWN:
+		case SDL_EVENT_MOUSE_BUTTON_UP:
+			OnMouseClicked( event->button );
+			break;
+
+		case SDL_EVENT_MOUSE_WHEEL:
+			OnScroll( event->wheel );
+			break;
+
+		case SDL_EVENT_WINDOW_RESIZED:
+		case SDL_EVENT_WINDOW_MOVED:
+			OnWindowResizedOrMoved( event->window );
+			break;
+
+		default: break;
 	}
 
+	return SDL_APP_CONTINUE;
+}
+
+SDL_AppResult SDL_AppIterate( void * appstate ) {
+	s64 dt = 0;
+	{
+		TracyZoneScopedN( "Interframe" );
+		while( dt == 0 ) {
+			dt = Sys_Milliseconds() - oldtime;
+		}
+		oldtime += dt;
+	}
+
+	InputFrame();
+
+	if( !Qcommon_Frame( dt ) )
+		return SDL_APP_SUCCESS;
+
+	relative_mouse_movement = Vec2( 0.0f );
+	return SDL_APP_CONTINUE;
+}
+
+void SDL_AppQuit( void * appstate, SDL_AppResult result ) {
 	Qcommon_Shutdown();
-
 	SDL_Quit();
-
-	return 0;
 }

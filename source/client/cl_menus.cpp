@@ -941,13 +941,9 @@ static bool MainSectionButton( const ImVec2& pos, const Material * icon, const V
 		hovered = ImGui::IsItemHovered();
 		ImGui::PopID();
 
-		float & delay = ImGui::GetStyle().HoverDelayShort;
-		float old_delay = delay;
-		delay = 0.00001f;
-		if( ImGui::IsItemHovered( ImGuiHoveredFlags_DelayShort | ImGuiHoveredFlags_NoSharedDelay ) && ImGui::GetCurrentContext()->HoverItemDelayTimer <= ImGui::GetIO().DeltaTime ) {
+		if( ImGui::IsItemHoveredThisFrame() ) {
 			PlaySFX( "ui/sounds/hover" );
 		}
-		delay = old_delay;
 
 		if( pressed ) {
 			PlaySFX( "ui/sounds/click" );

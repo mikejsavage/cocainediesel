@@ -253,6 +253,17 @@ namespace ImGui {
 	void PushID( Span< const char > id ) {
 		ImGui::PushID( id.begin(), id.end() );
 	}
+
+	bool IsItemHoveredThisFrame() {
+		// this function has two nuances:
+		// - we need a nonzero delay or ImGui doesn't start the timer at all
+		// - the timer can either be equal to DeltaTime if you start hovering, or 0 if you switch from hovering some other item
+		float & delay = ImGui::GetStyle().HoverDelayShort;
+		float old_delay = delay;
+		delay = 0.00001f;
+		defer { delay = old_delay; };
+		return ImGui::IsItemHovered( ImGuiHoveredFlags_DelayShort | ImGuiHoveredFlags_NoSharedDelay ) && ImGui::GetCurrentContext()->HoverItemDelayTimer <= ImGui::GetIO().DeltaTime;
+	}
 }
 
 ImGuiColorToken::ImGuiColorToken( u8 r, u8 g, u8 b, u8 a ) {

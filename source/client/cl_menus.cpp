@@ -948,6 +948,10 @@ static bool MainSectionButton( const ImVec2& pos, const Material * icon, const V
 			PlaySFX( "ui/sounds/hover" );
 		}
 		delay = old_delay;
+
+		if( pressed ) {
+			PlaySFX( "ui/sounds/click" );
+		}
 	}
 
 	float OFFSET = Sin( cls.monotonicTime, Milliseconds( 500 ) ) * 2.f + 2.f;

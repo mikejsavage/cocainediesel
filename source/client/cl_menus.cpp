@@ -936,10 +936,18 @@ static bool MainSectionButton( const ImVec2& pos, const Material * icon, const V
 	bool hovered = false;
 	if( BUTTON ) {
 		ImGui::SetCursorPos( pos );
-		ImGui::PushID( name.begin(), name.end() );
+		ImGui::PushID( name );
 		pressed = ImGui::InvisibleButton( "", size );
 		hovered = ImGui::IsItemHovered();
 		ImGui::PopID();
+
+		float & delay = ImGui::GetStyle().HoverDelayShort;
+		float old_delay = delay;
+		delay = 0.00001f;
+		if( ImGui::IsItemHovered( ImGuiHoveredFlags_DelayShort | ImGuiHoveredFlags_NoSharedDelay ) && ImGui::GetCurrentContext()->HoverItemDelayTimer <= ImGui::GetIO().DeltaTime ) {
+			PlaySFX( "ui/sounds/hover" );
+		}
+		delay = old_delay;
 	}
 
 	float OFFSET = Sin( cls.monotonicTime, Milliseconds( 500 ) ) * 2.f + 2.f;

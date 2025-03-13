@@ -297,7 +297,7 @@ Vec4 AttentionGettingColor() {
 }
 
 Vec4 PlantableColor() {
-	return CustomAttentionGettingColor( dark.vec4, sRGBToLinear( diesel_green.rgba8 ), Milliseconds( 125 ) );
+	return CustomAttentionGettingColor( sRGBToLinear( diesel_green.rgba8 ) * 0.8f, sRGBToLinear( diesel_green.rgba8 ), Milliseconds( 125 ) );
 }
 
 Vec4 AttentionGettingRed() {

@@ -52,19 +52,19 @@ static SDL_DisplayID DisplayIndexToID( int monitor ) {
 void CreateWindow( WindowMode mode ) {
 	TracyZoneScoped;
 
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 4 );
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 5 );
-	SDL_GL_SetAttribute( SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, true );
+	TrySDL( SDL_GL_SetAttribute, SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+	TrySDL( SDL_GL_SetAttribute, SDL_GL_CONTEXT_MAJOR_VERSION, 4 );
+	TrySDL( SDL_GL_SetAttribute, SDL_GL_CONTEXT_MINOR_VERSION, 5 );
+	TrySDL( SDL_GL_SetAttribute, SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, true );
 
 	SDL_GLContextFlag gl_flags = SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG;
 	if( is_public_build ) {
-		SDL_GL_SetAttribute( SDL_GL_CONTEXT_NO_ERROR, true );
+		TrySDL( SDL_GL_SetAttribute, SDL_GL_CONTEXT_NO_ERROR, true );
 	}
 	else {
 		gl_flags |= SDL_GL_CONTEXT_DEBUG_FLAG;
 	}
-	SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, gl_flags );
+	TrySDL( SDL_GL_SetAttribute, SDL_GL_CONTEXT_FLAGS, gl_flags );
 
 	SDL_PropertiesID props = TrySDLR( SDL_PropertiesID, SDL_CreateProperties );
 	defer { SDL_DestroyProperties( props ); };
@@ -117,7 +117,7 @@ void CreateWindow( WindowMode mode ) {
 
 void DestroyWindow() {
 	TracyZoneScoped;
-	SDL_GL_DestroyContext( gl_context );
+	TrySDL( SDL_GL_DestroyContext, gl_context );
 	SDL_DestroyWindow( window );
 }
 
@@ -235,7 +235,7 @@ Vec2 GetRelativeMouseMovement() {
 
 void SwapBuffers() {
 	TracyZoneScoped;
-	SDL_GL_SwapWindow( window );
+	TrySDL( SDL_GL_SwapWindow, window );
 }
 
 Optional< Key > KeyFromSDL( SDL_Keycode sdl );

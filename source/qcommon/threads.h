@@ -6,11 +6,11 @@ struct Thread;
 struct Mutex;
 struct Semaphore;
 
-template<> constexpr size_t OpaqueSize< Thread > = 16;
-template<> constexpr size_t OpaqueSize< Mutex > = 16;
-template<> constexpr size_t OpaqueSize< Semaphore > = 32;
-template<> constexpr bool OpaqueCopyable< Mutex > = false;
-template<> constexpr bool OpaqueCopyable< Semaphore > = false;
+template<> inline constexpr size_t OpaqueSize< Thread > = 16;
+template<> inline constexpr size_t OpaqueSize< Mutex > = 40;
+template<> inline constexpr size_t OpaqueSize< Semaphore > = 32;
+template<> inline constexpr bool OpaqueCopyable< Mutex > = false;
+template<> inline constexpr bool OpaqueCopyable< Semaphore > = false;
 
 Opaque< Thread > NewThread( void ( *callback )( void * ), void * data = NULL );
 void JoinThread( Opaque< Thread > thread );

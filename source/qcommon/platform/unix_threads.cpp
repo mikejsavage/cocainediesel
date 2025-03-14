@@ -3,6 +3,7 @@
 #if PLATFORM_UNIX
 
 #include "qcommon/base.h"
+#include "qcommon/threads.h"
 
 #include <pthread.h>
 #include <unistd.h>
@@ -50,15 +51,15 @@ void InitMutex( Opaque< Mutex > * mutex ) {
 }
 
 void DeleteMutex( Opaque< Mutex > * mutex ) {
-	TryPthread( "pthread_mutex_destroy", pthread_mutex_destroy( &mutex->unwrap()->mutex );
+	TryPthread( "pthread_mutex_destroy", pthread_mutex_destroy( &mutex->unwrap()->mutex ) );
 }
 
 void Lock( Opaque< Mutex > * mutex ) {
-	TryPthread( "pthread_mutex_lock", pthread_mutex_lock( &mutex->unwrap()->mutex );
+	TryPthread( "pthread_mutex_lock", pthread_mutex_lock( &mutex->unwrap()->mutex ) );
 }
 
 void Unlock( Opaque< Mutex > * mutex ) {
-	TryPthread( "pthread_mutex_unlock", pthread_mutex_unlock( &mutex->unwrap()->mutex );
+	TryPthread( "pthread_mutex_unlock", pthread_mutex_unlock( &mutex->unwrap()->mutex ) );
 }
 
 u32 GetCoreCount() {

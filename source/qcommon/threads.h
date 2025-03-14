@@ -7,7 +7,7 @@ struct Mutex;
 struct Semaphore;
 
 template<> inline constexpr size_t OpaqueSize< Thread > = 16;
-template<> inline constexpr size_t OpaqueSize< Mutex > = 40;
+template<> inline constexpr size_t OpaqueSize< Mutex > = 64;
 template<> inline constexpr size_t OpaqueSize< Semaphore > = 32;
 template<> inline constexpr bool OpaqueCopyable< Mutex > = false;
 template<> inline constexpr bool OpaqueCopyable< Semaphore > = false;

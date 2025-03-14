@@ -59,8 +59,8 @@ struct Material {
 	bool outlined = true;
 	bool shaded = false;
 	bool world = false;
-	float specular = 0.0f;
-	float shininess = 64.0f;
+	// float specular = 0.0f;
+	// float shininess = 64.0f;
 };
 
 bool CompressedTextureFormat( TextureFormat format );

@@ -19,4 +19,11 @@ void Sys_Init() {
 	SetConsoleOutputCP( CP_UTF8 );
 }
 
+Optional< int > SystemMemoryUsagePercent() {
+	MEMORYSTATUSEX mem = { .dwLength = sizeof( MEMORYSTATUSEX ) };
+	if( GlobalMemoryStatusEx( &mem ) == 0 )
+		return NONE;
+	return mem.dwMemoryLoad;
+}
+
 #endif // #if PLATFORM_WINDOWS

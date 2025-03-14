@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/maplist.h"
 #include "qcommon/threads.h"
 #include "qcommon/time.h"
+#include "qcommon/platform/memory_usage.h"
 #include "client/keys.h"
 
 #include <errno.h>
@@ -285,7 +286,10 @@ void Qcommon_Init( int argc, char ** argv ) {
 
 bool Qcommon_Frame( unsigned int realMsec ) {
 	if( IFDEF( TRACY_ENABLE ) && tracy_is_active ) {
-		if( Now() - disable_tracy_start_time > Minutes( 10 ) ) {
+		Optional< int > memory = SystemMemoryUsagePercent();
+		bool ooming = memory.exists && memory.value >= 80;
+		bool game_has_been_running_for_10_mins = !memory.exists && Now() - disable_tracy_start_time > Minutes( 10 );
+		if( ooming || game_has_been_running_for_10_mins ) {
 			Com_Printf( "Disabled Tracy to conserve memory\n" );
 			tracy_is_active = false;
 		}

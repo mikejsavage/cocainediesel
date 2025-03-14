@@ -23,67 +23,42 @@ static void * ThreadWrapper( void * data ) {
 	return NULL;
 }
 
-static void FatalPthread( const char * msg, int err ) {
-	Fatal( "%s: %s", msg, strerror( err ) );
+static void TryPthread( const char * msg, int err ) {
+	if( err != 0 ) {
+		Fatal( "%s: %s", msg, strerror( err ) );
+	}
 }
 
-Thread * NewThread( void ( *callback )( void * ), void * data ) {
+Opaque< Thread > NewThread( void ( *callback )( void * ), void * data ) {
 	// can't use sys_allocator because serverlist leaks its threads
 	ThreadStartData * tsd = new ThreadStartData;
 	tsd->callback = callback;
 	tsd->data = data;
 
 	pthread_t t;
-	int err = pthread_create( &t, NULL, ThreadWrapper, tsd );
-	if( err != 0 ) {
-		FatalPthread( "pthread_create", err );
-	}
+	TryPthread( "pthread_create", pthread_create( &t, NULL, ThreadWrapper, tsd ) );
 
-	// can't use sys_allocator because serverlist leaks its threads
-	Thread * thread = new Thread;
-	thread->thread = t;
-	return thread;
+	return Thread { t };
 }
 
-void JoinThread( Thread * thread ) {
-	int err = pthread_join( thread->thread, NULL );
-	if( err != 0 ) {
-		FatalPthread( "pthread_join", err );
-	}
-
-	delete thread;
+void JoinThread( Opaque< Thread > thread ) {
+	TryPthread( "pthread_join", pthread_join( thread.unwrap()->thread, NULL ) );
 }
 
-Mutex * NewMutex() {
-	// can't use sys_allocator because sys_allocator itself calls NewMutex
-	Mutex * mutex = new Mutex;
-	int err = pthread_mutex_init( &mutex->mutex, NULL );
-	if( err != 0 ) {
-		FatalPthread( "pthread_mutex_init", err );
-	}
-	return mutex;
+void InitMutex( Opaque< Mutex > * mutex ) {
+	TryPthread( "pthread_mutex_init", pthread_mutex_init( &mutex->unwrap()->mutex, NULL ) );
 }
 
-void DeleteMutex( Mutex * mutex ) {
-	int err = pthread_mutex_destroy( &mutex->mutex );
-	if( err != 0 ) {
-		FatalPthread( "pthread_mutex_destroy", err );
-	}
-	delete mutex;
+void DeleteMutex( Opaque< Mutex > * mutex ) {
+	TryPthread( "pthread_mutex_destroy", pthread_mutex_destroy( &mutex->unwrap()->mutex );
 }
 
-void Lock( Mutex * mutex ) {
-	int err = pthread_mutex_lock( &mutex->mutex );
-	if( err != 0 ) {
-		FatalPthread( "pthread_mutex_lock", err );
-	}
+void Lock( Opaque< Mutex > * mutex ) {
+	TryPthread( "pthread_mutex_lock", pthread_mutex_lock( &mutex->unwrap()->mutex );
 }
 
-void Unlock( Mutex * mutex ) {
-	int err = pthread_mutex_unlock( &mutex->mutex );
-	if( err != 0 ) {
-		FatalPthread( "pthread_mutex_unlock", err );
-	}
+void Unlock( Opaque< Mutex > * mutex ) {
+	TryPthread( "pthread_mutex_unlock", pthread_mutex_unlock( &mutex->unwrap()->mutex );
 }
 
 u32 GetCoreCount() {

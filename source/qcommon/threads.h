@@ -1,20 +1,28 @@
 #pragma once
 
+#include "qcommon/opaque.h"
+
 struct Thread;
 struct Mutex;
 struct Semaphore;
 
-Thread * NewThread( void ( *callback )( void * ), void * data = NULL );
-void JoinThread( Thread * thread );
+template<> constexpr size_t OpaqueSize< Thread > = 16;
+template<> constexpr size_t OpaqueSize< Mutex > = 16;
+template<> constexpr size_t OpaqueSize< Semaphore > = 32;
+template<> constexpr bool OpaqueCopyable< Mutex > = false;
+template<> constexpr bool OpaqueCopyable< Semaphore > = false;
 
-Mutex * NewMutex();
-void DeleteMutex( Mutex * mutex );
-void Lock( Mutex * mutex );
-void Unlock( Mutex * mutex );
+Opaque< Thread > NewThread( void ( *callback )( void * ), void * data = NULL );
+void JoinThread( Opaque< Thread > thread );
 
-Semaphore * NewSemaphore();
-void DeleteSemaphore( Semaphore * sem );
-void Wait( Semaphore * sem );
-void Signal( Semaphore * sem, int n = 1 );
+void InitMutex( Opaque< Mutex > * mutex );
+void DeleteMutex( Opaque< Mutex > * mutex );
+void Lock( Opaque< Mutex > * mutex );
+void Unlock( Opaque< Mutex > * mutex );
+
+void InitSemaphore( Opaque< Semaphore > * sem );
+void DeleteSemaphore( Opaque< Semaphore > * sem );
+void Wait( Opaque< Semaphore > * sem );
+void Signal( Opaque< Semaphore > * sem, int n = 1 );
 
 u32 GetCoreCount();

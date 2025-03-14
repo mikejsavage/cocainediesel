@@ -17,8 +17,10 @@ struct HistoryEntry {
 };
 
 struct Console {
+	bool initialized = false;
+
 	String< CONSOLE_LOG_SIZE > log;
-	Mutex * log_mutex = NULL;
+	Opaque< Mutex > mutex;
 
 	char input[ CONSOLE_INPUT_SIZE ];
 
@@ -40,7 +42,7 @@ static void Con_ClearInput() {
 }
 
 void Con_Init() {
-	console.log_mutex = NewMutex();
+	InitMutex( &console.mutex );
 
 	console.log.clear();
 	Con_ClearInput();
@@ -51,10 +53,12 @@ void Con_Init() {
 
 	console.history_head = 0;
 	console.history_count = 0;
+
+	console.initialized = true;
 }
 
 void Con_Shutdown() {
-	DeleteMutex( console.log_mutex );
+	DeleteMutex( &console.mutex );
 }
 
 void Con_ToggleConsole() {
@@ -96,11 +100,11 @@ static void MakeSpaceAndPrint( Span< const char > str ) {
 }
 
 void Con_Print( Span< const char > str ) {
-	if( console.log_mutex == NULL )
+	if( !console.initialized )
 		return;
 
-	Lock( console.log_mutex );
-	defer { Unlock( console.log_mutex ); };
+	Lock( &console.mutex );
+	defer { Unlock( &console.mutex ); };
 
 	MakeSpaceAndPrint( S_COLOR_WHITE );
 	MakeSpaceAndPrint( str );
@@ -296,8 +300,8 @@ void Con_Draw() {
 		ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8, 4 ) );
 		ImGui::BeginChild( "consoletext", ImVec2( 0, frame_static.viewport_height * 0.4f - ImGui::GetFrameHeightWithSpacing() - 3 ), ImGuiChildFlags_AlwaysUseWindowPadding );
 		{
-			Lock( console.log_mutex );
-			defer { Unlock( console.log_mutex ); };
+			Lock( &console.mutex );
+			defer { Unlock( &console.mutex ); };
 
 			ImGui::PushTextWrapPos( 0 );
 			const char * p = console.log.c_str();

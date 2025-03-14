@@ -55,10 +55,10 @@ struct AllocationTracker {
 	};
 
 	std::unordered_map< void *, AllocInfo > allocations;
-	Mutex * mutex;
+	Opaque< Mutex > mutex;
 
 	AllocationTracker() {
-		mutex = NewMutex();
+		InitMutex( &mutex );
 	}
 
 	~AllocationTracker() {
@@ -88,24 +88,24 @@ struct AllocationTracker {
 			Fatal( "%s", msg.c_str() );
 		}
 
-		DeleteMutex( mutex );
+		DeleteMutex( &mutex );
 	}
 
 	void track( void * ptr, SourceLocation src, size_t size ) {
 		if( ptr == NULL )
 			return;
-		Lock( mutex );
+		Lock( &mutex );
 		allocations[ ptr ] = { src, size };
-		Unlock( mutex );
+		Unlock( &mutex );
 	}
 
 	void untrack( void * ptr, SourceLocation src ) {
 		if( ptr == NULL )
 			return;
-		Lock( mutex );
+		Lock( &mutex );
 		if( allocations.erase( ptr ) == 0 )
 			Fatal( "Stray free in '%s' (%s:%d)", src.function, src.file, src.line );
-		Unlock( mutex );
+		Unlock( &mutex );
 	}
 };
 

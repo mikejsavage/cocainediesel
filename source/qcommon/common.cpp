@@ -42,7 +42,7 @@ static Cvar *logconsole_append;
 static Cvar *logconsole_flush;
 static Cvar *logconsole_timestamp;
 
-static Mutex *com_print_mutex;
+static Opaque< Mutex > com_print_mutex;
 
 static FILE * log_file = NULL;
 
@@ -57,7 +57,7 @@ static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 	}
 
 	if( lock ) {
-		Lock( com_print_mutex );
+		Lock( &com_print_mutex );
 	}
 
 	if( log_file != NULL ) {
@@ -70,14 +70,14 @@ static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 	}
 
 	if( lock ) {
-		Unlock( com_print_mutex );
+		Unlock( &com_print_mutex );
 	}
 }
 
 static void Com_ReopenConsoleLog() {
 	char errmsg[MAX_PRINTMSG] = { 0 };
 
-	Lock( com_print_mutex );
+	Lock( &com_print_mutex );
 
 	Com_CloseConsoleLog( false, false );
 
@@ -89,7 +89,7 @@ static void Com_ReopenConsoleLog() {
 		}
 	}
 
-	Unlock( com_print_mutex );
+	Unlock( &com_print_mutex );
 
 	if( errmsg[0] ) {
 		Com_Printf( "%s", errmsg );
@@ -164,8 +164,8 @@ void Com_Printf( const char *format, ... ) {
 	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
-	Lock( com_print_mutex );
-	defer { Unlock( com_print_mutex ); };
+	Lock( &com_print_mutex );
+	defer { Unlock( &com_print_mutex ); };
 
 	PrintStdout( msg );
 
@@ -237,7 +237,7 @@ void Qcommon_Init( int argc, char ** argv ) {
 
 	Sys_Init();
 
-	com_print_mutex = NewMutex();
+	InitMutex( &com_print_mutex );
 
 	InitTime();
 
@@ -351,5 +351,5 @@ void Qcommon_Shutdown() {
 	Cvar_Shutdown();
 	Cmd_Shutdown();
 
-	DeleteMutex( com_print_mutex );
+	DeleteMutex( &com_print_mutex );
 }

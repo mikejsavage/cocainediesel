@@ -9,14 +9,14 @@ struct Job {
 };
 
 struct Worker {
-	Thread * thread;
+	Opaque< Thread > thread;
 	ArenaAllocator arena;
 };
 
 static Job jobs[ 4096 ];
-static Mutex * jobs_mutex;
-static Semaphore * jobs_sem;
-static Semaphore * completion_sem;
+static Opaque< Mutex > jobs_mutex;
+static Opaque< Semaphore > jobs_sem;
+static Opaque< Semaphore > completion_sem;
 static bool shutting_down;
 static size_t jobs_head;
 static size_t jobs_not_started;
@@ -31,16 +31,16 @@ static void ThreadPoolWorker( void * data ) {
 	ArenaAllocator * arena = ( ArenaAllocator * ) data;
 
 	while( true ) {
-		Wait( jobs_sem );
-		Lock( jobs_mutex );
+		Wait( &jobs_sem );
+		Lock( &jobs_mutex );
 
 		if( shutting_down ) {
-			Unlock( jobs_mutex );
+			Unlock( &jobs_mutex );
 			break;
 		}
 
 		if( jobs_not_started == 0 ) {
-			Unlock( jobs_mutex );
+			Unlock( &jobs_mutex );
 			continue;
 		}
 
@@ -48,18 +48,18 @@ static void ThreadPoolWorker( void * data ) {
 		jobs_head++;
 		jobs_not_started--;
 
-		Unlock( jobs_mutex );
+		Unlock( &jobs_mutex );
 
 		{
 			TempAllocator temp = arena->temp();
 			job->callback( &temp, job->data );
 		}
 
-		Lock( jobs_mutex );
+		Lock( &jobs_mutex );
 		jobs_done++;
-		Unlock( jobs_mutex );
+		Unlock( &jobs_mutex );
 
-		Signal( completion_sem );
+		Signal( &completion_sem );
 	}
 }
 
@@ -70,9 +70,9 @@ void InitThreadPool() {
 	jobs_head = 0;
 	jobs_not_started = 0;
 	jobs_done = 0;
-	jobs_mutex = NewMutex();
-	jobs_sem = NewSemaphore();
-	completion_sem = NewSemaphore();
+	InitMutex( &jobs_mutex );
+	InitSemaphore( &jobs_sem );
+	InitSemaphore( &completion_sem );
 
 	num_workers = Min2( GetCoreCount() - 1, u32( ARRAY_COUNT( workers ) ) );
 
@@ -87,12 +87,12 @@ void InitThreadPool() {
 void ShutdownThreadPool() {
 	TracyZoneScoped;
 
-	Lock( jobs_mutex );
+	Lock( &jobs_mutex );
 	shutting_down = true;
-	Unlock( jobs_mutex );
+	Unlock( &jobs_mutex );
 
 	for( u32 i = 0; i < num_workers; i++ ) {
-		Signal( jobs_sem );
+		Signal( &jobs_sem );
 	}
 
 	for( u32 i = 0; i < num_workers; i++ ) {
@@ -100,15 +100,15 @@ void ShutdownThreadPool() {
 		Free( sys_allocator, workers[ i ].arena.get_memory() );
 	}
 
-	DeleteSemaphore( completion_sem );
-	DeleteSemaphore( jobs_sem );
-	DeleteMutex( jobs_mutex );
+	DeleteSemaphore( &completion_sem );
+	DeleteSemaphore( &jobs_sem );
+	DeleteMutex( &jobs_mutex );
 }
 
 void ThreadPoolDo( JobCallback callback, void * data ) {
 	TracyZoneScoped;
 
-	Lock( jobs_mutex );
+	Lock( &jobs_mutex );
 
 	Assert( jobs_not_started < ARRAY_COUNT( jobs ) );
 
@@ -118,14 +118,14 @@ void ThreadPoolDo( JobCallback callback, void * data ) {
 
 	jobs_not_started++;
 
-	Unlock( jobs_mutex );
-	Signal( jobs_sem );
+	Unlock( &jobs_mutex );
+	Signal( &jobs_sem );
 }
 
 void ParallelFor( void * datum, size_t n, size_t stride, JobCallback callback ) {
 	TracyZoneScoped;
 
-	Lock( jobs_mutex );
+	Lock( &jobs_mutex );
 
 	Assert( n <= ARRAY_COUNT( jobs ) - jobs_not_started );
 
@@ -137,8 +137,8 @@ void ParallelFor( void * datum, size_t n, size_t stride, JobCallback callback ) 
 		jobs_not_started++;
 	}
 
-	Unlock( jobs_mutex );
-	Signal( jobs_sem, checked_cast< int >( n ) );
+	Unlock( &jobs_mutex );
+	Signal( &jobs_sem, checked_cast< int >( n ) );
 
 	ThreadPoolFinish();
 }
@@ -146,14 +146,14 @@ void ParallelFor( void * datum, size_t n, size_t stride, JobCallback callback ) 
 void ThreadPoolFinish() {
 	TracyZoneScoped;
 
-	Lock( jobs_mutex );
+	Lock( &jobs_mutex );
 
 	while( true ) {
 		if( jobs_not_started == 0 ) {
 			while( jobs_done != jobs_head ) {
-				Unlock( jobs_mutex );
-				Wait( completion_sem );
-				Lock( jobs_mutex );
+				Unlock( &jobs_mutex );
+				Wait( &completion_sem );
+				Lock( &jobs_mutex );
 			}
 			break;
 		}
@@ -162,16 +162,16 @@ void ThreadPoolFinish() {
 		jobs_head++;
 		jobs_not_started--;
 
-		Unlock( jobs_mutex );
+		Unlock( &jobs_mutex );
 
 		{
 			TempAllocator temp = cls.frame_arena.temp();
 			job->callback( &temp, job->data );
 		}
 
-		Lock( jobs_mutex );
+		Lock( &jobs_mutex );
 		jobs_done++;
 	}
 
-	Unlock( jobs_mutex );
+	Unlock( &jobs_mutex );
 }

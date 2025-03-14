@@ -23,7 +23,7 @@ struct Asset {
 
 static constexpr u32 MAX_ASSETS = 4096;
 
-static Mutex * assets_mutex;
+static Opaque< Mutex > assets_mutex;
 
 static Asset assets[ MAX_ASSETS ];
 static Span< const char > asset_paths[ MAX_ASSETS ];
@@ -76,8 +76,8 @@ static void FreeAssetData( Asset * asset ) {
 static void AddAsset( Span< const char > path, u64 hash, Span< u8 > data, IsCompressedBool compressed, UseVirtualFree virtual_free ) {
 	TracyZoneScoped;
 
-	Lock( assets_mutex );
-	defer { Unlock( assets_mutex ); };
+	Lock( &assets_mutex );
+	defer { Unlock( &assets_mutex ); };
 
 	if( num_assets == MAX_ASSETS ) {
 		Com_Printf( S_COLOR_YELLOW "Too many assets\n" );
@@ -171,8 +171,8 @@ static void LoadAsset( TempAllocator * temp, Span< const char > game_path, const
 	u64 hash = Hash64( game_path_no_zst );
 
 	{
-		Lock( assets_mutex );
-		defer { Unlock( assets_mutex ); };
+		Lock( &assets_mutex );
+		defer { Unlock( &assets_mutex ); };
 
 		u64 idx;
 		bool exists = assets_hashtable.get( hash, &idx );
@@ -357,7 +357,7 @@ static void BuildAssetList( TempAllocator * temp, DynamicArray< const char * > *
 void InitAssets( TempAllocator * temp ) {
 	TracyZoneScoped;
 
-	assets_mutex = NewMutex();
+	InitMutex( &assets_mutex );
 
 	num_assets = 0;
 	num_modified_assets = 0;
@@ -428,7 +428,7 @@ void ShutdownAssets() {
 
 	DeleteFSChangeMonitor( sys_allocator, fs_change_monitor );
 
-	DeleteMutex( assets_mutex );
+	DeleteMutex( &assets_mutex );
 }
 
 Span< const char > AssetString( StringHash path ) {

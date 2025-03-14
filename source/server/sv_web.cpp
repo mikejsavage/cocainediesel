@@ -54,7 +54,7 @@ static HTTPConnection connections[ 32 ];
 
 static ArenaAllocator web_server_arena;
 static Socket web_server_socket;
-static Thread * web_server_thread = NULL;
+static Opaque< Thread > web_server_thread;
 
 static HTTPConnection * TryAllocConnection() {
 	for( HTTPConnection & con : connections ) {

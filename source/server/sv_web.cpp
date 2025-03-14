@@ -403,6 +403,9 @@ void InitWebServer() {
 }
 
 void ShutdownWebServer() {
+	if( !web_server_running )
+		return;
+
 	web_server_running = false;
 	JoinThread( web_server_thread );
 	CloseSocket( web_server_socket );

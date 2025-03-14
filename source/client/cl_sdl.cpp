@@ -1,9 +1,9 @@
 #include "client/client.h"
 #include "client/icon.h"
 #include "client/keys.h"
+#include "client/renderdoc.h"
 #include "client/audio/backend.h"
 #include "qcommon/array.h"
-#include "qcommon/renderdoc.h"
 #include "qcommon/version.h"
 
 #include "imgui/imgui.h"

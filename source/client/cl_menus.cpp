@@ -10,6 +10,7 @@
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
 #include "client/renderer/renderer.h"
+#include "client/platform/browser.h"
 #include "qcommon/array.h"
 #include "qcommon/maplist.h"
 #include "qcommon/time.h"
@@ -792,7 +793,7 @@ static void ServerBrowser() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	if( ImGui::Button( "discord.gg/5ZbV4mF" ) ) {
-		Sys_OpenInWebBrowser( "https://discord.gg/5ZbV4mF" );
+		OpenInWebBrowser( "https://discord.gg/5ZbV4mF" );
 	}
 	ImGui::SameLine();
 	ImGui::TextWrapped( "This game is very pre-alpha so there are probably 0 players online. Join the Discord to find games!" );

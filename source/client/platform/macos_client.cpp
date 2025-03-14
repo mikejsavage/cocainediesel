@@ -16,7 +16,7 @@ void ShowErrorMessage( const char * msg, const char * file, int line ) {
 
 extern char ** environ;
 
-bool Sys_OpenInWebBrowser( const char * url ) {
+bool OpenInWebBrowser( const char * url ) {
 	char open[] = "open";
 	char * argv[] = { open, const_cast< char * >( url ), NULL };
 	return posix_spawnp( NULL, open, NULL, NULL, argv, environ ) == 0;

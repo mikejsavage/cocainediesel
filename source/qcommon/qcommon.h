@@ -230,8 +230,6 @@ void Sys_Sleep( unsigned int millis );
 
 const char * Sys_ConsoleInput();
 
-bool Sys_OpenInWebBrowser( const char * url );
-
 /*
 ==============================================================
 

@@ -951,7 +951,8 @@ static bool MainSectionButton( const ImVec2& pos, const Material * icon, const V
 		}
 	}
 
-	float OFFSET = Sin( cls.monotonicTime, Milliseconds( 500 ) ) * 2.f + 2.f;
+	constexpr float period = 0.5f;
+	float OFFSET = -cosf( ( ImGui::GetCurrentContext()->HoverItemDelayTimer / period ) * PI * 2.0f ) * 2.0f + 2.0f;
 	const Vec2 OFFSET_VEC = hovered ? Vec2( OFFSET, OFFSET ) : Vec2( 0.f, 0.f );
 
 	ImGui::SetCursorPos( Vec2( pos.x - 4.f, pos.y - 4.f ) - OFFSET_VEC );

@@ -952,19 +952,18 @@ static bool MainSectionButton( const ImVec2& pos, const Material * icon, const V
 	}
 
 	constexpr float period = 0.5f;
-	float OFFSET = -cosf( ( ImGui::GetCurrentContext()->HoverItemDelayTimer / period ) * PI * 2.0f ) * 2.0f + 2.0f;
-	const Vec2 OFFSET_VEC = hovered ? Vec2( OFFSET, OFFSET ) : Vec2( 0.f, 0.f );
+	float offset = !hovered ? 0.0f : -cosf( ( ImGui::GetCurrentContext()->HoverItemDelayTimer / period ) * PI * 2.0f ) * 2.0f + 2.0f;
 
-	ImGui::SetCursorPos( pos - 4.0f - OFFSET_VEC );
+	ImGui::SetCursorPos( pos - 4.0f - offset );
 	ImGui::Image( cls.white_material, SQUARE_SIZE, Vec2( 0.f ), Vec2( 0.f ), dark.vec4, Vec4( 0.0f ) );
 	ImGui::SetCursorPos( pos + 4.0f );
-	ImGui::Image( cls.white_material, SQUARE_SIZE + OFFSET_VEC, Vec2( 0.f ), Vec2( 0.f ), dark.vec4, Vec4( 0.0f ) );
+	ImGui::Image( cls.white_material, SQUARE_SIZE + offset, Vec2( 0.f ), Vec2( 0.f ), dark.vec4, Vec4( 0.0f ) );
 
-	ImGui::SetCursorPos( pos - OFFSET_VEC );
+	ImGui::SetCursorPos( pos - offset );
 	ImGui::Image( cls.white_material, size, Vec2( 0.f ), Vec2( 0.f ), bg_color, Vec4( 0.0f ) );
 
-	ImGui::SetCursorPos( pos - OFFSET_VEC * 2.f );
-	ImGui::Image( icon, size + OFFSET_VEC, half_pixel, 1.0f - half_pixel, Vec4( 0.f, 0.f, 0.f, 1.f ), Vec4( 0.0f ) );
+	ImGui::SetCursorPos( pos - offset * 2.f );
+	ImGui::Image( icon, size + offset, half_pixel, 1.0f - half_pixel, Vec4( 0.f, 0.f, 0.f, 1.f ), Vec4( 0.0f ) );
 
 	if( BUTTON ) {
 		ImGui::SetCursorPos( ImVec2( pos.x + (size.x - text_size.x) * 0.5f + 4.f, pos.y + size.y + 16.f ) );

@@ -916,7 +916,7 @@ static void CreateServer( bool gladiator ) {
 
 static void ShadowedText( Span<const char> text, float shadow_size ) {
 	const Vec2 pos = ImGui::GetCursorPos();
-	ImGui::SetCursorPos( pos + Vec2( shadow_size, shadow_size ) );
+	ImGui::SetCursorPos( pos + shadow_size );
 
 	ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 0, 0, 0, 255 ) );
 	ImGui::Text( text );
@@ -929,7 +929,7 @@ static void ShadowedText( Span<const char> text, float shadow_size ) {
 template< bool BUTTON >
 static bool MainSectionButton( const ImVec2& pos, const Material * icon, const Vec2& size, Span<const char> name, const Vec4& bg_color, const bool is_enabled ) {
 	const Vec2 half_pixel = HalfPixelSize( icon );
-	const Vec2 SQUARE_SIZE = Vec2( size.x + 8.f, size.y + 8.f );
+	const Vec2 SQUARE_SIZE = size + 8.0f;
 	const ImVec2 text_size = ImGui::CalcTextSize( name );
 	const Vec4 text_color = is_enabled ? white.vec4 : diesel_grey.vec4;
 
@@ -955,9 +955,9 @@ static bool MainSectionButton( const ImVec2& pos, const Material * icon, const V
 	float OFFSET = -cosf( ( ImGui::GetCurrentContext()->HoverItemDelayTimer / period ) * PI * 2.0f ) * 2.0f + 2.0f;
 	const Vec2 OFFSET_VEC = hovered ? Vec2( OFFSET, OFFSET ) : Vec2( 0.f, 0.f );
 
-	ImGui::SetCursorPos( Vec2( pos.x - 4.f, pos.y - 4.f ) - OFFSET_VEC );
+	ImGui::SetCursorPos( pos - 4.0f - OFFSET_VEC );
 	ImGui::Image( cls.white_material, SQUARE_SIZE, Vec2( 0.f ), Vec2( 0.f ), dark.vec4, Vec4( 0.0f ) );
-	ImGui::SetCursorPos( Vec2( pos.x + 4.f, pos.y + 4.f ) );
+	ImGui::SetCursorPos( pos + 4.0f );
 	ImGui::Image( cls.white_material, SQUARE_SIZE + OFFSET_VEC, Vec2( 0.f ), Vec2( 0.f ), dark.vec4, Vec4( 0.0f ) );
 
 	ImGui::SetCursorPos( pos - OFFSET_VEC );

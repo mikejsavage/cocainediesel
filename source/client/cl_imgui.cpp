@@ -10,7 +10,7 @@
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
 
-#include "nanosort/nanosort.hpp"
+#include <algorithm>
 
 static Texture atlas_texture;
 static Material atlas_material;
@@ -225,7 +225,7 @@ void CL_ImGuiEndFrame() {
 	// ImGui::ShowDemoWindow();
 
 	ImGuiContext * ctx = ImGui::GetCurrentContext();
-	nanosort( ctx->Windows.begin(), ctx->Windows.end(),
+	std::stable_sort( ctx->Windows.begin(), ctx->Windows.end(),
 		[]( const ImGuiWindow * a, const ImGuiWindow * b ) {
 			return a->BeginOrderWithinContext < b->BeginOrderWithinContext;
 		}

@@ -17,7 +17,6 @@ DevToolCleanupCallback DrawModelViewer() {
 	ImGui::SetNextWindowPos( ImVec2() );
 	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width * 0.2f, frame_static.viewport_height ) );
 	ImGui::Begin( "modelviewer", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
-	ImGui::BeginChild( "modelviewer2" ); // NOTE(mike): need a child window or the combo doesn't work, something to do with Z order sorting
 
 	if( ImGui::IsWindowAppearing() ) {
 		selected_model = CopyString( sys_allocator, "players/rigg/model" );
@@ -86,7 +85,6 @@ DevToolCleanupCallback DrawModelViewer() {
 	DrawSkybox( cls.shadertoy_time );
 	DrawModelInstances();
 
-	ImGui::EndChild();
 	ImGui::End();
 
 	return []() {

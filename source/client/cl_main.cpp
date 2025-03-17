@@ -247,7 +247,7 @@ static void CL_Disconnect_SendCommand() {
 * This is also called on Com_Error, so it shouldn't cause any errors
 */
 void CL_Disconnect( const char *message ) {
-	CancelDownload(); // TODO: maybe shouldn't cancel when downloading a demo
+	CancelDownload();
 
 	if( cls.state == CA_UNINITIALIZED ) {
 		return;

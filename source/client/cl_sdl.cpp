@@ -28,6 +28,8 @@ static SDL_GLContext gl_context;
 static bool running_in_renderdoc;
 static bool route_inputs_to_imgui;
 
+static float content_scale;
+
 static int framebuffer_width, framebuffer_height;
 
 template< typename R = bool, typename F, typename... Rest >
@@ -102,6 +104,8 @@ void CreateWindow( WindowMode mode ) {
 
 	TrySDL( SDL_GetWindowSizeInPixels, window, &framebuffer_width, &framebuffer_height );
 
+	content_scale = TrySDLR( float, SDL_GetWindowDisplayScale, window );
+
 	{
 		TracyZoneScopedN( "Set window icon" );
 
@@ -124,6 +128,10 @@ void DestroyWindow() {
 void GetFramebufferSize( int * width, int * height ) {
 	*width = framebuffer_width;
 	*height = framebuffer_height;
+}
+
+float GetContentScale() {
+	return content_scale;
 }
 
 void FlashWindow() {

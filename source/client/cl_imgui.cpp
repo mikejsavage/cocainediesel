@@ -40,18 +40,20 @@ void CL_InitImGui() {
 	io.ConfigInputTrickleEventQueue = false; // so we can open the game menu with escape
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
+	float scale = GetContentScale();
+
 	{
-		AddFontAsset( "fonts/Decalotype-Bold.ttf", 18.0f );
-		cls.huge_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 128.0f );
-		cls.huge_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 128.0f );
-		cls.large_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 64.0f );
-		cls.big_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 48.0f );
-		cls.medium_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 28.0f );
-		cls.medium_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 28.0f );
-		cls.big_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 48.0f );
-		cls.large_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 64.0f );
-		cls.console_font = AddFontAsset( "fonts/Decalotype-Bold.ttf", 14.0f );
-		cls.license_italic_font = AddFontAsset( "fonts/sofachrome-rg-it.otf", 128.0f );
+		AddFontAsset( "fonts/Decalotype-Bold.ttf", 18.0f * scale );
+		cls.huge_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 128.0f * scale );
+		cls.huge_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 128.0f * scale );
+		cls.large_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 64.0f * scale );
+		cls.big_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 48.0f * scale );
+		cls.medium_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 28.0f * scale );
+		cls.medium_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 28.0f * scale );
+		cls.big_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 48.0f * scale );
+		cls.large_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 64.0f * scale );
+		cls.console_font = AddFontAsset( "fonts/Decalotype-Bold.ttf", 14.0f * scale );
+		cls.license_italic_font = AddFontAsset( "fonts/sofachrome-rg-it.otf", 128.0f * scale );
 
 		io.Fonts->Build();
 
@@ -111,6 +113,8 @@ void CL_InitImGui() {
 
 		style.Colors[ ImGuiCol_WindowBg ] = ImColor( 0x1a, 0x1a, 0x1a );
 		style.ItemSpacing.y = 16;
+
+		style.ScaleAllSizes( scale );
 	}
 }
 

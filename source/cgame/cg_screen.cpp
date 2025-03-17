@@ -132,7 +132,7 @@ void CG_DrawCrosshair( int x, int y ) {
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color ) {
 	// static vec4_t alphagreen = { 0, 1, 0, 0 }, alphared = { 1, 0, 0, 0 }, alphayellow = { 1, 1, 0, 0 }, alphamagenta = { 1, 0, 1, 1 }, alphagrey = { 0.85, 0.85, 0.85, 1 };
 	for( int i = 0; i < client_gs.maxclients; i++ ) {
-		if( strlen( PlayerName( i ) ) == 0 || ISVIEWERENTITY( i + 1 ) ) {
+		if( PlayerName( i ) == "" || ISVIEWERENTITY( i + 1 ) ) {
 			continue;
 		}
 

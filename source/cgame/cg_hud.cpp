@@ -184,15 +184,15 @@ void CG_SC_ResetObituaries() {
 	self_obituary = { };
 }
 
-static const char * normal_obituaries[] = {
+static Span< const char > normal_obituaries[] = {
 #include "obituaries.h"
 };
 
-static const char * prefixes[] = {
+static Span< const char > prefixes[] = {
 #include "prefixes.h"
 };
 
-static const char * suicide_prefixes[] = {
+static Span< const char > suicide_prefixes[] = {
 	"AUTO",
 	"SELF",
 	"SHANKS",
@@ -200,14 +200,14 @@ static const char * suicide_prefixes[] = {
 	"TIMMA",
 };
 
-static const char * void_obituaries[] = {
+static Span< const char > void_obituaries[] = {
 	"ATE",
 	"HOLED",
 	"RECLAIMED",
 	"TOOK",
 };
 
-static const char * spike_obituaries[] = {
+static Span< const char > spike_obituaries[] = {
 	"DISEMBOWELED",
 	"GORED",
 	"IMPALED",
@@ -217,7 +217,7 @@ static const char * spike_obituaries[] = {
 	"SLASHED",
 };
 
-static const char * conjunctions[] = {
+static Span< const char > conjunctions[] = {
 	"+",
 	"&",
 	"&&",
@@ -236,23 +236,22 @@ static const char * conjunctions[] = {
 	"X",
 };
 
-static const char * RandomPrefix( RNG * rng, float p ) {
+static Span< const char > RandomPrefix( RNG * rng, float p ) {
 	if( !Probability( rng, p ) )
 		return "";
 	return RandomElement( rng, prefixes );
 }
 
-static char * Uppercase( Allocator * a, const char * str ) {
-	char * upper = AllocMany< char >( a, strlen( str ) + 1 );
-	for( size_t i = 0; i < strlen( str ); i++ ) {
+static Span< char > Uppercase( Allocator * a, Span< const char > str ) {
+	Span< char > upper = AllocSpan< char >( a, str.n );
+	for( size_t i = 0; i < str.n; i++ ) {
 		upper[ i ] = ToUpperASCII( str[ i ] );
 	}
-	upper[ strlen( str ) ] = '\0';
 	return upper;
 }
 
-static char * MakeObituary( Allocator * a, RNG * rng, int type, DamageType damage_type ) {
-	Span< const char * > obituaries = StaticSpan( normal_obituaries );
+static Span< char > MakeObituary( Allocator * a, RNG * rng, int type, DamageType damage_type ) {
+	Span< Span< const char > > obituaries = StaticSpan( normal_obituaries );
 	if( damage_type == WorldDamage_Void ) {
 		obituaries = StaticSpan( void_obituaries );
 	}
@@ -260,16 +259,16 @@ static char * MakeObituary( Allocator * a, RNG * rng, int type, DamageType damag
 		obituaries = StaticSpan( spike_obituaries );
 	}
 
-	const char * prefix1 = "";
+	Span< const char > prefix1 = "";
 	if( type == OBITUARY_SUICIDE ) {
 		prefix1 = RandomElement( rng, suicide_prefixes );
 	}
 
 	// do these in order because arg evaluation order is undefined
-	const char * prefix2 = RandomPrefix( rng, 0.05f );
-	const char * prefix3 = RandomPrefix( rng, 0.5f );
+	Span< const char > prefix2 = RandomPrefix( rng, 0.05f );
+	Span< const char > prefix3 = RandomPrefix( rng, 0.5f );
 
-	return ( *a )( "{}{}{}{}", prefix1, prefix2, prefix3, obituaries[ RandomUniform( rng, 0, obituaries.n ) ] );
+	return a->sv( "{}{}{}{}", prefix1, prefix2, prefix3, obituaries[ RandomUniform( rng, 0, obituaries.n ) ] );
 }
 
 void CG_SC_Obituary( const Tokenized & args ) {
@@ -281,9 +280,9 @@ void CG_SC_Obituary( const Tokenized & args ) {
 	bool wallbang = SpanToInt( args.tokens[ 5 ], 0 ) == 1;
 	u64 entropy = SpanToU64( args.tokens[ 6 ], 0 );
 
-	const char * victim = PlayerName( victimNum - 1 );
-	const char * attacker = attackerNum == 0 ? NULL : PlayerName( attackerNum - 1 );
-	const char * assistor = topAssistorNum == -1 ? NULL : PlayerName( topAssistorNum - 1 );
+	Span< const char > victim = PlayerName( victimNum - 1 );
+	Span< const char > attacker = attackerNum == 0 ? ""_sp : PlayerName( attackerNum - 1 );
+	Span< const char > assistor = topAssistorNum == -1 ? ""_sp : PlayerName( topAssistorNum - 1 );
 
 	cg_obituaries_current = ( cg_obituaries_current + 1 ) % ARRAY_COUNT( cg_obituaries );
 	obituary_t * current = &cg_obituaries[ cg_obituaries_current ];
@@ -292,16 +291,16 @@ void CG_SC_Obituary( const Tokenized & args ) {
 	current->damage_type = damage_type;
 	current->wallbang = wallbang;
 
-	if( victim != NULL ) {
-		SafeStrCpy( current->victim, victim, sizeof( current->victim ) );
+	if( victim != "" ) {
+		ggprint( current->victim, sizeof( current->victim ), "{}", victim );
 		current->victim_team = cg_entities[ victimNum ].current.team;
 	}
-	if( attacker != NULL ) {
-		SafeStrCpy( current->attacker, attacker, sizeof( current->attacker ) );
+	if( attacker != "" ) {
+		ggprint( current->attacker, sizeof( current->attacker ), "{}", attacker );
 		current->attacker_team = cg_entities[ attackerNum ].current.team;
 	}
 
-	Team assistor_team = assistor == NULL ? Team_None : cg_entities[ topAssistorNum ].current.team;
+	Team assistor_team = assistor == "" ? Team_None : cg_entities[ topAssistorNum ].current.team;
 
 	if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
 		self_obituary.entropy = 0;
@@ -310,25 +309,25 @@ void CG_SC_Obituary( const Tokenized & args ) {
 	TempAllocator temp = cls.frame_arena.temp();
 	RNG rng = NewRNG( entropy, 0 );
 
-	const char * attacker_name = attacker == NULL ? NULL : temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->attacker_team ) ), Uppercase( &temp, attacker ) );
-	const char * victim_name = temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->victim_team ) ), Uppercase( &temp, victim ) );
-	const char * assistor_name = assistor == NULL ? NULL : temp( "{}{}", ImGuiColorToken( CG_TeamColor( assistor_team ) ), Uppercase( &temp, assistor ) );
+	Span< const char > attacker_name = attacker == "" ? ""_sp : temp.sv( "{}{}", ImGuiColorToken( CG_TeamColor( current->attacker_team ) ), Uppercase( &temp, attacker ) );
+	Span< const char > victim_name = temp.sv( "{}{}", ImGuiColorToken( CG_TeamColor( current->victim_team ) ), Uppercase( &temp, victim ) );
+	Span< const char > assistor_name = assistor == "" ? ""_sp : temp.sv( "{}{}", ImGuiColorToken( CG_TeamColor( assistor_team ) ), Uppercase( &temp, assistor ) );
 
 	if( attackerNum == 0 ) {
 		current->type = OBITUARY_ACCIDENT;
 
 		if( damage_type == WorldDamage_Void ) {
-			attacker_name = temp( "{}{}", ImGuiColorToken( black.rgba8 ), "THE VOID" );
+			attacker_name = temp.sv( "{}{}", ImGuiColorToken( black.rgba8 ), "THE VOID" );
 		}
 		else if( damage_type == WorldDamage_Spike ) {
-			attacker_name = temp( "{}{}", ImGuiColorToken( black.rgba8 ), "A SPIKE" );
+			attacker_name = temp.sv( "{}{}", ImGuiColorToken( black.rgba8 ), "A SPIKE" );
 		}
 		else {
 			return;
 		}
 	}
 
-	const char * obituary = MakeObituary( &temp, &rng, current->type, damage_type );
+	Span< const char > obituary = MakeObituary( &temp, &rng, current->type, damage_type );
 
 	if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
 		self_obituary.time = cls.monotonicTime;
@@ -337,7 +336,7 @@ void CG_SC_Obituary( const Tokenized & args ) {
 		self_obituary.damage_type = damage_type;
 	}
 
-	if( assistor == NULL ) {
+	if( assistor == "" ) {
 		CG_AddChat( temp.sv( "{} {}{} {}",
 			attacker_name,
 			ImGuiColorToken( diesel_yellow.rgba8 ), obituary,
@@ -345,7 +344,7 @@ void CG_SC_Obituary( const Tokenized & args ) {
 		) );
 	}
 	else {
-		const char * conjugation = RandomElement( &rng, conjunctions );
+		Span< const char > conjugation = RandomElement( &rng, conjunctions );
 		CG_AddChat( temp.sv( "{} {}{} {} {}{} {}",
 			attacker_name,
 			ImGuiColorToken( 255, 255, 255, 255 ), conjugation,
@@ -355,7 +354,7 @@ void CG_SC_Obituary( const Tokenized & args ) {
 		) );
 	}
 
-	if( ISVIEWERENTITY( attackerNum ) && attacker != victim ) {
+	if( ISVIEWERENTITY( attackerNum ) && attacker.ptr != victim.ptr ) {
 		CG_CenterPrint( temp.sv( "{} {}", obituary, Uppercase( &temp, victim ) ) );
 	}
 }
@@ -887,7 +886,7 @@ static int LuauGetPlayerName( lua_State * L ) {
 
 	if( index >= 0 && index < client_gs.maxclients ) {
 		lua_newtable( L );
-		lua_pushstring( L, PlayerName( index ) );
+		LuaPushSpan( L, PlayerName( index ) );
 
 		return 1;
 	}
@@ -1126,7 +1125,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 				RNG rng = NewRNG( self_obituary.entropy, 0 );
 
 				TempAllocator temp = cls.frame_arena.temp();
-				const char * obituary = MakeObituary( &temp, &rng, self_obituary.type, self_obituary.damage_type );
+				Span< const char > obituary = MakeObituary( &temp, &rng, self_obituary.type, self_obituary.damage_type );
 
 				float size = Lerp( h * 0.5f, Unlerp01( 1.0f, t, 10.0f ), h * 5.0f );
 				Vec4 color = AttentionGettingColor();

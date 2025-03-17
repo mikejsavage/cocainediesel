@@ -319,7 +319,7 @@ void CG_Precache();
 void CG_RegisterCGameCommands();
 void CG_UnregisterCGameCommands();
 
-const char * PlayerName( int i );
+Span< const char > PlayerName( int i );
 
 //
 // cg_svcmds.c

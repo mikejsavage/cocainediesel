@@ -49,7 +49,7 @@ static void CG_SC_ChatPrint( const Tokenized & args ) {
 		return;
 	}
 
-	const char * name = PlayerName( who - 1 );
+	Span< const char > name = PlayerName( who - 1 );
 	Team team = cg_entities[ who ].current.team;
 	RGB8 team_color = team == Team_None ? RGB8( 128, 128, 128 ) : CG_TeamColor( team );
 

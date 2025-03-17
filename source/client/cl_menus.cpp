@@ -330,9 +330,9 @@ static Span< const char > SelectablePlayerList() {
 	DynamicArray< const char * > players( &temp );
 
 	for( int i = 0; i < client_gs.maxclients; i++ ) {
-		const char * name = PlayerName( i );
-		if( strlen( name ) != 0 && !ISVIEWERENTITY( i + 1 ) ) {
-			players.add( name );
+		Span< const char > name = PlayerName( i );
+		if( name != "" && !ISVIEWERENTITY( i + 1 ) ) {
+			players.add( temp( "{}", name ) );
 		}
 	}
 
@@ -1436,23 +1436,22 @@ static bool LoadoutMenu() {
 		PrintMoveImage( FindMaterial( cgs.media.shaderPerkIcon[ loadout.perk ] ), icon_size.y, textPos, diesel_yellow.vec4 );
 		textPos.y = (title_height - textSize.y) * 0.5f;
 
-		const char * playerName = PlayerName( cg.predictedPlayerState.playerNum );
-		Span<const char> playerNameSpan = MakeSpan( playerName );
+		Span< const char > playerName = PlayerName( cg.predictedPlayerState.playerNum );
 		ImVec2 playerTextSize = ImGui::CalcTextSize( playerName );
 
 		float predictedPos = textPos.x - ImGui::CalcTextSize( " AND I'M " ).x - ImGui::CalcTextSize( "I AM " ).x * 2.f - playerTextSize.x;
-		float letterWidth = playerTextSize.x / playerNameSpan.n;
+		float letterWidth = playerTextSize.x / playerName.n;
 		int excessLetters = Max2(3.f, -predictedPos / letterWidth); //the excess is the negative part
 
-		if( predictedPos > 0.f || excessLetters < playerNameSpan.n ) { //don't print name if the window is too small
+		if( predictedPos > 0.f || excessLetters < playerName.n ) { //don't print name if the window is too small
 			PrintMoveText( " AND I'M ", textPos );
 
 			ImGui::PushStyleColor( ImGuiCol_Text, diesel_yellow.vec4 );
 			if( predictedPos <= 0.f ) {
 				PrintMoveText( "...", textPos );
-				PrintMoveText( playerNameSpan.slice( 0, playerNameSpan.n - excessLetters ), textPos );
+				PrintMoveText( playerName.slice( 0, playerName.n - excessLetters ), textPos );
 			} else {
-				PrintMoveText( playerNameSpan, textPos );
+				PrintMoveText( playerName, textPos );
 			}
 
 			ImGui::PopStyleColor();

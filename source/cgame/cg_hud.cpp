@@ -983,22 +983,6 @@ static int HUD_DrawPointed( lua_State * L ) {
 	return 0;
 }
 
-static int CG_HorizontalAlignForWidth( int x, Alignment alignment, int width ) {
-	if( alignment.x == XAlignment_Left )
-		return x;
-	if( alignment.x == XAlignment_Center )
-		return x - width / 2;
-	return x - width;
-}
-
-static int CG_VerticalAlignForHeight( int y, Alignment alignment, int height ) {
-	if( alignment.y == YAlignment_Ascent )
-		return y;
-	if( alignment.y == YAlignment_Descent )
-		return y - height / 2;
-	return y - height;
-}
-
 static int HUD_DrawObituaries( lua_State * L ) {
 	int x = luaL_checknumber( L, 1 );
 	int y = luaL_checknumber( L, 2 );
@@ -1006,7 +990,6 @@ static int HUD_DrawObituaries( lua_State * L ) {
 	int height = lua_tonumber( L, 4 );
 	unsigned int icon_size = lua_tonumber( L, 5 );
 	float font_size = luaL_checknumber( L, 6 );
-	Alignment alignment = CheckAlignment( L, 7 );
 
 	const int icon_padding = 4;
 
@@ -1039,8 +1022,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 		skip = 0;
 	}
 
-	y = CG_VerticalAlignForHeight( y, alignment, height );
-	x = CG_HorizontalAlignForWidth( x, alignment, width );
+	x -= width;
 
 	int xoffset = 0;
 	int yoffset = 0;

@@ -285,11 +285,11 @@ void CG_SC_Obituary( const Tokenized & args ) {
 	current->wallbang = wallbang;
 
 	if( victim != "" ) {
-		ggprint( current->victim, sizeof( current->victim ), "{}", victim );
+		ggformat( current->victim, sizeof( current->victim ), "{}", victim );
 		current->victim_team = cg_entities[ victimNum ].current.team;
 	}
 	if( attacker != "" ) {
-		ggprint( current->attacker, sizeof( current->attacker ), "{}", attacker );
+		ggformat( current->attacker, sizeof( current->attacker ), "{}", attacker );
 		current->attacker_team = cg_entities[ attackerNum ].current.team;
 	}
 

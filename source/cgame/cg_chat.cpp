@@ -122,9 +122,9 @@ void CG_DrawChat() {
 		flags |= ImGuiWindowFlags_Interactive;
 	}
 
-	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
-	ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 8.0f, 8.0f ) );
-	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8.0f, 8.0f ) );
+	ScopedStyle( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
+	ScopedStyle( ImGuiStyleVar_FramePadding, ImVec2( 8.0f, 8.0f ) );
+	ScopedStyle( ImGuiStyleVar_WindowPadding, ImVec2( 8.0f, 8.0f ) );
 
 	// round size down to integer number of lines
 	float extra_height = ImGui::GetFrameHeightWithSpacing() + 3 * ImGui::GetStyle().WindowPadding.y;
@@ -175,7 +175,7 @@ void CG_DrawChat() {
 			color = AllyColor();
 		}
 
-		ImGui::PushStyleColor( ImGuiCol_FrameBg, IM_COL32( color.r, color.g, color.b, 50 ) );
+		ScopedColor( ImGuiCol_FrameBg, IM_COL32( color.r, color.g, color.b, 50 ) );
 
 		ImGuiInputTextFlags input_flags = 0;
 		input_flags |= ImGuiInputTextFlags_CallbackCharFilter;
@@ -184,12 +184,11 @@ void CG_DrawChat() {
 		ImGui::PushItemWidth( ImGui::GetWindowWidth() );
 		ImGui::SetKeyboardFocusHere();
 		bool enter = ImGui::InputText( "##chatinput", chat.input, sizeof( chat.input ), input_flags, InputCallback );
+		ImGui::PopItemWidth();
 
 		if( enter ) {
 			SendChat();
 		}
-
-		ImGui::PopStyleColor();
 	}
 
 	if( ImGui::Hotkey( ImGuiKey_Escape ) ) {
@@ -197,5 +196,4 @@ void CG_DrawChat() {
 	}
 
 	ImGui::End();
-	ImGui::PopStyleVar( 3 );
 }

@@ -169,10 +169,9 @@ static void SettingLabel( Span< const char > label ) {
 }
 
 static bool ColorButton( const char * label, ImVec4 color ) {
-	ImGui::PushStyleColor( ImGuiCol_Button, color );
-	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( color.x + 0.125f, color.y + 0.125f, color.z + 0.125f, color.w ) );
-	ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( color.x - 0.125f, color.y - 0.125f, color.z - 0.125f, color.w ) );
-	defer { ImGui::PopStyleColor( 3 ); };
+	ScopedColor( ImGuiCol_Button, color );
+	ScopedColor( ImGuiCol_ButtonHovered, ImVec4( color.x + 0.125f, color.y + 0.125f, color.z + 0.125f, color.w ) );
+	ScopedColor( ImGuiCol_ButtonActive, ImVec4( color.x - 0.125f, color.y - 0.125f, color.z - 0.125f, color.w ) );
 	return ImGui::Button( label );
 }
 
@@ -1072,7 +1071,7 @@ static void MainMenu() {
 		const float LINE_OFFSET = frame_static.viewport_height * 0.48f - icon_size.y * 0.5f - BASE_LINE;
 
 		//CATEGORIES
-		ImGui::PushFont( cls.big_font );
+		ScopedFont( cls.big_font );
 		for( size_t i = 0; i < ARRAY_COUNT( categories ); i++ ) {
 			if( MainSectionButton< true >( ImVec2( BASE_COLUMN + (COLUMN_OFFSET * (i % 3)) + COLUMN_LINE_OFFSET * (i/3), BASE_LINE + LINE_OFFSET * (i/3) ),
 				FindMaterial( categories[ i ].icon_path ), icon_size, categories[ i ].name, categories[ i ].bg_color, categories[ i ].is_enabled ) ) {
@@ -1084,7 +1083,6 @@ static void MainMenu() {
 			FindMaterial( "hud/exit" ), icon_size, "EXIT", diesel_red.vec4, true ) ) {
 			Cmd_Execute( &temp, "quit" );
 		}
-		ImGui::PopFont();
 	}
 	else {
 		const ImVec2 submenus_offset = ImVec2( frame_static.viewport_width * 0.225f, OFFSET + 128.f );
@@ -1103,8 +1101,8 @@ static void MainMenu() {
 
 		ImGui::SetCursorPos( submenus_offset );
 
-		ImGui::PushStyleColor( ImGuiCol_Border, Vec4( 0.f ) );
-		ImGui::PushStyleColor( ImGuiCol_ChildBg, Vec4( 0.f ) );
+		ScopedColor( ImGuiCol_Border, Vec4( 0.0f ) );
+		ScopedColor( ImGuiCol_ChildBg, Vec4( 0.0f ) );
 		ImGui::BeginChild( "sub main menus", submenus_size, true );
 
 		if( mainmenu_state == MainMenuState_License ) {
@@ -1140,7 +1138,6 @@ static void MainMenu() {
 		}
 
 		ImGui::EndChild();
-		ImGui::PopStyleColor( 2 );
 	}
 
 	// top and bottom bars
@@ -1155,23 +1152,22 @@ static void MainMenu() {
 	Draw2DBoxUV( 0.0f, frame_static.viewport_height - OFFSET - 32.0f, frame_static.viewport_width, 32.0f, TAPE_UV_START - TAPE_OFFSET, TAPE_UV_END - TAPE_OFFSET, TAPE, white.vec4 );
 
 	{
-		ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0, 0 ) );
-		ImGui::PushStyleColor( ImGuiCol_Button, IM_COL32( 0, 0, 0, 0 ) );
-		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, IM_COL32( 0, 0, 0, 0 ) );
-		ImGui::PushStyleColor( ImGuiCol_ButtonActive, IM_COL32( 0, 0, 0, 0 ) );
+		{
+			ScopedStyle( ImGuiStyleVar_FramePadding, Vec2( 0.0f ) );
+			ScopedColor( ImGuiCol_Button, Vec4( 0.0f ) );
+			ScopedColor( ImGuiCol_ButtonHovered, Vec4( 0.0f ) );
+			ScopedColor( ImGuiCol_ButtonActive, Vec4( 0.0f ) );
 
-		const char * buf = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
-		ImVec2 size = ImGui::CalcTextSize( buf );
-		ImGui::SetCursorPosY( ImGui::GetWindowHeight() - size.y - 8.0f );
-		ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - 8.0f - Sin( cls.monotonicTime, Milliseconds( 182 ) ) );
-		ImGui::Text( "%s", buf );
+			const char * buf = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
+			ImVec2 size = ImGui::CalcTextSize( buf );
+			ImGui::SetCursorPosY( ImGui::GetWindowHeight() - size.y - 8.0f );
+			ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - 8.0f - Sin( cls.monotonicTime, Milliseconds( 182 ) ) );
+			ImGui::Text( "%s", buf );
 
-		// if( ImGui::Button( buf ) ) {
-		// 	ImGui::OpenPopup( "Credits" );
-		// }
-
-		ImGui::PopStyleColor( 3 );
-		ImGui::PopStyleVar();
+			// if( ImGui::Button( buf ) ) {
+			// 	ImGui::OpenPopup( "Credits" );
+			// }
+		}
 
 		// ImGuiWindowFlags credits_flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
 		// if( ImGui::BeginPopupModal( "Credits", NULL, credits_flags ) ) {
@@ -1250,11 +1246,9 @@ static bool LoadoutButton( Span< const char > label, Vec2 icon_size, const Mater
 static void InitCategory( const char * category_name, float padding ) {
 	ImGui::TableNextColumn();
 
-	ImGui::PushStyleColor( ImGuiCol_Text, diesel_yellow.vec4 );
-	ImGui::PushFont( cls.big_italic_font );
+	ScopedColor( ImGuiCol_Text, diesel_yellow.vec4 );
+	ScopedFont( cls.big_italic_font );
 	ImGui::Text( "%s", category_name );
-	ImGui::PopFont();
-	ImGui::PopStyleColor();
 	ImGui::Dummy( ImVec2( 0, padding ) );
 }
 
@@ -1311,10 +1305,10 @@ ImGuiKey KeyToImGui( Key key );
 static bool LoadoutMenu() {
 	ImVec2 displaySize = ImGui::GetIO().DisplaySize;
 
-	ImGui::PushFont( cls.medium_italic_font );
-	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
-	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) );
-	ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0.0f, 0.0f ) );
+	ScopedFont( cls.medium_italic_font );
+	ScopedColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
+	ScopedStyle( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) );
+	ScopedStyle( ImGuiStyleVar_FramePadding, ImVec2( 0.0f, 0.0f ) );
 
 	ImGui::SetNextWindowPos( Vec2( 0, 0 ) );
 	ImGui::SetNextWindowSize( displaySize );
@@ -1324,8 +1318,8 @@ static bool LoadoutMenu() {
 	size_t title_height = displaySize.y * 0.075f;
 
 	{
-		ImGui::PushStyleColor( ImGuiCol_ChildBg, Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
-		ImGui::BeginChild( "loadout title", ImVec2( -1, title_height ) );
+		ScopedColor( ImGuiCol_ChildBg, Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
+		ScopedChild( "loadout title", ImVec2( -1, title_height ) );
 
 		ImGui::Dummy( ImVec2( displaySize.x * 0.02f, 0.0f ) );
 		ImGui::SameLine();
@@ -1336,9 +1330,9 @@ static bool LoadoutMenu() {
 
 		ImGui::SameLine();
 
-		ImGui::PushStyleColor( ImGuiCol_Button, ImVec4( 0.f, 0.f, 0.f, 0.f ) );
-		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( 0.f, 0.f, 0.f, 0.f ) );
-		ImGui::PushStyleColor( ImGuiCol_ButtonActive, ImVec4( 0.f, 0.f, 0.f, 0.f ) );
+		ScopedColor( ImGuiCol_Button, ImVec4( 0.f, 0.f, 0.f, 0.f ) );
+		ScopedColor( ImGuiCol_ButtonHovered, ImVec4( 0.f, 0.f, 0.f, 0.f ) );
+		ScopedColor( ImGuiCol_ButtonActive, ImVec4( 0.f, 0.f, 0.f, 0.f ) );
 
 		ImGui::SetCursorPos( ImVec2( displaySize.x - title_height, 0.f ) );
 
@@ -1359,14 +1353,9 @@ static bool LoadoutMenu() {
 
 			SendLoadout();
 		}
-
-		ImGui::PopStyleColor( 3 );
-
-		ImGui::EndChild();
-		ImGui::PopStyleColor();
 	}
 
-	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, Vec2( 0.0f ) );
+	ScopedStyle( ImGuiStyleVar_ItemSpacing, Vec2( 0.0f ) );
 
 	ImGui::Dummy( ImVec2( 0.0f, displaySize.x * 0.01f ) );
 	ImGui::Dummy( ImVec2( displaySize.x * 0.06f, 0.0f ) );
@@ -1400,13 +1389,13 @@ static bool LoadoutMenu() {
 		};
 
 		ImGui::SetNextWindowPos( ImVec2( 0, displaySize.y - title_height ) );
-		ImGui::PushStyleColor( ImGuiCol_ChildBg, Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
-		ImGui::BeginChild( "loadout bottom", ImVec2( -1, title_height ) );
-		ImGui::PushFont( cls.large_italic_font );
+		ScopedColor( ImGuiCol_ChildBg, Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
+		ScopedChild( "loadout bottom", ImVec2( -1, title_height ) );
+		ScopedFont( cls.large_italic_font );
 
-		ImGui::PushStyleColor( ImGuiCol_Button, Vec4( 0.f ) );
-		ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0.f ) );
-		ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.f ) );
+		ScopedColor( ImGuiCol_Button, Vec4( 0.f ) );
+		ScopedColor( ImGuiCol_ButtonActive, Vec4( 0.f ) );
+		ScopedColor( ImGuiCol_ButtonHovered, Vec4( 0.f ) );
 
 		const char * imdone = " I'M DONE";
 		ImVec2 textSize = ImGui::CalcTextSize( imdone );
@@ -1446,28 +1435,17 @@ static bool LoadoutMenu() {
 		if( predictedPos > 0.f || excessLetters < playerName.n ) { //don't print name if the window is too small
 			PrintMoveText( " AND I'M ", textPos );
 
-			ImGui::PushStyleColor( ImGuiCol_Text, diesel_yellow.vec4 );
+			ScopedColor( ImGuiCol_Text, diesel_yellow.vec4 );
 			if( predictedPos <= 0.f ) {
 				PrintMoveText( "...", textPos );
 				PrintMoveText( playerName.slice( 0, playerName.n - excessLetters ), textPos );
 			} else {
 				PrintMoveText( playerName, textPos );
 			}
-
-			ImGui::PopStyleColor();
 		}
 
 		PrintMoveText( "I AM ", textPos );
-
-		ImGui::PopStyleColor( 3 );
-		ImGui::PopFont();
-		ImGui::EndChild();
-		ImGui::PopStyleColor();
 	}
-
-	ImGui::PopStyleVar( 3 );
-	ImGui::PopStyleColor();
-	ImGui::PopFont();
 
 	Optional< Key > key1, key2;
 	GetKeyBindsForCommand( "loadoutmenu", &key1, &key2 );
@@ -1488,7 +1466,7 @@ static void GameMenu() {
 		ready = true;
 	}
 
-	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 225 ) );
+	ScopedColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 225 ) );
 	bool should_close = false;
 
 	ImVec2 displaySize = ImGui::GetIO().DisplaySize;
@@ -1517,9 +1495,8 @@ static void GameMenu() {
 		}
 		else {
 			if( client_gs.gameState.match_state <= MatchState_Countdown ) {
-				ImGui::PushStyleColor( ImGuiCol_Text, ready ? diesel_red.vec4 : diesel_green.vec4 );
+				ScopedColor( ImGuiCol_Text, ready ? diesel_red.vec4 : diesel_green.vec4 );
 				GameMenuButton( ready ? "Unready" : "Ready", "toggleready", &should_close );
-				ImGui::PopStyleColor();
 			}
 
 			GameMenuButton( "Spectate", "spectate", &should_close );
@@ -1594,12 +1571,10 @@ static void GameMenu() {
 	}
 
 	ImGui::End();
-
-	ImGui::PopStyleColor();
 }
 
 static void DemoMenu() {
-	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 192 ) );
+	ScopedColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 192 ) );
 	bool should_close = false;
 
 	ImVec2 displaySize = ImGui::GetIO().DisplaySize;
@@ -1651,8 +1626,6 @@ static void DemoMenu() {
 	}
 
 	ImGui::End();
-
-	ImGui::PopStyleColor();
 }
 
 void UI_Refresh() {

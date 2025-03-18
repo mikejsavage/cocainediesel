@@ -283,12 +283,12 @@ void Con_Draw() {
 
 	u32 bg = IM_COL32( 27, 27, 27, 224 );
 
-	ImGui::PushFont( cls.console_font );
-	ImGui::PushStyleColor( ImGuiCol_FrameBg, bg );
-	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0, 0, 0, 0 ) );
-	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
-	ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 8, 4 ) );
-	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 0 ) );
+	ScopedFont( cls.console_font );
+	ScopedColor( ImGuiCol_FrameBg, bg );
+	ScopedColor( ImGuiCol_WindowBg, IM_COL32( 0, 0, 0, 0 ) );
+	ScopedStyle( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
+	ScopedStyle( ImGuiStyleVar_FramePadding, ImVec2( 8, 4 ) );
+	ScopedStyle( ImGuiStyleVar_WindowPadding, ImVec2( 0, 0 ) );
 
 	// make a fullscreen window so you can't interact with menus while console is open
 	ImGui::SetNextWindowPos( ImVec2() );
@@ -366,7 +366,4 @@ void Con_Draw() {
 	}
 
 	ImGui::End();
-	ImGui::PopStyleVar( 3 );
-	ImGui::PopStyleColor( 2 );
-	ImGui::PopFont();
 }

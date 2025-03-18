@@ -1070,7 +1070,6 @@ static void MainMenu() {
 		ClayCustomElementConfig * nk_custom = Clone( ClayAllocator(), ClayCustomElementConfig {
 			.type = ClayCustomElementType_Callback,
 			.callback = []( const Clay_BoundingBox & bounds ) {
-				const Material * nk = FindMaterial( "hud/nk" );
 				Draw2DBox( bounds.x, bounds.y, bounds.width, bounds.height, FindMaterial( "hud/nk" ) );
 			},
 		} );

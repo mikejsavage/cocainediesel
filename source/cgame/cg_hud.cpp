@@ -1622,11 +1622,6 @@ bool CG_ScoreboardShown() {
 	return cg.showScoreboard;
 }
 
-static void ClayErrorHandler( Clay_ErrorData error ) {
-	// NOTE(mike): normally you can't print a Clay_String with %s but they're all static strings so it works
-	Fatal( "%s", error.errorText.chars );
-}
-
 void CG_InitHUD() {
 	TracyZoneScoped;
 
@@ -1738,16 +1733,6 @@ void CG_ShutdownHUD() {
 	if( hud_L != NULL ) {
 		lua_close( hud_L );
 	}
-}
-
-static Vec4 ClayToCD( Clay_Color color ) {
-	RGBA8 clamped = RGBA8(
-		Clamp( 0.0f, color.r, 255.0f ),
-		Clamp( 0.0f, color.g, 255.0f ),
-		Clamp( 0.0f, color.b, 255.0f ),
-		Clamp( 0.0f, color.a, 255.0f )
-	);
-	return Vec4( sRGBToLinear( clamped ) );
 }
 
 void CG_DrawHUD() {

@@ -165,7 +165,7 @@ void UI_Shutdown() {
 static void SettingLabel( Span< const char > label ) {
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text( label );
-	ImGui::SameLine( 200 );
+	ImGui::SameLine( 200 * GetContentScale() );
 }
 
 static bool ColorButton( const char * label, ImVec4 color ) {
@@ -307,7 +307,7 @@ static Span< const char > SelectableMapList( bool include_gladiator ) {
 		selected_map = (selected_map + 1) % maps.n;
 	}
 
-	ImGui::PushItemWidth( 200 );
+	ImGui::PushItemWidth( 200 * GetContentScale() );
 	if( ImGui::BeginCombo( "##map", temp( "{}", maps[ selected_map ] ) ) ) {
 		for( size_t i = 0; i < maps.n; i++ ) {
 			if( !include_gladiator && StrEqual( maps[ i ], "gladiator" ) )
@@ -342,7 +342,7 @@ static Span< const char > SelectablePlayerList() {
 
 	static size_t selected_player = 0;
 
-	ImGui::PushItemWidth( 200 );
+	ImGui::PushItemWidth( 200 * GetContentScale() );
 	if( ImGui::BeginCombo( "##players", players[ selected_player ] ) ) {
 		for( size_t i = 0; i < players.size(); i++ ) {
 			if( ImGui::Selectable( players[ i ], i == selected_player ) )
@@ -360,7 +360,7 @@ static Span< const char > SelectablePlayerList() {
 static void Locker() {
 	SettingLabel( "Mask" );
 
-	ImGui::PushItemWidth( 200 );
+	ImGui::PushItemWidth( 200 * GetContentScale() );
 	if( ImGui::BeginCombo( "##masks", masks[ selected_mask ] ) ) {
 		for( size_t i = 0; i < masks.size(); i++ ) {
 			if( ImGui::Selectable( masks[ i ], i == selected_mask ) ) {
@@ -495,7 +495,7 @@ static void SettingsVideo() {
 	}
 
 	SettingLabel( "Window mode" );
-	ImGui::PushItemWidth( 200 );
+	ImGui::PushItemWidth( 200 * GetContentScale() );
 
 	if( ImGui::BeginCombo( "##fullscreen", FullscreenModeToString( mode.fullscreen ) ) ) {
 		if( ImGui::Selectable( FullscreenModeToString( FullscreenMode_Windowed ), mode.fullscreen == FullscreenMode_Windowed ) ) {
@@ -523,7 +523,7 @@ static void SettingsVideo() {
 
 		if( num_monitors > 1 ) {
 			SettingLabel( "Monitor" );
-			ImGui::PushItemWidth( 400 );
+			ImGui::PushItemWidth( 400 * GetContentScale() );
 
 			if( ImGui::BeginCombo( "##monitor", SDL_GetDisplayName( monitors[ mode.monitor ] ) ) ) {
 				for( int i = 0; i < num_monitors; i++ ) {
@@ -541,7 +541,7 @@ static void SettingsVideo() {
 
 		if( mode.fullscreen == FullscreenMode_Fullscreen ) {
 			SettingLabel( "Resolution" );
-			ImGui::PushItemWidth( 200 );
+			ImGui::PushItemWidth( 200 * GetContentScale() );
 
 			if( mode.video_mode.refresh_rate == 0.0f ) {
 				mode.video_mode = GetVideoMode( mode.monitor );
@@ -600,7 +600,7 @@ static void SettingsVideo() {
 
 		int samples = Cvar_Integer( "r_samples" );
 
-		ImGui::PushItemWidth( 100 );
+		ImGui::PushItemWidth( 100 * GetContentScale() );
 		if( ImGui::BeginCombo( "##r_samples", samples == 0 ? "Off" : temp( "{}x", samples ) ) ) {
 			if( ImGui::Selectable( "Off", samples == 0 ) )
 				samples = 0;
@@ -631,7 +631,7 @@ static void SettingsVideo() {
 
 		ShadowQuality quality = ShadowQuality( Cvar_Integer( "r_shadow_quality" ) );
 
-		ImGui::PushItemWidth( 150 );
+		ImGui::PushItemWidth( 150 * GetContentScale() );
 		if( ImGui::BeginCombo( "##r_shadow_quality", ShadowQualityToString( quality ) ) ) {
 			for( int s = ShadowQuality_Low; s <= ShadowQuality_Ultra; s++ ) {
 				if( ImGui::Selectable( ShadowQualityToString( ShadowQuality( s ) ), quality == s ) )
@@ -653,7 +653,7 @@ static void SettingsVideo() {
 
 		int maxfps = Cvar_Integer( "cl_maxfps" );
 
-		ImGui::PushItemWidth( 100 );
+		ImGui::PushItemWidth( 100 * GetContentScale() );
 		if( ImGui::BeginCombo( "##cl_maxfps", temp( "{}", maxfps ) ) ) {
 			for( int value : values ) {
 				if( ImGui::Selectable( temp( "{}", value ), maxfps == value ) )
@@ -680,7 +680,7 @@ static void SettingsVideo() {
 
 static void SettingsAudio() {
 	SettingLabel( "Audio device" );
-	ImGui::PushItemWidth( 400 );
+	ImGui::PushItemWidth( 400 * GetContentScale() );
 
 	const char * current = StrEqual( s_device->value, "" ) ? "Default" : s_device->value;
 	if( ImGui::BeginCombo( "##audio_device", current ) ) {
@@ -1506,7 +1506,7 @@ static void GameMenu() {
 
 	if( gamemenu_state == GameMenuState_Menu ) {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, 0, Vec2( 0.5f ) );
-		ImGui::SetNextWindowSize( ImVec2( 500, 0 ) );
+		ImGui::SetNextWindowSize( ImVec2( 500, 0 ) * GetContentScale() );
 		ImGui::Begin( "gamemenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 		ImGuiStyle & style = ImGui::GetStyle();
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;

@@ -1398,6 +1398,7 @@ static Optional< ClayTextAndConfig > GetOptionalClayTextConfig( lua_State * L, i
 			.letterSpacing = 0,
 			.lineHeight = u16( Default( CheckFloat( L, -1, "line_height" ), 1.0f ) * size ),
 			.wrapMode = CLAY_TEXT_WRAP_NONE,
+			.hashStringContents = true,
 		},
 		.border_color = CheckOptionalColor( L, -1, "text_border" ),
 		.fitted_text = CheckClayFittedText( L, idx ),

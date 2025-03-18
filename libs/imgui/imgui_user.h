@@ -18,7 +18,7 @@ namespace ImGui {
 	bool IsItemHoveredThisFrame();
 };
 
-#define ScopedChild( ... ) ImGui::BeginChild( ##__VA_ARGS__ ); defer { ImGui::EndChild(); }
+#define ScopedChild( ... ) ImGui::BeginChild( __VA_ARGS__ ); defer { ImGui::EndChild(); }
 #define ScopedColor( name, color ) ImGui::PushStyleColor( name, color ); defer { ImGui::PopStyleColor(); }
 #define ScopedStyle( name, value ) ImGui::PushStyleVar( name, value ); defer { ImGui::PopStyleVar(); }
 #define ScopedFont( font ) ImGui::PushFont( font ); defer { ImGui::PopFont(); }

@@ -141,11 +141,6 @@ struct cg_static_t {
 	float textSizeMedium;
 	float textSizeBig;
 
-	const Font * fontNormal;
-	const Font * fontNormalBold;
-	const Font * fontItalic;
-	const Font * fontBoldItalic;
-
 	cgs_media_t media;
 
 	bool demoPlaying;
@@ -296,6 +291,10 @@ void CG_DrawScoreboard();
 void CG_SC_ResetObituaries();
 void CG_SC_Obituary( const Tokenized & args );
 void CG_DrawHUD();
+
+struct Clay_BoundingBox;
+struct ClayCustomElementConfig;
+void CG_DrawClayLuaHUDElement( const Clay_BoundingBox & bounds, const ClayCustomElementConfig * config );
 
 //
 // cg_main.c

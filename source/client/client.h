@@ -97,6 +97,7 @@ struct client_static_t {
 	ArenaAllocator frame_arena;
 
 	RNG rng;
+	u64 per_launch_entropy;
 
 	u64 session_id;
 	connstate_t state;          // only set through CL_SetClientState
@@ -170,6 +171,11 @@ struct client_static_t {
 	ImFont * big_italic_font;
 	ImFont * console_font;
 	ImFont * license_italic_font;
+
+	const Font * fontNormal;
+	const Font * fontNormalBold;
+	const Font * fontItalic;
+	const Font * fontBoldItalic;
 };
 
 extern client_static_t cls;

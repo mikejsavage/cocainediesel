@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/client.h"
 #include "client/assets.h"
 #include "client/audio/api.h"
+#include "client/clay_init.h"
 #include "client/discord.h"
 #include "client/downloads.h"
 #include "client/gltf.h"
@@ -31,6 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/server_browser.h"
 #include "client/livepp.h"
 #include "client/renderer/renderer.h"
+#include "client/renderer/text.h"
 #include "server/server.h"
 #include "qcommon/compression.h"
 #include "qcommon/csprng.h"
@@ -1078,8 +1080,10 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	int viewport_width, viewport_height;
 	GetFramebufferSize( &viewport_width, &viewport_height );
 	RendererBeginFrame( viewport_width, viewport_height );
+	ClayBeginFrame();
 
 	SCR_UpdateScreen();
+
 	RendererSubmitFrame();
 
 	// update audio
@@ -1109,6 +1113,7 @@ void CL_Init() {
 	u64 entropy[ 2 ];
 	CSPRNG( entropy, sizeof( entropy ) );
 	cls.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
+	cls.per_launch_entropy = Random64( &cls.rng );
 
 	CSPRNG( &cls.session_id, sizeof( cls.session_id ) );
 
@@ -1160,7 +1165,13 @@ void CL_Init() {
 	InitDemoBrowser();
 
 	CL_InitImGui();
+	InitClay();
 	UI_Init();
+
+	cls.fontNormal = RegisterFont( "fonts/Decalotype-Bold" );
+	cls.fontNormalBold = RegisterFont( "fonts/Decalotype-Black" );
+	cls.fontItalic = RegisterFont( "fonts/Decalotype-BoldItalic" );
+	cls.fontBoldItalic = RegisterFont( "fonts/Decalotype-BlackItalic" );
 }
 
 void CL_Shutdown() {
@@ -1180,6 +1191,7 @@ void CL_Shutdown() {
 	ShutdownDiscord();
 
 	UI_Shutdown();
+	ShutdownClay();
 	CL_ShutdownImGui();
 
 	CL_GameModule_Shutdown();

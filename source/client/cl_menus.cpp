@@ -4,6 +4,7 @@
 #include "client/assets.h"
 #include "client/audio/api.h"
 #include "client/client.h"
+#include "client/clay.h"
 #include "client/dev_tools.h"
 #include "client/keys.h"
 #include "client/renderer/renderer.h"
@@ -18,6 +19,8 @@
 #include "gameshared/vsays.h"
 
 #include "cgame/cg_local.h"
+
+#include "clay/clay.h"
 
 #include "sdl/SDL3/SDL_video.h"
 
@@ -913,7 +916,7 @@ static void CreateServer( bool gladiator ) {
 	}
 }
 
-static void ShadowedText( Span<const char> text, float shadow_size ) {
+static void ShadowedText( Span< const char > text, float shadow_size ) {
 	const Vec2 pos = ImGui::GetCursorPos();
 	ImGui::SetCursorPos( pos + shadow_size );
 
@@ -991,6 +994,13 @@ static void NotImplemented() {
 	ImGui::PopFont();
 }
 
+static void ClayVerticalSpacing( Clay_ElementId id, Clay_SizingAxis spacing ) {
+	CLAY( {
+		.id = id,
+		.layout = { .sizing = { .height = spacing } },
+	} ) { }
+}
+
 static void MainMenu() {
 	constexpr MainMenuCategory categories[] = {
 		{ "hud/license", "LICENSE", MainMenuState_License, diesel_grey.vec4, false },
@@ -1007,60 +1017,196 @@ static void MainMenu() {
 
 	ImGui::SetNextWindowPos( ImVec2() );
 	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
+	ScopedStyle( ImGuiStyleVar_WindowPadding, Vec2( 0.0f ) );
 
-	ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_Interactive;
+	ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_Interactive );
 
-	ImGui::Begin( "mainmenu", WindowZOrder_Menu, flags );
+	FittedTextShadow shadow = FittedTextShadow {
+		.color = black.vec4,
+		.offset = 8.0f * GetContentScale(),
+		.angle = 40.0f,
+	};
 
-	if( cl_devtools->integer ) {
-		if( ImGui::Button( "Model viewer" ) ) {
-			uistate = UIState_DevTool;
-			devtool_render_callback = DrawModelViewer;
+	CLAY( {
+		.id = CLAY_ID_LOCAL( "Background" ),
+		.layout = {
+			.sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 1.0f ) },
+			.layoutDirection = CLAY_TOP_TO_BOTTOM,
+		},
+	} ) {
+		ClayCustomElementConfig * hazard_custom = Clone( ClayAllocator(), ClayCustomElementConfig {
+			.type = ClayCustomElementType_Callback,
+			.callback = []( const Clay_BoundingBox & bounds ) {
+				const Material * hazard = FindMaterial( "hud/tape_hazard_yellow" );
+				Vec2 half_pixel = HalfPixelSize( hazard );
+				float repetitions = ( bounds.width / bounds.height ) / ( hazard->texture->width / hazard->texture->height );
+				float scroll = Sawtooth01( cls.monotonicTime, Seconds( 4 ) );
+				Vec2 tl = half_pixel + Vec2( scroll, 0.0f );
+				Vec2 br = ( 1.0f - half_pixel ) + Vec2( repetitions + scroll, 0.0f );
+				Draw2DBoxUV( bounds.x, bounds.y, bounds.width, bounds.height, tl, br, hazard );
+			},
+		} );
+
+		CLAY( {
+			.id = CLAY_ID_LOCAL( "Top bar" ),
+			.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.1f ) } },
+			.backgroundColor = { 0, 0, 0, 255 },
+		} ) {
+			if( cl_devtools->integer ) {
+				ImGui::SetCursorPos( Vec2( 16.0f ) );
+				if( ImGui::Button( "Model viewer" ) ) {
+					uistate = UIState_DevTool;
+					devtool_render_callback = DrawModelViewer;
+				}
+			}
+		}
+
+		CLAY( {
+			.id = CLAY_ID_LOCAL( "Top hazard stripes" ),
+			.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.03f ) } },
+			.custom = { hazard_custom },
+		} ) { }
+
+		ClayCustomElementConfig * nk_custom = Clone( ClayAllocator(), ClayCustomElementConfig {
+			.type = ClayCustomElementType_Callback,
+			.callback = []( const Clay_BoundingBox & bounds ) {
+				const Material * nk = FindMaterial( "hud/nk" );
+				Draw2DBox( bounds.x, bounds.y, bounds.width, bounds.height, FindMaterial( "hud/nk" ) );
+			},
+		} );
+
+		CLAY( {
+			.id = CLAY_ID_LOCAL( "Main" ),
+			.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_GROW() } },
+			.custom = { nk_custom },
+		} ) {
+			CLAY( {
+				.id = CLAY_ID_LOCAL( "Sidebar" ),
+				.layout = {
+					.sizing = { .width = CLAY_SIZING_PERCENT( 0.25f ), .height = CLAY_SIZING_PERCENT( 1.0f ) },
+					.padding = CLAY_PADDING_ALL( u16( 24.0f * GetContentScale() ) ),
+					.layoutDirection = CLAY_TOP_TO_BOTTOM,
+				},
+			} ) {
+				ClayCustomElementConfig * cocaine_custom = Clone( ClayAllocator(), ClayCustomElementConfig {
+					.type = ClayCustomElementType_FittedText,
+					.fitted_text = {
+						.text = CLAY_STRING( "COCAINE" ),
+						.config = {
+							.textColor = { 255, 255, 255, 255 },
+							.fontId = ClayFont_BoldItalic,
+						},
+						.shadow = shadow,
+					},
+				} );
+
+				ClayCustomElementConfig * diesel_custom = Clone( ClayAllocator(), ClayCustomElementConfig {
+					.type = ClayCustomElementType_FittedText,
+					.fitted_text = {
+						.text = CLAY_STRING( "DIESEL" ),
+						.config = {
+							.textColor = { 255, 255, 255, 255 },
+							.fontId = ClayFont_BoldItalic,
+						},
+						.shadow = shadow,
+					},
+				} );
+
+				CLAY( {
+					.id = CLAY_ID_LOCAL( "COCAINE" ),
+					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.1f ) } },
+					.custom = { cocaine_custom },
+				} ) { }
+
+				ClayVerticalSpacing( CLAY_ID_LOCAL( "Inter-title spacing" ), CLAY_SIZING_FIXED( 2.0f * GetContentScale() ) );
+
+				CLAY( {
+					.id = CLAY_ID_LOCAL( "DIESEL" ),
+					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.1f ) } },
+					.custom = { diesel_custom },
+				} ) { }
+
+				ClayVerticalSpacing( CLAY_ID_LOCAL( "Title-subtitle spacing" ), CLAY_SIZING_FIXED( 8.0f * GetContentScale() ) );
+
+				CLAY( {
+					.id = CLAY_ID_LOCAL( "Subtitle" ),
+					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_FIT() } },
+				} ) {
+					constexpr Span< const char > subtitles[] = {
+						#include "subtitles.h"
+					};
+
+					RNG rng = NewRNG( cls.per_launch_entropy, 0 );
+					Span< const char > subtitle = RandomElement( &rng, subtitles );
+					Span< const char > full_subtitle = temp.sv( "THE{}{} GAME", subtitle == "" ? "" : " ", subtitle );
+
+					CLAY_TEXT( AllocateClayString( full_subtitle ), CLAY_TEXT_CONFIG( {
+						.textColor = { 255, 255, 255, 255 },
+						.fontId = ClayFont_Regular,
+						.fontSize = u16( 16.0f * GetContentScale() ),
+						.hashStringContents = true,
+						.userData = Clone( ClayAllocator(), Optional< Vec4 >( NONE ) ),
+					} ) );
+				}
+
+				if( mainmenu_state != MainMenuState_Main ) {
+					ClayVerticalSpacing( CLAY_ID_LOCAL( "Bottom-align everything below this" ), CLAY_SIZING_GROW() );
+
+					ClayCustomElementConfig * back_custom = Clone( ClayAllocator(), ClayCustomElementConfig {
+						.type = ClayCustomElementType_Callback,
+						.callback = []( const Clay_BoundingBox & bounds ) {
+							ImGui::Begin( "mainmenu" );
+							ImGui::SetCursorPos( Vec2( bounds.x, bounds.y ) );
+							if( ImGui::Button( "cya" ) ) {
+								mainmenu_state = MainMenuState_Main;
+							}
+							ImGui::End();
+						},
+					} );
+
+					CLAY( {
+						.id = CLAY_ID_LOCAL( "Back" ),
+						.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.10f ) } },
+						.custom = { back_custom },
+					} ) { }
+				}
+			}
+		}
+
+		CLAY( {
+			.id = CLAY_ID_LOCAL( "Bottom hazard stripes" ),
+			.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.03f ) } },
+			.custom = { hazard_custom },
+		} ) { }
+
+		CLAY( {
+			.id = CLAY_ID_LOCAL( "Bottom bar" ),
+			.layout = {
+				.sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.1f ) },
+				.padding = {
+					.right = u16( 8 + Sin( cls.monotonicTime, Milliseconds( 182 ) ) * GetContentScale() ),
+					.bottom = 8,
+				},
+				.childAlignment = { CLAY_ALIGN_X_RIGHT, CLAY_ALIGN_Y_BOTTOM },
+			},
+			.backgroundColor = { 0, 0, 0, 255 },
+		} ) {
+			CLAY( {
+				.id = CLAY_ID_LOCAL( "Version" ),
+			} ) {
+				const char * buf = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
+				CLAY_TEXT( AllocateClayString( MakeSpan( buf ) ), CLAY_TEXT_CONFIG( {
+					.textColor = { 255, 255, 255, 255 },
+					.fontId = ClayFont_Bold,
+					.fontSize = u16( 14.0f * GetContentScale() ),
+					.userData = Clone( ClayAllocator(), Optional< Vec4 >( NONE ) ),
+				} ) );
+			}
 		}
 	}
 
 	const float OFFSET = frame_static.viewport_height * 0.1f;
 	const Vec2 icon_size = Vec2( frame_static.viewport_height * 0.10f, frame_static.viewport_height * 0.10f );
-
-	// background
-	Draw2DBox( 0.0, 0.0, frame_static.viewport_width, frame_static.viewport_height, FindMaterial( "hud/nk" ), white.vec4 );
-
-	// TITLE
-	{
-		ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0.f, 0.f ) );
-		ImGui::PushFont( cls.huge_italic_font );
-
-		ImGui::SetCursorPosY( OFFSET + 64.f );
-		ShadowedText( "COCAINE", 4.f );
-		ImGui::SetCursorPosY( OFFSET + 154.f );
-		ShadowedText( "DIESEL", 4.f );
-
-		ImGui::PopFont();
-		ImGui::PopStyleVar();
-
-		ImGui::PushFont( cls.big_font );
-
-		//CATEGORY ICON
-		for( size_t i = 0; i < ARRAY_COUNT( categories ); i++ ) {
-			if( categories[ i ].state == mainmenu_state ) {
-				MainSectionButton< false >( ImGui::GetCursorPos(), FindMaterial( categories[ i ].icon_path ), icon_size, categories[ i ].name, categories[ i ].bg_color, categories[ i ].is_enabled );
-				break;
-			}
-		}
-
-		const char * categories_text = "GO BACK TO MAP";
-		const ImVec2 categories_text_size = ImGui::CalcTextSize( categories_text );
-		const float POSY = frame_static.viewport_height - OFFSET - 64.0 - categories_text_size.y;
-
-		ImGui::SetCursorPosY( POSY );
-		ShadowedText( MakeSpan( categories_text ), 4.f );
-		ImGui::PopFont();
-
-		ImGui::SetCursorPosY( POSY );
-		if( ImGui::InvisibleButton( categories_text, categories_text_size ) || ( ImGui::Shortcut( ImGuiKey_Escape ) && mainmenu_state != MainMenuState_CreateServerGladiator && mainmenu_state != MainMenuState_CreateServerBomb ) ) {
-			mainmenu_state = MainMenuState_Main;
-		}
-	}
 
 	if( mainmenu_state == MainMenuState_Main ) {
 		const float BASE_COLUMN = frame_static.viewport_width * 0.4f;
@@ -1085,7 +1231,7 @@ static void MainMenu() {
 		}
 	}
 	else {
-		const ImVec2 submenus_offset = ImVec2( frame_static.viewport_width * 0.225f, OFFSET + 128.f );
+		const ImVec2 submenus_offset = ImVec2( frame_static.viewport_width * 0.275f, OFFSET + 128.f );
 		const ImVec2 submenus_size = ImVec2( frame_static.viewport_width - submenus_offset.x - 512.f, frame_static.viewport_height - OFFSET * 2.f - 256.f );
 
 		ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
@@ -1140,59 +1286,48 @@ static void MainMenu() {
 		ImGui::EndChild();
 	}
 
-	// top and bottom bars
-	const Material * TAPE = FindMaterial( "hud/tape_hazard_yellow" );
-	const Vec2 TAPE_OFFSET( fmodf( ToSeconds( cls.monotonicTime ) * 0.25f, 1.f ), 0.f );
-	const Vec2 TAPE_UV_START = Vec2( 0.f, 0.02f );
-	const Vec2 TAPE_UV_END = Vec2( frame_static.viewport_width / 64.f, 0.98f );
-
-	Draw2DBox( 0.0f, 0.0f, frame_static.viewport_width, OFFSET, cls.white_material, dark.vec4 );
-	Draw2DBoxUV( 0.0f, OFFSET, frame_static.viewport_width, 32.0f, TAPE_UV_START + TAPE_OFFSET, TAPE_UV_END + TAPE_OFFSET, TAPE, white.vec4 );
-	Draw2DBox( 0.0f, frame_static.viewport_height - OFFSET, frame_static.viewport_width, OFFSET, cls.white_material, dark.vec4 );
-	Draw2DBoxUV( 0.0f, frame_static.viewport_height - OFFSET - 32.0f, frame_static.viewport_width, 32.0f, TAPE_UV_START - TAPE_OFFSET, TAPE_UV_END - TAPE_OFFSET, TAPE, white.vec4 );
-
-	{
-		{
-			ScopedStyle( ImGuiStyleVar_FramePadding, Vec2( 0.0f ) );
-			ScopedColor( ImGuiCol_Button, Vec4( 0.0f ) );
-			ScopedColor( ImGuiCol_ButtonHovered, Vec4( 0.0f ) );
-			ScopedColor( ImGuiCol_ButtonActive, Vec4( 0.0f ) );
-
-			const char * buf = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
-			ImVec2 size = ImGui::CalcTextSize( buf );
-			ImGui::SetCursorPosY( ImGui::GetWindowHeight() - size.y - 8.0f );
-			ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - 8.0f - Sin( cls.monotonicTime, Milliseconds( 182 ) ) );
-			ImGui::Text( "%s", buf );
-
-			// if( ImGui::Button( buf ) ) {
-			// 	ImGui::OpenPopup( "Credits" );
-			// }
-		}
-
-		// ImGuiWindowFlags credits_flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
-		// if( ImGui::BeginPopupModal( "Credits", NULL, credits_flags ) ) {
-		// 	ImGui::Text( "Dexter - programming" );
-		// 	ImGui::Text( "general adnic - voice acting" );
-		// 	ImGui::Text( "goochie - art & programming" );
-		// 	ImGui::Text( "MikeJS - programming" );
-		// 	ImGui::Text( "MSC - programming & art" );
-		// 	ImGui::Text( "Obani - music & fx & programming" );
-		// 	ImGui::Text( "Rhodanathema - art" );
-		// 	ImGui::Separator();
-		// 	ImGui::Text( "jwzr - medical research" );
-		// 	ImGui::Text( "naxeron - chief propagandist" );
-		// 	ImGui::Text( "zmiles - american cultural advisor" );
-		// 	ImGui::Separator();
-		// 	ImGui::Text( "Special thanks to the Warsow team except for slk and MWAGA" );
-		// 	ImGui::Spacing();
-        //
-		// 	if( ImGui::Button( "Close" ) ) {
-		// 		ImGui::CloseCurrentPopup();
-		// 	}
-        //
-		// 	ImGui::EndPopup();
-		// }
-	}
+	// {
+	// 	{
+	// 		ScopedStyle( ImGuiStyleVar_FramePadding, Vec2( 0.0f ) );
+	// 		ScopedColor( ImGuiCol_Button, Vec4( 0.0f ) );
+	// 		ScopedColor( ImGuiCol_ButtonHovered, Vec4( 0.0f ) );
+	// 		ScopedColor( ImGuiCol_ButtonActive, Vec4( 0.0f ) );
+    //
+	// 		const char * buf = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
+	// 		ImVec2 size = ImGui::CalcTextSize( buf );
+	// 		ImGui::SetCursorPosY( ImGui::GetWindowHeight() - size.y - 8.0f );
+	// 		ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - 8.0f - Sin( cls.monotonicTime, Milliseconds( 182 ) ) );
+	// 		ImGui::Text( "%s", buf );
+    //
+	// 		// if( ImGui::Button( buf ) ) {
+	// 		// 	ImGui::OpenPopup( "Credits" );
+	// 		// }
+	// 	}
+    //
+	// 	// ImGuiWindowFlags credits_flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
+	// 	// if( ImGui::BeginPopupModal( "Credits", NULL, credits_flags ) ) {
+	// 	// 	ImGui::Text( "Dexter - programming" );
+	// 	// 	ImGui::Text( "general adnic - voice acting" );
+	// 	// 	ImGui::Text( "goochie - art & programming" );
+	// 	// 	ImGui::Text( "MikeJS - programming" );
+	// 	// 	ImGui::Text( "MSC - programming & art" );
+	// 	// 	ImGui::Text( "Obani - music & fx & programming" );
+	// 	// 	ImGui::Text( "Rhodanathema - art" );
+	// 	// 	ImGui::Separator();
+	// 	// 	ImGui::Text( "jwzr - medical research" );
+	// 	// 	ImGui::Text( "naxeron - chief propagandist" );
+	// 	// 	ImGui::Text( "zmiles - american cultural advisor" );
+	// 	// 	ImGui::Separator();
+	// 	// 	ImGui::Text( "Special thanks to the Warsow team except for slk and MWAGA" );
+	// 	// 	ImGui::Spacing();
+    //     //
+	// 	// 	if( ImGui::Button( "Close" ) ) {
+	// 	// 		ImGui::CloseCurrentPopup();
+	// 	// 	}
+    //     //
+	// 	// 	ImGui::EndPopup();
+	// 	// }
+	// }
 
 	ImGui::End();
 }

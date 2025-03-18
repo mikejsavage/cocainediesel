@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "client/client.h"
+#include "client/clay_init.h"
 #include "client/renderer/renderer.h"
 #include "cgame/cg_local.h"
 #include "qcommon/time.h"
@@ -218,5 +219,6 @@ void SCR_UpdateScreen() {
 
 	UI_Refresh();
 
+	ClaySubmitFrame();
 	CL_ImGuiEndFrame();
 }

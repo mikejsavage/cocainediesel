@@ -74,6 +74,13 @@ Span< char > Allocator::sv( const char * fmt, const Rest & ... rest ) {
 char * CopyString( Allocator * a, const char * str, SourceLocation src = CurrentSourceLocation() );
 
 template< typename T >
+T * Clone( Allocator * a, const T & x, SourceLocation src = CurrentSourceLocation() ) {
+	T * ptr = Alloc< T >( a, src );
+	*ptr = x;
+	return ptr;
+}
+
+template< typename T >
 Span< T > CloneSpan( Allocator * a, Span< T > span, SourceLocation src = CurrentSourceLocation() ) {
 	Span< T > copy = AllocSpan< T >( a, span.n, src );
 	memcpy( copy.ptr, span.ptr, span.num_bytes() );

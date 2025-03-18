@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
-#include "client/renderer/text.h"
 
 void CG_RegisterMedia() {
 	TempAllocator temp = cls.frame_arena.temp();
@@ -35,9 +34,4 @@ void CG_RegisterMedia() {
 	for( PerkType i = Perk_None; i < Perk_Count; i++ ) {
 		cgs.media.shaderPerkIcon[ i ] = StringHash( temp( "perks/{}/icon", GetPerkDef( i )->name ) );
 	}
-
-	cgs.fontNormal = RegisterFont( "fonts/Decalotype-Bold" );
-	cgs.fontNormalBold = RegisterFont( "fonts/Decalotype-Black" );
-	cgs.fontItalic = RegisterFont( "fonts/Decalotype-BoldItalic" );
-	cgs.fontBoldItalic = RegisterFont( "fonts/Decalotype-BlackItalic" );
 }

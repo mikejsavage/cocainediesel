@@ -198,7 +198,7 @@ void ClaySubmitFrame() {
 					const ClayCustomElementConfig * config = ( const ClayCustomElementConfig * ) command.renderData.custom.customData;
 					switch( config->type ) {
 						case ClayCustomElementType_Callback:
-							config->callback( bounds );
+							config->callback.f( bounds, config->callback.userdata );
 							break;
 
 						case ClayCustomElementType_Lua:

@@ -21,7 +21,7 @@ enum ClayCustomElementType {
 	ClayCustomElementType_FittedText,
 };
 
-using ClayCustomElementCallback = void ( * )( const Clay_BoundingBox & bounds );
+using ClayCustomElementCallback = void ( * )( const Clay_BoundingBox & bounds, void * userdata );
 
 struct FittedTextShadow {
 	Vec4 color;
@@ -32,7 +32,10 @@ struct FittedTextShadow {
 struct ClayCustomElementConfig {
 	ClayCustomElementType type;
 	union {
-		ClayCustomElementCallback callback;
+		struct {
+			ClayCustomElementCallback f;
+			void * userdata;
+		} callback;
 
 		struct {
 			int callback_ref;

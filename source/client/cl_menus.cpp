@@ -1001,6 +1001,29 @@ static void ClayVerticalSpacing( Clay_ElementId id, Clay_SizingAxis spacing ) {
 	} ) { }
 }
 
+struct ClayCallbackAndUserdata {
+	ClayCustomElementCallback callback;
+	void * userdata;
+};
+
+static ClayCustomElementConfig * ClayImGui( ClayCustomElementCallback callback, void * userdata = NULL ) {
+	return Clone( ClayAllocator(), ClayCustomElementConfig {
+		.type = ClayCustomElementType_Callback,
+		.callback = {
+			.f = []( const Clay_BoundingBox & bounds, void * userdata ) {
+				ImGui::Begin( "mainmenu" );
+				ImGui::SetCursorPos( Vec2( bounds.x, bounds.y ) );
+
+				const ClayCallbackAndUserdata * cb = ( const ClayCallbackAndUserdata * ) userdata;
+				cb->callback( bounds, cb->userdata );
+
+				ImGui::End();
+			},
+			.userdata = Clone( ClayAllocator(), ClayCallbackAndUserdata { callback, userdata } ),
+		},
+	} );
+}
+
 static void MainMenu() {
 	constexpr MainMenuCategory categories[] = {
 		{ "hud/license", "LICENSE", MainMenuState_License, diesel_grey.vec4, false },
@@ -1016,10 +1039,11 @@ static void MainMenu() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	ImGui::SetNextWindowPos( ImVec2() );
-	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
+	ImGui::SetNextWindowSize( frame_static.viewport );
 	ScopedStyle( ImGuiStyleVar_WindowPadding, Vec2( 0.0f ) );
 
 	ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_Interactive );
+	ImGui::Dummy( frame_static.viewport ); // NOTE(mike): needed to fix the ErrorCheckUsingSetCursorPosToExtendParentBoundaries assert
 
 	FittedTextShadow shadow = FittedTextShadow {
 		.color = black.vec4,
@@ -1034,18 +1058,16 @@ static void MainMenu() {
 			.layoutDirection = CLAY_TOP_TO_BOTTOM,
 		},
 	} ) {
-		ClayCustomElementConfig * hazard_custom = Clone( ClayAllocator(), ClayCustomElementConfig {
-			.type = ClayCustomElementType_Callback,
-			.callback = []( const Clay_BoundingBox & bounds ) {
-				const Material * hazard = FindMaterial( "hud/tape_hazard_yellow" );
-				Vec2 half_pixel = HalfPixelSize( hazard );
-				float repetitions = ( bounds.width / bounds.height ) / ( hazard->texture->width / hazard->texture->height );
-				float scroll = Sawtooth01( cls.monotonicTime, Seconds( 4 ) );
-				Vec2 tl = half_pixel + Vec2( scroll, 0.0f );
-				Vec2 br = ( 1.0f - half_pixel ) + Vec2( repetitions + scroll, 0.0f );
-				Draw2DBoxUV( bounds.x, bounds.y, bounds.width, bounds.height, tl, br, hazard );
-			},
-		} );
+		auto scrolling_hazard_stripes = []( const Clay_BoundingBox & bounds, void * userdata ) {
+			const Material * hazard = FindMaterial( "hud/tape_hazard_yellow" );
+			Vec2 half_pixel = HalfPixelSize( hazard );
+			float repetitions = ( bounds.width / bounds.height ) / ( hazard->texture->width / hazard->texture->height );
+			float scroll = Sawtooth01( cls.monotonicTime, Seconds( 4 ) );
+			float scale = bit_cast< uintptr_t >( userdata ) == 0 ? 1.0f : -1.0f;
+			Vec2 tl = half_pixel + Vec2( scroll * scale, 0.0f );
+			Vec2 br = ( 1.0f - half_pixel ) + Vec2( repetitions + scroll * scale, 0.0f );
+			Draw2DBoxUV( bounds.x, bounds.y, bounds.width, bounds.height, tl, br, hazard );
+		};
 
 		CLAY( {
 			.id = CLAY_ID_LOCAL( "Top bar" ),
@@ -1064,14 +1086,11 @@ static void MainMenu() {
 		CLAY( {
 			.id = CLAY_ID_LOCAL( "Top hazard stripes" ),
 			.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.03f ) } },
-			.custom = { hazard_custom },
+			.custom = { ClayImGui( scrolling_hazard_stripes, bit_cast< void * >( uintptr_t( 0 ) ) ) },
 		} ) { }
 
-		ClayCustomElementConfig * nk_custom = Clone( ClayAllocator(), ClayCustomElementConfig {
-			.type = ClayCustomElementType_Callback,
-			.callback = []( const Clay_BoundingBox & bounds ) {
-				Draw2DBox( bounds.x, bounds.y, bounds.width, bounds.height, FindMaterial( "hud/nk" ) );
-			},
+		ClayCustomElementConfig * nk_custom = ClayImGui( []( const Clay_BoundingBox & bounds, void * userdata ) {
+			Draw2DBox( bounds.x, bounds.y, bounds.width, bounds.height, FindMaterial( "hud/nk" ) );
 		} );
 
 		CLAY( {
@@ -1151,16 +1170,10 @@ static void MainMenu() {
 				if( mainmenu_state != MainMenuState_Main ) {
 					ClayVerticalSpacing( CLAY_ID_LOCAL( "Bottom-align everything below this" ), CLAY_SIZING_GROW() );
 
-					ClayCustomElementConfig * back_custom = Clone( ClayAllocator(), ClayCustomElementConfig {
-						.type = ClayCustomElementType_Callback,
-						.callback = []( const Clay_BoundingBox & bounds ) {
-							ImGui::Begin( "mainmenu" );
-							ImGui::SetCursorPos( Vec2( bounds.x, bounds.y ) );
-							if( ImGui::Button( "cya" ) ) {
-								mainmenu_state = MainMenuState_Main;
-							}
-							ImGui::End();
-						},
+					ClayCustomElementConfig * back_custom = ClayImGui( []( const Clay_BoundingBox & bounds, void * userdata ) {
+						if( ImGui::Button( "cya" ) ) {
+							mainmenu_state = MainMenuState_Main;
+						}
 					} );
 
 					CLAY( {
@@ -1175,7 +1188,7 @@ static void MainMenu() {
 		CLAY( {
 			.id = CLAY_ID_LOCAL( "Bottom hazard stripes" ),
 			.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.03f ) } },
-			.custom = { hazard_custom },
+			.custom = { ClayImGui( scrolling_hazard_stripes, bit_cast< void * >( uintptr_t( 1 ) ) ) },
 		} ) { }
 
 		CLAY( {

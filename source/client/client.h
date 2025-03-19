@@ -292,6 +292,8 @@ void SCR_UpdateScreen();
 
 void CL_AddNetgraph();
 
+void MaybeResetShadertoyTime( bool respawned );
+
 //
 // cl_imgui
 //

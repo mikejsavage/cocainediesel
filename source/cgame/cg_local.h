@@ -358,8 +358,6 @@ bool CG_ChaseStep( int step );
 float WidescreenFov( float fov );
 float CalcHorizontalFov( const char * caller, float fov_y, float width, float height );
 
-void MaybeResetShadertoyTime( bool respawned );
-
 //
 // cg_lents.c
 //

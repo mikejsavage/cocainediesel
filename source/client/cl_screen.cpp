@@ -195,8 +195,18 @@ static void SubmitPostprocessPass() {
 	DrawFullscreenMesh( pipeline );
 }
 
+void MaybeResetShadertoyTime( bool respawned ) {
+	bool early_reset = respawned && cls.shadertoy_time > Hours( 1 );
+	bool force_reset = cls.shadertoy_time > Hours( 1.5f );
+	if( early_reset || force_reset ) {
+		cls.shadertoy_time = { };
+	}
+}
+
 void SCR_UpdateScreen() {
 	CL_ForceVsync( cls.state == CA_DISCONNECTED );
+
+	MaybeResetShadertoyTime( false );
 
 	CL_ImGuiBeginFrame();
 

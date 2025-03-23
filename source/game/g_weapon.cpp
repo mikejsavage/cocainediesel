@@ -46,7 +46,7 @@ static void SpawnFX( const edict_t * ent, Optional< Vec3 > normal, StringHash vf
 static void Explode( edict_t * ent, edict_t * other, Optional< Vec3 > normal ) {
 	if( other != NULL && other->takedamage ) {
 		Vec3 push_dir;
-		G_SplashFrac4D( other, ent->s.origin, ent->projectileInfo.radius, &push_dir, NULL, ent->timeDelta, false );
+		G_SplashFrac4D( other, ent->s.origin, ent->projectileInfo.radius, &push_dir, NULL, ent->timeDelta );
 		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, ent->projectileInfo.damage_type );
 	}
 
@@ -758,7 +758,7 @@ static void W_Touch_Sticky( edict_t * ent, edict_t * other, Vec3 normal, SolidBi
 
 	if( other->takedamage ) {
 		Vec3 push_dir;
-		G_SplashFrac4D( other, ent->s.origin, ent->projectileInfo.radius, &push_dir, NULL, ent->timeDelta, false );
+		G_SplashFrac4D( other, ent->s.origin, ent->projectileInfo.radius, &push_dir, NULL, ent->timeDelta );
 		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_Sticky );
 		ent->enemy = other;
 

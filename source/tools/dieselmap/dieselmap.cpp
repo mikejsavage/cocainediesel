@@ -730,8 +730,8 @@ static void WriteObj( ArenaAllocator * arena, const char * path, const MapData *
 		Vec3 n = map->vertex_normals[ i ];
 
 		// note the Z-up to Y-up transform
-		obj.append( "v {} {} {}\n", p.x, -p.z, p.y );
-		obj.append( "vn {} {} {}\n", n.x, -n.z, n.y );
+		obj.append( "v {} {} {}\n", p.x, p.z, p.y );
+		obj.append( "vn {} {} {}\n", n.x, n.z, n.y );
 	}
 
 	for( u32 i = 0; i < model->num_meshes; i++ ) {

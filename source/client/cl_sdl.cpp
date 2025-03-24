@@ -246,19 +246,19 @@ void SwapBuffers() {
 	TrySDL( SDL_GL_SwapWindow, window );
 }
 
-Optional< Key > KeyFromSDL( SDL_Keycode sdl );
+Optional< Key > KeyFromSDL( SDL_Scancode sdl );
 static void OnKeyPressed( const SDL_KeyboardEvent & e ) {
 	if( e.repeat )
 		return;
 
 	// break bools
-	if( e.key == SDLK_F1 ) break1 = e.down;
-	if( e.key == SDLK_F2 ) break2 = e.down;
-	if( e.key == SDLK_F3 ) break3 = e.down;
-	if( e.key == SDLK_F4 ) break4 = e.down;
+	if( e.scancode == SDL_SCANCODE_F1 ) break1 = e.down;
+	if( e.scancode == SDL_SCANCODE_F2 ) break2 = e.down;
+	if( e.scancode == SDL_SCANCODE_F3 ) break3 = e.down;
+	if( e.scancode == SDL_SCANCODE_F4 ) break4 = e.down;
 
 	// console key
-	if( e.key == SDLK_GRAVE ) {
+	if( e.scancode == SDL_SCANCODE_GRAVE ) {
 		if( e.down ) {
 			Con_ToggleConsole();
 		}
@@ -266,11 +266,11 @@ static void OnKeyPressed( const SDL_KeyboardEvent & e ) {
 	}
 
 	// renderdoc uses F12 to trigger a capture
-	if( e.key == SDLK_F12 && running_in_renderdoc ) {
+	if( e.scancode == SDL_SCANCODE_F12 && running_in_renderdoc ) {
 		return;
 	}
 
-	Optional< Key > key = KeyFromSDL( e.key );
+	Optional< Key > key = KeyFromSDL( e.scancode );
 	if( !key.exists )
 		return;
 

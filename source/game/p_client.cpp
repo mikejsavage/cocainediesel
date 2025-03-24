@@ -319,10 +319,12 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		self->movetype = MOVETYPE_NOCLIP;
 	}
 	else {
+		static constexpr Span< const char > MASKS_DIR = "models/masks/";
 		self->s.type = ET_PLAYER;
 		const char * mask_name = Info_ValueForKey( client->userinfo, "cg_mask" );
 		if( mask_name != NULL ) {
-			self->s.mask = StringHash( mask_name );
+			TempAllocator temp = svs.frame_arena.temp();
+			self->s.mask = StringHash( temp( "{}{}", MASKS_DIR, mask_name ) );
 		}
 		self->s.svflags |= SVF_FORCETEAM;
 		SolidBits team_solidity = SolidBits( Solid_PlayerTeamOne << ( self->s.team - Team_One ) );

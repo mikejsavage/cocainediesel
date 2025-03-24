@@ -110,8 +110,7 @@ static void ClearMasksList() {
 }
 
 static void SetMask( const char * mask_name ) {
-	TempAllocator temp = cls.frame_arena.temp();
-	Cvar_Set( "cg_mask", temp.sv( "{}{}", MASKS_DIR, mask_name ) );
+	Cvar_Set( "cg_mask", MakeSpan( mask_name ) );
 }
 
 static void RefreshMasksList() {

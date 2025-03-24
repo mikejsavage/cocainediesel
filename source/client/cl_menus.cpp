@@ -231,8 +231,8 @@ static void CvarSliderFloat( Span< const char > label, Span< const char > cvar_n
 
 Optional< Key > KeyFromImGui( ImGuiKey imgui );
 
-static Key rebinding_key = Key_Count;
 static void KeyBindButton( Span< const char > label, Span< const char > command ) {
+	static Key rebinding_key = Key_Count;
 	auto CloseRebindingPopup = []() {
 		rebinding_key = Key_Count;
 		ImGui::CloseCurrentPopup();
@@ -261,6 +261,7 @@ static void KeyBindButton( Span< const char > label, Span< const char > command 
 	ImGui::SameLine( 0.0f, 50.0f );
 
 	ImGui::PushID( "key2" );
+	ImGui::BeginDisabled( !key1.exists );
 	if( ImGui::Button( key2.exists ? temp( "{}", KeyName( key2.value ) ) : "N/A", ImVec2( 200, 0 ) ) ) {
 		rebinding = true;
 		if( key2.exists ) rebinding_key = key2.value;
@@ -271,6 +272,7 @@ static void KeyBindButton( Span< const char > label, Span< const char > command 
 		UnbindKey( key2.value );
 	}
 	ImGui::PopID();
+	ImGui::EndDisabled();
 	ImGui::EndDisabled();
 
 	if( rebinding ) {

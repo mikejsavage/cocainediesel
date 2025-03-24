@@ -231,7 +231,13 @@ static void CvarSliderFloat( Span< const char > label, Span< const char > cvar_n
 
 Optional< Key > KeyFromImGui( ImGuiKey imgui );
 
+static Key rebinding_key = Key_Count;
 static void KeyBindButton( Span< const char > label, Span< const char > command ) {
+	auto CloseRebindingPopup = []() {
+		rebinding_key = Key_Count;
+		ImGui::CloseCurrentPopup();
+	};
+
 	TempAllocator temp = cls.frame_arena.temp();
 
 	SettingLabel( label );
@@ -240,9 +246,10 @@ static void KeyBindButton( Span< const char > label, Span< const char > command 
 	Optional< Key > key1, key2;
 	GetKeyBindsForCommand( command, &key1, &key2 );
 
-	int rebinding = 0;
+	bool rebinding = false;
 	if( ImGui::Button( key1.exists ? temp( "{}", KeyName( key1.value ) ) : "N/A", ImVec2( 200, 0 ) ) ) {
-		rebinding = 1;
+		rebinding = true;
+		if( key1.exists ) rebinding_key = key1.value;
 	}
 	ImGui::SameLine();
 	ImGui::BeginDisabled( !key1.exists );
@@ -255,7 +262,8 @@ static void KeyBindButton( Span< const char > label, Span< const char > command 
 
 	ImGui::PushID( "key2" );
 	if( ImGui::Button( key2.exists ? temp( "{}", KeyName( key2.value ) ) : "N/A", ImVec2( 200, 0 ) ) ) {
-		rebinding = 2;
+		rebinding = true;
+		if( key2.exists ) rebinding_key = key2.value;
 	}
 	ImGui::SameLine();
 	ImGui::BeginDisabled( !key2.exists );
@@ -265,7 +273,7 @@ static void KeyBindButton( Span< const char > label, Span< const char > command 
 	ImGui::PopID();
 	ImGui::EndDisabled();
 
-	if( rebinding != 0 ) {
+	if( rebinding ) {
 		ImGui::OpenPopup( "modal" );
 	}
 
@@ -274,22 +282,26 @@ static void KeyBindButton( Span< const char > label, Span< const char > command 
 
 		ImGuiIO & io = ImGui::GetIO();
 		if( ImGui::Shortcut( ImGuiKey_Escape ) ) {
-			ImGui::CloseCurrentPopup();
+			CloseRebindingPopup();
 		}
 		else {
 			for( ImGuiKey i = ImGuiKey_NamedKey_BEGIN; i < ImGuiKey_NamedKey_END; i++ ) {
 				if( ImGui::IsKeyPressed( i ) ) {
 					Optional< Key > key = KeyFromImGui( i );
 					if( key.exists ) {
+						if( rebinding_key != Key_Count ) {
+							UnbindKey( rebinding_key );
+						}
+
 						SetKeyBind( key.value, command );
-						ImGui::CloseCurrentPopup();
+						CloseRebindingPopup();
 					}
 				}
 			}
 
 			if( io.MouseWheel != 0.0f ) {
 				SetKeyBind( io.MouseWheel > 0.0f ? Key_MouseWheelUp : Key_MouseWheelDown, command );
-				ImGui::CloseCurrentPopup();
+				CloseRebindingPopup();
 			}
 		}
 

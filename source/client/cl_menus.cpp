@@ -246,7 +246,7 @@ static void KeyBindButton( Span< const char > label, Span< const char > command 
 	GetKeyBindsForCommand( command, &key1, &key2 );
 
 	bool rebinding = false;
-	if( ImGui::Button( key1.exists ? temp( "{}", KeyName( key1.value ) ) : "N/A", ImVec2( 200, 0 ) ) ) {
+	if( ImGui::Button( key1.exists ? temp( "{}", KeyName( key1.value ) ) : "N/A", ImVec2( 200 * GetContentScale(), 0 ) ) ) {
 		rebinding = true;
 		if( key1.exists ) rebinding_key = key1.value;
 	}
@@ -261,7 +261,7 @@ static void KeyBindButton( Span< const char > label, Span< const char > command 
 
 	ImGui::PushID( "key2" );
 	ImGui::BeginDisabled( !key1.exists );
-	if( ImGui::Button( key2.exists ? temp( "{}", KeyName( key2.value ) ) : "N/A", ImVec2( 200, 0 ) ) ) {
+	if( ImGui::Button( key2.exists ? temp( "{}", KeyName( key2.value ) ) : "N/A", ImVec2( 200 * GetContentScale(), 0 ) ) ) {
 		rebinding = true;
 		if( key2.exists ) rebinding_key = key2.value;
 	}

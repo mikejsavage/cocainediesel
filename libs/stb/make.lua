@@ -4,7 +4,9 @@ msvc_obj_cxxflags( "libs/stb/stb_image.cpp", "/O2 /wd4244 /wd4456" )
 
 -- we only use stb_image_resize in bc4 so go hard on the CPU features
 lib( "stb_image_resize", { "libs/stb/stb_image_resize2.cpp" } )
-gcc_obj_cxxflags( "libs/stb/stb_image_resize2.cpp", "-mavx2 -mf16c -mfma -DSTBIR_USE_FMA" )
+if OS ~= "macos" then
+	gcc_obj_cxxflags( "libs/stb/stb_image_resize2.cpp", "-mavx2 -mf16c -mfma -DSTBIR_USE_FMA" )
+end
 msvc_obj_cxxflags( "libs/stb/stb_image_resize2.cpp", "/arch:AVX2 -DSTBIR_USE_FMA /wd4456" )
 
 lib( "stb_image_write", { "libs/stb/stb_image_write.cpp" } )

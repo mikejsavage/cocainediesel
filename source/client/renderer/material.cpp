@@ -170,6 +170,16 @@ static void ParseMaskOutlines( Material * material, Span< const char > name, Spa
 
 static void ParseShaded( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->shaded = true;
+	if( material->world ) {
+		Com_GGPrint( S_COLOR_YELLOW "{}: world and shaded don't mix", name );
+	}
+}
+
+static void ParseWorld( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+	material->world = true;
+	if( material->shaded ) {
+		Com_GGPrint( S_COLOR_YELLOW "{}: world and shaded don't mix", name );
+	}
 }
 
 static void ParseSpecular( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
@@ -274,6 +284,7 @@ static const MaterialSpecKey shaderkeys[] = {
 	{ "maskoutlines", ParseMaskOutlines },
 	{ "rgbgen", ParseRGBGen },
 	{ "shaded", ParseShaded },
+	{ "world", ParseWorld },
 	{ "shininess", ParseShininess },
 	{ "specular", ParseSpecular },
 	{ "texture", ParseTexture },

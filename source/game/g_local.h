@@ -249,7 +249,7 @@ edict_t * GetEntity( EntityID id );
 void KillBox( edict_t * ent, DamageType damage_type, Vec3 knockback );
 float LookAtKillerYAW( edict_t * self, edict_t * inflictor, edict_t * attacker );
 edict_t * G_Find( edict_t * cursor, const StringHash edict_t::* field, StringHash value );
-edict_t * G_PickRandomEnt( StringHash edict_t::* field, StringHash value );
+edict_t * G_PickRandomEnt( const StringHash edict_t::* field, StringHash value );
 edict_t * G_PickTarget( StringHash name );
 void G_UseTargets( edict_t * ent, edict_t * activator );
 void G_SetMovedir( EulerDegrees3 * angles, Vec3 * movedir );
@@ -260,7 +260,7 @@ edict_t * G_Spawn();
 void G_FreeEdict( edict_t * e );
 
 void G_AddEvent( edict_t * ent, int event, u64 parm, bool highPriority );
-edict_t * G_SpawnEvent( int event, u64 parm, const Vec3 * origin );
+edict_t * G_SpawnEvent( int event, u64 parm, Optional< Vec3 > origin );
 
 void G_CallThink( edict_t * ent );
 void G_CallTouch( edict_t * self, edict_t * other, Vec3 normal, SolidBits solid_mask );

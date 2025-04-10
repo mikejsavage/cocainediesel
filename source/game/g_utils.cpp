@@ -51,7 +51,7 @@ edict_t * G_Find( edict_t * cursor, const StringHash edict_t::* field, StringHas
 	return NULL;
 }
 
-edict_t * G_PickRandomEnt( StringHash edict_t::* field, StringHash value ) {
+edict_t * G_PickRandomEnt( const StringHash edict_t::* field, StringHash value ) {
 	size_t num_ents = 0;
 	edict_t * cursor = NULL;
 
@@ -295,13 +295,13 @@ void G_AddEvent( edict_t * ent, int event, u64 parm, bool highPriority ) {
 	ent->eventPriority[eventNum] = highPriority;
 }
 
-edict_t * G_SpawnEvent( int event, u64 parm, const Vec3 * origin ) {
+edict_t * G_SpawnEvent( int event, u64 parm, Optional< Vec3 > origin ) {
 	edict_t * ent = G_Spawn();
 	ent->s.type = ET_EVENT;
 	ent->s.solidity = Solid_NotSolid;
 	ent->s.svflags &= ~SVF_NOCLIENT;
-	if( origin ) {
-		ent->s.origin = *origin;
+	if( origin.exists ) {
+		ent->s.origin = origin.value;
 	}
 	G_AddEvent( ent, event, parm, true );
 
@@ -644,7 +644,7 @@ static void G_SpawnTeleportEffect( edict_t * ent, bool in ) {
 		return;
 	}
 
-	edict_t * event = G_SpawnEvent( EV_SOUND_ORIGIN, in ? tele_in.hash : tele_out.hash, &ent->s.origin );
+	edict_t * event = G_SpawnEvent( EV_SOUND_ORIGIN, in ? tele_in.hash : tele_out.hash, ent->s.origin );
 	event->s.ownerNum = ENTNUM( ent );
 }
 

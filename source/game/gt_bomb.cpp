@@ -499,7 +499,7 @@ static void BombExplode() {
 		server_gs.gameState.exploding = true;
 		server_gs.gameState.exploded_at = svs.gametime; // TODO: only place where gameTime is used, dno
 
-		G_SpawnEvent( EV_BOMB_EXPLOSION, bomb_explosion_effect_radius, &bomb_state.bomb.model->s.origin );
+		G_SpawnEvent( EV_BOMB_EXPLOSION, bomb_explosion_effect_radius, bomb_state.bomb.model->s.origin );
 
 		G_Sound( bomb_state.bomb.model, "loadout/bomb/explode" );
 	}
@@ -796,7 +796,7 @@ static void RoundNewState( RoundState state ) {
 			DisableMovement();
 			SetRoundType();
 			BombGiveToRandom();
-			G_SpawnEvent( EV_FLASH_WINDOW, 0, NULL );
+			G_SpawnEvent( EV_FLASH_WINDOW, 0, NONE );
 			G_SunCycle( Seconds( 3 ) );
 		} break;
 
@@ -889,7 +889,7 @@ static void RoundThink() {
 			constexpr StringHash vfx_bomb_respawn = "loadout/bomb/respawn";
 
 			G_Sound( bomb_state.bomb.model, "loadout/bomb/respawn" );
-			G_SpawnEvent( EV_VFX, vfx_bomb_respawn.hash, &bomb_state.bomb.model->s.origin );
+			G_SpawnEvent( EV_VFX, vfx_bomb_respawn.hash, bomb_state.bomb.model->s.origin );
 
 			return;
 		}

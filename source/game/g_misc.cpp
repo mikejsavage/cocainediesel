@@ -25,7 +25,7 @@ void ThrowSmallPileOfGibs( edict_t *self, Vec3 knockback, int damage ) {
 	Vec3 origin = self->s.origin;
 	self->s.origin.z += 4;
 
-	edict_t * event = G_SpawnEvent( EV_GIB, damage, &origin );
+	edict_t * event = G_SpawnEvent( EV_GIB, damage, origin );
 	event->s.team = self->s.team;
 	event->s.origin2 = self->velocity + knockback;
 }

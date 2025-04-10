@@ -115,7 +115,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 		}
 	}
 
-	edict_t * event = G_SpawnEvent( EV_DIE, parm, NULL );
+	edict_t * event = G_SpawnEvent( EV_DIE, parm, NONE );
 	event->s.ownerNum = body->s.number;
 
 	ent->s.ownerNum = body->s.number;
@@ -348,7 +348,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 
 		KillBox( self, WorldDamage_Telefrag, Vec3( 0.0f ) );
 
-		edict_t * ev = G_SpawnEvent( EV_RESPAWN, 0, NULL );
+		edict_t * ev = G_SpawnEvent( EV_RESPAWN, 0, NONE );
 		ev->s.svflags |= SVF_ONLYOWNER;
 		ev->s.ownerNum = ENTNUM( self );
 		ev->s.angles = self->s.angles;
@@ -675,7 +675,7 @@ void G_PredictedFireWeapon( int entNum, u64 parm ) {
 	Vec3 start = ent->s.origin;
 	start.z += ent->r.client->ps.viewheight;
 
-	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, parm, &start );
+	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, parm, start );
 	event->s.ownerNum = entNum;
 	event->s.origin2 = Vec3(
 		ent->r.client->ps.viewangles.pitch,
@@ -692,7 +692,7 @@ void G_PredictedAltFireWeapon( int entNum, u64 parm ) {
 	Vec3 start = ent->s.origin;
 	start.z += ent->r.client->ps.viewheight;
 
-	edict_t * event = G_SpawnEvent( EV_ALTFIREWEAPON, parm, &start );
+	edict_t * event = G_SpawnEvent( EV_ALTFIREWEAPON, parm, start );
 	event->s.ownerNum = entNum;
 	event->s.origin2 = Vec3(
 		ent->r.client->ps.viewangles.pitch,
@@ -709,7 +709,7 @@ void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead ) 
 	Vec3 start = ent->s.origin;
 	start.z += ent->r.client->ps.viewheight;
 
-	edict_t * event = G_SpawnEvent( EV_USEGADGET, ( parm << 8 ) | gadget, &start );
+	edict_t * event = G_SpawnEvent( EV_USEGADGET, ( parm << 8 ) | gadget, start );
 	event->s.ownerNum = entNum;
 	event->s.origin2 = Vec3(
 		ent->r.client->ps.viewangles.pitch,

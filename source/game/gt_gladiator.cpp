@@ -60,8 +60,7 @@ static void BombExplode() {
 	server_gs.gameState.exploding = true;
 	server_gs.gameState.exploded_at = svs.gametime;
 
-	Vec3 zero( 0.0f );
-	G_SpawnEvent( EV_BOMB_EXPLOSION, bomb_explosion_effect_radius, &zero );
+	G_SpawnEvent( EV_BOMB_EXPLOSION, bomb_explosion_effect_radius, Vec3( 0.0f ) );
 }
 
 static void BombKill() {
@@ -157,7 +156,7 @@ static void NewRound() {
 
 	GiveGladInventories();
 
-	G_SpawnEvent( EV_FLASH_WINDOW, 0, NULL );
+	G_SpawnEvent( EV_FLASH_WINDOW, 0, NONE );
 }
 
 static void NewRoundState( RoundState newState ) {

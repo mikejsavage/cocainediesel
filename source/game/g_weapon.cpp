@@ -37,7 +37,7 @@ static bool CanHit( const edict_t * projectile, const edict_t * target ) {
 }
 
 static void SpawnFX( const edict_t * ent, Optional< Vec3 > normal, StringHash vfx, StringHash sfx ) {
-	edict_t * event = G_SpawnEvent( EV_FX, DirToU64( Default( normal, Vec3( 0.0f ) ) ), &ent->s.origin );
+	edict_t * event = G_SpawnEvent( EV_FX, DirToU64( Default( normal, Vec3( 0.0f ) ) ), ent->s.origin );
 	event->s.team = ent->s.team;
 	event->s.model = vfx;
 	event->s.model2 = sfx;
@@ -593,7 +593,7 @@ static void W_Fire_Rail( edict_t * self, Vec3 start, EulerDegrees3 angles, int t
 			G_Damage( hit, self, self, dir, dir, tr.endpos, def->damage, def->knockback, dmgflags, Weapon_Rail );
 
 			// spawn a impact event on each damaged ent
-			edict_t * event = G_SpawnEvent( EV_RAIL_EXPLOSION, DirToU64( tr.normal ), &tr.endpos );
+			edict_t * event = G_SpawnEvent( EV_RAIL_EXPLOSION, DirToU64( tr.normal ), tr.endpos );
 			event->s.team = self->s.team;
 
 			// if we hit a teammate stop the trace
@@ -609,7 +609,7 @@ static void W_Fire_Rail( edict_t * self, Vec3 start, EulerDegrees3 angles, int t
 }
 
 static void RailAltDeploy( edict_t * ent ) {
-	edict_t * event = G_SpawnEvent( EV_RAIL_ALTFIRE, 0, &ent->s.origin );
+	edict_t * event = G_SpawnEvent( EV_RAIL_ALTFIRE, 0, ent->s.origin );
 	event->s.ownerNum = ent->s.ownerNum;
 	event->s.angles = ent->s.angles;
 
@@ -626,7 +626,7 @@ static void W_Fire_RailAlt( edict_t * self, Vec3 start, EulerDegrees3 angles, in
 	ent->classname = "railalt";
 	ent->think = RailAltDeploy;
 
-	edict_t * event = G_SpawnEvent( EV_RAIL_ALTENT, 0, &ent->s.origin );
+	edict_t * event = G_SpawnEvent( EV_RAIL_ALTENT, 0, ent->s.origin );
 	event->s.ownerNum = ent->s.ownerNum;
 	event->s.angles = ent->s.angles;
 	event->s.team = self->s.team;
@@ -728,7 +728,7 @@ void W_Fire_Rifle( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDel
 static void StickyExplodeNormal( edict_t * ent, Vec3 normal, bool silent ) {
 	G_RadiusDamage( ent, ent->r.owner, normal, ent->enemy, Weapon_Sticky );
 
-	edict_t * event = G_SpawnEvent( EV_STICKY_EXPLOSION, silent ? 1 : 0, &ent->s.origin );
+	edict_t * event = G_SpawnEvent( EV_STICKY_EXPLOSION, silent ? 1 : 0, ent->s.origin );
 	event->s.team = ent->s.team;
 
 	float radius = ent->projectileInfo.radius;

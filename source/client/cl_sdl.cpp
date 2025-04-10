@@ -242,7 +242,7 @@ Vec2 GetRelativeMouseMovement() {
 }
 
 void SwapBuffers() {
-	TracyZoneScoped;
+	TracyZoneScopedNC( "SDL_GL_SwapWindow", 0xff0000 );
 	TrySDL( SDL_GL_SwapWindow, window );
 }
 
@@ -487,7 +487,7 @@ SDL_AppResult SDL_AppEvent( void * appstate, SDL_Event * event ) {
 SDL_AppResult SDL_AppIterate( void * appstate ) {
 	s64 dt = 0;
 	{
-		TracyZoneScopedN( "Interframe" );
+		TracyZoneScopedNC( "Interframe", 0xff0000 );
 		while( dt == 0 ) {
 			dt = Sys_Milliseconds() - oldtime;
 		}

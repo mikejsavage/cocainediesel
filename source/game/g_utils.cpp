@@ -39,7 +39,7 @@ edict_t * GetEntity( EntityID id ) {
 	return entity_id_hashtable.get( id.id, &idx ) ? &game.edicts[ idx ] : NULL;
 }
 
-edict_t * G_Find( edict_t * cursor, StringHash edict_t::* field, StringHash value ) {
+edict_t * G_Find( edict_t * cursor, const StringHash edict_t::* field, StringHash value ) {
 	const edict_t * end = game.edicts + game.numentities;
 
 	for( cursor = cursor == NULL ? world : cursor + 1; ( cursor < end ); cursor++ ) {

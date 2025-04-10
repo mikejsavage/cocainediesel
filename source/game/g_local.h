@@ -248,7 +248,7 @@ edict_t * GetEntity( EntityID id );
 
 void KillBox( edict_t * ent, DamageType damage_type, Vec3 knockback );
 float LookAtKillerYAW( edict_t * self, edict_t * inflictor, edict_t * attacker );
-edict_t * G_Find( edict_t * cursor, StringHash edict_t::* field, StringHash value );
+edict_t * G_Find( edict_t * cursor, const StringHash edict_t::* field, StringHash value );
 edict_t * G_PickRandomEnt( StringHash edict_t::* field, StringHash value );
 edict_t * G_PickTarget( StringHash name );
 void G_UseTargets( edict_t * ent, edict_t * activator );

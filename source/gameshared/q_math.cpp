@@ -18,8 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include <math.h>
-
 #include "qcommon/qcommon.h"
 #include "qcommon/rng.h"
 
@@ -220,12 +218,12 @@ Capsule MakePlayerCapsule( const MinMax3 & bounds ) {
 	Vec3 dim = bounds.maxs - bounds.mins;
 	Assert( dim.z >= dim.x && dim.x == dim.y );
 
-	Capsule capsule;
-	capsule.radius = bounds.maxs.x;
-	capsule.a = Vec3( center.xy(), bounds.mins.z + capsule.radius );
-	capsule.b = Vec3( center.xy(), bounds.maxs.z - capsule.radius );
-
-	return capsule;
+	float radius = bounds.maxs.x;
+	return Capsule {
+		.a = Vec3( center.xy(), bounds.mins.z + radius ),
+		.b = Vec3( center.xy(), bounds.maxs.z - radius ),
+		.radius = radius,
+	};
 }
 
 //============================================================================
@@ -300,7 +298,7 @@ float SampleNormalDistribution( RNG * rng ) {
 }
 
 Vec3 Project( Vec3 a, Vec3 b ) {
-	return Dot( a, b ) / LengthSquared( b ) * b;
+	return ( Dot( a, b ) / LengthSquared( b ) ) * b;
 }
 
 Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p ) {

@@ -379,7 +379,7 @@ MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntitySta
 		return MinMax3( 0.0f );
 	}
 
-	return model.aabb;
+	return model.aabb * ent->scale;
 }
 
 SolidBits EntitySolidity( const CollisionModelStorage * storage, const SyncEntityState * ent ) {

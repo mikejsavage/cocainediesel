@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/maplist.h"
 #include "qcommon/threads.h"
 #include "qcommon/time.h"
+#include "qcommon/platform/memory_usage.h"
 #include "client/keys.h"
 
 #include <errno.h>
@@ -42,7 +43,7 @@ static Cvar *logconsole_append;
 static Cvar *logconsole_flush;
 static Cvar *logconsole_timestamp;
 
-static Mutex *com_print_mutex;
+static Opaque< Mutex > com_print_mutex;
 
 static FILE * log_file = NULL;
 
@@ -57,7 +58,7 @@ static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 	}
 
 	if( lock ) {
-		Lock( com_print_mutex );
+		Lock( &com_print_mutex );
 	}
 
 	if( log_file != NULL ) {
@@ -70,14 +71,14 @@ static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 	}
 
 	if( lock ) {
-		Unlock( com_print_mutex );
+		Unlock( &com_print_mutex );
 	}
 }
 
 static void Com_ReopenConsoleLog() {
 	char errmsg[MAX_PRINTMSG] = { 0 };
 
-	Lock( com_print_mutex );
+	Lock( &com_print_mutex );
 
 	Com_CloseConsoleLog( false, false );
 
@@ -89,7 +90,7 @@ static void Com_ReopenConsoleLog() {
 		}
 	}
 
-	Unlock( com_print_mutex );
+	Unlock( &com_print_mutex );
 
 	if( errmsg[0] ) {
 		Com_Printf( "%s", errmsg );
@@ -164,8 +165,8 @@ void Com_Printf( const char *format, ... ) {
 	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
-	Lock( com_print_mutex );
-	defer { Unlock( com_print_mutex ); };
+	Lock( &com_print_mutex );
+	defer { Unlock( &com_print_mutex ); };
 
 	PrintStdout( msg );
 
@@ -237,7 +238,7 @@ void Qcommon_Init( int argc, char ** argv ) {
 
 	Sys_Init();
 
-	com_print_mutex = NewMutex();
+	InitMutex( &com_print_mutex );
 
 	InitTime();
 
@@ -285,7 +286,10 @@ void Qcommon_Init( int argc, char ** argv ) {
 
 bool Qcommon_Frame( unsigned int realMsec ) {
 	if( IFDEF( TRACY_ENABLE ) && tracy_is_active ) {
-		if( Now() - disable_tracy_start_time > Minutes( 10 ) ) {
+		Optional< int > memory = SystemMemoryUsagePercent();
+		bool ooming = memory.exists && memory.value >= 80;
+		bool game_has_been_running_for_10_mins = !memory.exists && Now() - disable_tracy_start_time > Minutes( 10 );
+		if( ooming || game_has_been_running_for_10_mins ) {
 			Com_Printf( "Disabled Tracy to conserve memory\n" );
 			tracy_is_active = false;
 		}
@@ -351,5 +355,5 @@ void Qcommon_Shutdown() {
 	Cvar_Shutdown();
 	Cmd_Shutdown();
 
-	DeleteMutex( com_print_mutex );
+	DeleteMutex( &com_print_mutex );
 }

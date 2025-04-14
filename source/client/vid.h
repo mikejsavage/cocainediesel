@@ -1,5 +1,8 @@
 #include "qcommon/types.h"
 
+struct Cvar;
+extern Cvar * vid_mode;
+
 struct VideoMode {
 	int width, height;
 	float refresh_rate;
@@ -31,6 +34,7 @@ void DestroyWindow();
 void SwapBuffers();
 
 void GetFramebufferSize( int * width, int * height );
+float GetContentScale();
 Vec2 GetRelativeMouseMovement();
 Vec2 GetJoystickMovement();
 void VID_CheckChanges();

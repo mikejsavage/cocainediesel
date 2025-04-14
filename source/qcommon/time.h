@@ -35,10 +35,10 @@ Time operator%( Time lhs, Time rhs );
 void operator+=( Time & lhs, Time rhs );
 void operator-=( Time & lhs, Time rhs );
 
+Time Lerp( Time a, float t, Time b );
+float Unlerp01( Time lo, Time x, Time hi );
+
 // FYI: old style sinf( t / x ) is equivalent to Sin( t, Seconds( x * 2pi / 1000 ) )
 float Sin( Time t, Time period );
 
-inline float Unlerp01( Time lo, Time x, Time hi ) {
-	x = Clamp( lo, x, hi );
-	return ToSeconds( x - lo ) / ToSeconds( hi - lo );
-}
+float Sawtooth01( Time t, Time period );

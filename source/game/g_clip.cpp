@@ -246,11 +246,11 @@ int GClip_FindInRadius4D( Vec3 org, float rad, int * list, size_t maxcount, int 
 	return num;
 }
 
-void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float * frac, int time_delta, bool selfdamage ) {
+void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float * frac, int time_delta ) {
 	edict_t ent4d;
 	if( !CollisionEntity4D( ENTNUM( ent ), time_delta, &ent4d ) )
 		return;
-	G_SplashFrac( &ent4d.s, &ent4d.r, hitpoint, maxradius, pushdir, frac, selfdamage );
+	G_SplashFrac( &ent4d.s, &ent4d.r, hitpoint, maxradius, pushdir, frac );
 }
 
 void GClip_ClearWorld() {

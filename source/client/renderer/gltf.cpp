@@ -653,6 +653,25 @@ static void DrawVfxNode( DrawModelConfig::DrawModel config, const GLTFRenderData
 	}
 }
 
+static bool OddNumberOfReflections( const Mat3x4 & transform ) {
+	float determinant3 = 0.0f
+		+ transform.col0.x * ( transform.col1.y * transform.col2.z - transform.col1.z * transform.col2.y )
+		- transform.col1.x * ( transform.col0.y * transform.col2.z - transform.col0.z * transform.col2.y )
+		+ transform.col2.x * ( transform.col0.y * transform.col1.z - transform.col0.z * transform.col1.y );
+	return determinant3 < 0.0f;
+}
+
+static CullFace FlipCullFace( CullFace cull ) {
+	switch( cull ) {
+		case CullFace_Back: return CullFace_Front;
+		case CullFace_Front: return CullFace_Back;
+		case CullFace_Disabled: return CullFace_Disabled;
+	}
+
+	Assert( false );
+	return { };
+}
+
 static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh, bool skinned, PipelineState pipeline, const Mat3x4 & transform ) {
 	TracyZoneScoped;
 	if( !config.enabled )
@@ -660,6 +679,10 @@ static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh,
 
 	if( config.view_weapon ) {
 		pipeline.view_weapon_depth_hack = true;
+	}
+
+	if( OddNumberOfReflections( transform ) ) {
+		pipeline.dynamic_state.cull_face = FlipCullFace( pipeline.dynamic_state.cull_face );
 	}
 
 	DrawMesh( mesh, pipeline );
@@ -675,6 +698,10 @@ static void DrawShadowsNode( const Mesh & mesh, GPUBuffer model_uniforms, Option
 		buffers.must_add( { "u_Pose", pose_uniforms.value } );
 	}
 
+	if( OddNumberOfReflections( transform ) ) {
+		pipeline.dynamic_state.cull_face = FlipCullFace( pipeline.dynamic_state.cull_face );
+	}
+
 	for( u32 i = 0; i < frame_static.shadow_parameters.entity_cascades; i++ ) {
 		EncodeDrawCall( RenderPass_ShadowmapCascade0 + i, pipeline, mesh, buffers.span() );
 	}
@@ -687,6 +714,10 @@ static void DrawOutlinesNode( const Mesh & mesh, GPUBuffer model_uniforms, GPUBu
 		.shader = pose_uniforms.exists ? shaders.outline_skinned : shaders.outline,
 		.dynamic_state = { .cull_face = CullFace_Front },
 	};
+
+	if( OddNumberOfReflections( transform ) ) {
+		pipeline.dynamic_state.cull_face = FlipCullFace( pipeline.cull_face );
+	}
 
 	BoundedDynamicArray< BufferBinding, 3 > buffers = {
 		{ "u_Model", model_uniforms },

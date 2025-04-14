@@ -7,6 +7,7 @@
 
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
+#include "qcommon/threads.h"
 
 struct Thread { HANDLE handle; };
 struct Mutex { SRWLOCK lock; };
@@ -25,7 +26,7 @@ static DWORD WINAPI ThreadWrapper( void * data ) {
 	return 0;
 }
 
-Thread * NewThread( void ( *callback )( void * ), void * data ) {
+Opaque< Thread > NewThread( void ( *callback )( void * ), void * data ) {
 	// can't use sys_allocator because serverlist leaks its threads
 	ThreadStartData * tsd = new ThreadStartData;
 	tsd->callback = callback;
@@ -36,59 +37,48 @@ Thread * NewThread( void ( *callback )( void * ), void * data ) {
 		FatalGLE( "CreateThread" );
 	}
 
-	// can't use sys_allocator because serverlist leaks its threads
-	Thread * thread = new Thread;
-	thread->handle = handle;
-	return thread;
+	return Thread { handle };
 }
 
-void JoinThread( Thread * thread ) {
-	WaitForSingleObject( thread->handle, INFINITE );
-	CloseHandle( thread->handle );
-	delete thread;
+void JoinThread( Opaque< Thread > thread ) {
+	WaitForSingleObject( thread.unwrap()->handle, INFINITE );
+	CloseHandle( thread.unwrap()->handle );
 }
 
-Mutex * NewMutex() {
-	// can't use sys_allocator because sys_allocator itself calls NewMutex
-	Mutex * mutex = new Mutex;
-	InitializeSRWLock( &mutex->lock );
-	return mutex;
+void InitMutex( Opaque< Mutex > * mutex ) {
+	InitializeSRWLock( &mutex->unwrap()->lock );
 }
 
-void DeleteMutex( Mutex * mutex ) {
-	delete mutex;
+void DeleteMutex( Opaque< Mutex > * mutex ) {
 }
 
-void Lock( Mutex * mutex ) {
-	AcquireSRWLockExclusive( &mutex->lock );
+void Lock( Opaque< Mutex > * mutex ) {
+	AcquireSRWLockExclusive( &mutex->unwrap()->lock );
 }
 
-void Unlock( Mutex * mutex ) {
-	ReleaseSRWLockExclusive( &mutex->lock );
+void Unlock( Opaque< Mutex > * mutex ) {
+	ReleaseSRWLockExclusive( &mutex->unwrap()->lock );
 }
 
-Semaphore * NewSemaphore() {
+void InitSemaphore( Opaque< Semaphore > * sem ) {
 	LONG max = 8192;
 	HANDLE handle = CreateSemaphoreA( NULL, 0, max, NULL );
 	if( handle == NULL ) {
 		FatalGLE( "CreateSemaphoreA" );
 	}
 
-	Semaphore * sem = Alloc< Semaphore >( sys_allocator );
-	sem->handle = handle;
-	return sem;
+	sem->unwrap()->handle = handle;
 }
 
-void DeleteSemaphore( Semaphore * sem ) {
-	CloseHandle( sem->handle );
-	Free( sys_allocator, sem );
+void DeleteSemaphore( Opaque< Semaphore > * sem ) {
+	CloseHandle( sem->unwrap()->handle );
 }
 
-void Signal( Semaphore * sem, int n ) {
+void Signal( Opaque< Semaphore > * sem, int n ) {
 	if( n == 0 )
 		return;
 
-	if( ReleaseSemaphore( sem->handle, n, NULL ) == 0 ) {
+	if( ReleaseSemaphore( sem->unwrap()->handle, n, NULL ) == 0 ) {
 		DWORD error = GetLastError();
 		if( error != ERROR_TOO_MANY_POSTS ) {
 			FatalGLE( "ReleaseSemaphore" );
@@ -96,8 +86,8 @@ void Signal( Semaphore * sem, int n ) {
 	}
 }
 
-void Wait( Semaphore * sem ) {
-	WaitForSingleObject( sem->handle, INFINITE );
+void Wait( Opaque< Semaphore > * sem ) {
+	WaitForSingleObject( sem->unwrap()->handle, INFINITE );
 }
 
 u32 GetCoreCount() {

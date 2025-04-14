@@ -248,8 +248,8 @@ edict_t * GetEntity( EntityID id );
 
 void KillBox( edict_t * ent, DamageType damage_type, Vec3 knockback );
 float LookAtKillerYAW( edict_t * self, edict_t * inflictor, edict_t * attacker );
-edict_t * G_Find( edict_t * cursor, StringHash edict_t::* field, StringHash value );
-edict_t * G_PickRandomEnt( StringHash edict_t::* field, StringHash value );
+edict_t * G_Find( edict_t * cursor, const StringHash edict_t::* field, StringHash value );
+edict_t * G_PickRandomEnt( const StringHash edict_t::* field, StringHash value );
 edict_t * G_PickTarget( StringHash name );
 void G_UseTargets( edict_t * ent, edict_t * activator );
 void G_SetMovedir( EulerDegrees3 * angles, Vec3 * movedir );
@@ -260,7 +260,7 @@ edict_t * G_Spawn();
 void G_FreeEdict( edict_t * e );
 
 void G_AddEvent( edict_t * ent, int event, u64 parm, bool highPriority );
-edict_t * G_SpawnEvent( int event, u64 parm, const Vec3 * origin );
+edict_t * G_SpawnEvent( int event, u64 parm, Optional< Vec3 > origin );
 
 void G_CallThink( edict_t * ent );
 void G_CallTouch( edict_t * self, edict_t * other, Vec3 normal, SolidBits solid_mask );
@@ -324,7 +324,7 @@ trace_t G_Trace( Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict
 trace_t G_Trace4D( Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask, int timeDelta );
 void GClip_BackUpCollisionFrame();
 int GClip_FindInRadius4D( Vec3 org, float rad, int * list, size_t maxcount, int timeDelta );
-void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage );
+void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta );
 void GClip_ClearWorld();
 void GClip_LinkEntity( const edict_t * ent );
 void GClip_UnlinkEntity( const edict_t * ent );
@@ -339,7 +339,7 @@ bool IsHeadshot( int entNum, Vec3 hit, int timeDelta );
 //
 bool G_IsTeamDamage( const SyncEntityState * targ, const SyncEntityState * attacker );
 void G_Killed( edict_t * targ, edict_t * inflictor, edict_t * attacker, int topAssistorNo, DamageType damage_type, int damage );
-void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 point, float maxradius, Vec3 * pushdir, float *frac, bool selfdamage );
+void G_SplashFrac( const SyncEntityState * s, const entity_shared_t * r, Vec3 point, float maxradius, Vec3 * pushdir, float * frac );
 void G_Damage( edict_t * targ, edict_t * inflictor, edict_t * attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, DamageType damage_type );
 void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage, bool headshot, Vec3 pos, Vec3 dir, bool showNumbers );
 void G_RadiusKnockback( float maxknockback, float minknockback, float radius, edict_t * attacker, Vec3 pos, Optional< Vec3 > normal, int timeDelta );

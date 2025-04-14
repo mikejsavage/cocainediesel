@@ -314,7 +314,7 @@ static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 
 	ent->r.client->level.last_spray = svs.monotonic_time;
 
-	edict_t * event = G_SpawnEvent( EV_SPRAY, Random64( &svs.rng ), &trace.endpos );
+	edict_t * event = G_SpawnEvent( EV_SPRAY, Random64( &svs.rng ), trace.endpos );
 	event->s.angles = ent->r.client->ps.viewangles;
 	event->s.scale = ent->s.scale;
 	event->s.origin2 = trace.normal;
@@ -339,7 +339,7 @@ static void G_vsay_f( edict_t * ent, msg_t args ) {
 		u64 entropy = Random32( &svs.rng );
 		u64 parm = u64( i ) | ( entropy << 16 );
 
-		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NULL );
+		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NONE );
 		event->s.ownerNum = ent->s.number;
 
 		return;

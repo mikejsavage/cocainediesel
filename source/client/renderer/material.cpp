@@ -167,6 +167,16 @@ static void ParseCull( MaterialDescriptor * material, Span< const char > name, S
 
 static void ParseShaded( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->shaded = true;
+	if( material->world ) {
+		Com_GGPrint( S_COLOR_YELLOW "{}: world and shaded don't mix", name );
+	}
+}
+
+static void ParseWorld( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+	material->world = true;
+	if( material->shaded ) {
+		Com_GGPrint( S_COLOR_YELLOW "{}: world and shaded don't mix", name );
+	}
 }
 
 static void ParseSpecular( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
@@ -269,6 +279,7 @@ static constexpr MaterialSpecKey shaderkeys[] = {
 	{ "cull", ParseCull },
 	{ "rgbgen", ParseRGBGen },
 	{ "shaded", ParseShaded },
+	{ "world", ParseWorld },
 	{ "shininess", ParseShininess },
 	{ "specular", ParseSpecular },
 	{ "texture", ParseTexture },

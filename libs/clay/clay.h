@@ -199,7 +199,7 @@ typedef struct {
     float r, g, b, a;
 } Clay_Color;
 
-typedef struct {
+typedef struct Clay_BoundingBox {
     float x, y, width, height;
 } Clay_BoundingBox;
 

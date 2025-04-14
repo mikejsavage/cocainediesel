@@ -8,11 +8,12 @@ static constexpr float wjbouncefactor = 0.4f;
 
 
 
-static constexpr float wallclimbspeed = 450.0f;
+static constexpr float wallclimbspeed = 300.0f;
 
 static constexpr float jumpupspeed = 280.0f;
 
 static constexpr float climbfriction = 5.0f;
+static constexpr float climbfallspeed = 30.0f;
 
 static constexpr float stamina_use = 0.15f;
 static constexpr float stamina_use_moving = 0.3f;
@@ -52,9 +53,13 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 	}
 
 	if( pm->groundentity == -1 ) {
-		if( (ps->pmove.pm_flags & PMF_ABILITY2_HELD) && !(ps->pmove.pm_flags & PMF_ABILITY1_HELD) ) {
-			Walljump( pm, pml, pmove_gs, ps, jumpupspeed, dashupspeed, dashspeed, wjupspeed, wjbouncefactor );
-			ps->pmove.jump_buffering = wj_cooldown;
+		if( !(ps->pmove.pm_flags & PMF_ABILITY1_HELD) && StaminaAvailable( ps, pml, stamina_use ) ) {
+			if( Walljump( pm, pml, pmove_gs, ps, jumpupspeed, dashupspeed, dashspeed, wjupspeed, wjbouncefactor ) ) {
+				ps->pmove.jump_buffering = wj_cooldown;
+				ps->pmove.stamina_state = Stamina_UsingAbility;
+				ps->pmove.stamina = 0.0f;
+			}
+
 			ps->pmove.pm_flags |= PMF_ABILITY1_HELD;
 		}
 	} else {
@@ -88,17 +93,18 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 
 		if( wishvel == Vec3( 0.0f ) ) {
 			StaminaUse( ps, pml, stamina_use );
-			return;
+		} else {
+			wishvel = Normalize( wishvel );
+			StaminaUse( ps, pml, Length( wishvel ) * stamina_use_moving );
 		}
 
-		wishvel = Normalize( wishvel );
 
 		if( pml->forwardPush > 0 ) {
 			wishvel.z = Lerp( -1.0f, Unlerp01( 15.0f, ps->viewangles.pitch, -15.0f ), 1.0f );
 		}
 
-		StaminaUse( ps, pml, Length( wishvel ) * stamina_use_moving );
 		pml->velocity = wishvel * wallclimbspeed;
+		pml->velocity.z -= climbfallspeed;
 
 		pm->groundentity = -1;
 	} else {

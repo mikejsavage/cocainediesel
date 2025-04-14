@@ -142,11 +142,6 @@ struct cg_static_t {
 	float textSizeMedium;
 	float textSizeBig;
 
-	const Font * fontNormal;
-	const Font * fontNormalBold;
-	const Font * fontItalic;
-	const Font * fontBoldItalic;
-
 	cgs_media_t media;
 
 	bool demoPlaying;
@@ -298,6 +293,10 @@ void CG_SC_ResetObituaries();
 void CG_SC_Obituary( const Tokenized & args );
 void CG_DrawHUD();
 
+struct Clay_BoundingBox;
+struct ClayCustomElementConfig;
+void CG_DrawClayLuaHUDElement( const Clay_BoundingBox & bounds, const ClayCustomElementConfig * config );
+
 //
 // cg_main.c
 //
@@ -320,7 +319,7 @@ void CG_Precache();
 void CG_RegisterCGameCommands();
 void CG_UnregisterCGameCommands();
 
-const char * PlayerName( int i );
+Span< const char > PlayerName( int i );
 
 //
 // cg_svcmds.c
@@ -359,8 +358,6 @@ bool CG_ChaseStep( int step );
 
 float WidescreenFov( float fov );
 float CalcHorizontalFov( const char * caller, float fov_y, float width, float height );
-
-void MaybeResetShadertoyTime( bool respawned );
 
 //
 // cg_lents.c

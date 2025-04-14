@@ -33,21 +33,9 @@ bool IsRenderDocAttached() {
 	return GetModuleHandleA( "renderdoc.dll" ) != NULL;
 }
 
-bool Sys_OpenInWebBrowser( const char * url ) {
+bool OpenInWebBrowser( const char * url ) {
 	int ok = int( intptr_t( ShellExecuteA( NULL, "open", url, NULL, NULL, SW_SHOWDEFAULT ) ) );
 	return ok > 32;
-}
-
-int main( int argc, char ** argv );
-int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, char * szCmdLine, int iCmdShow ) {
-	BOOL reattached = AttachConsole( ATTACH_PARENT_PROCESS );
-	if( reattached == TRUE ) {
-		FILE * dont_care;
-		freopen_s( &dont_care, "CON", "w", stdout );
-		freopen_s( &dont_care, "CON", "w", stderr );
-	}
-
-	return main( __argc, __argv );
 }
 
 #endif // #if PLATFORM_WINDOWS

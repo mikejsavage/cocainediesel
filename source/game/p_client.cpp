@@ -115,7 +115,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 		}
 	}
 
-	edict_t * event = G_SpawnEvent( EV_DIE, parm, NULL );
+	edict_t * event = G_SpawnEvent( EV_DIE, parm, NONE );
 	event->s.ownerNum = body->s.number;
 
 	ent->s.ownerNum = body->s.number;
@@ -319,10 +319,12 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		self->movetype = MOVETYPE_NOCLIP;
 	}
 	else {
+		static constexpr Span< const char > MASKS_DIR = "models/masks/";
 		self->s.type = ET_PLAYER;
 		const char * mask_name = Info_ValueForKey( client->userinfo, "cg_mask" );
 		if( mask_name != NULL ) {
-			self->s.mask = StringHash( mask_name );
+			TempAllocator temp = svs.frame_arena.temp();
+			self->s.mask = StringHash( temp( "{}{}", MASKS_DIR, mask_name ) );
 		}
 		self->s.svflags |= SVF_FORCETEAM;
 		SolidBits team_solidity = SolidBits( Solid_PlayerTeamOne << ( self->s.team - Team_One ) );
@@ -346,7 +348,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 
 		KillBox( self, WorldDamage_Telefrag, Vec3( 0.0f ) );
 
-		edict_t * ev = G_SpawnEvent( EV_RESPAWN, 0, NULL );
+		edict_t * ev = G_SpawnEvent( EV_RESPAWN, 0, NONE );
 		ev->s.svflags |= SVF_ONLYOWNER;
 		ev->s.ownerNum = ENTNUM( self );
 		ev->s.angles = self->s.angles;
@@ -673,7 +675,7 @@ void G_PredictedFireWeapon( int entNum, u64 parm ) {
 	Vec3 start = ent->s.origin;
 	start.z += ent->r.client->ps.viewheight;
 
-	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, parm, &start );
+	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, parm, start );
 	event->s.ownerNum = entNum;
 	event->s.origin2 = Vec3(
 		ent->r.client->ps.viewangles.pitch,
@@ -690,7 +692,7 @@ void G_PredictedAltFireWeapon( int entNum, u64 parm ) {
 	Vec3 start = ent->s.origin;
 	start.z += ent->r.client->ps.viewheight;
 
-	edict_t * event = G_SpawnEvent( EV_ALTFIREWEAPON, parm, &start );
+	edict_t * event = G_SpawnEvent( EV_ALTFIREWEAPON, parm, start );
 	event->s.ownerNum = entNum;
 	event->s.origin2 = Vec3(
 		ent->r.client->ps.viewangles.pitch,
@@ -707,7 +709,7 @@ void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead ) 
 	Vec3 start = ent->s.origin;
 	start.z += ent->r.client->ps.viewheight;
 
-	edict_t * event = G_SpawnEvent( EV_USEGADGET, ( parm << 8 ) | gadget, &start );
+	edict_t * event = G_SpawnEvent( EV_USEGADGET, ( parm << 8 ) | gadget, start );
 	event->s.ownerNum = entNum;
 	event->s.origin2 = Vec3(
 		ent->r.client->ps.viewangles.pitch,

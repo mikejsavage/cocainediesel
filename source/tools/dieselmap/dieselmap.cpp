@@ -161,7 +161,7 @@ static std::vector< Vec3 > BrushFaceToHull( Span< const Plane > brush, size_t fa
 	return sorted_points;
 }
 
-static std::vector< CompiledMesh > BrushToCompiledMeshes( const ParsedBrush & brush ) {
+static std::vector< CompiledMesh > BrushToCompiledMeshes( const ParsedBrush & brush, bool extend_void_verts ) {
 	// convert 3 verts to planes
 	std::vector< Plane > planes;
 	for( const ParsedBrushFace & face : brush.faces ) {
@@ -188,7 +188,7 @@ static std::vector< CompiledMesh > BrushToCompiledMeshes( const ParsedBrush & br
 		Vec3 normal = planes[ i ].normal;
 		for( Vec3 position : hull ) {
 			InterleavedMapVertex v = { position, normal };
-			if( v.position.z <= -1024.0f ) {
+			if( extend_void_verts && v.position.z <= -1024.0f ) {
 				v.position.z = -999999.0f;
 			}
 			material_mesh.vertices.push_back( v );
@@ -462,12 +462,12 @@ static CompiledMesh MergeMeshes( Span< const CompiledMesh > meshes ) {
 	return merged;
 }
 
-static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & entity ) {
+static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & entity, bool extend_void_verts ) {
 	TracyZoneScoped;
 
 	std::vector< CompiledMesh > face_meshes;
 	for( const ParsedBrush & brush : entity.brushes ) {
-		std::vector< CompiledMesh > brush_meshes = BrushToCompiledMeshes( brush );
+		std::vector< CompiledMesh > brush_meshes = BrushToCompiledMeshes( brush, extend_void_verts );
 		for( const CompiledMesh & mesh : brush_meshes ) {
 			face_meshes.push_back( mesh );
 		}
@@ -729,9 +729,9 @@ static void WriteObj( ArenaAllocator * arena, const char * path, const MapData *
 		Vec3 p = map->vertex_positions[ i ];
 		Vec3 n = map->vertex_normals[ i ];
 
-		// note the Z-up to Y-up transform
-		obj.append( "v {} {} {}\n", p.x, -p.z, p.y );
-		obj.append( "vn {} {} {}\n", n.x, -n.z, n.y );
+		// note the Z-up to Y-up/left to right handedness transforms
+		obj.append( "v {} {} {}\n", -p.x, p.z, p.y );
+		obj.append( "vn {} {} {}\n", -n.x, n.z, n.y );
 	}
 
 	for( u32 i = 0; i < model->num_meshes; i++ ) {
@@ -863,7 +863,7 @@ int main( int argc, char ** argv ) {
 				continue;
 
 			CompiledEntity compiled;
-			compiled.render_geometry = GenerateRenderGeometry( entity );
+			compiled.render_geometry = GenerateRenderGeometry( entity, !write_obj );
 			compiled.collision_geometry = GenerateCollisionGeometry( entity );
 
 			for( ParsedKeyValue kv : entity.kvs ) {

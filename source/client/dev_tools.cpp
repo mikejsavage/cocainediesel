@@ -8,20 +8,22 @@
 #include "client/renderer/skybox.h"
 #include "cgame/cg_local.h"
 
-static char * selected_model;
-static ImGuiTextFilter filter;
-
 DevToolCleanupCallback DrawModelViewer() {
+	static char * selected_model;
+	static ImGuiTextFilter filter;
+	static float distance;
+	static EulerDegrees2 angles;
+
 	ImGui::SetNextWindowPos( ImVec2() );
 	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width * 0.2f, frame_static.viewport_height ) );
 	ImGui::Begin( "modelviewer", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
-	ImGui::BeginChild( "modelviewer2" ); // NOTE(mike): need a child window or the combo doesn't work, something to do with Z order sorting
 
 	if( ImGui::IsWindowAppearing() ) {
 		selected_model = CopyString( sys_allocator, "players/rigg/model" );
 		filter = ImGuiTextFilter();
+		distance = 50.0f;
+		angles = EulerDegrees2( 20.0f, 135.0f );
 	}
-
 
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text( "Model" );
@@ -48,11 +50,28 @@ DevToolCleanupCallback DrawModelViewer() {
 		ImGui::EndCombo();
 	}
 
+	ImGui::AlignTextToFramePadding();
+	ImGui::Text( "Distance" );
+	ImGui::SameLine();
+	ImGui::SliderFloat( "##distance", &distance, 0.0f, 500.0f, "%.0f" );
+
+	ImGui::AlignTextToFramePadding();
+	ImGui::Text( "Pitch" );
+	ImGui::SameLine();
+	ImGui::SliderFloat( "##pitch", &angles.pitch, -180.0f, 180.0f, "%.0f" );
+
+	ImGui::AlignTextToFramePadding();
+	ImGui::Text( "Yaw" );
+	ImGui::SameLine();
+	ImGui::SliderFloat( "##yaw", &angles.yaw, 0.0f, 360.0f, "%.0f" );
+
 	if( ImGui::Button( "Exit" ) ) {
 		UI_ShowMainMenu();
 	}
 
-	RendererSetView( Vec3( 50, -50, 40 ), EulerDegrees3( 20, 135, 0 ), 90 );
+	Vec3 camera_forward;
+	AngleVectors( EulerDegrees3( angles ), &camera_forward, NULL, NULL );
+	RendererSetView( distance * -camera_forward, EulerDegrees3( angles ), 90.0f );
 
 	Optional< ModelRenderData > maybe_model = FindModelRenderData( StringHash( selected_model ) );
 	if( maybe_model.exists ) {
@@ -65,7 +84,6 @@ DevToolCleanupCallback DrawModelViewer() {
 
 	DrawSkybox( cls.shadertoy_time );
 
-	ImGui::EndChild();
 	ImGui::End();
 
 	return []() {

@@ -13,7 +13,7 @@
 
 struct MasterServer {
 	NetAddress address;
-	Thread * resolver_thread;
+	Opaque< Thread > resolver_thread;
 	bool query_next_frame;
 };
 
@@ -29,7 +29,7 @@ void InitServerBrowser() {
 	TracyZoneScoped;
 
 	locked_master_servers.data = { };
-	locked_master_servers.mutex = NewMutex();
+	InitMutex( &locked_master_servers.mutex );
 
 	servers.init( sys_allocator );
 }

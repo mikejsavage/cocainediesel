@@ -171,16 +171,16 @@ void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage
 	u64 parm = HEALTH_TO_INT( damage ) << 1;
 	if( headshot ) {
 		parm |= 1;
-		G_SpawnEvent( EV_SOUND_ORIGIN, headshot_sound.hash, &victim->s.origin );
+		G_SpawnEvent( EV_SOUND_ORIGIN, headshot_sound.hash, victim->s.origin );
 	}
 
 	if( showNumbers ) {
-		edict_t * damage_number = G_SpawnEvent( EV_DAMAGE, parm, &victim->s.origin );
+		edict_t * damage_number = G_SpawnEvent( EV_DAMAGE, parm, victim->s.origin );
 		damage_number->s.svflags |= SVF_OWNERANDCHASERS;
 		damage_number->s.ownerNum = ENTNUM( attacker );
 	}
 
-	edict_t * blood = G_SpawnEvent( EV_BLOOD, HEALTH_TO_INT( damage ), &pos );
+	edict_t * blood = G_SpawnEvent( EV_BLOOD, HEALTH_TO_INT( damage ), pos );
 	blood->s.origin2 = dir;
 	blood->s.team = victim->s.team;
 
@@ -284,7 +284,7 @@ void G_Damage( edict_t * targ, edict_t * inflictor, edict_t * attacker, Vec3 pus
 
 	if( G_IsDead( targ ) ) {
 		if( targ->s.type != ET_CORPSE && attacker != targ ) {
-			edict_t * killed = G_SpawnEvent( EV_DAMAGE, 255 << 1, &targ->s.origin );
+			edict_t * killed = G_SpawnEvent( EV_DAMAGE, 255 << 1, targ->s.origin );
 			killed->s.svflags |= SVF_OWNERANDCHASERS;
 			killed->s.ownerNum = ENTNUM( attacker );
 		}
@@ -300,32 +300,37 @@ void G_Damage( edict_t * targ, edict_t * inflictor, edict_t * attacker, Vec3 pus
 	}
 }
 
-void G_SplashFrac( const SyncEntityState * s, const entity_shared_t * r, Vec3 point, float maxradius, Vec3 * pushdir, float * frac, bool selfdamage ) {
-	const Vec3 & origin = s->origin;
-	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), s );
+static float ShortestDistanceToSegment( Vec3 start, Vec3 end, Vec3 p ) {
+	float t = Dot( p - start, end - start ) / LengthSquared( end - start );
+	Vec3 p_onto_segment = Lerp( start, Clamp01( t ), end );
+	return Length( p - p_onto_segment );
+}
 
-	float innerradius = ( bounds.maxs.x + bounds.maxs.y - bounds.mins.x - bounds.mins.y ) * 0.25f;
+static float ShortestDistanceToCapsule( const Capsule & capsule, Vec3 p ) {
+	return Max2( 0.0f, ShortestDistanceToSegment( capsule.a, capsule.b, p ) - capsule.radius );
+}
 
-	// Find the distance to the closest point in the capsule contained in the player bbox
-	// modify the origin so the inner sphere acts as a capsule
-	Vec3 closest_point = origin;
-	closest_point.z = Clamp( ( origin.z + bounds.mins.z ) + innerradius, point.z, ( origin.z + bounds.maxs.z ) - innerradius );
+static float ShortestDistanceToEntity( const SyncEntityState * ent, Vec3 p ) {
+	Vec3 p_relative_ent = p - ent->origin;
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), ent );
+	if( ent->type == ET_PLAYER ) {
+		return ShortestDistanceToCapsule( MakePlayerCapsule( bounds ), p_relative_ent );
+	}
 
-	// find push intensity
-	float distance = Length( point - closest_point );
+	// NOTE(mike 20250323): not actually shortest distance for non-player ents,
+	// not important so long as this is only used for splash damage
+	return Length( Center( bounds ) - p_relative_ent );
+}
 
+void G_SplashFrac( const SyncEntityState * s, const entity_shared_t * r, Vec3 point, float maxradius, Vec3 * pushdir, float * frac ) {
+	float distance = ShortestDistanceToEntity( s, point );
 	if( distance >= maxradius ) {
-		if( frac ) {
+		if( frac != NULL ) {
 			*frac = 0;
 		}
 		*pushdir = Vec3( 0.0f );
 		return;
 	}
-
-	float refdistance = innerradius;
-
-	maxradius -= refdistance;
-	distance = Max2( distance - refdistance, 0.0f );
 
 	if( frac != NULL ) {
 		// soft sin curve
@@ -333,16 +338,7 @@ void G_SplashFrac( const SyncEntityState * s, const entity_shared_t * r, Vec3 po
 		*frac = Clamp01( sinf( Radians( distance_frac * 80 ) ) );
 	}
 
-	// find push direction
-	Vec3 center_of_mass;
-	if( selfdamage ) {
-		center_of_mass = origin + Vec3( 0.0f, 0.0f, r->client->ps.viewheight );
-	}
-	else {
-		// find real center of the box again
-		center_of_mass = origin + Center( bounds );
-	}
-
+	Vec3 center_of_mass = s->origin + Center( EntityBounds( ServerCollisionModelStorage(), s ) );;
 	*pushdir = SafeNormalize( center_of_mass - point );
 }
 
@@ -360,7 +356,7 @@ void G_RadiusKnockback( float maxknockback, float minknockback, float radius, ed
 
 		float frac;
 		Vec3 pushDir;
-		G_SplashFrac4D( ent, pos, radius, &pushDir, &frac, timeDelta, false );
+		G_SplashFrac4D( ent, pos, radius, &pushDir, &frac, timeDelta );
 		if( frac == 0.0f )
 			continue;
 
@@ -401,8 +397,7 @@ void G_RadiusDamage( edict_t * inflictor, edict_t * attacker, Optional< Vec3 > n
 
 		float frac;
 		Vec3 pushDir;
-		bool is_selfdamage = inflictor->r.client != NULL && attacker == inflictor;
-		G_SplashFrac4D( ent, inflictor->s.origin, radius, &pushDir, &frac, timeDelta, is_selfdamage );
+		G_SplashFrac4D( ent, inflictor->s.origin, radius, &pushDir, &frac, timeDelta );
 		if( frac == 0.0f )
 			continue;
 

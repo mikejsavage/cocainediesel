@@ -89,6 +89,7 @@ static struct {
 		s64 action_time;
 		s64 pick_time;
 		s32 dropper;
+		bool fight_club;
 		bool killed_everyone;
 	} bomb;
 
@@ -484,17 +485,24 @@ static void BombExplode() {
 	Hide( bomb_state.bomb.hud );
 	Hide( bomb_state.bomb.model );
 
+	bomb_state.bomb.fight_club = Probability( &svs.rng, 0.03f );
 	bomb_state.bomb.killed_everyone = false;
 
 	bomb_state.bomb.state = BombState_Exploding;
 	bomb_state.defuser = -1;
 
-	server_gs.gameState.exploding = true;
-	server_gs.gameState.exploded_at = svs.gametime; // TODO: only place where gameTime is used, dno
+	if( bomb_state.bomb.fight_club ) {
+		// TODO(mike 20250323): should wrap this
+		G_CenterPrintMsg( NULL, "Through the clue provided by Tyler, the police rapidly figured out the whole plan and arrested all criminals, successfully preventing the bomb from exploding." );
+	}
+	else {
+		server_gs.gameState.exploding = true;
+		server_gs.gameState.exploded_at = svs.gametime; // TODO: only place where gameTime is used, dno
 
-	G_SpawnEvent( EV_BOMB_EXPLOSION, bomb_explosion_effect_radius, &bomb_state.bomb.model->s.origin );
+		G_SpawnEvent( EV_BOMB_EXPLOSION, bomb_explosion_effect_radius, bomb_state.bomb.model->s.origin );
 
-	G_Sound( bomb_state.bomb.model, "loadout/bomb/explode" );
+		G_Sound( bomb_state.bomb.model, "loadout/bomb/explode" );
+	}
 }
 
 static void BombThink() {
@@ -569,8 +577,7 @@ static void BombThink() {
 		} break;
 
 		case BombState_Exploding: {
-			// BombSiteStepExplosion( bomb_state.site );
-			if( !bomb_state.bomb.killed_everyone ) {
+			if( !bomb_state.bomb.fight_club && !bomb_state.bomb.killed_everyone ) {
 				bomb_state.bomb.model->projectileInfo.maxDamage = 1.0f;
 				bomb_state.bomb.model->projectileInfo.minDamage = 1.0f;
 				bomb_state.bomb.model->projectileInfo.maxKnockback = 400.0f;
@@ -789,7 +796,7 @@ static void RoundNewState( RoundState state ) {
 			DisableMovement();
 			SetRoundType();
 			BombGiveToRandom();
-			G_SpawnEvent( EV_FLASH_WINDOW, 0, NULL );
+			G_SpawnEvent( EV_FLASH_WINDOW, 0, NONE );
 			G_SunCycle( Seconds( 3 ) );
 		} break;
 
@@ -882,7 +889,7 @@ static void RoundThink() {
 			constexpr StringHash vfx_bomb_respawn = "loadout/bomb/respawn";
 
 			G_Sound( bomb_state.bomb.model, "loadout/bomb/respawn" );
-			G_SpawnEvent( EV_VFX, vfx_bomb_respawn.hash, &bomb_state.bomb.model->s.origin );
+			G_SpawnEvent( EV_VFX, vfx_bomb_respawn.hash, bomb_state.bomb.model->s.origin );
 
 			return;
 		}

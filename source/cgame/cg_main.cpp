@@ -74,12 +74,12 @@ static void CG_RegisterVariables() {
 	cg_showServerDebugPrints = NewCvar( "cg_showServerDebugPrints", "0", CvarFlag_Archive );
 }
 
-const char * PlayerName( int i ) {
+Span< const char > PlayerName( int i ) {
 	if( i < 0 || i >= client_gs.maxclients ) {
 		return "";
 	}
 
-	return client_gs.gameState.players[ i ].name;
+	return MakeSpan( client_gs.gameState.players[ i ].name );
 }
 
 void CG_Reset() {

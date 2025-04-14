@@ -772,7 +772,7 @@ void DrawEntities() {
 			case ET_CINEMATIC_MAPNAME: {
 				TempAllocator temp = cls.frame_arena.temp();
 				Span< const char > big = ToUpperASCII( &temp, cl.map->name );
-				Draw3DText( cgs.fontBoldItalic, 256.0f, big, cent->current.origin, cent->current.angles, white.vec4 );
+				Draw3DText( cls.fontBoldItalic, 256.0f, big, cent->current.origin, cent->current.angles, white.vec4 );
 			} break;
 
 			case ET_MAPMODEL:

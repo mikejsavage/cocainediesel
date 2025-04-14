@@ -215,7 +215,7 @@ static bool SV_RunGameFrame( int msec ) {
 	if( is_dedicated_server && !sentFragments && !refreshSnapshot ) {
 		int sleeptime = Min2( WORLDFRAMETIME - ( accTime + 1 ), sv.nextSnapTime - ( svs.gametime + 1 ) );
 		if( sleeptime > 0 ) {
-			TracyZoneScopedN( "WaitForSockets" );
+			TracyZoneScopedNC( "WaitForSockets", 0xff0000 );
 			TempAllocator temp = svs.frame_arena.temp();
 			WaitForSockets( &temp, &svs.socket, 1, sleeptime, WaitForSocketWriteable_No, NULL );
 		}

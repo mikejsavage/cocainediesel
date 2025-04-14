@@ -7,7 +7,9 @@
 
 #include "imgui/imgui.h"
 
+#include "sdl/SDL3/SDL_scancode.h"
 #include "sdl/SDL3/SDL_keycode.h"
+#include "sdl/SDL3/SDL_keyboard.h"
 
 static Span< char > binds[ Key_Count ];
 static bool pressed[ Key_Count ];
@@ -15,127 +17,127 @@ static bool pressed[ Key_Count ];
 struct KeyInfo {
 	Key key;
 	ImGuiKey imgui;
-	Optional< SDL_Keycode > sdl; // don't use SDLK_UNKNOWN because GLFW would emit GLFW_KEY_UNKNOWN so maybe SDL does too
-	Span< const char > name;
+	Optional< SDL_Scancode > sdl; // don't use SDLK_UNKNOWN because GLFW would emit GLFW_KEY_UNKNOWN so maybe SDL does too
 	Span< const char > config_name;
+	Span< const char > name;
 };
 
 static constexpr KeyInfo keys[] = {
-	{ Key_Tab,            ImGuiKey_Tab,            SDLK_TAB,          "Tab",              "TAB" },
-	{ Key_Enter,          ImGuiKey_Enter,          SDLK_RETURN,       "Enter",            "ENTER" },
-	{ Key_Escape,         ImGuiKey_Escape,         SDLK_ESCAPE,       "Escape",           "ESCAPE" },
-	{ Key_Space,          ImGuiKey_Space,          SDLK_SPACE,        "Space",            "SPACE" },
-	{ Key_Backspace,      ImGuiKey_Backspace,      SDLK_BACKSPACE,    "Backspace",        "BACKSPACE" },
-	{ Key_CapsLock,       ImGuiKey_CapsLock,       SDLK_CAPSLOCK,     "Caps Lock",        "CAPSLOCK" },
-	{ Key_ScrollLock,     ImGuiKey_ScrollLock,     SDLK_SCROLLLOCK,   "Scroll Lock",      "SCROLLLOCK" },
-	{ Key_Pause,          ImGuiKey_Pause,          SDLK_PAUSE,        "Pause",            "PAUSE" },
+	{ Key_Tab,            ImGuiKey_Tab,            SDL_SCANCODE_TAB,          "TAB" },
+	{ Key_Enter,          ImGuiKey_Enter,          SDL_SCANCODE_RETURN,       "ENTER" },
+	{ Key_Escape,         ImGuiKey_Escape,         SDL_SCANCODE_ESCAPE,       "ESCAPE" },
+	{ Key_Space,          ImGuiKey_Space,          SDL_SCANCODE_SPACE,        "SPACE" },
+	{ Key_Backspace,      ImGuiKey_Backspace,      SDL_SCANCODE_BACKSPACE,    "BACKSPACE" },
+	{ Key_CapsLock,       ImGuiKey_CapsLock,       SDL_SCANCODE_CAPSLOCK,     "CAPSLOCK" },
+	{ Key_ScrollLock,     ImGuiKey_ScrollLock,     SDL_SCANCODE_SCROLLLOCK,   "SCROLLLOCK" },
+	{ Key_Pause,          ImGuiKey_Pause,          SDL_SCANCODE_PAUSE,        "PAUSE" },
 
-	{ Key_UpArrow,        ImGuiKey_UpArrow,        SDLK_UP,           "Up Arrow",         "UPARROW" },
-	{ Key_DownArrow,      ImGuiKey_DownArrow,      SDLK_DOWN,         "Down Arrow",       "DOWNARROW" },
-	{ Key_LeftArrow,      ImGuiKey_LeftArrow,      SDLK_LEFT,         "Left Arrow",       "LEFTARROW" },
-	{ Key_RightArrow,     ImGuiKey_RightArrow,     SDLK_RIGHT,        "Right Arrow",      "RIGHTARROW" },
+	{ Key_UpArrow,        ImGuiKey_UpArrow,        SDL_SCANCODE_UP,           "UPARROW" },
+	{ Key_DownArrow,      ImGuiKey_DownArrow,      SDL_SCANCODE_DOWN,         "DOWNARROW" },
+	{ Key_LeftArrow,      ImGuiKey_LeftArrow,      SDL_SCANCODE_LEFT,         "LEFTARROW" },
+	{ Key_RightArrow,     ImGuiKey_RightArrow,     SDL_SCANCODE_RIGHT,        "RIGHTARROW" },
 
-	{ Key_Insert,         ImGuiKey_Insert,         SDLK_INSERT,       "Insert",           "INSERT" },
-	{ Key_Delete,         ImGuiKey_Delete,         SDLK_DELETE,       "Delete",           "DEL" },
-	{ Key_PageUp,         ImGuiKey_PageUp,         SDLK_PAGEUP,       "Page Up",          "PGUP" },
-	{ Key_PageDown,       ImGuiKey_PageDown,       SDLK_PAGEDOWN,     "Page Down",        "PGDN" },
-	{ Key_Home,           ImGuiKey_Home,           SDLK_HOME,         "Home",             "HOME" },
-	{ Key_End,            ImGuiKey_End,            SDLK_END,          "End",              "END" },
+	{ Key_Insert,         ImGuiKey_Insert,         SDL_SCANCODE_INSERT,       "INSERT" },
+	{ Key_Delete,         ImGuiKey_Delete,         SDL_SCANCODE_DELETE,       "DEL" },
+	{ Key_PageUp,         ImGuiKey_PageUp,         SDL_SCANCODE_PAGEUP,       "PGUP" },
+	{ Key_PageDown,       ImGuiKey_PageDown,       SDL_SCANCODE_PAGEDOWN,     "PGDN" },
+	{ Key_Home,           ImGuiKey_Home,           SDL_SCANCODE_HOME,         "HOME" },
+	{ Key_End,            ImGuiKey_End,            SDL_SCANCODE_END,          "END" },
 
-	{ Key_LeftAlt,        ImGuiKey_LeftAlt,        SDLK_LALT,         "Left Alt",         "LALT" },
-	{ Key_RightAlt,       ImGuiKey_RightAlt,       SDLK_RALT,         "Right Alt",        "RALT" },
-	{ Key_LeftCtrl,       ImGuiKey_LeftCtrl,       SDLK_LCTRL,        "Left Ctrl",        "LCTRL" },
-	{ Key_RightCtrl,      ImGuiKey_RightCtrl,      SDLK_RCTRL,        "Right Ctrl",       "RCTRL" },
-	{ Key_LeftShift,      ImGuiKey_LeftShift,      SDLK_LSHIFT,       "Left Shift",       "LSHIFT" },
-	{ Key_RightShift,     ImGuiKey_RightShift,     SDLK_RSHIFT,       "Right Shift",      "RSHIFT" },
+	{ Key_LeftAlt,        ImGuiKey_LeftAlt,        SDL_SCANCODE_LALT,         "LALT" },
+	{ Key_RightAlt,       ImGuiKey_RightAlt,       SDL_SCANCODE_RALT,         "RALT" },
+	{ Key_LeftCtrl,       ImGuiKey_LeftCtrl,       SDL_SCANCODE_LCTRL,        "LCTRL" },
+	{ Key_RightCtrl,      ImGuiKey_RightCtrl,      SDL_SCANCODE_RCTRL,        "RCTRL" },
+	{ Key_LeftShift,      ImGuiKey_LeftShift,      SDL_SCANCODE_LSHIFT,       "LSHIFT" },
+	{ Key_RightShift,     ImGuiKey_RightShift,     SDL_SCANCODE_RSHIFT,       "RSHIFT" },
 
-	{ Key_F1,             ImGuiKey_F1,             SDLK_F1,           "F1",               "F1" },
-	{ Key_F2,             ImGuiKey_F2,             SDLK_F2,           "F2",               "F2" },
-	{ Key_F3,             ImGuiKey_F3,             SDLK_F3,           "F3",               "F3" },
-	{ Key_F4,             ImGuiKey_F4,             SDLK_F4,           "F4",               "F4" },
-	{ Key_F5,             ImGuiKey_F5,             SDLK_F5,           "F5",               "F5" },
-	{ Key_F6,             ImGuiKey_F6,             SDLK_F6,           "F6",               "F6" },
-	{ Key_F7,             ImGuiKey_F7,             SDLK_F7,           "F7",               "F7" },
-	{ Key_F8,             ImGuiKey_F8,             SDLK_F8,           "F8",               "F8" },
-	{ Key_F9,             ImGuiKey_F9,             SDLK_F9,           "F9",               "F9" },
-	{ Key_F10,            ImGuiKey_F10,            SDLK_F10,          "F10",              "F10" },
-	{ Key_F11,            ImGuiKey_F11,            SDLK_F11,          "F11",              "F11" },
-	{ Key_F12,            ImGuiKey_F12,            SDLK_F12,          "F12",              "F12" },
+	{ Key_F1,             ImGuiKey_F1,             SDL_SCANCODE_F1,           "F1" },
+	{ Key_F2,             ImGuiKey_F2,             SDL_SCANCODE_F2,           "F2" },
+	{ Key_F3,             ImGuiKey_F3,             SDL_SCANCODE_F3,           "F3" },
+	{ Key_F4,             ImGuiKey_F4,             SDL_SCANCODE_F4,           "F4" },
+	{ Key_F5,             ImGuiKey_F5,             SDL_SCANCODE_F5,           "F5" },
+	{ Key_F6,             ImGuiKey_F6,             SDL_SCANCODE_F6,           "F6" },
+	{ Key_F7,             ImGuiKey_F7,             SDL_SCANCODE_F7,           "F7" },
+	{ Key_F8,             ImGuiKey_F8,             SDL_SCANCODE_F8,           "F8" },
+	{ Key_F9,             ImGuiKey_F9,             SDL_SCANCODE_F9,           "F9" },
+	{ Key_F10,            ImGuiKey_F10,            SDL_SCANCODE_F10,          "F10" },
+	{ Key_F11,            ImGuiKey_F11,            SDL_SCANCODE_F11,          "F11" },
+	{ Key_F12,            ImGuiKey_F12,            SDL_SCANCODE_F12,          "F12" },
 
-	{ Key_0,              ImGuiKey_0,              SDLK_0,            "0",                "0" },
-	{ Key_1,              ImGuiKey_1,              SDLK_1,            "1",                "1" },
-	{ Key_2,              ImGuiKey_2,              SDLK_2,            "2",                "2" },
-	{ Key_3,              ImGuiKey_3,              SDLK_3,            "3",                "3" },
-	{ Key_4,              ImGuiKey_4,              SDLK_4,            "4",                "4" },
-	{ Key_5,              ImGuiKey_5,              SDLK_5,            "5",                "5" },
-	{ Key_6,              ImGuiKey_6,              SDLK_6,            "6",                "6" },
-	{ Key_7,              ImGuiKey_7,              SDLK_7,            "7",                "7" },
-	{ Key_8,              ImGuiKey_8,              SDLK_8,            "8",                "8" },
-	{ Key_9,              ImGuiKey_9,              SDLK_9,            "9",                "9" },
+	{ Key_0,              ImGuiKey_0,              SDL_SCANCODE_0,            "0" },
+	{ Key_1,              ImGuiKey_1,              SDL_SCANCODE_1,            "1" },
+	{ Key_2,              ImGuiKey_2,              SDL_SCANCODE_2,            "2" },
+	{ Key_3,              ImGuiKey_3,              SDL_SCANCODE_3,            "3" },
+	{ Key_4,              ImGuiKey_4,              SDL_SCANCODE_4,            "4" },
+	{ Key_5,              ImGuiKey_5,              SDL_SCANCODE_5,            "5" },
+	{ Key_6,              ImGuiKey_6,              SDL_SCANCODE_6,            "6" },
+	{ Key_7,              ImGuiKey_7,              SDL_SCANCODE_7,            "7" },
+	{ Key_8,              ImGuiKey_8,              SDL_SCANCODE_8,            "8" },
+	{ Key_9,              ImGuiKey_9,              SDL_SCANCODE_9,            "9" },
 
-	{ Key_A,              ImGuiKey_A,              SDLK_A,            "A",                "A" },
-	{ Key_B,              ImGuiKey_B,              SDLK_B,            "B",                "B" },
-	{ Key_C,              ImGuiKey_C,              SDLK_C,            "C",                "C" },
-	{ Key_D,              ImGuiKey_D,              SDLK_D,            "D",                "D" },
-	{ Key_E,              ImGuiKey_E,              SDLK_E,            "E",                "E" },
-	{ Key_F,              ImGuiKey_F,              SDLK_F,            "F",                "F" },
-	{ Key_G,              ImGuiKey_G,              SDLK_G,            "G",                "G" },
-	{ Key_H,              ImGuiKey_H,              SDLK_H,            "H",                "H" },
-	{ Key_I,              ImGuiKey_I,              SDLK_I,            "I",                "I" },
-	{ Key_J,              ImGuiKey_J,              SDLK_J,            "J",                "J" },
-	{ Key_K,              ImGuiKey_K,              SDLK_K,            "K",                "K" },
-	{ Key_L,              ImGuiKey_L,              SDLK_L,            "L",                "L" },
-	{ Key_M,              ImGuiKey_M,              SDLK_M,            "M",                "M" },
-	{ Key_N,              ImGuiKey_N,              SDLK_N,            "N",                "N" },
-	{ Key_O,              ImGuiKey_O,              SDLK_O,            "O",                "O" },
-	{ Key_P,              ImGuiKey_P,              SDLK_P,            "P",                "P" },
-	{ Key_Q,              ImGuiKey_Q,              SDLK_Q,            "Q",                "Q" },
-	{ Key_R,              ImGuiKey_R,              SDLK_R,            "R",                "R" },
-	{ Key_S,              ImGuiKey_S,              SDLK_S,            "S",                "S" },
-	{ Key_T,              ImGuiKey_T,              SDLK_T,            "T",                "T" },
-	{ Key_U,              ImGuiKey_U,              SDLK_U,            "U",                "U" },
-	{ Key_V,              ImGuiKey_V,              SDLK_V,            "V",                "V" },
-	{ Key_W,              ImGuiKey_W,              SDLK_W,            "W",                "W" },
-	{ Key_X,              ImGuiKey_X,              SDLK_X,            "X",                "X" },
-	{ Key_Y,              ImGuiKey_Y,              SDLK_Y,            "Y",                "Y" },
-	{ Key_Z,              ImGuiKey_Z,              SDLK_Z,            "Z",                "Z" },
+	{ Key_A,              ImGuiKey_A,              SDL_SCANCODE_A,            "A" },
+	{ Key_B,              ImGuiKey_B,              SDL_SCANCODE_B,            "B" },
+	{ Key_C,              ImGuiKey_C,              SDL_SCANCODE_C,            "C" },
+	{ Key_D,              ImGuiKey_D,              SDL_SCANCODE_D,            "D" },
+	{ Key_E,              ImGuiKey_E,              SDL_SCANCODE_E,            "E" },
+	{ Key_F,              ImGuiKey_F,              SDL_SCANCODE_F,            "F" },
+	{ Key_G,              ImGuiKey_G,              SDL_SCANCODE_G,            "G" },
+	{ Key_H,              ImGuiKey_H,              SDL_SCANCODE_H,            "H" },
+	{ Key_I,              ImGuiKey_I,              SDL_SCANCODE_I,            "I" },
+	{ Key_J,              ImGuiKey_J,              SDL_SCANCODE_J,            "J" },
+	{ Key_K,              ImGuiKey_K,              SDL_SCANCODE_K,            "K" },
+	{ Key_L,              ImGuiKey_L,              SDL_SCANCODE_L,            "L" },
+	{ Key_M,              ImGuiKey_M,              SDL_SCANCODE_M,            "M" },
+	{ Key_N,              ImGuiKey_N,              SDL_SCANCODE_N,            "N" },
+	{ Key_O,              ImGuiKey_O,              SDL_SCANCODE_O,            "O" },
+	{ Key_P,              ImGuiKey_P,              SDL_SCANCODE_P,            "P" },
+	{ Key_Q,              ImGuiKey_Q,              SDL_SCANCODE_Q,            "Q" },
+	{ Key_R,              ImGuiKey_R,              SDL_SCANCODE_R,            "R" },
+	{ Key_S,              ImGuiKey_S,              SDL_SCANCODE_S,            "S" },
+	{ Key_T,              ImGuiKey_T,              SDL_SCANCODE_T,            "T" },
+	{ Key_U,              ImGuiKey_U,              SDL_SCANCODE_U,            "U" },
+	{ Key_V,              ImGuiKey_V,              SDL_SCANCODE_V,            "V" },
+	{ Key_W,              ImGuiKey_W,              SDL_SCANCODE_W,            "W" },
+	{ Key_X,              ImGuiKey_X,              SDL_SCANCODE_X,            "X" },
+	{ Key_Y,              ImGuiKey_Y,              SDL_SCANCODE_Y,            "Y" },
+	{ Key_Z,              ImGuiKey_Z,              SDL_SCANCODE_Z,            "Z" },
 
-	{ Key_Apostrophe,     ImGuiKey_Apostrophe,     SDLK_APOSTROPHE,   "'",                "'" },
-	{ Key_Comma,          ImGuiKey_Comma,          SDLK_COMMA,        ",",                "," },
-	{ Key_Minus,          ImGuiKey_Minus,          SDLK_MINUS,        "-",                "-" },
-	{ Key_Period,         ImGuiKey_Period,         SDLK_PERIOD,       ".",                "." },
-	{ Key_Slash,          ImGuiKey_Slash,          SDLK_SLASH,        "/",                "/" },
-	{ Key_Semicolon,      ImGuiKey_Semicolon,      SDLK_SEMICOLON,    ";",                ";" },
-	{ Key_Equal,          ImGuiKey_Equal,          SDLK_EQUALS,       "=",                "=" },
-	{ Key_LeftBracket,    ImGuiKey_LeftBracket,    SDLK_LEFTBRACKET,  "[",                "[" },
-	{ Key_Backslash,      ImGuiKey_Backslash,      SDLK_BACKSLASH,    "\\",               "\\" },
-	{ Key_RightBracket,   ImGuiKey_RightBracket,   SDLK_RIGHTBRACKET, "]",                "]" },
+	{ Key_Apostrophe,     ImGuiKey_Apostrophe,     SDL_SCANCODE_APOSTROPHE,   "'" },
+	{ Key_Comma,          ImGuiKey_Comma,          SDL_SCANCODE_COMMA,        "," },
+	{ Key_Minus,          ImGuiKey_Minus,          SDL_SCANCODE_MINUS,        "-" },
+	{ Key_Period,         ImGuiKey_Period,         SDL_SCANCODE_PERIOD,       "." },
+	{ Key_Slash,          ImGuiKey_Slash,          SDL_SCANCODE_SLASH,        "/" },
+	{ Key_Semicolon,      ImGuiKey_Semicolon,      SDL_SCANCODE_SEMICOLON,    ";" },
+	{ Key_Equal,          ImGuiKey_Equal,          SDL_SCANCODE_EQUALS,       "=" },
+	{ Key_LeftBracket,    ImGuiKey_LeftBracket,    SDL_SCANCODE_LEFTBRACKET,  "[" },
+	{ Key_Backslash,      ImGuiKey_Backslash,      SDL_SCANCODE_BACKSLASH,    "\\" },
+	{ Key_RightBracket,   ImGuiKey_RightBracket,   SDL_SCANCODE_RIGHTBRACKET, "]" },
 
-	{ Key_KeypadDecimal,  ImGuiKey_KeypadDecimal,  SDLK_KP_DECIMAL,   "Keypad Decimal",   "KP_DEL" },
-	{ Key_KeypadDivide,   ImGuiKey_KeypadDivide,   SDLK_KP_DIVIDE,    "Keypad Divide",    "KP_SLASH" },
-	{ Key_KeypadMultiply, ImGuiKey_KeypadMultiply, SDLK_KP_MULTIPLY,  "Keypad Multiply",  "KP_MULT" },
-	{ Key_KeypadSubtract, ImGuiKey_KeypadSubtract, SDLK_KP_MINUS,     "Keypad Subtract",  "KP_MINUS" },
-	{ Key_KeypadAdd,      ImGuiKey_KeypadAdd,      SDLK_KP_PLUS,      "Keypad Add",       "KP_PLUS" },
-	{ Key_KeypadEnter,    ImGuiKey_KeypadEnter,    SDLK_KP_ENTER,     "Keypad Enter",     "KP_ENTER" },
-	{ Key_KeypadEqual,    ImGuiKey_KeypadEqual,    SDLK_KP_EQUALS,    "Keypad Equal",     "KP_EQUAL" },
-	{ Key_Keypad0,        ImGuiKey_Keypad0,        SDLK_KP_0,         "Keypad 0",         "KP_INS" },
-	{ Key_Keypad1,        ImGuiKey_Keypad1,        SDLK_KP_1,         "Keypad 1",         "KP_END" },
-	{ Key_Keypad2,        ImGuiKey_Keypad2,        SDLK_KP_2,         "Keypad 2",         "KP_DOWNARROW" },
-	{ Key_Keypad3,        ImGuiKey_Keypad3,        SDLK_KP_3,         "Keypad 3",         "KP_PGDN" },
-	{ Key_Keypad4,        ImGuiKey_Keypad4,        SDLK_KP_4,         "Keypad 4",         "KP_LEFTARROW" },
-	{ Key_Keypad5,        ImGuiKey_Keypad5,        SDLK_KP_5,         "Keypad 5",         "KP_5" },
-	{ Key_Keypad6,        ImGuiKey_Keypad6,        SDLK_KP_6,         "Keypad 6",         "KP_RIGHTARROW" },
-	{ Key_Keypad7,        ImGuiKey_Keypad7,        SDLK_KP_7,         "Keypad 7",         "KP_HOME" },
-	{ Key_Keypad8,        ImGuiKey_Keypad8,        SDLK_KP_8,         "Keypad 8",         "KP_UPARROW" },
-	{ Key_Keypad9,        ImGuiKey_Keypad9,        SDLK_KP_9,         "Keypad 9",         "KP_PGUP" },
+	{ Key_KeypadDecimal,  ImGuiKey_KeypadDecimal,  SDL_SCANCODE_KP_DECIMAL,   "KP_DEL" },
+	{ Key_KeypadDivide,   ImGuiKey_KeypadDivide,   SDL_SCANCODE_KP_DIVIDE,    "KP_SLASH" },
+	{ Key_KeypadMultiply, ImGuiKey_KeypadMultiply, SDL_SCANCODE_KP_MULTIPLY,  "KP_MULT" },
+	{ Key_KeypadSubtract, ImGuiKey_KeypadSubtract, SDL_SCANCODE_KP_MINUS,     "KP_MINUS" },
+	{ Key_KeypadAdd,      ImGuiKey_KeypadAdd,      SDL_SCANCODE_KP_PLUS,      "KP_PLUS" },
+	{ Key_KeypadEnter,    ImGuiKey_KeypadEnter,    SDL_SCANCODE_KP_ENTER,     "KP_ENTER" },
+	{ Key_KeypadEqual,    ImGuiKey_KeypadEqual,    SDL_SCANCODE_KP_EQUALS,    "KP_EQUAL" },
+	{ Key_Keypad0,        ImGuiKey_Keypad0,        SDL_SCANCODE_KP_0,         "KP_INS" },
+	{ Key_Keypad1,        ImGuiKey_Keypad1,        SDL_SCANCODE_KP_1,         "KP_END" },
+	{ Key_Keypad2,        ImGuiKey_Keypad2,        SDL_SCANCODE_KP_2,         "KP_DOWNARROW" },
+	{ Key_Keypad3,        ImGuiKey_Keypad3,        SDL_SCANCODE_KP_3,         "KP_PGDN" },
+	{ Key_Keypad4,        ImGuiKey_Keypad4,        SDL_SCANCODE_KP_4,         "KP_LEFTARROW" },
+	{ Key_Keypad5,        ImGuiKey_Keypad5,        SDL_SCANCODE_KP_5,         "KP_5" },
+	{ Key_Keypad6,        ImGuiKey_Keypad6,        SDL_SCANCODE_KP_6,         "KP_RIGHTARROW" },
+	{ Key_Keypad7,        ImGuiKey_Keypad7,        SDL_SCANCODE_KP_7,         "KP_HOME" },
+	{ Key_Keypad8,        ImGuiKey_Keypad8,        SDL_SCANCODE_KP_8,         "KP_UPARROW" },
+	{ Key_Keypad9,        ImGuiKey_Keypad9,        SDL_SCANCODE_KP_9,         "KP_PGUP" },
 
-	{ Key_MouseLeft,      ImGuiKey_MouseLeft,      NONE,              "Left Mouse",       "MOUSE1" },
-	{ Key_MouseRight,     ImGuiKey_MouseRight,     NONE,              "Right Mouse",      "MOUSE2" },
-	{ Key_MouseMiddle,    ImGuiKey_MouseMiddle,    NONE,              "Middle Mouse",     "MOUSE3" },
-	{ Key_Mouse4,         ImGuiKey_MouseX1,        NONE,              "Mouse 4",          "MOUSE4" },
-	{ Key_Mouse5,         ImGuiKey_MouseX2,        NONE,              "Mouse 5",          "MOUSE5" },
-	{ Key_MouseWheelUp,   ImGuiKey_None,           NONE,              "Mouse Wheel Up",   "MWHEELUP" },
-	{ Key_MouseWheelDown, ImGuiKey_None,           NONE,              "Mouse Wheel Down", "MWHEELDOWN" },
+	{ Key_MouseLeft,      ImGuiKey_MouseLeft,      NONE,                      "MOUSE1",           "Left Mouse" },
+	{ Key_MouseRight,     ImGuiKey_MouseRight,     NONE,                      "MOUSE2",           "Right Mouse" },
+	{ Key_MouseMiddle,    ImGuiKey_MouseMiddle,    NONE,                      "MOUSE3",           "Middle Mouse" },
+	{ Key_Mouse4,         ImGuiKey_MouseX1,        NONE,                      "MOUSE4",           "Mouse 4" },
+	{ Key_Mouse5,         ImGuiKey_MouseX2,        NONE,                      "MOUSE5",           "Mouse 5" },
+	{ Key_MouseWheelUp,   ImGuiKey_None,           NONE,                      "MWHEELUP",         "Mouse Wheel Up" },
+	{ Key_MouseWheelDown, ImGuiKey_None,           NONE,                      "MWHEELDOWN",       "Mouse Wheel Down" },
 };
 
 static Optional< Key > KeyFromName( Span< const char > name ) {
@@ -281,7 +283,10 @@ static KeyInfo GetKeyInfo( Key key ) {
 }
 
 Span< const char > KeyName( Key key ) {
-	return GetKeyInfo( key ).name;
+	KeyInfo info = GetKeyInfo( key );
+	return info.sdl.exists ?
+		MakeSpan( SDL_GetKeyName( SDL_GetKeyFromScancode( GetKeyInfo( key ).sdl.value, SDL_KMOD_NONE, false ) ) ) :
+		info.name;
 }
 
 
@@ -310,7 +315,7 @@ ImGuiKey KeyToImGui( Key key ) {
 	return GetKeyInfo( key ).imgui;
 }
 
-Optional< Key > KeyFromSDL( SDL_Keycode sdl ) {
+Optional< Key > KeyFromSDL( SDL_Scancode sdl ) {
 	for( const KeyInfo & info : keys ) {
 		if( info.sdl == sdl ) {
 			return info.key;

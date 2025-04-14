@@ -53,8 +53,26 @@ Time operator%( Time lhs, Time rhs ) { return { lhs.flicks % rhs.flicks }; }
 void operator+=( Time & lhs, Time rhs ) { lhs = lhs + rhs; }
 void operator-=( Time & lhs, Time rhs ) { lhs = lhs - rhs; }
 
+// need a custom Lerp for times because the generic implementation
+// scales its inputs, which can be arbitrarily large and hit
+// AssertSmallEnoughToCastToFloat
+Time Lerp( Time a, float t, Time b ) {
+	return a + ( b - a ) * t;
+}
+
+float Unlerp01( Time lo, Time x, Time hi ) {
+	x = Clamp( lo, x, hi );
+	return ToSeconds( x - lo ) / ToSeconds( hi - lo );
+}
+
 float Sin( Time t, Time period ) {
 	AssertSmallEnoughToCastToFloat( period );
 	t = t % period;
 	return sinf( float( t.flicks ) / float( period.flicks ) * PI * 2.0f );
+}
+
+float Sawtooth01( Time t, Time period ) {
+	AssertSmallEnoughToCastToFloat( period );
+	t = t % period;
+	return float( t.flicks ) / float( period.flicks );
 }

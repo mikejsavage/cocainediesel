@@ -68,6 +68,7 @@ obj_cxxflags( "source/client/cl_sdl.cpp", "-I libs/sdl" )
 obj_cxxflags( "source/client/keys.cpp", "-I libs/sdl" )
 obj_cxxflags( "source/client/renderer/generic_backend.cpp", "-Ilibs/metal-cpp" )
 obj_cxxflags( "source/client/renderer/metal_backend.cpp", "-Ilibs/metal-cpp" )
+obj_cxxflags( "source/client/platform/macos_client.cpp", "-Ilibs/metal-cpp" )
 
 obj_cxxflags( "source/qcommon/linear_algebra_kernels.cpp", "-O2" )
 

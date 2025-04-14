@@ -86,7 +86,7 @@ Mesh FullscreenMesh();
 // PipelineState MaterialToPipelineState( const Material * material, Vec4 color = white.vec4, bool skinned = false, GPUMaterial * gpu_material = NULL );
 
 void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color = white.vec4 );
-void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color );
+void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color = white.vec4 );
 // void DrawRotatedBox( float x, float y, float w, float h, float angle, const Material * material, RGBA8 color );
 
 const char * ShadowQualityToString( ShadowQuality mode );

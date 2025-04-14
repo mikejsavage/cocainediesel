@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "client/client.h"
+#include "client/clay_init.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/shader_shared.h"
 #include "cgame/cg_local.h"
@@ -199,8 +200,18 @@ static void SubmitPostprocessPass() {
 	EncodeDrawCall( RenderPass_Postprocessing, pipeline, FullscreenMesh() );
 }
 
+void MaybeResetShadertoyTime( bool respawned ) {
+	bool early_reset = respawned && cls.shadertoy_time > Hours( 1 );
+	bool force_reset = cls.shadertoy_time > Hours( 1.5f );
+	if( early_reset || force_reset ) {
+		cls.shadertoy_time = { };
+	}
+}
+
 void SCR_UpdateScreen() {
 	CL_ForceVsync( cls.state == CA_DISCONNECTED );
+
+	MaybeResetShadertoyTime( false );
 
 	CL_ImGuiBeginFrame();
 
@@ -223,5 +234,6 @@ void SCR_UpdateScreen() {
 
 	UI_Refresh();
 
+	ClaySubmitFrame();
 	CL_ImGuiEndFrame();
 }

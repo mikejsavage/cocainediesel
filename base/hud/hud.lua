@@ -746,8 +746,7 @@ return function( state )
 
 		DrawLagging( state )
 
-		cd.drawObituaries( state.viewport_width - 10, 2, state.viewport_width / 10, state.viewport_width / 10,
-						   state.viewport_height / 20, state.viewport_width / 95 )
+		cd.drawObituaries( state.viewport_width - 10, 2, state.viewport_width / 10, state.viewport_width / 10, state.viewport_height / 20, state.viewport_width / 95 )
 	end
 
 	DrawScoreboard( state, offset, padding )

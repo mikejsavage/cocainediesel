@@ -10,7 +10,7 @@
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
 
-#include "nanosort/nanosort.hpp"
+#include <algorithm>
 
 static PoolHandle< Texture > atlas_texture;
 static PoolHandle< BindGroup > atlas_bind_group;
@@ -40,18 +40,20 @@ void CL_InitImGui() {
 	io.ConfigInputTrickleEventQueue = false; // so we can open the game menu with escape
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
+	float scale = GetContentScale();
+
 	{
-		AddFontAsset( "fonts/Decalotype-Bold.ttf", 18.0f );
-		cls.huge_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 128.0f );
-		cls.huge_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 128.0f );
-		cls.large_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 64.0f );
-		cls.big_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 48.0f );
-		cls.medium_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 28.0f );
-		cls.medium_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 28.0f );
-		cls.big_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 48.0f );
-		cls.large_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 64.0f );
-		cls.console_font = AddFontAsset( "fonts/Decalotype-Bold.ttf", 14.0f );
-		cls.license_italic_font = AddFontAsset( "fonts/sofachrome-rg-it.otf", 128.0f );
+		AddFontAsset( "fonts/Decalotype-Bold.ttf", 18.0f * scale );
+		cls.huge_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 128.0f * scale );
+		cls.huge_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 128.0f * scale );
+		cls.large_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 64.0f * scale );
+		cls.big_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 48.0f * scale );
+		cls.medium_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 28.0f * scale );
+		cls.medium_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 28.0f * scale );
+		cls.big_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 48.0f * scale );
+		cls.large_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 64.0f * scale );
+		cls.console_font = AddFontAsset( "fonts/Decalotype-Bold.ttf", 14.0f * scale );
+		cls.license_italic_font = AddFontAsset( "fonts/sofachrome-rg-it.otf", 128.0f * scale );
 
 		io.Fonts->Build();
 
@@ -81,6 +83,7 @@ void CL_InitImGui() {
 		style.WindowPadding = ImVec2( 32, 32 );
 		style.WindowBorderSize = 0;
 		style.PopupBorderSize = 0;
+		style.DisabledAlpha = 0.125f;
 
 		style.Colors[ ImGuiCol_Button ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
 		style.Colors[ ImGuiCol_ButtonHovered ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
@@ -112,6 +115,8 @@ void CL_InitImGui() {
 
 		style.Colors[ ImGuiCol_WindowBg ] = ImColor( 0x1a, 0x1a, 0x1a );
 		style.ItemSpacing.y = 16;
+
+		style.ScaleAllSizes( scale );
 	}
 }
 
@@ -229,7 +234,7 @@ void CL_ImGuiEndFrame() {
 	// ImGui::ShowDemoWindow();
 
 	ImGuiContext * ctx = ImGui::GetCurrentContext();
-	nanosort( ctx->Windows.begin(), ctx->Windows.end(),
+	std::stable_sort( ctx->Windows.begin(), ctx->Windows.end(),
 		[]( const ImGuiWindow * a, const ImGuiWindow * b ) {
 			return a->BeginOrderWithinContext < b->BeginOrderWithinContext;
 		}
@@ -261,6 +266,17 @@ namespace ImGui {
 	void PushID( Span< const char > id ) {
 		ImGui::PushID( id.begin(), id.end() );
 	}
+
+	bool IsItemHoveredThisFrame() {
+		// this function has two nuances:
+		// - we need a nonzero delay or ImGui doesn't start the timer at all
+		// - the timer can either be equal to DeltaTime if you start hovering, or 0 if you switch from hovering some other item
+		float & delay = ImGui::GetStyle().HoverDelayShort;
+		float old_delay = delay;
+		delay = 0.00001f;
+		defer { delay = old_delay; };
+		return ImGui::IsItemHovered( ImGuiHoveredFlags_DelayShort | ImGuiHoveredFlags_NoSharedDelay ) && ImGui::GetCurrentContext()->HoverItemDelayTimer <= ImGui::GetIO().DeltaTime;
+	}
 }
 
 ImGuiColorToken::ImGuiColorToken( u8 r, u8 g, u8 b, u8 a ) {
@@ -284,34 +300,6 @@ void CenterTextY( Span< const char > str, float height ) {
 	ImGui::Text( str );
 }
 
-void CellCenter( float item_width ) {
-	float cell_width = ImGui::GetContentRegionAvail().x;
-	ImGui::SetCursorPosX( ImGui::GetCursorPosX() + 0.5f * ( cell_width - item_width ) );
-}
-
-void CellCenterText( Span< const char > str ) {
-	CellCenter( ImGui::CalcTextSize( str ).x );
-	ImGui::Text( str );
-}
-
-void ColumnCenterText( Span< const char > str ) {
-	float width = ImGui::CalcTextSize( str ).x;
-	ImGui::SetCursorPosX( ImGui::GetColumnOffset() + 0.5f * ( ImGui::GetColumnWidth() - width ) );
-	ImGui::Text( str );
-}
-
-void ColumnRightText( Span< const char > str ) {
-	float width = ImGui::CalcTextSize( str ).x;
-	ImGui::SetCursorPosX( ImGui::GetColumnOffset() + ImGui::GetColumnWidth() - width );
-	ImGui::Text( str );
-}
-
-void WindowCenterTextXY( Span< const char > str ) {
-	Vec2 text_size = ImGui::CalcTextSize( str );
-	ImGui::SetCursorPos( 0.5f * ( ImGui::GetWindowSize() - text_size ) );
-	ImGui::Text( str );
-}
-
 Vec4 CustomAttentionGettingColor( Vec4 from, Vec4 to, Time period ) {
 	float t = Sin( cls.monotonicTime, period ) * 0.5f + 0.5f;
 	return Lerp( from, t, to );
@@ -322,7 +310,7 @@ Vec4 AttentionGettingColor() {
 }
 
 Vec4 PlantableColor() {
-	return CustomAttentionGettingColor( dark.vec4, sRGBToLinear( diesel_green.rgba8 ), Milliseconds( 125 ) );
+	return CustomAttentionGettingColor( sRGBToLinear( diesel_green.rgba8 ) * 0.8f, sRGBToLinear( diesel_green.rgba8 ), Milliseconds( 125 ) );
 }
 
 Vec4 AttentionGettingRed() {

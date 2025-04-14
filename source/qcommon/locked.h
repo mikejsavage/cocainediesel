@@ -4,13 +4,13 @@
 
 template< typename T >
 struct Locked {
-	Mutex * mutex;
+	Opaque< Mutex > mutex;
 	T data;
 };
 
 template< typename T, typename F >
 void DoUnderLock( Locked< T > * locked, F f ) {
-	Lock( locked->mutex );
+	Lock( &locked->mutex );
 	f( &locked->data );
-	Unlock( locked->mutex );
+	Unlock( &locked->mutex );
 }

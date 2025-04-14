@@ -13,6 +13,9 @@
 extern "C" __declspec( dllexport ) DWORD NvOptimusEnablement = 1;
 extern "C" __declspec( dllexport ) int AmdPowerXpressRequestHighPerformance = 1;
 
+void CreateAutoreleasePoolOnMacOS() { }
+void ReleaseAutoreleasePoolOnMacOS() { }
+
 void ShowErrorMessage( const char * msg, const char * file, int line ) {
 #if NDEBUG
 	MessageBoxA( NULL, msg, "Error", MB_OK );

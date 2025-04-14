@@ -4,28 +4,26 @@
 #include "client/renderer/private.h"
 #include "client/renderer/dds.h"
 
-#if PLATFORM_MACOS
-#include "Foundation/NSAutoreleasePool.hpp"
-static NS::AutoreleasePool * global_pool;
-void CreateAutoreleasePoolOnMacOS() { global_pool = NS::AutoreleasePool::alloc()->init(); }
-void ReleaseAutoreleasePoolOnMacOS() { global_pool->release(); }
-#else
-void CreateAutoreleasePoolOnMacOS() { }
-void ReleaseAutoreleasePoolOnMacOS() { }
-#endif
-
 static constexpr size_t STAGING_BUFFER_CAPACITY = 32 * 1024 * 1024;
 static CoherentMemory staging_buffer;
 static Opaque< CommandBuffer > staging_command_buffer;
 static size_t staging_buffer_cursor;
 
-void InitStagingBuffer() {
+static GPUSlabAllocator persistent_allocator;
+static GPUArenaAllocator device_temp_allocator;
+static CoherentGPUArenaAllocator coherent_temp_allocator;
+
+void InitRenderBackendAllocators( size_t slab_size, size_t constant_buffer_alignment, size_t buffer_image_granularity ) {
 	staging_buffer = AllocateCoherentMemory( STAGING_BUFFER_CAPACITY );
 	staging_buffer_cursor = 0;
 	staging_command_buffer = NewTransferCommandBuffer();
+
+	persistent_allocator = NewGPUSlabAllocator( slab_size, constant_buffer_alignment, buffer_image_granularity ),
+	device_temp_allocator = NewDeviceGPUArenaAllocator( Megabytes( 32 ), constant_buffer_alignment ),
+	coherent_temp_allocator = NewCoherentGPUArenaAllocator( Megabytes( 32 ), constant_buffer_alignment ),
 }
 
-void ShutdownStagingBuffer() {
+void ShutdownRenderBackendAllocators() {
 	DeleteTransferCommandBuffer( staging_command_buffer );
 }
 
@@ -93,10 +91,10 @@ void FlushStagingBuffer() {
 	staging_buffer_cursor = 0;
 }
 
-GPUAllocator NewGPUAllocator( size_t slab_size, size_t min_alignment, size_t buffer_image_granularity ) {
-	GPUAllocator::Slab * dummy = Alloc< GPUAllocator::Slab >( sys_allocator );
+GPUSlabAllocator NewGPUAllocator( size_t slab_size, size_t min_alignment, size_t buffer_image_granularity ) {
+	GPUSlabAllocator::Slab * dummy = Alloc< GPUSlabAllocator::Slab >( sys_allocator );
 	*dummy = { };
-	return GPUAllocator {
+	return GPUSlabAllocator {
 		.slab_size = slab_size,
 		.slabs = dummy,
 		.min_alignment = min_alignment,
@@ -104,18 +102,18 @@ GPUAllocator NewGPUAllocator( size_t slab_size, size_t min_alignment, size_t buf
 	};
 }
 
-void DeleteGPUAllocator( GPUAllocator * a ) {
+void DeleteGPUAllocator( GPUSlabAllocator * a ) {
 	printf( "used %zu bytes, wasted %zu bytes, unused %zu bytes\n", a->used, a->wasted, a->slabs == NULL ? 0 : a->slabs->capacity - a->slabs->cursor );
 
-	GPUAllocator::Slab * slab = a->slabs;
+	GPUSlabAllocator::Slab * slab = a->slabs;
 	while( slab != NULL ) {
-		GPUAllocator::Slab * next = slab->next;
+		GPUSlabAllocator::Slab * next = slab->next;
 		free( slab );
 		slab = next;
 	}
 }
 
-GPUBuffer NewBuffer( GPUAllocator * a, const char * label, size_t size, size_t alignment, bool texture, const void * data ) {
+GPUBuffer NewBuffer( GPUSlabAllocator * a, const char * label, size_t size, size_t alignment, bool texture, const void * data ) {
 	Assert( IsPowerOf2( alignment ) );
 	Assert( IsPowerOf2( a->buffer_image_granularity ) );
 
@@ -138,15 +136,15 @@ GPUBuffer NewBuffer( GPUAllocator * a, const char * label, size_t size, size_t a
 		// check if the next slab has its cursor at 0, i.e. the allocator has
 		// been reset, and swap that to the head instead of allocating
 		if( a->slabs->next != NULL && a->slabs->next->cursor == 0 && a->slabs->next->capacity > 0 ) {
-			GPUAllocator::Slab * next_next = a->slabs->next->next;
-			GPUAllocator::Slab * next = a->slabs->next;
+			GPUSlabAllocator::Slab * next_next = a->slabs->next->next;
+			GPUSlabAllocator::Slab * next = a->slabs->next;
 			next->next = a->slabs;
 			a->slabs->next = next_next;
 			a->slabs = next;
 		}
 		else {
-			GPUAllocator::Slab * new_slab = Alloc< GPUAllocator::Slab >( sys_allocator );
-			*new_slab = GPUAllocator::Slab {
+			GPUSlabAllocator::Slab * new_slab = Alloc< GPUSlabAllocator::Slab >( sys_allocator );
+			*new_slab = GPUSlabAllocator::Slab {
 				.buffer = AllocateGPUMemory( a->slab_size ),
 				.cursor = 0,
 				.capacity = a->slab_size,
@@ -181,19 +179,7 @@ GPUBuffer NewBuffer( const char * label, size_t size, size_t alignment, bool tex
 	return NewBuffer( label, size, alignment, texture, data );
 }
 
-void ResetGPUAllocator( GPUAllocator * a ) {
-	a->used = 0;
-	a->wasted = 0;
-
-	GPUAllocator::Slab * slab = a->slabs;
-	while( slab != NULL ) {
-		slab->cursor = 0;
-		RemoveAllDebugMarkers( slab->buffer );
-		slab = slab->next;
-	}
-}
-
-GPUTempAllocator NewGPUTempAllocator( size_t size, size_t min_alignment ) {
+GPUArenaAllocator NewGPUArenaAllocator( size_t size, size_t min_alignment ) {
 	Assert( IsPowerOf2( min_alignment ) );
 
 	return {
@@ -203,11 +189,11 @@ GPUTempAllocator NewGPUTempAllocator( size_t size, size_t min_alignment ) {
 	};
 }
 
-void ClearGPUTempAllocator( GPUTempAllocator * a ) {
+void ClearGPUArenaAllocator( GPUArenaAllocator * a ) {
 	a->cursor = 0;
 }
 
-GPUTempBuffer NewTempBuffer( GPUTempAllocator * a, size_t size, size_t alignment ) {
+GPUTempBuffer NewTempBuffer( GPUArenaAllocator * a, size_t size, size_t alignment ) {
 	// alignment and min_alignment are both pow2 so Max2( alignment, min_alignment ) == LeastCommonMultiple( alignment, min_alignment )
 	Assert( IsPowerOf2( alignment ) );
 	size_t aligned_cursor = AlignPow2( a->cursor, Max2( alignment, a->min_alignment ) );
@@ -226,7 +212,7 @@ GPUTempBuffer NewTempBuffer( GPUTempAllocator * a, size_t size, size_t alignment
 	};
 }
 
-GPUBuffer NewTempBuffer( GPUTempAllocator * a, const void * data, size_t size, size_t alignment ) {
+GPUBuffer NewTempBuffer( GPUArenaAllocator * a, const void * data, size_t size, size_t alignment ) {
 	GPUTempBuffer temp = NewTempBuffer( a, size, alignment );
 	memcpy( temp.ptr, data, size );
 	return temp.buffer;
@@ -269,3 +255,9 @@ Material2 NewMaterial( const MaterialDescriptor & desc ) {
 		.bind_group = NewMaterialBindGroup( desc.name, desc.texture, desc.sampler, properties ),
 	};
 }
+
+struct PersistentBufferAllocator {
+	PoolHandle< GPUAllocation > memory;
+	size_t capacity;
+	size_t cursor;
+};

@@ -3,6 +3,7 @@
 #include "qcommon/hashmap.h"
 #include "qcommon/string.h"
 #include "qcommon/span2d.h"
+#include "qcommon/srgb.h"
 #include "qcommon/threadpool.h"
 #include "gameshared/q_shared.h"
 #include "client/client.h"
@@ -29,9 +30,17 @@ constexpr int DECAL_ATLAS_SIZE = 2048;
 constexpr int DECAL_ATLAS_BLOCK_SIZE = DECAL_ATLAS_SIZE / 4;
 
 struct HighLevelTexture {
+	BoundedString< 64 > name;
+	u64 hash;
+
 	PoolHandle< Texture > texture;
+	TextureFormat format;
+	u32 width, height;
+	u32 depth;
+	u32 num_mipmaps;
 	void * stb_data;
 	Span< const BC4Block > bc4_data;
+	bool atlased;
 };
 
 static Hashmap< HighLevelTexture, MAX_TEXTURES > textures;
@@ -41,6 +50,7 @@ static PoolHandle< Texture > missing_texture;
 static Material2 missing_material;
 
 struct DecalCoords {
+	// TODO: these do funny arithmetic packing and we should convert them to use f16 etc
 	Vec4 uvwh;
 	Vec4 trim;
 };
@@ -155,10 +165,6 @@ static void ParseCull( MaterialDescriptor * material, Span< const char > name, S
 	}
 }
 
-static void ParseDecal( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
-	material->decal = true;
-}
-
 static void ParseShaded( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->shaded = true;
 }
@@ -261,7 +267,6 @@ static constexpr MaterialSpecKey shaderkeys[] = {
 	{ "alphagen", ParseAlphaGen },
 	{ "blendfunc", ParseBlendFunc },
 	{ "cull", ParseCull },
-	{ "decal", ParseDecal },
 	{ "rgbgen", ParseRGBGen },
 	{ "shaded", ParseShaded },
 	{ "shininess", ParseShininess },
@@ -312,52 +317,50 @@ static void UnloadTexture( u64 idx ) {
 	textures.span()[ idx ].bc4_data = Span< const BC4Block >();
 }
 
-static void AddMaterial( Span< const char > name, u64 hash, Material material ) {
-	if( materials_hashtable.size() == ARRAY_COUNT( materials ) ) {
+static Material MaterialFromDescriptor( Span< const char > name, const MaterialDescriptor & descriptor ) {
+	return { };
+}
+
+static void AddMaterial( Span< const char > name, u64 hash, const MaterialDescriptor & descriptor ) {
+	Material * old_material = materials.get( hash );
+	if( old_material != NULL ) {
+		*old_material = MaterialFromDescriptor( old_material->name.span(), descriptor );
+		return;
+	}
+
+	Material * material = materials.add( hash );
+	if( material == NULL ) {
 		Com_Printf( S_COLOR_YELLOW "Too many materials!\n" );
 		return;
 	}
 
-	material.hash = hash;
-
-	u64 idx = materials_hashtable.size();
-	if( !materials_hashtable.get( material.hash, &idx ) ) {
-		materials_hashtable.add( material.hash, idx );
-		material.name = name;
-	}
-	else {
-		material.name = materials[ idx ].name;
-	}
-
-	materials[ idx ] = material;
+	*material = MaterialFromDescriptor( name, descriptor );
 }
 
-static void AddMaterial( Span< const char > name, const Material & material ) {
-	AddMaterial( name, Hash64( name ), material );
+static void AddMaterial( Span< const char > name, const MaterialDescriptor & descriptor ) {
+	AddMaterial( name, Hash64( name ), descriptor );
 }
 
 static Optional< size_t > AddTexture( Span< const char > name, u64 hash, const TextureConfig & config ) {
 	TracyZoneScoped;
 
-	if( textures_hashtable.size() == ARRAY_COUNT( textures ) ) {
-		Com_Printf( S_COLOR_YELLOW "Too many textures!\n" );
-		return NONE;
-	}
-
-	u64 idx = textures_hashtable.size();
-	if( !textures_hashtable.get( hash, &idx ) ) {
-		textures_hashtable.add( hash, idx );
-		AddMaterial( name, hash, Material { .texture = &textures[ idx ] } );
-	}
-	else {
-		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( GetTextureFormat( textures[ idx ].format ) ) ) {
+	HighLevelTexture * slot = textures.get( hash );
+	if( slot != NULL ) {
+		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( slot->format ) ) {
 			return NONE;
 		}
 
-		UnloadTexture( idx );
+		UnloadTexture( slot );
+	}
+	else {
+		slot = textures.add( hash );
+		if( slot == NULL ) {
+			Com_Printf( S_COLOR_YELLOW "Too many textures!\n" );
+			return NONE;
+		}
 	}
 
-	textures[ idx ] = NewTexture( config );
+	*slot = NewTexture( config );
 	return idx;
 }
 
@@ -459,7 +462,7 @@ static void LoadMaterialFile( Span< const char > path ) {
 
 		ParseToken( &data, Parse_DontStopOnNewLine );
 
-		Material material;
+		MaterialDescriptor material = { };
 		if( !ParseMaterial( &material, name, path, &data ) )
 			break;
 		AddMaterial( name, material );
@@ -470,6 +473,7 @@ struct DecodeSTBTextureJob {
 	struct {
 		Span< const char > path;
 		Span< const u8 > data;
+		bool atlased;
 	} in;
 
 	struct {
@@ -518,12 +522,11 @@ static Span2D< BC4Block > RGBAToBC4( Span2D< const RGBA8 > rgba ) {
 	return bc4;
 }
 
-static Span2D< const BC4Block > GetMipmap( const Material * material, u32 mipmap ) {
-	u64 texture_idx = material->texture - textures;
-	u32 w = material->texture->width / 4;
-	u32 h = material->texture->height / 4;
+static Span2D< const BC4Block > GetMipmap( const HighLevelTexture * texture, u32 mipmap ) {
+	u32 w = TextureWidth( texture->texture ) / 4;
+	u32 h = TextureHeight( texture->texture ) / 4;
 
-	Span< const BC4Block > cursor = texture_bc4_data[ texture_idx ];
+	Span< const BC4Block > cursor = texture->bc4_data;
 	for( u32 i = 0; i < mipmap; i++ ) {
 		cursor += ( w >> i ) * ( h >> i );
 	}
@@ -534,7 +537,7 @@ static Span2D< const BC4Block > GetMipmap( const Material * material, u32 mipmap
 	return Span2D< const BC4Block >( cursor.slice( 0, mip_w * mip_h ).ptr, mip_w, mip_h );
 }
 
-static Vec4 TrimTexture( Span2D< const BC4Block > bc4, const Material * material ) {
+static Vec4 TrimTexture( Span2D< const BC4Block > bc4 ) {
 	TracyZoneScoped;
 
 	u32 min_x = bc4.w;
@@ -562,8 +565,6 @@ static Vec4 TrimTexture( Span2D< const BC4Block > bc4, const Material * material
 		float( max_y - min_y + 1 ) / float( bc4.h )
 	);
 
-	// Com_GGPrint( "{} : {}", material->name, trim );
-
 	return trim;
 }
 
@@ -578,23 +579,23 @@ static void PackDecalAtlas() {
 
 	u32 num_mipmaps = U32_MAX;
 
-	for( u32 i = 0; i < materials_hashtable.size(); i++ ) {
-		const Texture * texture = materials[ i ].texture;
-		if( !materials[ i ].decal || texture == NULL )
+	for( u32 i = 0; i < textures.span().n; i++ ) {
+		const HighLevelTexture * texture = &textures.span()[ i ];
+		if( !texture->atlased )
 			continue;
 
 		if( texture->format != TextureFormat_RGBA_U8_sRGB && texture->format != TextureFormat_BC4 ) {
-			Com_GGPrint( S_COLOR_YELLOW "Decals must be RGBA or BC4 ({})", materials[ i ].name.span() );
+			Com_GGPrint( S_COLOR_YELLOW "Decals must be RGBA or BC4 ({})", texture->name.span() );
 			continue;
 		}
 
 		if( texture->width % 4 != 0 || texture->height % 4 != 0 ) {
-			Com_GGPrint( S_COLOR_YELLOW "Decal dimensions must be a multiple of 4 ({} is {}x{})", materials[ i ].name, texture->width, texture->height );
+			Com_GGPrint( S_COLOR_YELLOW "Decal dimensions must be a multiple of 4 ({} is {}x{})", texture->name.span(), texture->width, texture->height );
 			continue;
 		}
 
 		if( texture->num_mipmaps < 3 ) {
-			Com_GGPrint( S_COLOR_YELLOW "{} has a small number of mipmaps ({}) and will mess up the decal atlas", materials[ i ].name, texture->num_mipmaps );
+			Com_GGPrint( S_COLOR_YELLOW "{} has a small number of mipmaps ({}) and will mess up the decal atlas", texture->name.span(), texture->num_mipmaps );
 		}
 
 		if( num_decals == ARRAY_COUNT( rects ) ) {
@@ -635,14 +636,14 @@ static void PackDecalAtlas() {
 				continue;
 			none_packed = false;
 
-			const Material * material = &materials[ rects[ i ].id ];
+			const HighLevelTexture * texture = &textures.span()[ rects[ i ].id ];
 
-			decals.add( material->hash, DecalCoords {
+			decals.add( texture->hash, DecalCoords {
 				.uvwh = Vec4(
 					rects[ i ].x / float( DECAL_ATLAS_SIZE ) + num_layers,
 					rects[ i ].y / float( DECAL_ATLAS_SIZE ),
-					material->texture->width / float( DECAL_ATLAS_SIZE ),
-					material->texture->height / float( DECAL_ATLAS_SIZE )
+					texture->width / float( DECAL_ATLAS_SIZE ),
+					texture->height / float( DECAL_ATLAS_SIZE )
 				),
 			} );
 		}
@@ -668,14 +669,13 @@ static void PackDecalAtlas() {
 
 	// convert pngs to temporary bc4s
 	for( u32 i = 0; i < num_decals; i++ ) {
-		const Material * material = &materials[ rects[ i ].id ];
-		if( material->texture->format != TextureFormat_RGBA_U8_sRGB )
+		HighLevelTexture * texture = &textures.span()[ rects[ i ].id ];
+		if( texture->format != TextureFormat_RGBA_U8_sRGB )
 			continue;
 
-		u64 texture_idx = material->texture - textures;
-		Span2D< const RGBA8 > rgba = Span2D< const RGBA8 >( ( const RGBA8 * ) texture_stb_data[ texture_idx ], TextureWidth( material->texture ), TextureHeight( material->texture ) );
+		Span2D< const RGBA8 > rgba = Span2D< const RGBA8 >( ( const RGBA8 * ) texture->stb_data, texture->width, texture->height );
 		Span2D< const BC4Block > bc4 = RGBAToBC4( rgba );
-		texture_bc4_data[ texture_idx ] = Span< const BC4Block >( bc4.ptr, bc4.w * bc4.h );
+		texture->bc4_data = Span< const BC4Block >( bc4.ptr, bc4.w * bc4.h );
 	}
 
 	// copy texture data into atlases
@@ -698,18 +698,19 @@ static void PackDecalAtlas() {
 		cursor += mipmap_blocks;
 
 		for( u32 i = 0; i < num_decals; i++ ) {
-			const Material * material = &materials[ rects[ i ].id ];
-			u64 decal_idx;
-			bool ok = decals_hashtable.get( material->hash, &decal_idx );
-			Assert( ok );
+			const HighLevelTexture * texture = &textures.span()[ rects[ i ].id ];
 
-			u32 layer_idx = u32( decal_uvwhs[ decal_idx ].x );
+			DecalCoords * decal = decals.get( texture->hash );
+			Assert( decal != NULL );
+
+			u32 layer_idx = u32( decal->uvwh.x );
 			Span2D< BC4Block > layer( layer_mipmap + mipmap_dim * mipmap_dim * layer_idx, mipmap_dim, mipmap_dim );
 
-			Span2D< const BC4Block > bc4 = GetMipmap( material, mipmap_idx );
+			Span2D< const BC4Block > bc4 = GetMipmap( texture, mipmap_idx );
 
-			if( mipmap_idx == 0 )
-				decal_trims[ decal_idx ] = TrimTexture( bc4, material );
+			if( mipmap_idx == 0 ) {
+				decal->trim = TrimTexture( bc4 );
+			}
 
 			u32 mipped_x = rects[ i ].x >> mipmap_idx;
 			u32 mipped_y = rects[ i ].y >> mipmap_idx;
@@ -720,6 +721,7 @@ static void PackDecalAtlas() {
 
 	// free temporary bc4s
 	for( size_t i = 0; i < decals.size(); i++ ) {
+		const HighLevelTexture * texture = &textures.span()[ rects[ i ].id ];
 		const Material * material = &materials[ rects[ i ].id ];
 		if( GetTextureFormat( material->texture ) != TextureFormat_RGBA_U8_sRGB )
 			continue;
@@ -820,6 +822,22 @@ static void LoadBuiltinMaterials() {
 		.specular = 100.0f,
 		.shininess = 100.0f,
 	} );
+}
+
+static bool ParseCDTextureAtlased( Span< const char > texture_path ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
+	Span< const char > cdtexture_path = temp.sv( "{}.cdtexture", StripExtension( texture_path ) );
+	Span< const char > cdtexture = AssetString( cdtexture_path );
+
+	// TODO: parse this properly
+	if( cdtexture == "" || cdtexture == "\n" )
+		return false;
+	if( cdtexture == "atlased" || cdtexture == "atlased\n" )
+		return true;
+
+	Com_GGPrint( S_COLOR_YELLOW "Bad cdtexture: {}", cdtexture_path );
+	return false;
 }
 
 void InitMaterials() {

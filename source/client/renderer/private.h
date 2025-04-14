@@ -5,12 +5,16 @@
 void InitRenderBackend();
 void ShutdownRenderBackend();
 
+void InitRenderBackendAllocators( size_t slab_size, size_t constant_buffer_alignment, size_t buffer_image_granularity );
+void ShutdownRenderBackendAllocators();
+void ClearGPUArenaAllocators();
+
 struct CoherentMemory {
 	PoolHandle< GPUAllocation > allocation;
 	void * ptr;
 };
 
-struct GPUAllocator {
+struct GPUSlabAllocator {
 	struct Slab {
 		PoolHandle< GPUAllocation > buffer;
 		size_t cursor;
@@ -31,30 +35,37 @@ struct GPUAllocator {
 	bool last_allocation_was_buffer;
 };
 
-struct GPUTempAllocator {
-	CoherentMemory memory;
+struct GPUArenaAllocator {
+	PoolHandle< GPUAllocation > allocation;
 	size_t min_alignment;
 	size_t cursor;
 	size_t capacity;
 };
 
-GPUAllocator NewGPUAllocator( size_t slab_size, size_t min_alignment, size_t buffer_image_granularity );
-void DeleteGPUAllocator( GPUAllocator * a );
-GPUBuffer NewBuffer( GPUAllocator * a, const char * label, size_t size, size_t alignment, bool texture, const void * data = NULL );
-void ResetGPUAllocator( GPUAllocator * a );
+struct CoherentGPUArenaAllocator {
+	GPUArenaAllocator a;
+	void * ptr;
+};
 
-GPUTempAllocator NewGPUTempAllocator( size_t size, size_t min_alignment );
-void ClearGPUTempAllocator( GPUTempAllocator * a );
+// using DeviceGPUArenaAllocator = GPUArenaAllocator< true >;
+// using CoherentGPUArenaAllocator = GPUArenaAllocator< false >;
+
+GPUSlabAllocator NewGPUSlabAllocator( size_t slab_size, size_t min_alignment, size_t buffer_image_granularity );
+void DeleteGPUSlabAllocator( GPUSlabAllocator * a );
+GPUBuffer NewBuffer( GPUSlabAllocator * a, const char * label, size_t size, size_t alignment, bool texture, const void * data = NULL );
+
+GPUArenaAllocator NewDeviceGPUArenaAllocator( size_t size, size_t min_alignment );
+CoherentGPUArenaAllocator NewCoherentGPUArenaAllocator( size_t size, size_t min_alignment );
+
+template< typename T >
+void ClearGPUArenaAllocator( GPUArenaAllocator * a );
 
 PoolHandle< GPUAllocation > AllocateGPUMemory( size_t size );
 CoherentMemory AllocateCoherentMemory( size_t size );
 
-GPUTempBuffer NewTempBuffer( GPUTempAllocator * a, size_t size, size_t alignment );
-GPUBuffer NewTempBuffer( GPUTempAllocator * a, const void * data, size_t size, size_t alignment );
-
 // pass a = NULL for a dedicated allocation
-PoolHandle< Texture > NewTexture( GPUAllocator * a, const TextureConfig & config, Optional< PoolHandle< Texture > > = NONE );
-PoolHandle< Texture > UploadBC4( GPUAllocator * a, const char * path );
+PoolHandle< Texture > NewTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< PoolHandle< Texture > > = NONE );
+PoolHandle< Texture > UploadBC4( GPUSlabAllocator * a, const char * path );
 
 void CopyGPUBufferToBuffer(
 	Opaque< CommandBuffer > cmd_buf,
@@ -68,9 +79,6 @@ void CopyGPUBufferToTexture(
 
 Opaque< CommandBuffer > NewTransferCommandBuffer();
 void DeleteTransferCommandBuffer( Opaque< CommandBuffer > cb );
-
-void InitStagingBuffer();
-void ShutdownStagingBuffer();
 
 void UploadBuffer( GPUBuffer dest, const void * data, size_t n );
 GPUBuffer StageArgumentBuffer( GPUBuffer dest, size_t n, size_t alignment );

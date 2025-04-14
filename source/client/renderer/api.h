@@ -11,10 +11,6 @@ constexpr size_t MaxFramesInFlight = 2;
 void InitRenderer();
 void ShutdownRenderer();
 
-// TODO: not renderer specific
-void CreateAutoreleasePoolOnMacOS();
-void ReleaseAutoreleasePoolOnMacOS();
-
 /*
  * Memory allocation
  */
@@ -477,10 +473,12 @@ void EncodeIndirectComputeCall( RenderPass pass, PoolHandle< ComputePipeline > s
 #include "material.h"
 
 struct MaterialDescriptor {
-	Span< const char > name;
+	BlendFunc blend_func;
+	bool shaded;
 
-	PoolHandle< RenderPipeline > shader;
 	RenderPipelineDynamicState dynamic_state;
+	ColorGen rgbgen;
+	ColorGen alphagen;
 
 	PoolHandle< Texture > texture;
 	SamplerType sampler = Sampler_Standard;

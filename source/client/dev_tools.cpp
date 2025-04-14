@@ -58,13 +58,12 @@ DevToolCleanupCallback DrawModelViewer() {
 	if( maybe_model.exists ) {
 		DrawModelConfig config = {
 			.draw_model = { .enabled = true },
-			.draw_shadows = { .enabled = true },
+			.cast_shadows = true,
 		};
 		DrawModel( config, maybe_model.value, Mat3x4::Identity(), CG_TeamColorVec4( Team_One ) );
 	}
 
 	DrawSkybox( cls.shadertoy_time );
-	DrawModelInstances();
 
 	ImGui::EndChild();
 	ImGui::End();

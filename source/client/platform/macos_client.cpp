@@ -9,6 +9,18 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 
+#include "Foundation/NSAutoreleasePool.hpp"
+
+static NS::AutoreleasePool * global_pool;
+
+void CreateAutoreleasePoolOnMacOS() {
+	global_pool = NS::AutoreleasePool::alloc()->init();
+}
+
+void ReleaseAutoreleasePoolOnMacOS() {
+	global_pool->release();
+}
+
 // TODO: do something like https://github.com/aaronmjacobs/Boxer/blob/master/src/boxer_mac.mm
 void ShowErrorMessage( const char * msg, const char * file, int line ) {
 	printf( "%s (%s:%d)\n", msg, file, line );

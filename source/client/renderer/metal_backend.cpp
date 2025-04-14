@@ -74,10 +74,6 @@ struct MetalDevice {
 	MTL::ArgumentEncoder * material_argument_encoder;
 	MTL::ArgumentBuffersTier argument_buffers_tier;
 	u32 max_msaa;
-
-	GPUAllocator persistent_allocator;
-	GPUAllocator framebuffer_allocator;
-	GPUTempAllocator temp_allocator;
 };
 
 struct GPUAllocation {
@@ -187,14 +183,6 @@ CoherentMemory AllocateCoherentMemory( size_t size ) {
 		.allocation = allocations.allocate( { .buffer = buffer } ),
 		.ptr = buffer->contents(),
 	};
-}
-
-GPUTempBuffer NewTempBuffer( size_t size, size_t alignment ) {
-	return NewTempBuffer( &global_device.temp_allocator, size, alignment );
-}
-
-GPUBuffer NewTempBuffer( const void * data, size_t size, size_t alignment ) {
-	return NewTempBuffer( &global_device.temp_allocator, data, size, alignment );
 }
 
 void AddDebugMarker( const char * label, PoolHandle< GPUAllocation > allocation, size_t offset, size_t size ) {
@@ -415,7 +403,7 @@ static MTL::PixelFormat TextureFormatToMetal( TextureFormat format ) {
 	}
 }
 
-PoolHandle< Texture > NewTexture( GPUAllocator * a, const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {
+PoolHandle< Texture > NewTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {
 	MTL::TextureType type;
 	if( config.num_layers == 1 ) {
 		type = config.msaa_samples > 1 ? MTL::TextureType2DMultisample : MTL::TextureType2D;
@@ -950,6 +938,7 @@ void InitRenderBackend() {
 	// see some combination of
 	// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
 	// https://developer.apple.com/documentation/metal/mtlcomputecommandencoder/2928169-setbuffers
+	constexpr size_t slab_size = Megabytes( 128 );
 	constexpr size_t constant_buffer_alignment = 4;
 	constexpr size_t metal_doesnt_have_buffer_image_granularity = 0; // or rather it is baked into heap texture alignment requirements
 
@@ -967,12 +956,7 @@ void InitRenderBackend() {
 		}
 	}
 
-	// these rely on global_device.device so have to be down here
-	global_device.persistent_allocator = NewGPUAllocator( Megabytes( 128 ), constant_buffer_alignment, metal_doesnt_have_buffer_image_granularity ),
-	global_device.framebuffer_allocator = NewGPUAllocator( Megabytes( 32 ), constant_buffer_alignment, metal_doesnt_have_buffer_image_granularity ),
-	global_device.temp_allocator = NewGPUTempAllocator( Megabytes( 32 ), constant_buffer_alignment ),
-
-	InitStagingBuffer();
+	InitRenderBackendAllocators( slab_size, constant_buffer_alignment, metal_doesnt_have_buffer_image_granularity );
 
 	global_swapchain = CA::MetalLayer::layer();
 	global_swapchain->setDevice( device );
@@ -1041,9 +1025,7 @@ void ShutdownRenderBackend() {
 
 	DeleteSamplers();
 	DeleteDepthFuncs();
-	ShutdownStagingBuffer();
-	DeleteGPUAllocator( &global_device.persistent_allocator );
-	DeleteGPUAllocator( &global_device.framebuffer_allocator );
+	ShutdownRenderBackendAllocators();
 	global_device.command_queue->release();
 	global_device.device->release();
 }
@@ -1055,7 +1037,7 @@ void RenderBackendWaitForNewFrame() {
 PoolHandle< Texture > RenderBackendBeginFrame( bool capture ) {
 	NS::AutoreleasePool * pool = NS::AutoreleasePool::alloc()->init();
 
-	ClearGPUTempAllocator( &global_device.temp_allocator );
+	ClearGPUArenaAllocators();
 
 	int framebuffer_width, framebuffer_height;
 	GetFramebufferSize( &framebuffer_width, &framebuffer_height );
@@ -1099,8 +1081,8 @@ size_t FrameSlot() {
 }
 
 template< typename T >
-static void UseGPUAllocator( T * encoder, GPUAllocator * a ) {
-	const GPUAllocator::Slab * slab = a->slabs;
+static void UseGPUSlabAllocator( T * encoder, GPUSlabAllocator * a ) {
+	const GPUSlabAllocator::Slab * slab = a->slabs;
 	while( slab != NULL ) {
 		if( slab->capacity > 0 ) {
 			encoder->useHeap( allocations[ slab->buffer ].heap );
@@ -1111,9 +1093,9 @@ static void UseGPUAllocator( T * encoder, GPUAllocator * a ) {
 
 template< typename T >
 static void UseAllocators( T * encoder ) {
-	UseGPUAllocator( encoder, &global_device.persistent_allocator );
-	UseGPUAllocator( encoder, &global_device.framebuffer_allocator );
-	encoder->useResource( allocations[ global_device.temp_allocator.memory.allocation ].buffer, MTL::ResourceUsageRead | MTL::ResourceUsageWrite );
+	// TODO: fix this! probably some shitty visitors? also need to use all dedialloc textures
+	// UseGPUSlabAllocator( encoder, &global_device.persistent_allocator );
+	// encoder->useResource( allocations[ global_device.temp_allocator.memory.allocation ].buffer, MTL::ResourceUsageRead | MTL::ResourceUsageWrite );
 }
 
 Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {

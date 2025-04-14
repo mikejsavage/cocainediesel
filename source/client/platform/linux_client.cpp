@@ -7,6 +7,9 @@
 #include <stdio.h>
 #include <unistd.h>
 
+void CreateAutoreleasePoolOnMacOS() { }
+void ReleaseAutoreleasePoolOnMacOS() { }
+
 void ShowErrorMessage( const char * msg, const char * file, int line ) {
 	printf( "%s (%s:%d)\n", msg, file, line );
 }

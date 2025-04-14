@@ -299,3 +299,10 @@ void CL_ImGuiEndFrame();
 //
 void SNAP_ParseBaseline( msg_t *msg, SyncEntityState *baselines );
 snapshot_t *SNAP_ParseFrame( msg_t *msg, const snapshot_t *lastFrame, snapshot_t *backup, SyncEntityState *baselines, int showNet );
+
+//
+// platform
+//
+
+void CreateAutoreleasePoolOnMacOS();
+void ReleaseAutoreleasePoolOnMacOS();

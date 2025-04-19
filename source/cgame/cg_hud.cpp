@@ -310,10 +310,10 @@ void CG_SC_Obituary( const Tokenized & args ) {
 		current->type = OBITUARY_ACCIDENT;
 
 		if( damage_type == WorldDamage_Void ) {
-			attacker_name = temp.sv( "{}{}", ImGuiColorToken( black.rgba8 ), "THE VOID" );
+			attacker_name = temp.sv( "{}{}", ImGuiColorToken( black.srgb ), "THE VOID" );
 		}
 		else if( damage_type == WorldDamage_Spike ) {
-			attacker_name = temp.sv( "{}{}", ImGuiColorToken( black.rgba8 ), "A SPIKE" );
+			attacker_name = temp.sv( "{}{}", ImGuiColorToken( black.srgb ), "A SPIKE" );
 		}
 		else {
 			return;
@@ -332,7 +332,7 @@ void CG_SC_Obituary( const Tokenized & args ) {
 	if( assistor == "" ) {
 		CG_AddChat( temp.sv( "{} {}{} {}",
 			attacker_name,
-			ImGuiColorToken( diesel_yellow.rgba8 ), obituary,
+			ImGuiColorToken( diesel_yellow.srgb ), obituary,
 			victim_name
 		) );
 	}
@@ -342,7 +342,7 @@ void CG_SC_Obituary( const Tokenized & args ) {
 			attacker_name,
 			ImGuiColorToken( 255, 255, 255, 255 ), conjugation,
 			assistor_name,
-			ImGuiColorToken( diesel_yellow.rgba8 ), obituary,
+			ImGuiColorToken( diesel_yellow.srgb ), obituary,
 			victim_name
 		) );
 	}
@@ -430,7 +430,7 @@ void CG_DrawScope() {
 				char * msg = temp( "{.2}m", distance / 32.0f );
 				GlitchText( Span< char >( msg + strlen( msg ) - 3, 2 ) );
 
-				DrawText( cls.fontItalic, cgs.textSizeSmall, msg, Alignment_RightTop, frame_static.viewport_width / 2 - offset, frame_static.viewport_height / 2 + offset, red.vec4 );
+				DrawText( cls.fontItalic, cgs.textSizeSmall, msg, Alignment_RightTop, frame_static.viewport_width / 2 - offset, frame_static.viewport_height / 2 + offset, red.linear );
 			}
 
 			if( trace.ent > 0 && trace.ent <= MAX_CLIENTS ) {
@@ -441,7 +441,7 @@ void CG_DrawScope() {
 				char * msg = temp( "{}?", RandomElement( &obituary_rng, normal_obituaries ) );
 				GlitchText( Span< char >( msg, strlen( msg ) - 1 ) );
 
-				DrawText( cls.fontItalic, cgs.textSizeSmall, msg, Alignment_LeftTop, frame_static.viewport_width / 2 + offset, frame_static.viewport_height / 2 + offset, color, black.vec4 );
+				DrawText( cls.fontItalic, cgs.textSizeSmall, msg, Alignment_LeftTop, frame_static.viewport_width / 2 + offset, frame_static.viewport_height / 2 + offset, color, black.linear );
 			}
 		}
 	}
@@ -1067,7 +1067,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 		int obituary_y = y + yoffset + ( line_height - font_size ) / 2;
 		if( obr->type != OBITUARY_ACCIDENT ) {
 			Vec4 color = CG_TeamColorVec4( obr->attacker_team );
-			DrawText( font, font_size, obr->attacker, x + xoffset, obituary_y, color, black.vec4 );
+			DrawText( font, font_size, obr->attacker, x + xoffset, obituary_y, color, black.linear );
 			xoffset += attacker_width;
 		}
 
@@ -1082,7 +1082,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 		}
 
 		Vec4 color = CG_TeamColorVec4( obr->victim_team );
-		DrawText( font, font_size, obr->victim, x + xoffset, obituary_y, color, black.vec4 );
+		DrawText( font, font_size, obr->victim, x + xoffset, obituary_y, color, black.linear );
 
 		yoffset += line_height;
 	} while( i != next );
@@ -1393,7 +1393,7 @@ static Clay_ImageElementConfig GetClayImageConfig( lua_State * L, int idx, Vec4 
 	if( name == EMPTY_HASH )
 		return { };
 
-	*tint = Default( CheckOptionalColor( L, -1, "color" ), white.vec4 );
+	*tint = Default( CheckOptionalColor( L, -1, "color" ), white.linear );
 
 	return Clay_ImageElementConfig {
 		.imageData = bit_cast< void * >( name.hash ),

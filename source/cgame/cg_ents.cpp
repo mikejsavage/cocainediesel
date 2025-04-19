@@ -456,7 +456,7 @@ static void CG_LerpLaser( centity_t *cent ) {
 }
 
 static void CG_AddLaserEnt( centity_t *cent ) {
-	DrawBeam( cent->interpolated.origin, cent->interpolated.origin2, cent->current.radius, white.vec4, "entities/laser/laser" );
+	DrawBeam( cent->interpolated.origin, cent->interpolated.origin2, cent->current.radius, white.linear, "entities/laser/laser" );
 }
 
 static void CG_UpdateLaserbeamEnt( centity_t *cent ) {
@@ -772,7 +772,7 @@ void DrawEntities() {
 			case ET_CINEMATIC_MAPNAME: {
 				TempAllocator temp = cls.frame_arena.temp();
 				Span< const char > big = ToUpperASCII( &temp, cl.map->name );
-				Draw3DText( cls.fontBoldItalic, 256.0f, big, cent->current.origin, cent->current.angles, white.vec4 );
+				Draw3DText( cls.fontBoldItalic, 256.0f, big, cent->current.origin, cent->current.angles, white.linear );
 			} break;
 
 			case ET_MAPMODEL:

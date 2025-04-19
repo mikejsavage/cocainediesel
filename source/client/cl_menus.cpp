@@ -89,15 +89,6 @@ static size_t selected_mask = 0;
 static NonRAIIDynamicArray< char * > masks;
 static Span< const char > MASKS_DIR = "models/masks/";
 
-static Vec4 RGBA8ToVec4NosRGB( RGBA8 rgba ) {
-	return Vec4(
-		Dequantize01( rgba.r ),
-		Dequantize01( rgba.g ),
-		Dequantize01( rgba.b ),
-		Dequantize01( rgba.a )
-	);
-}
-
 static void ResetServerBrowser() {
 	selected_server = NONE;
 }
@@ -252,7 +243,7 @@ static void KeyBindButton( Span< const char > label, Span< const char > command 
 	}
 	ImGui::SameLine();
 	ImGui::BeginDisabled( !key1.exists );
-	if( ColorButton( "X", diesel_red.vec4 ) ) {
+	if( ColorButton( "X", diesel_red.linear ) ) {
 		UnbindKey( key1.value );
 	}
 	ImGui::EndDisabled();
@@ -267,7 +258,7 @@ static void KeyBindButton( Span< const char > label, Span< const char > command 
 	}
 	ImGui::SameLine();
 	ImGui::BeginDisabled( !key2.exists );
-	if( ColorButton( "X", diesel_red.vec4 ) ) {
+	if( ColorButton( "X", diesel_red.linear ) ) {
 		UnbindKey( key2.value );
 	}
 	ImGui::PopID();
@@ -411,7 +402,7 @@ static void SettingsControls() {
 
 	ImGui::BeginChild( "binds" );
 
-	if( ColorButton( "Reset to default", diesel_red.vec4 ) ) {
+	if( ColorButton( "Reset to default", diesel_red.linear ) ) {
 		UnbindAllKeys();
 		ExecDefaultCfg();
 	}
@@ -896,7 +887,7 @@ static void DemoBrowser() {
 		ImGui::NextColumn();
 
 		bool old_version = !StrEqual( demo.version, APP_VERSION );
-		ImGui::PushStyleColor( ImGuiCol_Text, old_version ? diesel_red.vec4 : diesel_green.vec4 );
+		ImGui::PushStyleColor( ImGuiCol_Text, old_version ? diesel_red.linear : diesel_green.linear );
 		ImGui::Text( "%s", demo.version );
 		ImGui::NextColumn();
 		ImGui::PopStyleColor();
@@ -946,7 +937,7 @@ static bool MainSectionButton( const ImVec2& pos, const Material * icon, const V
 	const Vec2 half_pixel = HalfPixelSize( icon );
 	const Vec2 SQUARE_SIZE = size + 8.0f;
 	const ImVec2 text_size = ImGui::CalcTextSize( name );
-	const Vec4 text_color = is_enabled ? white.vec4 : diesel_grey.vec4;
+	const Vec4 text_color = is_enabled ? white.linear : diesel_grey.linear;
 
 	bool pressed = false;
 	bool hovered = false;
@@ -970,9 +961,9 @@ static bool MainSectionButton( const ImVec2& pos, const Material * icon, const V
 	float offset = !hovered ? 0.0f : -cosf( ( ImGui::GetCurrentContext()->HoverItemDelayTimer / period ) * PI * 2.0f ) * 2.0f + 2.0f;
 
 	ImGui::SetCursorPos( pos - 4.0f - offset );
-	ImGui::Image( cls.white_material, SQUARE_SIZE, Vec2( 0.f ), Vec2( 0.f ), dark.vec4, Vec4( 0.0f ) );
+	ImGui::Image( cls.white_material, SQUARE_SIZE, Vec2( 0.f ), Vec2( 0.f ), dark.linear, Vec4( 0.0f ) );
 	ImGui::SetCursorPos( pos + 4.0f );
-	ImGui::Image( cls.white_material, SQUARE_SIZE + offset, Vec2( 0.f ), Vec2( 0.f ), dark.vec4, Vec4( 0.0f ) );
+	ImGui::Image( cls.white_material, SQUARE_SIZE + offset, Vec2( 0.f ), Vec2( 0.f ), dark.linear, Vec4( 0.0f ) );
 
 	ImGui::SetCursorPos( pos - offset );
 	ImGui::Image( cls.white_material, size, Vec2( 0.f ), Vec2( 0.f ), bg_color, Vec4( 0.0f ) );
@@ -1039,14 +1030,14 @@ static ClayCustomElementConfig * ClayImGui( ClayCustomElementCallback callback, 
 
 static void MainMenu() {
 	constexpr MainMenuCategory categories[] = {
-		{ "hud/license", "LICENSE", MainMenuState_License, diesel_grey.vec4, false },
-		{ "hud/locker", "LOCKER", MainMenuState_Locker, diesel_grey.vec4, false },
-		{ "hud/gladiator", "RANKED", MainMenuState_Ranked, diesel_grey.vec4, false },
-		{ "hud/replays", "REPLAYS", MainMenuState_Replays, diesel_yellow.vec4, true },
-		{ "hud/bomb", "PLAY", MainMenuState_ServerBrowser, diesel_green.vec4, true },
-		{ "hud/settings", "SETTINGS", MainMenuState_Settings, diesel_yellow.vec4, true },
-		{ "hud/extras", "EXTRAS", MainMenuState_Extras, diesel_grey.vec4, false },
-		{ "hud/career", "CAREER", MainMenuState_Career, diesel_grey.vec4, false },
+		{ "hud/license", "LICENSE", MainMenuState_License, diesel_grey.linear, false },
+		{ "hud/locker", "LOCKER", MainMenuState_Locker, diesel_grey.linear, false },
+		{ "hud/gladiator", "RANKED", MainMenuState_Ranked, diesel_grey.linear, false },
+		{ "hud/replays", "REPLAYS", MainMenuState_Replays, diesel_yellow.linear, true },
+		{ "hud/bomb", "PLAY", MainMenuState_ServerBrowser, diesel_green.linear, true },
+		{ "hud/settings", "SETTINGS", MainMenuState_Settings, diesel_yellow.linear, true },
+		{ "hud/extras", "EXTRAS", MainMenuState_Extras, diesel_grey.linear, false },
+		{ "hud/career", "CAREER", MainMenuState_Career, diesel_grey.linear, false },
 	};
 
 	TempAllocator temp = cls.frame_arena.temp();
@@ -1059,7 +1050,7 @@ static void MainMenu() {
 	ImGui::Dummy( frame_static.viewport ); // NOTE(mike): needed to fix the ErrorCheckUsingSetCursorPosToExtendParentBoundaries assert
 
 	FittedTextShadow shadow = FittedTextShadow {
-		.color = black.vec4,
+		.color = black.linear,
 		.offset = 8.0f * GetContentScale(),
 		.angle = 40.0f,
 	};
@@ -1251,7 +1242,7 @@ static void MainMenu() {
 		}
 
 		if( MainSectionButton<true>( ImVec2( BASE_COLUMN + COLUMN_OFFSET * 2.f + COLUMN_LINE_OFFSET * 2.f, BASE_LINE + LINE_OFFSET * 2.f ),
-			FindMaterial( "hud/exit" ), icon_size, "EXIT", diesel_red.vec4, true ) ) {
+			FindMaterial( "hud/exit" ), icon_size, "EXIT", diesel_red.linear, true ) ) {
 			Cmd_Execute( &temp, "quit" );
 		}
 	}
@@ -1267,7 +1258,7 @@ static void MainMenu() {
 		draw_list->AddRectFilledMultiColor( submenus_offset + Vec2( 0.f, submenus_size.y ), submenus_offset + Vec2( submenus_size.x * 0.5f, submenus_size.y + 32.f ), DARK_COL32, GRAY_COL32, GRAY_COL32, DARK_COL32 );
 		draw_list->AddRectFilledMultiColor( submenus_offset + Vec2( submenus_size.x * 0.5f, submenus_size.y ), submenus_offset + Vec2( submenus_size.x, submenus_size.y + 32.f ), GRAY_COL32, DARK_COL32, DARK_COL32, GRAY_COL32 );
 
-		Draw2DBox( submenus_offset.x, submenus_offset.y, submenus_size.x, submenus_size.y, cls.white_material, dark.vec4 );
+		Draw2DBox( submenus_offset.x, submenus_offset.y, submenus_size.x, submenus_size.y, cls.white_material, dark.linear );
 		Draw2DBoxUV( submenus_offset.x, submenus_offset.y, submenus_size.x, submenus_size.y, Vec2( 0.f, 0.f ), submenus_size/8.f, FindMaterial( "hud/diagonal_pattern" ), Vec4( 1.f, 1.f, 1.f, 0.025f ) );
 
 		ImGui::SetCursorPos( submenus_offset );
@@ -1388,7 +1379,7 @@ static bool LoadoutButton( Span< const char > label, Vec2 icon_size, const Mater
 	ImGui::PopID();
 
 	Vec2 half_pixel = HalfPixelSize( icon );
-	Vec4 color = RGBA8ToVec4NosRGB( selected ? diesel_yellow.rgba8 : ImGui::IsItemHovered() ? button_gray : white.rgba8 ); // TODO...
+	Vec4 color = selected ? diesel_yellow.linear : ImGui::IsItemHovered() ? sRGBToLinear( button_gray ) : white.linear;
 
 	ImGui::SetCursorPos( start_pos );
 	ImGui::Image( icon, icon_size, half_pixel, 1.0f - half_pixel, color, Vec4( 0.0f ) );
@@ -1406,7 +1397,7 @@ static bool LoadoutButton( Span< const char > label, Vec2 icon_size, const Mater
 static void InitCategory( const char * category_name, float padding ) {
 	ImGui::TableNextColumn();
 
-	ScopedColor( ImGuiCol_Text, diesel_yellow.vec4 );
+	ScopedColor( ImGuiCol_Text, diesel_yellow.linear );
 	ScopedFont( cls.big_italic_font );
 	ImGui::Text( "%s", category_name );
 	ImGui::Dummy( ImVec2( 0, padding ) );
@@ -1567,22 +1558,22 @@ static bool LoadoutMenu() {
 		ImGui::PopID();
 
 		textPos.x += textSize.x;
-		ImGui::PushStyleColor( ImGuiCol_Text, ImGui::IsItemHovered() ? diesel_yellow.vec4 : white.vec4 );
+		ImGui::PushStyleColor( ImGuiCol_Text, ImGui::IsItemHovered() ? diesel_yellow.linear : white.linear );
 		PrintMoveText( MakeSpan( imdone ), textPos );
 		ImGui::PopStyleColor();
 
 		textPos.y = 0;
-		PrintMoveImage( FindMaterial( "hud/icons/clickme" ), title_height, textPos, white.vec4 );
+		PrintMoveImage( FindMaterial( "hud/icons/clickme" ), title_height, textPos, white.linear );
 		textPos.y = (title_height - textSize.y) * 0.5f;
 		PrintMoveText( "AND ", textPos );
 
 		textPos.y = (title_height - icon_size.y) * 0.5f;
-		PrintMoveImage( FindMaterial( cgs.media.shaderWeaponIcon[ loadout.weapons[ WeaponCategory_Melee ] ] ), icon_size.y, textPos, diesel_yellow.vec4 );
-		PrintMoveImage( FindMaterial( cgs.media.shaderGadgetIcon[ loadout.gadget ] ), icon_size.y, textPos, diesel_yellow.vec4 );
-		PrintMoveImage( FindMaterial( cgs.media.shaderWeaponIcon[ loadout.weapons[ WeaponCategory_Backup ] ] ), icon_size.y, textPos, diesel_yellow.vec4 );
-		PrintMoveImage( FindMaterial( cgs.media.shaderWeaponIcon[ loadout.weapons[ WeaponCategory_Secondary ] ] ), icon_size.y, textPos, diesel_yellow.vec4 );
-		PrintMoveImage( FindMaterial( cgs.media.shaderWeaponIcon[ loadout.weapons[ WeaponCategory_Primary ] ] ), icon_size.y, textPos, diesel_yellow.vec4 );
-		PrintMoveImage( FindMaterial( cgs.media.shaderPerkIcon[ loadout.perk ] ), icon_size.y, textPos, diesel_yellow.vec4 );
+		PrintMoveImage( FindMaterial( cgs.media.shaderWeaponIcon[ loadout.weapons[ WeaponCategory_Melee ] ] ), icon_size.y, textPos, diesel_yellow.linear );
+		PrintMoveImage( FindMaterial( cgs.media.shaderGadgetIcon[ loadout.gadget ] ), icon_size.y, textPos, diesel_yellow.linear );
+		PrintMoveImage( FindMaterial( cgs.media.shaderWeaponIcon[ loadout.weapons[ WeaponCategory_Backup ] ] ), icon_size.y, textPos, diesel_yellow.linear );
+		PrintMoveImage( FindMaterial( cgs.media.shaderWeaponIcon[ loadout.weapons[ WeaponCategory_Secondary ] ] ), icon_size.y, textPos, diesel_yellow.linear );
+		PrintMoveImage( FindMaterial( cgs.media.shaderWeaponIcon[ loadout.weapons[ WeaponCategory_Primary ] ] ), icon_size.y, textPos, diesel_yellow.linear );
+		PrintMoveImage( FindMaterial( cgs.media.shaderPerkIcon[ loadout.perk ] ), icon_size.y, textPos, diesel_yellow.linear );
 		textPos.y = (title_height - textSize.y) * 0.5f;
 
 		Span< const char > playerName = PlayerName( cg.predictedPlayerState.playerNum );
@@ -1595,7 +1586,7 @@ static bool LoadoutMenu() {
 		if( predictedPos > 0.f || excessLetters < playerName.n ) { //don't print name if the window is too small
 			PrintMoveText( " AND I'M ", textPos );
 
-			ScopedColor( ImGuiCol_Text, diesel_yellow.vec4 );
+			ScopedColor( ImGuiCol_Text, diesel_yellow.linear );
 			if( predictedPos <= 0.f ) {
 				PrintMoveText( "...", textPos );
 				PrintMoveText( playerName.slice( 0, playerName.n - excessLetters ), textPos );
@@ -1655,7 +1646,7 @@ static void GameMenu() {
 		}
 		else {
 			if( client_gs.gameState.match_state <= MatchState_Countdown ) {
-				ScopedColor( ImGuiCol_Text, ready ? diesel_red.vec4 : diesel_green.vec4 );
+				ScopedColor( ImGuiCol_Text, ready ? diesel_red.linear : diesel_green.linear );
 				GameMenuButton( ready ? "Unready" : "Ready", "toggleready", &should_close );
 			}
 

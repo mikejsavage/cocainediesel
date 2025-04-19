@@ -298,13 +298,13 @@ Vec4 CustomAttentionGettingColor( Vec4 from, Vec4 to, Time period ) {
 }
 
 Vec4 AttentionGettingColor() {
-	return CustomAttentionGettingColor( red.vec4, sRGBToLinear( diesel_yellow.rgba8 ), Milliseconds( 125 ) );
+	return CustomAttentionGettingColor( red.linear, diesel_yellow.linear, Milliseconds( 125 ) );
 }
 
 Vec4 PlantableColor() {
-	return CustomAttentionGettingColor( sRGBToLinear( diesel_green.rgba8 ) * 0.8f, sRGBToLinear( diesel_green.rgba8 ), Milliseconds( 125 ) );
+	return CustomAttentionGettingColor( diesel_green.linear * 0.8f, diesel_green.linear, Milliseconds( 125 ) );
 }
 
 Vec4 AttentionGettingRed() {
-	return CustomAttentionGettingColor( sRGBToLinear( diesel_red.rgba8 ) * 0.8f, sRGBToLinear( diesel_red.rgba8 ), Milliseconds( 125 ) );
+	return CustomAttentionGettingColor( diesel_red.linear * 0.8f, diesel_red.linear, Milliseconds( 125 ) );
 }

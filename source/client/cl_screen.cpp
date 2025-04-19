@@ -92,7 +92,7 @@ static void SCR_DrawDebugGraph() {
 	int w = frame_static.viewport_width;
 	int x = 0;
 	int y = 0 + frame_static.viewport_height;
-	SCR_DrawFillRect( x, y - scr_graphheight->integer, w, scr_graphheight->integer, black.vec4 );
+	SCR_DrawFillRect( x, y - scr_graphheight->integer, w, scr_graphheight->integer, black.linear );
 
 	int s = ( w + 1024 - 1 ) / 1024; //scale for resolutions with width >1024
 

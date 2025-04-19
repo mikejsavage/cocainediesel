@@ -73,24 +73,24 @@ float PositiveMod( float x, float y );
 double PositiveMod( double x, double y );
 
 template< typename T, u64 Bits = sizeof( T ) * 8 >
-float Dequantize01( T x ) {
+constexpr float Dequantize01( T x ) {
 	return x / float( ( 1_u64 << Bits ) - 1 );
 }
 
 template< typename T, u64 Bits = sizeof( T ) * 8 >
-T Quantize01( float x ) {
+constexpr T Quantize01( float x ) {
 	Assert( x >= 0.0f && x <= 1.0f );
 	return T( x * float( ( 1_u64 << Bits ) - 1 ) + 0.5f );
 }
 
 // these map 2^n - 1 and 2^n - 2 to 1.0f so we can exactly represent 0
 template< typename T, u64 Bits = sizeof( T ) * 8 >
-float Dequantize11( T x ) {
+constexpr float Dequantize11( T x ) {
 	return Min2( 1.0f, ( x / float( ( 1_u64 << Bits ) - 2 ) - 0.5f ) * 2.0f );
 }
 
 template< typename T, u64 Bits = sizeof( T ) * 8 >
-T Quantize11( float x ) {
+constexpr T Quantize11( float x ) {
 	Assert( x >= -1.0f && x <= 1.0f );
 	return T( ( x * 0.5f + 0.5f ) * float( ( 1_u64 << Bits ) - 2 ) + 0.5f );
 }

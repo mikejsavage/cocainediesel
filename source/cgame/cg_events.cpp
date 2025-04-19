@@ -786,7 +786,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_BOMB_EXPLOSION:
-			DoEntFX( ent, parm, white.vec4, "loadout/bomb/explosion", "loadout/bomb/explode" );
+			DoEntFX( ent, parm, white.linear, "loadout/bomb/explosion", "loadout/bomb/explode" );
 			break;
 
 		case EV_GIB:
@@ -909,7 +909,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_VFX:
-			DoVisualEffect( StringHash( parm ), ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), 1, white.vec4 );
+			DoVisualEffect( StringHash( parm ), ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), 1, white.linear );
 			break;
 
 		case EV_FLASH_WINDOW:

@@ -499,7 +499,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat3x4::Identity(), Mat3x4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples, Vec3() );
 	frame_static.identity_model_uniforms = UploadModelUniforms( Mat3x4::Identity() );
 	frame_static.identity_material_static_uniforms = UploadMaterialStaticUniforms( 0.0f, 64.0f );
-	frame_static.identity_material_dynamic_uniforms = UploadMaterialDynamicUniforms( white.vec4 );
+	frame_static.identity_material_dynamic_uniforms = UploadMaterialDynamicUniforms( white.linear );
 
 #define TRACY_HACK( name ) { name, __FUNCTION__, __FILE__, uint32_t( __LINE__ ), 0 }
 	static const tracy::SourceLocationData particle_update_tracy = TRACY_HACK( "Update particles" );

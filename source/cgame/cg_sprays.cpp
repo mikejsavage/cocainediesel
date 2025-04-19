@@ -90,6 +90,6 @@ void DrawSprays() {
 
 	for( size_t i = 0; i < num_sprays; i++ ) {
 		const Spray * spray = &sprays[ ( sprays_head + i ) % ARRAY_COUNT( sprays ) ];
-		DrawDecal( spray->origin, spray->orientation, spray->radius, spray->material, white.vec4, 0.0f );
+		DrawDecal( spray->origin, spray->orientation, spray->radius, spray->material, white.linear, 0.0f );
 	}
 }

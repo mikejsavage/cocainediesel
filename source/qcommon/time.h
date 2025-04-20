@@ -8,6 +8,7 @@ Time Now();
 
 bool FormatTimestamp( char * buf, size_t buf_size, const char * fmt, s64 time );
 bool FormatCurrentTime( char * buf, size_t buf_size, const char * fmt );
+s64 GetDayID();
 
 template< typename T > constexpr Time Milliseconds( T ms ) { return { u64( ms    * GGTIME_FLICKS_PER_SECOND / 1000 ) }; }
 template< typename T > constexpr Time Seconds( T secs )    { return { u64( secs  * GGTIME_FLICKS_PER_SECOND ) }; }

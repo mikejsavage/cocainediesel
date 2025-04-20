@@ -97,7 +97,7 @@ struct client_static_t {
 	ArenaAllocator frame_arena;
 
 	RNG rng;
-	u64 per_launch_entropy;
+	u64 launch_day;
 
 	u64 session_id;
 	connstate_t state;          // only set through CL_SetClientState

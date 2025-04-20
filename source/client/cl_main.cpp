@@ -1114,7 +1114,7 @@ void CL_Init() {
 	u64 entropy[ 2 ];
 	CSPRNG( entropy, sizeof( entropy ) );
 	cls.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
-	cls.per_launch_entropy = Random64( &cls.rng );
+	cls.launch_day = GetDayID();
 
 	CSPRNG( &cls.session_id, sizeof( cls.session_id ) );
 

@@ -1158,7 +1158,7 @@ static void MainMenu() {
 						#include "subtitles.h"
 					};
 
-					RNG rng = NewRNG( cls.per_launch_entropy, 0 );
+					RNG rng = NewRNG( cls.launch_day, 0 );
 					Span< const char > subtitle = RandomElement( &rng, subtitles );
 					Span< const char > full_subtitle = temp.sv( "THE{}{} GAME", subtitle == "" ? "" : " ", subtitle );
 

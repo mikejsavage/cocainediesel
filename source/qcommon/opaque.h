@@ -38,7 +38,4 @@ struct Opaque {
 		static_assert( sizeof( T ) <= sizeof( opaque ) && alignof( T ) <= OpaqueAlignment< T >, "gg" );
 		return ( const T * ) opaque;
 	}
-
-	T * operator->() { return unwrap(); };
-	const T * operator->() const { return unwrap(); };
 };

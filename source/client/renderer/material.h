@@ -74,7 +74,13 @@ const Material * FindMaterial( StringHash name );
 const Material * FindMaterial( const char * name );
 bool TryFindMaterial( StringHash name, const Material ** material );
 
-bool TryFindSprite( StringHash name, Vec4 * uvwh, Vec4 * trim );
+struct Sprite {
+	// TODO: these do funny arithmetic packing and we should convert them to use f16 etc
+	Vec4 uvwh;
+	Vec4 trim;
+};
+
+Optional< Sprite > TryFindSprite( StringHash name );
 PoolHandle< BindGroup > SpriteAtlasBindGroup();
 PoolHandle< Texture > SpriteAtlasTexture();
 

@@ -3,9 +3,9 @@
 [[vk::binding( 0 )]] StructuredBuffer< ViewUniforms > u_View;
 [[vk::binding( 1 )]] StructuredBuffer< TileCullingInputs > u_TileCulling;
 [[vk::binding( 2 )]] StructuredBuffer< Decal > u_Decals;
-[[vk::binding( 3 )]] StructuredBuffer< DynamicLight > u_Dlights;
+[[vk::binding( 3 )]] StructuredBuffer< Light > u_Lights;
 [[vk::binding( 4 )]] RWStructuredBuffer< TileIndices > u_DecalTiles;
-[[vk::binding( 5 )]] RWStructuredBuffer< TileIndices > u_DlightTiles;
+[[vk::binding( 5 )]] RWStructuredBuffer< TileIndices > u_LightTiles;
 [[vk::binding( 6 )]] RWStructuredBuffer< TileCountsUniforms > u_TileCounts;
 
 bool SphereCone( float3 sphere_origin, float sphere_radius, float3 cone_origin, float3 cone_axis, float cone_tan ) {
@@ -63,23 +63,23 @@ void CullTile( uint2 tile ) {
 	}
 
 	{
-		TileIndices dlight_tile;
-		uint dlight_count = 0;
-		for( uint32_t i = 0; i < u_TileCulling[ 0 ].num_dlights; i++ ) {
-			if( dlight_count == FORWARD_PLUS_TILE_CAPACITY )
+		TileIndices light_tile;
+		uint light_count = 0;
+		for( uint32_t i = 0; i < u_TileCulling[ 0 ].num_lights; i++ ) {
+			if( light_count == FORWARD_PLUS_TILE_CAPACITY )
 				break;
 
-			DynamicLight dlight = u_Dlights[ i ];
-			float3 origin = floor( dlight.origin_color.xyz );
-			float radius = dlight.radius;
+			Light light = u_Lights[ i ];
+			float3 origin = floor( light.origin_color.xyz );
+			float radius = light.radius;
 			if( SphereInTile( origin, radius, tile_direction, cone_tan ) ) {
-				dlight_tile.indices[ dlight_count ] = i;
-				dlight_count++;
+				light_tile.indices[ light_count ] = i;
+				light_count++;
 			}
 		}
 
-		u_DlightTiles[ tile_idx ] = dlight_tile;
-		u_TileCounts[ tile_idx ].num_dlights = dlight_count;
+		u_LightTiles[ tile_idx ] = light_tile;
+		u_TileCounts[ tile_idx ].num_lights = light_count;
 	}
 }
 

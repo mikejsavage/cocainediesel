@@ -129,7 +129,7 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 	float range = GS_GetWeaponDef( Weapon_Laser )->range;
 	trace_t trace = GS_TraceLaserBeam( &client_gs, laserOrigin, laserAngles, range, cent->current.number, 0 );
 	if( trace.HitSomething() ) {
-		DrawDynamicLight( trace.endpos, color.xyz(), 10000.0f );
+		DrawLight( trace.endpos, color.xyz(), 10000.0f );
 		DoVisualEffect( "loadout/laser/tip_hit", trace.endpos, trace.normal, 1.0f, color );
 
 		cent->lg_tip_sound = PlayImmediateSFX( "loadout/laser/tip_hit", cent->lg_tip_sound, PlaySFXConfigPosition( trace.endpos ) );

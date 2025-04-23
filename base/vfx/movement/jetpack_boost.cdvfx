@@ -1,5 +1,4 @@
 {
-
   particles {
     material textures/vfx/smoke3
     material textures/vfx/smoke4
@@ -19,7 +18,5 @@
     lifetime 1.0
 
     emission 250
-
   }
-
 }

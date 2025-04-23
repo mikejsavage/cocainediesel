@@ -12,7 +12,7 @@ enum GLTFInterpolationMode {
 enum ModelVfxType {
 	ModelVfxType_None,
 	ModelVfxType_Vfx,
-	ModelVfxType_DynamicLight,
+	ModelVfxType_Light,
 	ModelVfxType_Decal,
 };
 
@@ -45,7 +45,7 @@ struct GLTFRenderData {
 		Vec4 color;
 	};
 
-	struct DynamicLightNode {
+	struct LightNode {
 		Vec3 color;
 		float intensity;
 	};
@@ -77,7 +77,7 @@ struct GLTFRenderData {
 		ModelVfxType vfx_type;
 		union {
 			VfxNode vfx_node;
-			DynamicLightNode dlight_node;
+			LightNode dlight_node;
 			DecalNode decal_node;
 		};
 	};

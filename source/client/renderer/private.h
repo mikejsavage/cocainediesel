@@ -64,8 +64,12 @@ PoolHandle< GPUAllocation > AllocateGPUMemory( size_t size );
 CoherentMemory AllocateCoherentMemory( size_t size );
 
 // pass a = NULL for a dedicated allocation
-PoolHandle< Texture > NewTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< PoolHandle< Texture > > = NONE );
-PoolHandle< Texture > UploadBC4( GPUSlabAllocator * a, const char * path );
+struct BackendTexture;
+template<> struct PoolHandleType< BackendTexture > { using T = PoolHandleType< Texture >::T; };
+
+PoolHandle< BackendTexture > NewTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< PoolHandle< BackendTexture > > = NONE );
+PoolHandle< BackendTexture > TextureHandle( PoolHandle< Texture > texture );
+PoolHandle< BackendTexture > UploadBC4( GPUSlabAllocator * a, const char * path );
 
 void CopyGPUBufferToBuffer(
 	Opaque< CommandBuffer > cmd_buf,
@@ -74,7 +78,7 @@ void CopyGPUBufferToBuffer(
 	size_t n );
 void CopyGPUBufferToTexture(
 	Opaque< CommandBuffer > cmd_buf,
-	PoolHandle< Texture > dest, u32 w, u32 h, u32 num_layers, u32 mip_level,
+	PoolHandle< BackendTexture > dest, u32 w, u32 h, u32 num_layers, u32 mip_level,
 	PoolHandle< GPUAllocation > src, size_t src_offset );
 
 Opaque< CommandBuffer > NewTransferCommandBuffer();
@@ -82,12 +86,12 @@ void DeleteTransferCommandBuffer( Opaque< CommandBuffer > cb );
 
 void UploadBuffer( GPUBuffer dest, const void * data, size_t n );
 GPUBuffer StageArgumentBuffer( GPUBuffer dest, size_t n, size_t alignment );
-void UploadTexture( PoolHandle< Texture > dest, const void * data );
+void UploadTexture( PoolHandle< BackendTexture > dest, const void * data );
 
 void AddDebugMarker( const char * label, PoolHandle< GPUAllocation > allocation, size_t offset, size_t size );
 void RemoveAllDebugMarkers( PoolHandle< GPUAllocation > allocation );
 
-PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandle< Texture > texture, SamplerType sampler, GPUBuffer properties );
+PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandle< BackendTexture > texture, SamplerType sampler, GPUBuffer properties );
 
 size_t FrameSlot();
 

@@ -12,10 +12,10 @@
 /* [[vk::binding( 6, DescriptorSet_RenderPass )]] StructuredBuffer< TileCullingDimensions > u_TileDimensions; */
 [[vk::binding( 7, DescriptorSet_RenderPass )]] StructuredBuffer< TileCountsUniforms > u_TileCounts;
 [[vk::binding( 8, DescriptorSet_RenderPass )]] StructuredBuffer< TileIndices > u_DecalTiles;
-[[vk::binding( 9, DescriptorSet_RenderPass )]] StructuredBuffer< TileIndices > u_DlightTiles;
+[[vk::binding( 9, DescriptorSet_RenderPass )]] StructuredBuffer< TileIndices > u_LightTiles;
 [[vk::binding( 10, DescriptorSet_RenderPass )]] StructuredBuffer< Decal > u_Decals;
-[[vk::binding( 11, DescriptorSet_RenderPass )]] StructuredBuffer< DynamicLight > u_Dlights;
-[[vk::binding( 12, DescriptorSet_RenderPass )]] Texture2DArray< float > u_DecalAtlases;
+[[vk::binding( 11, DescriptorSet_RenderPass )]] StructuredBuffer< Light > u_Lights;
+[[vk::binding( 12, DescriptorSet_RenderPass )]] Texture2DArray< float > u_SpriteAtlas;
 #endif
 
 #include "include/standard_material.hlsl"
@@ -119,7 +119,7 @@ FragmentOutput FragmentMain( VertexOutput v ) {
 	shadowlight = shadowlight * 0.5f + 0.5f;
 
 	#if APPLY_DYNAMICS
-		AddDynamicLights( dynamic_tile.num_dlights, tile_index, v.world_position, normal, viewDir, lambertlight, specularlight );
+		AddLights( dynamic_tile.num_lights, tile_index, v.world_position, normal, viewDir, lambertlight, specularlight );
 	#endif
 	lambertlight = lambertlight * 0.5f + 0.5f;
 

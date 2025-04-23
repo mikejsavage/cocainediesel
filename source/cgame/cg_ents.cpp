@@ -639,31 +639,31 @@ void DrawEntities() {
 			case ET_BAZOOKA:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/bazooka/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 25600.0f );
+				DrawLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 25600.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_LAUNCHER:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/launcher/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
+				DrawLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_FLASH:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/flash/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
+				DrawLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_ASSAULT:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/assault/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
+				DrawLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_BUBBLE:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/bubble/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
+				DrawLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_RIFLE:
@@ -688,7 +688,7 @@ void DrawEntities() {
 				break;
 			case ET_BLASTER:
 				DrawEntityTrail( cent, "loadout/blaster/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 3200.0f );
+				DrawLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 3200.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_SAWBLADE:
@@ -699,7 +699,7 @@ void DrawEntities() {
 			case ET_STICKY:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/sticky/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
+				DrawLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_AXE:

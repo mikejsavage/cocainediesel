@@ -9,68 +9,62 @@
 STATIC_ASSERT( sizeof( Decal ) == 2 * 4 * sizeof( float ) );
 STATIC_ASSERT( sizeof( Decal ) % alignof( Decal ) == 0 );
 
-STATIC_ASSERT( sizeof( DynamicLight ) == 1 * 4 * sizeof( float ) );
-STATIC_ASSERT( sizeof( DynamicLight ) % alignof( DynamicLight ) == 0 );
+STATIC_ASSERT( sizeof( Light ) == 1 * 4 * sizeof( float ) );
+STATIC_ASSERT( sizeof( Light ) % alignof( Light ) == 0 );
 
-static GPUTempBuffer this_frame_decals_buffer;
-static GPUBuffer decal_tiles_buffer;
-static GPUTempBuffer this_frame_dlights_buffer;
-static GPUBuffer dlight_tiles_buffer;
 static GPUBuffer dynamic_count;
+static GPUBuffer decal_tiles_buffer;
+static GPUBuffer light_tiles_buffer;
+static CoherentBuffer lights_buffer;
+static CoherentBuffer decals_buffer;
 
 struct PersistentDecal {
 	Decal decal;
 	Time expiration;
 };
 
-struct PersistentDynamicLight {
-	DynamicLight dlight;
+struct PersistentLight {
+	Light light;
 	float start_intensity;
 	Time spawn_time;
 	Time lifetime;
 };
 
 static constexpr u32 MAX_DECALS = 100000;
-static constexpr u32 MAX_DLIGHTS = 100000;
+static constexpr u32 MAX_LIGHTS = 100000;
 
 static BoundedDynamicArray< Decal, MAX_DECALS > decals;
-static BoundedDynamicArray< DynamicLight, MAX_DLIGHTS > dlights;
+static BoundedDynamicArray< Light, MAX_LIGHTS > lights;
 static BoundedDynamicArray< PersistentDecal, MAX_DECALS > persistent_decals;
-static BoundedDynamicArray< PersistentDynamicLight, MAX_DLIGHTS > persistent_dlights;
+static BoundedDynamicArray< PersistentLight, MAX_LIGHTS > persistent_lights;
 
 struct GPUDecalTile {
 	u32 decals[ FORWARD_PLUS_TILE_CAPACITY ];
 };
 
-struct GPUDynamicLightTile {
-	u32 dlights[ FORWARD_PLUS_TILE_CAPACITY ];
+struct GPULightTile {
+	u32 lights[ FORWARD_PLUS_TILE_CAPACITY ];
 };
 
 struct GPUDynamicCount {
 	u32 decal_count;
-	u32 dlight_count;
+	u32 light_count;
 };
 
 void InitDecals() {
 	ResetDecals();
-
-	this_frame_decals_buffer = NewStreamingBuffer( sizeof( decals ), "Decals" );
-	this_frame_dlights_buffer = NewStreamingBuffer( sizeof( dlights ), "Dynamic lights" );
-	decal_tiles_buffer = { };
-	dlight_tiles_buffer = { };
-	dynamic_count = { };
 }
 
 void ResetDecals() {
 	decals.clear();
-	dlights.clear();
+	lights.clear();
 	persistent_decals.clear();
-	persistent_dlights.clear();
+	persistent_lights.clear();
 }
 
 void DrawDecal( Vec3 origin, Quaternion orientation, float radius, StringHash name, Vec4 color, float height ) {
-	Vec4 uvwh;
-	if( !TryFindDecal( name, &uvwh, NULL ) ) {
+	Optional< Sprite > sprite = TryFindSprite( name );
+	if( !sprite.exists ) {
 		Com_GGPrint( S_COLOR_YELLOW "Material {} should have decal key", name );
 		return;
 	}
@@ -78,7 +72,8 @@ void DrawDecal( Vec3 origin, Quaternion orientation, float radius, StringHash na
 	Vec3 c = Floor( color.xyz() * 255.0f );
 	c.x += floorf( height ) * 256.0f;
 
-	[[maybe_unused]] bool ok = decals.add( Decal {
+	Vec4 uvwh = sprite.value.uvwh;
+	[[maybe_unused]] bool fail_silently = decals.add( Decal {
 		.origin_orientation_xyz = Floor( origin ) + ( orientation.im() * 0.49f + 0.5f ),
 		.radius_orientation_w = floorf( radius ) + ( orientation.w * 0.49f + 0.5f ),
 		.color_uvwh_height = Vec4( uvwh.x, uvwh.y + c.x, uvwh.z + c.y, uvwh.w + c.z ),
@@ -86,8 +81,8 @@ void DrawDecal( Vec3 origin, Quaternion orientation, float radius, StringHash na
 }
 
 void AddPersistentDecal( Vec3 origin, Quaternion orientation, float radius, StringHash name, Vec4 color, Time lifetime, float height ) {
-	Vec4 uvwh;
-	if( !TryFindDecal( name, &uvwh, NULL ) ) {
+	Optional< Sprite > sprite = TryFindSprite( name );
+	if( !sprite.exists ) {
 		Com_GGPrint( S_COLOR_YELLOW "Material {} should have decal key", name );
 		return;
 	}
@@ -95,7 +90,8 @@ void AddPersistentDecal( Vec3 origin, Quaternion orientation, float radius, Stri
 	Vec3 c = Floor( color.xyz() * 255.0f );
 	c.x += floorf( height ) * 256.0f;
 
-	[[maybe_unused]] bool ok = persistent_decals.add( PersistentDecal {
+	Vec4 uvwh = sprite.value.uvwh;
+	[[maybe_unused]] bool fail_silently = persistent_decals.add( PersistentDecal {
 		.decal = Decal {
 			.origin_orientation_xyz = Floor( origin ) + ( orientation.im() * 0.49f + 0.5f ),
 			.radius_orientation_w = floorf( radius ) + ( orientation.w * 0.49f + 0.5f ),
@@ -122,18 +118,18 @@ void DrawPersistentDecals() {
 	}
 }
 
-void DrawDynamicLight( Vec3 origin, Vec3 color, float intensity ) {
-	[[maybe_unused]] bool ok = dlights.add( DynamicLight {
+void DrawLight( Vec3 origin, Vec3 color, float intensity ) {
+	[[maybe_unused]] bool ok = lights.add( Light {
 		.origin_color = Floor( origin ) + color * 0.9f,
-		.radius = sqrtf( intensity / DLIGHT_CUTOFF ),
+		.radius = sqrtf( intensity / LIGHT_CUTOFF ),
 	} );
 }
 
-void AddPersistentDynamicLight( Vec3 origin, Vec3 color, float intensity, Time lifetime ) {
-	[[maybe_unused]] bool ok = persistent_dlights.add( PersistentDynamicLight {
-		.dlight = DynamicLight {
+void AddPersistentLight( Vec3 origin, Vec3 color, float intensity, Time lifetime ) {
+	[[maybe_unused]] bool ok = persistent_lights.add( PersistentLight {
+		.light = Light {
 			.origin_color = Floor( origin ) + color * 0.9f,
-			.radius = sqrtf( intensity / DLIGHT_CUTOFF ),
+			.radius = sqrtf( intensity / LIGHT_CUTOFF ),
 		},
 		.start_intensity = intensity,
 		.spawn_time = cls.game_time,
@@ -141,24 +137,24 @@ void AddPersistentDynamicLight( Vec3 origin, Vec3 color, float intensity, Time l
 	} );
 }
 
-void DrawPersistentDynamicLights() {
-	// remove expired dlights
-	for( u32 i = 0; i < persistent_dlights.size(); i++ ) {
-		if( cls.game_time > persistent_dlights[ i ].spawn_time + persistent_dlights[ i ].lifetime ) {
-			persistent_dlights.remove_swap( i );
+void DrawPersistentLights() {
+	// remove expired lights
+	for( u32 i = 0; i < persistent_lights.size(); i++ ) {
+		if( cls.game_time > persistent_lights[ i ].spawn_time + persistent_lights[ i ].lifetime ) {
+			persistent_lights.remove_swap( i );
 			i--;
 		}
 	}
 
 	// draw
-	for( const PersistentDynamicLight & dlight : persistent_dlights ) {
-		float fract = ToSeconds( cls.game_time - dlight.spawn_time ) / ToSeconds( dlight.lifetime );
-		float intensity = Lerp( dlight.start_intensity, fract, 0.0f );
-		DynamicLight faded = {
-			.origin_color = dlight.dlight.origin_color,
-			.radius = sqrtf( intensity / DLIGHT_CUTOFF ),
+	for( const PersistentLight & light : persistent_lights ) {
+		float fract = ToSeconds( cls.game_time - light.spawn_time ) / ToSeconds( light.lifetime );
+		float intensity = Lerp( light.start_intensity, fract, 0.0f );
+		Light faded = {
+			.origin_color = light.light.origin_color,
+			.radius = sqrtf( intensity / LIGHT_CUTOFF ),
 		};
-		if( !dlights.add( faded ) ) {
+		if( !lights.add( faded ) ) {
 			break;
 		}
 	}
@@ -169,19 +165,13 @@ static u32 PixelsToTiles( u32 pixels ) {
 }
 
 void AllocateDecalBuffers() {
-	this_frame_decals_buffer = NewTempBuffer( decals.num_bytes(), alignof( Decal ) );
-	this_frame_dlights_buffer = NewTempBuffer( dlights.num_bytes(), alignof( DynamicLight ) );
-
-	if( decal_tiles_buffer.size != 0 && !frame_static.viewport_resized )
-		return;
-
-	TracyZoneScopedN( "Reallocate tile buffers" );
-
 	u32 num_tiles = PixelsToTiles( frame_static.viewport_height ) * PixelsToTiles( frame_static.viewport_width );
 
-	decal_tiles_buffer = NewBuffer( GPULifetime_Framebuffer, "Decal tile indices", num_tiles * sizeof( GPUDecalTile ), sizeof( GPUDecalTile ), false );
-	dlight_tiles_buffer = NewBuffer( GPULifetime_Framebuffer, "Dynamic light tile indices", num_tiles * sizeof( GPUDynamicLightTile ), sizeof( GPUDynamicLightTile ), false );
-	dynamic_count = NewBuffer( GPULifetime_Framebuffer, "Dynamics tile counts", num_tiles * sizeof( GPUDynamicCount ), sizeof( GPUDynamicCount ), false );
+	dynamic_count = NewDeviceTempBuffer( "Dynamics tile counts", num_tiles * sizeof( GPUDynamicCount ), alignof( GPUDynamicCount ) );
+	decal_tiles_buffer = NewDeviceTempBuffer( "Decal tile indices", num_tiles * sizeof( GPUDecalTile ), alignof( GPUDecalTile ) );
+	light_tiles_buffer = NewDeviceTempBuffer( "Light tile indices", num_tiles * sizeof( GPULightTile ), alignof( GPULightTile ) );
+	decals_buffer = NewTempBuffer( decals.num_bytes(), alignof( Decal ) );
+	lights_buffer = NewTempBuffer( lights.num_bytes(), alignof( Light ) );
 }
 
 void UploadDecalBuffers() {
@@ -190,40 +180,40 @@ void UploadDecalBuffers() {
 	u32 rows = PixelsToTiles( frame_static.viewport_height );
 	u32 cols = PixelsToTiles( frame_static.viewport_width );
 
-	memcpy( this_frame_decals_buffer.ptr, decals.ptr(), decals.num_bytes() );
-	memcpy( this_frame_dlights_buffer.ptr, dlights.ptr(), dlights.num_bytes() );
+	memcpy( decals_buffer.ptr, decals.ptr(), decals.num_bytes() );
+	memcpy( lights_buffer.ptr, lights.ptr(), lights.num_bytes() );
 
 	frame_static.render_passes[ RenderPass_TileCulling ] = NewComputePass( ComputePassConfig {
-		.name = "Particle/dlight tile culling",
+		.name = "Particle/light tile culling",
 	} );
 
-	TileCullingUniforms uniforms = {
+	GPUBuffer tile_culling = NewTempBuffer( TileCullingInputs {
 		.rows = rows,
 		.cols = cols,
 		.num_decals = u32( decals.size() ),
-		.num_dlights = u32( dlights.size() ),
-	};
+		.num_lights = u32( lights.size() ),
+	} );
 
 	EncodeComputeCall( RenderPass_TileCulling, shaders.tile_culling, ( cols * rows ) / 64 + 1, 1, 1, {
 		{ "u_View", frame_static.view_uniforms },
-		{ "u_TileCulling", NewTempBuffer( uniforms ) },
-		{ "b_Decals", this_frame_decals_buffer },
-		{ "b_Dlights", this_frame_dlights_buffer },
+		{ "u_TileCulling", tile_culling },
+		{ "b_Decals", decals_buffer.buffer },
+		{ "b_lights", lights_buffer.buffer },
 		{ "b_TileCounts", dynamic_count },
 		{ "b_DecalTiles", decal_tiles_buffer },
-		{ "b_DLightTiles", dlight_tiles_buffer },
+		{ "b_LightTiles", light_tiles_buffer },
 	} );
 
 	decals.clear();
-	dlights.clear();
+	lights.clear();
 }
 
 DynamicsResources GetDynamicsResources() {
 	return DynamicsResources {
 		.tile_counts = dynamic_count,
 		.decal_tiles = decal_tiles_buffer,
-		.dlight_tiles = dlight_tiles_buffer,
-		.decals = this_frame_decals_buffer,
-		.dlights = this_frame_dlights_buffer,
+		.light_tiles = light_tiles_buffer,
+		.decals = decals_buffer.buffer,
+		.lights = lights_buffer.buffer,
 	};
 }

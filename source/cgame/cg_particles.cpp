@@ -21,7 +21,7 @@ static constexpr u32 MAX_PARTICLE_EMITTER_MATERIALS = 32;
 static constexpr u32 MAX_DECAL_EMITTERS = 512;
 static constexpr u32 MAX_DECAL_EMITTER_MATERIALS = 8;
 
-static constexpr u32 MAX_DLIGHT_EMITTERS = 512;
+static constexpr u32 MAX_LIGHT_EMITTERS = 512;
 
 static constexpr u32 MAX_VISUAL_EFFECT_GROUPS = 512;
 static constexpr u32 MAX_VISUAL_EFFECTS = 16;
@@ -98,7 +98,7 @@ struct ParticleSystem {
 	GPUBuffer gpu_particles1;
 	GPUBuffer gpu_particles2;
 
-	GPUTempBuffer new_particles;
+	CoherentBuffer new_particles;
 	u32 num_new_particles;
 	bool clear;
 
@@ -112,7 +112,7 @@ struct ParticleSystem {
 enum VisualEffectType : u8 {
 	VisualEffectType_Particles,
 	VisualEffectType_Decal,
-	VisualEffectType_DynamicLight,
+	VisualEffectType_Light,
 };
 
 struct VisualEffect {
@@ -195,7 +195,7 @@ struct DecalEmitter {
 	float height = 0.0f;
 };
 
-struct DynamicLightEmitter {
+struct LightEmitter {
 	Vec3 color = Vec3( 1.0f );
 	RandomDistribution red_distribution, green_distribution, blue_distribution;
 	bool color_override;
@@ -212,7 +212,7 @@ static ParticleSystem blendParticleSystem;
 static Hashmap< VisualEffectGroup, MAX_VISUAL_EFFECT_GROUPS > visualEffectGroups;
 static Hashmap< ParticleEmitter, MAX_PARTICLE_EMITTERS > particleEmitters;
 static Hashmap< DecalEmitter, MAX_DECAL_EMITTERS > decalEmitters;
-static Hashmap< DynamicLightEmitter, MAX_DLIGHT_EMITTERS > dlightEmitters;
+static Hashmap< LightEmitter, MAX_LIGHT_EMITTERS > lightEmitters;
 
 static ParticleSystem NewParticleSystem( Allocator * a, BlendFunc blend_func, size_t max_particles ) {
 	u32 zero = 0;
@@ -497,7 +497,7 @@ static bool ParseDecalEmitter( DecalEmitter * emitter, Span< const char > * data
 	return true;
 }
 
-static bool ParseDynamicLightEmitter( DynamicLightEmitter * emitter, Span< const char > * data ) {
+static bool ParseLightEmitter( LightEmitter * emitter, Span< const char > * data ) {
 	while( true ) {
 		Span< const char > opening_brace = ParseToken( data, Parse_DontStopOnNewLine );
 		if( opening_brace == "" )
@@ -622,19 +622,19 @@ static bool ParseVisualEffectGroup( VisualEffectGroup * group, Span< const char 
 					return false;
 				}
 			}
-			else if( key == "dlight" ) {
-				DynamicLightEmitter emitter = { };
-				if( !ParseDynamicLightEmitter( &emitter, data ) )
+			else if( key == "light" ) {
+				LightEmitter emitter = { };
+				if( !ParseLightEmitter( &emitter, data ) )
 					return false;
 
 				size_t n = group->effects.size();
 				VisualEffect e = {
-					.type = VisualEffectType_DynamicLight,
+					.type = VisualEffectType_Light,
 					.hash = Hash64( &n, sizeof( n ), base_hash ),
 				};
 
-				if( !dlightEmitters.upsert( e.hash, emitter ) ) {
-					Com_Printf( S_COLOR_YELLOW "Too many dlight emitters\n" );
+				if( !lightEmitters.upsert( e.hash, emitter ) ) {
+					Com_Printf( S_COLOR_YELLOW "Too many light emitters\n" );
 					return false;
 				}
 
@@ -694,7 +694,7 @@ void InitVisualEffects() {
 	visualEffectGroups.clear();
 	particleEmitters.clear();
 	decalEmitters.clear();
-	dlightEmitters.clear();
+	lightEmitters.clear();
 
 	for( Span< const char > path : AssetPaths() ) {
 		if( FileExtension( path ) == ".cdvfx" ) {
@@ -899,10 +899,10 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 	start_color = Clamp01( start_color );
 
 	if( emitter->materials.size() > 0 ) {
-		Vec4 uvwh = Vec4( 0.0f );
-		Vec4 trim = Vec4( 0.0f, 0.0f, 1.0f, 1.0f );
-		if( TryFindSprite( RandomElement( &cls.rng, emitter->materials.span() ), &uvwh, &trim ) ) {
-			EmitParticle( ps, lifetime, position, dir * speed, angle, angular_velocity, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, trim, start_color, end_color, size, emitter->end_size, emitter->flags );
+		Optional< Sprite > sprite = TryFindSprite( RandomElement( &cls.rng, emitter->materials.span() ) );
+		if( sprite.exists ) {
+			EmitParticle( ps, lifetime, position, dir * speed, angle, angular_velocity, emitter->acceleration, emitter->drag, emitter->restitution,
+				sprite.value.uvwh, sprite.value.trim, start_color, end_color, size, emitter->end_size, emitter->flags );
 		}
 	}
 }
@@ -1001,7 +1001,7 @@ static void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 co
 	AddPersistentDecal( origin, QuaternionFromNormalAndRadians( normal, angle ), size, material, actual_color, Seconds( lifetime ), emitter->height );
 }
 
-static void EmitDynamicLight( DynamicLightEmitter * emitter, Vec3 origin, Vec3 color ) {
+static void EmitLight( LightEmitter * emitter, Vec3 origin, Vec3 color ) {
 	float lifetime = Max2( 0.0f, emitter->lifetime + SampleRandomDistribution( &cls.rng, emitter->lifetime_distribution ) );
 	float intensity = Max2( 0.0f, emitter->intensity + SampleRandomDistribution( &cls.rng, emitter->intensity_distribution ) );
 
@@ -1013,7 +1013,7 @@ static void EmitDynamicLight( DynamicLightEmitter * emitter, Vec3 origin, Vec3 c
 	actual_color.y += SampleRandomDistribution( &cls.rng, emitter->green_distribution );
 	actual_color.z += SampleRandomDistribution( &cls.rng, emitter->blue_distribution );
 	actual_color = Clamp01( actual_color );
-	AddPersistentDynamicLight( origin, actual_color, intensity, Seconds( lifetime ) );
+	AddPersistentLight( origin, actual_color, intensity, Seconds( lifetime ) );
 }
 
 void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec4 color, float decal_lifetime_scale ) {
@@ -1037,10 +1037,10 @@ void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec
 				EmitDecal( emitter, origin, normal, color, decal_lifetime_scale );
 			}
 		}
-		else if( e.type == VisualEffectType_DynamicLight ) {
-			DynamicLightEmitter * emitter = dlightEmitters.get( e.hash );
+		else if( e.type == VisualEffectType_Light ) {
+			LightEmitter * emitter = lightEmitters.get( e.hash );
 			if( emitter != NULL ) {
-				EmitDynamicLight( emitter, origin, color.xyz() );
+				EmitLight( emitter, origin, color.xyz() );
 			}
 		}
 	}

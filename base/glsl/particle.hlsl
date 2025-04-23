@@ -1,7 +1,7 @@
 #include "include/common.hlsl"
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
-[[vk::binding( 0, DescriptorSet_Material )]] Texture2DArray< float4 > u_DecalAtlases;
+[[vk::binding( 0, DescriptorSet_Material )]] Texture2DArray< float4 > u_SpriteAtlas;
 [[vk::binding( 1, DescriptorSet_Material )]] SamplerState u_Sampler;
 [[vk::binding( 0, DescriptorSet_DrawCall )]] StructuredBuffer< Particle > b_Particles;
 
@@ -73,7 +73,7 @@ VertexOutput VertexMain( VertexInput input, uint32_t instance_id : SV_InstanceID
 
 float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
 	// TODO: soft particles
-	float4 color = float4( float3( 1.0f, 1.0f, 1.0f ), u_DecalAtlases.Sample( u_Sampler, float3( v.uv, v.layer ) ).a ) * v.color;
+	float4 color = float4( float3( 1.0f, 1.0f, 1.0f ), u_SpriteAtlas.Sample( u_Sampler, float3( v.uv, v.layer ) ).a ) * v.color;
 	color.a = FogAlpha( color.a, length( v.world_position - u_View[ 0 ].camera_pos ) );
 	color.a = VoidFogAlpha( color.a, v.world_position.z );
 

@@ -12,6 +12,7 @@
 #include "client/renderer/dds.h"
 #include "client/renderer/shader.h"
 #include "client/renderer/material.h"
+#include "client/renderer/private.h"
 #include "cgame/cg_dynamics.h"
 
 #include "nanosort/nanosort.hpp"
@@ -25,15 +26,15 @@ struct MaterialSpecKey {
 };
 
 constexpr u32 MAX_TEXTURES = 4096;
-constexpr u32 MAX_DECALS = 4096;
-constexpr int DECAL_ATLAS_SIZE = 2048;
-constexpr int DECAL_ATLAS_BLOCK_SIZE = DECAL_ATLAS_SIZE / 4;
+constexpr u32 MAX_SPRITES = 4096;
+constexpr int SPRITE_ATLAS_SIZE = 2048;
+constexpr int SPRITE_ATLAS_BLOCK_SIZE = SPRITE_ATLAS_SIZE / 4;
 
-struct HighLevelTexture {
+struct Texture {
 	BoundedString< 64 > name;
 	u64 hash;
 
-	PoolHandle< Texture > texture;
+	PoolHandle< BackendTexture > handle;
 	TextureFormat format;
 	u32 width, height;
 	u32 depth;
@@ -43,20 +44,14 @@ struct HighLevelTexture {
 	bool atlased;
 };
 
-static Hashmap< HighLevelTexture, MAX_TEXTURES > textures;
+static Hashmap< Texture, MAX_TEXTURES > textures;
 static Hashmap< Material, 4096 > materials;
 
 static PoolHandle< Texture > missing_texture;
 static Material2 missing_material;
 
-struct DecalCoords {
-	// TODO: these do funny arithmetic packing and we should convert them to use f16 etc
-	Vec4 uvwh;
-	Vec4 trim;
-};
-
-static Hashmap< DecalCoords, MAX_DECALS > decals;
-static PoolHandle< Texture > decals_atlases;
+static Hashmap< Sprite, MAX_SPRITES > sprites;
+static PoolHandle< Texture > sprite_atlas;
 
 bool CompressedTextureFormat( TextureFormat format ) {
 	switch( format ) {
@@ -172,7 +167,7 @@ static void ParseShaded( MaterialDescriptor * material, Span< const char > name,
 	}
 }
 
-static void ParseWorld( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseWorld( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->world = true;
 	if( material->shaded ) {
 		Com_GGPrint( S_COLOR_YELLOW "{}: world and shaded don't mix", name );
@@ -253,9 +248,20 @@ static void ParseAlphaGen( MaterialDescriptor * material, Span< const char > nam
 	}
 }
 
+PoolHandle< BackendTexture > TextureHandle( PoolHandle< Texture > texture ) {
+	return textures[ texture ].handle;
+}
+
 static PoolHandle< Texture > FindTexture( Span< const char > name ) {
-	HighLevelTexture * handle = textures.get( StringHash( name ).hash );
-	return handle == NULL ? missing_texture : handle->texture;
+	u64 hash = StringHash( name ).hash;
+	Texture * handle = textures.get( hash );
+	if( handle != NULL )
+		return handle;
+
+	// TODO: fill this out properly, do the same for FindMaterial
+	handle = textures.add( hash );
+	*handle = { .texture = missing_texture };
+	return handle;
 }
 
 static void ParseTexture( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
@@ -322,10 +328,10 @@ static bool ParseMaterial( MaterialDescriptor * material, Span< const char > nam
 	return true;
 }
 
-static void UnloadTexture( u64 idx ) {
-	stbi_image_free( textures.span()[ idx ].stb_data );
-	textures.span()[ idx ].stb_data = NULL;
-	textures.span()[ idx ].bc4_data = Span< const BC4Block >();
+static void UnloadTexture( Texture * texture ) {
+	stbi_image_free( texture->stb_data );
+	texture->stb_data = NULL;
+	texture->bc4_data = Span< const BC4Block >();
 }
 
 static Material MaterialFromDescriptor( Span< const char > name, const MaterialDescriptor & descriptor ) {
@@ -352,27 +358,27 @@ static void AddMaterial( Span< const char > name, const MaterialDescriptor & des
 	AddMaterial( name, Hash64( name ), descriptor );
 }
 
-static Optional< size_t > AddTexture( Span< const char > name, u64 hash, const TextureConfig & config ) {
+static Optional< Texture * > AddTexture( Span< const char > name, u64 hash, const TextureConfig & config ) {
 	TracyZoneScoped;
 
-	HighLevelTexture * slot = textures.get( hash );
-	if( slot != NULL ) {
-		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( slot->format ) ) {
+	Texture * texture = textures.get( hash );
+	if( texture != NULL ) {
+		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( texture->format ) ) {
 			return NONE;
 		}
 
-		UnloadTexture( slot );
+		UnloadTexture( texture );
 	}
 	else {
-		slot = textures.add( hash );
-		if( slot == NULL ) {
+		texture = textures.add( hash );
+		if( texture == NULL ) {
 			Com_Printf( S_COLOR_YELLOW "Too many textures!\n" );
 			return NONE;
 		}
 	}
 
-	*slot = NewTexture( config );
-	return idx;
+	*texture = NewTexture( config );
+	return texture;
 }
 
 static void LoadSTBTexture( Span< const char > path, u8 * pixels, int w, int h, int channels, const char * failure_reason ) {
@@ -399,9 +405,9 @@ static void LoadSTBTexture( Span< const char > path, u8 * pixels, int w, int h, 
 		.data = pixels,
 	};
 
-	Optional< size_t > idx = AddTexture( path, Hash64( StripExtension( path ) ), config );
-	if( idx.exists ) {
-		texture_stb_data[ idx.value ] = pixels;
+	Optional< Texture * > texture = AddTexture( path, Hash64( StripExtension( path ) ), config );
+	if( texture.exists ) {
+		texture.value->stb_data = pixels;
 	}
 }
 
@@ -423,10 +429,12 @@ static void LoadDDSTexture( Span< const char > path ) {
 		return;
 	}
 
-	TextureConfig config;
-	config.width = header->width;
-	config.height = header->height;
-	config.data = dds.ptr + sizeof( DDSHeader );
+	TextureConfig config = {
+		.width = header->width,
+		.height = header->height,
+		.data = dds.ptr + sizeof( DDSHeader ),
+		.num_mipmaps = Max2( header->mipmap_count, u32( 1 ) ),
+	};
 
 	switch( header->format ) {
 		case DDSTextureFormat_BC1:
@@ -450,16 +458,15 @@ static void LoadDDSTexture( Span< const char > path ) {
 			return;
 	}
 
-	config.num_mipmaps = Max2( header->mipmap_count, u32( 1 ) );
 	size_t expected_data_size = MipmappedByteSize( config.width, config.height, config.num_mipmaps, config.format );
 	if( dds.num_bytes() - sizeof( DDSHeader ) != expected_data_size ) {
 		Com_GGPrint( S_COLOR_YELLOW "{} has bad data size. Got {}, expected {}", path, dds.num_bytes() - sizeof( DDSHeader ), expected_data_size );
 		return;
 	}
 
-	Optional< size_t > idx = AddTexture( path, Hash64( StripExtension( path ) ), config );
-	if( idx.exists ) {
-		texture_bc4_data[ idx.value ] = ( dds + sizeof( DDSHeader ) ).cast< const BC4Block >();
+	Optional< Texture * > texture = AddTexture( path, Hash64( StripExtension( path ) ), config );
+	if( texture.exists ) {
+		texture.value->bc4_data = ( dds + sizeof( DDSHeader ) ).cast< const BC4Block >();
 	}
 }
 
@@ -495,8 +502,8 @@ struct DecodeSTBTextureJob {
 	} out;
 };
 
-struct DecalAtlasLayer {
-	BC4Block blocks[ DECAL_ATLAS_BLOCK_SIZE * DECAL_ATLAS_BLOCK_SIZE ];
+struct SpriteAtlasLayer {
+	BC4Block blocks[ SPRITE_ATLAS_BLOCK_SIZE * SPRITE_ATLAS_BLOCK_SIZE ];
 };
 
 static BC4Block FastBC4( Span2D< const RGBA8 > rgba ) {
@@ -533,9 +540,9 @@ static Span2D< BC4Block > RGBAToBC4( Span2D< const RGBA8 > rgba ) {
 	return bc4;
 }
 
-static Span2D< const BC4Block > GetMipmap( const HighLevelTexture * texture, u32 mipmap ) {
-	u32 w = TextureWidth( texture->texture ) / 4;
-	u32 h = TextureHeight( texture->texture ) / 4;
+static Span2D< const BC4Block > GetMipmap( const Texture * texture, u32 mipmap ) {
+	u32 w = texture->width / 4;
+	u32 h = texture->height / 4;
 
 	Span< const BC4Block > cursor = texture->bc4_data;
 	for( u32 i = 0; i < mipmap; i++ ) {
@@ -579,43 +586,43 @@ static Vec4 TrimTexture( Span2D< const BC4Block > bc4 ) {
 	return trim;
 }
 
-static void PackDecalAtlas() {
+static void PackSpriteAtlas() {
 	TracyZoneScoped;
 
-	decals.clear();
+	sprites.clear();
 
 	// make a list of textures to be packed
-	stbrp_rect rects[ MAX_DECALS ];
-	size_t num_decals = 0;
+	stbrp_rect rects[ MAX_SPRITES ];
+	size_t num_sprites = 0;
 
 	u32 num_mipmaps = U32_MAX;
 
 	for( u32 i = 0; i < textures.span().n; i++ ) {
-		const HighLevelTexture * texture = &textures.span()[ i ];
+		const Texture * texture = &textures.span()[ i ];
 		if( !texture->atlased )
 			continue;
 
 		if( texture->format != TextureFormat_RGBA_U8_sRGB && texture->format != TextureFormat_BC4 ) {
-			Com_GGPrint( S_COLOR_YELLOW "Decals must be RGBA or BC4 ({})", texture->name.span() );
+			Com_GGPrint( S_COLOR_YELLOW "Sprites must be RGBA or BC4 ({})", texture->name.span() );
 			continue;
 		}
 
 		if( texture->width % 4 != 0 || texture->height % 4 != 0 ) {
-			Com_GGPrint( S_COLOR_YELLOW "Decal dimensions must be a multiple of 4 ({} is {}x{})", texture->name.span(), texture->width, texture->height );
+			Com_GGPrint( S_COLOR_YELLOW "Sprite dimensions must be a multiple of 4 ({} is {}x{})", texture->name.span(), texture->width, texture->height );
 			continue;
 		}
 
 		if( texture->num_mipmaps < 3 ) {
-			Com_GGPrint( S_COLOR_YELLOW "{} has a small number of mipmaps ({}) and will mess up the decal atlas", texture->name.span(), texture->num_mipmaps );
+			Com_GGPrint( S_COLOR_YELLOW "{} has a small number of mipmaps ({}) and will mess up the sprite atlas", texture->name.span(), texture->num_mipmaps );
 		}
 
-		if( num_decals == ARRAY_COUNT( rects ) ) {
-			Com_GGPrint( S_COLOR_YELLOW "Too many decals!" );
+		if( num_sprites == ARRAY_COUNT( rects ) ) {
+			Com_GGPrint( S_COLOR_YELLOW "Too many sprites!" );
 			break;
 		}
 
-		stbrp_rect * rect = &rects[ num_decals ];
-		num_decals++;
+		stbrp_rect * rect = &rects[ num_sprites ];
+		num_sprites++;
 
 		rect->id = i;
 		rect->w = texture->width;
@@ -624,19 +631,19 @@ static void PackDecalAtlas() {
 		num_mipmaps = Min2( texture->num_mipmaps, num_mipmaps );
 	}
 
-	if( num_decals == 0 ) {
+	if( num_sprites == 0 ) {
 		num_mipmaps = 1;
 	}
 
 	// rect packing
-	u32 num_unpacked = num_decals;
+	u32 num_unpacked = num_sprites;
 	u32 num_layers = 0;
 	while( true ) {
 		TracyZoneScopedN( "stb_rect_pack iteration" );
 
 		stbrp_node nodes[ MAX_TEXTURES ];
 		stbrp_context packer;
-		stbrp_init_target( &packer, DECAL_ATLAS_SIZE, DECAL_ATLAS_SIZE, nodes, ARRAY_COUNT( nodes ) );
+		stbrp_init_target( &packer, SPRITE_ATLAS_SIZE, SPRITE_ATLAS_SIZE, nodes, ARRAY_COUNT( nodes ) );
 		stbrp_setup_allow_out_of_mem( &packer, 1 );
 
 		bool all_packed = stbrp_pack_rects( &packer, rects, num_unpacked ) == 1;
@@ -647,14 +654,14 @@ static void PackDecalAtlas() {
 				continue;
 			none_packed = false;
 
-			const HighLevelTexture * texture = &textures.span()[ rects[ i ].id ];
+			const Texture * texture = &textures.span()[ rects[ i ].id ];
 
-			decals.add( texture->hash, DecalCoords {
+			sprites.add( texture->hash, Sprite {
 				.uvwh = Vec4(
-					rects[ i ].x / float( DECAL_ATLAS_SIZE ) + num_layers,
-					rects[ i ].y / float( DECAL_ATLAS_SIZE ),
-					texture->width / float( DECAL_ATLAS_SIZE ),
-					texture->height / float( DECAL_ATLAS_SIZE )
+					rects[ i ].x / float( SPRITE_ATLAS_SIZE ) + num_layers,
+					rects[ i ].y / float( SPRITE_ATLAS_SIZE ),
+					texture->width / float( SPRITE_ATLAS_SIZE ),
+					texture->height / float( SPRITE_ATLAS_SIZE )
 				),
 			} );
 		}
@@ -664,7 +671,7 @@ static void PackDecalAtlas() {
 			break;
 
 		if( none_packed ) {
-			Fatal( "Can't pack decals" );
+			Fatal( "Can't pack sprites" );
 		}
 
 		// repack rects array
@@ -679,8 +686,8 @@ static void PackDecalAtlas() {
 	}
 
 	// convert pngs to temporary bc4s
-	for( u32 i = 0; i < num_decals; i++ ) {
-		HighLevelTexture * texture = &textures.span()[ rects[ i ].id ];
+	for( u32 i = 0; i < num_sprites; i++ ) {
+		Texture * texture = &textures.span()[ rects[ i ].id ];
 		if( texture->format != TextureFormat_RGBA_U8_sRGB )
 			continue;
 
@@ -692,7 +699,7 @@ static void PackDecalAtlas() {
 	// copy texture data into atlases
 	u32 num_blocks = 0;
 	for( u32 i = 0; i < num_mipmaps; i++ ) {
-		num_blocks += Square( DECAL_ATLAS_BLOCK_SIZE >> i );
+		num_blocks += Square( SPRITE_ATLAS_BLOCK_SIZE >> i );
 	}
 	num_blocks *= num_layers;
 
@@ -703,24 +710,24 @@ static void PackDecalAtlas() {
 	Span< BC4Block > cursor = blocks;
 
 	for( u32 mipmap_idx = 0; mipmap_idx < num_mipmaps; mipmap_idx++ ) {
-		u32 mipmap_dim = DECAL_ATLAS_BLOCK_SIZE >> mipmap_idx;
+		u32 mipmap_dim = SPRITE_ATLAS_BLOCK_SIZE >> mipmap_idx;
 		u32 mipmap_blocks = mipmap_dim * mipmap_dim * num_layers;
 		Span< BC4Block > layer_mipmap = cursor.slice( 0, mipmap_blocks );
 		cursor += mipmap_blocks;
 
-		for( u32 i = 0; i < num_decals; i++ ) {
-			const HighLevelTexture * texture = &textures.span()[ rects[ i ].id ];
+		for( u32 i = 0; i < num_sprites; i++ ) {
+			const Texture * texture = &textures.span()[ rects[ i ].id ];
 
-			DecalCoords * decal = decals.get( texture->hash );
-			Assert( decal != NULL );
+			Sprite * sprite = sprites.get( texture->hash );
+			Assert( sprite != NULL );
 
-			u32 layer_idx = u32( decal->uvwh.x );
+			u32 layer_idx = u32( sprite->uvwh.x );
 			Span2D< BC4Block > layer( layer_mipmap + mipmap_dim * mipmap_dim * layer_idx, mipmap_dim, mipmap_dim );
 
 			Span2D< const BC4Block > bc4 = GetMipmap( texture, mipmap_idx );
 
 			if( mipmap_idx == 0 ) {
-				decal->trim = TrimTexture( bc4 );
+				sprite->trim = TrimTexture( bc4 );
 			}
 
 			u32 mipped_x = rects[ i ].x >> mipmap_idx;
@@ -731,37 +738,51 @@ static void PackDecalAtlas() {
 	}
 
 	// free temporary bc4s
-	for( size_t i = 0; i < decals.size(); i++ ) {
-		const HighLevelTexture * texture = &textures.span()[ rects[ i ].id ];
-		const Material * material = &materials[ rects[ i ].id ];
+	for( size_t i = 0; i < sprites.size(); i++ ) {
+		Texture * texture = &textures.span()[ rects[ i ].id ];
+		const Material * material = &materials.span()[ rects[ i ].id ];
 		if( GetTextureFormat( material->texture ) != TextureFormat_RGBA_U8_sRGB )
 			continue;
 
-		u64 texture_idx = material->texture - textures;
-		Free( sys_allocator, const_cast< BC4Block * >( texture_bc4_data[ texture_idx ].ptr ) );
-		texture_bc4_data[ texture_idx ] = Span< const BC4Block >();
+		Free( sys_allocator, const_cast< BC4Block * >( texture->bc4_data.ptr ) );
+		texture->bc4_data = Span< const BC4Block >();
 	}
 
 	// upload atlases
 	{
 		TracyZoneScopedN( "Upload atlas" );
 
-		decals_atlases = NewTexture( TextureConfig {
+		sprite_atlas = NewTexture( TextureConfig {
 			.format = TextureFormat_BC4,
-			.width = DECAL_ATLAS_SIZE,
-			.height = DECAL_ATLAS_SIZE,
+			.width = SPRITE_ATLAS_SIZE,
+			.height = SPRITE_ATLAS_SIZE,
 			.num_layers = num_layers,
 			.num_mipmaps = num_mipmaps,
 			.data = blocks.ptr,
-		}, decals_atlases );
+		}, sprite_atlas );
 	}
 }
 
 static void LoadBuiltinMaterials() {
 	TracyZoneScoped;
 
-	missing_material = NewMaterial( MaterialDescriptor {
-		.name = "missing_material"_sp,
+	{
+		constexpr RGBA8 pixels[] = {
+			RGBA8( 255, 0, 255, 255 ),
+			RGBA8( 0, 0, 0, 255 ),
+			RGBA8( 255, 255, 255, 255 ),
+			RGBA8( 255, 0, 255, 255 ),
+		};
+
+		missing_texture = NewTexture( TextureConfig {
+			.format = TextureFormat_RGBA_U8_sRGB,
+			.width = 2,
+			.height = 2,
+			.data = pixels,
+		} );
+	}
+
+	missing_material = NewMaterial( "missing", MaterialDescriptor {
 		.shader = shaders.standard,
 		.texture = missing_texture,
 	} );
@@ -780,30 +801,16 @@ static void LoadBuiltinMaterials() {
 	}
 
 	{
-		constexpr RGBA8 pixels[] = {
-			RGBA8( 255, 0, 255, 255 ),
-			RGBA8( 0, 0, 0, 255 ),
-			RGBA8( 255, 255, 255, 255 ),
-			RGBA8( 255, 0, 255, 255 ),
-		};
-
-		missing_texture = NewTexture( TextureConfig {
-			.format = TextureFormat_RGBA_U8_sRGB,
-			.width = 2,
-			.height = 2,
-			.data = pixels,
-		} );
-	}
-
-	{
-		Material world_material = Material {
+		MaterialDescriptor world_material = MaterialDescriptor {
 			.rgbgen = { .args = { 0.17f, 0.17f, 0.17f, 1.0f } },
 			.world = true,
-			.specular = 3.0f,
-			.shininess = 8.0f,
+			.properties = {
+				.specular = 3.0f,
+				.shininess = 8.0f,
+			},
 		};
 
-		Material wallbang_material = Material {
+		MaterialDescriptor wallbang_material = MaterialDescriptor {
 			.rgbgen = {
 				.args = {
 					world_material.rgbgen.args[ 0 ] * 0.45f,
@@ -813,8 +820,7 @@ static void LoadBuiltinMaterials() {
 				},
 			},
 			.world = true,
-			.specular = world_material.specular,
-			.shininess = world_material.shininess,
+			.properties = world_material.properties,
 		};
 
 		AddMaterial( "editor/world", world_material );
@@ -827,11 +833,13 @@ static void LoadBuiltinMaterials() {
 		AddMaterial( "wallbang_visible", wallbang_material );
 	}
 
-	AddMaterial( "textures/editor/glass", Material {
+	AddMaterial( "textures/editor/glass", MaterialDescriptor {
 		.rgbgen = { .args = { 0.0f, 0.35f, 0.8f } },
 		.world = true,
-		.specular = 100.0f,
-		.shininess = 100.0f,
+		.properties = {
+			.specular = 100.0f,
+			.shininess = 100.0f,
+		},
 	} );
 }
 
@@ -932,7 +940,7 @@ void InitMaterials() {
 		}
 	}
 
-	PackDecalAtlas();
+	PackSpriteAtlas();
 }
 
 void HotloadMaterials() {
@@ -973,13 +981,13 @@ void HotloadMaterials() {
 	}
 
 	if( changes ) {
-		PackDecalAtlas();
+		PackSpriteAtlas();
 	}
 }
 
 void ShutdownMaterials() {
-	for( u32 i = 0; i < textures.size(); i++ ) {
-		UnloadTexture( i );
+	for( Texture & texture : textures.span() ) {
+		UnloadTexture( &texture );
 	}
 
 	// for( u32 i = 0; i < materials_hashtable.size(); i++ ) {
@@ -1005,18 +1013,13 @@ const Material * FindMaterial( const char * name ) {
 	return FindMaterial( StringHash( name ) );
 }
 
-bool TryFindDecal( StringHash name, Vec4 * uvwh, Vec4 * trim ) {
-	const DecalCoords * decal = decals.get( name.hash );
-	if( decal == NULL )
-		return false;
-	*uvwh = decal->uvwh;
-	if( trim != NULL )
-		*trim = decal->trim;
-	return true;
+Optional< Sprite > TryFindSprite( StringHash name ) {
+	const Sprite * sprite = sprites.get( name.hash );
+	return sprite == NULL ? NONE : MakeOptional( *sprite );
 }
 
-PoolHandle< Texture > DecalAtlasTextureArray() {
-	return decals_atlases;
+PoolHandle< Texture > SpriteAtlasTexture() {
+	return sprite_atlas;
 }
 
 Vec2 HalfPixelSize( const Material * material ) {

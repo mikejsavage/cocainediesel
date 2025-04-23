@@ -555,7 +555,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	DrawParticles();
 	DrawPersistentBeams();
 	DrawPersistentDecals();
-	DrawPersistentDynamicLights();
+	DrawPersistentLights();
 	DrawTrails();
 	DrawSkybox( cls.shadertoy_time );
 	DrawSprays();

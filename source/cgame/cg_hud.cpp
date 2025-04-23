@@ -977,7 +977,7 @@ static int HUD_DrawDamageNumbers( lua_State * L ) {
 }
 
 static int HUD_DrawPointed( lua_State * L ) {
-	CG_DrawPlayerNames( cgs.fontNormalBold, luaL_checknumber( L, 1 ) );
+	CG_DrawPlayerNames( cls.fontNormalBold, luaL_checknumber( L, 1 ) );
 	return 0;
 }
 
@@ -1287,7 +1287,7 @@ static Optional< u16 > CheckClayFont( lua_State * L, int idx ) {
 	if( lua_isnoneornil( L, -1 ) )
 		return NONE;
 
-	constexpr const char * names[ ClayFont_Count + 1 ] = { "regular", "bold", "italic", "bold-italic", NULL };
+	constexpr const char * names[] = { "regular", "bold", "italic", "bold-italic", NULL };
 
 	return luaL_checkoption( L, -1, names[ 0 ], names );
 }

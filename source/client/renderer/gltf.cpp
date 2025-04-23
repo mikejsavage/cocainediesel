@@ -304,7 +304,7 @@ static void LoadNode( GLTFRenderData * model, cgltf_data * gltf, cgltf_node * gl
 			node->vfx_node.color = color;
 		}
 		else if( type == "dlight" ) {
-			node->vfx_type = ModelVfxType_DynamicLight;
+			node->vfx_type = ModelVfxType_Light;
 			node->dlight_node.color = color.xyz();
 			Span< const char > intensity = GetExtrasKey( "intensity", &extras );
 			node->dlight_node.intensity = ParseFloat( &intensity, 0.0f, Parse_DontStopOnNewLine );
@@ -644,8 +644,8 @@ static void DrawVfxNode( DrawModelConfig::DrawModel config, const GLTFRenderData
 		case ModelVfxType_Vfx:
 			DoVisualEffect( node->vfx_node.name, origin, normal, size, node->vfx_node.color * color );
 			break;
-		case ModelVfxType_DynamicLight:
-			DrawDynamicLight( origin, node->dlight_node.color, node->dlight_node.intensity * size );
+		case ModelVfxType_Light:
+			DrawLight( origin, node->dlight_node.color, node->dlight_node.intensity * size );
 			break;
 		case ModelVfxType_Decal:
 			DrawDecal( origin, QuaternionFromNormalAndRadians( normal, node->decal_node.angle ), node->decal_node.radius * size, node->decal_node.name, node->decal_node.color );
@@ -688,7 +688,7 @@ static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh,
 	DrawMesh( mesh, pipeline );
 }
 
-static void DrawShadowsNode( const Mesh & mesh, GPUBuffer model_uniforms, Optional< GPUBuffer > pose_uniforms ) {
+static void DrawShadowsNode( const Mesh & mesh, GPUBuffer model_uniforms, Optional< GPUBuffer > pose_uniforms, const Mat3x4 & transform ) {
 	TracyZoneScoped;
 
 	PipelineState pipeline = { .shader = pose_uniforms.exists ? shaders.depth_only_skinned : shaders.depth_only };
@@ -707,7 +707,7 @@ static void DrawShadowsNode( const Mesh & mesh, GPUBuffer model_uniforms, Option
 	}
 }
 
-static void DrawOutlinesNode( const Mesh & mesh, GPUBuffer model_uniforms, GPUBuffer outline_uniforms, Optional< GPUBuffer > pose_uniforms ) {
+static void DrawOutlinesNode( const Mesh & mesh, GPUBuffer model_uniforms, GPUBuffer outline_uniforms, Optional< GPUBuffer > pose_uniforms, const Mat3x4 & transform ) {
 	TracyZoneScoped;
 
 	PipelineState pipeline = {
@@ -716,7 +716,7 @@ static void DrawOutlinesNode( const Mesh & mesh, GPUBuffer model_uniforms, GPUBu
 	};
 
 	if( OddNumberOfReflections( transform ) ) {
-		pipeline.dynamic_state.cull_face = FlipCullFace( pipeline.cull_face );
+		pipeline.dynamic_state.cull_face = FlipCullFace( pipeline.dynamic_state.cull_face );
 	}
 
 	BoundedDynamicArray< BufferBinding, 3 > buffers = {
@@ -795,11 +795,11 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 		}
 
 		if( config.cast_shadows ) {
-			DrawShadowsNode( node->mesh, model_uniforms, pose_uniforms );
+			DrawShadowsNode( node->mesh, model_uniforms, pose_uniforms, node_transform );
 		}
 
 		if( outline_uniforms.exists ) {
-			DrawOutlinesNode( node->mesh, model_uniforms, outline_uniforms.value, pose_uniforms );
+			DrawOutlinesNode( node->mesh, model_uniforms, outline_uniforms.value, pose_uniforms, node_transform );
 		}
 
 		if( silhouette_uniforms.exists ) {

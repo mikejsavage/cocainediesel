@@ -81,7 +81,7 @@ struct GPUAllocation {
 	MTL::Buffer * buffer;
 };
 
-struct Texture {
+struct BackendTexture {
 	MTL::Texture * texture;
 	bool is_swapchain = false;
 };
@@ -100,7 +100,7 @@ struct BindGroup {
 
 static MetalDevice global_device;
 static CA::MetalLayer * global_swapchain;
-static PoolHandle< ::Texture > swapchain_texture;
+static PoolHandle< BackendTexture > swapchain_texture;
 static dispatch_semaphore_t frame_semaphore;
 static u64 frame_counter;
 static u64 pass_counter;
@@ -152,7 +152,7 @@ static void EndCapture() {
 }
 
 static Pool< GPUAllocation, 1024 > allocations;
-static Pool< Texture, 1024 > textures;
+static Pool< BackendTexture, 1024 > textures;
 static Pool< BindGroup, 1024 > bind_groups;
 static Pool< RenderPipeline, 128 > render_pipelines;
 static Pool< ComputePipeline, 128 > compute_pipelines;
@@ -248,7 +248,7 @@ void CopyGPUBufferToBuffer(
 
 void CopyGPUBufferToTexture(
 	Opaque< CommandBuffer > cmd_buf,
-	PoolHandle< Texture > dest, u32 w, u32 h, u32 num_layers, u32 mip_level,
+	PoolHandle< BackendTexture > dest, u32 w, u32 h, u32 num_layers, u32 mip_level,
 	PoolHandle< GPUAllocation > src, size_t src_offset
 ) {
 	size_t cursor = src_offset;
@@ -264,10 +264,10 @@ void CopyGPUBufferToTexture(
 	}
 }
 
-u32 TextureWidth( PoolHandle< Texture > texture ) { return textures[ texture ].texture->width(); }
-u32 TextureHeight( PoolHandle< Texture > texture ) { return textures[ texture ].texture->height(); }
-u32 TextureLayers( PoolHandle< Texture > texture ) { return textures[ texture ].texture->depth(); }
-u32 TextureMipLevels( PoolHandle< Texture > texture ) { return textures[ texture ].texture->mipmapLevelCount(); }
+u32 TextureWidth( PoolHandle< BackendTexture > texture ) { return textures[ texture ].texture->width(); }
+u32 TextureHeight( PoolHandle< BackendTexture > texture ) { return textures[ texture ].texture->height(); }
+u32 TextureLayers( PoolHandle< BackendTexture > texture ) { return textures[ texture ].texture->depth(); }
+u32 TextureMipLevels( PoolHandle< BackendTexture > texture ) { return textures[ texture ].texture->mipmapLevelCount(); }
 
 /*
  * Back to normal shit
@@ -403,7 +403,7 @@ static MTL::PixelFormat TextureFormatToMetal( TextureFormat format ) {
 	}
 }
 
-PoolHandle< Texture > NewTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {
+PoolHandle< BackendTexture > NewTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< PoolHandle< BackendTexture > > old_texture ) {
 	MTL::TextureType type;
 	if( config.num_layers == 1 ) {
 		type = config.msaa_samples > 1 ? MTL::TextureType2DMultisample : MTL::TextureType2D;
@@ -467,7 +467,7 @@ PoolHandle< Texture > NewTexture( GPUSlabAllocator * a, const TextureConfig & co
 
 	texture->setLabel( AutoReleaseString( config.name ) );
 
-	PoolHandle< Texture > handle = textures.upsert( old_texture, Texture {
+	PoolHandle< BackendTexture > handle = textures.upsert( old_texture, BackendTexture {
 		.texture = texture,
 	} );
 
@@ -478,7 +478,7 @@ PoolHandle< Texture > NewTexture( GPUSlabAllocator * a, const TextureConfig & co
 	return handle;
 }
 
-PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandle< Texture > texture, SamplerType sampler, GPUBuffer properties ) {
+PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandle< BackendTexture > texture, SamplerType sampler, GPUBuffer properties ) {
 	MTL::ArgumentEncoder * encoder = global_device.material_argument_encoder;
 
 	// ArgumentEncoders can't write into private memory so we have to encode
@@ -779,7 +779,7 @@ void EncodeAndBindArgumentBuffer( Encoder * ce, ArgumentBufferEncoder * encoder,
 			printf( "can't bind\n" );
 			continue;
 		}
-		encoder->encoder->setTexture( textures[ b.texture ].texture, idx.value );
+		encoder->encoder->setTexture( textures[ TextureHandle( b.texture ) ].texture, idx.value );
 	}
 
 	for( size_t i = 0; i < bindings.samplers.n; i++ ) {
@@ -1009,7 +1009,7 @@ void ShutdownRenderBackend() {
 		allocation.buffer->release();
 	}
 
-	for( Texture texture : textures ) {
+	for( BackendTexture texture : textures ) {
 		if( !texture.is_swapchain ) {
 			texture.texture->release();
 		}
@@ -1034,7 +1034,7 @@ void RenderBackendWaitForNewFrame() {
 	dispatch_semaphore_wait( frame_semaphore, DISPATCH_TIME_FOREVER );
 }
 
-PoolHandle< Texture > RenderBackendBeginFrame( bool capture ) {
+PoolHandle< BackendTexture > RenderBackendBeginFrame( bool capture ) {
 	NS::AutoreleasePool * pool = NS::AutoreleasePool::alloc()->init();
 
 	ClearGPUArenaAllocators();
@@ -1124,12 +1124,12 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 
 		attachment->setStoreAction( MTL::StoreAction::StoreActionStore );
 
-		attachment->setTexture( textures[ attachment_config.texture ].texture );
+		attachment->setTexture( textures[ TextureHandle( attachment_config.texture ) ].texture );
 		attachment->setSlice( attachment_config.layer );
 
 		if( attachment_config.resolve_target.exists ) {
 			attachment->setStoreAction( MTL::StoreActionDontCare );
-			attachment->setResolveTexture( textures[ attachment_config.resolve_target.value ].texture );
+			attachment->setResolveTexture( textures[ TextureHandle( attachment_config.resolve_target.value ) ].texture );
 		}
 	}
 
@@ -1146,7 +1146,7 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 			attachment->setLoadAction( attachment_config.preserve_contents ? MTL::LoadActionLoad : MTL::LoadActionDontCare );
 		}
 
-		attachment->setTexture( textures[ attachment_config.texture ].texture );
+		attachment->setTexture( textures[ TextureHandle( attachment_config.texture ) ].texture );
 		attachment->setSlice( attachment_config.layer );
 	}
 

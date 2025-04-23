@@ -23,8 +23,6 @@
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
 
-FrameStatic frame_static;
-
 static PoolHandle< Texture > rgb_noise;
 static PoolHandle< Texture > blue_noise;
 
@@ -77,16 +75,6 @@ static void TakeScreenshot() {
 	// if( ok == 0 ) {
 	// 	Com_Printf( "Couldn't convert screenshot to PNG\n" );
 	// }
-}
-
-const char * ShadowQualityToString( ShadowQuality mode ) {
-	switch( mode ) {
-		case ShadowQuality_Low: return "Rookie";
-		case ShadowQuality_Medium: return "Regular";
-		case ShadowQuality_High: return "Made Man";
-		case ShadowQuality_Ultra: return "Murica";
-		default: return "";
-	};
 }
 
 static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
@@ -607,9 +595,9 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		// { "u_TileDimensions", ... },
 		{ "u_TileCounts", dynamics_resources.tile_counts },
 		{ "u_DecalTiles", dynamics_resources.decal_tiles },
-		{ "u_DlightTiles", dynamics_resources.dlight_tiles },
+		{ "u_LightTiles", dynamics_resources.light_tiles },
 		{ "u_Decals", dynamics_resources.decals },
-		{ "u_Dlights", dynamics_resources.dlights },
+		{ "u_Lights", dynamics_resources.lights },
 	};
 
 	BoundedDynamicArray< GPUBindings::TextureBinding, 4 > standard_textures = {

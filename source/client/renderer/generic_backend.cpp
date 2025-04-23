@@ -18,9 +18,9 @@ void InitRenderBackendAllocators( size_t slab_size, size_t constant_buffer_align
 	staging_buffer_cursor = 0;
 	staging_command_buffer = NewTransferCommandBuffer();
 
-	persistent_allocator = NewGPUSlabAllocator( slab_size, constant_buffer_alignment, buffer_image_granularity ),
-	device_temp_allocator = NewDeviceGPUArenaAllocator( Megabytes( 32 ), constant_buffer_alignment ),
-	coherent_temp_allocator = NewCoherentGPUArenaAllocator( Megabytes( 32 ), constant_buffer_alignment ),
+	persistent_allocator = NewGPUSlabAllocator( slab_size, constant_buffer_alignment, buffer_image_granularity );
+	device_temp_allocator = NewDeviceGPUArenaAllocator( Megabytes( 32 ), constant_buffer_alignment );
+	coherent_temp_allocator = NewCoherentGPUArenaAllocator( Megabytes( 32 ), constant_buffer_alignment );
 }
 
 void ShutdownRenderBackendAllocators() {
@@ -60,12 +60,12 @@ void UploadBuffer( GPUBuffer dest, const void * data, size_t n ) {
 	CopyGPUBufferToBuffer( staging_command_buffer, dest.allocation, dest.offset, staging_buffer.allocation, cursor, n );
 }
 
-static void UploadMipLevel( PoolHandle< Texture > dest, u32 w, u32 h, u32 num_layers, u32 mip_level, const void * data, size_t n ) {
+static void UploadMipLevel( PoolHandle< BackendTexture > dest, u32 w, u32 h, u32 num_layers, u32 mip_level, const void * data, size_t n ) {
 	size_t cursor = Stage( data, n, 16 );
 	CopyGPUBufferToTexture( staging_command_buffer, dest, w, h, num_layers, mip_level, staging_buffer.allocation, cursor );
 }
 
-void UploadTexture( PoolHandle< Texture > dest, const void * data ) {
+void UploadTexture( PoolHandle< BackendTexture > dest, const void * data ) {
 	u32 w = TextureWidth( dest );
 	u32 h = TextureHeight( dest );
 	u32 num_layers = TextureLayers( dest );

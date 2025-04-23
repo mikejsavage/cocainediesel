@@ -17,7 +17,7 @@
 shaderconst u32 FORWARD_PLUS_TILE_SIZE = 32;
 shaderconst u32 FORWARD_PLUS_TILE_CAPACITY = 50;
 shaderconst u32 SKINNED_MODEL_MAX_JOINTS = 100;
-shaderconst float DLIGHT_CUTOFF = 0.5f;
+shaderconst float LIGHT_CUTOFF = 0.5f;
 shaderconst u32 PARTICLE_THREADGROUP_SIZE = 64;
 
 enum ParticleFlags/* : u32*/ {
@@ -90,9 +90,9 @@ struct ShadowmapUniforms {
 };
 
 struct MaterialProperties {
-	float specular;
-	float shininess;
-	float lod_bias;
+	float specular = 0.0f;
+	float shininess = 64.0f;
+	float lod_bias = 0.0f;
 };
 
 struct Particle {
@@ -135,7 +135,7 @@ struct Decal {
 	// NOTE(msc): uvwh should all be < 1.0
 };
 
-struct DynamicLight {
+struct Light {
 	Vec3 origin_color; // floor( origin ) + ( color * 0.9 )
 	float radius;
 };
@@ -169,7 +169,7 @@ struct PostprocessUniforms {
 struct TileCullingInputs {
 	u32 rows, cols;
 	u32 num_decals;
-	u32 num_dlights;
+	u32 num_lights;
 };
 
 struct TileCullingDimensions {
@@ -178,7 +178,7 @@ struct TileCullingDimensions {
 
 struct TileCountsUniforms {
 	u32 num_decals;
-	u32 num_dlights;
+	u32 num_lights;
 };
 
 struct TileIndices {

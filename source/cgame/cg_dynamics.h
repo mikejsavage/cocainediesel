@@ -8,13 +8,13 @@ void InitDecals();
 void ResetDecals();
 
 void DrawDecal( Vec3 origin, Quaternion orientation, float radius, StringHash name, Vec4 color, float height = 0.0f );
-void DrawDynamicLight( Vec3 origin, Vec3 color, float intensity );
+void DrawLight( Vec3 origin, Vec3 color, float intensity );
 
 void AddPersistentDecal( Vec3 origin, Quaternion orientation, float radius, StringHash name, Vec4 color, Time lifetime, float height = 0.0f );
 void DrawPersistentDecals();
 
-void AddPersistentDynamicLight( Vec3 origin, Vec3 color, float intensity, Time lifetime );
-void DrawPersistentDynamicLights();
+void AddPersistentLight( Vec3 origin, Vec3 color, float intensity, Time lifetime );
+void DrawPersistentLights();
 
 void AllocateDecalBuffers();
 void UploadDecalBuffers();
@@ -22,9 +22,9 @@ void UploadDecalBuffers();
 struct DynamicsResources {
 	GPUBuffer tile_counts;
 	GPUBuffer decal_tiles;
-	GPUBuffer dlight_tiles;
+	GPUBuffer light_tiles;
 	GPUBuffer decals;
-	GPUBuffer dlights;
+	GPUBuffer lights;
 };
 
 DynamicsResources GetDynamicsResources();

@@ -86,7 +86,7 @@ void AddDecals( float3 vertex_position, uint count, int tile_index, inout float4
 			float2 dUV_dx = DecalUV( uvwh, vertex_position + dPos_dx, bottom_left, tangent, bitangent ) - uv;
 			float2 dUV_dy = DecalUV( uvwh, vertex_position + dPos_dy, bottom_left, tangent, bitangent ) - uv;
 
-			float alpha = u_DecalAtlases.SampleGrad( u_StandardSampler, float3( uv, layer ), dUV_dx, dUV_dy );
+			float alpha = u_SpriteAtlas.SampleGrad( u_StandardSampler, float3( uv, layer ), dUV_dx, dUV_dy );
 			float inv_cos_45_degrees = 1.41421356237f;
 			float decal_alpha = min( 1.0f, alpha * decal_color.a * max( 0.0f, dot( decal_normal, surface_normal ) * inv_cos_45_degrees ) );
 			accumulated_color += decal_color.rgb * decal_alpha * accumulated_alpha;

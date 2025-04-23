@@ -499,6 +499,16 @@ static const char * FullscreenModeToString( FullscreenMode mode ) {
 	return NULL;
 }
 
+static const char * ShadowQualityToString( ShadowQuality mode ) {
+	switch( mode ) {
+		case ShadowQuality_Low: return "Rookie";
+		case ShadowQuality_Medium: return "Regular";
+		case ShadowQuality_High: return "Made Man";
+		case ShadowQuality_Ultra: return "Murica";
+		default: return "";
+	};
+}
+
 static void SettingsVideo() {
 	static WindowMode mode;
 

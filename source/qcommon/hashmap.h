@@ -66,4 +66,7 @@ public:
 
 	Span< T > span() { return Span< T >( values, hashtable.size() ); }
 	Span< const T > span() const { return Span< const T >( values, hashtable.size() ); }
+
+	T & operator[]( PoolHandle< T > handle ) { return span()[ handle.x ]; }
+	const T & operator[]( PoolHandle< T > handle ) const { return span()[ handle.x ]; }
 };

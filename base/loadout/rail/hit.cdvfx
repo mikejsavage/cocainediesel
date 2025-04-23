@@ -1,5 +1,5 @@
 {
-  dlight {
+  light {
     intensity 50000
     lifetime 0.5
     color 1 1 1

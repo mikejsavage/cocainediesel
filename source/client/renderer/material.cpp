@@ -201,11 +201,6 @@ static void ParseBlendFunc( Material * material, Span< const char > name, Span< 
 	SkipToEndOfLine( data );
 }
 
-static Vec3 NormalizeColor( Vec3 color ) {
-	float f = Max2( Max2( color.x, color.y ), color.z );
-	return f > 1.0f ? color / f : color;
-}
-
 static void ParseRGBGen( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "wave" ) {
@@ -234,10 +229,10 @@ static void ParseRGBGen( Material * material, Span< const char > name, Span< con
 		material->rgbgen.type = ColorGenType_Constant;
 		Vec3 color;
 		ParseVector( data, color.ptr(), 3 );
-		color = NormalizeColor( color );
-		material->rgbgen.args[ 0 ] = sRGBToLinear( color.x );
-		material->rgbgen.args[ 1 ] = sRGBToLinear( color.y );
-		material->rgbgen.args[ 2 ] = sRGBToLinear( color.z );
+		bool linear = color.x <= 1.0f && color.y <= 1.0f && color.z <= 1.0f;
+		for( int i = 0; i < 3; i++ ) {
+			material->rgbgen.args[ i ] = linear ? color[ i ] : sRGBToLinear( color[ i ] );
+		}
 	}
 }
 

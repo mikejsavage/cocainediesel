@@ -172,10 +172,6 @@ struct TileCullingInputs {
 	u32 num_lights;
 };
 
-struct TileCullingDimensions {
-	u32 rows, cols;
-};
-
 struct TileCountsUniforms {
 	u32 num_decals;
 	u32 num_lights;

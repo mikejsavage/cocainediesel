@@ -412,7 +412,7 @@ void CG_DrawScope() {
 			.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
 		};
 
-		EncodeDrawCall( RenderPass_UIBeforePostprocessing, pipeline, FullscreenMesh() );
+		Draw( RenderPass_UIBeforePostprocessing, pipeline, FullscreenMesh() );
 
 		if( cg.predictedPlayerState.weapon == Weapon_Sniper ) {
 			Vec3 forward = -frame_static.V.row2().xyz();

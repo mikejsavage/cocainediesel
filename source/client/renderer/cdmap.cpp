@@ -42,12 +42,12 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 
 		for( u32 j = 0; j < frame_static.shadow_parameters.num_cascades; j++ ) {
 			PipelineState pipeline = { .shader = shaders.depth_only };
-			EncodeDrawCall( RenderPass_ShadowmapCascade0 + j, pipeline, map->render_data, { model_binding }, mesh_extras );
+			Draw( RenderPass_ShadowmapCascade0 + j, pipeline, map->render_data, { model_binding }, mesh_extras );
 		}
 
 		{
 			PipelineState pipeline = { .shader = shaders.depth_only };
-			EncodeDrawCall( RenderPass_WorldOpaqueZPrepass, pipeline, map->render_data, { model_binding }, mesh_extras );
+			Draw( RenderPass_WorldOpaqueZPrepass, pipeline, map->render_data, { model_binding }, mesh_extras );
 		}
 
 		{
@@ -64,7 +64,7 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 			};
 			pipeline.dynamic_state.depth_func = DepthFunc_EqualNoWrite;
 
-			EncodeDrawCall( material->render_pass, pipeline, map->render_data, { model_binding }, mesh_extras );
+			Draw( material->render_pass, pipeline, map->render_data, { model_binding }, mesh_extras );
 		}
 	}
 }

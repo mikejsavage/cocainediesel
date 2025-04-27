@@ -205,7 +205,7 @@ static void SubmitDrawCalls() {
 						bindings.must_add( pcmd->TextureId.buffer );
 					}
 
-					EncodeDrawCall(
+					Draw(
 						pass == 0 ? RenderPass_UIBeforePostprocessing : RenderPass_UIAfterPostprocessing,
 						pipeline,
 						mesh,

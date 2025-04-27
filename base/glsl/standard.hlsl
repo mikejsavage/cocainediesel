@@ -9,13 +9,12 @@
 [[vk::binding( 5, DescriptorSet_RenderPass )]] SamplerComparisonState u_ShadowmapSampler;
 #endif
 #if APPLY_DYNAMICS
-/* [[vk::binding( 6, DescriptorSet_RenderPass )]] StructuredBuffer< TileCullingDimensions > u_TileDimensions; */
-[[vk::binding( 7, DescriptorSet_RenderPass )]] StructuredBuffer< TileCountsUniforms > u_TileCounts;
-[[vk::binding( 8, DescriptorSet_RenderPass )]] StructuredBuffer< TileIndices > u_DecalTiles;
-[[vk::binding( 9, DescriptorSet_RenderPass )]] StructuredBuffer< TileIndices > u_LightTiles;
-[[vk::binding( 10, DescriptorSet_RenderPass )]] StructuredBuffer< Decal > u_Decals;
-[[vk::binding( 11, DescriptorSet_RenderPass )]] StructuredBuffer< Light > u_Lights;
-[[vk::binding( 12, DescriptorSet_RenderPass )]] Texture2DArray< float > u_SpriteAtlas;
+[[vk::binding( 6, DescriptorSet_RenderPass )]] StructuredBuffer< TileCountsUniforms > u_TileCounts;
+[[vk::binding( 7, DescriptorSet_RenderPass )]] StructuredBuffer< TileIndices > u_DecalTiles;
+[[vk::binding( 8, DescriptorSet_RenderPass )]] StructuredBuffer< TileIndices > u_LightTiles;
+[[vk::binding( 9, DescriptorSet_RenderPass )]] StructuredBuffer< Decal > u_Decals;
+[[vk::binding( 10, DescriptorSet_RenderPass )]] StructuredBuffer< Light > u_Lights;
+[[vk::binding( 11, DescriptorSet_RenderPass )]] Texture2DArray< float > u_SpriteAtlas;
 #endif
 
 #include "include/standard_material.hlsl"

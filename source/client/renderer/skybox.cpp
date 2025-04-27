@@ -65,5 +65,5 @@ void DrawSkybox( Time time ) {
 		.dynamic_state = { .cull_face = CullFace_Front },
 	};
 
-	EncodeDrawCall( RenderPass_Sky, pipeline, sky_mesh, { { "u_Time", NewTempBuffer( ToSeconds( time ) ) } } );
+	Draw( RenderPass_Sky, pipeline, sky_mesh, { { "u_Time", NewTempBuffer( ToSeconds( time ) ) } } );
 }

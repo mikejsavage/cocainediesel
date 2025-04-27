@@ -433,7 +433,7 @@ static void DrawSilhouettes() {
 		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
 	};
 
-	EncodeDrawCall( RenderPass_AddSilhouettes, pipeline, FullscreenMesh() );
+	Draw( RenderPass_AddSilhouettes, pipeline, FullscreenMesh() );
 }
 
 static void DrawOutlines() {
@@ -466,7 +466,7 @@ static void DrawOutlines() {
 		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
 	};
 
-	EncodeDrawCall( RenderPass_AddOutlines, pipeline, FullscreenMesh() );
+	Draw( RenderPass_AddOutlines, pipeline, FullscreenMesh() );
 }
 
 void CG_RenderView( unsigned extrapolationTime ) {

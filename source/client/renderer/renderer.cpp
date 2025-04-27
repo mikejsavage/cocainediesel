@@ -592,7 +592,6 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	BoundedDynamicArray< BufferBinding, 16 > standard_buffers = {
 		{ "u_View", frame_static.view_uniforms },
 		{ "u_Shadowmap", frame_static.shadow_uniforms },
-		// { "u_TileDimensions", ... },
 		{ "u_TileCounts", dynamics_resources.tile_counts },
 		{ "u_DecalTiles", dynamics_resources.decal_tiles },
 		{ "u_LightTiles", dynamics_resources.light_tiles },

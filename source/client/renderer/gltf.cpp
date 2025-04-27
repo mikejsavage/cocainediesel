@@ -703,7 +703,7 @@ static void DrawShadowsNode( const Mesh & mesh, GPUBuffer model_uniforms, Option
 	}
 
 	for( u32 i = 0; i < frame_static.shadow_parameters.entity_cascades; i++ ) {
-		EncodeDrawCall( RenderPass_ShadowmapCascade0 + i, pipeline, mesh, buffers.span() );
+		Draw( RenderPass_ShadowmapCascade0 + i, pipeline, mesh, buffers.span() );
 	}
 }
 
@@ -727,7 +727,7 @@ static void DrawOutlinesNode( const Mesh & mesh, GPUBuffer model_uniforms, GPUBu
 		buffers.must_add( { "u_Pose", pose_uniforms.value } );
 	}
 
-	EncodeDrawCall( RenderPass_NonworldOpaque, pipeline, mesh, buffers.span() );
+	Draw( RenderPass_NonworldOpaque, pipeline, mesh, buffers.span() );
 }
 
 static void DrawSilhouetteNode( const Mesh & mesh, GPUBuffer model_uniforms, GPUBuffer silhouette_uniforms, Optional< GPUBuffer > pose_uniforms ) {
@@ -745,7 +745,7 @@ static void DrawSilhouetteNode( const Mesh & mesh, GPUBuffer model_uniforms, GPU
 		buffers.must_add( { "u_Pose", pose_uniforms.value } );
 	}
 
-	EncodeDrawCall( RenderPass_SilhouetteGBuffer, pipeline, mesh, buffers.span() );
+	Draw( RenderPass_SilhouetteGBuffer, pipeline, mesh, buffers.span() );
 }
 
 void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * render_data, const Mat3x4 & transform, const Vec4 & color, MatrixPalettes palettes ) {

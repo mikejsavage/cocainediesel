@@ -21,10 +21,10 @@ void UploadDecalBuffers();
 
 struct DynamicsResources {
 	GPUBuffer tile_counts;
-	GPUBuffer decal_tiles;
-	GPUBuffer light_tiles;
 	GPUBuffer decals;
 	GPUBuffer lights;
+	GPUBuffer decal_tiles;
+	GPUBuffer light_tiles;
 };
 
 DynamicsResources GetDynamicsResources();

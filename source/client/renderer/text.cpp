@@ -314,12 +314,10 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Vec3 ori
 		.material_bind_group = font->bind_group,
 	};
 
-	EncodeDrawCall( RenderPass_NonworldOpaque, pipeline, mesh, { { "u_Text", text_uniforms } } );
+	Draw( RenderPass_NonworldOpaque, pipeline, mesh, { { "u_Text", text_uniforms } } );
 
-	{
-		pipeline.shader = shaders.text_depth_only;
-		for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
-			EncodeDrawCall( RenderPass_ShadowmapCascade0 + i, pipeline, mesh, { { "u_Text", text_uniforms } } );
-		}
+	pipeline.shader = shaders.text_depth_only;
+	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
+		Draw( RenderPass_ShadowmapCascade0 + i, pipeline, mesh, { { "u_Text", text_uniforms } } );
 	}
 }

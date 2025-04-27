@@ -197,7 +197,7 @@ static void SubmitPostprocessPass() {
 		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
 	};
 
-	EncodeDrawCall( RenderPass_Postprocessing, pipeline, FullscreenMesh() );
+	Draw( RenderPass_Postprocessing, pipeline, FullscreenMesh() );
 }
 
 void MaybeResetShadertoyTime( bool respawned ) {

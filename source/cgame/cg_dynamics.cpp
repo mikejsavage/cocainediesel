@@ -13,10 +13,10 @@ STATIC_ASSERT( sizeof( Light ) == 1 * 4 * sizeof( float ) );
 STATIC_ASSERT( sizeof( Light ) % alignof( Light ) == 0 );
 
 static GPUBuffer dynamic_count;
-static GPUBuffer decal_tiles_buffer;
-static GPUBuffer light_tiles_buffer;
 static CoherentBuffer lights_buffer;
 static CoherentBuffer decals_buffer;
+static GPUBuffer decal_tiles_buffer;
+static GPUBuffer light_tiles_buffer;
 
 struct PersistentDecal {
 	Decal decal;
@@ -168,10 +168,10 @@ void AllocateDecalBuffers() {
 	u32 num_tiles = PixelsToTiles( frame_static.viewport_height ) * PixelsToTiles( frame_static.viewport_width );
 
 	dynamic_count = NewDeviceTempBuffer( "Dynamics tile counts", num_tiles * sizeof( GPUDynamicCount ), alignof( GPUDynamicCount ) );
-	decal_tiles_buffer = NewDeviceTempBuffer( "Decal tile indices", num_tiles * sizeof( GPUDecalTile ), alignof( GPUDecalTile ) );
-	light_tiles_buffer = NewDeviceTempBuffer( "Light tile indices", num_tiles * sizeof( GPULightTile ), alignof( GPULightTile ) );
 	decals_buffer = NewTempBuffer( decals.num_bytes(), alignof( Decal ) );
 	lights_buffer = NewTempBuffer( lights.num_bytes(), alignof( Light ) );
+	decal_tiles_buffer = NewDeviceTempBuffer( "Decal tile indices", num_tiles * sizeof( GPUDecalTile ), alignof( GPUDecalTile ) );
+	light_tiles_buffer = NewDeviceTempBuffer( "Light tile indices", num_tiles * sizeof( GPULightTile ), alignof( GPULightTile ) );
 }
 
 void UploadDecalBuffers() {

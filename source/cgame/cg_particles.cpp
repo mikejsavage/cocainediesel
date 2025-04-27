@@ -786,7 +786,7 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	};
 
 	Mesh mesh = { .num_vertices = 6 };
-	EncodeDrawCall( RenderPass_Transparent, pipeline, mesh, {
+	Draw( RenderPass_Transparent, pipeline, mesh, {
 		{ "b_Particles", ps->gpu_particles2 },
 	} );
 

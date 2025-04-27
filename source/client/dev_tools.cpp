@@ -53,17 +53,17 @@ DevToolCleanupCallback DrawModelViewer() {
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text( "Distance" );
 	ImGui::SameLine();
-	ImGui::SliderFloat( "##distance", &distance, 0.0f, 500.0f, "%.0f" );
+	ImGui::SliderFloat( "##distance", &distance, 0.0f, 500.0f, "%.0f", ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_NoRoundToFormat );
 
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text( "Pitch" );
 	ImGui::SameLine();
-	ImGui::SliderFloat( "##pitch", &angles.pitch, -180.0f, 180.0f, "%.0f" );
+	ImGui::SliderFloat( "##pitch", &angles.pitch, -180.0f, 180.0f, "%.0f", ImGuiSliderFlags_NoRoundToFormat );
 
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text( "Yaw" );
 	ImGui::SameLine();
-	ImGui::SliderFloat( "##yaw", &angles.yaw, 0.0f, 360.0f, "%.0f" );
+	ImGui::SliderFloat( "##yaw", &angles.yaw, 0.0f, 360.0f, "%.0f", ImGuiSliderFlags_NoRoundToFormat );
 
 	if( ImGui::Button( "Exit" ) ) {
 		UI_ShowMainMenu();

@@ -390,10 +390,6 @@ void MSG_Write( msg_t * msg, const void * data, size_t length ) {
 	memcpy( MSG_GetSpace( msg, length ), data, length );
 }
 
-void MSG_WriteZeroes( msg_t * msg, size_t n ) {
-	memset( MSG_GetSpace( msg, n ), 0, n );
-}
-
 template< typename T >
 void MSG_WriteFundamental( msg_t * msg, T x ) {
 	memcpy( MSG_GetSpace( msg, sizeof( T ) ), &x, sizeof( T ) );

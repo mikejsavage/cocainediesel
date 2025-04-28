@@ -5,9 +5,19 @@
 #include "client/renderer/renderer.h"
 #include "client/renderer/shader_shared.h"
 #include "client/renderer/shader_variants.h"
-#include "tools/shadercompiler/api.h"
 
 Shaders shaders;
+
+constexpr Span< const char > ShaderExtension = IFDEF( PLATFORM_MACOS ) ? ".metallib"_sp : ".spv"_sp;
+
+static Span< const char > ShaderFilename( Allocator * a, Span< const char > src_filename, Span< Span< const char > > features ) {
+       DynamicString filename( a, "{}", StripExtension( src_filename ) );
+       for( Span< const char > feature : features ) {
+               filename.append( "_{}", feature );
+       }
+       filename += ShaderExtension;
+       return CloneSpan( a, filename.span() );
+}
 
 static void LoadShaders( const ShaderDescriptors & desc ) {
 	TempAllocator temp = cls.frame_arena.temp();
@@ -15,7 +25,7 @@ static void LoadShaders( const ShaderDescriptors & desc ) {
 	// TODO: hotloading
 	for( const GraphicsShaderDescriptor & shader : desc.graphics_shaders ) {
 		shaders.*shader.field = NewRenderPipeline( RenderPipelineConfig {
-			.path = ShaderFilename( &temp, shader ),
+			.path = ShaderFilename( &temp, shader.src, shader.features ),
 			.output_format = { }, // TODO
 			.blend_func = shader.blend_func,
 			.clamp_depth = shader.clamp_depth,
@@ -25,7 +35,7 @@ static void LoadShaders( const ShaderDescriptors & desc ) {
 	}
 
 	for( const ComputeShaderDescriptor & shader : desc.compute_shaders ) {
-		shaders.*shader.field = NewComputePipeline( ShaderFilename( shader ) );
+		shaders.*shader.field = NewComputePipeline( temp.sv( "{}{}", StripExtension( shader.src ), ShaderExtension ) );
 	}
 }
 
@@ -37,7 +47,7 @@ void InitShaders() {
 void HotloadShaders() {
 	bool need_hotload = false;
 	for( Span< const char > path : ModifiedAssetPaths() ) {
-		if( FileExtension( path ) == ".hlsl" ) {
+		if( StrEqual( FileExtension( path ), ShaderExtension ) ) {
 			need_hotload = true;
 			break;
 		}

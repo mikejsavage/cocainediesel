@@ -3,6 +3,7 @@
 #include "qcommon/time.h"
 #include "client/assets.h"
 #include "client/audio/api.h"
+#include "client/renderer/api.h"
 #include "client/renderer/material.h"
 #include "cgame/cg_local.h"
 
@@ -31,19 +32,13 @@ void InitSprays() {
 		if( !StartsWith( path, "textures/sprays/" ) || !ext_ok )
 			continue;
 
-		StringHash name = StringHash( Hash64( StripExtension( path ) ) );
-		const Material * material = FindMaterial( name );
-		// Vec4 uvwh; NOMERGE
-		// if( !TryFindDecal( name, &uvwh, NULL ) ) {
-		// 	Com_GGPrint( S_COLOR_YELLOW "Spray {} needs a spray material key", path );
-		// 	continue;
-		// }
-		if( !material->spray ) {
-			Com_GGPrint( S_COLOR_YELLOW "Spray {} needs a spray material", path );
+		StringHash name = StringHash( StripExtension( path ) );
+		if( !TryFindSprite( name ).exists ) {
+			Com_GGPrint( S_COLOR_YELLOW "Spray {} needs to be marked as a sprite", path );
 			continue;
 		}
 
-		[[maybe_unused]] bool ok = spray_assets.add( StringHash( StripExtension( path ) ) );
+		[[maybe_unused]] bool ok = spray_assets.add( name );
 		Assert( ok );
 	}
 

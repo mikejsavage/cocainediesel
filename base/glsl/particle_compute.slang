@@ -23,7 +23,7 @@ Particle SimulateParticle( Particle old_particle, float dt ) {
 }
 
 [numthreads( PARTICLE_THREADGROUP_SIZE, 1, 1 )]
-void main( uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex ) {
+void ComputeMain( uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex ) {
 	uint32_t in_index = DTid.x;
 
 	// this is a little silly but it's easier than scheduling a copy

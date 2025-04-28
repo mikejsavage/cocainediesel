@@ -457,7 +457,11 @@ struct MaterialDescriptor {
 	bool shaded = false;
 	bool world = false;
 
-	MaterialProperties properties;
+	MaterialProperties properties = {
+		.specular = 0.0f,
+		.shininess = 64.0f,
+		.lod_bias = 0.0f,
+	};
 };
 
 struct Material2 {

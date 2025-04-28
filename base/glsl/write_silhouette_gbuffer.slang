@@ -1,17 +1,17 @@
-#include "include/common.hlsl"
+#include "include/common.slang"
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 [[vk::binding( 0, DescriptorSet_DrawCall )]] StructuredBuffer< float3x4 > u_ModelTransform;
 [[vk::binding( 1, DescriptorSet_DrawCall )]] StructuredBuffer< float4 > u_SilhouetteColor;
-#if SKINNED
+#ifdef SKINNED
 [[vk::binding( 2, DescriptorSet_DrawCall )]] StructuredBuffer< float3x4 > u_Pose;
 #endif
 
-#include "include/skinning.hlsl"
+#include "include/skinning.slang"
 
 struct VertexInput {
 	[[vk::location( VertexAttribute_Position )]] float3 position : POSITION;
-#if SKINNED
+#ifdef SKINNED
 	[[vk::location( VertexAttribute_JointIndices )]] uint4 indices : BLENDINDICES;
 	[[vk::location( VertexAttribute_JointWeights )]] float4 weights : BLENDWEIGHT;
 #endif
@@ -20,7 +20,7 @@ struct VertexInput {
 float4 VertexMain( VertexInput input ) : SV_Position {
 	float4 position4 = float4( input.position, 1.0f );
 
-#if SKINNED
+#ifdef SKINNED
 	float3x4 skin = SkinningMatrix( input.indices, input.weights );
 	position4 = mul34( skin, position4 );
 #endif

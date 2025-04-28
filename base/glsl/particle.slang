@@ -1,11 +1,11 @@
-#include "include/common.hlsl"
+#include "include/common.slang"
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 [[vk::binding( 0, DescriptorSet_Material )]] Texture2DArray< float4 > u_SpriteAtlas;
 [[vk::binding( 1, DescriptorSet_Material )]] SamplerState u_Sampler;
 [[vk::binding( 0, DescriptorSet_DrawCall )]] StructuredBuffer< Particle > b_Particles;
 
-#include "include/fog.hlsl"
+#include "include/fog.slang"
 
 struct VertexInput {
 	float3 position : POSITION;

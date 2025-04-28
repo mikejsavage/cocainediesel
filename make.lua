@@ -1,5 +1,6 @@
 require( "ggbuild.gen_ninja" )
 require( "ggbuild.git_version" )
+require( "ggbuild.shaders" )
 
 global_cxxflags( "-I source -I libs" )
 
@@ -55,7 +56,6 @@ require( "libs.zstd" )
 require( "source.tools.bc4" )
 require( "source.tools.dieselfont" )
 require( "source.tools.dieselmap" )
-require( "source.tools.shadercompiler" )
 
 local platform_curl_libs = {
 	{ OS ~= "macos" and "curl" or nil },
@@ -146,3 +146,4 @@ do
 end
 
 write_ninja_script()
+write_shaders_ninja_script()

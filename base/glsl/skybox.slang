@@ -1,4 +1,4 @@
-#include "include/common.hlsl"
+#include "include/common.slang"
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 [[vk::binding( 1, DescriptorSet_RenderPass )]] StructuredBuffer< float > u_Time;
@@ -6,8 +6,8 @@
 [[vk::binding( 3, DescriptorSet_RenderPass )]] Texture2D< float4 > u_BlueNoiseTexture;
 [[vk::binding( 4, DescriptorSet_RenderPass )]] SamplerState u_StandardSampler;
 
-#include "include/dither.hlsl"
-#include "include/fog.hlsl"
+#include "include/dither.slang"
+#include "include/fog.slang"
 
 struct VertexInput {
 	[[vk::location( VertexAttribute_Position )]] float4 position : POSITION;

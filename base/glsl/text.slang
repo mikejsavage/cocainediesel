@@ -1,5 +1,5 @@
 #include "../../source/client/renderer/shader_shared.h"
-#include "include/common.hlsl"
+#include "include/common.slang"
 
 struct VertexInput {
 	[[vk::location( VertexAttribute_Position )]] float4 position : POSITION;
@@ -12,7 +12,7 @@ struct VertexOutput {
 };
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
-#include "include/standard_material.hlsl"
+#include "include/standard_material.slang"
 [[vk::binding( 0, DescriptorSet_DrawCall )]] StructuredBuffer< TextUniforms > u_Text;
 
 VertexOutput VertexMain( VertexInput input ) {
@@ -45,7 +45,7 @@ float4 SampleMSDF( float2 uv, float half_pixel_size ) {
 	return float4( u_Text[ 0 ].color.rgb, u_Text[ 0 ].color.a * alpha );
 }
 
-#if DEPTH_ONLY
+#ifdef DEPTH_ONLY
 void FragmentMain( VertexOutput v ) {
 #else
 float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
@@ -66,7 +66,7 @@ float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
 	color += 0.5f * SampleMSDF( v.uv + ssy, half_pixel_size );
 	color *= 1.0f / 3.0f;
 
-#if DEPTH_ONLY
+#ifdef DEPTH_ONLY
 	if( color.a <= 0.5f ) {
 		discard;
 	}

@@ -1,9 +1,9 @@
-#include "include/common.hlsl"
+#include "include/common.slang"
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 [[vk::binding( 1, DescriptorSet_RenderPass )]] StructuredBuffer< float4 > u_OutlineColor;
 
-#if MSAA
+#ifdef MSAA
 [[vk::binding( 2, DescriptorSet_RenderPass )]] Texture2DMS< float > u_DepthTexture;
 [[vk::binding( 3, DescriptorSet_RenderPass )]] Texture2DMS< uint > u_CurvedSurfaceMask;
 #else
@@ -11,7 +11,7 @@
 [[vk::binding( 3, DescriptorSet_RenderPass )]] Texture2D< uint > u_CurvedSurfaceMask;
 #endif
 
-#include "include/fog.hlsl"
+#include "include/fog.slang"
 
 struct VertexInput {
 	[[vk::location( VertexAttribute_Position )]] float3 position : POSITION;
@@ -36,7 +36,7 @@ float EdgeDetect( float center, float up, float down_left, float down_right, flo
 	return smoothstep( 0.0f, epsilon, abs( delta ) );
 }
 
-#if MSAA
+#ifdef MSAA
 float4 FragmentMain( VertexInput input, uint sample_index : SV_SampleIndex ) : FragmentShaderOutput_Albedo {
 #define SAMPLE_INDEX_LAST_ARG , sample_index
 #else
@@ -51,7 +51,7 @@ float4 FragmentMain( VertexInput input ) : FragmentShaderOutput_Albedo {
 	float depth_down_right = ClampedTextureLoad( u_DepthTexture, p + int2( +1, +1 ) SAMPLE_INDEX_LAST_ARG );
 	float depth_down_left  = ClampedTextureLoad( u_DepthTexture, p + int2( -1, +1 ) SAMPLE_INDEX_LAST_ARG );
 
-#if MSAA
+#ifdef MSAA
 	uint mask = u_CurvedSurfaceMask.Load( p, sample_index );
 #else
 	uint mask = u_CurvedSurfaceMask.Load( int3( p, 0 ) );

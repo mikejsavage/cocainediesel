@@ -84,7 +84,7 @@ void CullTile( uint2 tile ) {
 }
 
 [numthreads( PARTICLE_THREADGROUP_SIZE, 1, 1 )]
-void main( uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex ) {
+void ComputeMain( uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex ) {
 	uint tile_idx = DTid.x;
 	if( tile_idx > u_TileCulling[ 0 ].cols * u_TileCulling[ 0 ].rows )
 		return;

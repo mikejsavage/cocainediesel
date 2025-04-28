@@ -15,11 +15,16 @@ local function copy( t, extra )
 	return res
 end
 
+function ReadFile( path )
+	local f = assert( io.open( path, "r" ) )
+	local contents = f:read( "*all" )
+	assert( f:close() )
+	return contents
+end
+
 local zig
 do
-	local f = assert( io.open( "ggbuild/zig_version.txt", "r" ) )
-	local zig_version = assert( f:read( "*all" ) ):gsub( "%s+$", "" )
-	assert( f:close() )
+	local zig_version = ReadFile( "ggbuild/zig_version.txt" ):gsub( "%s+$", "" )
 	zig = "ggbuild/zig-" .. zig_version .. "/zig"
 end
 
@@ -210,7 +215,7 @@ local function join_libs( names )
 	return table.concat( joined, " " )
 end
 
-local function printf( form, ... )
+function printf( form, ... )
 	print( form and form:format( ... ) or "" )
 end
 

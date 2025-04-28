@@ -1,6 +1,6 @@
 #pragma once
 
-#if APPLY_DYNAMICS
+#ifdef APPLY_DYNAMICS
 
 #include "../../source/client/renderer/shader_shared.h"
 
@@ -23,4 +23,4 @@ void AddLights( uint count, int tile_index, float3 position, float3 normal, floa
 	}
 }
 
-#endif // #if APPLY_DYNAMICS
+#endif // #ifdef APPLY_DYNAMICS

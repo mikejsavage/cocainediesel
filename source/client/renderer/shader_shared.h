@@ -90,9 +90,9 @@ struct ShadowmapUniforms {
 };
 
 struct MaterialProperties {
-	float specular = 0.0f;
-	float shininess = 64.0f;
-	float lod_bias = 0.0f;
+	float specular;
+	float shininess;
+	float lod_bias;
 };
 
 struct Particle {

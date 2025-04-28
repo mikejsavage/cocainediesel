@@ -1,6 +1,6 @@
 #pragma once
 
-#if APPLY_DYNAMICS
+#ifdef APPLY_DYNAMICS
 
 #include "../../source/client/renderer/shader_shared.h"
 
@@ -102,4 +102,4 @@ void AddDecals( float3 vertex_position, uint count, int tile_index, inout float4
 	diffuse.rgb = diffuse.rgb * accumulated_alpha + accumulated_color;
 }
 
-#endif // #if APPLY_DYNAMICS
+#endif // #ifdef APPLY_DYNAMICS

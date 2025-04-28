@@ -53,8 +53,7 @@ float4 LinearTosRGB( float4 lin ) {
 }
 
 // out of bounds texture load is UB
-template< typename T >
-T ClampedTextureLoad( Texture2D< T > tex, int2 uv, uint sample_index = 0 ) {
+T ClampedTextureLoad< T : ITexelElement >( Texture2D< T > tex, int2 uv, uint sample_index = 0 ) {
 	float2 texture_size;
 	tex.GetDimensions( texture_size.x, texture_size.y );
 	uv = clamp( uv, 0, int2( texture_size ) - 1 );

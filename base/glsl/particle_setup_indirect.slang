@@ -7,8 +7,8 @@
 [[vk::binding( 4 )]] RWStructuredBuffer< DrawArraysIndirectArguments > b_DrawIndirect;
 
 [numthreads( 1, 1, 1 )]
-void main( uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex ) {
-	if( b_ParticleUpdate[ 0 ].clear ) {
+void ComputeMain( uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex ) {
+	if( b_ParticleUpdate[ 0 ].clear != 0 ) {
 		b_ComputeCount[ 0 ] = 0;
 	}
 	else {

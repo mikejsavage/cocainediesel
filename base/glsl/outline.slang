@@ -1,19 +1,19 @@
-#include "include/common.hlsl"
+#include "include/common.slang"
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 [[vk::binding( 0, DescriptorSet_DrawCall )]] StructuredBuffer< float3x4 > u_ModelTransform;
 [[vk::binding( 1, DescriptorSet_DrawCall )]] StructuredBuffer< OutlineUniforms > u_Outline;
-#if SKINNED
+#ifdef SKINNED
 [[vk::binding( 2, DescriptorSet_DrawCall )]] StructuredBuffer< float3x4 > u_Pose;
 #endif
 
-#include "include/fog.hlsl"
-#include "include/skinning.hlsl"
+#include "include/fog.slang"
+#include "include/skinning.slang"
 
 struct VertexInput {
 	[[vk::location( VertexAttribute_Position )]] float3 position : POSITION;
 	[[vk::location( VertexAttribute_Normal )]] float3 normal : NORMAL;
-#if SKINNED
+#ifdef SKINNED
 	[[vk::location( VertexAttribute_JointIndices )]] uint4 indices : BLENDINDICES;
 	[[vk::location( VertexAttribute_JointWeights )]] float4 weights : BLENDWEIGHT;
 #endif
@@ -28,10 +28,10 @@ VertexOutput VertexMain( VertexInput input ) {
 	float4 position4 = float4( input.position, 1.0f );
 	float3 normal = input.normal;
 
-#if SKINNED
+#ifdef SKINNED
 	float3x4 skin = SkinningMatrix( input.indices, input.weights );
 	position4 = mul34( skin, position4 );
-	normal = mul( Adjugate( M ), normal );
+	normal = mul( Adjugate( skin ), normal );
 #endif
 
 	VertexOutput output;

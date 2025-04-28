@@ -1,6 +1,6 @@
 #pragma once
 
-#if APPLY_SHADOWS
+#ifdef APPLY_SHADOWS
 
 float SampleShadowmap( float2 base_uv, float u, float v, float2 inv_shadowmap_size, uint32_t cascadeIdx, float depth, float2 receiverPlaneDepthBias ) {
 	float2 uv = base_uv + float2( u, v ) * inv_shadowmap_size;
@@ -125,4 +125,4 @@ float GetLight( float3 position, float3 normal ) {
 	return 1.0f;
 }
 
-#endif // #if APPLY_SHADOWS
+#endif // #ifdef APPLY_SHADOWS

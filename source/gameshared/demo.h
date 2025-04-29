@@ -41,7 +41,7 @@ enum DemoMetadataVersions : u32 {
 
 constexpr u32 DEMO_METADATA_VERSION = DemoMetadataVersion_Count - 1;
 
-bool StartRecordingDemo( TempAllocator * temp, RecordDemoContext * ctx, const char * filename, unsigned int spawncount, unsigned int snapFrameTime,
+bool StartRecordingDemo( TempAllocator * temp, RecordDemoContext * ctx, const char * filename, unsigned int snapFrameTime,
 	int max_clients, const SyncEntityState * baselines );
 void WriteDemoMessage( RecordDemoContext * ctx, msg_t msg, size_t skip = 0 );
 void StopRecordingDemo( TempAllocator * temp, RecordDemoContext * ctx, const DemoMetadata & metadata );

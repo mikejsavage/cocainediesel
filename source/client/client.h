@@ -77,7 +77,6 @@ struct client_state_t {
 	//
 	// server state information
 	//
-	int servercount;        // server identification for prespawns
 	int max_clients;
 	int playernum;
 };

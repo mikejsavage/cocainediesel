@@ -123,7 +123,7 @@ void SV_Demo_Record( Span< const char > name ) {
 
 	Com_Printf( "Recording server demo: %s\n", filename );
 
-	bool recording = StartRecordingDemo( &temp, &record_demo_context, filename, svs.spawncount, svc.snapFrameTime, server_gs.maxclients, sv.baselines );
+	bool recording = StartRecordingDemo( &temp, &record_demo_context, filename, svc.snapFrameTime, server_gs.maxclients, sv.baselines );
 	if( !recording )
 		return;
 

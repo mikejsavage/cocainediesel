@@ -1075,15 +1075,23 @@ static void MainMenu() {
 
 		CLAY( {
 			.id = CLAY_ID_LOCAL( "Top bar" ),
-			.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.1f ) } },
+			.layout = {
+				.sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.1f ) },
+				.padding = CLAY_PADDING_ALL( u16( 8 * GetContentScale() ) ),
+			},
 			.backgroundColor = { 0, 0, 0, 255 },
 		} ) {
 			if( cl_devtools->integer ) {
-				ImGui::SetCursorPos( Vec2( 16.0f ) );
-				if( ImGui::Button( "Model viewer" ) ) {
-					uistate = UIState_DevTool;
-					devtool_render_callback = DrawModelViewer;
-				}
+				CLAY( {
+					.id = CLAY_ID_LOCAL( "Dev tools" ),
+					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 1.0f ) } },
+					.custom = ClayImGui( []( const Clay_BoundingBox & bounds, void * userdata ) {
+						if( ImGui::Button( "Model viewer" ) ) {
+							uistate = UIState_DevTool;
+							devtool_render_callback = DrawModelViewer;
+						}
+					} ),
+				} ) { }
 			}
 		}
 

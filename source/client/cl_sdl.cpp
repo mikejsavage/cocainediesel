@@ -374,9 +374,9 @@ static void SDLAudioCallback( void * userdata, SDL_AudioStream * stream, int add
 	size_t num_samples = additional_amount / sizeof( Vec2 );
 
 	for( size_t i = 0; i < num_samples; i += ARRAY_COUNT( samples ) ) {
-		size_t chunk = Min2( num_samples - i, ARRAY_COUNT( samples ) );
-		callback( Span< Vec2 >( samples, chunk ) );
-		TrySDL( SDL_PutAudioStreamData, stream, samples, chunk * sizeof( samples[ 0 ] ) );
+		Span< Vec2 > chunk = Span< Vec2 >( samples, Min2( num_samples - i, ARRAY_COUNT( samples ) ) );
+		callback( chunk );
+		TrySDL( SDL_PutAudioStreamData, stream, chunk.ptr, chunk.num_bytes() );
 	}
 }
 

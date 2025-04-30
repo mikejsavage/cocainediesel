@@ -1085,12 +1085,12 @@ static void MainMenu() {
 				CLAY( {
 					.id = CLAY_ID_LOCAL( "Dev tools" ),
 					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 1.0f ) } },
-					.custom = ClayImGui( []( const Clay_BoundingBox & bounds, void * userdata ) {
+					.custom = { ClayImGui( []( const Clay_BoundingBox & bounds, void * userdata ) {
 						if( ImGui::Button( "Model viewer" ) ) {
 							uistate = UIState_DevTool;
 							devtool_render_callback = DrawModelViewer;
 						}
-					} ),
+					} ) },
 				} ) { }
 			}
 		}

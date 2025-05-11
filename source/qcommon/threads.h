@@ -22,7 +22,7 @@ void Unlock( Opaque< Mutex > * mutex );
 
 void InitSemaphore( Opaque< Semaphore > * sem );
 void DeleteSemaphore( Opaque< Semaphore > * sem );
-void Wait( Opaque< Semaphore > * sem );
 void Signal( Opaque< Semaphore > * sem, int n = 1 );
+void Wait( Opaque< Semaphore > * sem );
 
 u32 GetCoreCount();

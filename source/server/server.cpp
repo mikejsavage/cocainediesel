@@ -1,6 +1,10 @@
 #include "qcommon/qcommon.h"
 #include "qcommon/base.h"
+#include "qcommon/threads.h"
 #include "qcommon/time.h"
+
+#include <signal.h>
+#include <atomic>
 
 void CL_Init() { }
 void CL_Shutdown() { }
@@ -52,6 +56,29 @@ static bool RunUnitTests( bool break_on_fail ) {
 	return failed == 0;
 }
 
+#if PUBLIC_BUILD && PLATFORM_LINUX
+static Opaque< Thread > hang_detector_thread;
+static Opaque< Semaphore > hang_detector_shutdown_semaphore;
+static std::atomic< s64 > hang_time;
+
+bool Wait( Opaque< Semaphore > * sem, int timeout_seconds );
+
+static void HangDetector( void * ) {
+	while( true ) {
+		s64 now = Sys_Milliseconds();
+		if( now - hang_time.load() > 10 * 1000 ) {
+			printf( "The game has hung for 10 seconds, quitting...\n" );
+			raise( SIGQUIT ); // SIGQUIT generates a core dump too
+			return;
+		}
+
+		if( Wait( &hang_detector_shutdown_semaphore, 1 ) ) {
+			break;
+		}
+	}
+}
+#endif
+
 int main( int argc, char ** argv ) {
 	if( !is_public_build && argc == 2 && ( StrEqual( argv[ 1 ], "--test" ) || StrEqual( argv[ 1 ], "--testdbg" ) ) ) {
 		return RunUnitTests( StrEqual( argv[ 1 ], "--testdbg" ) ) ? 0 : 1;
@@ -60,6 +87,12 @@ int main( int argc, char ** argv ) {
 	OSServerInit();
 
 	Qcommon_Init( argc, argv );
+
+#if PUBLIC_BUILD && PLATFORM_LINUX
+	InitSemaphore( &hang_detector_shutdown_semaphore );
+	hang_time.store( Sys_Milliseconds() );
+	hang_detector_thread = NewThread( HangDetector, NULL );
+#endif
 
 	s64 oldtime = Sys_Milliseconds();
 	while( true ) {
@@ -77,7 +110,17 @@ int main( int argc, char ** argv ) {
 		if( !Qcommon_Frame( dt ) || OSServerShouldQuit() ) {
 			break;
 		}
+
+#if PUBLIC_BUILD && PLATFORM_LINUX
+		hang_time.store( oldtime );
+#endif
 	}
+
+#if PUBLIC_BUILD && PLATFORM_LINUX
+	Signal( &hang_detector_shutdown_semaphore, 1 );
+	JoinThread( hang_detector_thread );
+	DeleteSemaphore( &hang_detector_shutdown_semaphore );
+#endif
 
 	Qcommon_Shutdown();
 

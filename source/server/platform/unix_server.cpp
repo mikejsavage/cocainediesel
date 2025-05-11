@@ -29,7 +29,6 @@ void OSServerInit() {
 	received_shutdown_signal = 0;
 
 	QuitOnSignal( SIGINT );
-	QuitOnSignal( SIGQUIT );
 	QuitOnSignal( SIGTERM );
 }
 

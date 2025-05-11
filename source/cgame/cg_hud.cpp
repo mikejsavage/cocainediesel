@@ -1961,7 +1961,7 @@ void CG_DrawHUD() {
 	lua_pushboolean( hud_L, CG_ScoreboardShown() );
 	lua_setfield( hud_L, -2, "scoreboard" );
 
-	bool hud_lua_ran_ok;
+	[[maybe_unused]] bool hud_lua_ran_ok;
 	clay_element_counter = 1;
 	{
 		TracyZoneScopedN( "Luau" );

@@ -866,7 +866,7 @@ void MSG_ReadDeltaGameState( msg_t * msg, const SyncGameState * baseline, SyncGa
 	MSG_FinishReadingDeltaBuffer( msg, delta );
 }
 
-[[maybe_unused]] DeltaBuffer ReaderFromWriter( const DeltaBuffer & writer ) {
+[[maybe_unused]] static DeltaBuffer ReaderFromWriter( const DeltaBuffer & writer ) {
 	DeltaBuffer reader = {
 		.buf = writer.buf,
 		.cursor = writer.buf,

@@ -604,7 +604,7 @@ local function DrawStaminaBar( state )
 end
 
 local function HealthColor( frac )
-	return RGBALinear( sRGBToLinear( 1 - frac ), sRGBToLinear( frac ), sRGBToLinear( frac * 0.3 ), 1 )
+	return RGBALinear( 1 - frac, frac, frac * 0.15, 1 )
 end
 
 local function DrawHealthCross( x, y, w, h, color )

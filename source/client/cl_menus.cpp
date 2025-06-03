@@ -1171,11 +1171,10 @@ static void MainMenu() {
 					Span< const char > full_subtitle = temp.sv( "THE{}{} GAME", subtitle == "" ? "" : " ", subtitle );
 
 					CLAY_TEXT( AllocateClayString( full_subtitle ), CLAY_TEXT_CONFIG( {
+						.userData = Clone( ClayAllocator(), Optional< Vec4 >( NONE ) ),
 						.textColor = { 255, 255, 255, 255 },
 						.fontId = ClayFont_Regular,
 						.fontSize = u16( 16.0f * GetContentScale() ),
-						.hashStringContents = true,
-						.userData = Clone( ClayAllocator(), Optional< Vec4 >( NONE ) ),
 					} ) );
 				}
 
@@ -1220,10 +1219,10 @@ static void MainMenu() {
 			} ) {
 				const char * buf = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
 				CLAY_TEXT( AllocateClayString( MakeSpan( buf ) ), CLAY_TEXT_CONFIG( {
+					.userData = Clone( ClayAllocator(), Optional< Vec4 >( NONE ) ),
 					.textColor = { 255, 255, 255, 255 },
 					.fontId = ClayFont_Bold,
 					.fontSize = u16( 14.0f * GetContentScale() ),
-					.userData = Clone( ClayAllocator(), Optional< Vec4 >( NONE ) ),
 				} ) );
 			}
 		}

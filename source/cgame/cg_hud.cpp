@@ -1344,7 +1344,6 @@ static Optional< ClayTextAndConfig > GetOptionalClayTextConfig( lua_State * L, i
 			.letterSpacing = 0,
 			.lineHeight = u16( Default( CheckFloat( L, -1, "line_height" ), 1.0f ) * size ),
 			.wrapMode = CLAY_TEXT_WRAP_NONE,
-			.hashStringContents = true,
 		},
 		.border_color = CheckOptionalColor( L, -1, "text_border" ),
 		.fitted_text = CheckClayFittedText( L, idx ),
@@ -1385,7 +1384,7 @@ static Clay_BorderElementConfig GetClayBorderConfig( lua_State * L, int idx ) {
 	return border;
 }
 
-static Clay_ImageElementConfig GetClayImageConfig( lua_State * L, int idx, Vec4 * tint ) {
+static Clay_ImageElementConfig GetClayImageConfig( lua_State * L, int idx, Vec4 * tint, float * aspect_ratio ) {
 	lua_getfield( L, idx, "image" );
 	StringHash name = CheckHash( L, -1 );
 	lua_pop( L, 1 );
@@ -1394,10 +1393,10 @@ static Clay_ImageElementConfig GetClayImageConfig( lua_State * L, int idx, Vec4 
 		return { };
 
 	*tint = Default( CheckOptionalColor( L, -1, "color" ), white.linear );
+	*aspect_ratio = 1.0f; // TODO
 
 	return Clay_ImageElementConfig {
 		.imageData = bit_cast< void * >( name.hash ),
-		.sourceDimensions = { 1, 1 }, // TODO
 	};
 }
 
@@ -1507,8 +1506,9 @@ static void DrawClayNodeRecursive( lua_State * L ) {
 		custom = GetOptionalClayCallbackConfig( L, -1 );
 	}
 
-	Vec4 image_tint;
-	Clay_ImageElementConfig image_config = GetClayImageConfig( L, -1, &image_tint );
+	Vec4 image_tint = Vec4( 0.0f );
+	float image_aspect_ratio = 0.0f;
+	Clay_ImageElementConfig image_config = GetClayImageConfig( L, -1, &image_tint, &image_aspect_ratio );
 
 	Clay__OpenElement();
 	Clay__ConfigureOpenElement( Clay_ElementDeclaration {
@@ -1516,6 +1516,7 @@ static void DrawClayNodeRecursive( lua_State * L ) {
 		.layout = GetClayLayoutConfig( L, -1 ),
 		.backgroundColor = Default( GetOptionalClayColor( L, -1, "background" ), { } ),
 		.cornerRadius = GetClayBorderRadius( L, -1 ),
+		.aspectRatio = { Default( CheckFloat( L, -1, "aspect_ratio" ), image_aspect_ratio ) },
 		.image = image_config,
 		.floating = GetClayFloatConfig( L, -1 ),
 		.custom = Clay_CustomElementConfig {

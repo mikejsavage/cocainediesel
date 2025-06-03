@@ -476,14 +476,13 @@ end
 local function DrawPerk( state )
 	return cd.node( {
 		background = "#fff",
-		height = "100%",
-		width = "fit",
+		aspect_ratio = 1,
 		border = 8,
 		border_color = dark_grey,
 		padding = 8,
+		width = "5.5vh",
 	}, {
-		-- TODO: clay can solve the width here but it doesn't bubble up properly yet
-		cd.node( { color = "#000", height = "100%", width = "4.5vh" }, cd.getPerkIcon( state.perk ) ),
+		cd.node( { color = "#000", aspect_ratio = 1, width = "100%" }, cd.getPerkIcon( state.perk ) ),
 	} )
 end
 
@@ -518,6 +517,7 @@ local function DrawWeaponOrGadget( width, ammo_font_size, icon, ammo, ammo_frac,
 
 	local icon_container = {
 		width = "grow",
+		aspect_ratio = 1,
 	}
 
 	local icon_background = {
@@ -576,7 +576,7 @@ end
 
 local function DrawGadget( state, show_hotkeys )
 	local ammo_frac = state.gadget_ammo / cd.getGadgetMaxAmmo( state.gadget )
-	return DrawWeaponOrGadget( "100%", "1vh", cd.getGadgetIcon( state.gadget ), state.gadget_ammo, ammo_frac, false, nil, cd.getBind( "+gadget" ) )
+	return DrawWeaponOrGadget( "5.5vh", "1vh", cd.getGadgetIcon( state.gadget ), state.gadget_ammo, ammo_frac, false, nil, cd.getBind( "+gadget" ) )
 end
 
 local function DrawStaminaBarBackground( x, y, w, h, frac )
@@ -688,7 +688,7 @@ local function DrawBottomLeft( state )
 			cd.node( { height = "100%", width = health_percent, background = health_color } ),
 		} ),
 		cd.node( { height = "35%", width = "grow", gap = "1vh", padding = "0.5vh" }, {
-			cd.node( { height = "100%", width = 39 }, DrawHealthCross, health_color ),
+			cd.node( { height = "100%", aspect_ratio = 1 }, DrawHealthCross, health_color ),
 			cd.node( { color = health_color, height = "100%", width = "5vh", font = "bold", fit = "left" }, string.format( "%d", state.health ) ),
 			DrawHealthBarHotkey( state ),
 		} ),
@@ -721,7 +721,7 @@ local function DrawBottomLeft( state )
 			gap = "0.5vh",
 			flow = "vertical",
 		}, {
-			cd.node( { width = "fit", height = "5.5vh", gap = 8 }, perk_and_gadget ),
+			cd.node( { width = "fit", height = "fit", gap = 8 }, perk_and_gadget ),
 			cd.node( { width = "fit", height = "fit", gap = "0.5vh" }, health_and_weapons ),
 		} )
 	)

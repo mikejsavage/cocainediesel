@@ -352,7 +352,7 @@ void CG_SC_Obituary( const Tokenized & args ) {
 	}
 }
 
-static const Material * DamageTypeToIcon( DamageType type ) {
+static PoolHandle< Material2 > DamageTypeToIcon( DamageType type ) {
 	WeaponType weapon;
 	GadgetType gadget;
 	WorldDamage world;
@@ -1041,7 +1041,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 			continue;
 		}
 
-		const Material * pic = DamageTypeToIcon( obr->damage_type );
+		PoolHandle< Material2 > pic = DamageTypeToIcon( obr->damage_type );
 
 		float attacker_width = TextVisualBounds( font, font_size, MakeSpan( obr->attacker ) ).maxs.x;
 		float victim_width = TextVisualBounds( font, font_size, MakeSpan( obr->victim ) ).maxs.x;

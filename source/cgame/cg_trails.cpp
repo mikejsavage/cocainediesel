@@ -161,8 +161,8 @@ static void DrawActualTrail( const Trail & trail ) {
 	Span< TrailVertex > vertices = AllocSpan< TrailVertex >( &temp, trail.points.n * 2 );
 	Span< u16 > indices = AllocSpan< u16 >( &temp, ( trail.points.n - 1 ) * 6 );
 
-	const Material * material = FindMaterial( trail.material );
-	float texture_aspect_ratio = float( TextureWidth( material->texture ) ) / float( TextureHeight( material->texture ) );
+	PoolHandle< Material2 > material = FindMaterial( trail.material );
+	float texture_aspect_ratio = float( TextureWidth( material ) ) / float( TextureHeight( material ) );
 	float distance = trail.offset / trail.width / texture_aspect_ratio;
 
 	for( size_t i = 0; i < trail.points.n; i++ ) {
@@ -225,7 +225,7 @@ static void DrawActualTrail( const Trail & trail ) {
 
 	Draw( RenderPass_Transparent, pipeline, mesh, {
 		{ "u_Model", frame_static.identity_model_transform_uniforms },
-		{ "u_Color", NewTempBuffer( EvaluateMaterialColor( *material, trail.color ) ) },
+		{ "u_Color", NewTempBuffer( EvaluateMaterialColor( material, trail.color ) ) },
 	} );
 }
 

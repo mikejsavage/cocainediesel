@@ -173,9 +173,8 @@ struct ImGuiShaderAndMaterial {
 		*this = { };
 	}
 
-	ImGuiShaderAndMaterial( PoolHandle< BindGroup > material ) {
-		shader = shaders.standard_vertexcolors;
-		material_bind_group = material;
+	ImGuiShaderAndMaterial( PoolHandle< Material2 > material_ ) {
+		material = material_;
 		buffer = { };
 	}
 
@@ -184,17 +183,15 @@ struct ImGuiShaderAndMaterial {
 	}
 
 	explicit operator intptr_t() const {
-		return intptr_t( shader.x ) ^ intptr_t( material_bind_group.x );
+		return intptr_t( material.x );
 	}
 
-	PoolHandle< RenderPipeline > shader;
-	PoolHandle< BindGroup > material_bind_group;
 	BufferBinding buffer;
+	PoolHandle< Material2 > material;
 };
 
 inline bool operator==( const ImGuiShaderAndMaterial & a, const ImGuiShaderAndMaterial & b ) {
-	return a.shader == b.shader
-		&& a.material_bind_group == b.material_bind_group
+	return a.material == b.material
 		&& a.buffer.name == b.buffer.name
 		&& a.buffer.buffer.allocation == b.buffer.buffer.allocation && a.buffer.buffer.offset == b.buffer.buffer.offset && a.buffer.buffer.size == b.buffer.buffer.size;
 }

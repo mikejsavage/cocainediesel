@@ -28,9 +28,23 @@ public:
 		return true;
 	}
 
+	Optional< PoolHandle< T > > add_handle( u64 key ) {
+		T * slot = add( key );
+		if( !slot )
+			return NONE;
+		return PoolHandle< T > { typename PoolHandleType< T >::T( slot - values ) };
+	}
+
 	T * get( u64 key ) {
 		u64 idx;
 		return hashtable.get( key, &idx ) ? &values[ idx ] : NULL;
+	}
+
+	Optional< PoolHandle< T > > get_handle( u64 key ) {
+		u64 idx;
+		if( !hashtable.get( key, &idx ) )
+			return NONE;
+		return PoolHandle< T > { typename PoolHandleType< T >::T( idx ) };
 	}
 
 	bool upsert( u64 key, const T & x ) {

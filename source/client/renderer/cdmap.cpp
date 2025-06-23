@@ -51,20 +51,11 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 		}
 
 		{
-			const Material * material;
 			// TODO: remove this fallback at some point
-			if( !TryFindMaterial( StringHash( mesh.material ), &material ) ) {
-				material = FindMaterial( "world" );
-			}
-
-			PipelineState pipeline = {
-				.shader = material->shader,
-				.dynamic_state = material->renderer_dynamic_state,
-				.material_bind_group = material->bind_group,
-			};
+			PoolHandle< Material2 > material = Default( TryFindMaterial( StringHash( mesh.material ) ), FindMaterial( "world" ) );
+			PipelineState pipeline = MaterialPipelineState( material );
 			pipeline.dynamic_state.depth_func = DepthFunc_EqualNoWrite;
-
-			Draw( material->render_pass, pipeline, map->render_data, { model_binding }, mesh_extras );
+			Draw( MaterialRenderPass( material ), pipeline, map->render_data, { model_binding }, mesh_extras );
 		}
 	}
 }

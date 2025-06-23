@@ -952,7 +952,7 @@ static void ShadowedText( Span< const char > text, float shadow_size ) {
 }
 
 template< bool BUTTON >
-static bool MainSectionButton( const ImVec2& pos, const Material * icon, const Vec2& size, Span<const char> name, const Vec4& bg_color, const bool is_enabled ) {
+static bool MainSectionButton( const ImVec2& pos, PoolHandle< Material2 > icon, const Vec2& size, Span<const char> name, const Vec4& bg_color, const bool is_enabled ) {
 	const Vec2 half_pixel = HalfPixelSize( icon );
 	const Vec2 SQUARE_SIZE = size + 8.0f;
 	const ImVec2 text_size = ImGui::CalcTextSize( name );
@@ -1082,9 +1082,9 @@ static void MainMenu() {
 		},
 	} ) {
 		auto scrolling_hazard_stripes = []( const Clay_BoundingBox & bounds, void * userdata ) {
-			const Material * hazard = FindMaterial( "hud/tape_hazard_yellow" );
+			PoolHandle< Material2 > hazard = FindMaterial( "hud/tape_hazard_yellow" );
 			Vec2 half_pixel = HalfPixelSize( hazard );
-			float repetitions = ( bounds.width / bounds.height ) / ( TextureWidth( hazard->texture ) / TextureHeight( hazard->texture ) );
+			float repetitions = ( bounds.width / bounds.height ) / ( TextureWidth( hazard ) / TextureHeight( hazard ) );
 			float scroll = Sawtooth01( cls.monotonicTime, Seconds( 4 ) );
 			float scale = bit_cast< uintptr_t >( userdata ) == 0 ? 1.0f : -1.0f;
 			Vec2 tl = half_pixel + Vec2( scroll * scale, 0.0f );
@@ -1388,7 +1388,7 @@ static void SendLoadout() {
 	Cmd_Execute( &temp, "setloadout {}", loadout );
 }
 
-static bool LoadoutButton( Span< const char > label, Vec2 icon_size, const Material * icon, bool selected ) {
+static bool LoadoutButton( Span< const char > label, Vec2 icon_size, PoolHandle< Material2 > icon, bool selected ) {
 	constexpr RGBA8 button_gray = RGBA8( 200, 200, 200, 255 );
 	Vec2 start_pos = ImGui::GetCursorPos();
 	ImGui::GetCursorPos();
@@ -1430,7 +1430,7 @@ static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 i
 	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( i );
 		if( def->category == category ) {
-			const Material * icon = FindMaterial( cgs.media.shaderWeaponIcon[ i ] );
+			PoolHandle< Material2 > icon = FindMaterial( cgs.media.shaderWeaponIcon[ i ] );
 			if( LoadoutButton( ToUpperASCII( &temp, def->name ), icon_size, icon, loadout.weapons[ def->category ] == i ) ) {
 				loadout.weapons[ def->category ] = i;
 				SendLoadout();
@@ -1448,7 +1448,7 @@ static void Perks( Vec2 icon_size ) {
 		if( GetPerkDef( i )->disabled )
 			continue;
 
-		const Material * icon = FindMaterial( cgs.media.shaderPerkIcon[ i ] );
+		PoolHandle< Material2 > icon = FindMaterial( cgs.media.shaderPerkIcon[ i ] );
 		if( LoadoutButton( ToUpperASCII( &temp, GetPerkDef( i )->name ), icon_size, icon, loadout.perk == i ) ) {
 			loadout.perk = i;
 			SendLoadout();
@@ -1463,7 +1463,7 @@ static void Gadgets( Vec2 icon_size ) {
 
 	for( GadgetType i = GadgetType( Gadget_None + 1 ); i < Gadget_Count; i++ ) {
 		const GadgetDef * def = GetGadgetDef( i );
-		const Material * icon = FindMaterial( cgs.media.shaderGadgetIcon[ i ] );
+		PoolHandle< Material2 > icon = FindMaterial( cgs.media.shaderGadgetIcon[ i ] );
 		if( LoadoutButton( ToUpperASCII( &temp, def->name ), icon_size, icon, loadout.gadget == i ) ) {
 			loadout.gadget = GadgetType( i );
 			SendLoadout();
@@ -1506,7 +1506,7 @@ static bool LoadoutMenu() {
 
 		ImGui::SetCursorPos( ImVec2( displaySize.x - title_height, 0.f ) );
 
-		const Material * icon = FindMaterial( "textures/sprays/peekatyou" );
+		PoolHandle< Material2 > icon = FindMaterial( "textures/sprays/peekatyou" );
 		Vec2 half_pixel = HalfPixelSize( icon );
 		if( ImGui::ImageButton( "random", icon, ImVec2( title_height, title_height ), half_pixel, 1.0f - half_pixel, Vec4( 0.f ), Vec4( 1.0f ) ) ) {
 			for( WeaponCategory category = WeaponCategory( 0 ); category < WeaponCategory_Count; category++ ) {
@@ -1545,13 +1545,13 @@ static bool LoadoutMenu() {
 
 	bool should_close = false;
 	{
-		constexpr auto PrintMoveText = [] ( Span< const char > text, ImVec2 & textPos ) {
+		constexpr auto PrintMoveText = []( Span< const char > text, ImVec2 & textPos ) {
 			textPos.x -= ImGui::CalcTextSize( text ).x;
 			ImGui::SetCursorPos( textPos );
 			ImGui::Text( text );
 		};
 
-		constexpr auto PrintMoveImage = [] ( const Material * icon, size_t icon_size, ImVec2 & imgPos, ImVec4 color ) {
+		constexpr auto PrintMoveImage = []( PoolHandle< Material2 > icon, size_t icon_size, ImVec2 & imgPos, ImVec4 color ) {
 			Vec2 half_pixel = HalfPixelSize( icon );
 			imgPos.x -= icon_size;
 			ImGui::SetCursorPos( imgPos );

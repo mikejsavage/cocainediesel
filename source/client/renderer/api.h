@@ -29,21 +29,6 @@ struct CoherentBuffer {
 	void * ptr;
 };
 
-CoherentBuffer NewTempBuffer( size_t size, size_t alignment );
-GPUBuffer NewTempBuffer( const void * data, size_t size, size_t alignment );
-
-template< typename T >
-GPUBuffer NewTempBuffer( const T & x, size_t alignment = alignof( T ) ) {
-	return NewTempBuffer( &x, sizeof( T ), alignment );
-}
-
-GPUBuffer NewDeviceTempBuffer( const char * label, size_t size, size_t alignment );
-
-// template< typename T >
-// GPUBuffer NewTempBuffer( size_t alignment = alignof( T ) ) {
-// 	return NewTempBuffer( sizeof( T ), alignment, NULL );
-// }
-
 GPUBuffer NewBuffer( const char * label, size_t size, size_t alignment, bool texture, const void * data = NULL );
 
 template< typename T >
@@ -55,6 +40,16 @@ template< typename T >
 GPUBuffer NewBuffer( const char * label, const T & x, size_t alignment = alignof( T ) ) {
 	return NewBuffer( label, sizeof( T ), alignment, false, &x );
 }
+
+GPUBuffer NewTempBuffer( const void * data, size_t size, size_t alignment );
+
+template< typename T >
+GPUBuffer NewTempBuffer( const T & x, size_t alignment = alignof( T ) ) {
+	return NewTempBuffer( &x, sizeof( T ), alignment );
+}
+
+CoherentBuffer NewTempBuffer( size_t size, size_t alignment );
+GPUBuffer NewDeviceTempBuffer( const char * label, size_t size, size_t alignment );
 
 void FlushStagingBuffer();
 
@@ -109,10 +104,6 @@ enum TextureLayout {
 PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture = NONE );
 
 TextureFormat GetTextureFormat( PoolHandle< Texture > texture );
-u32 TextureWidth( PoolHandle< Texture > texture );
-u32 TextureHeight( PoolHandle< Texture > texture );
-u32 TextureLayers( PoolHandle< Texture > texture );
-u32 TextureMipLevels( PoolHandle< Texture > texture );
 
 PoolHandle< Texture > RGBNoiseTexture();
 PoolHandle< Texture > BlueNoiseTexture();
@@ -477,7 +468,19 @@ struct Material2 {
 	ColorGen alphagen;
 };
 
-Material2 NewMaterial( const MaterialDescriptor & desc );
+template<> struct PoolHandleType< Material2 > { using T = u16; };
+// NOMERGE should name go in materialdescriptor?
+PoolHandle< Material2 > NewMaterial( Span< const char > name, const MaterialDescriptor & desc );
+
+PoolHandle< Material2 > FindMaterial( StringHash name );
+// PoolHandle< Material2 > FindMaterial( const char * name );
+Optional< PoolHandle< Material2 > > TryFindMaterial( StringHash name );
+
+u32 TextureWidth( PoolHandle< Material2 > material );
+u32 TextureHeight( PoolHandle< Material2 > material );
+
+RenderPass MaterialRenderPass( PoolHandle< Material2 > material );
+PipelineState MaterialPipelineState( PoolHandle< Material2 > material );
 
 /*
  * Frame

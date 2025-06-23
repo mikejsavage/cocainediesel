@@ -10,5 +10,5 @@
 #include "client/renderer/shader.h"
 #include "cgame/ref.h"
 
-void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color = white.vec4 );
-void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color = white.vec4 );
+void Draw2DBox( float x, float y, float w, float h, PoolHandle< Material2 > material, Vec4 color = white.vec4 );
+void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, PoolHandle< Material2 > material, Vec4 color = white.vec4 );

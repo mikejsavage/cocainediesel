@@ -70,9 +70,9 @@ void InitMaterials();
 void HotloadMaterials();
 void ShutdownMaterials();
 
-const Material * FindMaterial( StringHash name );
-const Material * FindMaterial( const char * name );
-bool TryFindMaterial( StringHash name, const Material ** material );
+// const Material * FindMaterial( StringHash name );
+// const Material * FindMaterial( const char * name );
+// bool TryFindMaterial( StringHash name, const Material ** material );
 
 struct Sprite {
 	// TODO: these do funny arithmetic packing and we should convert them to use f16 etc
@@ -84,6 +84,7 @@ Optional< Sprite > TryFindSprite( StringHash name );
 PoolHandle< BindGroup > SpriteAtlasBindGroup();
 PoolHandle< Texture > SpriteAtlasTexture();
 
-Vec2 HalfPixelSize( const Material * material );
+struct Material2;
+Vec2 HalfPixelSize( PoolHandle< Material2 > material );
 
-Vec4 EvaluateMaterialColor( const Material & material, Vec4 entity_color );
+Vec4 EvaluateMaterialColor( PoolHandle< Material2 > material, Vec4 entity_color );

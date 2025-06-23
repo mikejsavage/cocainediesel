@@ -147,7 +147,7 @@ static void SubmitDrawCalls() {
 
 		const ImDrawList * cmd_list = draw_data->CmdLists[ n ];
 
-		// TODO: this is a hack to separate drawcalls into 2 passes
+		// NOTE: this is a hack to separate drawcalls into 2 passes
 		if( cmd_list->CmdBuffer.Size > 0 ) {
 			const ImDrawCmd * cmd = &cmd_list->CmdBuffer[ 0 ];
 			u32 new_pass = u32( uintptr_t( cmd->UserCallbackData ) );
@@ -194,16 +194,8 @@ static void SubmitDrawCalls() {
 						},
 					};
 
+					// TODO
 					// pipeline.bind_uniform( "u_MaterialStatic", lodbias_uniforms );
-
-					BoundedDynamicArray< BufferBinding, 3 > bindings = {
-						{ "u_Model", frame_static.identity_model_transform_uniforms },
-						{ "u_MaterialDynamic", frame_static.identity_material_properties_uniforms },
-					};
-
-					if( pcmd->TextureId.buffer.name != EMPTY_HASH ) {
-						bindings.must_add( pcmd->TextureId.buffer );
-					}
 
 					Draw(
 						pass == 0 ? RenderPass_UIBeforePostprocessing : RenderPass_UIAfterPostprocessing,

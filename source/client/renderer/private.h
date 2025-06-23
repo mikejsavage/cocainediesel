@@ -2,8 +2,16 @@
 
 #include "client/renderer/api.h"
 
+/*
+ * Init
+ */
+
 void InitRenderBackend();
 void ShutdownRenderBackend();
+
+/*
+ * Memory allocation
+ */
 
 void InitRenderBackendAllocators( size_t slab_size, size_t constant_buffer_alignment, size_t buffer_image_granularity );
 void ShutdownRenderBackendAllocators();
@@ -63,6 +71,10 @@ void ClearGPUArenaAllocator( GPUArenaAllocator * a );
 PoolHandle< GPUAllocation > AllocateGPUMemory( size_t size );
 CoherentMemory AllocateCoherentMemory( size_t size );
 
+/*
+ * Textures
+ */
+
 // pass a = NULL for a dedicated allocation
 struct BackendTexture;
 template<> struct PoolHandleType< BackendTexture > { using T = PoolHandleType< Texture >::T; };
@@ -70,6 +82,15 @@ template<> struct PoolHandleType< BackendTexture > { using T = PoolHandleType< T
 PoolHandle< BackendTexture > NewTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< PoolHandle< BackendTexture > > = NONE );
 PoolHandle< BackendTexture > TextureHandle( PoolHandle< Texture > texture );
 PoolHandle< BackendTexture > UploadBC4( GPUSlabAllocator * a, const char * path );
+
+u32 TextureWidth( PoolHandle< BackendTexture > texture );
+u32 TextureHeight( PoolHandle< BackendTexture > texture );
+u32 TextureLayers( PoolHandle< BackendTexture > texture );
+u32 TextureMipLevels( PoolHandle< BackendTexture > texture );
+
+/*
+ * Resource transfers
+ */
 
 void CopyGPUBufferToBuffer(
 	Opaque< CommandBuffer > cmd_buf,
@@ -87,6 +108,10 @@ void DeleteTransferCommandBuffer( Opaque< CommandBuffer > cb );
 void UploadBuffer( GPUBuffer dest, const void * data, size_t n );
 GPUBuffer StageArgumentBuffer( GPUBuffer dest, size_t n, size_t alignment );
 void UploadTexture( PoolHandle< BackendTexture > dest, const void * data );
+
+/*
+ * Debug info
+ */
 
 void AddDebugMarker( const char * label, PoolHandle< GPUAllocation > allocation, size_t offset, size_t size );
 void RemoveAllDebugMarkers( PoolHandle< GPUAllocation > allocation );

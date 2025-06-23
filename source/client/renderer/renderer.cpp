@@ -665,7 +665,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 			},
 		},
 		.depth_target = RenderPassConfig::DepthTarget {
-			.texture = frame_static.render_targets.msaa_depth,
+			.texture = Default( frame_static.render_targets.msaa_depth, frame_static.render_targets.resolved_depth ),
 		},
 		.representative_shader = shaders.world,
 		.bindings = standard_bindings,
@@ -736,12 +736,12 @@ Mesh FullscreenMesh() {
 	return fullscreen_mesh;
 }
 
-void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color ) {
+void Draw2DBox( float x, float y, float w, float h, PoolHandle< Material2 > material, Vec4 color ) {
 	Vec2 half_pixel = HalfPixelSize( material );
 	Draw2DBoxUV( x, y, w, h, half_pixel, 1.0f - half_pixel, material, color );
 }
 
-void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color ) {
+void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, PoolHandle< Material2 > material, Vec4 color ) {
 	if( w <= 0.0f || h <= 0.0f || color.w <= 0.0f )
 		return;
 

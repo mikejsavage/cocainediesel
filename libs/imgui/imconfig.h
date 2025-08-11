@@ -188,6 +188,8 @@ struct ImGuiShaderAndMaterial {
 
 	BufferBinding buffer;
 	PoolHandle< Material2 > material;
+	// PoolHandle< RenderPipeline > shader;
+	// PoolHandle< BindGroup > material_bind_group;
 };
 
 inline bool operator==( const ImGuiShaderAndMaterial & a, const ImGuiShaderAndMaterial & b ) {

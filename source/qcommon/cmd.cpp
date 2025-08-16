@@ -57,7 +57,6 @@ bool Cmd_ExecuteLineImpl( Allocator * a, Tokenized args, bool warn_on_invalid ) 
 	return false;
 }
 
-
 bool Cmd_ExecuteLine( Allocator * a, Span< const char > line, bool warn_on_invalid ) {
     auto commands = TokenizeMulti( a, line );
     defer { Free( a, commands.ptr ); };

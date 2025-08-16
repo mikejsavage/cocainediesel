@@ -131,12 +131,18 @@ Span< Tokenized > TokenizeMulti( Allocator * a, Span< const char > str, SourceLo
     NonRAIIDynamicArray<Tokenized> tokes( a, 0, src_loc );
 
     while ( true ) {
-        Tokenized t = Tokenize(a, str, src_loc);
+        Tokenized t = Tokenize( a, str, src_loc );
+        if( t.tokens.n == 0 ) break;
         tokes.add( t, src_loc );
+        
         auto last = t.tokens.ptr[ t.tokens.n - 1 ];
         if ( str.end() > last.end() ) {
-            str = Span< const char >( last.end(), str.end() - last.end() );
-            if ( str[ 0 ] == ';' ) str += 1;
+            size_t left = str.end() - last.end();
+            str = Span< const char >( last.end(), left );
+            if ( str[ 0 ] == ';' ) {
+                if (left > 1) str += 1;
+                else break;
+            }
             else break;
         } else break;
     }

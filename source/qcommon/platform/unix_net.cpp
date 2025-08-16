@@ -197,13 +197,17 @@ void WaitForSockets( TempAllocator * temp, const Socket * sockets, size_t num_so
 		FatalErrno( "poll" );
 	}
 
-	if( ret == 0 || results == NULL )
+	if( results == NULL )
 		return;
+
+	for( size_t i = 0; i < num_sockets; i++ ) {
+		results[ i ] = { false, false };
+	}
 
 	for( size_t i = 0; i < fds.size(); i++ ) {
 		size_t idx = fd_to_socket[ i ];
-		results[ idx ].readable = results[ idx ].readable || ( fds[ i ].revents & POLLIN ) != 0;
-		results[ idx ].writeable = results[ idx ].writeable || ( fds[ i ].revents & POLLOUT ) != 0;
+		results[ idx ].readable = results[ idx ].readable || HasAllBits( fds[ i ].revents, short( POLLIN ) );
+		results[ idx ].writeable = results[ idx ].writeable || HasAllBits( fds[ i ].revents, short( POLLOUT ) );
 	}
 }
 

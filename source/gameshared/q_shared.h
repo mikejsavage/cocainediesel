@@ -37,6 +37,7 @@ struct Tokenized {
 };
 
 Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine stop );
+Span< Tokenized > TokenizeMulti( Allocator * a, Span< const char > str, SourceLocation src_loc = CurrentSourceLocation() );
 Tokenized Tokenize( Allocator * a, Span< const char > str, SourceLocation src_loc = CurrentSourceLocation() );
 
 bool TrySpanToU64( Span< const char > str, u64 * x );

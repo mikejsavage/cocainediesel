@@ -100,7 +100,9 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 	if( c[ 0 ] == '\"' ) {
 		quoted = true;
 		c++;
-	}
+	} else if ( c[ 0 ] == ';' ) {
+        return Span< const char >(NULL, 0);
+    }
 
 	Span< const char > token( c.ptr, 0 );
 
@@ -111,7 +113,7 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 		}
 	}
 	else {
-		while( c.n > 0 && c[ 0 ] != '\"' ) {
+		while( c.n > 0 && c[ 0 ] != '\"' && c[ 0 ] != ';' ) {
 			c++;
 			token.n++;
 		}
@@ -123,6 +125,23 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 	*cursor = c;
 
 	return token;
+}
+
+Span< Tokenized > TokenizeMulti( Allocator * a, Span< const char > str, SourceLocation src_loc ) {
+    NonRAIIDynamicArray<Tokenized> tokes( a, 0, src_loc );
+
+    while ( true ) {
+        Tokenized t = Tokenize(a, str, src_loc);
+        tokes.add( t, src_loc );
+        auto last = t.tokens.ptr[ t.tokens.n - 1 ];
+        if ( str.end() > last.end() ) {
+            str = Span< const char >( last.end(), str.end() - last.end() );
+            if ( str[ 0 ] == ';' ) str += 1;
+            else break;
+        } else break;
+    }
+
+    return tokes.span();
 }
 
 Tokenized Tokenize( Allocator * a, Span< const char > str, SourceLocation src_loc ) {

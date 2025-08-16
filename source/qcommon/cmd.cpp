@@ -35,9 +35,7 @@ static ConsoleCommand * FindCommand( Span< const char > name ) {
 	return &commands[ idx ];
 }
 
-bool Cmd_ExecuteLine( Allocator * a, Span< const char > line, bool warn_on_invalid ) {
-	Tokenized args = Tokenize( a, line );
-	defer { Free( a, args.tokens.ptr ); };
+bool Cmd_ExecuteLineImpl( Allocator * a, Tokenized args, bool warn_on_invalid ) {
 	if( args.tokens.n == 0 ) {
 		return true;
 	}
@@ -57,6 +55,21 @@ bool Cmd_ExecuteLine( Allocator * a, Span< const char > line, bool warn_on_inval
 	}
 
 	return false;
+}
+
+
+bool Cmd_ExecuteLine( Allocator * a, Span< const char > line, bool warn_on_invalid ) {
+    auto commands = TokenizeMulti( a, line );
+    defer { Free( a, commands.ptr ); };
+
+    bool successful = true;
+    for ( size_t i = 0; i < commands.n; i++ ) {
+        auto command = commands.ptr[ i ];
+        defer { Free( a, command.tokens.ptr ); };
+        if ( successful ) successful = Cmd_ExecuteLineImpl( a, command, warn_on_invalid );
+    }
+
+    return successful;
 }
 
 static const char * Argv( Span< const char * > args, size_t i ) {

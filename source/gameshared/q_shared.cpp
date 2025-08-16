@@ -107,13 +107,13 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 	Span< const char > token( c.ptr, 0 );
 
 	if( !quoted ) {
-		while( c.n > 0 && !IsWhitespace( c[ 0 ] ) ) {
+		while( c.n > 0 && !IsWhitespace( c[ 0 ] ) && c[ 0 ] != ';' ) {
 			c++;
 			token.n++;
 		}
 	}
 	else {
-		while( c.n > 0 && c[ 0 ] != '\"' && c[ 0 ] != ';' ) {
+		while( c.n > 0 && c[ 0 ] != '\"' ) {
 			c++;
 			token.n++;
 		}
@@ -134,15 +134,13 @@ Span< Tokenized > TokenizeMulti( Allocator * a, Span< const char > str, SourceLo
         Tokenized t = Tokenize( a, str, src_loc );
         if( t.tokens.n == 0 ) break;
         tokes.add( t, src_loc );
-        
-        auto last = t.tokens.ptr[ t.tokens.n - 1 ];
-        if ( str.end() > last.end() ) {
-            size_t left = str.end() - last.end();
-            str = Span< const char >( last.end(), left );
-            if ( str[ 0 ] == ';' ) {
-                if (left > 1) str += 1;
-                else break;
-            }
+
+        auto last_token = t.tokens[ t.tokens.n - 1 ];
+        if ( str.end() > last_token.end() ) {
+            size_t left = str.end() - last_token.end();
+            if (left <= 1) break;
+            str = Span< const char >( last_token.end(), left );
+            if ( str[ 0 ] == ';' ) str += 1;
             else break;
         } else break;
     }

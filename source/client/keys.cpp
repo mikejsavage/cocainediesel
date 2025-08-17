@@ -136,6 +136,8 @@ static constexpr KeyInfo keys[] = {
 	{ Key_MouseMiddle,    ImGuiKey_MouseMiddle,    NONE,                      "MOUSE3",           "Middle Mouse" },
 	{ Key_Mouse4,         ImGuiKey_MouseX1,        NONE,                      "MOUSE4",           "Mouse 4" },
 	{ Key_Mouse5,         ImGuiKey_MouseX2,        NONE,                      "MOUSE5",           "Mouse 5" },
+	{ Key_Mouse6,         ImGuiKey_None,           NONE,                      "MOUSE6",           "Mouse 6" },
+	{ Key_Mouse7,         ImGuiKey_None,           NONE,                      "MOUSE7",           "Mouse 7" },
 	{ Key_MouseWheelUp,   ImGuiKey_None,           NONE,                      "MWHEELUP",         "Mouse Wheel Up" },
 	{ Key_MouseWheelDown, ImGuiKey_None,           NONE,                      "MWHEELDOWN",       "Mouse Wheel Down" },
 };

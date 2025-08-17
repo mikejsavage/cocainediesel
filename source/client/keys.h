@@ -117,6 +117,8 @@ enum Key {
 	Key_MouseMiddle,
 	Key_Mouse4,
 	Key_Mouse5,
+	Key_Mouse6,
+	Key_Mouse7,
 	Key_MouseWheelUp,
 	Key_MouseWheelDown,
 

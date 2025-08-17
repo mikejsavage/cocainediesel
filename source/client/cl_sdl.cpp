@@ -291,6 +291,8 @@ static void OnMouseClicked( const SDL_MouseButtonEvent & e ) {
 		case SDL_BUTTON_MIDDLE: key = Key_MouseMiddle; break;
 		case SDL_BUTTON_X1: key = Key_Mouse4; break;
 		case SDL_BUTTON_X2: key = Key_Mouse5; break;
+		case SDL_BUTTON_X2 + 1: key = Key_Mouse6; break;
+		case SDL_BUTTON_X2 + 2: key = Key_Mouse7; break;
 		default: return;
 	}
 

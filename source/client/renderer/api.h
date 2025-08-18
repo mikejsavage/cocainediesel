@@ -44,6 +44,11 @@ GPUBuffer NewBuffer( const char * label, const T & x, size_t alignment = alignof
 GPUBuffer NewTempBuffer( const void * data, size_t size, size_t alignment );
 
 template< typename T >
+GPUBuffer NewTempBuffer( Span< const T > xs, size_t alignment = alignof( T ) ) {
+	return NewTempBuffer( xs.ptr, sizeof( T ) * xs.n, alignment );
+}
+
+template< typename T >
 GPUBuffer NewTempBuffer( const T & x, size_t alignment = alignof( T ) ) {
 	return NewTempBuffer( &x, sizeof( T ), alignment );
 }
@@ -84,7 +89,7 @@ enum TextureFormat : u8 {
 };
 
 struct TextureConfig {
-	const char * name;
+	Span< const char > name;
 	TextureFormat format;
 	u32 width;
 	u32 height;
@@ -95,6 +100,7 @@ struct TextureConfig {
 	bool dedicated_allocation = false;
 };
 
+// NOMERGE
 enum TextureLayout {
 	TextureLayout_ReadOnly,
 	TextureLayout_ReadWrite,
@@ -330,14 +336,9 @@ struct IndirectIndexedDrawArgs {
 };
 
 struct PipelineState {
-	struct Scissor {
-		u32 x, y, w, h;
-	};
-
 	PoolHandle< RenderPipeline > shader;
 	RenderPipelineDynamicState dynamic_state;
 	PoolHandle< BindGroup > material_bind_group;
-	Optional< Scissor > scissor; // TODO
 };
 
 struct DrawCallExtras {
@@ -349,7 +350,12 @@ struct DrawCallExtras {
 void EncodeDrawCall( Opaque< CommandBuffer > cmd_buf, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers, DrawCallExtras extras );
 // void EncodeBindMesh( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
 // void EncodeBindMaterial( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
-// void EncodeScissor( Opaque< CommandBuffer > cmd_buf, Optional< Scissor > scissor );
+
+struct Scissor {
+	u32 x, y, w, h;
+};
+
+void EncodeScissor( Opaque< CommandBuffer > cmd_buf, Optional< Scissor > scissor );
 
 /*
  * Compute passes
@@ -456,7 +462,7 @@ struct MaterialDescriptor {
 };
 
 struct Material2 {
-	Span< char > name;
+	BoundedString< 64 > name;
 
 	RenderPass render_pass;
 	PoolHandle< RenderPipeline > shader;

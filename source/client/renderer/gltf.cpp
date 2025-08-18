@@ -672,13 +672,13 @@ static CullFace FlipCullFace( CullFace cull ) {
 	return { };
 }
 
-static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh, bool skinned, PipelineState pipeline, const Mat3x4 & transform ) {
+static void DrawModelNode( const Mesh & mesh, bool view_weapon, GPUBuffer model_uniforms, Optional< GPUBuffer > pose_uniforms, PipelineState pipeline, const Mat3x4 & transform ) {
 	TracyZoneScoped;
 	if( !config.enabled )
 		return;
 
-	if( config.view_weapon ) {
-		pipeline.view_weapon_depth_hack = true;
+	if( view_weapon ) {
+		// pipeline.view_weapon_depth_hack = true; NOMERGE
 	}
 
 	if( OddNumberOfReflections( transform ) ) {
@@ -686,6 +686,7 @@ static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh,
 	}
 
 	DrawMesh( mesh, pipeline );
+	Draw( pass, pipeline );
 }
 
 static void DrawShadowsNode( const Mesh & mesh, GPUBuffer model_uniforms, Optional< GPUBuffer > pose_uniforms, const Mat3x4 & transform ) {
@@ -788,10 +789,10 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 
 		GPUBuffer model_uniforms = NewTempBuffer( node_transform );
 
-		{
+		if( config.draw_model.enabled ) {
 			// TODO
 			PipelineState pipeline = MaterialToPipelineState( FindMaterial( node->material ), color, skinned );
-			DrawModelNode( config.draw_model, node->mesh, skinned, pipeline, node_transform );
+			DrawModelNode( node->mesh, config.draw_model.view_weapon, model_uniforms, pose_uniforms, pipeline, node_transform );
 		}
 
 		if( config.cast_shadows ) {

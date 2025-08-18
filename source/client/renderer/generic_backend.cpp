@@ -60,12 +60,12 @@ void UploadBuffer( GPUBuffer dest, const void * data, size_t n ) {
 	CopyGPUBufferToBuffer( staging_command_buffer, dest.allocation, dest.offset, staging_buffer.allocation, cursor, n );
 }
 
-static void UploadMipLevel( PoolHandle< BackendTexture > dest, u32 w, u32 h, u32 num_layers, u32 mip_level, const void * data, size_t n ) {
+static void UploadMipLevel( PoolHandle< Texture > dest, u32 w, u32 h, u32 num_layers, u32 mip_level, const void * data, size_t n ) {
 	size_t cursor = Stage( data, n, 16 );
 	CopyGPUBufferToTexture( staging_command_buffer, dest, w, h, num_layers, mip_level, staging_buffer.allocation, cursor );
 }
 
-void UploadTexture( PoolHandle< BackendTexture > dest, const void * data ) {
+void UploadTexture( PoolHandle< Texture > dest, const void * data ) {
 	u32 w = TextureWidth( dest );
 	u32 h = TextureHeight( dest );
 	u32 num_layers = TextureLayers( dest );
@@ -176,24 +176,43 @@ GPUBuffer NewBuffer( GPUSlabAllocator * a, const char * label, size_t size, size
 }
 
 GPUBuffer NewBuffer( const char * label, size_t size, size_t alignment, bool texture, const void * data ) {
-	return NewBuffer( label, size, alignment, texture, data );
+	return NewBuffer( &persistent_allocator, label, size, alignment, texture, data );
 }
 
-GPUArenaAllocator NewGPUArenaAllocator( size_t size, size_t min_alignment ) {
+GPUArenaAllocator NewDeviceGPUArenaAllocator( size_t size, size_t min_alignment ) {
 	Assert( IsPowerOf2( min_alignment ) );
 
-	return {
-		.memory = AllocateCoherentMemory( size * MaxFramesInFlight ),
+	return GPUArenaAllocator {
+		.allocation = AllocateGPUMemory( size * MaxFramesInFlight ),
 		.min_alignment = min_alignment,
 		.capacity = size,
 	};
 }
 
-void ClearGPUArenaAllocator( GPUArenaAllocator * a ) {
+CoherentGPUArenaAllocator NewCoherentGPUArenaAllocator( size_t size, size_t min_alignment ) {
+	Assert( IsPowerOf2( min_alignment ) );
+
+	CoherentMemory memory = AllocateCoherentMemory( size * MaxFramesInFlight );
+	return CoherentGPUArenaAllocator {
+		.a = GPUArenaAllocator {
+			.allocation = memory.allocation,
+			.min_alignment = min_alignment,
+			.capacity = size,
+		},
+		.ptr = memory.ptr,
+	};
+}
+
+static void ClearGPUArenaAllocator( GPUArenaAllocator * a ) {
 	a->cursor = 0;
 }
 
-GPUTempBuffer NewTempBuffer( GPUArenaAllocator * a, size_t size, size_t alignment ) {
+void ClearGPUArenaAllocators() {
+	ClearGPUArenaAllocator( &device_temp_allocator );
+	ClearGPUArenaAllocator( &coherent_temp_allocator.a );
+}
+
+GPUBuffer NewDeviceTempBuffer( GPUArenaAllocator * a, size_t size, size_t alignment ) {
 	// alignment and min_alignment are both pow2 so Max2( alignment, min_alignment ) == LeastCommonMultiple( alignment, min_alignment )
 	Assert( IsPowerOf2( alignment ) );
 	size_t aligned_cursor = AlignPow2( a->cursor, Max2( alignment, a->min_alignment ) );
@@ -201,25 +220,29 @@ GPUTempBuffer NewTempBuffer( GPUArenaAllocator * a, size_t size, size_t alignmen
 
 	a->cursor = aligned_cursor + size;
 
-	size_t offset = aligned_cursor + a->capacity * FrameSlot();
-	return GPUTempBuffer {
-		.buffer = GPUBuffer {
-			.allocation = a->memory.allocation,
-			.offset = aligned_cursor + a->capacity * FrameSlot(),
-			.size = size,
-		},
-		.ptr = ( ( char * ) a->memory.ptr ) + offset,
+	return GPUBuffer {
+		.allocation = a->allocation,
+		.offset = aligned_cursor + a->capacity * FrameSlot(),
+		.size = size,
 	};
 }
 
-GPUBuffer NewTempBuffer( GPUArenaAllocator * a, const void * data, size_t size, size_t alignment ) {
-	GPUTempBuffer temp = NewTempBuffer( a, size, alignment );
-	memcpy( temp.ptr, data, size );
-	return temp.buffer;
+CoherentBuffer NewTempBuffer( size_t size, size_t alignment ) {
+	GPUBuffer buffer = NewDeviceTempBuffer( &coherent_temp_allocator.a, size, alignment );
+	return CoherentBuffer {
+		.buffer = buffer,
+		.ptr = ( ( char * ) coherent_temp_allocator.ptr ) + buffer.offset,
+	};
+}
+
+GPUBuffer NewTempBuffer( const void * data, size_t size, size_t alignment ) {
+	CoherentBuffer buffer = NewTempBuffer( size, alignment );
+	memcpy( buffer.ptr, data, size );
+	return buffer.buffer;
 }
 
 PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {
-	return NewTexture( config, old_texture );
+	return NewTexture( &persistent_allocator, config, old_texture );
 }
 
 PoolHandle< Texture > NewFramebufferTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {

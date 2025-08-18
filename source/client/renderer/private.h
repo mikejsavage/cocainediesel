@@ -1,6 +1,7 @@
 #pragma once
 
 #include "client/renderer/api.h"
+#include "client/renderer/dds.h"
 
 /*
  * Init
@@ -46,17 +47,14 @@ struct GPUSlabAllocator {
 struct GPUArenaAllocator {
 	PoolHandle< GPUAllocation > allocation;
 	size_t min_alignment;
-	size_t cursor;
 	size_t capacity;
+	size_t cursor;
 };
 
 struct CoherentGPUArenaAllocator {
 	GPUArenaAllocator a;
 	void * ptr;
 };
-
-// using DeviceGPUArenaAllocator = GPUArenaAllocator< true >;
-// using CoherentGPUArenaAllocator = GPUArenaAllocator< false >;
 
 GPUSlabAllocator NewGPUSlabAllocator( size_t slab_size, size_t min_alignment, size_t buffer_image_granularity );
 void DeleteGPUSlabAllocator( GPUSlabAllocator * a );
@@ -65,9 +63,6 @@ GPUBuffer NewBuffer( GPUSlabAllocator * a, const char * label, size_t size, size
 GPUArenaAllocator NewDeviceGPUArenaAllocator( size_t size, size_t min_alignment );
 CoherentGPUArenaAllocator NewCoherentGPUArenaAllocator( size_t size, size_t min_alignment );
 
-template< typename T >
-void ClearGPUArenaAllocator( GPUArenaAllocator * a );
-
 PoolHandle< GPUAllocation > AllocateGPUMemory( size_t size );
 CoherentMemory AllocateCoherentMemory( size_t size );
 
@@ -75,18 +70,37 @@ CoherentMemory AllocateCoherentMemory( size_t size );
  * Textures
  */
 
+#if PLATFORM_MACOS
+namespace MTL { class Texture; }
+using BackendTexture = MTL::Texture *;
+#else
+using BackendTexture = VkTexture;
+#endif
+
+struct Texture {
+	BoundedString< 64 > name;
+	u64 hash;
+
+	BackendTexture handle;
+	TextureFormat format;
+	u32 width, height;
+	u32 depth;
+	u32 num_mipmaps;
+	void * stb_data;
+	Span< const BC4Block > bc4_data;
+	bool atlased;
+
+	bool is_swapchain = false;
+};
+
 // pass a = NULL for a dedicated allocation
-struct BackendTexture;
-template<> struct PoolHandleType< BackendTexture > { using T = PoolHandleType< Texture >::T; };
+PoolHandle< Texture > NewTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< PoolHandle< Texture > > = NONE );
+PoolHandle< Texture > UploadBC4( GPUSlabAllocator * a, const char * path );
 
-PoolHandle< BackendTexture > NewTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< PoolHandle< BackendTexture > > = NONE );
-PoolHandle< BackendTexture > TextureHandle( PoolHandle< Texture > texture );
-PoolHandle< BackendTexture > UploadBC4( GPUSlabAllocator * a, const char * path );
-
-u32 TextureWidth( PoolHandle< BackendTexture > texture );
-u32 TextureHeight( PoolHandle< BackendTexture > texture );
-u32 TextureLayers( PoolHandle< BackendTexture > texture );
-u32 TextureMipLevels( PoolHandle< BackendTexture > texture );
+u32 TextureWidth( PoolHandle< Texture > texture );
+u32 TextureHeight( PoolHandle< Texture > texture );
+u32 TextureLayers( PoolHandle< Texture > texture );
+u32 TextureMipLevels( PoolHandle< Texture > texture );
 
 /*
  * Resource transfers
@@ -99,7 +113,7 @@ void CopyGPUBufferToBuffer(
 	size_t n );
 void CopyGPUBufferToTexture(
 	Opaque< CommandBuffer > cmd_buf,
-	PoolHandle< BackendTexture > dest, u32 w, u32 h, u32 num_layers, u32 mip_level,
+	PoolHandle< Texture > dest, u32 w, u32 h, u32 num_layers, u32 mip_level,
 	PoolHandle< GPUAllocation > src, size_t src_offset );
 
 Opaque< CommandBuffer > NewTransferCommandBuffer();
@@ -107,7 +121,7 @@ void DeleteTransferCommandBuffer( Opaque< CommandBuffer > cb );
 
 void UploadBuffer( GPUBuffer dest, const void * data, size_t n );
 GPUBuffer StageArgumentBuffer( GPUBuffer dest, size_t n, size_t alignment );
-void UploadTexture( PoolHandle< BackendTexture > dest, const void * data );
+void UploadTexture( PoolHandle< Texture > dest, const void * data );
 
 /*
  * Debug info
@@ -116,7 +130,7 @@ void UploadTexture( PoolHandle< BackendTexture > dest, const void * data );
 void AddDebugMarker( const char * label, PoolHandle< GPUAllocation > allocation, size_t offset, size_t size );
 void RemoveAllDebugMarkers( PoolHandle< GPUAllocation > allocation );
 
-PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandle< BackendTexture > texture, SamplerType sampler, GPUBuffer properties );
+PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandle< Texture > texture, SamplerType sampler, GPUBuffer properties );
 
 size_t FrameSlot();
 
@@ -138,3 +152,5 @@ constexpr size_t MaxBufferBindings = 8;
 constexpr size_t MaxTextureBindings = 8;
 
 constexpr size_t MaxShaderVariants = 8;
+
+constexpr size_t MaxMaterials = 4096;

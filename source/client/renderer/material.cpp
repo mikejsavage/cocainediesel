@@ -29,22 +29,7 @@ constexpr u32 MAX_SPRITES = 4096;
 constexpr int SPRITE_ATLAS_SIZE = 2048;
 constexpr int SPRITE_ATLAS_BLOCK_SIZE = SPRITE_ATLAS_SIZE / 4;
 
-struct Texture {
-	BoundedString< 64 > name;
-	u64 hash;
-
-	PoolHandle< BackendTexture > handle;
-	TextureFormat format;
-	u32 width, height;
-	u32 depth;
-	u32 num_mipmaps;
-	void * stb_data;
-	Span< const BC4Block > bc4_data;
-	bool atlased;
-};
-
-static Hashmap< Texture, 4096 > textures;
-static Hashmap< Material2, 4096 > materials;
+static Hashmap< Material2, MaxMaterials > materials;
 
 static PoolHandle< Texture > missing_texture;
 static PoolHandle< Material2 > missing_material;
@@ -247,10 +232,6 @@ static void ParseAlphaGen( MaterialDescriptor * material, Span< const char > nam
 	}
 }
 
-PoolHandle< BackendTexture > TextureHandle( PoolHandle< Texture > texture ) {
-	return textures[ texture ].handle;
-}
-
 static PoolHandle< Texture > FindTexture( Span< const char > name ) {
 	u64 hash = StringHash( name ).hash;
 	Optional< PoolHandle< Texture > > handle = textures.get_handle( hash );
@@ -339,7 +320,7 @@ static void UnloadTexture( PoolHandle< Texture > texture ) {
 }
 
 static Material2 MaterialFromDescriptor( Span< const char > name, const MaterialDescriptor & desc ) {
-	RenderPass pass = { };
+	RenderPass pass;
 	PoolHandle< RenderPipeline > shader = shaders.standard; // TODO: shader from desc
 	if( desc.blend_func == BlendFunc_Disabled ) {
 		pass = desc.outlined ? RenderPass_NonworldOpaqueOutlined : RenderPass_NonworldOpaque;
@@ -351,7 +332,7 @@ static Material2 MaterialFromDescriptor( Span< const char > name, const Material
 	GPUBuffer properties = NewBuffer( "material properties", desc.properties );
 	return Material2 {
 		.name = name,
-		.render_pass = ...,
+		.render_pass = pass,
 		.shader = shader,
 		.bind_group = NewMaterialBindGroup( name, desc.texture, desc.sampler, properties ),
 		.texture = desc.texture,

@@ -81,11 +81,6 @@ struct GPUAllocation {
 	MTL::Buffer * buffer;
 };
 
-struct BackendTexture {
-	MTL::Texture * texture;
-	bool is_swapchain = false;
-};
-
 struct CommandBuffer {
 	MTL::CommandBuffer * command_buffer;
 	MTL::RenderCommandEncoder * rce;
@@ -100,7 +95,7 @@ struct BindGroup {
 
 static MetalDevice global_device;
 static CA::MetalLayer * global_swapchain;
-static PoolHandle< BackendTexture > swapchain_texture;
+static PoolHandle< Texture > swapchain_texture;
 static dispatch_semaphore_t frame_semaphore;
 static u64 frame_counter;
 static u64 pass_counter;
@@ -152,8 +147,8 @@ static void EndCapture() {
 }
 
 static Pool< GPUAllocation, 1024 > allocations;
-static Pool< BackendTexture, 1024 > textures;
-static Pool< BindGroup, 1024 > bind_groups;
+static Pool< Texture, MaxMaterials > textures;
+static Pool< BindGroup, MaxMaterials > bind_groups;
 static Pool< RenderPipeline, 128 > render_pipelines;
 static Pool< ComputePipeline, 128 > compute_pipelines;
 
@@ -248,7 +243,7 @@ void CopyGPUBufferToBuffer(
 
 void CopyGPUBufferToTexture(
 	Opaque< CommandBuffer > cmd_buf,
-	PoolHandle< BackendTexture > dest, u32 w, u32 h, u32 num_layers, u32 mip_level,
+	PoolHandle< Texture > dest, u32 w, u32 h, u32 num_layers, u32 mip_level,
 	PoolHandle< GPUAllocation > src, size_t src_offset
 ) {
 	size_t cursor = src_offset;
@@ -258,16 +253,11 @@ void CopyGPUBufferToTexture(
 		cmd_buf.unwrap()->bce->copyFromBuffer( allocations[ src ].buffer, cursor,
 			bytes_per_row_of_blocks, bytes_per_slice,
 			MTL::Size::Make( w, h, 1 ),
-			textures[ dest ].texture,
+			textures[ dest ].handle,
 			i, mip_level, MTL::Origin::Make( 0, 0, 0 ) );
 		cursor += bytes_per_slice;
 	}
 }
-
-u32 TextureWidth( PoolHandle< BackendTexture > texture ) { return textures[ texture ].texture->width(); }
-u32 TextureHeight( PoolHandle< BackendTexture > texture ) { return textures[ texture ].texture->height(); }
-u32 TextureLayers( PoolHandle< BackendTexture > texture ) { return textures[ texture ].texture->depth(); }
-u32 TextureMipLevels( PoolHandle< BackendTexture > texture ) { return textures[ texture ].texture->mipmapLevelCount(); }
 
 /*
  * Back to normal shit
@@ -403,7 +393,12 @@ static MTL::PixelFormat TextureFormatToMetal( TextureFormat format ) {
 	}
 }
 
-PoolHandle< BackendTexture > NewTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< PoolHandle< BackendTexture > > old_texture ) {
+u32 TextureWidth( PoolHandle< Texture > texture ) { return textures[ texture ].width; }
+u32 TextureHeight( PoolHandle< Texture > texture ) { return textures[ texture ].height; }
+u32 TextureLayers( PoolHandle< Texture > texture ) { return textures[ texture ].depth; }
+u32 TextureMipLevels( PoolHandle< Texture > texture ) { return textures[ texture ].num_mipmaps; }
+
+PoolHandle< Texture > NewTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {
 	MTL::TextureType type;
 	if( config.num_layers == 1 ) {
 		type = config.msaa_samples > 1 ? MTL::TextureType2DMultisample : MTL::TextureType2D;
@@ -451,7 +446,7 @@ PoolHandle< BackendTexture > NewTexture( GPUSlabAllocator * a, const TextureConf
 	defer { descriptor->release(); };
 
 	if( old_texture.exists ) {
-		textures[ old_texture.value ].texture->release();
+		textures[ old_texture.value ].handle->release();
 	}
 
 	MTL::Texture * texture;
@@ -465,10 +460,18 @@ PoolHandle< BackendTexture > NewTexture( GPUSlabAllocator * a, const TextureConf
 		texture = global_device.device->newTexture( descriptor );
 	}
 
-	texture->setLabel( AutoReleaseString( config.name ) );
+	TempAllocator temp = cls.frame_arena.temp();
+	texture->setLabel( AutoReleaseString( temp( "{}", config.name ) ) );
 
-	PoolHandle< BackendTexture > handle = textures.upsert( old_texture, BackendTexture {
-		.texture = texture,
+	PoolHandle< Texture > handle = textures.upsert( old_texture, Texture {
+		.name = config.name,
+		.hash = Hash64( config.name ),
+		.handle = texture,
+		.format = config.format,
+		.width = config.width,
+		.height = config.height,
+		.depth = config.num_layers,
+		.num_mipmaps = config.num_mipmaps,
 	} );
 
 	if( config.data != NULL ) {
@@ -478,7 +481,7 @@ PoolHandle< BackendTexture > NewTexture( GPUSlabAllocator * a, const TextureConf
 	return handle;
 }
 
-PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandle< BackendTexture > texture, SamplerType sampler, GPUBuffer properties ) {
+PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandle< Texture > texture, SamplerType sampler, GPUBuffer properties ) {
 	MTL::ArgumentEncoder * encoder = global_device.material_argument_encoder;
 
 	// ArgumentEncoders can't write into private memory so we have to encode
@@ -489,7 +492,7 @@ PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandl
 
 	encoder->setArgumentBuffer( allocations[ staging.allocation ].buffer, staging.offset );
 	encoder->setBuffer( allocations[ properties.allocation ].buffer, properties.offset, 0 );
-	encoder->setTexture( textures[ texture ].texture, 1 );
+	encoder->setTexture( textures[ texture ].handle, 1 );
 	encoder->setSamplerState( samplers[ sampler ], 2 );
 
 	return bind_groups.allocate( { args } );
@@ -779,7 +782,7 @@ void EncodeAndBindArgumentBuffer( Encoder * ce, ArgumentBufferEncoder * encoder,
 			printf( "can't bind\n" );
 			continue;
 		}
-		encoder->encoder->setTexture( textures[ TextureHandle( b.texture ) ].texture, idx.value );
+		encoder->encoder->setTexture( textures[ b.texture ].handle, idx.value );
 	}
 
 	for( size_t i = 0; i < bindings.samplers.n; i++ ) {
@@ -816,14 +819,6 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline
 	cb->rce->setCullMode( CullFaceToMetal( pipeline.dynamic_state.cull_face ) );
 	cb->rce->setDepthStencilState( depth_funcs[ pipeline.dynamic_state.depth_func ] );
 
-	if( pipeline.scissor.exists ) {
-		PipelineState::Scissor s = pipeline.scissor.value;
-		cb->rce->setScissorRect( MTL::ScissorRect { s.x, s.y, s.w, s.y } );
-	}
-	else {
-		cb->rce->setScissorRect( { 0, 0, NS::UIntegerMax, NS::UIntegerMax } );
-	}
-
 	BindMesh( cb->rce, mesh );
 	BindBindGroup( cb->rce, pipeline.material_bind_group, DescriptorSet_Material );
 
@@ -850,6 +845,16 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline
 	// 		cb->rce->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, buffer, draw_call.indirect_args.value.offset );
 	// 	}
 	// }
+}
+
+void EncodeScissor( Opaque< CommandBuffer > ocb, Optional< Scissor > scissor ) {
+	if( scissor.exists ) {
+		Scissor s = scissor.value;
+		ocb.unwrap()->rce->setScissorRect( MTL::ScissorRect { s.x, s.y, s.w, s.y } );
+	}
+	else {
+		ocb.unwrap()->rce->setScissorRect( { 0, 0, NS::UIntegerMax, NS::UIntegerMax } );
+	}
 }
 
 PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path ) {
@@ -1009,9 +1014,9 @@ void ShutdownRenderBackend() {
 		allocation.buffer->release();
 	}
 
-	for( BackendTexture texture : textures ) {
+	for( Texture texture : textures ) {
 		if( !texture.is_swapchain ) {
-			texture.texture->release();
+			texture.handle->release();
 		}
 	}
 
@@ -1034,7 +1039,7 @@ void RenderBackendWaitForNewFrame() {
 	dispatch_semaphore_wait( frame_semaphore, DISPATCH_TIME_FOREVER );
 }
 
-PoolHandle< BackendTexture > RenderBackendBeginFrame( bool capture ) {
+PoolHandle< Texture > RenderBackendBeginFrame( bool capture ) {
 	NS::AutoreleasePool * pool = NS::AutoreleasePool::alloc()->init();
 
 	ClearGPUArenaAllocators();
@@ -1051,8 +1056,8 @@ PoolHandle< BackendTexture > RenderBackendBeginFrame( bool capture ) {
 	}
 
 	CA::MetalDrawable * surface = global_swapchain->nextDrawable();
-	textures.upsert( swapchain_texture, {
-		.texture = surface->texture(),
+	textures.upsert( swapchain_texture, Texture {
+		.handle = surface->texture(),
 		.is_swapchain = true,
 	} );
 
@@ -1124,12 +1129,12 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 
 		attachment->setStoreAction( MTL::StoreAction::StoreActionStore );
 
-		attachment->setTexture( textures[ TextureHandle( attachment_config.texture ) ].texture );
+		attachment->setTexture( textures[ attachment_config.texture ].handle );
 		attachment->setSlice( attachment_config.layer );
 
 		if( attachment_config.resolve_target.exists ) {
 			attachment->setStoreAction( MTL::StoreActionDontCare );
-			attachment->setResolveTexture( textures[ TextureHandle( attachment_config.resolve_target.value ) ].texture );
+			attachment->setResolveTexture( textures[ attachment_config.resolve_target.value ].handle );
 		}
 	}
 
@@ -1146,7 +1151,7 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 			attachment->setLoadAction( attachment_config.preserve_contents ? MTL::LoadActionLoad : MTL::LoadActionDontCare );
 		}
 
-		attachment->setTexture( textures[ TextureHandle( attachment_config.texture ) ].texture );
+		attachment->setTexture( textures[ attachment_config.texture ].handle );
 		attachment->setSlice( attachment_config.layer );
 	}
 

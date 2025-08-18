@@ -1,7 +1,7 @@
 /*
  * RNG Random Number Generation for C.
  *
- * Copyright 2014 Melissa O'Neill <oneill@rng-random.org>
+ * Copyright 2014 Melissa O'Neill <oneill@pcg-random.org>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
  * For additional information about the RNG random number generation scheme,
  * including its license and other licensing options, visit
  *
- *       http://www.rng-random.org
+ *       http://www.pcg-random.org
  */
 
 #include "qcommon/base.h"
@@ -60,7 +60,7 @@ int RandomUniform( RNG * rng, int lo, int hi ) {
 	return lo + int( ( uint64_t( x ) * range ) >> 32 );
 }
 
-// http://www.rng-random.org/posts/bounded-rands.html
+// http://www.pcg-random.org/posts/bounded-rands.html
 int RandomUniformExact( RNG * rng, int lo, int hi ) {
 	Assert( lo <= hi );
 	uint32_t range = uint32_t( hi ) - uint32_t( lo );

@@ -433,6 +433,7 @@ enum RenderPassDependency {
 void Draw( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers = { }, DrawCallExtras extras = DrawCallExtras() );
 void EncodeComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers );
 void EncodeIndirectComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, GPUBuffer indirect_args, Span< const BufferBinding > buffers );
+void EncodeScissor( RenderPass pass, Optional< Scissor > scissor );
 
 /*
  * Material

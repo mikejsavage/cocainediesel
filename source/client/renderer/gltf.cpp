@@ -672,24 +672,34 @@ static CullFace FlipCullFace( CullFace cull ) {
 	return { };
 }
 
-static void DrawModelNode( const Mesh & mesh, bool view_weapon, GPUBuffer model_uniforms, Optional< GPUBuffer > pose_uniforms, PipelineState pipeline, const Mat3x4 & transform ) {
+static void DrawModelNode( const GLTFRenderData::Node * node, bool view_weapon, GPUBuffer model_uniforms, Optional< GPUBuffer > pose_uniforms, Vec4 entity_color, bool flip_cull_face ) {
 	TracyZoneScoped;
-	if( !config.enabled )
-		return;
 
 	if( view_weapon ) {
 		// pipeline.view_weapon_depth_hack = true; NOMERGE
 	}
 
-	if( OddNumberOfReflections( transform ) ) {
+	PoolHandle< Material2 > material = FindMaterial( node->material ); // NOMERGE, don't call FindMaterial
+	RenderPass pass = MaterialRenderPass( material );
+	PipelineState pipeline = MaterialPipelineState( material ); //, pose_uniforms.exists, &pass );
+	Vec4 color = EvaluateMaterialColor( material, entity_color );
+
+	BoundedDynamicArray< BufferBinding, 3 > buffers = {
+		{ "u_Model", model_uniforms },
+		{ "u_MaterialColor", NewTempBuffer( color ) },
+	};
+	if( pose_uniforms.exists ) {
+		buffers.must_add( { "u_Pose", pose_uniforms.value } );
+	}
+
+	if( flip_cull_face ) {
 		pipeline.dynamic_state.cull_face = FlipCullFace( pipeline.dynamic_state.cull_face );
 	}
 
-	DrawMesh( mesh, pipeline );
-	Draw( pass, pipeline );
+	Draw( pass, pipeline, node->mesh, buffers.span() );
 }
 
-static void DrawShadowsNode( const Mesh & mesh, GPUBuffer model_uniforms, Optional< GPUBuffer > pose_uniforms, const Mat3x4 & transform ) {
+static void DrawShadowsNode( const Mesh & mesh, GPUBuffer model_uniforms, Optional< GPUBuffer > pose_uniforms, bool flip_cull_face ) {
 	TracyZoneScoped;
 
 	PipelineState pipeline = { .shader = pose_uniforms.exists ? shaders.depth_only_skinned : shaders.depth_only };
@@ -699,7 +709,7 @@ static void DrawShadowsNode( const Mesh & mesh, GPUBuffer model_uniforms, Option
 		buffers.must_add( { "u_Pose", pose_uniforms.value } );
 	}
 
-	if( OddNumberOfReflections( transform ) ) {
+	if( flip_cull_face ) {
 		pipeline.dynamic_state.cull_face = FlipCullFace( pipeline.dynamic_state.cull_face );
 	}
 
@@ -708,7 +718,7 @@ static void DrawShadowsNode( const Mesh & mesh, GPUBuffer model_uniforms, Option
 	}
 }
 
-static void DrawOutlinesNode( const Mesh & mesh, GPUBuffer model_uniforms, GPUBuffer outline_uniforms, Optional< GPUBuffer > pose_uniforms, const Mat3x4 & transform ) {
+static void DrawOutlinesNode( const Mesh & mesh, GPUBuffer model_uniforms, GPUBuffer outline_uniforms, Optional< GPUBuffer > pose_uniforms, bool flip_cull_face ) {
 	TracyZoneScoped;
 
 	PipelineState pipeline = {
@@ -716,7 +726,7 @@ static void DrawOutlinesNode( const Mesh & mesh, GPUBuffer model_uniforms, GPUBu
 		.dynamic_state = { .cull_face = CullFace_Front },
 	};
 
-	if( OddNumberOfReflections( transform ) ) {
+	if( flip_cull_face ) {
 		pipeline.dynamic_state.cull_face = FlipCullFace( pipeline.dynamic_state.cull_face );
 	}
 
@@ -788,19 +798,18 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 			continue;
 
 		GPUBuffer model_uniforms = NewTempBuffer( node_transform );
+		bool flip_cull_face = OddNumberOfReflections( node_transform );
 
 		if( config.draw_model.enabled ) {
-			// TODO
-			PipelineState pipeline = MaterialToPipelineState( FindMaterial( node->material ), color, skinned );
-			DrawModelNode( node->mesh, config.draw_model.view_weapon, model_uniforms, pose_uniforms, pipeline, node_transform );
+			DrawModelNode( node, config.draw_model.view_weapon, model_uniforms, pose_uniforms, color, flip_cull_face );
 		}
 
 		if( config.cast_shadows ) {
-			DrawShadowsNode( node->mesh, model_uniforms, pose_uniforms, node_transform );
+			DrawShadowsNode( node->mesh, model_uniforms, pose_uniforms, flip_cull_face );
 		}
 
 		if( outline_uniforms.exists ) {
-			DrawOutlinesNode( node->mesh, model_uniforms, outline_uniforms.value, pose_uniforms, node_transform );
+			DrawOutlinesNode( node->mesh, model_uniforms, outline_uniforms.value, pose_uniforms, flip_cull_face );
 		}
 
 		if( silhouette_uniforms.exists ) {

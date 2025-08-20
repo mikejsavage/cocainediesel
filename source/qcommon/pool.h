@@ -20,16 +20,6 @@ struct Pool {
 		return { n++ };
 	}
 
-	PoolHandle< T > upsert( Optional< PoolHandle< T > > old_handle, const T & x ) {
-		if( !old_handle.exists ) {
-			return allocate( x );
-		}
-
-		Assert( old_handle.value.x < N );
-		data[ old_handle.value.x ] = x;
-		return old_handle.value;
-	}
-
 	void clear() { n = 0; }
 
 	T & operator[]( PoolHandle< T > handle ) { return data[ handle.x ]; }

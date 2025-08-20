@@ -30,8 +30,8 @@ constexpr u32 MAX_SPRITES = 4096;
 constexpr int SPRITE_ATLAS_SIZE = 2048;
 constexpr int SPRITE_ATLAS_BLOCK_SIZE = SPRITE_ATLAS_SIZE / 4;
 
-inline HashMap< Texture, MaxMaterials > textures;
-static HashMap< Material2, MaxMaterials > materials;
+inline HashPool< Texture, MaxMaterials > textures;
+static HashPool< Material2, MaxMaterials > materials;
 
 static PoolHandle< Texture > missing_texture;
 static PoolHandle< Material2 > missing_material;
@@ -236,11 +236,11 @@ static void ParseAlphaGen( MaterialDescriptor * material, Span< const char > nam
 
 static PoolHandle< Texture > FindTexture( Span< const char > name ) {
 	u64 hash = StringHash( name ).hash;
-	Optional< PoolHandle< Texture > > handle = textures.get_handle( hash );
+	Optional< PoolHandle< Texture > > handle = textures.get( hash );
 	if( handle.exists )
 		return handle.value;
 
-	Optional< PoolHandle< Texture > > new_handle = textures.add_handle( hash );
+	Optional< PoolHandle< Texture > > new_handle = textures.add( hash );
 	if( !new_handle.exists )
 		return missing_texture;
 	textures[ new_handle.value ] = textures[ missing_texture ];
@@ -347,13 +347,13 @@ static Material2 MaterialFromDescriptor( Span< const char > name, const Material
 static Optional< PoolHandle< Material2 > > AddMaterial( Span< const char > name, const MaterialDescriptor & descriptor ) {
 	u64 hash = Hash64( name );
 
-	Optional< PoolHandle< Material2 > > old_handle = materials.get_handle( hash );
+	Optional< PoolHandle< Material2 > > old_handle = materials.get( hash );
 	if( old_handle.exists ) {
 		materials[ old_handle.value ] = MaterialFromDescriptor( name, descriptor );
 		return old_handle;
 	}
 
-	Optional< PoolHandle< Material2 > > new_handle = materials.add_handle( hash );
+	Optional< PoolHandle< Material2 > > new_handle = materials.add( hash );
 	if( new_handle.exists ) {
 		materials[ new_handle.value ] = MaterialFromDescriptor( name, descriptor );
 		return new_handle;
@@ -366,7 +366,7 @@ static Optional< PoolHandle< Material2 > > AddMaterial( Span< const char > name,
 static Optional< PoolHandle< Texture > > AddTexture( Span< const char > name, u64 hash, const TextureConfig & config ) {
 	TracyZoneScoped;
 
-	Optional< PoolHandle< Texture > > old_handle = textures.get_handle( hash );
+	Optional< PoolHandle< Texture > > old_handle = textures.get( hash );
 	if( old_handle.exists ) {
 		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( textures[ old_handle.value ].format ) ) {
 			return NONE;
@@ -377,7 +377,7 @@ static Optional< PoolHandle< Texture > > AddTexture( Span< const char > name, u6
 		return old_handle;
 	}
 
-	Optional< PoolHandle< Texture > > new_handle = textures.add_handle( hash );
+	Optional< PoolHandle< Texture > > new_handle = textures.add( hash );
 	if( new_handle.exists ) {
 		textures[ new_handle.value ] = NewTexture( config );
 		return new_handle;
@@ -1009,7 +1009,7 @@ void ShutdownMaterials() {
 }
 
 Optional< PoolHandle< Material2 > > TryFindMaterial( StringHash name ) {
-	return materials.get_handle( name.hash );
+	return materials.get( name.hash );
 }
 
 PoolHandle< Material2 > FindMaterial( StringHash name ) {

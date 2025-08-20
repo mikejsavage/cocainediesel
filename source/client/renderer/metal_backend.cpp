@@ -148,7 +148,7 @@ static void EndCapture() {
 }
 
 static Pool< GPUAllocation, 1024 > allocations;
-inline HashMap< Texture, MaxMaterials > textures;
+inline HashPool< Texture, MaxMaterials > textures;
 static Pool< BindGroup, MaxMaterials > bind_groups;
 static Pool< RenderPipeline, 128 > render_pipelines;
 static Pool< ComputePipeline, 128 > compute_pipelines;
@@ -464,19 +464,29 @@ PoolHandle< Texture > NewTexture( GPUSlabAllocator * a, const TextureConfig & co
 	TempAllocator temp = cls.frame_arena.temp();
 	texture->setLabel( AutoReleaseString( temp( "{}", config.name ) ) );
 
-	PoolHandle< Texture > handle = textures.upsert( old_texture, Texture {
+	// NOMERGE: this should probably just be a pool, put the hashmap in material.cpp
+	u64 hash = Hash64( config.name );
+	Texture tex = {
 		.name = config.name,
-		.hash = Hash64( config.name ),
+		.hash = hash,
 		.handle = texture,
 		.format = config.format,
 		.width = config.width,
 		.height = config.height,
 		.depth = config.num_layers,
 		.num_mipmaps = config.num_mipmaps,
-	} );
+	};
+	PoolHandle< Texture > handle;
+	if( old_texture.exists ) {
+		textures[ old_texture.value ] = tex;
+		handle = old_texture.value;
+	}
+	else {
+		handle = Must( textures.add( hash, tex ) ); // NOMERGE: runtime overflow
+	}
 
 	if( config.data != NULL ) {
-		UploadTexture( handle, config.data );
+		UploadTexture( handle.value, config.data );
 	}
 
 	return handle;
@@ -969,7 +979,7 @@ void InitRenderBackend() {
 	global_swapchain->setPixelFormat( MTL::PixelFormatBGRA8Unorm );
 	global_swapchain->setFramebufferOnly( true );
 
-	swapchain_texture = textures.allocate();
+	swapchain_texture = Must( textures.add( Hash64( "$swapchain" ) ) );
 
 	GetFramebufferSize( &old_framebuffer_width, &old_framebuffer_height );
 
@@ -1015,7 +1025,7 @@ void ShutdownRenderBackend() {
 		allocation.buffer->release();
 	}
 
-	for( Texture texture : textures ) {
+	for( Texture texture : textures.span() ) {
 		if( !texture.is_swapchain ) {
 			texture.handle->release();
 		}
@@ -1057,7 +1067,7 @@ PoolHandle< Texture > RenderBackendBeginFrame( bool capture ) {
 	}
 
 	CA::MetalDrawable * surface = global_swapchain->nextDrawable();
-	textures.upsert( swapchain_texture, Texture {
+	textures.upsert( swapchain_texture, Hash64( "$swapchain" ), Texture {
 		.handle = surface->texture(),
 		.is_swapchain = true,
 	} );

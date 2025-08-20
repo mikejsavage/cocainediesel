@@ -98,6 +98,18 @@ T Default( const Optional< T > & opt, const T & def ) {
 }
 
 template< typename T >
+T & Must( Optional< T > & opt ) {
+	Assert( opt.exists );
+	return opt.value;
+}
+
+template< typename T >
+const T & Must( const Optional< T > & opt ) {
+	Assert( opt.exists );
+	return opt.value;
+}
+
+template< typename T >
 bool operator==( const Optional< T > & opt, const T & x ) {
 	return opt.exists && opt.value == x;
 }

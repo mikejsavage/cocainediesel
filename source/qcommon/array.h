@@ -39,6 +39,7 @@ public:
 
 	void must_add( const T & x ) {
 		[[maybe_unused]] bool ok = add( x );
+		// NOMERGE
 	}
 
 	void remove_swap( T * x ) {

@@ -209,10 +209,10 @@ struct LightEmitter {
 
 static ParticleSystem addParticleSystem;
 static ParticleSystem blendParticleSystem;
-static Hashmap< VisualEffectGroup, MAX_VISUAL_EFFECT_GROUPS > visualEffectGroups;
-static Hashmap< ParticleEmitter, MAX_PARTICLE_EMITTERS > particleEmitters;
-static Hashmap< DecalEmitter, MAX_DECAL_EMITTERS > decalEmitters;
-static Hashmap< LightEmitter, MAX_LIGHT_EMITTERS > lightEmitters;
+static HashMap< VisualEffectGroup, MAX_VISUAL_EFFECT_GROUPS > visualEffectGroups;
+static HashMap< ParticleEmitter, MAX_PARTICLE_EMITTERS > particleEmitters;
+static HashMap< DecalEmitter, MAX_DECAL_EMITTERS > decalEmitters;
+static HashMap< LightEmitter, MAX_LIGHT_EMITTERS > lightEmitters;
 
 static ParticleSystem NewParticleSystem( Allocator * a, BlendFunc blend_func, size_t max_particles ) {
 	u32 zero = 0;

@@ -2,6 +2,7 @@
 #include "qcommon/array.h"
 #include "qcommon/arraymap.h"
 #include "qcommon/hash.h"
+#include "qcommon/hashmap.h"
 #include "qcommon/pool.h"
 #include "client/client.h"
 #include "client/renderer/api.h"
@@ -147,7 +148,7 @@ static void EndCapture() {
 }
 
 static Pool< GPUAllocation, 1024 > allocations;
-static Pool< Texture, MaxMaterials > textures;
+inline HashMap< Texture, MaxMaterials > textures;
 static Pool< BindGroup, MaxMaterials > bind_groups;
 static Pool< RenderPipeline, 128 > render_pipelines;
 static Pool< ComputePipeline, 128 > compute_pipelines;

@@ -4,10 +4,10 @@
 #include "qcommon/hashtable.h"
 
 template< typename T >
-using HashmapGetKey = u64 ( * )( const T & x );
+using HashMapGetKey = u64 ( * )( const T & x );
 
-template< typename T, size_t N, HashmapGetKey< T > GetKey = HashmapGetKey< T >( NULL ) >
-class Hashmap {
+template< typename T, size_t N, HashMapGetKey< T > GetKey = HashMapGetKey< T >( NULL ) >
+class HashMap {
 	Hashtable< N * 2 > hashtable;
 	T values[ N ];
 
@@ -83,4 +83,7 @@ public:
 
 	T & operator[]( PoolHandle< T > handle ) { return span()[ handle.x ]; }
 	const T & operator[]( PoolHandle< T > handle ) const { return span()[ handle.x ]; }
+};
+
+struct HashPool {
 };

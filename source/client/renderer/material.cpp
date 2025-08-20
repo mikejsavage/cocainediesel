@@ -1,6 +1,7 @@
 #include "qcommon/base.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashmap.h"
+#include "qcommon/pool.h"
 #include "qcommon/string.h"
 #include "qcommon/span2d.h"
 #include "qcommon/srgb.h"
@@ -29,12 +30,13 @@ constexpr u32 MAX_SPRITES = 4096;
 constexpr int SPRITE_ATLAS_SIZE = 2048;
 constexpr int SPRITE_ATLAS_BLOCK_SIZE = SPRITE_ATLAS_SIZE / 4;
 
-static Hashmap< Material2, MaxMaterials > materials;
+inline HashMap< Texture, MaxMaterials > textures;
+static HashMap< Material2, MaxMaterials > materials;
 
 static PoolHandle< Texture > missing_texture;
 static PoolHandle< Material2 > missing_material;
 
-static Hashmap< Sprite, MAX_SPRITES > sprites;
+static HashMap< Sprite, MAX_SPRITES > sprites;
 static PoolHandle< Texture > sprite_atlas;
 
 bool CompressedTextureFormat( TextureFormat format ) {

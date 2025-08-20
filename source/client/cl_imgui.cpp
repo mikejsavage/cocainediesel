@@ -137,7 +137,7 @@ static void SubmitDrawCalls() {
 		return;
 	draw_data->ScaleClipRects( io.DisplayFramebufferScale );
 
-	// TODO: use these
+	// NOMERGE: use these
 	GPUBuffer lodbias_uniforms = NewTempBuffer( MaterialProperties { .lod_bias = -1.0f } );
 
 	u32 pass = 0;
@@ -175,39 +175,40 @@ static void SubmitDrawCalls() {
 			}
 			else {
 				MinMax2 scissor = MinMax2(
-					Vec2( pcmd->ClipRect.x - draw_data->DisplayPos.x, pcmd->ClipRect.y - draw_data->DisplayPos.y ),
-					Vec2( pcmd->ClipRect.z - draw_data->DisplayPos.x, pcmd->ClipRect.w - draw_data->DisplayPos.y )
+					Vec2( pcmd->ClipRect.x, pcmd->ClipRect.y ) - draw_data->DisplayPos,
+					Vec2( pcmd->ClipRect.z, pcmd->ClipRect.w ) - draw_data->DisplayPos
 				);
-				if( scissor.mins.x < fb_width && scissor.mins.y < fb_height && scissor.maxs.x >= 0.0f && scissor.maxs.y >= 0.0f ) {
-					PipelineState pipeline = {
-						.shader = pcmd->TextureId.shader,
-						.dynamic_state = {
-							.depth_func = DepthFunc_AlwaysNoWrite,
-							.cull_face = CullFace_Disabled,
-						},
-						.material_bind_group = pcmd->TextureId.material_bind_group,
-						.scissor = PipelineState::Scissor {
-							u32( Max2( scissor.mins.x, 0.0f ) ),
-							u32( Max2( scissor.mins.y, 0.0f ) ),
-							u32( scissor.maxs.x - scissor.mins.x ),
-							u32( scissor.maxs.y - scissor.mins.y ),
-						},
-					};
+				if( scissor.maxs.x <=scissor.mins.x || scissor.maxs.y <= scissor.mins.y )
+					continue;
 
-					// TODO
-					// pipeline.bind_uniform( "u_MaterialStatic", lodbias_uniforms );
+				RenderPass rp = pass == 0 ? RenderPass_UIBeforePostprocessing : RenderPass_UIAfterPostprocessing;
+				EncodeScissor( rp, Scissor {
+					.x = u32( Max2( scissor.mins.x, 0.0f ) ),
+					.y = u32( Max2( scissor.mins.y, 0.0f ) ),
+					.w = u32( scissor.maxs.x - scissor.mins.x ),
+					.h = u32( scissor.maxs.y - scissor.mins.y ),
+				} );
 
-					Draw(
-						pass == 0 ? RenderPass_UIBeforePostprocessing : RenderPass_UIAfterPostprocessing,
-						pipeline,
-						mesh,
-						{
-							{ "u_Model", frame_static.identity_model_transform_uniforms },
-							{ "u_MaterialDynamic", frame_static.identity_material_properties_uniforms },
-						},
-						{ .override_num_vertices = pcmd->ElemCount, .first_index = pcmd->IdxOffset }
-					);
-				}
+				PipelineState pipeline = {
+					.shader = pcmd->TextureId.shader,
+					.dynamic_state = {
+						.depth_func = DepthFunc_AlwaysNoWrite,
+						.cull_face = CullFace_Disabled,
+					},
+					.material_bind_group = pcmd->TextureId.material_bind_group,
+				};
+
+				// TODO
+				// pipeline.bind_uniform( "u_MaterialStatic", lodbias_uniforms );
+
+				Draw(
+					rp, pipeline, mesh,
+					{
+						{ "u_Model", frame_static.identity_model_transform_uniforms },
+						{ "u_MaterialDynamic", frame_static.identity_material_properties_uniforms },
+					},
+					{ .override_num_vertices = pcmd->ElemCount, .first_index = pcmd->IdxOffset }
+				);
 			}
 		}
 	}

@@ -85,10 +85,10 @@ static u64 GetPlayingSFXKey( const PlayingSFX & sfx ) {
 	return sfx.handle.handle;
 }
 
-static Hashmap< SoundAsset, MAX_SOUND_ASSETS > sound_assets;
-static Hashmap< SoundEffect, MAX_SOUND_EFFECTS > sound_effects;
+static HashMap< SoundAsset, MAX_SOUND_ASSETS > sound_assets;
+static HashMap< SoundEffect, MAX_SOUND_EFFECTS > sound_effects;
 static BoundedDynamicArray< ALuint, MAX_PLAYING_SOUNDS > free_sound_sources;
-static Hashmap< PlayingSFX, MAX_PLAYING_SOUNDS, GetPlayingSFXKey > playing_sounds;
+static HashMap< PlayingSFX, MAX_PLAYING_SOUNDS, GetPlayingSFXKey > playing_sounds;
 static u64 playing_sound_handle_autoinc;
 
 static ALuint music_source;

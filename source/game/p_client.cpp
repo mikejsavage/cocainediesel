@@ -409,9 +409,9 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 	velocity.z = 0; // ignore vertical velocity
 	float speed = Length( velocity );
 
-	mat3_t axis;
-	AnglesToAxis( dest->s.angles, axis );
-	client->ps.pmove.velocity = FromQFAxis( axis, AXIS_FORWARD ) * ( speed );
+	Vec3 forward;
+	AngleVectors( dest->s.angles, &forward, NULL, NULL );
+	client->ps.pmove.velocity = forward * speed;
 
 	client->ps.viewangles = dest->s.angles;
 	client->ps.pmove.origin = dest->s.origin;

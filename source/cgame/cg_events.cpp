@@ -550,18 +550,14 @@ static void CG_Event_Jump( SyncEntityState * state, u64 parm ) {
 		CG_PModel_AddAnimation( state->number, LEGS_JUMP_NEUTRAL, 0, 0, EVENT_CHANNEL );
 	}
 	else {
-		Vec3 movedir;
-		mat3_t viewaxis;
+		Vec3 movedir = Normalize( Vec3( cent->animVelocity.xy(), 0.0f ) );
 
-		movedir = cent->animVelocity;
-		movedir.z = 0.0f;
-		movedir = Normalize( movedir );
-
-		Matrix3_FromAngles( cent->current.angles.yaw_only(), viewaxis );
+		Vec3 forward;
+		AngleVectors( cent->current.angles.yaw_only(), &forward, NULL, NULL );
 
 		// see what's his relative movement direction
 		constexpr float MOVEDIREPSILON = 0.25f;
-		if( Dot( movedir, FromQFAxis( viewaxis, AXIS_FORWARD ) ) > MOVEDIREPSILON ) {
+		if( Dot( movedir, forward ) > MOVEDIREPSILON ) {
 			cent->jumpedLeft = !cent->jumpedLeft;
 			if( !cent->jumpedLeft ) {
 				CG_PModel_AddAnimation( state->number, LEGS_JUMP_LEG2, 0, 0, EVENT_CHANNEL );

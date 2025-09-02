@@ -24,30 +24,37 @@ static float SmoothStep( float t ) {
 	return t * t * ( 3.0f - 2.0f * t );
 }
 
-static void CG_ViewWeapon_AddAngleEffects( EulerDegrees3 * angles, cg_viewweapon_t * viewweapon ) {
+static float EaseInQuadratic( float t ) {
+	return Square( t );
+}
+
+static float EaseOutQuadratic( float t ) {
+	return /*1.0f -*/ Square( 1.0f - t );
+}
+
+static void AddViewWeaponAnimations( Vec3 * origin, EulerDegrees3 * angles, cg_viewweapon_t * viewweapon ) {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
 
 	if( ps->using_gadget ) {
 		const GadgetDef * def = GetGadgetDef( ps->gadget );
 
 		if( ps->weapon_state == WeaponState_SwitchingIn ) {
-			float frac = 1.0f - float( ps->weapon_state_time ) / float( def->switch_in_time );
-			frac *= frac; //smoother curve
-			viewweapon->origin -= FromQFAxis( cg.view.axis, AXIS_UP ) * frac * 10.0f;
+			float frac = EaseOutQuadratic( float( ps->weapon_state_time ) / float( def->switch_in_time ) );
+			*origin -= FromQFAxis( cg.view.axis, AXIS_UP ) * frac * 10.0f;
 			angles->pitch += Lerp( 0.0f, frac, 60.0f );
 		}
 		else if( ps->weapon_state == WeaponState_Cooking ) {
 			float charge = float( ps->weapon_state_time ) / float( def->cook_time );
 			float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 9.0f;
-			viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_UP ) * pull_back;
+			*origin += FromQFAxis( cg.view.axis, AXIS_UP ) * pull_back;
 			angles->pitch -= Lerp( 0.0f, pull_back, 4.0f );
 		}
 		else if( ps->weapon_state == WeaponState_Throwing ) {
 			float frac = float( ps->weapon_state_time ) / float( def->using_time );
-			viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * frac * 16.0f;
+			*origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * frac * 16.0f;
 		}
 		else if( ps->weapon_state == WeaponState_SwitchingOut ) {
-			viewweapon->origin.z -= 1000.0f; // TODO: lol
+			origin->z -= 1000.0f; // TODO: lol
 		}
 	}
 	else {
@@ -58,7 +65,7 @@ static void CG_ViewWeapon_AddAngleEffects( EulerDegrees3 * angles, cg_viewweapon
 		if( ps->weapon_state == WeaponState_Firing || ps->weapon_state == WeaponState_FiringSemiAuto ) {
 			float frac = float( ps->weapon_state_time ) / float( def->refire_time );
 			if( ps->weapon == Weapon_Knife ) {
-				viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 30.0f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				*origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 30.0f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 				angles->roll -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 				angles->yaw += def->refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 				angles->pitch -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
@@ -73,26 +80,20 @@ static void CG_ViewWeapon_AddAngleEffects( EulerDegrees3 * angles, cg_viewweapon
 			if( model != NULL ) {
 				u8 animation;
 				if( !FindAnimationByName( model, viewweapon->eventAnim, &animation ) ) {
-					float frac = float( ps->weapon_state_time ) / def->reload_time;
-					angles->roll += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
+					float t = float( ps->weapon_state_time ) / def->reload_time;
+					angles->roll += Lerp( 0.0f, SmoothStep( t ), 360.0f );
 				}
 			}
 		}
 		else if( ps->weapon_state == WeaponState_SwitchingIn || ps->weapon_state == WeaponState_SwitchingOut ) {
-			float frac;
-			if( ps->weapon_state == WeaponState_SwitchingIn ) {
-				frac = 1.0f - float( ps->weapon_state_time ) / float( def->switch_in_time );
-			}
-			else {
-				frac = float( ps->weapon_state_time ) / float( def->switch_out_time );
-			}
-			frac *= frac; //smoother curve
+			float t = float( ps->weapon_state_time ) / float( def->switch_out_time );
+			float frac = ps->weapon_state == WeaponState_SwitchingIn ? EaseOutQuadratic( t ) : EaseInQuadratic( t );
 			angles->pitch += Lerp( 0.0f, frac, 60.0f );
 		}
 		else if( ps->weapon == Weapon_Bat && ps->weapon_state == WeaponState_Cooking ) {
 			float charge = float( ps->weapon_state_time ) / float( def->reload_time );
 			float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 4.0f;
-			viewweapon->origin -= FromQFAxis( cg.view.axis, AXIS_FORWARD ) * pull_back;
+			*origin -= FromQFAxis( cg.view.axis, AXIS_FORWARD ) * pull_back;
 			angles->pitch -= pull_back * 10.0f;
 			angles->yaw += pull_back * 2.0f;
 		}
@@ -119,11 +120,15 @@ void CG_ViewWeapon_AddAnimation( int ent_num, StringHash anim ) {
 void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
 	const GLTFRenderData * model = GetEquippedItemRenderData( ps );
-	if( model == NULL )
+	if( model == NULL ) {
+		viewweapon->transform = Mat3x4::Identity();
+		viewweapon->muzzle_transform = Mat3x4::Identity();
 		return;
+	}
 
-	Vec3 gunOffset;
-	EulerDegrees3 gunAngles;
+	Vec3 origin = Vec3( 0.0f );
+	EulerDegrees3 angles = { };
+
 	if( !model->camera_node.exists ) {
 		if( ps->using_gadget ) {
 			Com_Printf( S_COLOR_YELLOW "Gadget models must have a camera!\n" );
@@ -133,11 +138,11 @@ void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 		const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( ps->weapon );
 		// calculate the entity position
 		// weapon config offsets
-		gunAngles = weaponInfo->handpositionAngles;
+		angles = weaponInfo->handpositionAngles;
 
 		constexpr Vec3 old_gunpos_cvars = Vec3( 3, 10, -12 ); // depth, horizontal, vertical
-		gunOffset = weaponInfo->handpositionOrigin + old_gunpos_cvars;
-		gunOffset = Vec3( gunOffset.y, gunOffset.z, -gunOffset.x );
+		origin = weaponInfo->handpositionOrigin + old_gunpos_cvars;
+		origin = Vec3( origin.y, origin.z, -origin.x );
 	}
 	else {
 		constexpr Mat4 y_up_to_camera_space = Mat4(
@@ -147,31 +152,31 @@ void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 			0.0f, 0.0f, 0.0f, 1.0f
 		);
 
-		gunOffset = ( y_up_to_camera_space * Vec4( -model->nodes[ model->camera_node.value ].global_transform.col3, 1.0f ) ).xyz();
-		gunAngles = EulerDegrees3( 0.0f, 0.0f, 0.0f );
+		origin = ( y_up_to_camera_space * Vec4( -model->nodes[ model->camera_node.value ].global_transform.col3, 1.0f ) ).xyz();
+		angles = EulerDegrees3( 0.0f, 0.0f, 0.0f ); // TODO?
 	}
 
 	// scale forward gun offset depending on fov and aspect ratio
-	gunOffset.x *= frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV );
+	origin.x *= frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV );
 
-	viewweapon->origin = ( frame_static.inverse_V * Vec4( gunOffset, 1.0 ) ).xyz();
-	viewweapon->origin.z += CG_ViewSmoothFallKick();
+	// viewweapon->origin = ( frame_static.inverse_V * Vec4( gunOffset, 1.0 ) ).xyz();
+	// viewweapon->origin.z += CG_ViewSmoothFallKick();
+	origin = ( frame_static.inverse_V * Vec4( origin, 1.0f ) ).xyz();
+	origin.z += CG_ViewSmoothFallKick();
 
 	// add angles effects
-	gunAngles += cg.predictedPlayerState.viewangles;
-	CG_ViewWeapon_AddAngleEffects( &gunAngles, viewweapon );
+	angles += cg.predictedPlayerState.viewangles;
+	AddViewWeaponAnimations( &origin, &angles, viewweapon );
 
-	// finish
-	AnglesToAxis( gunAngles, viewweapon->axis );
+	viewweapon->transform = Mat4Translation( origin ) * AnglesToMat3x4( angles );
 
-	Mat3x4 gun_transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
 	u8 muzzle;
 	if( FindNodeByName( model, "muzzle", &muzzle ) ) {
-		viewweapon->muzzle_transform = gun_transform * model->transform * model->nodes[ muzzle ].global_transform;
+		viewweapon->muzzle_transform = viewweapon->transform * model->transform * model->nodes[ muzzle ].global_transform;
 	}
 	else {
 		constexpr Mat3x4 hardcoded_offset = Mat4Translation( Vec3( 16, 0, 8 ) );
-		viewweapon->muzzle_transform = gun_transform * hardcoded_offset;
+		viewweapon->muzzle_transform = viewweapon->transform * hardcoded_offset;
 	}
 }
 
@@ -186,8 +191,6 @@ void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
 		return;
 	}
 
-	Mat3x4 transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
-
 	DrawModelConfig config = { };
 	config.draw_model.enabled = true;
 	config.draw_model.view_weapon = true;
@@ -198,10 +201,10 @@ void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
 		TempAllocator temp = cls.frame_arena.temp();
 		Span< Transform > pose = SampleAnimation( &temp, model, t, animation );
 		MatrixPalettes palettes = ComputeMatrixPalettes( &temp, model, pose );
-		DrawGLTFModel( config, model, transform, CG_TeamColorVec4( ps->team ), palettes );
+		DrawGLTFModel( config, model, viewweapon->transform, CG_TeamColorVec4( ps->team ), palettes );
 	}
 	else {
-		DrawGLTFModel( config, model, transform, CG_TeamColorVec4( ps->team ) );
+		DrawGLTFModel( config, model, viewweapon->transform, CG_TeamColorVec4( ps->team ) );
 	}
 }
 

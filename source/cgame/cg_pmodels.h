@@ -219,13 +219,11 @@ const GLTFRenderData * GetEquippedItemRenderData( const SyncPlayerState * ps );
 //=================================================
 
 struct cg_viewweapon_t {
-	mat3_t axis;
-	Vec3 origin;
+	Mat3x4 transform;
+	Mat3x4 muzzle_transform;
 
 	StringHash baseAnim;
 	int64_t baseAnimStartTime;
 	StringHash eventAnim;
 	int64_t eventAnimStartTime;
-
-	Mat3x4 muzzle_transform;
 };

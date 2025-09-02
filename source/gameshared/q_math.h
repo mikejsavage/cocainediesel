@@ -63,6 +63,7 @@ Vec3 AngleDelta( Vec3 angle1, Vec3 angle2 );
 EulerDegrees2 AngleDelta( EulerDegrees2 a, EulerDegrees2 b );
 EulerDegrees3 VecToAngles( Vec3 vec );
 void AnglesToAxis( EulerDegrees3 angles, mat3_t axis );
+Mat3x4 AnglesToMat3x4( EulerDegrees3 angles );
 void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent );
 
 void Matrix3_TransformVector( const mat3_t m, Vec3 v, Vec3 * out );

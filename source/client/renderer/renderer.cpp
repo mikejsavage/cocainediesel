@@ -272,34 +272,7 @@ static Mat4 InvertPerspectiveProjection( const Mat4 & P ) {
 }
 
 static Mat3x4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
-	float pitch = Radians( angles.pitch );
-	float sp = sinf( pitch );
-	float cp = cosf( pitch );
-	float yaw = Radians( angles.yaw );
-	float sy = sinf( yaw );
-	float cy = cosf( yaw );
-	float roll = Radians( angles.roll );
-	float sr = sinf( roll );
-	float cr = cosf( roll );
-
-	Vec3 forward = Vec3( cp * cy, cp * sy, -sp );
-	Vec3 right = Vec3(
-		sy * cr - sp * cy * sr,
-		-cy * cr - sp * sy * sr,
-		-cp * sr
-	);
-	Vec3 up = Vec3(
-		sy * sr + sp * cy * cr,
-		-cy * sr + sp * sy * cr,
-		cp * cr
-	);
-
-	Mat3x4 rotation(
-		right.x, right.y, right.z, 0,
-		up.x, up.y, up.z, 0,
-		-forward.x, -forward.y, -forward.z, 0
-	);
-	return rotation * Mat4Translation( -position );
+	return AnglesToMat3x4( angles ) * Mat4Translation( -position );
 }
 
 static Mat3x4 ViewMatrix( Vec3 position, Vec3 forward ) {

@@ -8,11 +8,10 @@ enum LadderMovement : u8 {
 };
 
 struct pml_t {
-	Vec3 origin;          // full float precision
-	Vec3 velocity;        // full float precision
+	Vec3 origin;
+	Vec3 velocity;
 
 	Vec3 forward, right, up;
-	// special handling for looking straight up or down
 	float frametime;
 
 	Vec3 groundplane;
@@ -34,8 +33,6 @@ struct pml_t {
 	void (*ability1Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool );
 	void (*ability2Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool );
 };
-
-constexpr float PM_OVERBOUNCE = 1.01f;
 
 // shared
 float Normalize2D( Vec3 * v );

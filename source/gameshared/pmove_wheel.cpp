@@ -82,7 +82,7 @@ static void PM_WheelJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 		}
 
 		float speed = Length( velocity2 );
-		pml->velocity = GS_ClipVelocity( pml->velocity, normal.value, 1.0005f );
+		pml->velocity = GS_ClipVelocity( pml->velocity, normal.value );
 		if( speed > min_bounce_speed ) {
 			pml->velocity = pml->velocity + normal.value * speed * bounce_factor;
 		}

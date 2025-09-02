@@ -19,6 +19,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/base.h"
+#include "qcommon/array.h"
+#include "gameshared/collision.h"
+#include "gameshared/intersection_tests.h"
 #include "gameshared/movement.h"
 
 static constexpr float pm_ladderspeed = 300.0f;
@@ -59,56 +62,55 @@ constexpr float SLIDEMOVE_PLANEINTERACT_EPSILON = 0.05f;
 * Does not modify any world state?
 */
 
-#define MAX_CLIP_PLANES 5
-
-static void PM_AddTouchEnt( int entNum ) {
-	if( pm->numtouch >= MAXTOUCH || entNum < 0 ) {
+static void PM_AddTouchEnt( int entNum, pmove_t * my_pm ) {
+	if( my_pm->numtouch >= ARRAY_COUNT( my_pm->touchents ) ) {
 		return;
 	}
 
 	// see if it is already added
-	for( int i = 0; i < pm->numtouch; i++ ) {
-		if( pm->touchents[i] == entNum ) {
+	for( int i = 0; i < my_pm->numtouch; i++ ) {
+		if( my_pm->touchents[i] == entNum ) {
 			return;
 		}
 	}
 
 	// add it
-	pm->touchents[pm->numtouch] = entNum;
-	pm->numtouch++;
+	my_pm->touchents[my_pm->numtouch] = entNum;
+	my_pm->numtouch++;
 }
 
+static int PM_SlideMove( const gs_module_api_t & api, pmove_t * my_pm, pml_t * my_pml ) {
+	constexpr size_t MAX_CLIP_PLANES = 5;
 
-static int PM_SlideMove() {
 	TracyZoneScoped;
 
 	Vec3 planes[MAX_CLIP_PLANES];
 	constexpr int maxmoves = 4;
-	float remainingTime = pml.frametime;
+	float remainingTime = my_pml->frametime;
 	int blockedmask = 0;
 
-	Vec3 last_valid_origin = pml.origin;
+	Vec3 last_valid_origin = my_pml->origin;
 
-	if( pm->groundentity != -1 ) { // clip velocity to ground, no need to wait
+	if( my_pm->groundentity != -1 ) { // clip velocity to ground, no need to wait
 		// if the ground is not horizontal (a ramp) clipping will slow the player down
-		if( pml.groundplane.z == 1.0f && pml.velocity.z < 0.0f ) {
-			pml.velocity.z = 0.0f;
+		if( my_pml->groundplane.z == 1.0f && my_pml->velocity.z < 0.0f ) {
+			my_pml->velocity.z = 0.0f;
 		}
 	}
 
 	int numplanes = 0; // clean up planes count for checking
 
 	for( int moves = 0; moves < maxmoves; moves++ ) {
-		Vec3 end = pml.origin + pml.velocity * remainingTime;
+		Vec3 end = my_pml->origin + my_pml->velocity * remainingTime;
 
-		trace_t trace = pmove_gs->api.Trace( pml.origin, pm->bounds, end, pm->playerState->POVnum, pm->solid_mask, 0 );
+		trace_t trace = api.Trace( my_pml->origin, my_pm->bounds, end, my_pm->playerState->POVnum, my_pm->solid_mask, 0 );
 		if( trace.GotNowhere() ) { // trapped into a solid
-			pml.origin = last_valid_origin;
+			my_pml->origin = last_valid_origin;
 			return SLIDEMOVEFLAG_TRAPPED;
 		}
 
 		if( trace.GotSomewhere() ) {
-			pml.origin = trace.endpos;
+			my_pml->origin = trace.endpos;
 			last_valid_origin = trace.endpos;
 		}
 
@@ -117,7 +119,7 @@ static int PM_SlideMove() {
 		}
 
 		// save touched entity for return output
-		PM_AddTouchEnt( trace.ent );
+		PM_AddTouchEnt( trace.ent, my_pm );
 
 		// at this point we are blocked but not trapped.
 
@@ -136,7 +138,7 @@ static int PM_SlideMove() {
 			int i;
 			for( i = 0; i < numplanes; i++ ) {
 				if( Dot( trace.normal, planes[i] ) > ( 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) ) {
-					pml.velocity = trace.normal + pml.velocity;
+					my_pml->velocity = trace.normal + my_pml->velocity;
 					break;
 				}
 			}
@@ -147,7 +149,7 @@ static int PM_SlideMove() {
 
 		// security check: we can't store more planes
 		if( numplanes >= MAX_CLIP_PLANES ) {
-			pml.velocity = Vec3( 0.0f );
+			my_pml->velocity = Vec3( 0.0f );
 			return SLIDEMOVEFLAG_TRAPPED;
 		}
 
@@ -160,42 +162,42 @@ static int PM_SlideMove() {
 		//
 
 		for( int i = 0; i < numplanes; i++ ) {
-			if( Dot( pml.velocity, planes[i] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) { // would not touch it
+			if( Dot( my_pml->velocity, planes[i] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) { // would not touch it
 				continue;
 			}
 
-			pml.velocity = GS_ClipVelocity( pml.velocity, planes[i], PM_OVERBOUNCE );
+			my_pml->velocity = GS_ClipVelocity( my_pml->velocity, planes[i] );
 			// see if we enter a second plane
 			for( int j = 0; j < numplanes; j++ ) {
 				if( j == i ) { // it's the same plane
 					continue;
 				}
-				if( Dot( pml.velocity, planes[j] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+				if( Dot( my_pml->velocity, planes[j] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
 					continue; // not with this one
 				}
 
 				//there was a second one. Try to slide along it too
-				pml.velocity = GS_ClipVelocity( pml.velocity, planes[j], PM_OVERBOUNCE );
+				my_pml->velocity = GS_ClipVelocity( my_pml->velocity, planes[j] );
 
 				// check if the slide sent it back to the first plane
-				if( Dot( pml.velocity, planes[i] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+				if( Dot( my_pml->velocity, planes[i] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
 					continue;
 				}
 
 				// bad luck: slide the original velocity along the crease
 				Vec3 dir = SafeNormalize( Cross( planes[i], planes[j] ) );
-				float value = Dot( dir, pml.velocity );
-				pml.velocity = dir * value;
+				float value = Dot( dir, my_pml->velocity );
+				my_pml->velocity = dir * value;
 
 				// check if there is a third plane, in that case we're trapped
 				for( int k = 0; k < numplanes; k++ ) {
 					if( j == k || i == k ) { // it's the same plane
 						continue;
 					}
-					if( Dot( pml.velocity, planes[k] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+					if( Dot( my_pml->velocity, planes[k] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
 						continue; // not with this one
 					}
-					pml.velocity = Vec3( 0.0f );
+					my_pml->velocity = Vec3( 0.0f );
 					break;
 				}
 			}
@@ -217,7 +219,7 @@ static void PM_StepSlideMove() {
 	Vec3 start_o = pml.origin;
 	Vec3 start_v = pml.velocity;
 
-	int blocked = PM_SlideMove();
+	int blocked = PM_SlideMove( pmove_gs->api, pm, &pml );
 
 	Vec3 down_o = pml.origin;
 	Vec3 down_v = pml.velocity;
@@ -232,7 +234,7 @@ static void PM_StepSlideMove() {
 	pml.origin = up;
 	pml.velocity = start_v;
 
-	PM_SlideMove();
+	PM_SlideMove( pmove_gs->api, pm, &pml );
 
 	// push down the final amount
 	Vec3 down = pml.origin - Vec3( 0.0f, 0.0f, STEPSIZE );
@@ -526,7 +528,7 @@ static void PM_CategorizePosition() {
 			}
 		}
 
-		if( pm->numtouch < MAXTOUCH && trace.HitSomething() ) {
+		if( pm->numtouch < ARRAY_COUNT( pm->touchents ) && trace.HitSomething() ) {
 			pm->touchents[pm->numtouch] = trace.ent;
 			pm->numtouch++;
 		}
@@ -559,7 +561,7 @@ static void PM_FlyMove() {
 	Vec3 origin = pml.origin;
 	Vec3 velocity = pml.velocity;
 
-	int blocked = PM_SlideMove();
+	int blocked = PM_SlideMove( pmove_gs->api, pm, &pml );
 
 	if( blocked & SLIDEMOVEFLAG_TRAPPED ) { //noclip if we're blocked
 		pml.origin = origin + velocity * pml.frametime;

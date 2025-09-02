@@ -413,7 +413,7 @@ trace_t MakeMissedTrace( const Ray & ray ) {
 	return trace;
 }
 
-static trace_t MakeTrace( const Ray & ray, const Shape & shape, const Intersection & intersection, const SyncEntityState * ent ) {
+trace_t MakeTrace( const Ray & ray, const Shape & shape, const Intersection & intersection, const SyncEntityState * ent ) {
 	trace_t trace = { };
 	trace.fraction = ray.length == 0.0f ? 0.0f : intersection.t / ray.length;
 	trace.normal = intersection.normal;

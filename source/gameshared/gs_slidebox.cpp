@@ -21,23 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "gameshared/gs_synctypes.h"
 
-Vec3 GS_ClipVelocity( Vec3 in, Vec3 normal, float overbounce ) {
-	float backoff = Dot( in, normal );
-	if( backoff <= 0 ) {
-		backoff *= overbounce;
-	} else {
-		backoff /= overbounce;
-	}
-
-	Vec3 out = in - normal * backoff;
-
-	float oldspeed = Length( in );
-	float newspeed = Length( out );
-	if( newspeed > oldspeed ) {
-		out = out / newspeed * oldspeed;
-	}
-
-	return out;
+Vec3 GS_ClipVelocity( Vec3 in, Vec3 normal ) {
+	return in - normal * Dot( in, normal );
 }
 
 int GS_LinearMovement( const SyncEntityState *ent, int64_t time, Vec3 * dest ) {

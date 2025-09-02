@@ -227,6 +227,32 @@ static float AxialSupport( const Shape & shape, int axis, bool positive ) {
 	return 0;
 }
 
+static bool SweptShapeVsPlane( Intersection * enter, Intersection * leave, Ray ray, const Shape & shape, Plane plane ) {
+	plane.distance += Support( shape, -plane.normal );
+
+	float dist = plane.distance - Dot( plane.normal, ray.origin );
+	float denom = Dot( plane.normal, ray.direction );
+
+	if( denom == 0.0f ) {
+		if( dist < 0.0f )
+			return false;
+		return true;
+	}
+
+	float t = dist / denom;
+
+	if( denom < 0.0f ) {
+		if( t > enter->t )
+			*enter = { t, plane.normal };
+	}
+	else {
+		if( t < leave->t )
+			*leave = { t, plane.normal };
+	}
+
+	return enter->t <= leave->t;
+}
+
 static bool SweptShapeVsMapBrush( const MapData * map, const MapBrush * brush, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection ) {
 	if( ( brush->solidity & solid_mask ) == 0 )
 		return false;
@@ -237,29 +263,7 @@ static bool SweptShapeVsMapBrush( const MapData * map, const MapBrush * brush, R
 
 	for( u32 i = 0; i < brush->num_planes; i++ ) {
 		Plane plane = map->brush_planes[ brush->first_plane + i ];
-		plane.distance += Support( shape, -plane.normal );
-
-		float dist = plane.distance - Dot( plane.normal, ray.origin );
-		float denom = Dot( plane.normal, ray.direction );
-
-		if( denom == 0.0f ) {
-			if( dist < 0.0f )
-				return false;
-			continue;
-		}
-
-		float t = dist / denom;
-
-		if( denom < 0.0f ) {
-			if( t > enter.t )
-				enter = { t, plane.normal };
-		}
-		else {
-			if( t < leave.t )
-				leave = { t, plane.normal };
-		}
-
-		if( enter.t > leave.t )
+		if( !SweptShapeVsPlane( &enter, &leave, ray, shape, plane ) )
 			return false;
 	}
 
@@ -466,35 +470,6 @@ static bool SweptShapeVsGLTFBrush( const GLTFCollisionData * gltf, const GLTFCol
 	Intersection enter = { 0.0f };
 	Intersection leave = { ray.length };
 
-	auto CheckPlane = [&]( Plane plane ) -> bool {
-		plane.distance += Support( shape, -plane.normal );
-
-		float dist = plane.distance - Dot( plane.normal, ray.origin );
-		float denom = Dot( plane.normal, ray.direction );
-
-		if( denom == 0.0f ) {
-			if( dist < 0.0f )
-				return false;
-			return true;
-		}
-
-		float t = dist / denom;
-
-		if( denom < 0.0f ) {
-			if( t > enter.t )
-				enter = { t, plane.normal };
-		}
-		else {
-			if( t < leave.t )
-				leave = { t, plane.normal };
-		}
-
-		if( enter.t > leave.t )
-			return false;
-
-		return true;
-	};
-
 	if( ( brush.solidity & solid_mask ) == 0 )
 		return false;
 
@@ -522,7 +497,7 @@ static bool SweptShapeVsGLTFBrush( const GLTFCollisionData * gltf, const GLTFCol
 		if( is_bevel_axis )
 			continue;
 
-		if( !CheckPlane( plane ) )
+		if( !SweptShapeVsPlane( &enter, &leave, ray, shape, plane ) )
 			return false;
 	}
 
@@ -540,9 +515,9 @@ static bool SweptShapeVsGLTFBrush( const GLTFCollisionData * gltf, const GLTFCol
 		Plane pos = { bevel_axes[ i ], bevel_bounds[ i ].hi };
 		Plane neg = { -bevel_axes[ i ], -bevel_bounds[ i ].lo };
 
-		if( !CheckPlane( pos ) )
+		if( !SweptShapeVsPlane( &enter, &leave, ray, shape, pos ) )
 			return false;
-		if( !CheckPlane( neg ) )
+		if( !SweptShapeVsPlane( &enter, &leave, ray, shape, neg ) )
 			return false;
 	}
 

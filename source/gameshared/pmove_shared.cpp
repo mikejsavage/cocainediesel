@@ -101,7 +101,7 @@ void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerSta
 
 	// clip against the ground when jumping if moving that direction
 	if( pml->groundplane.z > 0 && pml->velocity.z > 0 && Dot( pml->groundplane.xy(), pml->velocity.xy() ) > 0 ) {
-		pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane, PM_OVERBOUNCE );
+		pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane );
 	}
 
 	pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, JumpType_Normal );
@@ -113,7 +113,7 @@ void Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir,
 
 	// clip against the ground when jumping if moving that direction
 	if( pml->groundplane.z > 0 && pml->velocity.z < 0 && Dot( pml->groundplane.xy(), pml->velocity.xy() ) > 0 ) {
-		pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane, PM_OVERBOUNCE );
+		pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane );
 	}
 
 	dashdir.z = 0.0f;
@@ -160,7 +160,7 @@ bool Walljump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlaye
 
 		hspeed = Normalize2D( &pml->velocity );
 
-		pml->velocity = GS_ClipVelocity( pml->velocity, normal.value, 1.0005f );
+		pml->velocity = GS_ClipVelocity( pml->velocity, normal.value );
 		pml->velocity = pml->velocity + normal.value * wjbouncefactor;
 
 		hspeed = Max2( hspeed, pml->maxSpeed );

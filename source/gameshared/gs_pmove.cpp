@@ -781,3 +781,208 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 		}
 	}
 }
+
+bool SweptShapeVsMapModel( const MapData * map, const MapModel * model, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection );
+trace_t MakeTrace( const Ray & ray, const Shape & shape, const Intersection & intersection, const SyncEntityState * ent );
+
+static trace_t TestTrace( Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask, int timeDelta ) {
+	solid_mask = SolidBits( 1 );
+
+	Ray ray = MakeRayStartEnd( start, end );
+
+	Shape aabb = {
+		.type = ShapeType_AABB,
+		.aabb = ToCenterExtents( bounds ),
+	};
+
+	Plane plane = {
+		.normal = Vec3( 1.0f, 0.0f, 0.0f ),
+		.distance = 0.0f,
+	};
+
+	BoundedDynamicArray< u32, 1 > brush_indices = { 0 };
+
+	BoundedDynamicArray< Plane, 6 > brush_planes = {
+		Plane { .normal = Vec3( 1.0f, 0.0f, 0.0f ), .distance = 0.0f },
+		Plane { .normal = Vec3( -1.0f, 0.0f, 0.0f ), .distance = 1.0f },
+		Plane { .normal = Vec3( 0.0f, 1.0f, 0.0f ), .distance = 1000.0f },
+		Plane { .normal = Vec3( 0.0f, -1.0f, 0.0f ), .distance = 1000.0f },
+		Plane { .normal = Vec3( 0.0f, 0.0f, 1.0f ), .distance = 1000.0f },
+		Plane { .normal = Vec3( 0.0f, 0.0f, -1.0f ), .distance = 1000.0f },
+	};
+
+	MapBrush brush = {
+		.bounds = MinMax3( Vec3( -1.0f, -1000.0f, -1000.0f ), Vec3( 0.0f, 1000.0f, 1000.0f ) ),
+		.first_plane = 0,
+		.num_planes = 6,
+		.solidity = solid_mask,
+	};
+
+	MapKDTreeNode leaf = {
+		.leaf = {
+			.first_brush = 0,
+			.is_leaf = MapKDTreeNode::LEAF,
+			.num_brushes = 1,
+		},
+	};
+
+	MapModel model = {
+		.bounds = brush.bounds,
+		.solidity = solid_mask,
+		.root_node = 0,
+	};
+
+	MapData map = {
+		.models = Span< const MapModel >( &model, 1 ),
+		.nodes = Span< const MapKDTreeNode >( &leaf, 1 ),
+		.brushes = Span< const MapBrush >( &brush, 1 ),
+		.brush_indices = brush_indices.span(),
+		.brush_planes = brush_planes.span(),
+	};
+
+	Intersection intersection;
+	bool hit = SweptShapeVsMapModel( &map, &model, ray, aabb, solid_mask, &intersection );
+
+	SyncEntityState ent = { };
+	return hit ? MakeTrace( ray, aabb, intersection, &ent ) : MakeMissedTrace( ray );
+}
+
+TEST( "Trivial miss slidemove" ) {
+	SyncPlayerState player = { };
+
+	pmove_t test_pm = {
+		.playerState = &player,
+		.bounds = MinMax3( Vec3( -1.0f ), Vec3( 1.0f ) ),
+		.groundentity = -1,
+	};
+
+	pml_t test_pml = {
+		.origin = Vec3( 10.0f, 0.0f, 0.0f ),
+		.velocity = Vec3( -5.0f, 0.0f, 0.0f ),
+		.frametime = 1.0f,
+	};
+
+	gs_module_api_t api = { .Trace = TestTrace };
+
+	int blocked = PM_SlideMove( api, &test_pm, &test_pml );
+
+	Vec3 expected_endpos = Vec3( 5.0f, 0.0f, 0.0f );
+	Vec3 expected_velocity = Vec3( -5.0f, 0.0f, 0.0f );
+
+	return blocked == 0 && Length( expected_endpos - test_pml.origin ) < 0.05f && Length( expected_velocity - test_pml.velocity ) < 0.01f;
+}
+
+TEST( "Directly into plane slidemove" ) {
+	SyncPlayerState player = { };
+
+	pmove_t test_pm = {
+		.playerState = &player,
+		.bounds = MinMax3( Vec3( -1.0f ), Vec3( 1.0f ) ),
+		.groundentity = -1,
+	};
+
+	pml_t test_pml = {
+		.origin = Vec3( 10.0f, 0.0f, 0.0f ),
+		.velocity = Vec3( -20.0f, 0.0f, 0.0f ),
+		.frametime = 1.0f,
+	};
+
+	gs_module_api_t api = { .Trace = TestTrace };
+
+	int blocked = PM_SlideMove( api, &test_pm, &test_pml );
+
+	Vec3 expected_endpos = Vec3( 1.0f, 0.0f, 0.0f );
+	Vec3 expected_velocity = Vec3( 0.0f );
+
+	return blocked != 0 && Length( expected_endpos - test_pml.origin ) < 0.05f && Length( expected_velocity - test_pml.velocity ) < 0.01f;
+}
+
+// TODO: contact is set incorrectly for this test
+// TODO: "modify original_velocity so it parallels all of the clip planes" loop seems busted
+// TODO: the backoff in MakeTrace steps back spatially but not temporarily so slidey slidemoves are slightly shorter than they should be
+TEST( "Single plane slide slidemove" ) {
+	SyncPlayerState player = { };
+
+	pmove_t test_pm = {
+		.playerState = &player,
+		.bounds = MinMax3( Vec3( -1.0f ), Vec3( 1.0f ) ),
+		.groundentity = -1,
+	};
+
+	pml_t test_pml = {
+		.origin = Vec3( 10.0f, 0.0f, 0.0f ),
+		.velocity = Vec3( -20.0f, 0.0f, 20.0f ),
+		.frametime = 1.0f,
+	};
+
+	gs_module_api_t api = { .Trace = TestTrace };
+
+	int blocked = PM_SlideMove( api, &test_pm, &test_pml );
+
+	Vec3 expected_endpos = Vec3( 1.0f, 0.0f, 20.0f );
+	Vec3 expected_velocity = Vec3( 0.0f, 0.0f, 20.0f );
+
+	return blocked != 0 && Length( expected_endpos - test_pml.origin ) < 0.05f && Length( expected_velocity - test_pml.velocity ) < 0.01f;
+}
+
+TEST( "Many frame single plane slide slidemove" ) {
+	SyncPlayerState player = { };
+
+	pmove_t test_pm = {
+		.playerState = &player,
+		.bounds = MinMax3( Vec3( -1.0f ), Vec3( 1.0f ) ),
+		.groundentity = -1,
+	};
+
+	pml_t test_pml = {
+		.origin = Vec3( 10.0f, 0.0f, 0.0f ),
+		.velocity = Vec3( -20.0f, 0.0f, 20.0f ),
+		.frametime = 0.05f,
+	};
+
+	gs_module_api_t api = { .Trace = TestTrace };
+
+	int num_collisions = 0;
+	for( int i = 0; i < 20; i++ ) {
+		int blocked = PM_SlideMove( api, &test_pm, &test_pml );
+		if( blocked != 0 ) {
+			num_collisions++;
+		}
+	}
+
+	Vec3 expected_endpos = Vec3( 1.0f, 0.0f, 20.0f );
+	Vec3 expected_velocity = Vec3( 0.0f, 0.0f, 20.0f );
+
+	return num_collisions == 1 && Length( expected_endpos - test_pml.origin ) < 0.05f && Length( expected_velocity - test_pml.velocity ) < 0.01f;
+}
+
+TEST( "Many frame single plane holding direction slide slidemove" ) {
+	SyncPlayerState player = { };
+
+	pmove_t test_pm = {
+		.playerState = &player,
+		.bounds = MinMax3( Vec3( -1.0f ), Vec3( 1.0f ) ),
+		.groundentity = -1,
+	};
+
+	pml_t test_pml = {
+		.origin = Vec3( 10.0f, 0.0f, 0.0f ),
+		.frametime = 0.05f,
+	};
+
+	gs_module_api_t api = { .Trace = TestTrace };
+
+	int num_collisions = 0;
+	for( int i = 0; i < 20; i++ ) {
+		test_pml.velocity = Vec3( -20.0f, 0.0f, 500.0f );
+		int blocked = PM_SlideMove( api, &test_pm, &test_pml );
+		if( blocked != 0 ) {
+			num_collisions++;
+		}
+	}
+
+	Vec3 expected_endpos = Vec3( 1.0f, 0.0f, 500.0f );
+	Vec3 expected_velocity = Vec3( 0.0f, 0.0f, 500.0f );
+
+	return num_collisions == 12 && Length( expected_endpos - test_pml.origin ) < 10.0f && Length( expected_velocity - test_pml.velocity ) < 0.01f;
+}

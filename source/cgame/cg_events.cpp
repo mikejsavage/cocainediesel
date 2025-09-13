@@ -905,7 +905,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_VFX:
-			DoVisualEffect( StringHash( parm ), ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), 1, white.linear );
+			DoVisualEffect( StringHash( parm ), ent->origin, Vec3::Z( 1.0f ), 1, white.linear );
 			break;
 
 		case EV_FLASH_WINDOW:

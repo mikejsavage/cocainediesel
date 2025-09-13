@@ -117,7 +117,7 @@ static void CG_CalcViewBob() {
 			const centity_t * cent = &cg_entities[cg.view.POVent];
 			MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), &cent->current );
 			Vec3 maxs = bounds.mins;
-			Vec3 mins = maxs - Vec3( 0.0f, 0.0f, 1.6f * STEPSIZE );
+			Vec3 mins = maxs - Vec3::Z( 1.6f * STEPSIZE );
 
 			trace_t trace = CG_Trace( cg.predictedPlayerState.pmove.origin, MinMax3( mins, maxs ), cg.predictedPlayerState.pmove.origin, cg.view.POVent, SolidMask_Opaque );
 			if( trace.GotNowhere() ) {
@@ -351,7 +351,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, ViewType type, UserCommand * cm
 			if( view->playerPrediction ) {
 				CG_PredictMovement();
 
-				Vec3 viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
+				Vec3 viewoffset = Vec3::Z( cg.predictedPlayerState.viewheight );
 				view->origin = cg.predictedPlayerState.pmove.origin + viewoffset - ( 1.0f - cg.lerpfrac ) * cg.predictionError;
 
 				view->angles = cg.predictedPlayerState.viewangles;
@@ -367,7 +367,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, ViewType type, UserCommand * cm
 				// we don't run prediction, but we still set cg.predictedPlayerState with the interpolation
 				CG_InterpolatePlayerState( &cg.predictedPlayerState );
 
-				Vec3 viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
+				Vec3 viewoffset = Vec3::Z( cg.predictedPlayerState.viewheight );
 
 				view->origin = cg.predictedPlayerState.pmove.origin + viewoffset;
 				view->angles = cg.predictedPlayerState.viewangles;

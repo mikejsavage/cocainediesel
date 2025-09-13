@@ -4,8 +4,8 @@ void SP_post_match_camera( edict_t * ent, const spawn_temp_t * st ) {
 }
 
 void DropSpawnToFloor( edict_t * ent ) {
-	Vec3 start = ent->s.origin + Vec3( 0.0f, 0.0f, 16.0f );
-	Vec3 end = ent->s.origin - Vec3( 0.0f, 0.0f, 1024.0f );
+	Vec3 start = ent->s.origin + Vec3::Z( 16.0f );
+	Vec3 end = ent->s.origin - Vec3::Z( 1024.0f );
 
 	trace_t trace = G_Trace( start, playerbox_stand, end, ent, Solid_World );
 

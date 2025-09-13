@@ -493,7 +493,7 @@ static void PM_Move() {
 * If the player hull point one-quarter unit down is solid, the player is on ground
 */
 static trace_t PM_GroundTrace() {
-	Vec3 point = pml.origin - Vec3( 0.0f, 0.0f, 0.25f );
+	Vec3 point = pml.origin - Vec3::Z( 0.25f );
 	return pmove_gs->api.Trace( pml.origin, pm->bounds, point, pm->playerState->POVnum, pm->solid_mask, 0 );
 }
 

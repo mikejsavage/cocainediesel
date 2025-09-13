@@ -286,7 +286,7 @@ static void BombTouch( edict_t * self, edict_t * other, Vec3 normal, SolidBits s
 
 static void BombStop( edict_t * self ) {
 	if( bomb_state.bomb.state == BombState_Dropped ) {
-		bomb_state.bomb.hud->s.origin = bomb_state.bomb.model->s.origin + Vec3( 0.0f, 0.0f, bomb_hud_offset );
+		bomb_state.bomb.hud->s.origin = bomb_state.bomb.model->s.origin + Vec3::Z( bomb_hud_offset );
 		bomb_state.bomb.hud->s.svflags |= SVF_ONLYTEAM;
 		bomb_state.bomb.hud->s.radius = BombDown_Dropped;
 		Show( bomb_state.bomb.hud );
@@ -356,7 +356,7 @@ static void BombSetCarrier( s32 player_num, bool no_sound ) {
 static void DropBomb( BombDropReason reason ) {
 	SetTeamProgress( AttackingTeam(), 0, BombProgress_Nothing );
 	edict_t * carrier_ent = PLAYERENT( bomb_state.carrier );
-	Vec3 start = carrier_ent->s.origin + Vec3( 0.0f, 0.0f, carrier_ent->viewheight );
+	Vec3 start = carrier_ent->s.origin + Vec3::Z( carrier_ent->viewheight );
 	Vec3 end( 0.0f );
 	Vec3 velocity( 0.0f );
 
@@ -404,7 +404,7 @@ static void BombStartPlanting( edict_t * carrier_ent, u32 site ) {
 
 	bomb_state.site = site;
 
-	Vec3 start = carrier_ent->s.origin + Vec3( 0.0f, 0.0f, carrier_ent->viewheight );
+	Vec3 start = carrier_ent->s.origin + Vec3::Z( carrier_ent->viewheight );
 
 	Vec3 end = start;
 	end.z -= 512.0f;
@@ -417,7 +417,7 @@ static void BombStartPlanting( edict_t * carrier_ent, u32 site ) {
 	bomb_state.bomb.model->s.angles = angles;
 	Show( bomb_state.bomb.model );
 
-	bomb_state.bomb.hud->s.origin = trace.endpos + Vec3( 0.0f, 0.0f, bomb_hud_offset );
+	bomb_state.bomb.hud->s.origin = trace.endpos + Vec3::Z( bomb_hud_offset );
 	bomb_state.bomb.hud->s.angles = angles;
 	bomb_state.bomb.hud->s.svflags |= SVF_ONLYTEAM;
 	bomb_state.bomb.hud->s.radius = BombDown_Planting;
@@ -585,7 +585,7 @@ static void BombThink() {
 				bomb_state.bomb.model->projectileInfo.radius = 9999;
 
 				// apply a 1 damage explosion just for the kb
-				G_RadiusDamage( bomb_state.bomb.model, NULL, Vec3( 0.0f, 0.0f, 1.0f ), bomb_state.bomb.model, WorldDamage_Explosion );
+				G_RadiusDamage( bomb_state.bomb.model, NULL, Vec3::Z( 1.0f ), bomb_state.bomb.model, WorldDamage_Explosion );
 
 				for( int i = 0; i < server_gs.maxclients; i++ ) {
 					G_Damage( PLAYERENT( i ), world, world, Vec3( 0.0f ), Vec3( 0.0f ), bomb_state.bomb.model->s.origin, 100.0f, 0.0f, 0, WorldDamage_Explosion );
@@ -884,7 +884,7 @@ static void RoundThink() {
 
 			bomb_state.bomb.model->movetype = MOVETYPE_TOSS;
 			bomb_state.bomb.model->s.origin = G_PickRandomEnt( &edict_t::classname, "spawn_bomb_attacking" )->s.origin;
-			bomb_state.bomb.model->velocity = Vec3( 0.0f, 0.0f, bomb_throw_speed );
+			bomb_state.bomb.model->velocity = Vec3::Z( bomb_throw_speed );
 
 			constexpr StringHash vfx_bomb_respawn = "loadout/bomb/respawn";
 

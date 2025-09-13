@@ -180,13 +180,13 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color ) {
 			continue;
 		}
 
-		Vec3 headpos = Vec3( 0.0f, 0.0f, 34.0f * cent->interpolated.scale.z );
+		Vec3 headpos = Vec3::Z( 34.0f * cent->interpolated.scale.z );
 		trace_t trace = CG_Trace( cg.view.origin, MinMax3( 0.0f ), cent->interpolated.origin + headpos, cg.predictedPlayerState.POVnum, SolidMask_Opaque );
 		if( trace.HitSomething() && trace.ent != cent->current.number ) {
 			continue;
 		}
 
-		Vec3 drawOrigin = cent->interpolated.origin + Vec3( 0.0f, 0.0f, playerbox_stand.maxs.z + 8 );
+		Vec3 drawOrigin = cent->interpolated.origin + Vec3::Z( playerbox_stand.maxs.z + 8 );
 
 		Vec2 coords = WorldToScreen( drawOrigin );
 		if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
@@ -342,7 +342,7 @@ void CG_AddBombIndicator( const centity_t * cent ) {
 		Span< Transform > pose = SampleAnimation( &temp, model, cent->interpolated.animation_time );
 		MatrixPalettes palettes = ComputeMatrixPalettes( &temp, model, pose );
 
-		Vec3 bomb_origin = cent->interpolated.origin - Vec3( 0.0f, 0.0f, 32.0f ); // BOMB_HUD_OFFSET
+		Vec3 bomb_origin = cent->interpolated.origin - Vec3::Z( 32.0f ); // BOMB_HUD_OFFSET
 
 		Mat3x4 transform = FromAxisAndOrigin( cent->interpolated.axis, bomb_origin );
 		Vec3 tip = ( transform * model->transform * palettes.node_transforms[ tip_node ] * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xyz();
@@ -408,7 +408,7 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 					color = AttentionGettingColor();
 
 					// TODO: lol
-					DoVisualEffect( "loadout/bomb/pickup_sparkle", bomb.origin - Vec3( 0.0f, 0.0f, 32.0f ), Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, AttentionGettingColor() );
+					DoVisualEffect( "loadout/bomb/pickup_sparkle", bomb.origin - Vec3::Z( 32.0f ), Vec3::Z( 1.0f ), 1.0f, AttentionGettingColor() );
 				}
 				else if( bomb.state == BombState_Planting ) {
 					msg = "PLANTING";

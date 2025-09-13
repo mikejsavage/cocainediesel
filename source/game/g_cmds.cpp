@@ -301,7 +301,7 @@ static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 	AngleVectors( ent->r.client->ps.viewangles, &forward, NULL, NULL );
 
 	constexpr float range = 96.0f;
-	Vec3 start = ent->s.origin + Vec3( 0.0f, 0.0f, ent->r.client->ps.viewheight );
+	Vec3 start = ent->s.origin + Vec3::Z( ent->r.client->ps.viewheight );
 	Vec3 end = start + forward * range;
 
 	trace_t trace = G_Trace( start, MinMax3( 0.0f ), end, ent, SolidMask_Opaque );

@@ -659,7 +659,7 @@ void G_RespawnEffect( edict_t * ent ) {
 void G_CheckGround( edict_t * ent ) {
 	float up_speed_limit = ent->r.client == NULL ? 1.0f : 180.0f;
 
-	Vec3 ground_point = ent->s.origin - Vec3( 0.0f, 0.0f, 0.25f );
+	Vec3 ground_point = ent->s.origin - Vec3::Z( 0.25f );
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
 	trace_t trace = G_Trace( ent->s.origin, bounds, ground_point, ent, EntitySolidity( ServerCollisionModelStorage(), &ent->s ) );
 

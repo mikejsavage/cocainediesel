@@ -124,7 +124,7 @@ static int Nearest256Color( RGB8 c ) {
 		( ( u32( c.b ) + 25 ) / 51 );
 
 	float average = ( float( c.r ) + float( c.g ) + float( c.b ) ) / 3.0f;
-	u8 greyscale = 232 + u8( 24.f * Unlerp01( 8.0f, average, 238.0f ) );
+	u8 greyscale = 232 + 23 * Unlerp01( 8.0f, average, 238.0f );
 
 	if( ColorDistance( Get256Color( cube ), c ) < ColorDistance( Get256Color( greyscale ), c ) )
 		return cube;

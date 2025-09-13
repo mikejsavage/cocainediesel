@@ -216,54 +216,78 @@ static int PM_SlideMove( const gs_module_api_t & api, pmove_t * my_pm, pml_t * m
 static void PM_StepSlideMove() {
 	TracyZoneScoped;
 
-	Vec3 start_o = pml.origin;
-	Vec3 start_v = pml.velocity;
+	Vec3 initial_origin = pml.origin;
+	Vec3 initial_velocity = pml.velocity;
 
 	int blocked = PM_SlideMove( pmove_gs->api, pm, &pml );
-
-	Vec3 down_o = pml.origin;
-	Vec3 down_v = pml.velocity;
-
-	Vec3 up = start_o + Vec3( 0.0f, 0.0f, STEPSIZE );
-
-	trace_t trace = pmove_gs->api.Trace( up, pm->bounds, up, pm->playerState->POVnum, pm->solid_mask, 0 );
-	if( trace.GotNowhere() ) // can't step up
+	if( blocked == 0 )
 		return;
 
-	// try sliding above
-	pml.origin = up;
-	pml.velocity = start_v;
+	// try to step over the obstruction, try n candidates up to STEPSIZE height and take the one that goes the furthest
+	// NOTE(mike 20250913): we need to try multiple candidates so you can walk through doors that have a step
+	struct Candidate {
+		Vec3 endpos;
+		Vec3 velocity;
+		Vec3 normal;
+	};
 
-	PM_SlideMove( pmove_gs->api, pm, &pml );
+	constexpr size_t num_step_over_candidates = 4;
+	BoundedDynamicArray< Candidate, num_step_over_candidates + 1 > candidates = { };
+	candidates.must_add( { pml.origin, pml.velocity } );
 
-	// push down the final amount
-	Vec3 down = pml.origin - Vec3( 0.0f, 0.0f, STEPSIZE );
-	trace = pmove_gs->api.Trace( pml.origin, pm->bounds, down, pm->playerState->POVnum, pm->solid_mask, 0 );
-	if( trace.GotSomewhere() )
-		pml.origin = trace.endpos;
+	for( size_t i = 0; i < num_step_over_candidates; i++ ) {
+		float step_size = ( float( i + 1 ) / float( num_step_over_candidates ) ) * STEPSIZE;
 
-	up = pml.origin;
+		trace_t up_trace = pmove_gs->api.Trace( initial_origin, pm->bounds, initial_origin + Vec3::Z( step_size ), pm->playerState->POVnum, pm->solid_mask, 0 );
+		if( i == 0 && up_trace.GotNowhere() )
+			break;
 
-	// decide which one went farther
-	float down_dist = LengthSquared( down_o.xy() - start_o.xy() );
-	float up_dist = LengthSquared( up.xy() - start_o.xy() );
+		pml.origin = up_trace.endpos;
+		pml.velocity = initial_velocity;
 
-	if( down_dist >= up_dist || trace.GotNowhere() || ( trace.HitSomething() && !ISWALKABLEPLANE( trace.normal ) ) ) {
-		pml.origin = down_o;
-		pml.velocity = down_v;
+		PM_SlideMove( pmove_gs->api, pm, &pml );
+
+		trace_t down_trace = pmove_gs->api.Trace( pml.origin, pm->bounds, pml.origin - Vec3::Z( step_size ), pm->playerState->POVnum, pm->solid_mask, 0 );
+		if( !down_trace.HitSomething() || ISWALKABLEPLANE( down_trace.normal ) ) {
+			candidates.must_add( {
+				.endpos = down_trace.endpos,
+				.velocity = pml.velocity,
+				.normal = down_trace.normal,
+			} );
+		}
+
+		if( up_trace.HitSomething() )
+			break;
+	}
+
+	size_t best_candidate = 0;
+	float best_sqdistance = LengthSquared( candidates[ 0 ].endpos - initial_origin );
+	for( size_t i = 1; i < candidates.size(); i++ ) {
+		float d = LengthSquared( candidates[ i ].endpos - initial_origin );
+		if( d > best_sqdistance ) {
+			best_candidate = i;
+			best_sqdistance = d;
+		}
+	}
+
+	pml.origin = candidates[ best_candidate ].endpos;
+	pml.velocity = candidates[ best_candidate ].velocity;
+
+	if( best_candidate == 0 ) {
 		return;
 	}
 
 	// only add the stepping output when it was a vertical step (second case is at the exit of a ramp)
-	if( ( blocked & SLIDEMOVEFLAG_WALL_BLOCKED ) || trace.normal.z == 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+	Vec3 normal = candidates[ best_candidate ].normal;
+	if( ( blocked & SLIDEMOVEFLAG_WALL_BLOCKED ) || normal.z == 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
 		pm->step = pml.origin.z - pml.previous_origin.z;
 	}
 
 	// Preserve speed when sliding up ramps
-	float hspeed = Length( start_v.xy() );
-	if( hspeed && ISWALKABLEPLANE( trace.normal ) ) {
-		if( trace.normal.z >= 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
-			pml.velocity = start_v;
+	float hspeed = Length( initial_origin.xy() );
+	if( hspeed && ISWALKABLEPLANE( normal ) ) {
+		if( normal.z >= 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+			pml.velocity = initial_velocity;
 		} else {
 			Normalize2D( &pml.velocity );
 			pml.velocity = Vec3( pml.velocity.xy() * hspeed, pml.velocity.z );
@@ -274,7 +298,7 @@ static void PM_StepSlideMove() {
 
 	//!! Special case
 	// if we were walking along a plane, then we need to copy the Z over
-	pml.velocity.z = down_v.z;
+	pml.velocity.z = candidates[ 0 ].velocity.z;
 }
 
 /*

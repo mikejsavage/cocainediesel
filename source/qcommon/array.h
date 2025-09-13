@@ -37,6 +37,11 @@ public:
 		return true;
 	}
 
+	void must_add( const T & x ) {
+		[[maybe_unused]] bool ok = add( x );
+		Assert( ok );
+	}
+
 	void remove_swap( T * x ) {
 		n--;
 		Swap2( x, &elems[ n ] );
@@ -66,6 +71,8 @@ public:
 	const T * ptr() const { return elems; }
 	size_t size() const { return n; }
 	size_t num_bytes() const { return sizeof( T ) * n; }
+
+	constexpr size_t capacity() const { return N; }
 
 	T * begin() { return elems; }
 	T * end() { return elems + n; }

@@ -344,6 +344,8 @@ struct Vec3 {
 	constexpr Vec3( Vec2 xy, float z_ ) : x( xy.x ), y( xy.y ), z( z_ ) { }
 	constexpr Vec3( float x_, float y_, float z_ ) : x( x_ ), y( y_ ), z( z_ ) { }
 
+	static constexpr Vec3 Z( float z ) { return Vec3( 0.0f, 0.0f, z ); }
+
 	constexpr Vec2 xy() const { return Vec2( x, y ); }
 
 	float * ptr() { return &x; }

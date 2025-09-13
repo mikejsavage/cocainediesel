@@ -1028,6 +1028,58 @@ static ClayCustomElementConfig * ClayImGui( ClayCustomElementCallback callback, 
 	} );
 }
 
+static FittedTextShadow ClayTextShadow( Vec4 color, float offset ) {
+	return FittedTextShadow {
+		.color = color,
+		.offset = offset * GetContentScale(),
+		.angle = 40.0f,
+	};
+}
+
+static ClayCustomElementConfig * ClayTextCustom( Span<const char> text, const Clay_TextElementConfig & config, XAlignment alignment = XAlignment_Left, const Optional<FittedTextShadow> shadow = {} ) {
+	return Clone( ClayAllocator(), ClayCustomElementConfig {
+		.type = ClayCustomElementType_FittedText,
+		.fitted_text = {
+			.text = AllocateClayString( text ),
+			.config = config,
+			.alignment = alignment,
+			.border_color = black.linear,
+			.shadow = shadow,
+		},
+	} );
+}
+
+using ClayButtonDrawCallback = void (*)(const Clay_BoundingBox &, bool);
+using ClayButtonPressedCallback = void (*)();
+
+static ClayCustomElementConfig * ClayButtonCustom( const char * imgui_id, ClayButtonDrawCallback draw, ClayButtonPressedCallback press ) {
+	struct ClayButtonData {
+		const char * id;
+		ClayButtonDrawCallback draw_callback;
+		ClayButtonPressedCallback press_callback;
+	};
+
+	ClayButtonData * button_data = Clone( ClayAllocator(), ClayButtonData{ imgui_id, draw, press } );
+
+	return ClayImGui([]( const Clay_BoundingBox & bounds, void * userdata ) {
+			ClayButtonData * button_data = ( ClayButtonData * )userdata;
+			
+			TempAllocator temp = cls.frame_arena.temp();
+			ImGui::PushID( button_data->id );
+			if( ImGui::InvisibleButton( "", ImVec2( bounds.width, bounds.height ) ) ) {
+				button_data->press_callback();
+				PlaySFX( "ui/sounds/click" );
+			}
+
+			if( ImGui::IsItemHoveredThisFrame() ) {
+				PlaySFX( "ui/sounds/hover" );
+			}
+
+			button_data->draw_callback( bounds, ImGui::IsItemHovered() );
+			ImGui::PopID();
+		}, button_data );
+}
+
 static void MainMenu() {
 	constexpr MainMenuCategory categories[] = {
 		{ "hud/license", "LICENSE", MainMenuState_License, diesel_grey.linear, false },
@@ -1048,12 +1100,6 @@ static void MainMenu() {
 
 	ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_Interactive );
 	ImGui::Dummy( frame_static.viewport ); // NOTE(mike): needed to fix the ErrorCheckUsingSetCursorPosToExtendParentBoundaries assert
-
-	FittedTextShadow shadow = FittedTextShadow {
-		.color = black.linear,
-		.offset = 8.0f * GetContentScale(),
-		.angle = 40.0f,
-	};
 
 	CLAY( {
 		.id = CLAY_ID_LOCAL( "Background" ),
@@ -1118,81 +1164,76 @@ static void MainMenu() {
 					.layoutDirection = CLAY_TOP_TO_BOTTOM,
 				},
 			} ) {
-				ClayCustomElementConfig * cocaine_custom = Clone( ClayAllocator(), ClayCustomElementConfig {
-					.type = ClayCustomElementType_FittedText,
-					.fitted_text = {
-						.text = CLAY_STRING( "COCAINE" ),
-						.config = {
-							.textColor = { 255, 255, 255, 255 },
-							.fontId = ClayFont_BoldItalic,
-						},
-						.shadow = shadow,
-					},
-				} );
-
-				ClayCustomElementConfig * diesel_custom = Clone( ClayAllocator(), ClayCustomElementConfig {
-					.type = ClayCustomElementType_FittedText,
-					.fitted_text = {
-						.text = CLAY_STRING( "DIESEL" ),
-						.config = {
-							.textColor = { 255, 255, 255, 255 },
-							.fontId = ClayFont_BoldItalic,
-						},
-						.shadow = shadow,
-					},
-				} );
-
 				CLAY( {
 					.id = CLAY_ID_LOCAL( "COCAINE" ),
 					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.1f ) } },
-					.custom = { cocaine_custom },
-				} ) { }
+					.custom = { ClayTextCustom( "COCAINE", { .textColor = { 255, 255, 255, 255 }, .fontId = ClayFont_BoldItalic }, XAlignment_Left, ClayTextShadow( black.linear, 8.f ) ) }
+				} );
 
-				ClayVerticalSpacing( CLAY_ID_LOCAL( "Inter-title spacing" ), CLAY_SIZING_FIXED( 2.0f * GetContentScale() ) );
+				ClayVerticalSpacing( CLAY_ID_LOCAL( "Inter-title spacing" ), CLAY_SIZING_FIXED( 4.0f * GetContentScale() ) );
 
 				CLAY( {
 					.id = CLAY_ID_LOCAL( "DIESEL" ),
 					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.1f ) } },
-					.custom = { diesel_custom },
-				} ) { }
+					.custom = { ClayTextCustom( "DIESEL", { .textColor = { 255, 255, 255, 255 }, .fontId = ClayFont_BoldItalic }, XAlignment_Left, ClayTextShadow( black.linear, 8.f ) ) }
+				} );
 
 				ClayVerticalSpacing( CLAY_ID_LOCAL( "Title-subtitle spacing" ), CLAY_SIZING_FIXED( 8.0f * GetContentScale() ) );
 
+				constexpr Span< const char > subtitles[] = {
+					#include "subtitles.h"
+				};
+
+				RNG rng = NewRNG( cls.launch_day, 0 );
+				Span< const char > subtitle = RandomElement( &rng, subtitles );
+				Span< const char > full_subtitle = temp.sv( "THE{}{} GAME", subtitle == "" ? "" : " ", subtitle );
+
 				CLAY( {
 					.id = CLAY_ID_LOCAL( "Subtitle" ),
-					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_FIT() } },
-				} ) {
-					constexpr Span< const char > subtitles[] = {
-						#include "subtitles.h"
-					};
-
-					RNG rng = NewRNG( cls.launch_day, 0 );
-					Span< const char > subtitle = RandomElement( &rng, subtitles );
-					Span< const char > full_subtitle = temp.sv( "THE{}{} GAME", subtitle == "" ? "" : " ", subtitle );
-
-					CLAY_TEXT( AllocateClayString( full_subtitle ), CLAY_TEXT_CONFIG( {
-						.userData = Clone( ClayAllocator(), Optional< Vec4 >( NONE ) ),
-						.textColor = { 255, 255, 255, 255 },
-						.fontId = ClayFont_Regular,
-						.fontSize = u16( 16.0f * GetContentScale() ),
-					} ) );
-				}
+					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.025f ) } },
+					.custom = { ClayTextCustom( full_subtitle, { .textColor = { 255, 255, 255, 255 }, .fontId = ClayFont_BoldItalic }, XAlignment_Left, ClayTextShadow( black.linear, 8.f ) ) }
+				} );
 
 				if( mainmenu_state != MainMenuState_Main ) {
 					ClayVerticalSpacing( CLAY_ID_LOCAL( "Bottom-align everything below this" ), CLAY_SIZING_GROW() );
-
-					ClayCustomElementConfig * back_custom = ClayImGui( []( const Clay_BoundingBox & bounds, void * userdata ) {
-						if( ImGui::Button( "cya" ) ) {
-							mainmenu_state = MainMenuState_Main;
+					
+					CLAY( {
+						.id = CLAY_ID_LOCAL( "Back to the map" ),
+						.layout = { .sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_PERCENT( 0.2f ) } },
+						.custom = { ClayButtonCustom( "back to map", 
+							[] ( const Clay_BoundingBox & bounds, bool hovered ) {
+								constexpr float period = 2.f;
+								float factor = hovered ? sinf( ( ImGui::GetCurrentContext()->HoverItemDelayTimer / period ) * PI * 2.0f ) * 0.05f : 0.f;
+								float xDiff = bounds.width * factor;
+								float yDiff = bounds.height * factor;
+								
+								DrawClayText( "BACK TO THE MAP", {
+									.textColor = { 255, 255, 255, 255 },
+									.fontId = ClayFont_BoldItalic,
+								}, {
+									.x = bounds.x + xDiff * 0.5f,
+									.y = bounds.y + yDiff * 0.5f,
+									.width = bounds.width - xDiff,
+									.height = bounds.height - yDiff
+								}, ClayTextShadow( black.linear, 8.f ) );
+							},
+							[]() {
+								mainmenu_state = MainMenuState_Main;
+							} )
 						}
 					} );
-
-					CLAY( {
-						.id = CLAY_ID_LOCAL( "Back" ),
-						.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.10f ) } },
-						.custom = { back_custom },
-					} ) { }
 				}
+			}
+
+			CLAY ( {
+				.id = CLAY_ID_LOCAL( "Menus" ),
+				.layout = {
+					.sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW() },
+					.padding = CLAY_PADDING_ALL( u16( 24.0f * GetContentScale() ) ),
+					.layoutDirection = CLAY_TOP_TO_BOTTOM,
+				},
+			} ) {
+
 			}
 		}
 
@@ -1214,17 +1255,18 @@ static void MainMenu() {
 			},
 			.backgroundColor = { 0, 0, 0, 255 },
 		} ) {
+			const char * buf = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
 			CLAY( {
 				.id = CLAY_ID_LOCAL( "Version" ),
-			} ) {
-				const char * buf = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
-				CLAY_TEXT( AllocateClayString( MakeSpan( buf ) ), CLAY_TEXT_CONFIG( {
-					.userData = Clone( ClayAllocator(), Optional< Vec4 >( NONE ) ),
-					.textColor = { 255, 255, 255, 255 },
-					.fontId = ClayFont_Bold,
-					.fontSize = u16( 14.0f * GetContentScale() ),
-				} ) );
-			}
+				.layout = {
+					.sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_PERCENT( 0.2f ) },
+				},
+				.custom = { ClayTextCustom( MakeSpan( buf ), {
+						.textColor = { 255, 255, 255, 255 },
+						.fontId = ClayFont_Bold,
+					}, XAlignment_Right )
+				}
+			} );
 		}
 	}
 

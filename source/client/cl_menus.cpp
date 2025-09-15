@@ -1054,6 +1054,25 @@ static constexpr float MAIN_MENU_SIZE_WIDTH = 0.25f;
 static constexpr float MAIN_MENU_BAR_HEIGHT = 0.1f;
 static constexpr float MAIN_MENU_BAR_HAZARD_HEIGHT = 0.03f;
 
+static void DrawSectionIcon( const Material * icon, size_t posX, size_t posY, float size, const Vec4 & bg_color ) {
+	const float shadow_offset = size * 0.075f;
+
+	Draw2DBox(
+		posX + shadow_offset, posY + shadow_offset,
+		size, size,
+		cls.white_material, dark.linear );
+
+	Draw2DBox(
+		posX, posY,
+		size, size,
+		cls.white_material, bg_color );
+
+	Draw2DBox(
+		posX, posY,
+		size, size,
+		icon, dark.linear );
+}
+
 static void MainSectionButton( size_t idx, Vec2 pos, ClayButtonPressedCallback press ) {
 	MainSectionButtonData * data = Clone( ClayAllocator(), MainSectionButtonData{
 		FindMaterial( categories[ idx ].icon_path ),
@@ -1079,23 +1098,9 @@ static void MainSectionButton( size_t idx, Vec2 pos, ClayButtonPressedCallback p
 				constexpr float period = 2.f;
 				const float hover_factor = 1.f + (!hovered ? 0.0f : sinf( ( ImGui::GetCurrentContext()->HoverItemDelayTimer / period ) * PI * 2.0f ) * 0.05f );
 				const float size = bounds.width * hover_factor;
-				const float shadow_offset = size * 0.075f;
 				const float font_size = size * 0.275f;
 
-				Draw2DBox(
-					bounds.x + shadow_offset, bounds.y + shadow_offset,
-					size, size,
-					cls.white_material, dark.linear );
-
-				Draw2DBox(
-					bounds.x, bounds.y,
-					size, size,
-					cls.white_material, data->bg_color );
-
-				Draw2DBox(
-					bounds.x, bounds.y,
-					size, size,
-					data->icon, dark.linear );
+				DrawSectionIcon( data->icon, bounds.x, bounds.y, size, data->bg_color );
 
 				DrawClayText( data->name, {
 								.textColor = { 255, 255, 255, 255 },
@@ -1233,7 +1238,33 @@ static void MainMenu() {
 				} );
 
 				if( mainmenu_state != MainMenuState_Main ) {
-					ClayVerticalSpacing( CLAY_ID_LOCAL( "Bottom-align everything below this" ), CLAY_SIZING_GROW() );
+					ClayVerticalSpacing( CLAY_ID_LOCAL( "Adaptative spacing 1" ), CLAY_SIZING_GROW() );
+
+					CLAY( {
+						.id = CLAY_ID_LOCAL( "Section icon" ),
+						.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.2f ) } },
+						.custom = { ClayImGui( []( const Clay_BoundingBox & bounds, void * userdata ) {
+							for( size_t i = 0; i < ARRAY_COUNT( categories ); i++ ) {
+								if( categories[ i ].state == mainmenu_state ) {
+									DrawSectionIcon( FindMaterial( categories[ i ].icon_path ), bounds.x, bounds.y, bounds.height, categories[ i ].bg_color );
+									
+
+									DrawClayText( categories[ i ].name, {
+										.textColor = { 255, 255, 255, 255 },
+										.fontId = ClayFont_BoldItalic,
+									}, {
+										.x = bounds.x + bounds.height * 1.25f,
+										.y = bounds.y + bounds.height * 0.3f,
+										.width = bounds.width - bounds.height * 1.5f,
+										.height = bounds.height * 0.4f
+									}, ClayTextShadow( black.linear, 8.f ), XAlignment_Center );
+									break;
+								}
+							}
+						} ) }
+					} );
+
+					ClayVerticalSpacing( CLAY_ID_LOCAL( "Adaptative spacing 2" ), CLAY_SIZING_GROW() );
 					
 					CLAY( {
 						.id = CLAY_ID_LOCAL( "Back to the map" ),

@@ -45,6 +45,7 @@ enum MainMenuState {
 	MainMenuState_Settings,
 	MainMenuState_Extras,
 	MainMenuState_Career,
+	MainMenuState_Exit,
 };
 
 enum GameMenuState {
@@ -932,63 +933,12 @@ static void ShadowedText( Span< const char > text, float shadow_size ) {
 	ImGui::Text( text );
 }
 
-template< bool BUTTON >
-static bool MainSectionButton( const ImVec2& pos, const Material * icon, const Vec2& size, Span<const char> name, const Vec4& bg_color, const bool is_enabled ) {
-	const Vec2 half_pixel = HalfPixelSize( icon );
-	const Vec2 SQUARE_SIZE = size + 8.0f;
-	const ImVec2 text_size = ImGui::CalcTextSize( name );
-	const Vec4 text_color = is_enabled ? white.linear : diesel_grey.linear;
-
-	bool pressed = false;
-	bool hovered = false;
-	if( BUTTON ) {
-		ImGui::SetCursorPos( pos );
-		ImGui::PushID( name );
-		pressed = ImGui::InvisibleButton( "", size );
-		hovered = ImGui::IsItemHovered();
-		ImGui::PopID();
-
-		if( ImGui::IsItemHoveredThisFrame() ) {
-			PlaySFX( "ui/sounds/hover" );
-		}
-
-		if( pressed ) {
-			PlaySFX( "ui/sounds/click" );
-		}
-	}
-
-	constexpr float period = 0.5f;
-	float offset = !hovered ? 0.0f : -cosf( ( ImGui::GetCurrentContext()->HoverItemDelayTimer / period ) * PI * 2.0f ) * 2.0f + 2.0f;
-
-	ImGui::SetCursorPos( pos - 4.0f - offset );
-	ImGui::Image( cls.white_material, SQUARE_SIZE, Vec2( 0.f ), Vec2( 0.f ), dark.linear, Vec4( 0.0f ) );
-	ImGui::SetCursorPos( pos + 4.0f );
-	ImGui::Image( cls.white_material, SQUARE_SIZE + offset, Vec2( 0.f ), Vec2( 0.f ), dark.linear, Vec4( 0.0f ) );
-
-	ImGui::SetCursorPos( pos - offset );
-	ImGui::Image( cls.white_material, size, Vec2( 0.f ), Vec2( 0.f ), bg_color, Vec4( 0.0f ) );
-
-	ImGui::SetCursorPos( pos - offset * 2.f );
-	ImGui::Image( icon, size + offset, half_pixel, 1.0f - half_pixel, Vec4( 0.f, 0.f, 0.f, 1.f ), Vec4( 0.0f ) );
-
-	if( BUTTON ) {
-		ImGui::SetCursorPos( ImVec2( pos.x + (size.x - text_size.x) * 0.5f + 4.f, pos.y + size.y + 16.f ) );
-	}
-	else {
-		ImGui::SetCursorPos( ImVec2( pos.x + size.x + 32.f, pos.y + (size.y - text_size.y) * 0.5f + 4.f ) );
-	}
-	ImGui::PushStyleColor( ImGuiCol_Text, text_color );
-	ShadowedText( name, 4.f );
-	ImGui::PopStyleColor();
-
-	return pressed;
-}
-
 struct MainMenuCategory {
 	StringHash icon_path;
 	Span< const char > name;
 	MainMenuState state;
 	Vec4 bg_color;
+	Vec2 pos;
 	bool is_enabled;
 };
 
@@ -1049,25 +999,26 @@ static ClayCustomElementConfig * ClayTextCustom( Span<const char> text, const Cl
 	} );
 }
 
-using ClayButtonDrawCallback = void (*)(const Clay_BoundingBox &, bool);
-using ClayButtonPressedCallback = void (*)();
+using ClayButtonDrawCallback = void (*)(const Clay_BoundingBox &, bool, void *);
+using ClayButtonPressedCallback = void (*)( void * userdata );
 
-static ClayCustomElementConfig * ClayButtonCustom( const char * imgui_id, ClayButtonDrawCallback draw, ClayButtonPressedCallback press ) {
+static ClayCustomElementConfig * ClayButtonCustom( Span<const char> imgui_id, void * userdata, ClayButtonDrawCallback draw, ClayButtonPressedCallback press ) {
 	struct ClayButtonData {
-		const char * id;
+		Span<const char> id;
 		ClayButtonDrawCallback draw_callback;
 		ClayButtonPressedCallback press_callback;
+		void * userdata;
 	};
 
-	ClayButtonData * button_data = Clone( ClayAllocator(), ClayButtonData{ imgui_id, draw, press } );
+	ClayButtonData * button_data = Clone( ClayAllocator(), ClayButtonData{ imgui_id, draw, press, userdata } );
 
 	return ClayImGui([]( const Clay_BoundingBox & bounds, void * userdata ) {
 			ClayButtonData * button_data = ( ClayButtonData * )userdata;
 			
 			TempAllocator temp = cls.frame_arena.temp();
-			ImGui::PushID( button_data->id );
+			ImGui::PushID( button_data->id.begin(), button_data->id.end() );
 			if( ImGui::InvisibleButton( "", ImVec2( bounds.width, bounds.height ) ) ) {
-				button_data->press_callback();
+				button_data->press_callback( button_data->userdata );
 				PlaySFX( "ui/sounds/click" );
 			}
 
@@ -1075,23 +1026,110 @@ static ClayCustomElementConfig * ClayButtonCustom( const char * imgui_id, ClayBu
 				PlaySFX( "ui/sounds/hover" );
 			}
 
-			button_data->draw_callback( bounds, ImGui::IsItemHovered() );
+			button_data->draw_callback( bounds, ImGui::IsItemHovered(), button_data->userdata );
 			ImGui::PopID();
 		}, button_data );
 }
 
-static void MainMenu() {
-	constexpr MainMenuCategory categories[] = {
-		{ "hud/license", "LICENSE", MainMenuState_License, diesel_grey.linear, false },
-		{ "hud/locker", "LOCKER", MainMenuState_Locker, diesel_grey.linear, false },
-		{ "hud/gladiator", "RANKED", MainMenuState_Ranked, diesel_grey.linear, false },
-		{ "hud/replays", "REPLAYS", MainMenuState_Replays, diesel_yellow.linear, true },
-		{ "hud/bomb", "PLAY", MainMenuState_ServerBrowser, diesel_green.linear, true },
-		{ "hud/settings", "SETTINGS", MainMenuState_Settings, diesel_yellow.linear, true },
-		{ "hud/extras", "EXTRAS", MainMenuState_Extras, diesel_grey.linear, false },
-		{ "hud/career", "CAREER", MainMenuState_Career, diesel_grey.linear, false },
-	};
+static constexpr MainMenuCategory categories[] = {
+	{ "hud/locker", "LOCKER", MainMenuState_Locker, diesel_grey.linear, Vec2( 0.125f, 0.075f ), true },
+	{ "hud/settings", "SETTINGS", MainMenuState_Settings, diesel_yellow.linear, Vec2( 0.45f, 0.15f ), true },
+	{ "hud/extras", "EXTRAS", MainMenuState_Extras, diesel_grey.linear, Vec2( 0.85f, 0.05f ), true },
+	{ "hud/bomb", "PLAY", MainMenuState_ServerBrowser, diesel_green.linear, Vec2( 0.25f, 0.4f ), true },
+	{ "hud/gladiator", "RANKED", MainMenuState_Ranked, diesel_green.linear, Vec2( 0.575f, 0.475f ), true },
+	{ "hud/career", "CAREER", MainMenuState_Career, diesel_grey.linear, Vec2( 0.75f, 0.35f ), true },
+	{ "hud/license", "LICENSE", MainMenuState_License, white.linear, Vec2( 0.2f, 0.75f ), true },
+	{ "hud/replays", "REPLAYS", MainMenuState_Replays, diesel_yellow.linear, Vec2( 0.4, 0.65f ), true },
+	{ "hud/exit", "EXIT", MainMenuState_Exit, diesel_red.linear, Vec2( 0.8f, 0.7f ), true },
+};
 
+struct MainSectionButtonData {
+	const Material * icon;
+	Span<const char> name;
+	Vec4 bg_color;
+	MainMenuState state;
+};
+
+static constexpr float MAIN_MENU_SIZE_WIDTH = 0.25f;
+static constexpr float MAIN_MENU_BAR_HEIGHT = 0.1f;
+static constexpr float MAIN_MENU_BAR_HAZARD_HEIGHT = 0.03f;
+
+static void MainSectionButton( size_t idx, Vec2 pos, ClayButtonPressedCallback press ) {
+	MainSectionButtonData * data = Clone( ClayAllocator(), MainSectionButtonData{
+		FindMaterial( categories[ idx ].icon_path ),
+		categories[ idx ].name, 
+		categories[ idx ].bg_color, 
+		categories[ idx ].state
+	} );
+
+	float viewport_width = frame_static.viewport_width * (1.f - MAIN_MENU_SIZE_WIDTH);
+	float viewport_height = frame_static.viewport_height * (1.f - (MAIN_MENU_BAR_HEIGHT + MAIN_MENU_BAR_HAZARD_HEIGHT) * 2.f);
+	float size = Min2( viewport_height, viewport_width ) * 0.15f;
+
+	CLAY( {
+		.floating = {
+			.offset = { pos.x * viewport_width, pos.y * viewport_height },
+			.attachTo = CLAY_ATTACH_TO_PARENT
+		},
+		.layout = { .sizing = { .width = size, .height = size } },
+		.custom = { ClayButtonCustom( data->name, data,
+			[] ( const Clay_BoundingBox & bounds, bool hovered, void * userdata ) {
+				MainSectionButtonData * data = ( MainSectionButtonData * )userdata;
+
+				constexpr float period = 2.f;
+				const float hover_factor = 1.f + (!hovered ? 0.0f : sinf( ( ImGui::GetCurrentContext()->HoverItemDelayTimer / period ) * PI * 2.0f ) * 0.05f );
+				const float size = bounds.width * hover_factor;
+				const float shadow_offset = size * 0.075f;
+				const float font_size = size * 0.275f;
+
+				Draw2DBox(
+					bounds.x + shadow_offset, bounds.y + shadow_offset,
+					size, size,
+					cls.white_material, dark.linear );
+
+				Draw2DBox(
+					bounds.x, bounds.y,
+					size, size,
+					cls.white_material, data->bg_color );
+
+				Draw2DBox(
+					bounds.x, bounds.y,
+					size, size,
+					data->icon, dark.linear );
+
+				DrawClayText( data->name, {
+								.textColor = { 255, 255, 255, 255 },
+								.fontId = ClayFont_BoldItalic,
+							}, {
+								.x = bounds.x + size * 0.5f - frame_static.viewport_width * 0.5f,
+								.y = bounds.y + size * 1.25f,
+								.width = float(frame_static.viewport_width),
+								.height = font_size
+							}, ClayTextShadow( black.linear, 8.f ), XAlignment_Center );
+			},
+			press
+		) }
+	} );
+}
+
+static void MainMenu_Main() {
+	for( size_t i = 0; i < ARRAY_COUNT( categories ); i++ ) {
+		if( !categories[ i ].is_enabled )
+			continue;
+
+		MainSectionButton( i, categories[ i ].pos, []( void * userdata ) {
+			MainSectionButtonData * d = ( MainSectionButtonData * )userdata;
+			if( d->state == MainMenuState_Exit ) {
+				TempAllocator temp = cls.frame_arena.temp();
+				Cmd_Execute( &temp, "quit" );
+			} else {
+				mainmenu_state = d->state;
+			}
+		} );
+	}
+}
+
+static void MainMenu() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	ImGui::SetNextWindowPos( ImVec2() );
@@ -1104,7 +1142,7 @@ static void MainMenu() {
 	CLAY( {
 		.id = CLAY_ID_LOCAL( "Background" ),
 		.layout = {
-			.sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 1.0f ) },
+			.sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW() },
 			.layoutDirection = CLAY_TOP_TO_BOTTOM,
 		},
 	} ) {
@@ -1122,7 +1160,7 @@ static void MainMenu() {
 		CLAY( {
 			.id = CLAY_ID_LOCAL( "Top bar" ),
 			.layout = {
-				.sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.1f ) },
+				.sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( MAIN_MENU_BAR_HEIGHT ) },
 				.padding = CLAY_PADDING_ALL( u16( 8 * GetContentScale() ) ),
 			},
 			.backgroundColor = { 0, 0, 0, 255 },
@@ -1143,7 +1181,7 @@ static void MainMenu() {
 
 		CLAY( {
 			.id = CLAY_ID_LOCAL( "Top hazard stripes" ),
-			.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.03f ) } },
+			.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( MAIN_MENU_BAR_HAZARD_HEIGHT ) } },
 			.custom = { ClayImGui( scrolling_hazard_stripes, bit_cast< void * >( uintptr_t( 0 ) ) ) },
 		} ) { }
 
@@ -1159,7 +1197,7 @@ static void MainMenu() {
 			CLAY( {
 				.id = CLAY_ID_LOCAL( "Sidebar" ),
 				.layout = {
-					.sizing = { .width = CLAY_SIZING_PERCENT( 0.25f ), .height = CLAY_SIZING_PERCENT( 1.0f ) },
+					.sizing = { .width = CLAY_SIZING_PERCENT( MAIN_MENU_SIZE_WIDTH ), .height = CLAY_SIZING_PERCENT( 1.0f ) },
 					.padding = CLAY_PADDING_ALL( u16( 24.0f * GetContentScale() ) ),
 					.layoutDirection = CLAY_TOP_TO_BOTTOM,
 				},
@@ -1200,8 +1238,8 @@ static void MainMenu() {
 					CLAY( {
 						.id = CLAY_ID_LOCAL( "Back to the map" ),
 						.layout = { .sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_PERCENT( 0.2f ) } },
-						.custom = { ClayButtonCustom( "back to map", 
-							[] ( const Clay_BoundingBox & bounds, bool hovered ) {
+						.custom = { ClayButtonCustom( "back to map", nullptr,
+							[] ( const Clay_BoundingBox & bounds, bool hovered, void * userdata ) {
 								constexpr float period = 2.f;
 								float factor = hovered ? sinf( ( ImGui::GetCurrentContext()->HoverItemDelayTimer / period ) * PI * 2.0f ) * 0.05f : 0.f;
 								float xDiff = bounds.width * factor;
@@ -1217,7 +1255,7 @@ static void MainMenu() {
 									.height = bounds.height - yDiff
 								}, ClayTextShadow( black.linear, 8.f ) );
 							},
-							[]() {
+							[]( void * userdata ) {
 								mainmenu_state = MainMenuState_Main;
 							} )
 						}
@@ -1225,28 +1263,29 @@ static void MainMenu() {
 				}
 			}
 
+			Clay_ElementId menu_id = CLAY_ID_LOCAL( "Menus" );
 			CLAY ( {
-				.id = CLAY_ID_LOCAL( "Menus" ),
+				.id = menu_id,
 				.layout = {
-					.sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW() },
-					.padding = CLAY_PADDING_ALL( u16( 24.0f * GetContentScale() ) ),
-					.layoutDirection = CLAY_TOP_TO_BOTTOM,
+					.sizing = { .width = CLAY_SIZING_PERCENT( 0.75f ), .height = CLAY_SIZING_GROW() },
 				},
 			} ) {
-
+				if( mainmenu_state == MainMenuState_Main ) {
+					MainMenu_Main();
+				}
 			}
 		}
 
 		CLAY( {
 			.id = CLAY_ID_LOCAL( "Bottom hazard stripes" ),
-			.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.03f ) } },
+			.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( MAIN_MENU_BAR_HAZARD_HEIGHT ) } },
 			.custom = { ClayImGui( scrolling_hazard_stripes, bit_cast< void * >( uintptr_t( 1 ) ) ) },
 		} ) { }
 
 		CLAY( {
 			.id = CLAY_ID_LOCAL( "Bottom bar" ),
 			.layout = {
-				.sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.1f ) },
+				.sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( MAIN_MENU_BAR_HEIGHT ) },
 				.padding = {
 					.right = u16( 8 + Sin( cls.monotonicTime, Milliseconds( 182 ) ) * GetContentScale() ),
 					.bottom = 8,
@@ -1273,29 +1312,7 @@ static void MainMenu() {
 	const float OFFSET = frame_static.viewport_height * 0.1f;
 	const Vec2 icon_size = Vec2( frame_static.viewport_height * 0.10f, frame_static.viewport_height * 0.10f );
 
-	if( mainmenu_state == MainMenuState_Main ) {
-		const float BASE_COLUMN = frame_static.viewport_width * 0.4f;
-		const float COLUMN_OFFSET = frame_static.viewport_width * 0.2f;
-		const float COLUMN_LINE_OFFSET = frame_static.viewport_width * 0.05f;
-
-		const float BASE_LINE = frame_static.viewport_height * 0.25f - icon_size.y * 0.5f;
-		const float LINE_OFFSET = frame_static.viewport_height * 0.48f - icon_size.y * 0.5f - BASE_LINE;
-
-		//CATEGORIES
-		ScopedFont( cls.big_font );
-		for( size_t i = 0; i < ARRAY_COUNT( categories ); i++ ) {
-			if( MainSectionButton< true >( ImVec2( BASE_COLUMN + (COLUMN_OFFSET * (i % 3)) + COLUMN_LINE_OFFSET * (i/3), BASE_LINE + LINE_OFFSET * (i/3) ),
-				FindMaterial( categories[ i ].icon_path ), icon_size, categories[ i ].name, categories[ i ].bg_color, categories[ i ].is_enabled ) ) {
-				mainmenu_state = categories[ i ].state;
-			}
-		}
-
-		if( MainSectionButton<true>( ImVec2( BASE_COLUMN + COLUMN_OFFSET * 2.f + COLUMN_LINE_OFFSET * 2.f, BASE_LINE + LINE_OFFSET * 2.f ),
-			FindMaterial( "hud/exit" ), icon_size, "EXIT", diesel_red.linear, true ) ) {
-			Cmd_Execute( &temp, "quit" );
-		}
-	}
-	else {
+	if( mainmenu_state != MainMenuState_Main ) {
 		const ImVec2 submenus_offset = ImVec2( frame_static.viewport_width * 0.275f, OFFSET + 128.f );
 		const ImVec2 submenus_size = ImVec2( frame_static.viewport_width - submenus_offset.x - 512.f, frame_static.viewport_height - OFFSET * 2.f - 256.f );
 

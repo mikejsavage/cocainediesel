@@ -1,5 +1,3 @@
-#include <type_traits>
-
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
@@ -186,7 +184,7 @@ struct ClayButtonData {
 template <bool INSTANT_CLICK>
 static void ClayButton( const Clay_BoundingBox & bounds, void * userdata ) {
 	ClayButtonData * button_data = ( ClayButtonData * ) userdata;
-	
+
 	ImGui::SetCursorPos( Vec2( bounds.x, bounds.y ) );
 
 	bool pressed = false;
@@ -233,7 +231,7 @@ static ClayCustomElementConfig * ClayCheckboxCustom( Span< const char > cvar_nam
 			Span< const char > * cvar_name = ( Span< const char > * ) userdata;
 			bool yes = Cvar_Bool( *cvar_name );
 
-			float width = Min2( bounds.width, bounds.height * 4.f ); 
+			float width = Min2( bounds.width, bounds.height * 4.f );
 
 			Draw2DBox( bounds.x, bounds.y, width, bounds.height, cls.white_material, hovered ? diesel_grey.linear : black.linear );
 
@@ -264,9 +262,9 @@ static ClayCustomElementConfig * ClaySliderCustom( Span< const char > cvar_name,
 	};
 
 	SliderData * slider_data = Clone( ClayAllocator(), SliderData{ cvar_name, min, max, []() {
-		if constexpr (std::is_same_v<float, T>) {
+		if constexpr (SameType< T, float > ) {
 			return Cvar_Float;
-		} else if constexpr(std::is_same_v<int, T>) {
+		} else if constexpr(SameType< T, int >) {
 			return Cvar_Integer;
 		} else {
 			return Cvar_Bool;
@@ -279,7 +277,7 @@ static ClayCustomElementConfig * ClaySliderCustom( Span< const char > cvar_name,
 			T value = data->getter( data->cvar );
 
 			Draw2DBox( bounds.x, bounds.y, bounds.width, bounds.height, cls.white_material, black.linear );
-			
+
 			float pos = float( value - data->min )/( data->max - data->min );
 			float xPos = bounds.x + (bounds.width - bounds.height) * pos;
 			Draw2DBox( xPos, bounds.y, bounds.height, bounds.height, cls.white_material, diesel_yellow.linear );
@@ -310,14 +308,14 @@ static ClayCustomElementConfig * ClaySliderCustom( Span< const char > cvar_name,
 static ClayCustomElementConfig * ClayTextInputCustom( Span< const char > cvar_name, size_t max_len ) {
 	struct TextInputData {
 		Span< const char > cvar;
-		size_t max_len;	
+		size_t max_len;
 	};
 
 	TextInputData * data = Clone( ClayAllocator(), TextInputData{ cvar_name, max_len } );
 
 	return ClayImGui([]( const Clay_BoundingBox & bounds, void * userdata ) {
 			TextInputData * data = ( TextInputData * )userdata;
-			
+
 			ImGuiIO & io = ImGui::GetIO();
 			bool hovered = io.MousePos.x > bounds.x && io.MousePos.x < (bounds.x + bounds.width) &&
 						  io.MousePos.y > bounds.y && io.MousePos.y < (bounds.y + bounds.height);
@@ -328,15 +326,15 @@ static ClayCustomElementConfig * ClayTextInputCustom( Span< const char > cvar_na
 
 			// input handling
 			ImGui::SetCursorPos( ImVec2( frame_static.viewport_width, 0/*frame_static.viewport_height*/ ) );
-			
+
 			ImGui::PushID( data->cvar );
 			ImGui::InputText( "", buf, data->max_len + 1 );
 			ImGui::PopID();
-			
+
 			if( hovered ) {
 				bool was_focused = ImGui::IsItemFocused();
 				ImGui::SetKeyboardFocusHere( -1 );
-				
+
 				if( !was_focused ) {
 					io.AddKeyEvent( ImGuiKey_RightArrow, true );
 				}
@@ -366,8 +364,8 @@ static ClayCustomElementConfig * ClayTextInputCustom( Span< const char > cvar_na
 
 static void MainMenuBackground( const Clay_BoundingBox & bounds, void * userdata ) {
 	//const Material * pattern = FindMaterial( "hud/diagonal_pattern" );
-	
-	//Vec2 half_pixel = HalfPixelSize( pattern );	
+
+	//Vec2 half_pixel = HalfPixelSize( pattern );
 	Draw2DBox( bounds.x, bounds.y, bounds.width, bounds.height, cls.white_material, dark.linear );
 	//Draw2DBoxUV( bounds.x, bounds.y, bounds.width, bounds.height, Vec2( 0.f, 0.f ), Vec2( bounds.width / pattern->texture->width, bounds.height / pattern->texture->height ), pattern );
 }
@@ -671,27 +669,27 @@ static void SettingsButton( Span<const char> name, ClayCustomElementConfig * but
 	CLAY( {
 		.layout {
 			.sizing = { CLAY_SIZING_GROW(), height },
-			.layoutDirection = CLAY_LEFT_TO_RIGHT,
 			.childGap = uint16_t( height * 0.5f ),
-		}
+			.layoutDirection = CLAY_LEFT_TO_RIGHT,
+		},
 	} ) {
 		CLAY( {
 			.layout = {
 				.sizing = { CLAY_SIZING_PERCENT( 0.3f ), CLAY_SIZING_GROW() },
-				.layoutDirection = CLAY_TOP_TO_BOTTOM
-			}
+				.layoutDirection = CLAY_TOP_TO_BOTTOM,
+			},
 		} ) {
 			ClayVerticalSpacing( CLAY_SIZING_PERCENT( 0.15f ) );
 			CLAY( {
 				.layout { .sizing = { CLAY_SIZING_GROW(), CLAY_SIZING_GROW() } },
-				.custom = { ClayTextCustom( name, { .textColor = ui_white.clay, .fontId = ClayFont_BoldItalic } ) }
+				.custom = { ClayTextCustom( name, { .textColor = ui_white.clay, .fontId = ClayFont_BoldItalic } ) },
 			} );
 			ClayVerticalSpacing( CLAY_SIZING_PERCENT( 0.15f ) );
 		}
 
 		CLAY( {
 			.layout { .sizing = { CLAY_SIZING_GROW(), CLAY_SIZING_GROW() } },
-			.custom = { button }
+			.custom = { button },
 		} );
 	}
 }
@@ -711,7 +709,7 @@ static void SettingsSection( Span< const char > section_name, uint16_t padding, 
 		CLAY( {
 			.layout = { .sizing = { CLAY_SIZING_GROW(), float( padding ) } },
 			.custom = { ClayImGui([]( const Clay_BoundingBox & bounds, void * userdata ) {
-				Span< const char > * title = ( Span< const char > * )userdata; 
+				Span< const char > * title = ( Span< const char > * )userdata;
 				ImGuiHorizontalGradient(
 					ImVec2( bounds.x, bounds.y ), ImVec2( bounds.width, bounds.height ),
 					IM_COL32( 150, 150, 150, 255 ), ui_black.imu32 );
@@ -724,7 +722,7 @@ static void SettingsSection( Span< const char > section_name, uint16_t padding, 
 					.x = bounds.x + padding,
 					.y = bounds.y + padding * 0.5f,
 					.width = bounds.width - padding * 2.f,
-					.height = bounds.height - padding
+					.height = bounds.height - padding,
 				}, ClayTextShadow( black.linear, 4.f ) );
 			}, title ) }
 		} );
@@ -738,9 +736,9 @@ static void SettingsSection( Span< const char > section_name, uint16_t padding, 
 		CLAY( {
 			.layout {
 				.sizing = { CLAY_SIZING_GROW(), CLAY_SIZING_FIT() },
-				.layoutDirection = CLAY_TOP_TO_BOTTOM,
+				.padding = { padding, padding, half_padding, half_padding },
 				.childGap = half_padding,
-				.padding = { padding, padding, half_padding, half_padding }
+				.layoutDirection = CLAY_TOP_TO_BOTTOM,
 			},
 		} ) {
 			section_content( old_padding );
@@ -753,7 +751,7 @@ static void SettingsGeneral( uint16_t padding ) {
 	SettingsSection( "NAME", padding, false, []( uint16_t padding ) {
 		CLAY( {
 			.layout = { .sizing = { CLAY_SIZING_GROW(), padding * 2.f } },
-			.custom = { ClayTextInputCustom( "name", MAX_NAME_CHARS ) }
+			.custom = { ClayTextInputCustom( "name", MAX_NAME_CHARS ) },
 		} );
 	} );
 
@@ -1151,18 +1149,18 @@ static void Settings() {
 		.id = CLAY_ID_LOCAL( "Settings Menu" ),
 		.layout = {
 			.sizing = { CLAY_SIZING_GROW(), CLAY_SIZING_GROW() },
-			.layoutDirection = CLAY_LEFT_TO_RIGHT,
 			.padding = CLAY_PADDING_ALL( padding ),
 			.childGap = padding,
+			.layoutDirection = CLAY_LEFT_TO_RIGHT,
 		}
 	} ) {
 		CLAY( {
 			.id = CLAY_ID_LOCAL( "Settings Side bar" ),
 			.layout = {
 				.sizing = { CLAY_SIZING_PERCENT( 0.4f ), CLAY_SIZING_GROW() },
+				.childGap = padding,
 				.layoutDirection = CLAY_TOP_TO_BOTTOM,
-				.childGap = padding
-			}	
+			}
 		} ) {
 			for( size_t i = 0; i < ARRAY_COUNT( settings_categories ); i++ ) {
 				SettingsCategory * category = Clone( ClayAllocator(), settings_categories[ i ] );
@@ -1182,9 +1180,9 @@ static void Settings() {
 			.id = CLAY_ID_LOCAL( "Settings Sub menus" ),
 			.layout = {
 				.sizing = { CLAY_SIZING_GROW(), CLAY_SIZING_GROW() },
+				.childGap = padding,
 				.layoutDirection = CLAY_TOP_TO_BOTTOM,
-				.childGap = padding
-			}	
+			}
 		} ) {
 			if( settings_state == SettingsState_General )
 				SettingsGeneral( padding );
@@ -1431,7 +1429,7 @@ static void DrawShadowedSquare( size_t posX, size_t posY, float size, const Vec4
 		posX + shadow_offset /*- border_size * 0.5f*/, posY + shadow_offset /*- border_size * 0.5f*/,
 		size/* + border_size */, size/* + border_size */,
 		cls.white_material, dark.linear );
-	
+
 	/*Draw2DBox(
 		posX - border_size * 0.5f, posY - border_size * 0.5f,
 		size + border_size, size + border_size,
@@ -1489,14 +1487,14 @@ static void SubMenuWindow() {
 						.layout = { .sizing = { CLAY_SIZING_GROW(), CLAY_SIZING_PERCENT( 0.15f ) } },
 						.custom = { ClayImGui([]( const Clay_BoundingBox & bounds, void * userdata ) {
 							const float offsetPos = bounds.height * 0.15f;
-							const float offsetSize = offsetPos * 2.f; 
+							const float offsetSize = offsetPos * 2.f;
 							const float offsetTextPos = bounds.height * 0.25f;
 							const float offsetTextSize = offsetTextPos * 2.f;
 
 							// gradient
 							ImGuiHorizontalGradient( Vec2( bounds.x, bounds.y ), Vec2( bounds.width / 2, bounds.height ), ui_dark.imu32, ui_diesel_grey.imu32 );
 							ImGuiHorizontalGradient( Vec2( bounds.x + bounds.width / 2, bounds.y ), Vec2( bounds.width - bounds.width / 2, bounds.height ), ui_diesel_grey.imu32, ui_dark.imu32 );
-						
+
 							// section icon
 							for( size_t i = 0; i < ARRAY_COUNT( categories ); ++i ) {
 								if( categories[ i ].state == menu_state ) {
@@ -1534,7 +1532,7 @@ static void SubMenuWindow() {
 								[]( const Clay_BoundingBox &, void * userdata ) {
 									menu_state = MenuState_Main;
 								},
-								data
+								NULL
 							} );
 
 							// back button
@@ -1544,8 +1542,8 @@ static void SubMenuWindow() {
 								.width = bounds.height - offsetSize,
 								.height = bounds.height - offsetSize
 							}, data );
-							
-						}, nullptr ) }
+
+						}, NULL ) }
 					} );
 
 					if( menu_state == MenuState_Settings ) {

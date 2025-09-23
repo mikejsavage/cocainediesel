@@ -151,6 +151,10 @@ void DrawTextBaseline( const Font * font, float pixel_size, Span< const char > s
 }
 
 void DrawFittedText( const Font * font, Span< const char > str, MinMax2 bounds, XAlignment x_alignment, Vec4 color, Optional< Vec4 > border_color ) {
+	if ( str.num_bytes() == 0 ) {
+		return;
+	}
+
 	MinMax2 text_bounds = TextVisualBounds( font, 1.0f, str );
 	float fitted_size = Min2( Width( bounds ) / Width( text_bounds ), Height( bounds ) / Height( text_bounds ) );
 	text_bounds *= fitted_size;

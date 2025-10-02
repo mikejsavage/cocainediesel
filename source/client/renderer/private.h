@@ -94,7 +94,9 @@ struct Texture {
 };
 
 // pass a = NULL for a dedicated allocation
-PoolHandle< Texture > NewTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< PoolHandle< Texture > > = NONE );
+BackendTexture NewBackendTexture( const TextureConfig & config, Optional< BackendTexture > old_texture = NONE );
+BackendTexture NewFramebufferBackendTexture( const TextureConfig & config, Optional< BackendTexture > old_texture );
+BackendTexture NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< BackendTexture > = NONE );
 PoolHandle< Texture > UploadBC4( GPUSlabAllocator * a, const char * path );
 
 u32 TextureWidth( PoolHandle< Texture > texture );
@@ -113,7 +115,7 @@ void CopyGPUBufferToBuffer(
 	size_t n );
 void CopyGPUBufferToTexture(
 	Opaque< CommandBuffer > cmd_buf,
-	PoolHandle< Texture > dest, u32 w, u32 h, u32 num_layers, u32 mip_level,
+	BackendTexture dest, u32 w, u32 h, u32 num_layers, u32 mip_level,
 	PoolHandle< GPUAllocation > src, size_t src_offset );
 
 Opaque< CommandBuffer > NewTransferCommandBuffer();
@@ -121,7 +123,7 @@ void DeleteTransferCommandBuffer( Opaque< CommandBuffer > cb );
 
 void UploadBuffer( GPUBuffer dest, const void * data, size_t n );
 GPUBuffer StageArgumentBuffer( GPUBuffer dest, size_t n, size_t alignment );
-void UploadTexture( PoolHandle< Texture > dest, const void * data );
+void UploadTexture( const TextureConfig & config, BackendTexture dest );
 
 /*
  * Debug info

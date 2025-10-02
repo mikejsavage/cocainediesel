@@ -60,24 +60,20 @@ void UploadBuffer( GPUBuffer dest, const void * data, size_t n ) {
 	CopyGPUBufferToBuffer( staging_command_buffer, dest.allocation, dest.offset, staging_buffer.allocation, cursor, n );
 }
 
-static void UploadMipLevel( PoolHandle< Texture > dest, u32 w, u32 h, u32 num_layers, u32 mip_level, const void * data, size_t n ) {
+static void UploadMipLevel( BackendTexture texture, u32 w, u32 h, u32 num_layers, u32 mip_level, const void * data, size_t n ) {
 	size_t cursor = Stage( data, n, 16 );
-	CopyGPUBufferToTexture( staging_command_buffer, dest, w, h, num_layers, mip_level, staging_buffer.allocation, cursor );
+	CopyGPUBufferToTexture( staging_command_buffer, texture, w, h, num_layers, mip_level, staging_buffer.allocation, cursor );
 }
 
-void UploadTexture( PoolHandle< Texture > dest, const void * data ) {
-	u32 w = TextureWidth( dest );
-	u32 h = TextureHeight( dest );
-	u32 num_layers = TextureLayers( dest );
+void UploadTexture( const TextureConfig & config, BackendTexture texture ) {
+	constexpr size_t bc4_bpp = 4; // TODe
 
-	constexpr size_t bc4_bpp = 4; // TODO
-
-	const char * cursor = ( const char * ) data;
-	for( u32 i = 0; i < TextureMipLevels( dest ); i++ ) {
-		u32 mip_w = w >> i;
-		u32 mip_h = h >> i;
-		size_t mip_bytes = ( mip_w * mip_h * num_layers * bc4_bpp ) / 8;
-		UploadMipLevel( dest, mip_w, mip_h, num_layers, i, cursor, mip_bytes );
+	const char * cursor = ( const char * ) config.data;
+	for( u32 i = 0; i < config.num_mipmaps; i++ ) {
+		u32 mip_w = config.width >> i;
+		u32 mip_h = config.height >> i;
+		size_t mip_bytes = ( mip_w * mip_h * config.num_layers * bc4_bpp ) / 8;
+		UploadMipLevel( texture, mip_w, mip_h, config.num_layers, i, cursor, mip_bytes );
 
 		cursor += mip_bytes;
 	}
@@ -241,12 +237,8 @@ GPUBuffer NewTempBuffer( const void * data, size_t size, size_t alignment ) {
 	return buffer.buffer;
 }
 
-PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {
-	return NewTexture( &persistent_allocator, config, old_texture );
-}
-
-PoolHandle< Texture > NewFramebufferTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {
-	return NewTexture( NULL, config, old_texture );
+BackendTexture NewBackendTexture( const TextureConfig & config, Optional< BackendTexture > old_texture ) {
+	return NewBackendTexture( &persistent_allocator, config, old_texture );
 }
 
 bool operator==( const VertexAttribute & lhs, const VertexAttribute & rhs ) {

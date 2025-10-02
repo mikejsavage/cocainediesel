@@ -363,9 +363,17 @@ static Optional< PoolHandle< Material2 > > AddMaterial( Span< const char > name,
 	return NONE;
 }
 
-static Optional< PoolHandle< Texture > > AddTexture( Span< const char > name, u64 hash, const TextureConfig & config ) {
+u32 TextureWidth( PoolHandle< Texture > texture ) { return textures[ texture ].width; }
+u32 TextureHeight( PoolHandle< Texture > texture ) { return textures[ texture ].height; }
+u32 TextureLayers( PoolHandle< Texture > texture ) { return textures[ texture ].depth; }
+u32 TextureMipLevels( PoolHandle< Texture > texture ) { return textures[ texture ].num_mipmaps; }
+
+[[nodiscard]] static Optional< PoolHandle< Texture > > AddTexture( const TextureConfig & config ) {
 	TracyZoneScoped;
 
+	u64 hash = Hash64( config.name );
+
+	Optional< PoolHandle< Texture > > handle;
 	Optional< PoolHandle< Texture > > old_handle = textures.get( hash );
 	if( old_handle.exists ) {
 		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( textures[ old_handle.value ].format ) ) {
@@ -373,18 +381,29 @@ static Optional< PoolHandle< Texture > > AddTexture( Span< const char > name, u6
 		}
 
 		UnloadTexture( old_handle.value );
-		textures[ old_handle.value ] = NewTexture( config );
-		return old_handle;
+		handle = old_handle;
+	}
+	else {
+		handle = textures.add( hash );
 	}
 
-	Optional< PoolHandle< Texture > > new_handle = textures.add( hash );
-	if( new_handle.exists ) {
-		textures[ new_handle.value ] = NewTexture( config );
-		return new_handle;
+	if( !handle.exists ) {
+		Com_Printf( S_COLOR_YELLOW "Too many textures!\n" );
+		return NONE;
 	}
 
-	Com_Printf( S_COLOR_YELLOW "Too many textures!\n" );
-	return NONE;
+	textures[ handle.value ] = Texture {
+		.name = config.name,
+		.hash = hash,
+		.handle = NewBackendTexture( config, old_handle.exists ? MakeOptional( textures[ old_handle.value ].handle ) : NONE ),
+		.format = config.format,
+		.width = config.width,
+		.height = config.height,
+		.depth = config.num_layers,
+		.num_mipmaps = config.num_mipmaps,
+	};
+
+	return handle;
 }
 
 static void LoadSTBTexture( Span< const char > path, u8 * pixels, int w, int h, int channels, const char * failure_reason ) {
@@ -405,13 +424,14 @@ static void LoadSTBTexture( Span< const char > path, u8 * pixels, int w, int h, 
 	};
 
 	TextureConfig config = {
+		.name = StripExtension( path ),
 		.format = formats[ channels - 1 ],
 		.width = checked_cast< u32 >( w ),
 		.height = checked_cast< u32 >( h ),
 		.data = pixels,
 	};
 
-	Optional< PoolHandle< Texture > > texture = AddTexture( path, Hash64( StripExtension( path ) ), config );
+	Optional< PoolHandle< Texture > > texture = AddTexture( config );
 	if( texture.exists ) {
 		textures[ texture.value ].stb_data = pixels;
 	}
@@ -436,6 +456,7 @@ static void LoadDDSTexture( Span< const char > path ) {
 	}
 
 	TextureConfig config = {
+		.name = StripExtension( path ),
 		.width = header->width,
 		.height = header->height,
 		.data = dds.ptr + sizeof( DDSHeader ),
@@ -470,7 +491,7 @@ static void LoadDDSTexture( Span< const char > path ) {
 		return;
 	}
 
-	Optional< PoolHandle< Texture > > texture = AddTexture( path, Hash64( StripExtension( path ) ), config );
+	Optional< PoolHandle< Texture > > texture = AddTexture( config );
 	if( texture.exists ) {
 		textures[ texture.value ].bc4_data = ( dds + sizeof( DDSHeader ) ).cast< const BC4Block >();
 	}
@@ -802,14 +823,14 @@ static void LoadBuiltinMaterials() {
 	{
 		u8 white = 255;
 		TextureConfig config = TextureConfig {
+			.name = "white",
 			.format = TextureFormat_R_U8,
 			.width = 1,
 			.height = 1,
 			.data = &white,
 		};
 
-		Unwrap( AddTexture( "white", Hash64( "white" ), config ) );
-		Unwrap( AddTexture( "$whiteimage", Hash64( "$whiteimage" ), config ) );
+		Unwrap( AddTexture( config ) );
 	}
 
 	{

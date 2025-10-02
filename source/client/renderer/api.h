@@ -108,6 +108,7 @@ enum TextureLayout {
 };
 
 PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture = NONE );
+PoolHandle< Texture > NewFramebufferTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture );
 
 TextureFormat GetTextureFormat( PoolHandle< Texture > texture );
 

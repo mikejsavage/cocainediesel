@@ -244,7 +244,7 @@ void CopyGPUBufferToBuffer(
 
 void CopyGPUBufferToTexture(
 	Opaque< CommandBuffer > cmd_buf,
-	PoolHandle< Texture > dest, u32 w, u32 h, u32 num_layers, u32 mip_level,
+	BackendTexture dest, u32 w, u32 h, u32 num_layers, u32 mip_level,
 	PoolHandle< GPUAllocation > src, size_t src_offset
 ) {
 	size_t cursor = src_offset;
@@ -254,8 +254,7 @@ void CopyGPUBufferToTexture(
 		cmd_buf.unwrap()->bce->copyFromBuffer( allocations[ src ].buffer, cursor,
 			bytes_per_row_of_blocks, bytes_per_slice,
 			MTL::Size::Make( w, h, 1 ),
-			textures[ dest ].handle,
-			i, mip_level, MTL::Origin::Make( 0, 0, 0 ) );
+			dest, i, mip_level, MTL::Origin::Make( 0, 0, 0 ) );
 		cursor += bytes_per_slice;
 	}
 }
@@ -394,12 +393,7 @@ static MTL::PixelFormat TextureFormatToMetal( TextureFormat format ) {
 	}
 }
 
-u32 TextureWidth( PoolHandle< Texture > texture ) { return textures[ texture ].width; }
-u32 TextureHeight( PoolHandle< Texture > texture ) { return textures[ texture ].height; }
-u32 TextureLayers( PoolHandle< Texture > texture ) { return textures[ texture ].depth; }
-u32 TextureMipLevels( PoolHandle< Texture > texture ) { return textures[ texture ].num_mipmaps; }
-
-PoolHandle< Texture > NewTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {
+MTL::Texture * NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< MTL::Texture * > old_texture ) {
 	MTL::TextureType type;
 	if( config.num_layers == 1 ) {
 		type = config.msaa_samples > 1 ? MTL::TextureType2DMultisample : MTL::TextureType2D;
@@ -447,7 +441,7 @@ PoolHandle< Texture > NewTexture( GPUSlabAllocator * a, const TextureConfig & co
 	defer { descriptor->release(); };
 
 	if( old_texture.exists ) {
-		textures[ old_texture.value ].handle->release();
+		old_texture.value->release();
 	}
 
 	MTL::Texture * texture;
@@ -464,32 +458,11 @@ PoolHandle< Texture > NewTexture( GPUSlabAllocator * a, const TextureConfig & co
 	TempAllocator temp = cls.frame_arena.temp();
 	texture->setLabel( AutoReleaseString( temp( "{}", config.name ) ) );
 
-	// NOMERGE: this should probably just be a pool, put the hashmap in material.cpp
-	u64 hash = Hash64( config.name );
-	Texture tex = {
-		.name = config.name,
-		.hash = hash,
-		.handle = texture,
-		.format = config.format,
-		.width = config.width,
-		.height = config.height,
-		.depth = config.num_layers,
-		.num_mipmaps = config.num_mipmaps,
-	};
-	PoolHandle< Texture > handle;
-	if( old_texture.exists ) {
-		textures[ old_texture.value ] = tex;
-		handle = old_texture.value;
-	}
-	else {
-		handle = Must( textures.add( hash, tex ) ); // NOMERGE: runtime overflow
-	}
-
 	if( config.data != NULL ) {
-		UploadTexture( handle.value, config.data );
+		UploadTexture( config, texture );
 	}
 
-	return handle;
+	return texture;
 }
 
 PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandle< Texture > texture, SamplerType sampler, GPUBuffer properties ) {

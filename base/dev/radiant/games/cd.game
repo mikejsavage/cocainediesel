@@ -21,7 +21,7 @@
 	entityclass="quake3"
 	entityclasstype="xml"
 	entities="quake3"
-	brushtypes="quake3"
+	brushtypes="halflife"
 	patchtypes="quake3"
 	shader_weapclip="editor/weaponclip"
 	shader_caulk="editor/world"

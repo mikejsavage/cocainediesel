@@ -16,7 +16,7 @@
 	texturetypes="jpg png dds dds.zst"
 	modeltypes="glb"
 	soundtypes="ogg cdsfx"
-	maptypes="mapq1 mapq3"
+	maptypes="mapq3"
 	shaders="quake3"
 	entityclass="quake3"
 	entityclasstype="xml"

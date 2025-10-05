@@ -28,7 +28,7 @@ void InitSprays() {
 
 	for( Span< const char > path : AssetPaths() ) {
 		bool ext_ok = EndsWith( path, ".png" ) || EndsWith( path, ".jpg" ) || EndsWith( path, ".dds" );
-		if( !StartsWith( path, "materials/sprays/" ) || !ext_ok )
+		if( !StartsWith( path, "textures/sprays/" ) || !ext_ok )
 			continue;
 
 		const Material * material = FindMaterial( StringHash( Hash64( StripExtension( path ) ) ) );

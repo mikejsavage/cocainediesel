@@ -2013,7 +2013,7 @@ static bool LoadoutMenu() {
 
 		ImGui::SetCursorPos( ImVec2( displaySize.x - title_height, 0.f ) );
 
-		const Material * icon = FindMaterial( "materials/sprays/peekatyou" );
+		const Material * icon = FindMaterial( "textures/sprays/peekatyou" );
 		Vec2 half_pixel = HalfPixelSize( icon );
 		if( ImGui::ImageButton( "random", icon, ImVec2( title_height, title_height ), half_pixel, 1.0f - half_pixel, Vec4( 0.f ), Vec4( 1.0f ) ) ) {
 			for( WeaponCategory category = WeaponCategory( 0 ); category < WeaponCategory_Count; category++ ) {

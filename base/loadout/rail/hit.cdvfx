@@ -7,7 +7,7 @@
   }
 
   particles {
-    material materials/vfx/trace2
+    material textures/vfx/trace2
     blendfunc add
     rotate
     stretch

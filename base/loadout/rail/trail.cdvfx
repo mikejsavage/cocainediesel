@@ -1,6 +1,6 @@
 {
   particles {
-    material materials/vfx/glow1
+    material textures/vfx/glow1
     blendfunc add
 
     position line 0

@@ -61,17 +61,17 @@ static void GibImpact( Vec3 pos, Vec3 normal, Vec4 color, float scale ) {
 
 	{
 		constexpr StringHash decals[] = {
-			"materials/blood_decals/blood1",
-			"materials/blood_decals/blood2",
-			"materials/blood_decals/blood3",
-			"materials/blood_decals/blood4",
-			"materials/blood_decals/blood5",
-			"materials/blood_decals/blood6",
-			"materials/blood_decals/blood7",
-			"materials/blood_decals/blood8",
-			"materials/blood_decals/blood9",
-			"materials/blood_decals/blood10",
-			"materials/blood_decals/blood11",
+			"textures/blood_decals/blood1",
+			"textures/blood_decals/blood2",
+			"textures/blood_decals/blood3",
+			"textures/blood_decals/blood4",
+			"textures/blood_decals/blood5",
+			"textures/blood_decals/blood6",
+			"textures/blood_decals/blood7",
+			"textures/blood_decals/blood8",
+			"textures/blood_decals/blood9",
+			"textures/blood_decals/blood10",
+			"textures/blood_decals/blood11",
 		};
 
 		if( Probability( &cls.rng, 0.25f ) ) {

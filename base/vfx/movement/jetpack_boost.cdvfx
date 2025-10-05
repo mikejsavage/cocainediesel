@@ -1,9 +1,9 @@
 {
 
   particles {
-    material materials/vfx/smoke3
-    material materials/vfx/smoke4
-    material materials/vfx/smoke5
+    material textures/vfx/smoke3
+    material textures/vfx/smoke4
+    material textures/vfx/smoke5
     blendfunc blend
 
     speed 100

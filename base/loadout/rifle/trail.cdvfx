@@ -1,6 +1,6 @@
 {
   particles {
-    material materials/vfx/magic5
+    material textures/vfx/magic5
     blendfunc add
     collision point
 

@@ -1,10 +1,10 @@
 {
   particles {
-    material materials/vfx/trace1
-    material materials/vfx/trace2
-    material materials/vfx/trace3
-    material materials/vfx/trace4
-    material materials/vfx/trace5
+    material textures/vfx/trace1
+    material textures/vfx/trace2
+    material textures/vfx/trace3
+    material textures/vfx/trace4
+    material textures/vfx/trace5
     blendfunc add
     stretch
     rotate
@@ -23,12 +23,12 @@
   }
 
   particles {
-    material materials/vfx/smoke1
-    material materials/vfx/smoke2
-    material materials/vfx/smoke3
-    material materials/vfx/smoke4
-    material materials/vfx/smoke5
-    material materials/vfx/smoke6
+    material textures/vfx/smoke1
+    material textures/vfx/smoke2
+    material textures/vfx/smoke3
+    material textures/vfx/smoke4
+    material textures/vfx/smoke5
+    material textures/vfx/smoke6
     blendfunc add
 
     position point
@@ -44,11 +44,11 @@
   }
 
   particles {
-    material materials/vfx/trace1
-    material materials/vfx/trace2
-    material materials/vfx/trace3
-    material materials/vfx/trace4
-    material materials/vfx/trace5
+    material textures/vfx/trace1
+    material textures/vfx/trace2
+    material textures/vfx/trace3
+    material textures/vfx/trace4
+    material textures/vfx/trace5
     blendfunc add
     stretch
     rotate
@@ -68,7 +68,7 @@
   }
 
   particles {
-    material materials/vfx/slash4
+    material textures/vfx/slash4
     blendfunc add
     rotate
     stretch
@@ -86,8 +86,8 @@
   }
 
   particles {
-    material materials/vfx/drop
-    material materials/vfx/drop2
+    material textures/vfx/drop
+    material textures/vfx/drop2
     blendfunc blend
     stretch
     rotate
@@ -106,8 +106,8 @@
   }
 
   particles {
-    material materials/vfx/drop
-    material materials/vfx/drop2
+    material textures/vfx/drop
+    material textures/vfx/drop2
     acceleration $gravity
     blendfunc blend
     stretch
@@ -126,8 +126,8 @@
   }
 
     particles {
-    material materials/vfx/drop
-    material materials/vfx/drop2
+    material textures/vfx/drop
+    material textures/vfx/drop2
     blendfunc add
     stretch
     rotate

@@ -850,7 +850,7 @@ static void LoadBuiltinMaterials() {
 		AddMaterial( "wallbang_visible", wallbang_material );
 	}
 
-	AddMaterial( "materials/editor/glass", Material {
+	AddMaterial( "textures/editor/glass", Material {
 		.rgbgen = { .args = { 0.0f, 0.35f, 0.8f } },
 		.world = true,
 		.specular = 100.0f,

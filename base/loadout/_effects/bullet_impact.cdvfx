@@ -28,7 +28,7 @@
   }
 
   particles {
-    material materials/vfx/trace2
+    material textures/vfx/trace2
     blendfunc add
     rotate
     stretch
@@ -48,7 +48,7 @@
   }
 
   particles {
-    material materials/vfx/trace2
+    material textures/vfx/trace2
     blendfunc add
     rotate
     stretch
@@ -69,7 +69,7 @@
   }
 
   particles {
-    material materials/vfx/trace1
+    material textures/vfx/trace1
     blendfunc add
     rotate
     stretch

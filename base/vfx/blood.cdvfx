@@ -1,7 +1,7 @@
 {
 particles {
-    material materials/vfx/drop
-    material materials/vfx/drop2
+    material textures/vfx/drop
+    material textures/vfx/drop2
     acceleration $gravity
     blendfunc blend
     stretch

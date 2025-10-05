@@ -1,6 +1,6 @@
 {
   particles {
-    material materials/vfx/glow1
+    material textures/vfx/glow1
     blendfunc add
 
     position line 0
@@ -18,7 +18,7 @@
   }
 
   particles {
-    material materials/vfx/glow1
+    material textures/vfx/glow1
     blendfunc add
 
     position line 0
@@ -36,7 +36,7 @@
   }
 
   particles {
-    material materials/vfx/glow1
+    material textures/vfx/glow1
     blendfunc blend
 
     position line 0
@@ -54,7 +54,7 @@
   }
 
   particles {
-    material materials/vfx/flare1
+    material textures/vfx/flare1
     blendfunc add
 
     position line 0
@@ -71,13 +71,13 @@
   }
 
   particles {
-    material materials/vfx/smoke3
-    material materials/vfx/smoke4
-    material materials/vfx/smoke5
-    material materials/vfx/smoke6
-    material materials/vfx/smoke7
-    material materials/vfx/smoke8
-    material materials/vfx/smoke9
+    material textures/vfx/smoke3
+    material textures/vfx/smoke4
+    material textures/vfx/smoke5
+    material textures/vfx/smoke6
+    material textures/vfx/smoke7
+    material textures/vfx/smoke8
+    material textures/vfx/smoke9
     blendfunc blend
 
     position line 0
@@ -93,7 +93,7 @@
   }
 
   particles {
-    material materials/vfx/muzzle2
+    material textures/vfx/muzzle2
     blendfunc add
     stretch
     rotate

@@ -16,7 +16,7 @@
   }
 
   particles {
-    material textures/vfx/trace2
+    material materials/vfx/trace2
     blendfunc add
     rotate
     stretch
@@ -37,7 +37,7 @@
   }
 
   particles {
-    material textures/vfx/trace2
+    material materials/vfx/trace2
     blendfunc add
     rotate
     stretch
@@ -57,7 +57,7 @@
   }
 
   particles {
-    material textures/vfx/trace2
+    material materials/vfx/trace2
     blendfunc add
     rotate
     stretch
@@ -79,7 +79,7 @@
   }
 
    particles {
-    material textures/vfx/trace2
+    material materials/vfx/trace2
     blendfunc add
     rotate
     stretch
@@ -101,7 +101,7 @@
   }
 
   particles {
-    material textures/vfx/trace2
+    material materials/vfx/trace2
     blendfunc blend
     rotate
     stretch
@@ -120,7 +120,7 @@
   }
 
   particles {
-    material textures/vfx/smoke9
+    material materials/vfx/smoke9
     blendfunc blend
 
     position sphere 0
@@ -140,7 +140,7 @@
   }
 
   particles {
-    material textures/vfx/smoke9
+    material materials/vfx/smoke9
     blendfunc add
 
     position sphere 0

@@ -1,7 +1,7 @@
 {
   particles {
-    material textures/vfx/circle1
-    material textures/vfx/circle1
+    material materials/vfx/circle1
+    material materials/vfx/circle1
     blendfunc blend
     stretch
     rotate

@@ -1,6 +1,6 @@
 {
   particles {
-    material textures/vfx/scorch1
+    material materials/vfx/scorch1
     blendfunc add
 
     position cone 10 0

@@ -1,8 +1,8 @@
 {
   particles {
-    material textures/vfx/trace1
-    material textures/vfx/trace2
-    material textures/vfx/trace3
+    material materials/vfx/trace1
+    material materials/vfx/trace2
+    material materials/vfx/trace3
     blendfunc add
     rotate
     stretch
@@ -20,9 +20,9 @@
     emission 100
   }
     particles {
-    material textures/vfx/twirl1
-    material textures/vfx/twirl2
-    material textures/vfx/twirl3
+    material materials/vfx/twirl1
+    material materials/vfx/twirl2
+    material materials/vfx/twirl3
     blendfunc add
     rotate
     stretch

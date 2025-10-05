@@ -1,8 +1,8 @@
 {
   particles {
-    material textures/vfx/smoke3
-    material textures/vfx/smoke4
-    material textures/vfx/smoke5
+    material materials/vfx/smoke3
+    material materials/vfx/smoke4
+    material materials/vfx/smoke5
     blendfunc add
 
     speed 10
@@ -20,9 +20,9 @@
   }
 
   particles {
-    material textures/vfx/smoke3
-    material textures/vfx/smoke4
-    material textures/vfx/smoke5
+    material materials/vfx/smoke3
+    material materials/vfx/smoke4
+    material materials/vfx/smoke5
     blendfunc blend
 
     speed 20
@@ -40,9 +40,9 @@
   }
 
   particles {
-    material textures/vfx/smoke3
-    material textures/vfx/smoke4
-    material textures/vfx/smoke5
+    material materials/vfx/smoke3
+    material materials/vfx/smoke4
+    material materials/vfx/smoke5
     blendfunc blend
 
     speed 10
@@ -60,11 +60,11 @@
   }
 
   particles {
-    material textures/vfx/flame1
-    material textures/vfx/flame2
-    material textures/vfx/flame3
-    material textures/vfx/flame4
-    material textures/vfx/flame5
+    material materials/vfx/flame1
+    material materials/vfx/flame2
+    material materials/vfx/flame3
+    material materials/vfx/flame4
+    material materials/vfx/flame5
     blendfunc blend
     rotate
     stretch
@@ -88,11 +88,11 @@
   }
 
   particles {
-    material textures/vfx/flame1
-    material textures/vfx/flame2
-    material textures/vfx/flame3
-    material textures/vfx/flame4
-    material textures/vfx/flame5
+    material materials/vfx/flame1
+    material materials/vfx/flame2
+    material materials/vfx/flame3
+    material materials/vfx/flame4
+    material materials/vfx/flame5
     blendfunc blend
     rotate
     stretch
@@ -115,7 +115,7 @@
   }
 
   particles {
-    material textures/vfx/light3
+    material materials/vfx/light3
     blendfunc add
 
     speed 150
@@ -133,7 +133,7 @@
   }
 
   particles {
-    material textures/vfx/light3
+    material materials/vfx/light3
     blendfunc add
 
     speed 150

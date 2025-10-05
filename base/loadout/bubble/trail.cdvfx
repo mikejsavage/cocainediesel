@@ -1,6 +1,6 @@
 {
   particles {
-    material textures/vfx/glow2
+    material materials/vfx/glow2
     blendfunc add
 
     position sphere 0 0
@@ -15,7 +15,7 @@
   }
 
   particles {
-    material textures/vfx/glow1
+    material materials/vfx/glow1
     blendfunc add
 
     position sphere 0 0
@@ -31,7 +31,7 @@
   }
 
   particles {
-    material textures/vfx/light3
+    material materials/vfx/light3
     blendfunc add
 
     position sphere 0 0
@@ -46,7 +46,7 @@
   }
 
   particles {
-    material textures/vfx/light2
+    material materials/vfx/light2
     blendfunc add
     rotate
 
@@ -62,9 +62,9 @@
   }
 
   particles {
-    material textures/vfx/twirl1
-    material textures/vfx/twirl2
-    material textures/vfx/twirl3
+    material materials/vfx/twirl1
+    material materials/vfx/twirl2
+    material materials/vfx/twirl3
     blendfunc add
     rotate
     angular_velocity 245

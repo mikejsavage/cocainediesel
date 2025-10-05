@@ -1,50 +1,50 @@
-textures/editor/world
+materials/editor/world
 {
-	qer_editorimage textures/editor/world
+	qer_editorimage materials/editor/world
 }
 
-textures/editor/glass
+materials/editor/glass
 {
 	qer_trans 0.40
-	qer_editorimage textures/editor/world
+	qer_editorimage materials/editor/world
 }
 
-textures/editor/discard
+materials/editor/discard
 {
-	qer_editorimage textures/editor/discard
+	qer_editorimage materials/editor/discard
 }
 
-textures/editor/clip
-{
-	qer_trans 0.40
-	qer_editorimage textures/editor/fullclip
-}
-
-textures/editor/ladder
+materials/editor/clip
 {
 	qer_trans 0.40
-	qer_editorimage textures/editor/ladder
+	qer_editorimage materials/editor/fullclip
 }
 
-textures/editor/playerclip
+materials/editor/ladder
 {
 	qer_trans 0.40
-	qer_editorimage textures/editor/playerclip
+	qer_editorimage materials/editor/ladder
 }
 
-textures/editor/trigger
+materials/editor/playerclip
 {
 	qer_trans 0.40
-	qer_editorimage textures/editor/trigger
+	qer_editorimage materials/editor/playerclip
+}
+
+materials/editor/trigger
+{
+	qer_trans 0.40
+	qer_editorimage materials/editor/trigger
 	qer_nocarve
 }
 
-textures/editor/wallbangable
+materials/editor/wallbangable
 {
-	qer_editorimage textures/editor/wallbangable
+	qer_editorimage materials/editor/wallbangable
 }
 
-textures/editor/door
+materials/editor/door
 {
-	qer_editorimage textures/editor/trigger
+	qer_editorimage materials/editor/trigger
 }

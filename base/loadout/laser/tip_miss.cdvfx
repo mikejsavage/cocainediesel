@@ -1,10 +1,10 @@
 {
   particles {
-    material textures/vfx/trace1
-    material textures/vfx/trace2
-    material textures/vfx/trace3
-    material textures/vfx/trace4
-    material textures/vfx/trace5
+    material materials/vfx/trace1
+    material materials/vfx/trace2
+    material materials/vfx/trace3
+    material materials/vfx/trace4
+    material materials/vfx/trace5
     blendfunc add
     stretch
     rotate
@@ -25,7 +25,7 @@
   }
 
   particles {
-    material textures/vfx/lightning1
+    material materials/vfx/lightning1
     blendfunc add
     rotate
     stretch
@@ -45,7 +45,7 @@
   }
 
   particles {
-    material textures/vfx/glow1
+    material materials/vfx/glow1
     stretch
     rotate
     blendfunc add

@@ -7,7 +7,7 @@
   }
 
   particles {
-    material textures/vfx/circle6
+    material materials/vfx/circle6
     blendfunc add
     rotate
     stretch
@@ -30,7 +30,7 @@
   }
 
   particles {
-    material textures/vfx/flame2
+    material materials/vfx/flame2
     blendfunc add
     rotate
     stretch
@@ -49,11 +49,11 @@
   }
 
   particles {
-    material textures/vfx/muzzle1
-    material textures/vfx/muzzle2
-    material textures/vfx/muzzle3
-    material textures/vfx/muzzle4
-    material textures/vfx/muzzle5
+    material materials/vfx/muzzle1
+    material materials/vfx/muzzle2
+    material materials/vfx/muzzle3
+    material materials/vfx/muzzle4
+    material materials/vfx/muzzle5
     blendfunc add
     rotate
 
@@ -70,7 +70,7 @@
 
 
   particles {
-    material textures/vfx/circle6
+    material materials/vfx/circle6
     blendfunc add
     rotate
     stretch

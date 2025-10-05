@@ -23,8 +23,8 @@
 	entities="quake3"
 	brushtypes="quake3"
 	patchtypes="quake3"
-	shader_weapclip="textures/editor/weaponclip"
-	shader_caulk="textures/editor/world"
-	shader_nodraw="textures/editor/discard"
-	shader_trigger="textures/editor/trigger"
+	shader_weapclip="editor/weaponclip"
+	shader_caulk="editor/world"
+	shader_nodraw="editor/discard"
+	shader_trigger="editor/trigger"
 	/>

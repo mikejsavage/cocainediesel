@@ -573,7 +573,7 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 		}
 
 		if( editor_material == NULL ) {
-			editor_material = FindEditorMaterial( StringHash( "editor/clip" ) ); // default material
+			editor_material = FindEditorMaterial( StringHash( "textures/editor/clip" ) ); // default material
 		}
 
 		// compute brush bounds

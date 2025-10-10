@@ -840,10 +840,10 @@ static void LoadBuiltinMaterials() {
 			.shininess = world_material.shininess,
 		};
 
-		AddMaterial( "editor/world", world_material );
+		AddMaterial( "textures/editor/world", world_material );
 		AddMaterial( "world", world_material );
 
-		AddMaterial( "editor/wallbangable", wallbang_material );
+		AddMaterial( "textures/editor/wallbangable", wallbang_material );
 		AddMaterial( "wallbangable", wallbang_material );
 
 		// for use in models, wallbangable is for collision geometry

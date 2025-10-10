@@ -134,7 +134,7 @@ static void LoadShaders() {
 
 	// rest
 	constexpr Span< const char > world_defines =
-		"#define APPLY_DRAWFLAT 1\n"
+		"#define WORLD 1\n"
 		"#define APPLY_FOG 1\n"
 		"#define APPLY_DECALS 1\n"
 		"#define APPLY_DLIGHTS 1\n"
@@ -142,7 +142,7 @@ static void LoadShaders() {
 		"#define SHADED 1\n";
 	LoadShader( &shaders.world, "glsl/standard.glsl", world_defines );
 	constexpr Span< const char > world_instanced_defines =
-		"#define APPLY_DRAWFLAT 1\n"
+		"#define WORLD 1\n"
 		"#define APPLY_FOG 1\n"
 		"#define APPLY_DECALS 1\n"
 		"#define APPLY_DLIGHTS 1\n"

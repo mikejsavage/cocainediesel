@@ -19,7 +19,7 @@ enum MapSectionType {
 
 	MapSection_Meshes,
 	MapSection_VertexPositions,
-	MapSection_VertexNormals,
+	MapSection_Vertices,
 	MapSection_VertexIndices,
 
 	MapSection_Count
@@ -38,7 +38,7 @@ struct MapHeader {
 };
 
 constexpr const char CDMAP_MAGIC[ sizeof( MapHeader::magic ) ] = "cdmap";
-constexpr u64 CDMAP_FORMAT_VERSION = 1;
+constexpr u64 CDMAP_FORMAT_VERSION = 2;
 
 struct MapEntity {
 	u32 first_key_value;
@@ -96,6 +96,11 @@ struct MapMesh {
 	u32 num_vertices;
 };
 
+struct MapVertex {
+	Vec3 normal;
+	Vec2 uv;
+};
+
 struct MapData {
 	Span< const MapEntity > entities;
 	Span< const char > entity_data;
@@ -110,7 +115,7 @@ struct MapData {
 
 	Span< const MapMesh > meshes;
 	Span< const Vec3 > vertex_positions;
-	Span< const Vec3 > vertex_normals;
+	Span< const MapVertex > vertices;
 	Span< const u32 > vertex_indices;
 };
 

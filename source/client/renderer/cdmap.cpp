@@ -8,8 +8,13 @@ MapSharedRenderData NewMapRenderData( const MapData & map, Span< const char > na
 
 	MeshConfig mesh_config = { };
 	mesh_config.name = name;
-	mesh_config.set_attribute( VertexAttribute_Position, NewGPUBuffer( map.vertex_positions, temp.sv( "{} positions", name ) ) );
-	mesh_config.set_attribute( VertexAttribute_Normal, NewGPUBuffer( map.vertex_normals, temp.sv( "{} normals", name ) ) );
+	mesh_config.set_attribute( VertexAttribute_Position, 0, 0 );
+	mesh_config.set_attribute( VertexAttribute_Normal, 1, offsetof( MapVertex, normal ) );
+	mesh_config.set_attribute( VertexAttribute_TexCoord, 1, offsetof( MapVertex, uv ) );
+	mesh_config.vertex_buffers[ 0 ] = NewGPUBuffer( map.vertex_positions, temp.sv( "{} positions", name ) );
+	mesh_config.vertex_buffers[ 1 ] = NewGPUBuffer( map.vertices, temp.sv( "{} normals/UVs", name ) );
+	mesh_config.vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec3 );
+	mesh_config.vertex_descriptor.buffer_strides[ 1 ] = sizeof( MapVertex );
 	mesh_config.index_buffer = NewGPUBuffer( map.vertex_indices, temp.sv( "{} indices", name ) );
 	mesh_config.index_format = IndexFormat_U32;
 	mesh_config.num_vertices = map.vertex_indices.n;

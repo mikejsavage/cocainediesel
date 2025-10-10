@@ -102,24 +102,17 @@ layout( std430 ) readonly buffer b_DynamicTiles {
 void main() {
 	vec3 normal = normalize( v_Normal );
 	f_CurvedSurfaceMask = length( fwidth( normal ) ) < 0.000001 ? 0u : MASK_CURVED;
-#if APPLY_DRAWFLAT
+
+	vec4 diffuse = texture( u_BaseTexture, v_TexCoord, u_LodBias );
+
 #if INSTANCED
-	vec4 diffuse = instances[ v_Instance ].color;
+	diffuse *= instances[ v_Instance ].color;
 #else
-	vec4 diffuse = u_MaterialColor;
-#endif
-#else
-#if INSTANCED
-	vec4 color = instances[ v_Instance ].color;
-#else
-	vec4 color = u_MaterialColor;
+	diffuse *= u_MaterialColor;
 #endif
 
 #if VERTEX_COLORS
-	color *= v_Color;
-#endif
-
-	vec4 diffuse = texture( u_BaseTexture, v_TexCoord, u_LodBias ) * color;
+	diffuse *= v_Color;
 #endif
 
 #if APPLY_DECALS || APPLY_DLIGHTS
@@ -155,7 +148,7 @@ void main() {
 	#endif
 	lambertlight = lambertlight * 0.5 + 0.5;
 
-	#if APPLY_DRAWFLAT
+	#if WORLD
 		lambertlight = lambertlight * 0.5 + 0.5;
 	#endif
 

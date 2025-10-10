@@ -14,7 +14,7 @@ struct ParsedBrushFace {
 	Vec3 plane[ 3 ];
 	Span< const char > material;
 	u64 material_hash;
-	Mat3 texcoords_transform;
+	Mat3x4 uv_basis_transform;
 };
 
 struct ParsedBrush {

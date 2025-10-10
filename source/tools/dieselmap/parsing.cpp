@@ -226,12 +226,13 @@ static Span< const char > ParsePlane( Vec3 * points, Span< const char > str ) {
 // map specific stuff
 
 static Span< const char > SkipFlags( Span< const char > str ) {
+	// content flags
 	str = ParseOr( str,
 		[]( Span< const char > str ) { return SkipToken( str, "0" ); },
 		[]( Span< const char > str ) { return SkipToken( str, "134217728" ); } // detail bit
 	);
-	str = SkipToken( str, "0" );
-	str = SkipToken( str, "0" );
+	str = SkipToken( str, "0" ); // surface flags
+	str = SkipToken( str, "0" ); // nobody knows, radiant calls this "value"
 	return str;
 }
 
@@ -240,6 +241,7 @@ static Span< const char > ParseQ1Face( ParsedBrushFace * face, Span< const char 
 	str = ParseWord( &face->material, str );
 
 	face->material_hash = Hash64( face->material, textures_prefix_hash );
+	face->uv_basis_transform = { };
 
 	float u, v, angle, scale_x, scale_y;
 	str = ParseFloat( &u, str );
@@ -247,8 +249,6 @@ static Span< const char > ParseQ1Face( ParsedBrushFace * face, Span< const char 
 	str = ParseFloat( &angle, str );
 	str = ParseFloat( &scale_x, str );
 	str = ParseFloat( &scale_y, str );
-
-	// TODO: convert to transform
 
 	str = ParseOptional( str, SkipFlags );
 
@@ -266,21 +266,22 @@ static Span< const char > ParseQ1Brush( ParsedBrush * brush, Span< const char > 
 static Span< const char > ParseQ3Face( ParsedBrushFace * face, Span< const char > str ) {
 	str = ParsePlane( face->plane, str );
 
-	Vec3 uv_row1 = { };
-	Vec3 uv_row2 = { };
+	Vec3 s = { };
+	Vec3 t = { };
 	str = SkipToken( str, "(" );
-	str = ParseVec3( &uv_row1, str );
-	str = ParseVec3( &uv_row2, str );
+	str = ParseVec3( &s, str );
+	str = ParseVec3( &t, str );
 	str = SkipToken( str, ")" );
 
-	face->texcoords_transform = Mat3(
-		uv_row1.x, uv_row1.y, uv_row1.z,
-		uv_row2.x, uv_row2.y, uv_row2.z,
-		0.0f, 0.0f, 1.0f
+	face->uv_basis_transform = Mat3x4(
+		s.x, s.y, 0.0f, s.z,
+		t.x, t.y, 0.0f, t.z,
+		0.0f, 0.0f, 1.0f, 0.0f
 	);
 
 	str = ParseWord( &face->material, str );
 	face->material_hash = Hash64( face->material, textures_prefix_hash );
+
 	str = SkipFlags( str );
 
 	return str;

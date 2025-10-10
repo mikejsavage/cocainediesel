@@ -820,6 +820,7 @@ static void LoadBuiltinMaterials() {
 
 	{
 		Material world_material = Material {
+			.texture = FindTexture( "white" ),
 			.rgbgen = { .args = { 0.17f, 0.17f, 0.17f, 1.0f } },
 			.world = true,
 			.specular = 3.0f,
@@ -827,6 +828,7 @@ static void LoadBuiltinMaterials() {
 		};
 
 		Material wallbang_material = Material {
+			.texture = FindTexture( "white" ),
 			.rgbgen = {
 				.args = {
 					world_material.rgbgen.args[ 0 ] * 0.45f,
@@ -851,6 +853,7 @@ static void LoadBuiltinMaterials() {
 	}
 
 	AddMaterial( "textures/editor/glass", Material {
+		.texture = FindTexture( "white" ),
 		.rgbgen = { .args = { 0.0f, 0.35f, 0.8f } },
 		.world = true,
 		.specular = 100.0f,

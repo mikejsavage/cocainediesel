@@ -1122,7 +1122,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		pipeline.write_depth = false;
 	}
 
-	pipeline.bind_texture_and_sampler( "u_BaseTexture", material->texture, Sampler_Standard );
+	pipeline.bind_texture_and_sampler( "u_BaseTexture", material->texture, material->sampler );
 
 	{
 		u64 hash = Hash64( u64( material ) );

@@ -518,6 +518,7 @@ static T SampleAnimationChannel( const GLTFRenderData::AnimationChannel< T > & c
 
 	t = Clamp( channel.samples[ 0 ].time, t, channel.samples[ channel.samples.n - 1 ].time );
 
+	// TODO: this should be a binary search
 	u32 sample = 0;
 	for( u32 i = 1; i < channel.samples.n; i++ ) {
 		if( channel.samples[ i ].time >= t ) {

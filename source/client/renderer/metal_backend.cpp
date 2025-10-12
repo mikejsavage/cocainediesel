@@ -96,7 +96,6 @@ struct BindGroup {
 
 static MetalDevice global_device;
 static CA::MetalLayer * global_swapchain;
-static PoolHandle< Texture > swapchain_texture;
 static dispatch_semaphore_t frame_semaphore;
 static u64 frame_counter;
 static u64 pass_counter;
@@ -105,6 +104,7 @@ static int old_framebuffer_width, old_framebuffer_height;
 static struct {
 	NS::AutoreleasePool * pool;
 	CA::MetalDrawable * swapchain_surface;
+	MTL::Texture * swapchain_texture;
 	bool capture;
 } frame;
 
@@ -465,7 +465,7 @@ MTL::Texture * NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & co
 	return texture;
 }
 
-PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandle< Texture > texture, SamplerType sampler, GPUBuffer properties ) {
+PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, MTL::Texture * texture, SamplerType sampler, GPUBuffer properties ) {
 	MTL::ArgumentEncoder * encoder = global_device.material_argument_encoder;
 
 	// ArgumentEncoders can't write into private memory so we have to encode
@@ -476,7 +476,7 @@ PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandl
 
 	encoder->setArgumentBuffer( allocations[ staging.allocation ].buffer, staging.offset );
 	encoder->setBuffer( allocations[ properties.allocation ].buffer, properties.offset, 0 );
-	encoder->setTexture( textures[ texture ].handle, 1 );
+	encoder->setTexture( texture, 1 );
 	encoder->setSamplerState( samplers[ sampler ], 2 );
 
 	return bind_groups.allocate( { args } );
@@ -886,17 +886,17 @@ PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path ) {
 	} );
 }
 
-static CommandBuffer * PrepareCompute( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > shader, Span< const BufferBinding > buffers ) {
+static CommandBuffer * PrepareCompute( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > pipeline, Span< const BufferBinding > buffers ) {
 	CommandBuffer * cb = ocb.unwrap();
-	cb->cce->setComputePipelineState( compute_pipelines[ shader ].pso );
+	cb->cce->setComputePipelineState( compute_pipelines[ pipeline ].pso );
 	GPUBindings bindings = { .buffers = buffers };
-	EncodeAndBindArgumentBuffer( cb->cce, &compute_pipelines[ shader ].args, bindings, DescriptorSetType( 0 ) );
+	EncodeAndBindArgumentBuffer( cb->cce, &compute_pipelines[ pipeline ].args, bindings, DescriptorSetType( 0 ) );
 	return cb;
 }
 
-static MTL::Size SubgroupSize( PoolHandle< ComputePipeline > shader ) {
+static MTL::Size SubgroupSize( PoolHandle< ComputePipeline > pipeline ) {
 	// https://developer.apple.com/documentation/metal/compute_passes/calculating_threadgroup_and_grid_sizes
-	const MTL::ComputePipelineState * pso = compute_pipelines[ shader ].pso;
+	const MTL::ComputePipelineState * pso = compute_pipelines[ pipeline ].pso;
 	MTL::Size size;
 	size.width = pso->threadExecutionWidth();
 	size.height = pso->maxTotalThreadsPerThreadgroup() / size.width;
@@ -904,15 +904,14 @@ static MTL::Size SubgroupSize( PoolHandle< ComputePipeline > shader ) {
 	return size;
 }
 
-void EncodeComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > shader, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers ) {
-	CommandBuffer * cb = PrepareCompute( ocb, shader, buffers );
-	SubgroupSize( shader );
-	cb->cce->dispatchThreadgroups( MTL::Size::Make( x, y, z ), SubgroupSize( shader ) );
+void EncodeComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > pipeline, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers ) {
+	CommandBuffer * cb = PrepareCompute( ocb, pipeline, buffers );
+	cb->cce->dispatchThreadgroups( MTL::Size::Make( x, y, z ), SubgroupSize( pipeline ) );
 }
 
-void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > shader, GPUBuffer indirect_args, Span< const BufferBinding > buffers ) {
-	CommandBuffer * cb = PrepareCompute( ocb, shader, buffers );
-	cb->cce->dispatchThreadgroups( allocations[ indirect_args.allocation ].buffer, indirect_args.offset, SubgroupSize( shader ) );
+void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > pipeline, GPUBuffer indirect_args, Span< const BufferBinding > buffers ) {
+	CommandBuffer * cb = PrepareCompute( ocb, pipeline, buffers );
+	cb->cce->dispatchThreadgroups( allocations[ indirect_args.allocation ].buffer, indirect_args.offset, SubgroupSize( pipeline ) );
 }
 
 void InitRenderBackend() {
@@ -951,8 +950,6 @@ void InitRenderBackend() {
 	global_swapchain->setDevice( device );
 	global_swapchain->setPixelFormat( MTL::PixelFormatBGRA8Unorm );
 	global_swapchain->setFramebufferOnly( true );
-
-	swapchain_texture = Must( textures.add( Hash64( "$swapchain" ) ) );
 
 	GetFramebufferSize( &old_framebuffer_width, &old_framebuffer_height );
 
@@ -1023,7 +1020,7 @@ void RenderBackendWaitForNewFrame() {
 	dispatch_semaphore_wait( frame_semaphore, DISPATCH_TIME_FOREVER );
 }
 
-PoolHandle< Texture > RenderBackendBeginFrame( bool capture ) {
+void RenderBackendBeginFrame( bool capture ) {
 	NS::AutoreleasePool * pool = NS::AutoreleasePool::alloc()->init();
 
 	ClearGPUArenaAllocators();
@@ -1040,21 +1037,16 @@ PoolHandle< Texture > RenderBackendBeginFrame( bool capture ) {
 	}
 
 	CA::MetalDrawable * surface = global_swapchain->nextDrawable();
-	textures.upsert( swapchain_texture, Hash64( "$swapchain" ), Texture {
-		.handle = surface->texture(),
-		.is_swapchain = true,
-	} );
-
 	frame = {
 		.pool = pool,
 		.swapchain_surface = surface,
+		.swapchain_texture = surface->texture(),
+		.capture = capture,
 	};
 
 	if( capture ) {
 		StartCapture( global_device.device );
 	}
-
-	return swapchain_texture;
 }
 
 void RenderBackendEndFrame() {
@@ -1113,12 +1105,16 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 
 		attachment->setStoreAction( MTL::StoreAction::StoreActionStore );
 
-		attachment->setTexture( textures[ attachment_config.texture ].handle );
-		attachment->setSlice( attachment_config.layer );
-
-		if( attachment_config.resolve_target.exists ) {
+		if( attachment_config.resolve_from.exists ) {
 			attachment->setStoreAction( MTL::StoreActionDontCare );
-			attachment->setResolveTexture( textures[ attachment_config.resolve_target.value ].handle );
+			attachment->setTexture( textures[ attachment_config.resolve_from.value ].handle );
+			attachment->setSlice( attachment_config.layer );
+			attachment->setResolveTexture( attachment_config.texture.exists ? textures[ attachment_config.texture.value ].handle : frame.swapchain_texture );
+			// attachment->setResolveSlice( attachment_config.layer ); NOMERGE
+		}
+		else {
+			attachment->setTexture( attachment_config.texture.exists ? textures[ attachment_config.texture.value ].handle : frame.swapchain_texture );
+			attachment->setSlice( attachment_config.layer );
 		}
 	}
 
@@ -1134,6 +1130,8 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 		else {
 			attachment->setLoadAction( attachment_config.preserve_contents ? MTL::LoadActionLoad : MTL::LoadActionDontCare );
 		}
+
+		// NOMERGE MSAA DEPTH
 
 		attachment->setTexture( textures[ attachment_config.texture ].handle );
 		attachment->setSlice( attachment_config.layer );

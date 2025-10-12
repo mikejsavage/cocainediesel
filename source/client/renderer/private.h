@@ -10,6 +10,9 @@
 void InitRenderBackend();
 void ShutdownRenderBackend();
 
+void InitShaders();
+void HotloadShaders();
+
 /*
  * Memory allocation
  */
@@ -101,8 +104,6 @@ PoolHandle< Texture > UploadBC4( GPUSlabAllocator * a, const char * path );
 
 u32 TextureWidth( PoolHandle< Texture > texture );
 u32 TextureHeight( PoolHandle< Texture > texture );
-u32 TextureLayers( PoolHandle< Texture > texture );
-u32 TextureMipLevels( PoolHandle< Texture > texture );
 
 /*
  * Resource transfers
@@ -132,7 +133,7 @@ void UploadTexture( const TextureConfig & config, BackendTexture dest );
 void AddDebugMarker( const char * label, PoolHandle< GPUAllocation > allocation, size_t offset, size_t size );
 void RemoveAllDebugMarkers( PoolHandle< GPUAllocation > allocation );
 
-PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandle< Texture > texture, SamplerType sampler, GPUBuffer properties );
+PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, BackendTexture texture, SamplerType sampler, GPUBuffer properties );
 
 size_t FrameSlot();
 

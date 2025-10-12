@@ -6,6 +6,7 @@
 #include "qcommon/serialization.h"
 
 #include "client/renderer/api.h"
+#include "client/renderer/shader.h"
 #include "client/renderer/text.h"
 #include "client/client.h"
 #include "client/assets.h"
@@ -102,7 +103,7 @@ void DrawTextBaseline( const Font * font, float pixel_size, Span< const char > s
 	if( font == NULL )
 		return;
 
-	ImGuiShaderAndMaterial imgui = { };
+	ImGuiShaderAndMaterial imgui;
 	imgui.shader = shaders.text;
 	imgui.material_bind_group = font->bind_group;
 	imgui.buffer = { "u_Text", NewTempBuffer( TextUniforms {

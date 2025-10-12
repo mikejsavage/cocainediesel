@@ -163,18 +163,18 @@ static void SubmitPostprocessPass() {
 	chasing_amount = Clamp01( chasing_amount );
 
 	PostprocessUniforms uniforms = {
-		uniforms.time = ToSeconds( cls.shadertoy_time ),
-		uniforms.damage = damage_effect,
-		uniforms.crt = chasing_amount,
-		uniforms.brightness = 0.0f,
-		uniforms.contrast = contrast,
+		.time = ToSeconds( cls.shadertoy_time ),
+		.damage = damage_effect,
+		.crt = chasing_amount,
+		.brightness = 0.0f,
+		.contrast = contrast,
 	};
 
 	frame_static.render_passes[ RenderPass_Postprocessing ] = NewRenderPass( RenderPassConfig {
 		.name = "Postprocessing",
 		.color_targets = {
 			RenderPassConfig::ColorTarget {
-				.texture = frame_static.render_targets.swapchain,
+				.texture = NONE,
 				.preserve_contents = false,
 			},
 		},

@@ -166,16 +166,19 @@ namespace ImGui
 	}
 
 #include "qcommon/hash.h"
-#include "client/renderer/shader.h"
+#include "client/renderer/api.h"
 
 struct ImGuiShaderAndMaterial {
-	ImGuiShaderAndMaterial() {
+	ImGuiShaderAndMaterial() = default;
+
+	ImGuiShaderAndMaterial( PoolHandle< Material2 > material ) {
 		*this = { };
+		material_bind_group = MaterialBindGroup( material );
 	}
 
-	ImGuiShaderAndMaterial( PoolHandle< Material2 > material_ ) {
-		material = material_;
-		buffer = { };
+	ImGuiShaderAndMaterial( PoolHandle< BindGroup > bind_group ) {
+		*this = { };
+		material_bind_group = bind_group;
 	}
 
 	ImGuiShaderAndMaterial( const void * null ) {
@@ -183,19 +186,20 @@ struct ImGuiShaderAndMaterial {
 	}
 
 	explicit operator intptr_t() const {
-		return intptr_t( material.x );
+		return 0;
+		// return intptr_t( material.x );
 	}
 
+	Optional< PoolHandle< RenderPipeline > > shader;
+	PoolHandle< BindGroup > material_bind_group;
 	BufferBinding buffer;
-	PoolHandle< Material2 > material;
-	// PoolHandle< RenderPipeline > shader;
-	// PoolHandle< BindGroup > material_bind_group;
 };
 
 inline bool operator==( const ImGuiShaderAndMaterial & a, const ImGuiShaderAndMaterial & b ) {
-	return a.material == b.material
-		&& a.buffer.name == b.buffer.name
-		&& a.buffer.buffer.allocation == b.buffer.buffer.allocation && a.buffer.buffer.offset == b.buffer.buffer.offset && a.buffer.buffer.size == b.buffer.buffer.size;
+	return false;
+	// return a.material == b.material
+	// 	&& a.buffer.name == b.buffer.name
+	// 	&& a.buffer.buffer.allocation == b.buffer.buffer.allocation && a.buffer.buffer.offset == b.buffer.buffer.offset && a.buffer.buffer.size == b.buffer.buffer.size;
 }
 
 inline bool operator!=( const ImGuiShaderAndMaterial & a, const ImGuiShaderAndMaterial & b ) {

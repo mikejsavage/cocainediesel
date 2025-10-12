@@ -291,11 +291,11 @@ struct GPUBindings {
 
 struct RenderPassConfig {
 	struct ColorTarget {
-		PoolHandle< Texture > texture;
+		Optional< PoolHandle< Texture > > texture; // NONE = swapchain
 		u32 layer = 0;
 		bool preserve_contents = true;
 		Optional< Vec4 > clear = NONE;
-		Optional< PoolHandle< Texture > > resolve_target = NONE;
+		Optional< PoolHandle< Texture > > resolve_from = NONE;
 	};
 
 	struct DepthTarget {
@@ -303,7 +303,7 @@ struct RenderPassConfig {
 		u32 layer = 0;
 		bool preserve_contents = true;
 		Optional< float > clear = NONE;
-		Optional< PoolHandle< Texture > > resolve_target = NONE;
+		Optional< PoolHandle< Texture > > resolve_from = NONE;
 	};
 
 	const char * name;
@@ -488,6 +488,7 @@ u32 TextureWidth( PoolHandle< Material2 > material );
 u32 TextureHeight( PoolHandle< Material2 > material );
 
 RenderPass MaterialRenderPass( PoolHandle< Material2 > material );
+PoolHandle< BindGroup > MaterialBindGroup( PoolHandle< Material2 > material );
 PipelineState MaterialPipelineState( PoolHandle< Material2 > material );
 
 /*
@@ -542,7 +543,6 @@ struct FrameStatic {
 		PoolHandle< Texture > resolved_color;
 		PoolHandle< Texture > resolved_depth;
 		PoolHandle< Texture > shadowmap;
-		PoolHandle< Texture > swapchain;
 	} render_targets;
 
 	Opaque< CommandBuffer > render_passes[ RenderPass_Count ];
@@ -555,5 +555,5 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov );
 void RendererEndFrame();
 
 void RenderBackendWaitForNewFrame();
-PoolHandle< Texture > RenderBackendBeginFrame( bool capture );
+void RenderBackendBeginFrame( bool capture );
 void RenderBackendEndFrame();

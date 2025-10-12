@@ -98,13 +98,7 @@ T Default( const Optional< T > & opt, const T & def ) {
 }
 
 template< typename T >
-T & Must( Optional< T > & opt ) {
-	Assert( opt.exists );
-	return opt.value;
-}
-
-template< typename T >
-const T & Must( const Optional< T > & opt ) {
+T Unwrap( Optional< T > opt ) {
 	Assert( opt.exists );
 	return opt.value;
 }

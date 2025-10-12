@@ -68,7 +68,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash materia
 	PipelineState pipeline = {
 		.shader = shaders.standard_vertexcolors_add,
 		.dynamic_state = { .depth_func = DepthFunc_LessNoWrite },
-		.material_bind_group = material->bind_group,
+		.material_bind_group = MaterialBindGroup( material ),
 	};
 
 	Mesh mesh = { };

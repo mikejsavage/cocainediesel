@@ -190,7 +190,7 @@ static void SubmitDrawCalls() {
 				} );
 
 				PipelineState pipeline = {
-					.shader = pcmd->TextureId.shader,
+					.shader = Default( pcmd->TextureId.shader, shaders.standard_vertexcolors ),
 					.dynamic_state = {
 						.depth_func = DepthFunc_AlwaysNoWrite,
 						.cull_face = CullFace_Disabled,

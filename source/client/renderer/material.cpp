@@ -30,7 +30,7 @@ constexpr u32 MAX_SPRITES = 4096;
 constexpr int SPRITE_ATLAS_SIZE = 2048;
 constexpr int SPRITE_ATLAS_BLOCK_SIZE = SPRITE_ATLAS_SIZE / 4;
 
-inline HashPool< Texture, MaxMaterials > textures;
+inline HashPool< Texture, MaxMaterials > textures; // NOTE(mike): this is inline so the backends can read it
 static HashPool< Material2, MaxMaterials > materials;
 
 static PoolHandle< Texture > missing_texture;
@@ -38,6 +38,7 @@ static PoolHandle< Material2 > missing_material;
 
 static HashMap< Sprite, MAX_SPRITES > sprites;
 static PoolHandle< Texture > sprite_atlas;
+static PoolHandle< BindGroup > sprite_atlas_bind_group;
 
 bool CompressedTextureFormat( TextureFormat format ) {
 	switch( format ) {
@@ -336,7 +337,7 @@ static Material2 MaterialFromDescriptor( Span< const char > name, const Material
 		.name = name,
 		.render_pass = pass,
 		.shader = shader,
-		.bind_group = NewMaterialBindGroup( name, desc.texture, desc.sampler, properties ),
+		.bind_group = NewMaterialBindGroup( name, textures[ desc.texture ].handle, desc.sampler, properties ),
 		.texture = desc.texture,
 		.dynamic_state = desc.dynamic_state,
 		.rgbgen = desc.rgbgen,
@@ -363,10 +364,17 @@ static Optional< PoolHandle< Material2 > > AddMaterial( Span< const char > name,
 	return NONE;
 }
 
-u32 TextureWidth( PoolHandle< Texture > texture ) { return textures[ texture ].width; }
-u32 TextureHeight( PoolHandle< Texture > texture ) { return textures[ texture ].height; }
-u32 TextureLayers( PoolHandle< Texture > texture ) { return textures[ texture ].depth; }
-u32 TextureMipLevels( PoolHandle< Texture > texture ) { return textures[ texture ].num_mipmaps; }
+TextureFormat GetTextureFormat( PoolHandle< Texture > texture ) {
+	return textures[ texture ].format;
+}
+
+u32 TextureWidth( PoolHandle< Material2 > material ) {
+	return textures[ materials[ material ].texture ].width;
+}
+
+u32 TextureHeight( PoolHandle< Material2 > material ) {
+	return textures[ materials[ material ].texture ].height;
+}
 
 [[nodiscard]] static Optional< PoolHandle< Texture > > AddTexture( const TextureConfig & config ) {
 	TracyZoneScoped;
@@ -790,12 +798,6 @@ static void PackSpriteAtlas() {
 	}
 }
 
-template< typename T >
-static T Unwrap( Optional< T > opt ) {
-	Assert( opt.exists );
-	return opt.value;
-}
-
 static void LoadBuiltinMaterials() {
 	TracyZoneScoped;
 
@@ -973,7 +975,11 @@ void InitMaterials() {
 		}
 	}
 
-	PackSpriteAtlas();
+	{
+		PackSpriteAtlas();
+		GPUBuffer buffer = NewBuffer( "Sprite atlas properties", MaterialProperties { } );
+		sprite_atlas_bind_group = NewMaterialBindGroup( "Sprite atlas", textures[ sprite_atlas ].handle, Sampler_Standard, buffer );
+	}
 }
 
 void HotloadMaterials() {
@@ -1050,12 +1056,20 @@ PoolHandle< Texture > SpriteAtlasTexture() {
 	return sprite_atlas;
 }
 
+PoolHandle< BindGroup > SpriteAtlasBindGroup() {
+	return sprite_atlas_bind_group;
+}
+
 Vec2 HalfPixelSize( PoolHandle< Material2 > material ) {
 	return 0.5f / Vec2( TextureWidth( material ), TextureHeight( material ) );
 }
 
 RenderPass MaterialRenderPass( PoolHandle< Material2 > material ) {
 	return materials[ material ].render_pass;
+}
+
+PoolHandle< BindGroup > MaterialBindGroup( PoolHandle< Material2 > material ) {
+	return materials[ material ].bind_group;
 }
 
 PipelineState MaterialPipelineState( PoolHandle< Material2 > handle ) {

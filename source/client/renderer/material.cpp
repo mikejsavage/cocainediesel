@@ -364,6 +364,23 @@ static Optional< PoolHandle< Material2 > > AddMaterial( Span< const char > name,
 	return NONE;
 }
 
+// PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {
+// 	PoolHandle< Texture > handle;
+// 	if( old_texture.exists ) {
+// 		handle = old_texture.value;
+// 	}
+// 	else {
+// 		PoolHandle< Texture > new_handle = textures.add( Hash64( config.name ) );
+// 		if( !new_handle.exists ) {
+// 			Com_Printf( S_COLOR_YELLOW "Too many textures!\n" );
+// 			return missing_texture;
+// 		}
+// 		handle = new_handle.value;
+// 	}
+//
+// 	return NewBackendTexture( config, old_texture.exists ? textures[ old_texture.value ].handle : NONE );
+// }
+
 TextureFormat GetTextureFormat( PoolHandle< Texture > texture ) {
 	return textures[ texture ].format;
 }

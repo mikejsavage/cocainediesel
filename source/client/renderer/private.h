@@ -59,8 +59,6 @@ struct CoherentGPUArenaAllocator {
 	void * ptr;
 };
 
-GPUSlabAllocator NewGPUSlabAllocator( size_t slab_size, size_t min_alignment, size_t buffer_image_granularity );
-void DeleteGPUSlabAllocator( GPUSlabAllocator * a );
 GPUBuffer NewBuffer( GPUSlabAllocator * a, const char * label, size_t size, size_t alignment, bool texture, const void * data = NULL );
 
 GPUArenaAllocator NewDeviceGPUArenaAllocator( size_t size, size_t min_alignment );
@@ -130,7 +128,7 @@ void UploadTexture( const TextureConfig & config, BackendTexture dest );
  * Debug info
  */
 
-void AddDebugMarker( const char * label, PoolHandle< GPUAllocation > allocation, size_t offset, size_t size );
+void AddDebugMarker( PoolHandle< GPUAllocation > allocation, size_t offset, size_t size, const char * label );
 void RemoveAllDebugMarkers( PoolHandle< GPUAllocation > allocation );
 
 PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, BackendTexture texture, SamplerType sampler, GPUBuffer properties );

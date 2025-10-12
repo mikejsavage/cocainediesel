@@ -181,7 +181,7 @@ CoherentMemory AllocateCoherentMemory( size_t size ) {
 	};
 }
 
-void AddDebugMarker( const char * label, PoolHandle< GPUAllocation > allocation, size_t offset, size_t size ) {
+void AddDebugMarker( PoolHandle< GPUAllocation > allocation, size_t offset, size_t size, const char * label ) {
 	NS::Range range( checked_cast< NS::UInteger >( offset ), checked_cast< NS::UInteger >( size ) );
 	allocations[ allocation ].buffer->addDebugMarker( AutoReleaseString( label ), range );
 }

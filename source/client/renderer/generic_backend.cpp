@@ -13,6 +13,28 @@ static GPUSlabAllocator persistent_allocator;
 static GPUArenaAllocator device_temp_allocator;
 static CoherentGPUArenaAllocator coherent_temp_allocator;
 
+static GPUSlabAllocator NewGPUSlabAllocator( size_t slab_size, size_t min_alignment, size_t buffer_image_granularity ) {
+	GPUSlabAllocator::Slab * dummy = Alloc< GPUSlabAllocator::Slab >( sys_allocator );
+	*dummy = { };
+	return GPUSlabAllocator {
+		.slab_size = slab_size,
+		.slabs = dummy,
+		.min_alignment = min_alignment,
+		.buffer_image_granularity = buffer_image_granularity,
+	};
+}
+
+static void DeleteGPUSlabAllocator( GPUSlabAllocator * a ) {
+	printf( "used %zu bytes, wasted %zu bytes, unused %zu bytes\n", a->used, a->wasted, a->slabs == NULL ? 0 : a->slabs->capacity - a->slabs->cursor );
+
+	GPUSlabAllocator::Slab * slab = a->slabs;
+	while( slab != NULL ) {
+		GPUSlabAllocator::Slab * next = slab->next;
+		Free( sys_allocator, slab );
+		slab = next;
+	}
+}
+
 void InitRenderBackendAllocators( size_t slab_size, size_t constant_buffer_alignment, size_t buffer_image_granularity ) {
 	staging_buffer = AllocateCoherentMemory( STAGING_BUFFER_CAPACITY );
 	staging_buffer_cursor = 0;
@@ -25,6 +47,7 @@ void InitRenderBackendAllocators( size_t slab_size, size_t constant_buffer_align
 
 void ShutdownRenderBackendAllocators() {
 	DeleteTransferCommandBuffer( staging_command_buffer );
+	DeleteGPUSlabAllocator( &persistent_allocator );
 }
 
 static size_t Reserve( size_t n, size_t alignment ) {
@@ -87,28 +110,6 @@ void FlushStagingBuffer() {
 	staging_buffer_cursor = 0;
 }
 
-GPUSlabAllocator NewGPUAllocator( size_t slab_size, size_t min_alignment, size_t buffer_image_granularity ) {
-	GPUSlabAllocator::Slab * dummy = Alloc< GPUSlabAllocator::Slab >( sys_allocator );
-	*dummy = { };
-	return GPUSlabAllocator {
-		.slab_size = slab_size,
-		.slabs = dummy,
-		.min_alignment = min_alignment,
-		.buffer_image_granularity = buffer_image_granularity,
-	};
-}
-
-void DeleteGPUAllocator( GPUSlabAllocator * a ) {
-	printf( "used %zu bytes, wasted %zu bytes, unused %zu bytes\n", a->used, a->wasted, a->slabs == NULL ? 0 : a->slabs->capacity - a->slabs->cursor );
-
-	GPUSlabAllocator::Slab * slab = a->slabs;
-	while( slab != NULL ) {
-		GPUSlabAllocator::Slab * next = slab->next;
-		free( slab );
-		slab = next;
-	}
-}
-
 GPUBuffer NewBuffer( GPUSlabAllocator * a, const char * label, size_t size, size_t alignment, bool texture, const void * data ) {
 	Assert( IsPowerOf2( alignment ) );
 	Assert( IsPowerOf2( a->buffer_image_granularity ) );
@@ -156,7 +157,7 @@ GPUBuffer NewBuffer( GPUSlabAllocator * a, const char * label, size_t size, size
 	a->slabs->cursor = aligned_cursor + size;
 	a->last_allocation_was_buffer = !texture;
 
-	AddDebugMarker( label, a->slabs->buffer, aligned_cursor, size );
+	AddDebugMarker( a->slabs->buffer, aligned_cursor, size, label );
 
 	GPUBuffer buffer = {
 		.allocation = a->slabs->buffer,
@@ -201,6 +202,7 @@ CoherentGPUArenaAllocator NewCoherentGPUArenaAllocator( size_t size, size_t min_
 
 static void ClearGPUArenaAllocator( GPUArenaAllocator * a ) {
 	a->cursor = 0;
+	RemoveAllDebugMarkers( a->allocation );
 }
 
 void ClearGPUArenaAllocators() {
@@ -208,7 +210,7 @@ void ClearGPUArenaAllocators() {
 	ClearGPUArenaAllocator( &coherent_temp_allocator.a );
 }
 
-GPUBuffer NewDeviceTempBuffer( GPUArenaAllocator * a, size_t size, size_t alignment ) {
+static GPUBuffer NewTempBuffer( GPUArenaAllocator * a, const char * label, size_t size, size_t alignment ) {
 	// alignment and min_alignment are both pow2 so Max2( alignment, min_alignment ) == LeastCommonMultiple( alignment, min_alignment )
 	Assert( IsPowerOf2( alignment ) );
 	size_t aligned_cursor = AlignPow2( a->cursor, Max2( alignment, a->min_alignment ) );
@@ -216,15 +218,21 @@ GPUBuffer NewDeviceTempBuffer( GPUArenaAllocator * a, size_t size, size_t alignm
 
 	a->cursor = aligned_cursor + size;
 
+	size_t offset = aligned_cursor + a->capacity * FrameSlot();
+
+	if( label != NULL ) {
+		AddDebugMarker( a->allocation, offset, size, label );
+	}
+
 	return GPUBuffer {
 		.allocation = a->allocation,
-		.offset = aligned_cursor + a->capacity * FrameSlot(),
+		.offset = offset,
 		.size = size,
 	};
 }
 
 CoherentBuffer NewTempBuffer( size_t size, size_t alignment ) {
-	GPUBuffer buffer = NewDeviceTempBuffer( &coherent_temp_allocator.a, size, alignment );
+	GPUBuffer buffer = NewTempBuffer( &coherent_temp_allocator.a, NULL, size, alignment );
 	return CoherentBuffer {
 		.buffer = buffer,
 		.ptr = ( ( char * ) coherent_temp_allocator.ptr ) + buffer.offset,
@@ -235,6 +243,10 @@ GPUBuffer NewTempBuffer( const void * data, size_t size, size_t alignment ) {
 	CoherentBuffer buffer = NewTempBuffer( size, alignment );
 	memcpy( buffer.ptr, data, size );
 	return buffer.buffer;
+}
+
+GPUBuffer NewDeviceTempBuffer( const char * label, size_t size, size_t alignment ) {
+	return NewTempBuffer( &device_temp_allocator, label, size, alignment );
 }
 
 BackendTexture NewBackendTexture( const TextureConfig & config, Optional< BackendTexture > old_texture ) {

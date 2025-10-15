@@ -177,7 +177,7 @@ static Mat3x4 CreateQ3FaceBasis( Vec3 normal ) {
 		t = Vec3( normal.z > 0.0f ? 1.0f : -1.0f, 0.0f, 0.0f );
 	}
 	else {
-		s = Cross( Vec3( 0.0f, 0.0f, 1.0f ), normal );
+		s = Normalize( Cross( Vec3( 0.0f, 0.0f, 1.0f ), normal ) );
 		t = Cross( normal, s );
 	}
 

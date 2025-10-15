@@ -250,7 +250,7 @@ GPUBuffer NewDeviceTempBuffer( const char * label, size_t size, size_t alignment
 }
 
 BackendTexture NewBackendTexture( const TextureConfig & config, Optional< BackendTexture > old_texture ) {
-	return NewBackendTexture( &persistent_allocator, config, old_texture );
+	return NewBackendTexture( config.dedicated_allocation ? NULL : &persistent_allocator, config, old_texture );
 }
 
 bool operator==( const VertexAttribute & lhs, const VertexAttribute & rhs ) {

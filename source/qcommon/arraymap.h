@@ -14,7 +14,7 @@ class ArrayMap {
 
 public:
 	V * add( const K & key ) {
-		if( n == N || get( key ) != NULL )
+		if( n == N || get2( key ).exists )
 			return NULL;
 		slots[ n ].key = key;
 		return &slots[ n++ ].value;

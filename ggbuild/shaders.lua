@@ -57,6 +57,8 @@ rule metallib
 		)
 	end
 
+	local spv_dir = OS == "macos" and "build" or "base"
+
 	print( "# Graphics shaders" )
 	local dedupe = { }
 	for graphics_shader in shader_variants_h:gmatch( ReadableWhitespace( "GraphicsShaderDescriptor (%b{}) ," ) ) do
@@ -65,24 +67,24 @@ rule metallib
 		local out_filename = StripExtension( src ) .. filename_features
 
 		if not dedupe[ out_filename ] then
-			printf( "build build/shaders/%s.vert.spv: slangc_vertex base/glsl/%s", out_filename, src )
+			printf( "build %s/shaders/%s.vert.spv: slangc_vertex base/glsl/%s", spv_dir, out_filename, src )
 			if cli_features ~= "" then
-			printf( "    features = %s", cli_features )
+				printf( "    features = %s", cli_features )
 			end
-			printf( "build build/shaders/%s.frag.spv: slangc_fragment base/glsl/%s", out_filename, src )
+			printf( "build %s/shaders/%s.frag.spv: slangc_fragment base/glsl/%s", spv_dir, out_filename, src )
 			if cli_features ~= "" then
 				printf( "    features = %s", cli_features )
 			end
 
-			if macos then
-				printf( "build build/shaders/%s.vert.metal: spirv-cross %s/%s.vert.spv", out_filename, out_filename )
-				printf( "build build/shaders/%s.frag.metal: spirv-cross %s/%s.frag.spv", out_filename, out_filename )
+			if OS == "macos" then
+				printf( "build build/shaders/%s.vert.metal: spirv-cross build/shaders/%s.vert.spv", out_filename, out_filename )
+				printf( "build build/shaders/%s.frag.metal: spirv-cross build/shaders/%s.frag.spv", out_filename, out_filename )
 				printf( "build build/shaders/%s.vert.air: metal build/shaders/%s.vert.metal", out_filename, out_filename )
 				printf( "build build/shaders/%s.frag.air: metal build/shaders/%s.frag.metal", out_filename, out_filename )
-				printf( "build build/shaders/%s.metallib: metallib build/shaders/%s.vert.air build/shaders/%s.frag.air", out_filename, out_filename, out_filename )
-				printf( "default build/shaders/%s.metallib", out_filename )
+				printf( "build base/shaders/%s.metallib: metallib build/shaders/%s.vert.air build/shaders/%s.frag.air", out_filename, out_filename, out_filename )
+				printf( "default base/shaders/%s.metallib", out_filename )
 			else
-				printf( "default build/shaders/%s.vert.spv build/shaders/%s.frag.spv", out_filename, out_filename )
+				printf( "default base/shaders/%s.vert.spv base/shaders/%s.frag.spv", out_filename, out_filename )
 			end
 
 			dedupe[ out_filename ] = true
@@ -98,8 +100,18 @@ rule metallib
 		local src = compute_shader:match( "\"([^\"]+)\"" )
 		local src = compute_shader:match( ReadableWhitespace( "{.-, \"([^\"]+)\" }" ) )
 		local out_filename = StripExtension( src )
-		printf( "build build/shaders/%s.comp.spv: slangc_compute base/glsl/%s", out_filename, src )
-		printf( "default build/shaders/%s.comp.spv", out_filename )
+
+		printf( "build %s/shaders/%s.comp.spv: slangc_compute base/glsl/%s", spv_dir, out_filename, src )
+
+		if OS == "macos" then
+			printf( "build build/shaders/%s.comp.metal: spirv-cross build/shaders/%s.comp.spv", out_filename, out_filename )
+			printf( "build build/shaders/%s.comp.air: metal build/shaders/%s.comp.metal", out_filename, out_filename )
+			printf( "build base/shaders/%s.metallib: metallib build/shaders/%s.comp.air", out_filename, out_filename, out_filename )
+			printf( "default base/shaders/%s.metallib", out_filename )
+		else
+			printf( "default base/shaders/%s.comp.spv", out_filename )
+		end
+
 		print()
 	end
 end

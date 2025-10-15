@@ -165,7 +165,6 @@ namespace ImGui
 		continue; \
 	}
 
-#include "qcommon/hash.h"
 #include "client/renderer/api.h"
 
 struct ImGuiShaderAndMaterial {
@@ -195,15 +194,14 @@ struct ImGuiShaderAndMaterial {
 	BufferBinding buffer;
 };
 
-inline bool operator==( const ImGuiShaderAndMaterial & a, const ImGuiShaderAndMaterial & b ) {
-	return false;
-	// return a.material == b.material
-	// 	&& a.buffer.name == b.buffer.name
-	// 	&& a.buffer.buffer.allocation == b.buffer.buffer.allocation && a.buffer.buffer.offset == b.buffer.buffer.offset && a.buffer.buffer.size == b.buffer.buffer.size;
+inline bool operator==( const ImGuiShaderAndMaterial & lhs, const ImGuiShaderAndMaterial & rhs ) {
+	return lhs.shader.exists == rhs.shader.exists && ( !lhs.shader.exists || lhs.shader.value.x == rhs.shader.value.x )
+		&& lhs.material_bind_group.x == rhs.material_bind_group.x
+		&& lhs.buffer.buffer.allocation == rhs.buffer.buffer.allocation && lhs.buffer.buffer.offset == rhs.buffer.buffer.offset && lhs.buffer.buffer.size == rhs.buffer.buffer.size;
 }
 
-inline bool operator!=( const ImGuiShaderAndMaterial & a, const ImGuiShaderAndMaterial & b ) {
-	return !( a == b );
+inline bool operator!=( const ImGuiShaderAndMaterial & lhs, const ImGuiShaderAndMaterial & rhs ) {
+	return !( lhs == rhs );
 }
 
 #define ImTextureID ImGuiShaderAndMaterial

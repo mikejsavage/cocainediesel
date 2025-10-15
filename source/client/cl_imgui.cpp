@@ -9,6 +9,7 @@
 #include "client/client.h"
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
+#include "client/renderer/shader_variants.h"
 
 #include <algorithm>
 
@@ -62,6 +63,7 @@ void CL_InitImGui() {
 		io.Fonts->GetTexDataAsAlpha8( &pixels, &width, &height );
 
 		atlas_texture = NewTexture( TextureConfig {
+			.name = "ImGui font atlas",
 			.format = TextureFormat_A_U8,
 			.width = checked_cast< u32 >( width ),
 			.height = checked_cast< u32 >( height ),
@@ -160,13 +162,11 @@ static void SubmitDrawCalls() {
 			continue;
 		}
 
-		Mesh mesh = { };
-		mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, pos ) };
-		mesh.vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, uv ) };
-		mesh.vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( ImDrawVert, col ) };
-		mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( ImDrawVert );
-		mesh.vertex_buffers[ 0 ] = NewTempBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size, sizeof( ImDrawVert ) );
-		mesh.index_buffer = NewTempBuffer( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size, sizeof( u16 ) );
+		Mesh mesh = {
+			.vertex_descriptor = ImGuiVertexDescriptor(),
+			.vertex_buffers = { NewTempBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size, alignof( ImDrawVert ) ) },
+			.index_buffer = NewTempBuffer( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size, alignof( u16 ) ),
+		};
 
 		for( int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++ ) {
 			const ImDrawCmd * pcmd = &cmd_list->CmdBuffer[ cmd_i ];
@@ -190,7 +190,7 @@ static void SubmitDrawCalls() {
 				} );
 
 				PipelineState pipeline = {
-					.shader = Default( pcmd->TextureId.shader, shaders.standard_vertexcolors ),
+					.shader = Default( pcmd->TextureId.shader, shaders.imgui ),
 					.dynamic_state = {
 						.depth_func = DepthFunc_AlwaysNoWrite,
 						.cull_face = CullFace_Disabled,

@@ -123,10 +123,13 @@ static void ExecConfig( const char * path ) {
 		return;
 	}
 
+	int i = 0;
+
 	Span< const char > cursor = config;
 	while( cursor.n > 0 ) {
 		bool eof;
 		Span< const char > line = GrabLine( cursor, &eof );
+
 		if( !StartsWith( line, "//" ) ) {
 			Cmd_ExecuteLine( sys_allocator, line, true );
 		}
@@ -135,6 +138,9 @@ static void ExecConfig( const char * path ) {
 		if( !eof ) {
 			cursor++;
 		}
+
+		i++;
+		if( i > 500 ) abort();
 	}
 }
 

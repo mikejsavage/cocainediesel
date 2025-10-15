@@ -2,6 +2,7 @@
 
 #include "qcommon/types.h"
 #include "client/renderer/shader.h"
+#include "imgui/imgui.h"
 
 struct GraphicsShaderDescriptor {
 	PoolHandle< RenderPipeline > Shaders:: * field;
@@ -25,35 +26,42 @@ struct ShaderDescriptors {
 	Span< const ComputeShaderDescriptor > compute_shaders;
 };
 
+constexpr VertexDescriptor ImGuiVertexDescriptor() {
+	VertexDescriptor imgui = { };
+	imgui.attributes[ VertexAttribute_Position ] = MakeOptional( VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, pos ) } );
+	imgui.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, uv ) };
+	imgui.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( ImDrawVert, col ) };
+	imgui.buffer_strides[ 0 ] = sizeof( ImDrawVert );
+	return imgui;
+}
+
 // this has to be a visitor to keep the initializer_lists in scope
 template< typename R, typename F, typename... Rest >
 R VisitShaderDescriptors( F f, Rest... rest ) {
-	VertexDescriptor pos_normal = { };
-	pos_normal.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_U16x3_01, 0, 0 };
-	pos_normal.attributes[ VertexAttribute_Normal ] = VertexAttribute { VertexFormat_U10x3_U2x1_01, 1, 0 };
-	pos_normal.buffer_strides[ 0 ] = sizeof( u16 ) * 3;
-	pos_normal.buffer_strides[ 1 ] = sizeof( u16 ) * 2;
+	// VertexDescriptor standard_vertex = { };
+	// standard_vertex.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_U16x3_01, 0, 0 };
+	// standard_vertex.attributes[ VertexAttribute_Normal ] = VertexAttribute { VertexFormat_U10x3_U2x1_01, 1, 0 };
+	// standard_vertex.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_U16x2_01, 1, sizeof( u16 ) * 2 };
+	// standard_vertex.buffer_strides[ 0 ] = sizeof( u16 ) * 3;
+	// standard_vertex.buffer_strides[ 1 ] = sizeof( u16 ) * 4;
 
-	VertexDescriptor pos_normal_uv = { };
-	pos_normal_uv.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_U16x3_01, 0, 0 };
-	pos_normal_uv.attributes[ VertexAttribute_Normal ] = VertexAttribute { VertexFormat_U10x3_U2x1_01, 1, 0 };
-	pos_normal_uv.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_U16x2_01, 1, sizeof( u16 ) * 2 };
-	pos_normal_uv.buffer_strides[ 0 ] = sizeof( u16 ) * 3;
-	pos_normal_uv.buffer_strides[ 1 ] = sizeof( u16 ) * 4;
+	VertexDescriptor standard_vertex = { };
+	standard_vertex.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, 0 };
+	standard_vertex.attributes[ VertexAttribute_Normal ] = VertexAttribute { VertexFormat_Floatx3, 1, 0 };
+	standard_vertex.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 1, sizeof( Vec3 ) };
+	standard_vertex.buffer_strides[ 0 ] = sizeof( u16 ) * 3;
+	standard_vertex.buffer_strides[ 1 ] = sizeof( u16 ) * 4;
 
-	VertexDescriptor pos_uv = { };
-	pos_uv.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_U16x3_01, 0, 0 };
-	pos_uv.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_U16x2_01, 0, sizeof( u16 ) * 2 };
-	pos_uv.buffer_strides[ 0 ] = sizeof( u16 ) * 5;
+	VertexDescriptor vfx = { };
+	vfx.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( VFXVertex, position ) };
+	vfx.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( VFXVertex, uv ) };
+	vfx.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( VFXVertex, color ) };
+	vfx.buffer_strides[ 0 ] = sizeof( VFXVertex );
 
-	VertexDescriptor pos_normal_uv_skinned = { };
-	pos_normal_uv_skinned.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_U16x3_01, 0, 0 };
-	pos_normal_uv_skinned.attributes[ VertexAttribute_Normal ] = VertexAttribute { VertexFormat_U10x3_U2x1_01, 1, 0 };
-	pos_normal_uv_skinned.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_U16x2_01, 1, sizeof( u16 ) * 2 };
+	VertexDescriptor pos_normal_uv_skinned = standard_vertex;
 	pos_normal_uv_skinned.attributes[ VertexAttribute_JointIndices ] = VertexAttribute { VertexFormat_U8x4, 1, sizeof( u8 ) * 4 };
 	pos_normal_uv_skinned.attributes[ VertexAttribute_JointWeights ] = VertexAttribute { VertexFormat_U16x4_01, 1, sizeof( u16 ) * 4 };
-	pos_normal_uv_skinned.buffer_strides[ 0 ] = sizeof( u16 ) * 3;
-	pos_normal_uv_skinned.buffer_strides[ 1 ] = sizeof( u16 ) * 2 + sizeof( u16 ) * 2 + sizeof( u8 ) * 4 + sizeof( u16 ) * 4;
+	pos_normal_uv_skinned.buffer_strides[ 1 ] = sizeof( u8 ) * 4 + sizeof( u16 ) * 4;
 
 	VertexDescriptor fullscreen_vertex_descriptor = { };
 	fullscreen_vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, 0 },
@@ -73,13 +81,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 			GraphicsShaderDescriptor {
 				.field = &Shaders::standard,
 				.src = "standard.slang",
-				.mesh_variants = { pos_normal, pos_normal_uv },
-			},
-			GraphicsShaderDescriptor {
-				.field = &Shaders::standard_vertexcolors,
-				.src = "standard.slang",
-				.features = { "VERTEX_COLORS" },
-				.mesh_variants = { pos_uv },
+				.mesh_variants = { standard_vertex },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::standard_skinned,
@@ -97,20 +99,41 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 					"APPLY_SHADOWS",
 					"SHADED",
 				},
-				.mesh_variants = { pos_normal },
+				.mesh_variants = { standard_vertex },
+			},
+
+			GraphicsShaderDescriptor {
+				.field = &Shaders::imgui,
+				.src = "simple.slang",
+				.features = { "IMGUI" },
+				.mesh_variants = { ImGuiVertexDescriptor() },
+				.blend_func = BlendFunc_Blend,
+			},
+
+			GraphicsShaderDescriptor {
+				.field = &Shaders::vfx_add,
+				.src = "simple.slang",
+				.mesh_variants = { vfx },
+				.blend_func = BlendFunc_Add,
+			},
+			GraphicsShaderDescriptor {
+				.field = &Shaders::vfx_blend,
+				.src = "simple.slang",
+				.mesh_variants = { vfx },
+				.blend_func = BlendFunc_Blend,
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::viewmodel,
 				.src = "standard.slang",
-				.mesh_variants = { pos_normal, pos_normal_uv },
+				.mesh_variants = { standard_vertex },
 				.viewmodel_depth = true,
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::depth_only,
 				.src = "depth_only.slang",
-				.mesh_variants = { pos_normal, pos_normal_uv },
+				.mesh_variants = { standard_vertex },
 				.clamp_depth = true,
 			},
 			GraphicsShaderDescriptor {
@@ -138,7 +161,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 			GraphicsShaderDescriptor {
 				.field = &Shaders::write_silhouette_gbuffer,
 				.src = "write_silhouette_gbuffer.slang",
-				.mesh_variants = { pos_normal, pos_normal_uv },
+				.mesh_variants = { standard_vertex },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::write_silhouette_gbuffer_skinned,
@@ -156,10 +179,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 			GraphicsShaderDescriptor {
 				.field = &Shaders::outline,
 				.src = "outline.slang",
-				.mesh_variants = {
-					{ pos_normal },
-					{ pos_normal_uv },
-				},
+				.mesh_variants = { standard_vertex },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::outline_skinned,

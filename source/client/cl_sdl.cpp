@@ -23,7 +23,9 @@
 const bool is_dedicated_server = false;
 
 SDL_Window * window;
+#if !PLATFORM_MACOS
 static SDL_GLContext gl_context;
+#endif
 
 static bool running_in_renderdoc;
 static bool route_inputs_to_imgui;
@@ -104,7 +106,9 @@ void CreateWindow( WindowMode mode ) {
 		TrySDL( SDL_SetWindowFullscreenMode, window, &closest );
 	}
 
+#if !PLATFORM_MACOS
 	gl_context = TrySDLR( SDL_GLContext, SDL_GL_CreateContext, window );
+#endif
 
 	TrySDL( SDL_GetWindowSizeInPixels, window, &framebuffer_width, &framebuffer_height );
 
@@ -125,7 +129,9 @@ void CreateWindow( WindowMode mode ) {
 
 void DestroyWindow() {
 	TracyZoneScoped;
+#if !PLATFORM_MACOS
 	TrySDL( SDL_GL_DestroyContext, gl_context );
+#endif
 	SDL_DestroyWindow( window );
 }
 
@@ -220,6 +226,7 @@ void SetWindowMode( WindowMode mode ) {
 
 static Optional< bool > has_gsync;
 void EnableVSync( bool enabled ) {
+#if !PLATFORM_MACOS
 	if( enabled ) {
 		if( !has_gsync.exists ) {
 			has_gsync = SDL_GL_SetSwapInterval( -1 );
@@ -229,6 +236,7 @@ void EnableVSync( bool enabled ) {
 	else {
 		TrySDL( SDL_GL_SetSwapInterval, 0 );
 	}
+#endif
 }
 
 bool IsWindowFocused() {
@@ -246,8 +254,10 @@ Vec2 GetRelativeMouseMovement() {
 }
 
 void SwapBuffers() {
+#if !PLATFORM_MACOS
 	TracyZoneScopedNC( "SDL_GL_SwapWindow", 0xff0000 );
 	TrySDL( SDL_GL_SwapWindow, window );
+#endif
 }
 
 Optional< Key > KeyFromSDL( SDL_Scancode sdl );

@@ -96,7 +96,7 @@ struct Texture {
 
 // pass a = NULL for a dedicated allocation
 BackendTexture NewBackendTexture( const TextureConfig & config, Optional< BackendTexture > old_texture = NONE );
-BackendTexture NewFramebufferBackendTexture( const TextureConfig & config, Optional< BackendTexture > old_texture );
+BackendTexture NewRenderTargetBackendTexture( const TextureConfig & config, Optional< BackendTexture > old_texture );
 BackendTexture NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< BackendTexture > = NONE );
 PoolHandle< Texture > UploadBC4( GPUSlabAllocator * a, const char * path );
 

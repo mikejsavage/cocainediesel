@@ -364,22 +364,42 @@ static Optional< PoolHandle< Material2 > > AddMaterial( Span< const char > name,
 	return NONE;
 }
 
-// PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {
-// 	PoolHandle< Texture > handle;
-// 	if( old_texture.exists ) {
-// 		handle = old_texture.value;
-// 	}
-// 	else {
-// 		PoolHandle< Texture > new_handle = textures.add( Hash64( config.name ) );
-// 		if( !new_handle.exists ) {
-// 			Com_Printf( S_COLOR_YELLOW "Too many textures!\n" );
-// 			return missing_texture;
-// 		}
-// 		handle = new_handle.value;
-// 	}
-//
-// 	return NewBackendTexture( config, old_texture.exists ? textures[ old_texture.value ].handle : NONE );
-// }
+static Texture MakeTexture( const TextureConfig & config, u64 hash, Optional< PoolHandle< Texture > > old_texture ) {
+	return Texture {
+		.name = config.name,
+		.hash = hash,
+		.handle = NewBackendTexture( config, old_texture.exists ? MakeOptional( textures[ old_texture.value ].handle ) : NONE ),
+		.format = config.format,
+		.width = config.width,
+		.height = config.height,
+		.depth = config.num_layers,
+		.num_mipmaps = config.num_mipmaps,
+	};
+}
+
+// NOMERGE unify this and addtexture
+PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {
+	Assert( config.name != "" );
+
+	u64 hash = Hash64( config.name );
+
+	PoolHandle< Texture > handle;
+	if( old_texture.exists ) {
+		handle = old_texture.value;
+	}
+	else {
+		Optional< PoolHandle< Texture > > new_handle = textures.add( hash );
+		if( !new_handle.exists ) {
+			Com_Printf( S_COLOR_YELLOW "Too many textures!\n" );
+			return missing_texture;
+		}
+		handle = new_handle.value;
+	}
+
+	textures[ handle ] = MakeTexture( config, hash, old_texture );
+
+	return handle;
+}
 
 TextureFormat GetTextureFormat( PoolHandle< Texture > texture ) {
 	return textures[ texture ].format;
@@ -417,16 +437,7 @@ u32 TextureHeight( PoolHandle< Material2 > material ) {
 		return NONE;
 	}
 
-	textures[ handle.value ] = Texture {
-		.name = config.name,
-		.hash = hash,
-		.handle = NewBackendTexture( config, old_handle.exists ? MakeOptional( textures[ old_handle.value ].handle ) : NONE ),
-		.format = config.format,
-		.width = config.width,
-		.height = config.height,
-		.depth = config.num_layers,
-		.num_mipmaps = config.num_mipmaps,
-	};
+	textures[ handle.value ] = MakeTexture( config, hash, old_handle );
 
 	return handle;
 }
@@ -805,6 +816,7 @@ static void PackSpriteAtlas() {
 		TracyZoneScopedN( "Upload atlas" );
 
 		sprite_atlas = NewTexture( TextureConfig {
+			.name = "Sprite atlas",
 			.format = TextureFormat_BC4,
 			.width = SPRITE_ATLAS_SIZE,
 			.height = SPRITE_ATLAS_SIZE,
@@ -827,6 +839,7 @@ static void LoadBuiltinMaterials() {
 		};
 
 		missing_texture = NewTexture( TextureConfig {
+			.name = "missing",
 			.format = TextureFormat_RGBA_U8_sRGB,
 			.width = 2,
 			.height = 2,

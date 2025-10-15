@@ -15,7 +15,7 @@ static Span< const char > ShaderFilename( Allocator * a, Span< const char > src_
        for( Span< const char > feature : features ) {
                filename.append( "_{}", feature );
        }
-       filename += ShaderExtension;
+       // filename += ShaderExtension;
        return CloneSpan( a, filename.span() );
 }
 
@@ -35,7 +35,7 @@ static void LoadShaders( const ShaderDescriptors & desc ) {
 	}
 
 	for( const ComputeShaderDescriptor & shader : desc.compute_shaders ) {
-		shaders.*shader.field = NewComputePipeline( temp.sv( "{}{}", StripExtension( shader.src ), ShaderExtension ) );
+		shaders.*shader.field = NewComputePipeline( StripExtension( shader.src ) );
 	}
 }
 

@@ -639,7 +639,7 @@ template< typename E > concept IsEnum = __is_enum( E );
 template< typename E > using UnderlyingType = __underlying_type( E );
 
 template< IsEnum E > void operator++( E & x, int ) { x = E( UnderlyingType< E >( x ) + 1 ); }
-template< IsEnum E, typename T > constexpr E operator+( E lhs, T rhs ) { return E( UnderlyingType< E >( lhs ) & UnderlyingType< E >( rhs ) ); }
+template< IsEnum E, typename T > constexpr E operator+( E lhs, T rhs ) { return E( UnderlyingType< E >( lhs ) + UnderlyingType< E >( rhs ) ); }
 template< IsEnum E > constexpr E operator&( E lhs, E rhs ) { return E( UnderlyingType< E >( lhs ) & UnderlyingType< E >( rhs ) ); }
 template< IsEnum E > constexpr E operator|( E lhs, E rhs ) { return E( UnderlyingType< E >( lhs ) | UnderlyingType< E >( rhs ) ); }
 template< IsEnum E > constexpr E operator~( E x ) { return E( ~UnderlyingType< E >( x ) ); }

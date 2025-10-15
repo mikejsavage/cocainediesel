@@ -223,14 +223,14 @@ static ParticleSystem NewParticleSystem( Allocator * a, BlendFunc blend_func, si
 		.max_particles = max_particles,
 		.blend_func = blend_func,
 
-		.gpu_particles1 = NewBuffer( "particles flip", max_particles * sizeof( Particle ), sizeof( Particle ) ),
-		.gpu_particles2 = NewBuffer( "particles flop", max_particles * sizeof( Particle ), sizeof( Particle ) ),
+		.gpu_particles1 = NewBuffer( "particles flip", max_particles * sizeof( Particle ), alignof( Particle ) ),
+		.gpu_particles2 = NewBuffer( "particles flop", max_particles * sizeof( Particle ), alignof( Particle ) ),
 
 		.compute_count1 = NewBuffer( "compute_count flip", zero ),
 		.compute_count2 = NewBuffer( "compute_count flop", zero ),
 
-		.compute_indirect = NewBuffer( "particle compute indirect", &compute_indirect, sizeof( compute_indirect ) ),
-		.draw_indirect = NewBuffer( "particle draw indirect", &draw_indirect, sizeof( draw_indirect ) ),
+		.compute_indirect = NewBuffer( "particle compute indirect", &compute_indirect ),
+		.draw_indirect = NewBuffer( "particle draw indirect", &draw_indirect ),
 	};
 }
 

@@ -5,9 +5,9 @@
 #include "qcommon/hashmap.h"
 #include "qcommon/pool.h"
 #include "client/client.h"
+#include "client/assets.h"
 #include "client/renderer/api.h"
 #include "client/renderer/private.h"
-#include <math.h>
 
 namespace MTL {
 	class VertexDescriptor;
@@ -18,21 +18,9 @@ namespace MTL {
 
 // #include "tracy/tracy/Tracy.hpp"
 
-struct AutoReleaseString {
-	NS::AutoreleasePool * pool;
-	NS::String * nsstr;
-
-	explicit AutoReleaseString( const char * str ) {
-		pool = NS::AutoreleasePool::alloc()->init();
-		nsstr = NS::String::string( str, NS::UTF8StringEncoding );
-	}
-
-	~AutoReleaseString() {
-		pool->release();
-	}
-
-	operator NS::String *() { return nsstr; }
-};
+static NS::String * NSString( const char * str ) {
+	return NS::String::string( str, NS::UTF8StringEncoding );
+}
 
 struct ArgumentBufferEncoder {
 	MTL::ArgumentEncoder * encoder;
@@ -183,7 +171,7 @@ CoherentMemory AllocateCoherentMemory( size_t size ) {
 
 void AddDebugMarker( PoolHandle< GPUAllocation > allocation, size_t offset, size_t size, const char * label ) {
 	NS::Range range( checked_cast< NS::UInteger >( offset ), checked_cast< NS::UInteger >( size ) );
-	allocations[ allocation ].buffer->addDebugMarker( AutoReleaseString( label ), range );
+	allocations[ allocation ].buffer->addDebugMarker( NSString( label ), range );
 }
 
 void RemoveAllDebugMarkers( PoolHandle< GPUAllocation > allocation ) {
@@ -402,30 +390,38 @@ MTL::Texture * NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & co
 		type = config.msaa_samples > 1 ? MTL::TextureType2DMultisampleArray : MTL::TextureType2DArray;
 	}
 
-	MTL::TextureSwizzleChannels swizzle = { MTL::TextureSwizzleRed, MTL::TextureSwizzleGreen, MTL::TextureSwizzleBlue, MTL::TextureSwizzleAlpha };
-	switch( config.format ) {
-		default: break;
+	constexpr MTL::TextureSwizzle R = MTL::TextureSwizzleRed;
+	constexpr MTL::TextureSwizzle G = MTL::TextureSwizzleGreen;
+	constexpr MTL::TextureSwizzle ONE = MTL::TextureSwizzleOne;
 
-		case TextureFormat_R_U8:
-		case TextureFormat_R_U8_sRGB:
-		case TextureFormat_R_S8:
-		case TextureFormat_R_UI8:
-			 swizzle = { MTL::TextureSwizzleRed, MTL::TextureSwizzleRed, MTL::TextureSwizzleRed, MTL::TextureSwizzleOne };
-			 break;
-
-		case TextureFormat_A_U8:
-		case TextureFormat_BC4:
-			 swizzle = { MTL::TextureSwizzleOne, MTL::TextureSwizzleOne, MTL::TextureSwizzleOne, MTL::TextureSwizzleRed };
-			 break;
-
-		case TextureFormat_RA_U8:
-			 swizzle = { MTL::TextureSwizzleRed, MTL::TextureSwizzleRed, MTL::TextureSwizzleRed, MTL::TextureSwizzleGreen };
-			 break;
-	}
+	Optional< MTL::TextureSwizzleChannels > swizzle = NONE;
 
 	MTL::TextureUsage usage = MTL::TextureUsageShaderRead;
 	if( config.data == NULL ) {
 		usage |= MTL::TextureUsageRenderTarget;
+	}
+
+	// NOTE(mike 20251016): "Texture Descriptor Validation Texture swizzling is not compatable with MTLTextureUsageRenderTarget"
+	if( !HasAnyBit( usage, MTL::TextureUsage( MTL::TextureUsageRenderTarget ) ) ) {
+		switch( config.format ) {
+			default: break;
+
+			case TextureFormat_R_U8:
+			case TextureFormat_R_U8_sRGB:
+			case TextureFormat_R_S8:
+			case TextureFormat_R_UI8:
+				 swizzle = { R, R, R, ONE };
+				 break;
+
+			case TextureFormat_A_U8:
+			case TextureFormat_BC4:
+				 swizzle = { ONE, ONE, ONE, R };
+				 break;
+
+			case TextureFormat_RA_U8:
+				 swizzle = { R, R, R, G };
+				 break;
+		}
 	}
 
 	MTL::TextureDescriptor * descriptor = MTL::TextureDescriptor::alloc()->init();
@@ -435,7 +431,9 @@ MTL::Texture * NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & co
 	descriptor->setHeight( config.height );
 	descriptor->setArrayLength( config.num_layers );
 	descriptor->setMipmapLevelCount( config.num_mipmaps );
-	descriptor->setSwizzle( swizzle );
+	if( swizzle.exists ) {
+		descriptor->setSwizzle( swizzle.value );
+	}
 	descriptor->setStorageMode( MTL::StorageModePrivate );
 	descriptor->setUsage( usage );
 	defer { descriptor->release(); };
@@ -456,7 +454,7 @@ MTL::Texture * NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & co
 	}
 
 	TempAllocator temp = cls.frame_arena.temp();
-	texture->setLabel( AutoReleaseString( temp( "{}", config.name ) ) );
+	texture->setLabel( NSString( temp( "{}", config.name ) ) );
 
 	if( config.data != NULL ) {
 		UploadTexture( config, texture );
@@ -546,23 +544,28 @@ static Optional< ArgumentBufferEncoder > ParseArgumentBuffer( MTL::Function * fu
 	return NONE;
 }
 
+template< typename T >
+dispatch_data_t SpanToDispatchData( Span< const T > gg ) {
+	return dispatch_data_create( gg.ptr, gg.num_bytes(), NULL, DISPATCH_DATA_DESTRUCTOR_DEFAULT );
+}
+
 PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	const char * fullpath = temp( "{}.metallib", config.path );
+	Span< const u8 > metallib = AssetBinary( temp.sv( "shaders/{}.metallib", config.path ) );
 
 	MTL::Library * library;
 	{
 		NS::Error * error = NULL;
-		library = global_device.device->newLibrary( AutoReleaseString( fullpath ), &error );
+		library = global_device.device->newLibrary( SpanToDispatchData( metallib ), &error );
 		if( library == NULL ) {
-			printf( "NewRenderPipeline: %s\n", error->localizedDescription()->utf8String() );
+			ggprint( "NewRenderPipeline( {} ): {}\n", config.path, error->localizedDescription()->utf8String() );
 			abort();
 		}
 	}
 
-	MTL::Function * vertex_main = library->newFunction( AutoReleaseString( "vertex_main" ) );
-	MTL::Function * fragment_main = library->newFunction( AutoReleaseString( "fragment_main" ) );
+	MTL::Function * vertex_main = library->newFunction( NSString( "VertexMain" ) );
+	MTL::Function * fragment_main = library->newFunction( NSString( "FragmentMain" ) );
 
 	if( vertex_main == NULL || fragment_main == NULL ) {
 		printf( "missing mains\n" );
@@ -582,7 +585,7 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 		for( u32 msaa = 1; msaa <= global_device.max_msaa; msaa *= 2 ) {
 			MTL::RenderPipelineDescriptor * pipeline = MTL::RenderPipelineDescriptor::alloc()->init();
 			defer { pipeline->release(); };
-			pipeline->setLabel( AutoReleaseString( temp( "{}", shader.name ) ) );
+			pipeline->setLabel( NSString( temp( "{}", shader.name ) ) );
 			pipeline->setVertexFunction( vertex_main );
 			pipeline->setFragmentFunction( fragment_main );
 
@@ -652,7 +655,7 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 			MTL::AutoreleasedRenderPipelineReflection reflection = NULL;
 			MTL::RenderPipelineState * pso = global_device.device->newRenderPipelineState( pipeline, MTL::PipelineOptionBufferTypeInfo, &reflection, &error );
 			if( pso == NULL ) {
-				printf( "NewRenderPipeline: %s\n", error->localizedDescription()->utf8String() );
+				ggprint( "NewRenderPipeline( {} ): {}\n", config.path, error->localizedDescription()->utf8String() );
 				abort();
 			}
 
@@ -736,7 +739,7 @@ static GPUBuffer EncodeArgumentBuffer( ArgumentBufferEncoder * encoder, Span< co
 		const BufferBinding & b = buffers[ i ];
 		Optional< u32 > idx = encoder->buffers.get2( b.name );
 		if( !idx.exists ) {
-			printf( "can't bind\n" );
+			ggprint( "can't bind {}\n", b.name );
 			continue;
 		}
 		encoder->encoder->setBuffer( allocations[ b.buffer.allocation ].buffer, b.buffer.offset, idx.value );
@@ -763,7 +766,7 @@ void EncodeAndBindArgumentBuffer( Encoder * ce, ArgumentBufferEncoder * encoder,
 
 		Optional< u32 > idx = encoder->textures.get2( b.name );
 		if( !idx.exists ) {
-			printf( "can't bind\n" );
+			ggprint( "can't bind {}\n", b.name );
 			continue;
 		}
 		encoder->encoder->setTexture( textures[ b.texture ].handle, idx.value );
@@ -773,7 +776,7 @@ void EncodeAndBindArgumentBuffer( Encoder * ce, ArgumentBufferEncoder * encoder,
 		const GPUBindings::SamplerBinding & b = bindings.samplers[ i ];
 		Optional< u32 > idx = encoder->samplers.get2( b.name );
 		if( !idx.exists ) {
-			printf( "can't bind\n" );
+			ggprint( "can't bind {}\n", b.name );
 			continue;
 		}
 		encoder->encoder->setSamplerState( samplers[ b.sampler ], idx.value );
@@ -844,20 +847,20 @@ void EncodeScissor( Opaque< CommandBuffer > ocb, Optional< Scissor > scissor ) {
 PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	const char * fullpath = temp( "{}.metallib", path );
+	Span< const u8 > metallib = AssetBinary( temp.sv( "shaders/{}.metallib", path ) );
 
 	MTL::Library * library;
 	{
 		NS::Error * error = NULL;
-		library = global_device.device->newLibrary( AutoReleaseString( fullpath ), &error );
+		library = global_device.device->newLibrary( SpanToDispatchData( metallib ), &error );
 		if( library == NULL ) {
-			printf( "NewComputePipeline: %s\n", error->localizedDescription()->utf8String() );
+			ggprint( "NewComputePipeline( {} ): {}\n", path, error->localizedDescription()->utf8String() );
 			abort();
 		}
 	}
 	defer { library->release(); };
 
-	MTL::Function * compute_main = library->newFunction( AutoReleaseString( "main0" ) );
+	MTL::Function * compute_main = library->newFunction( NSString( "ComputeMain" ) );
 	if( compute_main == NULL ) {
 		printf( "missing main\n" );
 		abort();
@@ -865,7 +868,7 @@ PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path ) {
 	defer { compute_main->release(); };
 
 	MTL::ComputePipelineDescriptor * pipeline = MTL::ComputePipelineDescriptor::alloc()->init();
-	pipeline->setLabel( AutoReleaseString( temp( "{}", path ) ) );
+	pipeline->setLabel( NSString( temp( "{}", path ) ) );
 	pipeline->setComputeFunction( compute_main );
 
 	NS::Error * error = NULL;
@@ -1083,7 +1086,7 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 	MTL::RenderPassDescriptor * render_pass = MTL::RenderPassDescriptor::alloc()->init();
 
 	MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
-	command_buffer->setLabel( AutoReleaseString( config.name ) );
+	command_buffer->setLabel( NSString( config.name ) );
 
 	if( global_device.pass_counter > 1 ) {
 		command_buffer->encodeWait( global_device.event, global_device.pass_counter );
@@ -1155,7 +1158,7 @@ Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config ) {
 	compute_pass->setDispatchType( MTL::DispatchTypeSerial );
 
 	MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
-	command_buffer->setLabel( AutoReleaseString( config.name ) );
+	command_buffer->setLabel( NSString( config.name ) );
 
 	if( global_device.pass_counter > 1 ) {
 		command_buffer->encodeWait( global_device.event, global_device.pass_counter );

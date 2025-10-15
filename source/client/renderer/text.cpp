@@ -74,6 +74,7 @@ const Font * RegisterFont( Span< const char > path ) {
 		}
 
 		font.atlas = NewTexture( TextureConfig {
+			.name = temp.sv( "Font {}", path ),
 			.format = TextureFormat_RGBA_U8,
 			.width = checked_cast< u32 >( w ),
 			.height = checked_cast< u32 >( h ),

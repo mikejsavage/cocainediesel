@@ -37,14 +37,14 @@ float EdgeDetect( float center, float up, float down_left, float down_right, flo
 }
 
 #ifdef MSAA
-float4 FragmentMain( VertexInput input, uint sample_index : SV_SampleIndex ) : FragmentShaderOutput_Albedo {
+float4 FragmentMain( VertexOutput v, uint sample_index : SV_SampleIndex ) : FragmentShaderOutput_Albedo {
 #define SAMPLE_INDEX_LAST_ARG , sample_index
 #else
-float4 FragmentMain( VertexInput input ) : FragmentShaderOutput_Albedo {
+float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
 #define SAMPLE_INDEX_LAST_ARG
 #endif
 
-	int2 p = int2( input.position.xy );
+	int2 p = int2( v.position.xy );
 
 	float depth =            ClampedTextureLoad( u_DepthTexture, p SAMPLE_INDEX_LAST_ARG );
 	float depth_up =         ClampedTextureLoad( u_DepthTexture, p + int2( +0, -1 ) SAMPLE_INDEX_LAST_ARG );
@@ -60,12 +60,12 @@ float4 FragmentMain( VertexInput input ) : FragmentShaderOutput_Albedo {
 	float edgeness = EdgeDetect( depth, depth_up, depth_down_left, depth_down_right, epsilon );
 	float avg_depth = 0.25f * ( depth + depth_up + depth_down_left + depth_down_right );
 
-	float2 clamping = clamp( u_View[ 0 ].viewport_size - abs( u_View[ 0 ].viewport_size - input.position.xy * 2.0f ), 1.0f, 2.0f ) - 1.0f;
+	float2 clamping = clamp( u_View[ 0 ].viewport_size - abs( u_View[ 0 ].viewport_size - v.position.xy * 2.0f ), 1.0f, 2.0f ) - 1.0f;
 	edgeness *= min( clamping.x, clamping.y );
 	if( edgeness < 0.1f ) {
 		discard;
 	}
 	edgeness = FogAlpha( edgeness, LinearizeDepth( avg_depth ) );
-	edgeness = VoidFogAlpha( edgeness, input.position.xy, avg_depth );
+	edgeness = VoidFogAlpha( edgeness, v.position.xy, avg_depth );
 	return edgeness * u_OutlineColor[ 0 ];
 }

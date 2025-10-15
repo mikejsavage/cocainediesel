@@ -88,6 +88,12 @@ enum TextureFormat : u8 {
 	TextureFormat_Swapchain,
 };
 
+enum TextureType : u8 {
+	TextureType_Normal,
+	TextureType_DedicatedAllocation,
+	TextureType_RenderTarget,
+};
+
 struct TextureConfig {
 	Span< const char > name;
 	TextureFormat format;
@@ -96,8 +102,8 @@ struct TextureConfig {
 	u32 num_layers = 1;
 	u32 num_mipmaps = 1;
 	u32 msaa_samples = 1;
-	const void * data = NULL;
-	bool dedicated_allocation = false;
+	const void * data;
+	bool dedicated_allocation;
 };
 
 // NOMERGE
@@ -108,7 +114,7 @@ enum TextureLayout {
 };
 
 PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture = NONE );
-PoolHandle< Texture > NewFramebufferTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture );
+PoolHandle< Texture > NewRenderTargetTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture );
 
 TextureFormat GetTextureFormat( PoolHandle< Texture > texture );
 

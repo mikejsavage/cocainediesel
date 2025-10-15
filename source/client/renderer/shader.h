@@ -5,12 +5,14 @@
 struct Shaders {
 	PoolHandle< RenderPipeline > standard;
 	PoolHandle< RenderPipeline > standard_shaded;
-	PoolHandle< RenderPipeline > standard_vertexcolors;
-	PoolHandle< RenderPipeline > standard_vertexcolors_add;
-	PoolHandle< RenderPipeline > standard_vertexcolors_blend;
 
 	PoolHandle< RenderPipeline > standard_skinned;
 	PoolHandle< RenderPipeline > standard_skinned_shaded;
+
+	PoolHandle< RenderPipeline > imgui;
+
+	PoolHandle< RenderPipeline > vfx_add;
+	PoolHandle< RenderPipeline > vfx_blend;
 
 	PoolHandle< RenderPipeline > world;
 	PoolHandle< RenderPipeline > postprocess_world_gbuffer;

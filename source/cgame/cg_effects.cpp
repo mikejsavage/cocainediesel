@@ -34,13 +34,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash materia
 	float repetitions = beam_aspect_ratio / texture_aspect_ratio;
 	Vec2 half_pixel = HalfPixelSize( material );
 
-	struct BeamVertex {
-		Vec3 position;
-		Vec2 uv;
-		RGBA8 color;
-	};
-
-	BeamVertex vertices[] = {
+	VFXVertex vertices[] = {
 		{
 			.position = start + start_width * beam_across * 0.5f,
 			.uv = Vec2( half_pixel.x, half_pixel.y ),
@@ -66,16 +60,16 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash materia
 	constexpr u16 indices[] = { 0, 1, 2, 1, 3, 2 };
 
 	PipelineState pipeline = {
-		.shader = shaders.standard_vertexcolors_add,
+		.shader = shaders.vfx_add,
 		.dynamic_state = { .depth_func = DepthFunc_LessNoWrite },
 		.material_bind_group = MaterialBindGroup( material ),
 	};
 
 	Mesh mesh = { };
-	mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( BeamVertex, position ) };
-	mesh.vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( BeamVertex, uv ) };
-	mesh.vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( BeamVertex, color ) };
-	mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( BeamVertex );
+	mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( VFXVertex, position ) };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( VFXVertex, uv ) };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( VFXVertex, color ) };
+	mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( VFXVertex );
 	mesh.index_format = IndexFormat_U16;
 	mesh.num_vertices = ARRAY_COUNT( indices );
 	mesh.vertex_buffers[ 0 ] = NewTempBuffer( vertices );

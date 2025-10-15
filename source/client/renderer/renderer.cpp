@@ -126,6 +126,7 @@ void InitRenderer() {
 		Assert( img != NULL );
 
 		blue_noise = NewTexture( TextureConfig {
+			.name = "Blue noise",
 			.format = TextureFormat_R_S8,
 			.width = u32( w ),
 			.height = u32( h ),
@@ -288,7 +289,9 @@ static Mat3x4 InvertViewMatrix( const Mat3x4 & V, Vec3 position ) {
 }
 
 static void CreateRenderTargets( bool first_time ) {
+	// NOMERGE use NewRenderTargetTexture
 	frame_static.render_targets.silhouette_mask = NewTexture( TextureConfig {
+		.name = "Silhouette mask RT",
 		.format = TextureFormat_RGBA_U8_sRGB,
 		.width = frame_static.viewport_width,
 		.height = frame_static.viewport_height,
@@ -296,6 +299,7 @@ static void CreateRenderTargets( bool first_time ) {
 	}, first_time ? NONE : MakeOptional( frame_static.render_targets.silhouette_mask ) );
 
 	frame_static.render_targets.curved_surface_mask = NewTexture( TextureConfig {
+		.name = "Curved surface mask RT",
 		.format = TextureFormat_R_UI8,
 		.width = frame_static.viewport_width,
 		.height = frame_static.viewport_height,
@@ -305,6 +309,7 @@ static void CreateRenderTargets( bool first_time ) {
 
 	if( frame_static.msaa_samples > 1 ) {
 		frame_static.render_targets.msaa_color = NewTexture( TextureConfig {
+			.name = "MSAA color RT",
 			.format = TextureFormat_RGBA_U8_sRGB,
 			.width = frame_static.viewport_width,
 			.height = frame_static.viewport_height,
@@ -313,6 +318,7 @@ static void CreateRenderTargets( bool first_time ) {
 		}, frame_static.render_targets.msaa_color );
 
 		frame_static.render_targets.msaa_depth = NewTexture( TextureConfig {
+			.name = "MSAA depth RT",
 			.format = TextureFormat_Depth,
 			.width = frame_static.viewport_width,
 			.height = frame_static.viewport_height,
@@ -326,6 +332,7 @@ static void CreateRenderTargets( bool first_time ) {
 	}
 
 	frame_static.render_targets.resolved_color = NewTexture( TextureConfig {
+		.name = "Color RT",
 		.format = TextureFormat_RGBA_U8_sRGB,
 		.width = frame_static.viewport_width,
 		.height = frame_static.viewport_height,
@@ -333,6 +340,7 @@ static void CreateRenderTargets( bool first_time ) {
 	}, first_time ? NONE : MakeOptional( frame_static.render_targets.resolved_color ) );
 
 	frame_static.render_targets.resolved_depth = NewTexture( TextureConfig {
+		.name = "Depth RT",
 		.format = TextureFormat_Depth,
 		.width = frame_static.viewport_width,
 		.height = frame_static.viewport_height,
@@ -340,6 +348,7 @@ static void CreateRenderTargets( bool first_time ) {
 	}, first_time ? NONE : MakeOptional( frame_static.render_targets.resolved_depth ) );
 
 	frame_static.render_targets.shadowmap = NewTexture( TextureConfig {
+		.name = "Shadowmap RT",
 		.format = TextureFormat_Depth,
 		.width = frame_static.shadow_parameters.resolution,
 		.height = frame_static.shadow_parameters.resolution,
@@ -688,7 +697,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 				.preserve_contents = false,
 			},
 		},
-		.representative_shader = shaders.standard_vertexcolors_blend,
+		.representative_shader = shaders.imgui,
 		.bindings = {
 			.buffers = { { "u_View", frame_static.ortho_view_uniforms } },
 		},
@@ -699,7 +708,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	frame_static.render_passes[ RenderPass_UIAfterPostprocessing ] = NewRenderPass( RenderPassConfig {
 		.name = "UI after postprocessing",
 		.color_targets = { RenderPassConfig::ColorTarget { .texture = NONE } },
-		.representative_shader = shaders.standard_vertexcolors_blend,
+		.representative_shader = shaders.imgui,
 		.bindings = {
 			.buffers = { { "u_View", frame_static.ortho_view_uniforms } },
 		},

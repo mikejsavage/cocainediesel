@@ -10,6 +10,7 @@ struct MapSubModelRenderData {
 
 struct MapSharedRenderData {
 	Mesh mesh;
+	Optional< RGB8 > outline_color;
 
 	// GPUBuffer nodes;
 	// GPUBuffer leaves;

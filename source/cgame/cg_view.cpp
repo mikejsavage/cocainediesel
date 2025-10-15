@@ -440,13 +440,14 @@ static void DrawOutlines() {
 	pipeline.blend_func = BlendFunc_Blend;
 	pipeline.write_depth = false;
 
-	constexpr RGBA8 gray = RGBA8( 30, 30, 30, 255 );
+	constexpr RGB8 default_gray = RGB8( 30, 30, 30 );
+	RGBA8 outline_color = RGBA8( Default( cl.map->render_data.outline_color, default_gray ) );
 
 	const RenderTarget & rt = msaa ? frame_static.render_targets.msaa_masked : frame_static.render_targets.postprocess_masked;
 	pipeline.bind_texture_and_sampler( "u_DepthTexture", &rt.depth_attachment, Sampler_Standard );
 	pipeline.bind_texture_and_sampler( "u_CurvedSurfaceMask", &rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ], Sampler_Unfiltered );
 	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.bind_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );
+	pipeline.bind_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( outline_color ) ) );
 	DrawFullscreenMesh( pipeline );
 }
 

@@ -195,6 +195,11 @@ bool TrySpanToU32( Span< const char > str, u32 * x ) {
 	return true;
 }
 
+Optional< u8 > TrySpanToU8( Span< const char > str ) {
+	u64 x64;
+	return !TrySpanToU64( str, &x64 ) || x64 > U8_MAX ? NONE : MakeOptional( u8( x64 ) );
+}
+
 bool TrySpanToInt( Span< const char > str, int * x ) {
 	s64 x64;
 	if( !TrySpanToS64( str, &x64 ) )

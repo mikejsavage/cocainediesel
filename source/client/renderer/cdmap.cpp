@@ -3,6 +3,16 @@
 #include "client/renderer/renderer.h"
 #include "gameshared/cdmap.h"
 
+static Optional< RGB8 > ParseOutlineColor( const MapData & map ) {
+	Span< const char > value = GetWorldspawnKey( &map, "outline_color" );
+
+	Optional< u8 > r = TrySpanToU8( ParseToken( &value, Parse_StopOnNewLine ) );
+	Optional< u8 > g = TrySpanToU8( ParseToken( &value, Parse_StopOnNewLine ) );
+	Optional< u8 > b = TrySpanToU8( ParseToken( &value, Parse_StopOnNewLine ) );
+
+	return r.exists && b.exists && g.exists ? MakeOptional( RGB8( r.value, g.value, b.value ) ) : NONE;
+}
+
 MapSharedRenderData NewMapRenderData( const MapData & map, Span< const char > name ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -19,10 +29,10 @@ MapSharedRenderData NewMapRenderData( const MapData & map, Span< const char > na
 	mesh_config.index_format = IndexFormat_U32;
 	mesh_config.num_vertices = map.vertex_indices.n;
 
-	MapSharedRenderData shared = { };
-	shared.mesh = NewMesh( mesh_config );
-
-	return shared;
+	return MapSharedRenderData {
+		.mesh = NewMesh( mesh_config ),
+		.outline_color = ParseOutlineColor( map ),
+	};
 }
 
 void DeleteMapRenderData( const MapSharedRenderData & render_data ) {

@@ -114,7 +114,7 @@ void CopyGPUBufferToBuffer(
 	size_t n );
 void CopyGPUBufferToTexture(
 	Opaque< CommandBuffer > cmd_buf,
-	BackendTexture dest, u32 w, u32 h, u32 num_layers, u32 mip_level,
+	BackendTexture dest, TextureFormat format, u32 w, u32 h, u32 num_layers, u32 mip_level,
 	PoolHandle< GPUAllocation > src, size_t src_offset );
 
 Opaque< CommandBuffer > NewTransferCommandBuffer();

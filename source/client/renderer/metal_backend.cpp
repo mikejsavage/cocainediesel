@@ -232,18 +232,20 @@ void CopyGPUBufferToBuffer(
 
 void CopyGPUBufferToTexture(
 	Opaque< CommandBuffer > cmd_buf,
-	BackendTexture dest, u32 w, u32 h, u32 num_layers, u32 mip_level,
+	BackendTexture dest, TextureFormat format, u32 w, u32 h, u32 num_layers, u32 mip_level,
 	PoolHandle< GPUAllocation > src, size_t src_offset
 ) {
+	u32 block_size = BlockSize( format );
+	u32 bytes_per_row_of_blocks = ( ( w / block_size ) * ( block_size * block_size * BitsPerPixel( format ) ) ) / 8;
+	u32 bytes_per_layer = bytes_per_row_of_blocks * ( h / block_size );
+
 	size_t cursor = src_offset;
-	u32 bytes_per_row_of_blocks = w * 4 * BitsPerPixel( TextureFormat_BC4 ) / 8;
-	u32 bytes_per_slice = bytes_per_row_of_blocks * ( h / 4 );
 	for( u32 i = 0; i < num_layers; i++ ) {
 		cmd_buf.unwrap()->bce->copyFromBuffer( allocations[ src ].buffer, cursor,
-			bytes_per_row_of_blocks, bytes_per_slice,
+			bytes_per_row_of_blocks, bytes_per_layer,
 			MTL::Size::Make( w, h, 1 ),
 			dest, i, mip_level, MTL::Origin::Make( 0, 0, 0 ) );
-		cursor += bytes_per_slice;
+		cursor += bytes_per_layer;
 	}
 }
 
@@ -960,23 +962,23 @@ void InitRenderBackend() {
 	CreateDepthFuncs();
 
 	{
+		MTL::ArgumentDescriptor * buffer_arg = MTL::ArgumentDescriptor::alloc()->init();
+		buffer_arg->setDataType( MTL::DataTypePointer );
+		buffer_arg->setIndex( 0 );
+		defer { buffer_arg->release(); };
+
 		MTL::ArgumentDescriptor * texture_arg = MTL::ArgumentDescriptor::alloc()->init();
 		texture_arg->setDataType( MTL::DataTypeTexture );
-		texture_arg->setIndex( 0 );
+		texture_arg->setIndex( 1 );
 		texture_arg->setTextureType( MTL::TextureType2D );
 		defer { texture_arg->release(); };
 
 		MTL::ArgumentDescriptor * sampler_arg = MTL::ArgumentDescriptor::alloc()->init();
 		sampler_arg->setDataType( MTL::DataTypeSampler );
-		sampler_arg->setIndex( 1 );
+		sampler_arg->setIndex( 2 );
 		defer { sampler_arg->release(); };
 
-		MTL::ArgumentDescriptor * buffer_arg = MTL::ArgumentDescriptor::alloc()->init();
-		buffer_arg->setDataType( MTL::DataTypePointer );
-		buffer_arg->setIndex( 2 );
-		defer { buffer_arg->release(); };
-
-		NS::Object * args_c[] = { texture_arg, sampler_arg, buffer_arg };
+		NS::Object * args_c[] = { buffer_arg, texture_arg, sampler_arg };
 		NS::Array * args = NS::Array::alloc()->init( args_c, ARRAY_COUNT( args_c ) );
 		defer { args->release(); };
 

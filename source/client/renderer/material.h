@@ -65,6 +65,7 @@ struct Material {
 
 bool CompressedTextureFormat( TextureFormat format );
 u32 BitsPerPixel( TextureFormat format );
+u32 BlockSize( TextureFormat format );
 
 void InitMaterials();
 void HotloadMaterials();

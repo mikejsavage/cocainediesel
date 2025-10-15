@@ -55,21 +55,39 @@ bool CompressedTextureFormat( TextureFormat format ) {
 
 u32 BitsPerPixel( TextureFormat format ) {
 	switch( format ) {
-		case TextureFormat_BC1_sRGB:
-			return 4;
+		case TextureFormat_R_U8: return 8;
+		case TextureFormat_R_U8_sRGB: return 8;
+		case TextureFormat_R_S8: return 8;
+		case TextureFormat_R_UI8: return 8;
 
-		case TextureFormat_BC3_sRGB:
-			return 8;
+		case TextureFormat_A_U8: return 8;
 
-		case TextureFormat_BC4:
-			return 4;
+		case TextureFormat_RA_U8: return 16;
 
-		case TextureFormat_BC5:
-			return 8;
+		case TextureFormat_RGBA_U8: return 32;
+		case TextureFormat_RGBA_U8_sRGB: return 32;
+
+		case TextureFormat_BC1_sRGB: return 4;
+		case TextureFormat_BC3_sRGB: return 8;
+		case TextureFormat_BC4: return 4;
+		case TextureFormat_BC5: return 8;
 
 		default:
 			Assert( false );
 			return 0;
+	}
+}
+
+u32 BlockSize( TextureFormat format ) {
+	switch( format ) {
+		case TextureFormat_BC1_sRGB:
+		case TextureFormat_BC3_sRGB:
+		case TextureFormat_BC4:
+		case TextureFormat_BC5:
+			return 4;
+
+		default:
+			return 1;
 	}
 }
 

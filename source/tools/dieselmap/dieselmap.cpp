@@ -178,7 +178,7 @@ static Mat3x4 CreateQ3FaceBasis( Vec3 normal ) {
 	}
 	else {
 		s = Normalize( Cross( Vec3( 0.0f, 0.0f, 1.0f ), normal ) );
-		t = Cross( normal, s );
+		t = -Cross( normal, s );
 	}
 
 	return Mat3x4(

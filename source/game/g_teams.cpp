@@ -82,20 +82,10 @@ void G_Teams_SetTeam( edict_t * ent, Team team ) {
 	Assert( ent && ent->r.inuse && ent->r.client );
 	Assert( team >= Team_None && team < Team_Count );
 
-	if( ent->r.client->team != Team_None && team != Team_None ) {
-		// keep scores when switching between non-spectating teams
-		int64_t timeStamp = ent->r.client->teamstate.timeStamp;
-		memset( &ent->r.client->teamstate, 0, sizeof( ent->r.client->teamstate ) );
-		ent->r.client->teamstate.timeStamp = timeStamp;
-	} else {
-		// clear scores at changing team
-		memset( G_ClientGetStats( ent ), 0, sizeof( score_stats_t ) );
-		memset( &ent->r.client->teamstate, 0, sizeof( ent->r.client->teamstate ) );
-		ent->r.client->teamstate.timeStamp = level.time;
-	}
-
 	if( ent->r.client->team == Team_None || team == Team_None ) {
-		level.ready[PLAYERNUM( ent )] = false;
+		// reset stats when moving to/from spec
+		*G_ClientGetStats( ent ) = { };
+		level.ready[ PLAYERNUM( ent ) ] = false;
 	}
 
 	ent->r.client->team = team;

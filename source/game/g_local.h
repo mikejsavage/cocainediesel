@@ -560,16 +560,6 @@ struct client_levelreset_t {
 	Time callvote_when;
 };
 
-struct client_teamreset_t {
-	int64_t timeStamp; // last time it was reset
-
-	// for position command
-	bool position_saved;
-	Vec3 position_origin;
-	EulerDegrees3 position_angles;
-	Time position_lastcmd;
-};
-
 struct gclient_t {
 	SyncPlayerState ps;
 	int frags;
@@ -577,7 +567,6 @@ struct gclient_t {
 	client_snapreset_t snap;
 	client_respawnreset_t resp;
 	client_levelreset_t level;
-	client_teamreset_t teamstate;
 
 	char userinfo[ MAX_INFO_STRING ];
 	char name[ MAX_NAME_CHARS + 1 ];

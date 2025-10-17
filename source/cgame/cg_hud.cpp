@@ -508,7 +508,7 @@ static bool ParseHexByte( u8 * byte, char a, char b ) {
 }
 
 static bool ParseHexColor( RGBA8 * rgba, Span< const char > str ) {
-	if( str.n == 0 || str[ 1 ] == '#' )
+	if( str.n == 0 || str[ 0 ] != '#' )
 		return false;
 
 	str++;

@@ -99,73 +99,8 @@ void Cmd_ChasePrev_f( edict_t * ent, msg_t args ) {
 }
 
 static void Cmd_Position_f( edict_t * ent, msg_t msg ) {
-	if( !sv_cheats->integer && server_gs.gameState.match_state > MatchState_Warmup &&
-		ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
-		G_PrintMsg( ent, "Position command is only available in warmup and in spectator mode.\n" );
-		return;
-	}
-
-	// flood protect
-	if( ent->r.client->teamstate.position_lastcmd + Milliseconds( 500 ) > svs.monotonic_time ) {
-		return;
-	}
-	ent->r.client->teamstate.position_lastcmd = svs.monotonic_time;
-
-	TempAllocator temp = svs.frame_arena.temp();
-	Tokenized args = Tokenize( &temp, MakeSpan( MSG_ReadString( &msg ) ) );
-
-	if( args.tokens.n == 0 ) {
-		G_PrintMsg( ent,
-			"Usage:\n"
-			"position save - Save current position\n"
-			"position load - Teleport to saved position\n"
-			"position set <x> <y> <z> <pitch> <yaw> - Teleport to specified position\n"
-			"Current position: %.4f %.4f %.4f %.4f %.4f\n",
-			ent->s.origin.x, ent->s.origin.y, ent->s.origin.z, ent->s.angles.pitch, ent->s.angles.yaw );
-		return;
-	}
-
-	Span< const char > action = args.tokens[ 0 ];
-
-	if( action == "save" && args.tokens.n == 1 ) {
-		ent->r.client->teamstate.position_saved = true;
-		ent->r.client->teamstate.position_origin = ent->s.origin;
-		ent->r.client->teamstate.position_angles = ent->s.angles;
-		G_PrintMsg( ent, "Position saved.\n" );
-	}
-	else if( action == "load" && args.tokens.n == 1 ) {
-		if( !ent->r.client->teamstate.position_saved ) {
-			G_PrintMsg( ent, "No position saved.\n" );
-		}
-		else {
-			if( G_Teleport( ent, ent->r.client->teamstate.position_origin, ent->r.client->teamstate.position_angles ) ) {
-				G_PrintMsg( ent, "Position loaded.\n" );
-			}
-			else {
-				G_PrintMsg( ent, "Position not available.\n" );
-			}
-		}
-	}
-	else if( action == "set" && args.tokens.n == 6 ) {
-		Vec3 origin = Vec3( SpanToFloat( args.tokens[ 1 ], 0.0f ), SpanToFloat( args.tokens[ 2 ], 0.0f ), SpanToFloat( args.tokens[ 3 ], 0.0f ) );
-		EulerDegrees3 angles = EulerDegrees3( SpanToFloat( args.tokens[ 4 ], 0.0f ), SpanToFloat( args.tokens[ 5 ], 0.0f ), 0.0f );
-
-		if( G_Teleport( ent, origin, angles ) ) {
-			G_PrintMsg( ent, "Position set.\n" );
-		}
-		else {
-			G_PrintMsg( ent, "Position not available.\n" );
-		}
-	}
-	else {
-		G_PrintMsg( ent,
-			"Usage:\n"
-			"position save - Save current position\n"
-			"position load - Teleport to saved position\n"
-			"position set <x> <y> <z> <pitch> <yaw> - Teleport to specified position\n"
-			"Current position: %.4f %.4f %.4f %.4f %.4f\n",
-			ent->s.origin.x, ent->s.origin.y, ent->s.origin.z, ent->s.angles.pitch, ent->s.angles.yaw );
-	}
+	G_PrintMsg( ent, "Current position: %.4f %.4f %.4f %.4f %.4f\n",
+		ent->s.origin.x, ent->s.origin.y, ent->s.origin.z, ent->s.angles.pitch, ent->s.angles.yaw );
 }
 
 bool CheckFlood( edict_t * ent, bool teamonly ) {

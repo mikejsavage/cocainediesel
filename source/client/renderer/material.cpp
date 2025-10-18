@@ -254,6 +254,12 @@ static void ParseAlphaGen( MaterialDescriptor * material, Span< const char > nam
 }
 
 static PoolHandle< Texture > FindTexture( Span< const char > name ) {
+	/*
+	 * if the lookup fails, reserve a slot in the texture pool but fill it with
+	 * a dummy texture, then return missing_texture until something gets
+	 * hotloaded over the dummy
+	 */
+
 	u64 hash = StringHash( name ).hash;
 	Optional< PoolHandle< Texture > > handle = textures.get( hash );
 	if( handle.exists ) {

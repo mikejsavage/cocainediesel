@@ -1085,12 +1085,12 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	SCR_UpdateScreen();
 
-	RendererEndFrame();
-
 	// update audio
 	if( cls.state != CA_ACTIVE ) {
 		SoundFrame( Vec3( 0.0f ), Vec3( 0.0f ), Vec3( 1.0f, 0.0f, 0.0f ), Vec3( 0.0f, 0.0f, 1.0f ) );
 	}
+
+	RendererEndFrame();
 
 	allRealMsec = 0;
 	allGameMsec = 0;

@@ -1001,7 +1001,7 @@ void ShutdownRenderBackend() {
 	}
 
 	for( Texture texture : textures.span() ) {
-		if( !texture.is_swapchain ) {
+		if( texture.handle != NULL ) {
 			texture.handle->release();
 		}
 	}

@@ -364,6 +364,8 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadMaps();
 	HotloadVisualEffects();
 
+	RenderBackendBeginFrame( false );
+
 	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer > 16 || r_samples->integer == 1 ) {
 		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
 		Cvar_Set( "r_samples", r_samples->default_value );
@@ -715,6 +717,15 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	} );
 }
 
+void RendererEndFrame() {
+	for( size_t i = 0; i < ARRAY_COUNT( frame_static.render_passes ); i++ ) {
+		bool last = i == ARRAY_COUNT( frame_static.render_passes ) - 1;
+		SubmitCommandBuffer( frame_static.render_passes[ i ],
+			last ? SubmitCommandBuffer_Present : SubmitCommandBuffer_Normal );
+	}
+	RenderBackendEndFrame();
+}
+
 void EncodeComputeCall( RenderPass render_pass, PoolHandle< ComputePipeline > pipeline, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers ) {
 	EncodeComputeCall( frame_static.render_passes[ render_pass ], pipeline, x, y, z, buffers );
 }
@@ -729,10 +740,6 @@ void Draw( RenderPass render_pass, const PipelineState & pipeline, Mesh mesh, Sp
 
 void EncodeScissor( RenderPass render_pass, Optional< Scissor > scissor ) {
 	EncodeScissor( frame_static.render_passes[ render_pass ], scissor );
-}
-
-void RendererEndFrame() {
-	RenderBackendEndFrame();
 }
 
 PoolHandle< Texture > RGBNoiseTexture() {

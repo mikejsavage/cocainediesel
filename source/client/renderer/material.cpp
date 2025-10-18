@@ -256,13 +256,16 @@ static void ParseAlphaGen( MaterialDescriptor * material, Span< const char > nam
 static PoolHandle< Texture > FindTexture( Span< const char > name ) {
 	u64 hash = StringHash( name ).hash;
 	Optional< PoolHandle< Texture > > handle = textures.get( hash );
-	if( handle.exists )
+	if( handle.exists ) {
+		if( textures[ handle.value ].handle == NULL )
+			return missing_texture;
 		return handle.value;
+	}
 
 	Optional< PoolHandle< Texture > > new_handle = textures.add( hash );
 	if( !new_handle.exists )
 		return missing_texture;
-	textures[ new_handle.value ] = textures[ missing_texture ];
+	textures[ new_handle.value ] = { };
 	return new_handle.value;
 }
 
@@ -401,22 +404,18 @@ PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHa
 
 	u64 hash = Hash64( config.name );
 
-	PoolHandle< Texture > handle;
-	if( old_texture.exists ) {
-		handle = old_texture.value;
-	}
-	else {
-		Optional< PoolHandle< Texture > > new_handle = textures.add( hash );
-		if( !new_handle.exists ) {
+	Optional< PoolHandle< Texture > > handle = old_texture.exists ? old_texture : textures.get( hash );
+	if( !handle.exists ) {
+		handle = textures.add( hash );
+		if( !handle.exists ) {
 			Com_Printf( S_COLOR_YELLOW "Too many textures!\n" );
 			return missing_texture;
 		}
-		handle = new_handle.value;
 	}
 
-	textures[ handle ] = MakeTexture( config, hash, old_texture );
+	textures[ handle.value ] = MakeTexture( config, hash, old_texture );
 
-	return handle;
+	return handle.value;
 }
 
 TextureFormat GetTextureFormat( PoolHandle< Texture > texture ) {
@@ -857,7 +856,7 @@ static void LoadBuiltinMaterials() {
 		};
 
 		missing_texture = NewTexture( TextureConfig {
-			.name = "missing",
+			.name = "Missing texture",
 			.format = TextureFormat_RGBA_U8_sRGB,
 			.width = 2,
 			.height = 2,

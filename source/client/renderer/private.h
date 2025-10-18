@@ -90,8 +90,6 @@ struct Texture {
 	void * stb_data;
 	Span< const BC4Block > bc4_data;
 	bool atlased;
-
-	bool is_swapchain = false;
 };
 
 // pass a = NULL for a dedicated allocation

@@ -547,8 +547,8 @@ static Optional< ArgumentBufferEncoder > ParseArgumentBuffer( MTL::Function * fu
 }
 
 template< typename T >
-dispatch_data_t SpanToDispatchData( Span< const T > gg ) {
-	return dispatch_data_create( gg.ptr, gg.num_bytes(), NULL, DISPATCH_DATA_DESTRUCTOR_DEFAULT );
+dispatch_data_t SpanToDispatchData( Span< const T > data ) {
+	return dispatch_data_create( data.ptr, data.num_bytes(), NULL, DISPATCH_DATA_DESTRUCTOR_DEFAULT );
 }
 
 PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config ) {

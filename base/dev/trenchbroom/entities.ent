@@ -101,7 +101,7 @@
 
 	<point name="light" color="1 1 1" box="-4 -4 -4 4 4 4" model="dev/editor_models/light.glb">
 		It's a light
-		<color key="color" name="Color" value="255 255 255">Light color, RGB 0-1</color>
+		<color key="color" name="Color" value="255 255 255">Light color, RGB 0-255/#hex</color>
 		<real key="intensity" name="Intensity" value="10000">Brightness, see cdvfx for reference values e.g. rocket explosion = 1,000,000/bullet impact = 500</real>
 	</point>
 

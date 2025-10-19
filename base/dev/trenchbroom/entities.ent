@@ -98,6 +98,12 @@
 		<real3 key="modelscale_vec" name="Scale XYZ" value="1 1 1">Floating-point vector used to scale a model's axes individually (default 1.0 1.0 1.0).</real3>
 	</point>
 
+	<point name="light" color="1 1 1" box="-4 -4 -4 4 4 4" model="dev/editor_models/light.glb">
+		It's a light
+		<color key="color" name="Color" value="255 255 255">Light color, RGB 0-1</color>
+		<real key="intensity" name="Intensity" value="10000">Brightness, see cdvfx for reference values e.g. rocket explosion = 1,000,000/bullet impact = 500</real>
+	</point>
+
 	<point name="decal" color="1 0 0" box="-8 -8 0 8 8 16" model="entities/decal/radiant_model.glb">
 		Place a decal to be loaded at runtime. MAKE SURE RADIANT ISN'T SETTING modelscale_vec, DECALS ONLY SUPPORT UNIFORM SCALING
 		<texture key="material" name="material">Name of material</texture>

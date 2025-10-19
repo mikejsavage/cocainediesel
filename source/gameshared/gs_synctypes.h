@@ -53,6 +53,7 @@ enum EntityType : u8 {
 
 	ET_LASERBEAM,
 
+	ET_LIGHT,
 	ET_DECAL,
 
 	ET_BOMB,

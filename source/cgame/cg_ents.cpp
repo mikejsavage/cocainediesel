@@ -728,6 +728,10 @@ void DrawEntities() {
 			case ET_GHOST:
 				break;
 
+			case ET_LIGHT:
+				DrawDynamicLight( cent->current.origin, sRGBToLinear( cent->current.color.rgb() ), cent->current.radius );
+				break;
+
 			case ET_DECAL: {
 				Quaternion orientation = EulerDegrees3ToQuaternion( cent->current.angles );
 				DrawDecal( cent->current.origin, orientation, cent->current.scale.x, cent->current.material, sRGBToLinear( cent->current.color ) );
@@ -832,6 +836,7 @@ void CG_LerpEntities() {
 				}
 				break;
 
+			case ET_LIGHT:
 			case ET_DECAL:
 				break;
 
@@ -911,6 +916,7 @@ void CG_UpdateEntities() {
 			case ET_GHOST:
 				break;
 
+			case ET_LIGHT:
 			case ET_DECAL:
 				break;
 

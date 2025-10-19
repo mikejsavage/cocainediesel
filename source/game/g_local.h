@@ -357,6 +357,7 @@ void ThrowSmallPileOfGibs( edict_t * self, Vec3 knockback, int damage );
 
 void SP_path_corner( edict_t * ent, const spawn_temp_t * st );
 void SP_model( edict_t * ent, const spawn_temp_t * st );
+void SP_light( edict_t * ent, const spawn_temp_t * st );
 void SP_decal( edict_t * ent, const spawn_temp_t * st );
 
 //

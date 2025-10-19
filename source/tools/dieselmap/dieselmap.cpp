@@ -536,8 +536,7 @@ static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & 
 			merged.indices.data(), merged.indices.size(),
 			merged.vertices.data(), merged.vertices.size(), sizeof( InterleavedMapVertex ) );
 
-		CompiledMesh optimized;
-		optimized.material = merged.material;
+		CompiledMesh optimized = { .material = merged.material };
 		optimized.vertices.resize( unique_verts );
 		optimized.indices.resize( merged.indices.size() );
 
@@ -572,9 +571,10 @@ static bool IsNearlyAxial( Vec3 v ) {
 static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 	TracyZoneScoped;
 
-	CompiledKDTree kd_tree;
-	kd_tree.bounds = MinMax3::Empty();
-	kd_tree.solidity = Solid_NotSolid;
+	CompiledKDTree kd_tree = {
+		.bounds = MinMax3::Empty(),
+		.solidity = Solid_NotSolid,
+	};
 
 	if( entity.brushes.size() == 0 ) {
 		return kd_tree;
@@ -618,10 +618,11 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 		brush_bounds.push_back( bounds );
 
 		// make MapBrush
-		MapBrush map_brush = { };
-		map_brush.bounds = bounds;
-		map_brush.first_plane = checked_cast< u16 >( kd_tree.planes.size() );
-		map_brush.solidity = editor_material->solidity;
+		MapBrush map_brush = {
+			.bounds = bounds,
+			.first_plane = checked_cast< u16 >( kd_tree.planes.size() ),
+			.solidity = editor_material->solidity,
+		};
 
 		size_t num_planes = 0;
 
@@ -893,9 +894,10 @@ int main( int argc, char ** argv ) {
 			if( GetKey( entity.kvs.span(), "classname" ) == "func_group" )
 				continue;
 
-			CompiledEntity compiled;
-			compiled.render_geometry = GenerateRenderGeometry( entity, !write_obj );
-			compiled.collision_geometry = GenerateCollisionGeometry( entity );
+			CompiledEntity compiled = {
+				.render_geometry = GenerateRenderGeometry( entity, !write_obj ),
+				.collision_geometry = GenerateCollisionGeometry( entity ),
+			};
 
 			for( ParsedKeyValue kv : entity.kvs ) {
 				compiled.key_values.push_back( kv );

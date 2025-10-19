@@ -30,9 +30,9 @@ static void CG_SC_ChatPrint( const Tokenized & args ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	bool teamonly = StrCaseEqual( args.tokens[ 0 ], "tch" );
-	int who = SpanToInt( args.tokens[ 1 ], -1 );
+	Optional< s64 > who = SpanToSigned( args.tokens[ 1 ], 0, MAX_CLIENTS );
 
-	if( who < 0 || who > MAX_CLIENTS ) {
+	if( !who.exists ) {
 		return;
 	}
 
@@ -44,13 +44,13 @@ static void CG_SC_ChatPrint( const Tokenized & args ) {
 		return;
 	}
 
-	if( who == 0 ) {
+	if( who.value == 0 ) {
 		CG_LocalPrint( temp.sv( "Console: {}\n", args.tokens[ 2 ] ) );
 		return;
 	}
 
-	Span< const char > name = PlayerName( who - 1 );
-	Team team = cg_entities[ who ].current.team;
+	Span< const char > name = PlayerName( who.value - 1 );
+	Team team = cg_entities[ who.value ].current.team;
 	RGB8 team_color = team == Team_None ? RGB8( 128, 128, 128 ) : CG_TeamColor( team );
 
 	Span< const char > prefix = "";
@@ -131,26 +131,10 @@ static void CG_SC_ChangeLoadout( const Tokenized & args ) {
 	if( cgs.demoPlaying )
 		return;
 
-	Loadout loadout = { };
-
-	for( size_t i = 0; i < ARRAY_COUNT( loadout.weapons ); i++ ) {
-		u64 weapon = SpanToU64( args.tokens[ i + 1 ], Weapon_Count );
-		if( weapon == Weapon_None || weapon >= Weapon_Count )
-			return;
-		loadout.weapons[ i ] = WeaponType( weapon );
+	Optional< Loadout > loadout = ParseLoadout( args.all_but_first );
+	if( loadout.exists ) {
+		UI_ShowLoadoutMenu( loadout.value );
 	}
-
-	u64 perk = SpanToU64( args.tokens[ ARRAY_COUNT( loadout.weapons ) + 1 ], Perk_Count );
-	if( perk >= Perk_Count )
-		return;
-	loadout.perk = PerkType( perk );
-
-	u64 gadget = SpanToU64( args.tokens[ ARRAY_COUNT( loadout.weapons ) + 2 ], Gadget_Count );
-	if( gadget == Gadget_None || gadget >= Gadget_Count )
-		return;
-	loadout.gadget = GadgetType( gadget );
-
-	UI_ShowLoadoutMenu( loadout );
 }
 
 static void CG_SC_SaveLoadout( const Tokenized & args ) {
@@ -283,11 +267,11 @@ static void CG_Cmd_Weapon_f( const Tokenized & args ) {
 		return;
 	}
 
-	u64 slot;
-	if( !TrySpanToU64( args.tokens[ 1 ], &slot ) || slot < 1 || slot > ARRAY_COUNT( cg.predictedPlayerState.weapons ) )
+	Optional< s64 > slot = SpanToSigned( args.tokens[ 1 ], 1, ARRAY_COUNT( cg.predictedPlayerState.weapons ) );
+	if( !slot.exists )
 		return;
 
-	WeaponType weapon = cg.predictedPlayerState.weapons[ slot - 1 ].weapon;
+	WeaponType weapon = cg.predictedPlayerState.weapons[ slot.value - 1 ].weapon;
 	if( weapon != Weapon_None ) {
 		SwitchWeapon( weapon );
 	}

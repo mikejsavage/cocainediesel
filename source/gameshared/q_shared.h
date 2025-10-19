@@ -39,16 +39,32 @@ struct Tokenized {
 Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine stop );
 Tokenized Tokenize( Allocator * a, Span< const char > str, SourceLocation src_loc = CurrentSourceLocation() );
 
-bool TrySpanToU64( Span< const char > str, u64 * x );
-bool TrySpanToS64( Span< const char > str, s64 * x );
-bool TrySpanToU32( Span< const char > str, u32 * x );
-Optional< u8 > TrySpanToU8( Span< const char > str );
-bool TrySpanToInt( Span< const char > str, int * x );
-bool TrySpanToFloat( Span< const char > str, float * x );
+Optional< s64 > SpanToSigned( Span< const char > str, s64 min, s64 max );
+Optional< u64 > SpanToUnsigned( Span< const char > str, u64 max );
 
-u64 SpanToU64( Span< const char > str, u64 def );
-int SpanToInt( Span< const char > token, int def );
-float SpanToFloat( Span< const char > token, float def );
+template< typename T >
+Optional< T > SpanToSigned( Span< const char > str ) {
+	Optional< s64 > x64 = SpanToSigned( str, MinInt< T >, MaxInt< T > );
+	return x64.exists ? MakeOptional( T( x64.value ) ) : NONE;
+}
+
+template< typename T >
+Optional< T > SpanToUnsigned( Span< const char > str ) {
+	Optional< u64 > x64 = SpanToUnsigned( str, MaxInt< T > );
+	return x64.exists ? MakeOptional( T( x64.value ) ) : NONE;
+}
+
+template< typename T >
+bool SpanToUnsigned( Span< const char > str, T * x ) {
+	Optional< T > xopt = SpanToUnsigned< T >( str );
+	if( !xopt.exists )
+		return false;
+	*x = xopt.value;
+	return true;
+}
+
+Optional< float > SpanToFloat( Span< const char > token );
+bool SpanToFloat( Span< const char > token, float * x );
 
 int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop );
 float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop );
@@ -106,6 +122,8 @@ bool SortSpanStringsComparator( Span< const char > a, Span< const char > b );
 void SafeStrCpy( char * dst, const char * src, size_t dst_size );
 void SafeStrCat( char * dst, const char * src, size_t dst_size );
 Span< const char > RemoveTrailingZeroesFloat( Span< const char > str );
+
+Optional< RGBA8 > ParseHexColor( Span< const char > str );
 
 //==============================================================
 //

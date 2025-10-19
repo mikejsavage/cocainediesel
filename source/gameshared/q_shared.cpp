@@ -145,72 +145,53 @@ Tokenized Tokenize( Allocator * a, Span< const char > str, SourceLocation src_lo
 	};
 }
 
-bool TrySpanToU64( Span< const char > str, u64 * x ) {
+static Optional< u64 > SpanToU64( Span< const char > str ) {
 	if( str.n == 0 )
 		return false;
 
 	u64 res = 0;
 	for( char c : str ) {
 		if( c < '0' || c > '9' )
-			return false;
-
-		if( U64_MAX / 10 < res )
-			return false;
+			return NONE;
 
 		u64 digit = c - '0';
-		if( U64_MAX - digit < res )
-			return false;
+		if( U64_MAX / 10 < res || U64_MAX - digit < res )
+			return NONE;
 
 		res = res * 10 + digit;
 	}
 
-	*x = res;
-	return true;
+	return res;
 }
 
-bool TrySpanToS64( Span< const char > str, s64 * x ) {
+static Optional< s64 > SpanToS64( Span< const char > str ) {
 	if( str.n == 0 )
 		return false;
 
 	if( str[ 0 ] == '-' ) {
-		u64 u;
-		if( !TrySpanToU64( str + 1, &u ) || u > u64( S64_MAX ) + 1 )
-			return false;
-		*x = -s64( u );
-		return true;
+		STATIC_ASSERT( S64_MAX == -( S64_MIN + 1 ) );
+
+		Optional< u64 > u = SpanToU64( str );
+		if( !u.exists || u.value > u64( S64_MAX ) + 1 ) // S64_MAX + 1 == -S64_MIN
+			return NONE;
+		return -s64( u.value );
 	}
 
-	u64 u;
-	if( !TrySpanToU64( str, &u ) || u > S64_MAX )
-		return false;
-	*x = u;
-	return true;
+	Optional< u64 > u = SpanToU64( str );
+	return u.exists && u.value <= S64_MAX ? MakeOptional( s64( u.value ) ) : NONE;
 }
 
-bool TrySpanToU32( Span< const char > str, u32 * x ) {
-	u64 x64;
-	if( !TrySpanToU64( str, &x64 ) || x64 > U32_MAX )
-		return false;
-	*x = u32( x64 );
-	return true;
+Optional< s64 > SpanToSigned( Span< const char > str, s64 min, s64 max ) {
+	Optional< s64 > x = SpanToS64( str );
+	return x.exists && x.value >= min && x.value <= max ? x : NONE;
 }
 
-Optional< u8 > TrySpanToU8( Span< const char > str ) {
-	u64 x64;
-	return !TrySpanToU64( str, &x64 ) || x64 > U8_MAX ? NONE : MakeOptional( u8( x64 ) );
+Optional< u64 > SpanToUnsigned( Span< const char > str, u64 max ) {
+	Optional< u64 > x = SpanToU64( str );
+	return x.exists && x.value <= max ? x : NONE;
 }
 
-bool TrySpanToInt( Span< const char > str, int * x ) {
-	s64 x64;
-	if( !TrySpanToS64( str, &x64 ) )
-		return false;
-	if( x64 < INT_MIN || x64 > INT_MAX )
-		return false;
-	*x = int( x64 );
-	return true;
-}
-
-bool TrySpanToFloat( Span< const char > str, float * x ) {
+Optional< float > SpanToFloat( Span< const char > str ) {
 	char buf[ 128 ];
 	if( str.n == 0 || str.n >= sizeof( buf ) )
 		return false;
@@ -219,34 +200,27 @@ bool TrySpanToFloat( Span< const char > str, float * x ) {
 	buf[ str.n ] = '\0';
 
 	char * end;
-	*x = strtof( buf, &end );
+	float x = strtof( buf, &end );
 
-	return end == buf + str.n;
+	return end == buf + str.n ? MakeOptional( x ) : NONE;
 }
 
-u64 SpanToU64( Span< const char > str, u64 def ) {
-	u64 x;
-	return TrySpanToU64( str, &x ) ? x : def;
-}
-
-int SpanToInt( Span< const char > token, int def ) {
-	int x;
-	return TrySpanToInt( token, &x ) ? x : def;
-}
-
-float SpanToFloat( Span< const char > token, float def ) {
-	float x;
-	return TrySpanToFloat( token, &x ) ? x : def;
+bool SpanToFloat( Span< const char > str, float * x ) {
+	Optional< float > xopt = SpanToFloat( str );
+	if( !xopt.exists )
+		return false;
+	*x = xopt.value;
+	return true;
 }
 
 int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop ) {
 	Span< const char > token = ParseToken( cursor, stop );
-	return SpanToInt( token, def );
+	return Default( SpanToSigned< int >( token ), def );
 }
 
 float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop ) {
 	Span< const char > token = ParseToken( cursor, stop );
-	return SpanToFloat( token, def );
+	return Default( SpanToFloat( token ), def );
 }
 
 char ToLowerASCII( char c ) {
@@ -470,6 +444,55 @@ Span< const char > RemoveTrailingZeroesFloat( Span< const char > str ) {
 	}
 
 	return str;
+}
+
+static Optional< u8 > ParseHexDigit( char c ) {
+	if( c >= '0' && c <= '9' ) return c - '0';
+	if( c >= 'a' && c <= 'f' ) return 10 + c - 'a';
+	if( c >= 'A' && c <= 'F' ) return 10 + c - 'A';
+	return NONE;
+}
+
+static Optional< u8 > ParseHexByte( char a, char b ) {
+	Optional< u8 > a8 = ParseHexDigit( a );
+	Optional< u8 > b8 = ParseHexDigit( b );
+	return a8.exists && b8.exists ? MakeOptional( u8( a8.value * 16 + b8.value ) ) : NONE;
+}
+
+Optional< RGBA8 > ParseHexColor( Span< const char > str ) {
+	if( str.n == 0 || str[ 0 ] != '#' )
+		return NONE;
+
+	str++;
+
+	char digits[ 8 ];
+	digits[ 6 ] = 'f';
+	digits[ 7 ] = 'f';
+
+	if( str.n == 3 || str.n == 4 ) {
+		// #rgb #rgba
+		for( size_t i = 0; i < str.n; i++ ) {
+			digits[ i * 2 + 0 ] = str[ i ];
+			digits[ i * 2 + 1 ] = str[ i ];
+		}
+	}
+	else if( str.n == 6 || str.n == 8 ) {
+		// #rrggbb #rrggbbaa
+		for( size_t i = 0; i < str.n; i++ ) {
+			digits[ i ] = str[ i ];
+		}
+	}
+	else {
+		return NONE;
+	}
+
+	Optional< u8 > r = ParseHexByte( digits[ 0 ], digits[ 1 ] );
+	Optional< u8 > g = ParseHexByte( digits[ 2 ], digits[ 3 ] );
+	Optional< u8 > b = ParseHexByte( digits[ 4 ], digits[ 5 ] );
+	Optional< u8 > a = ParseHexByte( digits[ 6 ], digits[ 7 ] );
+	if( !r.exists || !b.exists || !g.exists || !a.exists )
+		return NONE;
+	return RGBA8( r.value, g.value, b.value, a.value );
 }
 
 //=====================================================================

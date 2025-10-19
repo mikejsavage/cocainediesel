@@ -22,19 +22,38 @@ using u16 = uint16_t;
 using u32 = uint32_t;
 using u64 = uint64_t;
 
-constexpr s8 S8_MAX = INT8_MAX;
-constexpr s16 S16_MAX = INT16_MAX;
-constexpr s32 S32_MAX = INT32_MAX;
-constexpr s64 S64_MAX = INT64_MAX;
 constexpr s8 S8_MIN = INT8_MIN;
 constexpr s16 S16_MIN = INT16_MIN;
 constexpr s32 S32_MIN = INT32_MIN;
 constexpr s64 S64_MIN = INT64_MIN;
+constexpr s8 S8_MAX = INT8_MAX;
+constexpr s16 S16_MAX = INT16_MAX;
+constexpr s32 S32_MAX = INT32_MAX;
+constexpr s64 S64_MAX = INT64_MAX;
 
 constexpr u8 U8_MAX = UINT8_MAX;
 constexpr u16 U16_MAX = UINT16_MAX;
 constexpr u32 U32_MAX = UINT32_MAX;
 constexpr u64 U64_MAX = UINT64_MAX;
+
+template< typename T > constexpr T MinInt;
+template< typename T > constexpr T MaxInt;
+
+template<> constexpr s8  MinInt< s8  > = S8_MIN;
+template<> constexpr s16 MinInt< s16 > = S16_MIN;
+template<> constexpr s32 MinInt< s32 > = S32_MIN;
+template<> constexpr s64 MinInt< s64 > = S64_MIN;
+template<> constexpr s8  MaxInt< s8  > = S8_MAX;
+template<> constexpr s16 MaxInt< s16 > = S16_MAX;
+template<> constexpr s32 MaxInt< s32 > = S32_MAX;
+template<> constexpr s64 MaxInt< s64 > = S64_MAX;
+
+template<> constexpr u8  MaxInt< u8  > = U8_MAX;
+template<> constexpr u16 MaxInt< u16 > = U16_MAX;
+template<> constexpr u32 MaxInt< u32 > = U32_MAX;
+template<> constexpr u64 MaxInt< u64 > = U64_MAX;
+
+template< typename T > constexpr bool IsSigned() { return T( -1 ) < T( 0 ); }
 
 inline void integer_constant_too_big() { }
 

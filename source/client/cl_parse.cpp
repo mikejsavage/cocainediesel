@@ -172,8 +172,8 @@ static void CL_RequestMoreBaselines( const Tokenized & args ) {
 	}
 
 	msg_t * msg = CL_AddReliableCommand( ClientCommand_Baselines );
-	MSG_WriteInt32( msg, SpanToInt( args.tokens[ 1 ], 0 ) );
-	MSG_WriteUint32( msg, SpanToInt( args.tokens[ 2 ], 0 ) );
+	MSG_WriteInt32( msg, Default( SpanToSigned< s32 >( args.tokens[ 1 ] ), 0 ) );
+	MSG_WriteUint32( msg, Default( SpanToUnsigned< u32 >( args.tokens[ 2 ] ), 0_u32 ) );
 }
 
 static const struct {

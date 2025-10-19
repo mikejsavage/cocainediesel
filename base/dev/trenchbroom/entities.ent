@@ -3,7 +3,8 @@
 	<group name="worldspawn" color="0 0 0">
 		The world
 		<string key="gametype" name="Gametype">Set to gladiator to make this a gladiator map</string>
-		<boolean key="randomise_arena" name="Randomise Arena">Only for the gladiator shim map</boolean>
+		<boolean key="randomise_arena" name="Randomise arena">Only for the gladiator shim map</boolean>
+		<color key="outline_color" name="Outlines color" value="">Outline colors, RGB 0-255/#hex</color>
 	</group>
 
 	<point name="spawn_gladiator" color="0 0.2 1" box="-16 -16 -24 16 16 40" model="players/rigg/model.glb">
@@ -102,7 +103,7 @@
 		<texture key="material" name="material">Name of material</texture>
 		<angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
 		<real key="modelscale" name="Uniform Scale" value="16">Radius</real>
-		<color key="color" name="color" value="1 1 1 1">Decal color, RGBA 0-1</color>
+		<color key="color" name="Color" value="255 255 255 255">Decal color, RGBA 0-255/#hex</color>
 		<model key="model" name="Model File" value="entities/decal/radiant_model.glb">We need this key so radiant lets you scale the ent, ignore</model>
 	</point>
 

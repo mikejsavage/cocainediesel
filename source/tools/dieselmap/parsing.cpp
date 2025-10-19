@@ -173,7 +173,7 @@ static Span< const char > Capture( u32 * capture, Span< const char > str ) {
 	if( res.ptr == NULL )
 		return NullSpan;
 
-	if( !TrySpanToU32( capture_str, capture ) )
+	if( !SpanToUnsigned< u32 >( capture_str, capture ) )
 		return NullSpan;
 
 	return res;
@@ -195,9 +195,11 @@ static Span< const char > Capture( float * capture, Span< const char > str ) {
 	if( res.ptr == NULL )
 		return NullSpan;
 
-	if( !TrySpanToFloat( capture_str, capture ) )
+	Optional< float > x = SpanToFloat( capture_str );
+	if( !x.exists )
 		return NullSpan;
 
+	*capture = x.value;
 	return res;
 }
 

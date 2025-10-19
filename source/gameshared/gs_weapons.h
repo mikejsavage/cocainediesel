@@ -96,4 +96,6 @@ trace_t GS_TraceLaserBeam( const gs_state_t * gs, Vec3 origin, EulerDegrees3 ang
 
 bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon );
 
+Optional< Loadout > ParseLoadout( Span< const char > loadout_string );
+
 void format( FormatBuffer * fb, const Loadout & loadout, const FormatOpts & opts );

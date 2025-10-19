@@ -6,9 +6,9 @@
 static Optional< RGB8 > ParseOutlineColor( const MapData & map ) {
 	Span< const char > value = GetWorldspawnKey( &map, "outline_color" );
 
-	Optional< u8 > r = TrySpanToU8( ParseToken( &value, Parse_StopOnNewLine ) );
-	Optional< u8 > g = TrySpanToU8( ParseToken( &value, Parse_StopOnNewLine ) );
-	Optional< u8 > b = TrySpanToU8( ParseToken( &value, Parse_StopOnNewLine ) );
+	Optional< u8 > r = SpanToUnsigned< u8 >( ParseToken( &value, Parse_StopOnNewLine ) );
+	Optional< u8 > g = SpanToUnsigned< u8 >( ParseToken( &value, Parse_StopOnNewLine ) );
+	Optional< u8 > b = SpanToUnsigned< u8 >( ParseToken( &value, Parse_StopOnNewLine ) );
 
 	return r.exists && b.exists && g.exists ? MakeOptional( RGB8( r.value, g.value, b.value ) ) : NONE;
 }

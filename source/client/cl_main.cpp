@@ -462,7 +462,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 			return;
 		}
 
-		cls.challenge = SpanToInt( args.tokens[ 1 ], 0 );
+		cls.challenge = Default( SpanToSigned< int >( args.tokens[ 1 ] ), 0 );
 		//wsw : r1q2[start]
 		//r1: reset the timer so we don't send dup. getchallenges
 		cls.connect_time = cls.monotonicTime;
@@ -605,7 +605,7 @@ void CL_Precache_f( const Tokenized & args ) {
 		return;
 	}
 
-	precache_spawncount = SpanToInt( args.tokens[ 1 ], 0 );
+	precache_spawncount = Default( SpanToSigned< int >( args.tokens[ 1 ] ), 0 );
 	cl.map = FindMap( StringHash( Hash64( args.tokens[ 2 ] ) ) );
 
 	if( cl.map == NULL ) {

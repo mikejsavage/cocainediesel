@@ -217,7 +217,7 @@ static void ParseRGBGen( Material * material, Span< const char > name, Span< con
 
 		Span< const char > scale = ParseMaterialToken( data );
 		if( scale != "" ) {
-			material->rgbgen.args[ 0 ] = SpanToFloat( scale, 0.0f );
+			material->rgbgen.args[ 0 ] = Default( SpanToFloat( scale ), 0.0f );
 		}
 	}
 	else if( token == "entitycolorwave" ) {

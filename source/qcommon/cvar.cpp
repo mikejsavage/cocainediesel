@@ -81,8 +81,8 @@ void SetCvar( Cvar * cvar, Span< const char > value ) {
 
 	Free( sys_allocator, cvar->value );
 	cvar->value = ( *sys_allocator )( "{}", value );
-	cvar->number = SpanToFloat( MakeSpan( cvar->value ), 0.0f );
-	cvar->integer = SpanToInt( MakeSpan( cvar->value ), 0 );
+	cvar->number = Default( SpanToFloat( value ), 0.0f );
+	cvar->integer = Default( SpanToSigned< int >( value ), 0 );
 	cvar->modified = true;
 
 	if( HasAllBits( cvar->flags, CvarFlag_UserInfo ) ) {

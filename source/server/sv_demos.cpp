@@ -275,11 +275,11 @@ void SV_DemoGetUrl_f( edict_t * ent, msg_t msg ) {
 		}
 	};
 
-	u64 id;
-	if( !TrySpanToU64( args.tokens[ 1 ], &id ) || id > demos.n ) {
+	Optional< u64 > id = SpanToUnsigned< u64 >( args.tokens[ 1 ] );
+	if( !id.exists || id.value > demos.n ) {
 		PF_GameCmd( ent, "pr \"demoget <id from demolist>\"\n" );
 		return;
 	}
 
-	PF_GameCmd( ent, temp( "downloaddemo \"{}/{}\"", GetDemoDir( &temp ), demos[ id - 1 ] ) );
+	PF_GameCmd( ent, temp( "downloaddemo \"{}/{}\"", GetDemoDir( &temp ), demos[ id.value - 1 ] ) );
 }

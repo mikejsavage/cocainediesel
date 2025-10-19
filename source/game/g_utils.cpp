@@ -712,9 +712,9 @@ void G_ClearPlayerStateEvents( gclient_t *client ) {
 * Returns player matching given text. It can be either number of the player or player's name.
 */
 edict_t * G_PlayerForText( Span< const char > text ) {
-	u64 num;
-	if( TrySpanToU64( text, &num ) && num < u64( server_gs.maxclients ) && game.edicts[ num + 1 ].r.inuse ) {
-		return &game.edicts[ num + 1 ];
+	Optional< u64 > num = SpanToUnsigned( text, server_gs.maxclients - 1 );
+	if( num.exists && game.edicts[ num.value + 1 ].r.inuse ) {
+		return &game.edicts[ num.value + 1 ];
 	}
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {

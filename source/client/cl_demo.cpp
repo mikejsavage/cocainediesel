@@ -271,12 +271,12 @@ void CL_DemoJump_f( const Tokenized & args ) {
 		negative = time_str[ 0 ] == '-';
 	}
 
-	s64 seconds;
-	if( !TrySpanToS64( time_str, &seconds ) ) {
+	Optional< s64 > seconds = SpanToSigned< s64 >( time_str );
+	if( !seconds.exists ) {
 		return bad_syntax();
 	}
 
-	Time time = Seconds( seconds );
+	Time time = Seconds( seconds.value );
 
 	if( !relative ) {
 		playing_demo_seek_time = time;

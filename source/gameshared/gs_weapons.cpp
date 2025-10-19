@@ -627,6 +627,43 @@ bool GS_CanEquip( const SyncPlayerState * ps, WeaponType weapon ) {
 	return FindWeapon( ps, weapon ) != NULL;
 }
 
+Optional< Loadout > ParseLoadout( Span< const char > loadout_string ) {
+	Loadout loadout = { };
+
+	for( size_t i = 0; i < WeaponCategory_Count; i++ ) {
+		Span< const char > token = ParseToken( &loadout_string, Parse_DontStopOnNewLine );
+		Optional< s64 > weapon = SpanToSigned( token, Weapon_None + 1, Weapon_Count - 1 );
+		if( !weapon.exists )
+			return NONE;
+
+		WeaponCategory category = GS_GetWeaponDef( WeaponType( weapon.value ) )->category;
+		if( category != i )
+			return NONE;
+
+		loadout.weapons[ category ] = WeaponType( weapon.value );
+	}
+
+	{
+		Span< const char > token = ParseToken( &loadout_string, Parse_DontStopOnNewLine );
+		Optional< s64 > perk = SpanToSigned( token, Perk_None + 1, Perk_Count - 1 );
+		if( !perk.exists )
+			return NONE;
+		if( GetPerkDef( PerkType( perk.value ) )->disabled )
+			return NONE;
+		loadout.perk = PerkType( perk.value );
+	}
+
+	{
+		Span< const char > token = ParseToken( &loadout_string, Parse_DontStopOnNewLine );
+		Optional< s64 > gadget = SpanToSigned( token, Gadget_None + 1, Gadget_Count - 1 );
+		if( !gadget.exists )
+			return NONE;
+		loadout.gadget = GadgetType( gadget.value );
+	}
+
+	return loadout_string.n == 0 ? MakeOptional( loadout ) : NONE;
+}
+
 void format( FormatBuffer * fb, const Loadout & loadout, const FormatOpts & opts ) {
 	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
 		format( fb, loadout.weapons[ i ], FormatOpts() );

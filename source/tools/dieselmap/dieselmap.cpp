@@ -518,13 +518,13 @@ static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & 
 		if( face_meshes[ i ].material == face_meshes[ material_start_index ].material )
 			continue;
 
-		Span< const CompiledMesh > meshes_with_the_same_material( &face_meshes[ material_start_index ], i - material_start_index + 1 );
+		Span< const CompiledMesh > meshes_with_the_same_material( &face_meshes[ material_start_index ], i - material_start_index );
 		CompiledMesh merged = MergeMeshes( meshes_with_the_same_material );
 		if( merged.indices.size() > 0 ) {
 			merged_meshes.push_back( merged );
 		}
 
-		material_start_index = i + 1;
+		material_start_index = i;
 	}
 
 	std::vector< CompiledMesh > optimized_meshes;

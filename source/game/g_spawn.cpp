@@ -142,7 +142,7 @@ static bool ParseEntityValue( Span< const char > name, RGBA8 * x, Span< const ch
 	Optional< u8 > b = SpanToUnsigned< u8 >( ParseToken( &value, Parse_StopOnNewLine ) );
 	Optional< u8 > a = SpanToUnsigned< u8 >( ParseToken( &value, Parse_StopOnNewLine ) );
 	if( r.exists && g.exists && b.exists ) {
-		*x = RGBA8( r.value, g.value, b.value, Default( a, u8( 0 ) ) );
+		*x = RGBA8( r.value, g.value, b.value, Default( a, u8( 255 ) ) );
 		return true;
 	}
 

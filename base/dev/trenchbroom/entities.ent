@@ -96,6 +96,7 @@
 		<angles key="angles" name="Pitch Yaw Roll" value="0 0 0">Individual control of PITCH, YAW, and ROLL (default 0 0 0).</angles>
 		<real key="modelscale" name="Uniform Scale" value="1">Floating-point value used to scale a model up or down (default 1.0).</real>
 		<real3 key="modelscale_vec" name="Scale XYZ" value="1 1 1">Floating-point vector used to scale a model's axes individually (default 1.0 1.0 1.0).</real3>
+		<color key="color" name="Color" value="255 255 255 255">Model color, RGBA 0-255/#hex</color>
 	</point>
 
 	<point name="light" color="1 1 1" box="-4 -4 -4 4 4 4" model="dev/editor_models/light.glb">

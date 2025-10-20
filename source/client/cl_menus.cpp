@@ -33,17 +33,17 @@ struct UI_Color {
 		clay{ float( diesel_color.srgb.r ), float( diesel_color.srgb.g ), float( diesel_color.srgb.b ), float( diesel_color.srgb.a ) } {}
 };
 
-constexpr UI_Color ui_diesel_green( diesel_green );
-constexpr UI_Color ui_diesel_grey( diesel_grey );
-constexpr UI_Color ui_diesel_red( diesel_red );
-constexpr UI_Color ui_diesel_yellow( diesel_yellow );
+static constexpr UI_Color ui_diesel_green( diesel_green );
+static constexpr UI_Color ui_diesel_grey( diesel_grey );
+static constexpr UI_Color ui_diesel_red( diesel_red );
+static constexpr UI_Color ui_diesel_yellow( diesel_yellow );
 
-constexpr UI_Color ui_white( white );
-constexpr UI_Color ui_black( black );
-constexpr UI_Color ui_dark( dark );
-constexpr UI_Color ui_red( red );
-constexpr UI_Color ui_green( green );
-constexpr UI_Color ui_yellow( yellow );
+static constexpr UI_Color ui_white( white );
+static constexpr UI_Color ui_black( black );
+static constexpr UI_Color ui_dark( dark );
+static constexpr UI_Color ui_red( red );
+static constexpr UI_Color ui_green( green );
+static constexpr UI_Color ui_yellow( yellow );
 
 enum UIState {
 	UIState_Hidden,
@@ -99,7 +99,7 @@ static Loadout loadout;
 
 static SettingsState settings_state;
 static bool reset_video_settings;
-static float sensivity_range[] = { 0.25f, 10.f };
+static float sensivity_range[] = { 0.25f, 10.0f };
 
 static size_t selected_mask = 0;
 static NonRAIIDynamicArray< char * > masks;
@@ -231,7 +231,7 @@ static ClayCustomElementConfig * ClayCheckboxCustom( Span< const char > cvar_nam
 			Span< const char > * cvar_name = ( Span< const char > * ) userdata;
 			bool yes = Cvar_Bool( *cvar_name );
 
-			float width = Min2( bounds.width, bounds.height * 4.f );
+			float width = Min2( bounds.width, bounds.height * 4.0f );
 
 			Draw2DBox( bounds.x, bounds.y, width, bounds.height, cls.white_material, hovered ? diesel_grey.linear : black.linear );
 
@@ -243,7 +243,7 @@ static ClayCustomElementConfig * ClayCheckboxCustom( Span< const char > cvar_nam
 				.y = bounds.y + bounds.height * 0.2f,
 				.width = width,
 				.height = bounds.height * 0.6f,
-			}, ClayTextShadow( black.linear, 0.f ), XAlignment_Center );
+			}, ClayTextShadow( black.linear, 0.0f ), XAlignment_Center );
 
 		},
 		[]( const Clay_BoundingBox & bounds, void * userdata ) {
@@ -292,7 +292,7 @@ static ClayCustomElementConfig * ClaySliderCustom( Span< const char > cvar_name,
 				.y = bounds.y + bounds.height * 0.25f,
 				.width = bounds.height * 0.5f,
 				.height = bounds.height * 0.5f,
-			}, ClayTextShadow( black.linear, 0.f ), XAlignment_Center );
+			}, ClayTextShadow( black.linear, 0.0f ), XAlignment_Center );
 		},
 		[]( const Clay_BoundingBox & bounds, void * userdata ) {
 			SliderData * data = ( SliderData * ) userdata;
@@ -347,7 +347,7 @@ static ClayCustomElementConfig * ClayTextInputCustom( Span< const char > cvar_na
 
 			// drawing
 			const float offsetText = bounds.height * 0.15f;
-			const float offsetTextSize = offsetText * 2.f;
+			const float offsetTextSize = offsetText * 2.0f;
 
 			Draw2DBox( bounds.x, bounds.y, bounds.width, bounds.height, cls.white_material, hovered ? diesel_grey.linear : black.linear );
 			DrawClayText( text, {
@@ -367,7 +367,7 @@ static void MainMenuBackground( const Clay_BoundingBox & bounds, void * userdata
 
 	//Vec2 half_pixel = HalfPixelSize( pattern );
 	Draw2DBox( bounds.x, bounds.y, bounds.width, bounds.height, cls.white_material, dark.linear );
-	//Draw2DBoxUV( bounds.x, bounds.y, bounds.width, bounds.height, Vec2( 0.f, 0.f ), Vec2( bounds.width / pattern->texture->width, bounds.height / pattern->texture->height ), pattern );
+	//Draw2DBoxUV( bounds.x, bounds.y, bounds.width, bounds.height, Vec2( 0.0f, 0.0f ), Vec2( bounds.width / pattern->texture->width, bounds.height / pattern->texture->height ), pattern );
 }
 
 
@@ -668,7 +668,7 @@ static void Locker() {
 static void SettingsButton( Span<const char> name, ClayCustomElementConfig * button, float height ) {
 	CLAY( {
 		.layout {
-			.sizing = { CLAY_SIZING_GROW(), height },
+			.sizing = { CLAY_SIZING_GROW(), CLAY_SIZING_FIXED( height ) },
 			.childGap = uint16_t( height * 0.5f ),
 			.layoutDirection = CLAY_LEFT_TO_RIGHT,
 		},
@@ -694,8 +694,8 @@ static void SettingsButton( Span<const char> name, ClayCustomElementConfig * but
 	}
 }
 
-static void SettingsSection( Span< const char > section_name, uint16_t padding, bool pad_content, void (*section_content)(uint16_t) ) {
-	uint16_t half_padding = padding * 0.6f;
+static void SettingsSection( Span< const char > section_name, u16 padding, bool pad_content, void ( *section_content )( u16 ) ) {
+	u16 half_padding = u16( padding * 0.6f );
 
 	CLAY( {
 		.layout {
@@ -707,7 +707,7 @@ static void SettingsSection( Span< const char > section_name, uint16_t padding, 
 		Span< const char > * title = Clone( ClayAllocator(), section_name );
 
 		CLAY( {
-			.layout = { .sizing = { CLAY_SIZING_GROW(), float( padding ) } },
+			.layout = { .sizing = { CLAY_SIZING_GROW(), CLAY_SIZING_FIXED( float( padding ) ) } },
 			.custom = { ClayImGui([]( const Clay_BoundingBox & bounds, void * userdata ) {
 				Span< const char > * title = ( Span< const char > * )userdata;
 				ImGuiHorizontalGradient(
@@ -721,16 +721,16 @@ static void SettingsSection( Span< const char > section_name, uint16_t padding, 
 				}, {
 					.x = bounds.x + padding,
 					.y = bounds.y + padding * 0.5f,
-					.width = bounds.width - padding * 2.f,
+					.width = bounds.width - padding * 2.0f,
 					.height = bounds.height - padding,
-				}, ClayTextShadow( black.linear, 4.f ) );
+				}, ClayTextShadow( black.linear, 4.0f ) );
 			}, title ) }
 		} );
 
-		uint16_t old_padding = padding;
+		float old_padding = padding;
 		if ( !pad_content ) {
-			padding = 0;
-			half_padding = 0;
+			padding = 0.0f;
+			half_padding = 0.0f;
 		}
 
 		CLAY( {
@@ -747,21 +747,21 @@ static void SettingsSection( Span< const char > section_name, uint16_t padding, 
 
 }
 
-static void SettingsGeneral( uint16_t padding ) {
-	SettingsSection( "NAME", padding, false, []( uint16_t padding ) {
+static void SettingsGeneral( u16 padding ) {
+	SettingsSection( "NAME", padding, false, []( u16 padding ) {
 		CLAY( {
-			.layout = { .sizing = { CLAY_SIZING_GROW(), padding * 2.f } },
+			.layout = { .sizing = { CLAY_SIZING_GROW(), CLAY_SIZING_FIXED( padding * 2.0f ) } },
 			.custom = { ClayTextInputCustom( "name", MAX_NAME_CHARS ) },
 		} );
 	} );
 
-	SettingsSection( "CROSSHAIR", padding, true, []( uint16_t padding ) {
+	SettingsSection( "CROSSHAIR", padding, true, []( u16 padding ) {
 		SettingsButton( "SIZE", ClaySliderCustom<int>( "cg_crosshair_size", 1, 50 ), padding );
 		SettingsButton( "GAP", ClaySliderCustom<int>( "cg_crosshair_gap", 0, 50 ), padding );
 		SettingsButton( "DYNAMIC", ClayCheckboxCustom( "cg_crosshair_dynamic" ), padding );
 	} );
 
-	SettingsSection( "HUD", padding, true, []( uint16_t padding ) {
+	SettingsSection( "HUD", padding, true, []( u16 padding ) {
 		SettingsButton( "SHOW CHAT", ClayCheckboxCustom( "cg_chat" ), padding );
 		SettingsButton( "SHOW HELP", ClayCheckboxCustom( "cg_showHotkeys" ), padding );
 		SettingsButton( "SHOW FPS", ClayCheckboxCustom( "cg_showFPS" ), padding );
@@ -1111,28 +1111,28 @@ static void SettingsCategoryDraw( const Clay_BoundingBox& bounds, bool hovered, 
 		cls.white_material, selected ? diesel_yellow.linear : color_not_selected );
 
 	if( !selected ) {
-		float offset = GetContentScale() * 8.f;
+		float offset = GetContentScale() * 8.0f;
 		Draw2DBox(
 			bounds.x + padding + offset, bounds.y + padding + offset,
-			bounds.height - padding * 2.f, bounds.height - padding * 2.f,
+			bounds.height - padding * 2.0f, bounds.height - padding * 2.0f,
 			FindMaterial( category->icon_path ), dark.linear );
 	}
 
 	Draw2DBox(
 		bounds.x + padding, bounds.y + padding,
-		bounds.height - padding * 2.f, bounds.height - padding * 2.f,
+		bounds.height - padding * 2.0f, bounds.height - padding * 2.0f,
 		FindMaterial( category->icon_path ), selected ? dark.linear : white.linear );
 
-	float c = selected ? 0.f : 255.f;
+	float c = selected ? 0.0f : 255.0f;
 	DrawClayText( category->name, {
-		.textColor = { c, c, c, 255.f },
+		.textColor = { c, c, c, 255.0f },
 		.fontId = ClayFont_BoldItalic,
 	}, {
 		.x = bounds.x + bounds.height + padding,
-		.y = bounds.y + padding * 2.f,
-		.width = bounds.width - bounds.height - padding * 2.f,
-		.height = bounds.height - padding * 4.f
-	}, ClayTextShadow( black.linear, selected ? 0.f : 8.f ) );
+		.y = bounds.y + padding * 2.0f,
+		.width = bounds.width - bounds.height - padding * 2.0f,
+		.height = bounds.height - padding * 4.0f
+	}, ClayTextShadow( black.linear, selected ? 0.0f : 8.0f ) );
 }
 
 static void Settings() {
@@ -1143,7 +1143,7 @@ static void Settings() {
 		{ "hud/settings_audio", "AUDIO", SettingsState_Audio },
 	};
 
-	uint16_t padding = uint16_t( GetContentScale() * 40.f );
+	u16 padding = u16( GetContentScale() * 40.0f );
 
 	CLAY( {
 		.id = CLAY_ID_LOCAL( "Settings Menu" ),
@@ -1166,7 +1166,7 @@ static void Settings() {
 				SettingsCategory * category = Clone( ClayAllocator(), settings_categories[ i ] );
 
 				CLAY( {
-					.layout = { .sizing = { CLAY_SIZING_PERCENT( 1.f ), CLAY_SIZING_GROW() } },
+					.layout = { .sizing = { CLAY_SIZING_PERCENT( 1.0f ), CLAY_SIZING_GROW() } },
 					.custom = { ClayButtonCustom<false>( category->name, category, SettingsCategoryDraw,
 						[]( const Clay_BoundingBox & bounds, void * userdata ) {
 							SettingsCategory * category = ( SettingsCategory * ) userdata;
@@ -1221,17 +1221,17 @@ static void Settings() {
 //
 // 	ImGui::SetCursorPos( pos );
 //
-// 	Vec2 size2 = Vec2( size.x, size.y / 3.f );
+// 	Vec2 size2 = Vec2( size.x, size.y / 3.0f );
 // 	Vec2 size1 = Vec2( size.x, size.y - size2.y );
 //
 // 	Vec2 global_pos = ImGui::GetCursorScreenPos();
 // 	ImDrawList* draw_list = ImGui::GetForegroundDrawList();
 // 	draw_list->AddRectFilledMultiColor( global_pos, global_pos + size1, color, color, IM_COL32( 0, 0, 0, 255 ), IM_COL32( 0, 0, 0, 255 ) );
-// 	draw_list->AddRectFilled( global_pos + Vec2( 0.f, size1.y ), global_pos + size, color );
+// 	draw_list->AddRectFilled( global_pos + Vec2( 0.0f, size1.y ), global_pos + size, color );
 //
 // 	const char * text1 = temp( "{}", c );
-// 	draw_text( draw_list, cls.license_italic_font, 128.f, text1, pos, size1 );
-// 	draw_text( draw_list, cls.large_font, 64.f, temp( "{} LICENSE", c ), pos + Vec2( 0.f, size1.y ), size2 );
+// 	draw_text( draw_list, cls.license_italic_font, 128.0f, text1, pos, size1 );
+// 	draw_text( draw_list, cls.large_font, 64.0f, temp( "{} LICENSE", c ), pos + Vec2( 0.0f, size1.y ), size2 );
 //
 // 	ImGui::SetCursorPos( pos );
 // 	ImGui::PushID( text1 );
@@ -1244,13 +1244,13 @@ static void Settings() {
 // static void License( const Vec2& size ) {
 // 	TempAllocator temp = cls.frame_arena.temp();
 //
-// 	const float CATEGORY_X = 32.f;
-// 	const float CATEGORY_Y = 32.f;
-// 	const Vec2 LICENSE_CATEGORY_SIZE = Vec2( (size.x - CATEGORY_X) * 0.3f, (size.y - CATEGORY_Y * 4.f) / 3.f );
+// 	const float CATEGORY_X = 32.0f;
+// 	const float CATEGORY_Y = 32.0f;
+// 	const Vec2 LICENSE_CATEGORY_SIZE = Vec2( (size.x - CATEGORY_X) * 0.3f, (size.y - CATEGORY_Y * 4.0f) / 3.0f );
 //
 // 	LicenseCategory( temp, 'B', IM_COL32( 125, 140, 255, 255 ), LICENSE_CATEGORY_SIZE, Vec2( CATEGORY_X, CATEGORY_Y ) );
 // 	LicenseCategory( temp, 'A', IM_COL32( 255, 140, 16, 255 ), LICENSE_CATEGORY_SIZE, Vec2( CATEGORY_X, CATEGORY_Y + (LICENSE_CATEGORY_SIZE.y + CATEGORY_Y) ) );
-// 	LicenseCategory( temp, 'S', IM_COL32( 255, 48, 48, 255 ), LICENSE_CATEGORY_SIZE, Vec2( CATEGORY_X, CATEGORY_Y + (LICENSE_CATEGORY_SIZE.y + CATEGORY_Y) * 2.f ) );
+// 	LicenseCategory( temp, 'S', IM_COL32( 255, 48, 48, 255 ), LICENSE_CATEGORY_SIZE, Vec2( CATEGORY_X, CATEGORY_Y + (LICENSE_CATEGORY_SIZE.y + CATEGORY_Y) * 2.0f ) );
 // }
 
 static void ServerBrowser() {
@@ -1399,7 +1399,7 @@ struct MainMenuCategory {
 };
 
 static constexpr MainMenuCategory categories[] = {
-	{ "hud/locker", "LOCKER", MenuState_Locker, diesel_grey.linear, Vec2( 0.f, 0.075f ), true },
+	{ "hud/locker", "LOCKER", MenuState_Locker, diesel_grey.linear, Vec2( 0.0f, 0.075f ), true },
 	{ "hud/settings", "SETTINGS", MenuState_Settings, diesel_yellow.linear, Vec2( 0.425f, 0.125f ), true },
 	{ "hud/extras", "EXTRAS", MenuState_Extras, diesel_grey.linear, Vec2( 0.85f, 0.05f ), true },
 	{ "hud/bomb", "PLAY", MenuState_ServerBrowser, diesel_green.linear, Vec2( 0.2f, 0.35f ), true },
@@ -1457,21 +1457,21 @@ static void MainMenu_NotImplemented() {
 static void SubMenuWindow() {
 	CLAY( {
 		.layout = {
-			.sizing = { CLAY_SIZING_PERCENT( 1.f ), CLAY_SIZING_PERCENT( 1.f ) },
+			.sizing = { CLAY_SIZING_PERCENT( 1.0f ), CLAY_SIZING_PERCENT( 1.0f ) },
 			.layoutDirection = CLAY_TOP_TO_BOTTOM
 		}
 	} ) {
 		ClayVerticalSpacing( CLAY_SIZING_GROW() );
 
 		CLAY( {
-			.layout = { .sizing = { CLAY_SIZING_PERCENT( 1.f ), CLAY_SIZING_PERCENT( 0.9f ) } }
+			.layout = { .sizing = { CLAY_SIZING_PERCENT( 1.0f ), CLAY_SIZING_PERCENT( 0.9f ) } }
 		} ) {
 			ClayHorizontalSpacing( CLAY_SIZING_GROW() );
 
 			CLAY( {
 				.id = CLAY_ID_LOCAL( "Submenu" ),
 				.layout = {
-					.sizing = { CLAY_SIZING_PERCENT( 0.9f ), CLAY_SIZING_PERCENT( 1.f ) },
+					.sizing = { CLAY_SIZING_PERCENT( 0.9f ), CLAY_SIZING_PERCENT( 1.0f ) },
 					.layoutDirection = CLAY_LEFT_TO_RIGHT
 				}
 			} ) {
@@ -1487,9 +1487,9 @@ static void SubMenuWindow() {
 						.layout = { .sizing = { CLAY_SIZING_GROW(), CLAY_SIZING_PERCENT( 0.15f ) } },
 						.custom = { ClayImGui([]( const Clay_BoundingBox & bounds, void * userdata ) {
 							const float offsetPos = bounds.height * 0.15f;
-							const float offsetSize = offsetPos * 2.f;
+							const float offsetSize = offsetPos * 2.0f;
 							const float offsetTextPos = bounds.height * 0.25f;
-							const float offsetTextSize = offsetTextPos * 2.f;
+							const float offsetTextSize = offsetTextPos * 2.0f;
 
 							// gradient
 							ImGuiHorizontalGradient( Vec2( bounds.x, bounds.y ), Vec2( bounds.width / 2, bounds.height ), ui_dark.imu32, ui_diesel_grey.imu32 );
@@ -1505,9 +1505,9 @@ static void SubMenuWindow() {
 									}, {
 										.x = bounds.x + bounds.height + offsetTextPos,
 										.y = bounds.y + offsetTextPos,
-										.width = bounds.width - offsetTextSize - bounds.height * 2.f,
+										.width = bounds.width - offsetTextSize - bounds.height * 2.0f,
 										.height = bounds.height - offsetTextSize
-									}, ClayTextShadow( black.linear, 8.f ), XAlignment_Left );
+									}, ClayTextShadow( black.linear, 8.0f ), XAlignment_Left );
 									break;
 								}
 							}
@@ -1516,7 +1516,7 @@ static void SubMenuWindow() {
 								MakeSpan( "go back" ),
 								[]( const Clay_BoundingBox & bounds, bool, void * userdata ) {
 									const float textOffset = bounds.height * 0.15f;
-									const float textOffsetSize = textOffset * 2.f;
+									const float textOffsetSize = textOffset * 2.0f;
 
 									DrawShadowedSquare( bounds.x, bounds.y, bounds.height, diesel_red.linear );
 									DrawClayText( MakeSpan( "X" ), {
@@ -1527,7 +1527,7 @@ static void SubMenuWindow() {
 										.y = bounds.y + textOffset,
 										.width = bounds.width - textOffsetSize,
 										.height = bounds.height - textOffsetSize
-									}, ClayTextShadow( black.linear, 8.f ), XAlignment_Center );
+									}, ClayTextShadow( black.linear, 8.0f ), XAlignment_Center );
 								},
 								[]( const Clay_BoundingBox &, void * userdata ) {
 									menu_state = MenuState_Main;
@@ -1595,12 +1595,12 @@ static void MainSectionButton( size_t idx, Vec2 pos, ClayButtonPressedCallback p
 		categories[ idx ].state
 	} );
 
-	float viewport_width = frame_static.viewport_width * (1.f - MAIN_MENU_SIZE_WIDTH);
-	float viewport_height = frame_static.viewport_height * (1.f - (MAIN_MENU_BAR_HEIGHT + MAIN_MENU_BAR_HAZARD_HEIGHT) * 2.f);
+	float viewport_width = frame_static.viewport_width * (1.0f - MAIN_MENU_SIZE_WIDTH);
+	float viewport_height = frame_static.viewport_height * (1.0f - (MAIN_MENU_BAR_HEIGHT + MAIN_MENU_BAR_HAZARD_HEIGHT) * 2.0f);
 	float size = Min2( viewport_height, viewport_width ) * 0.15f;
 
 	CLAY( {
-		.layout = { .sizing = { .width = size, .height = size } },
+		.layout = { .sizing = { .width = CLAY_SIZING_FIXED( size ), .height = CLAY_SIZING_FIXED( size ) } },
 		.floating = {
 			.offset = { pos.x * viewport_width, pos.y * viewport_height },
 			.attachTo = CLAY_ATTACH_TO_PARENT
@@ -1609,8 +1609,8 @@ static void MainSectionButton( size_t idx, Vec2 pos, ClayButtonPressedCallback p
 			[] ( const Clay_BoundingBox & bounds, bool hovered, void * userdata ) {
 				MainSectionButtonData * data = ( MainSectionButtonData * )userdata;
 
-				constexpr float period = 2.f;
-				const float hover_factor = 1.f + (!hovered ? 0.0f : sinf( ( ImGui::GetCurrentContext()->HoverItemDelayTimer / period ) * PI * 2.0f ) * 0.05f );
+				constexpr float period = 2.0f;
+				const float hover_factor = 1.0f + (!hovered ? 0.0f : sinf( ( ImGui::GetCurrentContext()->HoverItemDelayTimer / period ) * PI * 2.0f ) * 0.05f );
 				const float size = bounds.width * hover_factor;
 				const float font_size = size * 0.275f;
 
@@ -1624,7 +1624,7 @@ static void MainSectionButton( size_t idx, Vec2 pos, ClayButtonPressedCallback p
 								.y = bounds.y + size * 1.25f,
 								.width = float(frame_static.viewport_width),
 								.height = font_size
-							}, ClayTextShadow( black.linear, 8.f ), XAlignment_Center );
+							}, ClayTextShadow( black.linear, 8.0f ), XAlignment_Center );
 			},
 			press
 		) }
@@ -1745,7 +1745,7 @@ static void MainMenu() {
 				CLAY( {
 					.id = CLAY_ID_LOCAL( "COCAINE" ),
 					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.1f ) } },
-					.custom = { ClayTextCustom( "COCAINE", { .textColor = ui_white.clay, .fontId = ClayFont_BoldItalic }, XAlignment_Left, ClayTextShadow( black.linear, 8.f ) ) }
+					.custom = { ClayTextCustom( "COCAINE", { .textColor = ui_white.clay, .fontId = ClayFont_BoldItalic }, XAlignment_Left, ClayTextShadow( black.linear, 8.0f ) ) }
 				} );
 
 				ClayVerticalSpacing( CLAY_SIZING_FIXED( 4.0f * GetContentScale() ) );
@@ -1753,7 +1753,7 @@ static void MainMenu() {
 				CLAY( {
 					.id = CLAY_ID_LOCAL( "DIESEL" ),
 					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.1f ) } },
-					.custom = { ClayTextCustom( "DIESEL", { .textColor = ui_white.clay, .fontId = ClayFont_BoldItalic }, XAlignment_Left, ClayTextShadow( black.linear, 8.f ) ) }
+					.custom = { ClayTextCustom( "DIESEL", { .textColor = ui_white.clay, .fontId = ClayFont_BoldItalic }, XAlignment_Left, ClayTextShadow( black.linear, 8.0f ) ) }
 				} );
 
 				ClayVerticalSpacing( CLAY_SIZING_FIXED( 8.0f * GetContentScale() ) );
@@ -1769,14 +1769,14 @@ static void MainMenu() {
 				CLAY( {
 					.id = CLAY_ID_LOCAL( "Subtitle" ),
 					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.025f ) } },
-					.custom = { ClayTextCustom( full_subtitle, { .textColor = ui_white.clay, .fontId = ClayFont_BoldItalic }, XAlignment_Left, ClayTextShadow( black.linear, 8.f ) ) }
+					.custom = { ClayTextCustom( full_subtitle, { .textColor = ui_white.clay, .fontId = ClayFont_BoldItalic }, XAlignment_Left, ClayTextShadow( black.linear, 8.0f ) ) }
 				} );
 			}
 
 			CLAY ( {
 				.id = CLAY_ID_LOCAL( "Menus" ),
 				.layout = {
-					.sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_PERCENT( 1.f ) },
+					.sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_PERCENT( 1.0f ) },
 					.layoutDirection = CLAY_TOP_TO_BOTTOM
 				},
 			} ) {
@@ -2007,15 +2007,15 @@ static bool LoadoutMenu() {
 
 		ImGui::SameLine();
 
-		ScopedColor( ImGuiCol_Button, ImVec4( 0.f, 0.f, 0.f, 0.f ) );
-		ScopedColor( ImGuiCol_ButtonHovered, ImVec4( 0.f, 0.f, 0.f, 0.f ) );
-		ScopedColor( ImGuiCol_ButtonActive, ImVec4( 0.f, 0.f, 0.f, 0.f ) );
+		ScopedColor( ImGuiCol_Button, ImVec4( 0.0f, 0.0f, 0.0f, 0.0f ) );
+		ScopedColor( ImGuiCol_ButtonHovered, ImVec4( 0.0f, 0.0f, 0.0f, 0.0f ) );
+		ScopedColor( ImGuiCol_ButtonActive, ImVec4( 0.0f, 0.0f, 0.0f, 0.0f ) );
 
-		ImGui::SetCursorPos( ImVec2( displaySize.x - title_height, 0.f ) );
+		ImGui::SetCursorPos( ImVec2( displaySize.x - title_height, 0.0f ) );
 
 		const Material * icon = FindMaterial( "textures/sprays/peekatyou" );
 		Vec2 half_pixel = HalfPixelSize( icon );
-		if( ImGui::ImageButton( "random", icon, ImVec2( title_height, title_height ), half_pixel, 1.0f - half_pixel, Vec4( 0.f ), Vec4( 1.0f ) ) ) {
+		if( ImGui::ImageButton( "random", icon, ImVec2( title_height, title_height ), half_pixel, 1.0f - half_pixel, Vec4( 0.0f ), Vec4( 1.0f ) ) ) {
 			for( WeaponCategory category = WeaponCategory( 0 ); category < WeaponCategory_Count; category++ ) {
 				do {
 					loadout.weapons[ category ] = WeaponType( RandomUniform( &cls.rng, Weapon_None + 1, Weapon_Count ) );
@@ -2070,9 +2070,9 @@ static bool LoadoutMenu() {
 		ScopedChild( "loadout bottom", ImVec2( -1, title_height ) );
 		ScopedFont( cls.large_italic_font );
 
-		ScopedColor( ImGuiCol_Button, Vec4( 0.f ) );
-		ScopedColor( ImGuiCol_ButtonActive, Vec4( 0.f ) );
-		ScopedColor( ImGuiCol_ButtonHovered, Vec4( 0.f ) );
+		ScopedColor( ImGuiCol_Button, Vec4( 0.0f ) );
+		ScopedColor( ImGuiCol_ButtonActive, Vec4( 0.0f ) );
+		ScopedColor( ImGuiCol_ButtonHovered, Vec4( 0.0f ) );
 
 		const char * imdone = " I'M DONE";
 		ImVec2 textSize = ImGui::CalcTextSize( imdone );
@@ -2105,15 +2105,15 @@ static bool LoadoutMenu() {
 		Span< const char > playerName = PlayerName( cg.predictedPlayerState.playerNum );
 		ImVec2 playerTextSize = ImGui::CalcTextSize( playerName );
 
-		float predictedPos = textPos.x - ImGui::CalcTextSize( " AND I'M " ).x - ImGui::CalcTextSize( "I AM " ).x * 2.f - playerTextSize.x;
+		float predictedPos = textPos.x - ImGui::CalcTextSize( " AND I'M " ).x - ImGui::CalcTextSize( "I AM " ).x * 2.0f - playerTextSize.x;
 		float letterWidth = playerTextSize.x / playerName.n;
-		int excessLetters = Max2(3.f, -predictedPos / letterWidth); //the excess is the negative part
+		int excessLetters = Max2(3.0f, -predictedPos / letterWidth); //the excess is the negative part
 
-		if( predictedPos > 0.f || excessLetters < playerName.n ) { //don't print name if the window is too small
+		if( predictedPos > 0.0f || excessLetters < playerName.n ) { //don't print name if the window is too small
 			PrintMoveText( " AND I'M ", textPos );
 
 			ScopedColor( ImGuiCol_Text, diesel_yellow.linear );
-			if( predictedPos <= 0.f ) {
+			if( predictedPos <= 0.0f ) {
 				PrintMoveText( "...", textPos );
 				PrintMoveText( playerName.slice( 0, playerName.n - excessLetters ), textPos );
 			} else {
@@ -2298,7 +2298,7 @@ static void DemoMenu() {
 		GameMenuButton( "Exit to desktop", "quit", &should_close );
 	} else if( demomenu_state == DemoMenuState_Settings ) {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
-		ImGui::SetNextWindowSize( ImVec2( Max2( 800.f, displaySize.x * 0.65f ), Max2( 600.f, displaySize.y * 0.65f ) ) );
+		ImGui::SetNextWindowSize( ImVec2( Max2( 800.0f, displaySize.x * 0.65f ), Max2( 600.0f, displaySize.y * 0.65f ) ) );
 		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 
 		Settings();

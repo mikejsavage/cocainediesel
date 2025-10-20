@@ -39,19 +39,19 @@ constexpr u64 U64_MAX = UINT64_MAX;
 template< typename T > constexpr T MinInt;
 template< typename T > constexpr T MaxInt;
 
-template<> constexpr s8  MinInt< s8  > = S8_MIN;
-template<> constexpr s16 MinInt< s16 > = S16_MIN;
-template<> constexpr s32 MinInt< s32 > = S32_MIN;
-template<> constexpr s64 MinInt< s64 > = S64_MIN;
-template<> constexpr s8  MaxInt< s8  > = S8_MAX;
-template<> constexpr s16 MaxInt< s16 > = S16_MAX;
-template<> constexpr s32 MaxInt< s32 > = S32_MAX;
-template<> constexpr s64 MaxInt< s64 > = S64_MAX;
+template<> inline constexpr s8  MinInt< s8  > = S8_MIN;
+template<> inline constexpr s16 MinInt< s16 > = S16_MIN;
+template<> inline constexpr s32 MinInt< s32 > = S32_MIN;
+template<> inline constexpr s64 MinInt< s64 > = S64_MIN;
+template<> inline constexpr s8  MaxInt< s8  > = S8_MAX;
+template<> inline constexpr s16 MaxInt< s16 > = S16_MAX;
+template<> inline constexpr s32 MaxInt< s32 > = S32_MAX;
+template<> inline constexpr s64 MaxInt< s64 > = S64_MAX;
 
-template<> constexpr u8  MaxInt< u8  > = U8_MAX;
-template<> constexpr u16 MaxInt< u16 > = U16_MAX;
-template<> constexpr u32 MaxInt< u32 > = U32_MAX;
-template<> constexpr u64 MaxInt< u64 > = U64_MAX;
+template<> inline constexpr u8  MaxInt< u8  > = U8_MAX;
+template<> inline constexpr u16 MaxInt< u16 > = U16_MAX;
+template<> inline constexpr u32 MaxInt< u32 > = U32_MAX;
+template<> inline constexpr u64 MaxInt< u64 > = U64_MAX;
 
 template< typename T > constexpr bool IsSigned() { return T( -1 ) < T( 0 ); }
 

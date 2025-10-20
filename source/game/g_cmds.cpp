@@ -22,46 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/time.h"
 #include "gameshared/vsays.h"
 
-/*
-* G_Teleport
-*
-* Teleports client to specified position
-* If client is not spectator teleporting is only done if position is free and teleport effects are drawn.
-*/
-static bool G_Teleport( edict_t * ent, Vec3 origin, EulerDegrees3 angles ) {
-	if( !ent->r.inuse || !ent->r.client ) {
-		return false;
-	}
-
-	if( ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
-		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
-		trace_t trace = G_Trace( origin, bounds, origin, ent, SolidMask_AnySolid );
-		if( trace.HitSomething() && game.edicts[ trace.ent ].s.team != ent->s.team ) {
-			return false;
-		}
-
-		G_TeleportEffect( ent, false );
-	}
-
-	ent->s.origin = origin;
-	ent->s.teleported = true;
-
-	ent->velocity = Vec3( 0.0f );
-
-	if( ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
-		G_TeleportEffect( ent, true );
-	}
-
-	// set angles
-	ent->s.angles = angles;
-	ent->r.client->ps.viewangles = angles;
-	ent->r.client->ps.pmove.angles = angles;
-
-	return true;
-}
-
-//=================================================================================
-
 static void Cmd_Noclip_f( edict_t * ent, msg_t args ) {
 	const char *msg;
 

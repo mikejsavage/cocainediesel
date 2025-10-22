@@ -364,6 +364,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadMaps();
 	HotloadVisualEffects();
 
+	memset( &frame_static.render_passes, 0, sizeof( frame_static.render_passes ) );
 	RenderBackendBeginFrame( false );
 
 	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer > 16 || r_samples->integer == 1 ) {
@@ -410,7 +411,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.identity_material_color_uniforms = NewTempBuffer( white.vec4 );
 }
 
-static Mat4 InverseScaleTranslation( Mat4 m ) {
+static Mat4 InverseScaleTranslation( const Mat4 & m ) {
 	Mat4 inv = Mat4::Identity();
 	inv.col0.x = 1.0f / m.col0.x;
 	inv.col1.y = 1.0f / m.col1.y;
@@ -563,16 +564,16 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		.sun_direction = frame_static.sun_direction,
 	} );
 
-	DynamicsResources dynamics_resources = GetDynamicsResources();
+	DynamicsBuffers dynamics_buffers = GetDynamicsBuffers();
 
 	BoundedDynamicArray< BufferBinding, 16 > standard_buffers = {
 		{ "u_View", frame_static.view_uniforms },
 		{ "u_Shadowmap", frame_static.shadow_uniforms },
-		{ "u_TileCounts", dynamics_resources.tile_counts },
-		{ "u_DecalTiles", dynamics_resources.decal_tiles },
-		{ "u_LightTiles", dynamics_resources.light_tiles },
-		{ "u_Decals", dynamics_resources.decals },
-		{ "u_Lights", dynamics_resources.lights },
+		{ "u_TileCounts", dynamics_buffers.tile_counts },
+		{ "u_DecalTiles", dynamics_buffers.decal_tiles },
+		{ "u_LightTiles", dynamics_buffers.light_tiles },
+		{ "u_Decals", dynamics_buffers.decals },
+		{ "u_Lights", dynamics_buffers.lights },
 	};
 
 	BoundedDynamicArray< GPUBindings::TextureBinding, 4 > standard_textures = {
@@ -652,7 +653,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	} );
 
 	// RenderPass_Sky
-	// RenderPass_SilhouetteGBuffer
+	// RenderPass_WriteSilhouetteMask
 
 	frame_static.render_passes[ RenderPass_NonworldOpaqueOutlined ] = NewRenderPass( RenderPassConfig {
 		.name = "Nonworld opaque outlined",

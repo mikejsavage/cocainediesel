@@ -23,9 +23,9 @@ struct Shaders {
 	PoolHandle< RenderPipeline > depth_only;
 	PoolHandle< RenderPipeline > depth_only_skinned;
 
-	PoolHandle< RenderPipeline > write_silhouette_gbuffer;
-	PoolHandle< RenderPipeline > write_silhouette_gbuffer_skinned;
-	PoolHandle< RenderPipeline > postprocess_silhouette_gbuffer;
+	PoolHandle< RenderPipeline > write_silhouette_mask;
+	PoolHandle< RenderPipeline > write_silhouette_mask_skinned;
+	PoolHandle< RenderPipeline > postprocess_silhouette_mask;
 
 	PoolHandle< RenderPipeline > outline;
 	PoolHandle< RenderPipeline > outline_skinned;

@@ -277,11 +277,11 @@ static void CG_UpdateChaseCam( UserCommand * cmd ) {
 	}
 }
 
-float WidescreenFov( float fov ) {
+static float WidescreenFov( float fov ) {
 	return atanf( tanf( fov / 360.0f * PI ) * 0.75f ) * ( 360.0f / PI );
 }
 
-float CalcHorizontalFov( const char * caller, float fov_y, float width, float height ) {
+static float CalcHorizontalFov( const char * caller, float fov_y, float width, float height ) {
 	if( fov_y < 1 || fov_y > 179 ) {
 		Com_Printf( S_COLOR_YELLOW "Bad vertical fov: caller = %s, fov_y = %f, width = %f, height = %f\n", caller, fov_y, width, height );
 		return 100.0f;
@@ -417,19 +417,32 @@ static void CG_SetupViewDef( cg_viewdef_t *view, ViewType type, UserCommand * cm
 static void DrawSilhouettes() {
 	TracyZoneScoped;
 
+	frame_static.render_passes[ RenderPass_WriteSilhouetteMask ] = NewRenderPass( RenderPassConfig {
+		.name = "Write silhouette masks",
+		.color_targets = {
+			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.silhouette_mask },
+		},
+		.representative_shader = shaders.write_silhouette_mask,
+		.bindings = {
+			.buffers = {
+				{ "u_View", frame_static.view_uniforms },
+			},
+		},
+	} );
+
 	frame_static.render_passes[ RenderPass_AddSilhouettes ] = NewRenderPass( RenderPassConfig {
 		.name = "Add silhouettes",
 		.color_targets = {
 			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.resolved_color },
 		},
-		.representative_shader = shaders.postprocess_silhouette_gbuffer,
+		.representative_shader = shaders.postprocess_silhouette_mask,
 		.bindings = {
-			.textures = { { "u_SilhouetteTexture", frame_static.render_targets.silhouette_mask } },
+			.textures = { { "u_SilhouetteMask", frame_static.render_targets.silhouette_mask } },
 		},
 	} );
 
 	PipelineState pipeline = {
-		.shader = shaders.postprocess_silhouette_gbuffer,
+		.shader = shaders.postprocess_silhouette_mask,
 		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
 	};
 
@@ -547,9 +560,9 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	DoVisualEffect( "vfx/rain", cg.view.origin );
 
+	DrawSilhouettes();
 	DrawEntities();
 	DrawOutlines();
-	DrawSilhouettes();
 	CG_AddViewWeapon( &cg.weapon );
 	DrawGibs();
 	DrawParticles();

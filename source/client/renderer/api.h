@@ -189,7 +189,7 @@ enum BlendFunc : u8 {
 
 struct RenderPipelineOutputFormat {
 	Optional< TextureFormat > colors[ FragmentShaderOutput_Count ];
-	bool has_depth = true;
+	bool has_depth;
 };
 
 struct RenderPipelineConfig {
@@ -416,7 +416,7 @@ enum RenderPass {
 	RenderPass_Sky,
 
 	// silhouettes are player etc outlines visible through walls, outlines are world outlines
-	RenderPass_SilhouetteGBuffer,
+	RenderPass_WriteSilhouetteMask,
 	RenderPass_NonworldOpaqueOutlined,
 	RenderPass_AddOutlines,
 	RenderPass_NonworldOpaque,

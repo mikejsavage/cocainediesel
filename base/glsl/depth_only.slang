@@ -16,21 +16,13 @@ struct VertexInput {
 #endif
 };
 
-struct VertexOutput {
-	float4 position : SV_Position;
-};
-
-// NOMERGE: might be able to make this like write_silhouette_gbuffer.hlsl
-VertexOutput VertexMain( VertexInput input ) {
-	VertexOutput output;
+float4 VertexMain( VertexInput input ) : SV_Position {
 	float4 position4 = float4( input.position, 1.0f );
 #ifdef SKINNED
-	float3x4 skin = SkinningMatrix( input.indices, input.weights );
-	position4 = mul34( skin, position4 );
+	position4 = mul34( SkinningMatrix( input.indices, input.weights ), position4 );
 #endif
-	output.position = mul( u_View[ 0 ].P, mul34( u_View[ 0 ].V, mul34( u_ModelTransform[ 0 ], position4 ) ) );
-	return output;
+	return mul( u_View[ 0 ].P, mul34( u_View[ 0 ].V, mul34( u_ModelTransform[ 0 ], position4 ) ) );
 }
 
-void FragmentMain( VertexOutput vertex ) {
+void FragmentMain( float4 vertex ) {
 }

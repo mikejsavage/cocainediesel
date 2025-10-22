@@ -192,6 +192,8 @@ void DeleteTransferCommandBuffer( Opaque< CommandBuffer > cb ) {
 
 void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitType type ) {
 	CommandBuffer * cmd_buf = buffer.unwrap();
+	if( cmd_buf->command_buffer == NULL )
+		return;
 
 	if( type == SubmitCommandBuffer_Present ) {
 		cmd_buf->command_buffer->addCompletedHandler( [&]( MTL::CommandBuffer * ) {

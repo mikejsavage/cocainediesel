@@ -26,7 +26,7 @@ static void LoadShaders( const ShaderDescriptors & desc ) {
 	for( const GraphicsShaderDescriptor & shader : desc.graphics_shaders ) {
 		shaders.*shader.field = NewRenderPipeline( RenderPipelineConfig {
 			.path = ShaderFilename( &temp, shader.src, shader.features ),
-			.output_format = { }, // TODO
+			.output_format = shader.output_format,
 			.blend_func = shader.blend_func,
 			.clamp_depth = shader.clamp_depth,
 			.alpha_to_coverage = shader.alpha_to_coverage,

@@ -746,7 +746,7 @@ static void DrawSilhouetteNode( const Mesh & mesh, GPUBuffer model_uniforms, GPU
 	TracyZoneScoped;
 
 	PipelineState pipeline = {
-		.shader = pose_uniforms.exists ? shaders.write_silhouette_gbuffer_skinned : shaders.write_silhouette_gbuffer,
+		.shader = pose_uniforms.exists ? shaders.write_silhouette_mask_skinned : shaders.write_silhouette_mask,
 	};
 
 	BoundedDynamicArray< BufferBinding, 3 > buffers = {
@@ -757,7 +757,7 @@ static void DrawSilhouetteNode( const Mesh & mesh, GPUBuffer model_uniforms, GPU
 		buffers.must_add( { "u_Pose", pose_uniforms.value } );
 	}
 
-	Draw( RenderPass_SilhouetteGBuffer, pipeline, mesh, buffers.span() );
+	Draw( RenderPass_WriteSilhouetteMask, pipeline, mesh, buffers.span() );
 }
 
 void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * render_data, const Mat3x4 & transform, const Vec4 & color, MatrixPalettes palettes ) {

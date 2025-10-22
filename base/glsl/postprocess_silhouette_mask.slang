@@ -1,6 +1,6 @@
 #include "include/common.slang"
 
-[[vk::binding( 0, DescriptorSet_RenderPass )]] Texture2D< float4 > u_SilhouetteTexture;
+[[vk::binding( 0, DescriptorSet_RenderPass )]] Texture2D< float4 > u_SilhouetteMask;
 
 struct VertexInput {
 	[[vk::location( VertexAttribute_Position )]] float3 position : POSITION;
@@ -20,9 +20,9 @@ float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
 	int2 p = int2( v.position.xy );
 	int3 pixel = int3( 0, 1, -1 );
 
-	float4 colour_up =        sRGBToLinear( ClampedTextureLoad( u_SilhouetteTexture, p + pixel.xz ) );
-	float4 colour_downleft =  sRGBToLinear( ClampedTextureLoad( u_SilhouetteTexture, p + pixel.yy ) );
-	float4 colour_downright = sRGBToLinear( ClampedTextureLoad( u_SilhouetteTexture, p + pixel.zy ) );
+	float4 colour_up =        sRGBToLinear( ClampedTextureLoad( u_SilhouetteMask, p + pixel.xz ) );
+	float4 colour_downleft =  sRGBToLinear( ClampedTextureLoad( u_SilhouetteMask, p + pixel.yy ) );
+	float4 colour_downright = sRGBToLinear( ClampedTextureLoad( u_SilhouetteMask, p + pixel.zy ) );
 
 	float edgeness_x = length( colour_downright - colour_downleft );
 	float edgeness_y = length( lerp( colour_downleft, colour_downright, 0.5f ) - colour_up );

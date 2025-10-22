@@ -19,7 +19,7 @@ void DrawPersistentLights();
 void AllocateDecalBuffers();
 void UploadDecalBuffers();
 
-struct DynamicsResources {
+struct DynamicsBuffers {
 	GPUBuffer tile_counts;
 	GPUBuffer decals;
 	GPUBuffer lights;
@@ -27,4 +27,4 @@ struct DynamicsResources {
 	GPUBuffer light_tiles;
 };
 
-DynamicsResources GetDynamicsResources();
+DynamicsBuffers GetDynamicsBuffers();

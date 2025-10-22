@@ -209,7 +209,7 @@ void MaybeResetShadertoyTime( bool respawned ) {
 }
 
 void SCR_UpdateScreen() {
-	CL_ForceVsync( cls.state == CA_DISCONNECTED );
+	CL_ForceVsync( cls.state != CA_DISCONNECTED );
 
 	MaybeResetShadertoyTime( false );
 
@@ -228,6 +228,16 @@ void SCR_UpdateScreen() {
 	}
 	else {
 		cg.damage_effect = 0.0f;
+
+		// TODO: need to clear the screen
+		frame_static.render_passes[ RenderPass_UIAfterPostprocessing ] = NewRenderPass( RenderPassConfig {
+			.name = "UI after postprocessing",
+			.color_targets = { RenderPassConfig::ColorTarget { .texture = NONE } },
+			.representative_shader = shaders.imgui,
+			.bindings = {
+				.buffers = { { "u_View", frame_static.ortho_view_uniforms } },
+			},
+		} );
 	}
 
 	SubmitPostprocessPass();

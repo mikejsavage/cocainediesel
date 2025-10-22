@@ -149,7 +149,7 @@ static void SubmitDrawCalls() {
 
 		const ImDrawList * cmd_list = draw_data->CmdLists[ n ];
 
-		// NOTE: this is a hack to separate drawcalls into 2 passes
+		// NOTE: this is the other half of the render pass hack, search for NOTE
 		if( cmd_list->CmdBuffer.Size > 0 ) {
 			const ImDrawCmd * cmd = &cmd_list->CmdBuffer[ 0 ];
 			u32 new_pass = u32( uintptr_t( cmd->UserCallbackData ) );
@@ -178,7 +178,9 @@ static void SubmitDrawCalls() {
 					Vec2( pcmd->ClipRect.x, pcmd->ClipRect.y ) - draw_data->DisplayPos,
 					Vec2( pcmd->ClipRect.z, pcmd->ClipRect.w ) - draw_data->DisplayPos
 				);
-				if( scissor.maxs.x <=scissor.mins.x || scissor.maxs.y <= scissor.mins.y )
+				if( scissor.maxs.x <= scissor.mins.x || scissor.maxs.y <= scissor.mins.y )
+					continue;
+				if( pcmd->ElemCount == 0 )
 					continue;
 
 				RenderPass rp = pass == 0 ? RenderPass_UIBeforePostprocessing : RenderPass_UIAfterPostprocessing;
@@ -241,7 +243,9 @@ namespace ImGui {
 	void Begin( const char * name, WindowZOrder z_order, ImGuiWindowFlags flags ) {
 		ImGui::Begin( name, NULL, flags );
 		ImGui::GetCurrentWindow()->BeginOrderWithinContext = z_order;
-		ImGui::GetWindowDrawList()->AddCallback( NULL, ( void * ) 1 ); // TODO: this is a hack to separate drawcalls into 2 passes
+
+		// NOTE: this is a hack to separate UI drawcalls into pre and post postprocessing passes, search for NOTE to find the other half
+		ImGui::GetWindowDrawList()->AddCallback( NULL, ( void * ) 1 );
 	}
 
 	bool Hotkey( ImGuiKey key ) {

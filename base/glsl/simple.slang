@@ -1,19 +1,15 @@
 #include "include/common.slang"
 #include "include/standard_material.slang"
 
-// TODO: probably just make this 2 shaders
-
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 
-// must match ImDrawVert
-struct ImGuiVertexInput {
+struct ImDrawVert {
 	[[vk::location( VertexAttribute_Position )]] float2 position : POSITION;
 	[[vk::location( VertexAttribute_Color )]] float4 color : COLOR;
 	[[vk::location( VertexAttribute_TexCoord )]] float2 uv : TEXCOORD0;
 };
 
-// must match VFXVertex
-struct VFXVertexInput {
+struct VFXVertex {
 	[[vk::location( VertexAttribute_Position )]] float3 position : POSITION;
 	[[vk::location( VertexAttribute_Color )]] float4 color : COLOR;
 	[[vk::location( VertexAttribute_TexCoord )]] float2 uv : TEXCOORD0;
@@ -26,9 +22,9 @@ struct VertexOutput {
 };
 
 #ifdef IMGUI
-typedef ImGuiVertexInput VertexInput;
+typedef ImDrawVert VertexInput;
 #else
-typedef VFXVertexInput VertexInput;
+typedef VFXVertex VertexInput;
 #endif
 
 VertexOutput VertexMain( VertexInput input ) {

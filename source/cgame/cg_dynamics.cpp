@@ -208,8 +208,8 @@ void UploadDecalBuffers() {
 	lights.clear();
 }
 
-DynamicsResources GetDynamicsResources() {
-	return DynamicsResources {
+DynamicsBuffers GetDynamicsBuffers() {
+	return DynamicsBuffers {
 		.tile_counts = dynamic_count,
 		.decal_tiles = decal_tiles_buffer,
 		.light_tiles = light_tiles_buffer,

@@ -856,12 +856,10 @@ int main( int argc, char ** argv ) {
 	std::vector< ParsedEntity > entities = ParseEntities( src );
 
 	// warn if there are any patches
-	{
-		for( const ParsedEntity & entity : entities ) {
-			if( entity.patches.size() > 0 ) {
-				printf( "Dieselmap doesn't support patches btw\n" );
-				break;
-			}
+	for( const ParsedEntity & entity : entities ) {
+		if( entity.patches.size() > 0 ) {
+			printf( "Dieselmap doesn't support patches btw\n" );
+			break;
 		}
 	}
 

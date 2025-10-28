@@ -86,7 +86,8 @@ static void AddViewWeaponAnimations( Vec3 * origin, EulerDegrees3 * angles, cg_v
 			}
 		}
 		else if( ps->weapon_state == WeaponState_SwitchingIn || ps->weapon_state == WeaponState_SwitchingOut ) {
-			float t = float( ps->weapon_state_time ) / float( def->switch_out_time );
+			u16 animation_length = ps->weapon_state == WeaponState_SwitchingIn ? def->switch_in_time : def->switch_out_time;
+			float t = float( ps->weapon_state_time ) / float( animation_length );
 			float frac = ps->weapon_state == WeaponState_SwitchingIn ? EaseOutQuadratic( t ) : EaseInQuadratic( t );
 			angles->pitch += Lerp( 0.0f, frac, 60.0f );
 		}

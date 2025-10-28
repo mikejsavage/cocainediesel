@@ -766,7 +766,6 @@ void CG_DrawPlayer( centity_t * cent ) {
 		DrawGLTFModel( config, model, transform, color, pose );
 	}
 
-
 	// add weapon model
 	{
 		const GLTFRenderData * weapon_model = GetEquippedItemRenderData( &cent->current );

@@ -209,7 +209,7 @@ void MaybeResetShadertoyTime( bool respawned ) {
 }
 
 void SCR_UpdateScreen() {
-	CL_ForceVsync( cls.state != CA_DISCONNECTED );
+	CL_ForceVsync( cls.state != CA_ACTIVE );
 
 	MaybeResetShadertoyTime( false );
 
@@ -229,7 +229,7 @@ void SCR_UpdateScreen() {
 	else {
 		cg.damage_effect = 0.0f;
 
-		// TODO: need to clear the screen
+		// TODO: need to clear the screen during post. or not do post and clear here
 		frame_static.render_passes[ RenderPass_UIAfterPostprocessing ] = NewRenderPass( RenderPassConfig {
 			.name = "UI after postprocessing",
 			.color_targets = { RenderPassConfig::ColorTarget { .texture = NONE } },

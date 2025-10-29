@@ -13,6 +13,8 @@ void ShutdownRenderBackend();
 void InitShaders();
 void HotloadShaders();
 
+u32 RenderBackendSupportedMSAA();
+
 /*
  * Memory allocation
  */

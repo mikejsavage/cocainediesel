@@ -367,7 +367,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	memset( &frame_static.render_passes, 0, sizeof( frame_static.render_passes ) );
 	RenderBackendBeginFrame( false );
 
-	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer > 16 || r_samples->integer == 1 ) {
+	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer < 0 || r_samples->integer == 1 || !HasAnyBit( RenderBackendSupportedMSAA(), u32( r_samples->integer ) ) ) {
 		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
 		Cvar_Set( "r_samples", r_samples->default_value );
 	}

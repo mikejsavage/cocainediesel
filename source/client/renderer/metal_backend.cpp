@@ -33,7 +33,7 @@ struct RenderPipeline {
 	Span< const char > name;
 
 	struct Variant {
-		BoundedDynamicArray< MTL::RenderPipelineState *, Log2_CT( MaxMSAA + 1 ) > msaa_variants;
+		MTL::RenderPipelineState * msaa_variants[ Log2_CT( MaxMSAA ) + 1 ];
 	};
 
 	ArrayMap< VertexDescriptor, Variant, MaxShaderVariants > mesh_variants;
@@ -62,7 +62,7 @@ struct MetalDevice {
 	u64 pass_counter;
 	MTL::ArgumentEncoder * material_argument_encoder;
 	MTL::ArgumentBuffersTier argument_buffers_tier;
-	u32 max_msaa;
+	u32 msaa;
 };
 
 struct GPUAllocation {
@@ -580,13 +580,18 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 	shader.name = config.path;
 	shader.clamp_depth = config.clamp_depth;
 
+	bool first = true;
+
 	for( size_t i = 0; i < config.mesh_variants.n; i++ ) {
 		const VertexDescriptor & mesh_variant = config.mesh_variants[ i ];
 
 		RenderPipeline::Variant * variant = shader.mesh_variants.add( mesh_variant );
 		Assert( variant != NULL );
 
-		for( u32 msaa = 1; msaa <= global_device.max_msaa; msaa *= 2 ) {
+		for( u32 msaa = 1; msaa <= MaxMSAA; msaa *= 2 ) {
+			if( !HasAnyBit( global_device.msaa, msaa ) )
+				continue;
+
 			MTL::RenderPipelineDescriptor * pipeline = MTL::RenderPipelineDescriptor::alloc()->init();
 			defer { pipeline->release(); };
 			pipeline->setLabel( NSString( temp( "{}", shader.name ) ) );
@@ -663,7 +668,7 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 				abort();
 			}
 
-			if( shader.mesh_variants.size() == 1 && variant->msaa_variants.size() == 0 ) {
+			if( first ) {
 				const NS::Array * vertex_args = reflection->vertexArguments();
 				const NS::Array * fragment_args = reflection->fragmentArguments();
 
@@ -682,9 +687,11 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 				if( draw_call_args.exists ) {
 					shader.draw_call_args = draw_call_args.value;
 				}
+
+				first = false;
 			}
 
-			variant->msaa_variants.must_add( pso );
+			variant->msaa_variants[ Log2( msaa ) ] = pso;
 		}
 	}
 
@@ -703,7 +710,9 @@ static const MTL::RenderPipelineState * SelectRenderPipelineVariant( const Rende
 static void DeleteRenderPipeline( const RenderPipeline & shader ) {
 	for( const auto & [ _, mesh_variant ] : shader.mesh_variants ) {
 		for( MTL::RenderPipelineState * pso : mesh_variant.msaa_variants ) {
-			pso->release();
+			if( pso != NULL ) {
+				pso->release();
+			}
 		}
 	}
 }
@@ -947,7 +956,7 @@ void InitRenderBackend() {
 
 	for( u32 i = 1; i <= MaxMSAA; i *= 2 ) {
 		if( device->supportsTextureSampleCount( i ) ) {
-			global_device.max_msaa = i;
+			global_device.msaa |= i;
 		}
 	}
 
@@ -1062,6 +1071,10 @@ void RenderBackendEndFrame() {
 	}
 	frame.pool->release();
 	frame_counter++;
+}
+
+u32 RenderBackendSupportedMSAA() {
+	return global_device.msaa;
 }
 
 size_t FrameSlot() {

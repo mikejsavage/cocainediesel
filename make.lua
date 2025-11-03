@@ -13,7 +13,7 @@ msvc_global_cxxflags( "/GR- /EHs-c-" )
 
 gcc_global_cxxflags( "-std=c++20 -fno-exceptions -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fno-math-errno -fvisibility=hidden" )
 gcc_global_cxxflags( "-Wall -Wextra -Wcast-align -Wvla -Wformat-security -Wimplicit-fallthrough" ) -- -Wconversion
-gcc_global_cxxflags( "-Werror=format -Werror=unused-result" )
+gcc_global_cxxflags( "-Werror=format -Werror=unused-result -Werror=nonportable-include-path" )
 gcc_global_cxxflags( "-Wno-unused-parameter -Wno-missing-field-initializers" )
 gcc_global_cxxflags( "-Wno-switch" ) -- this is too annoying in practice
 
@@ -71,77 +71,73 @@ obj_cxxflags( "source/client/platform/macos_client.cpp", "-Ilibs/metal-cpp" )
 
 obj_cxxflags( "source/qcommon/linear_algebra_kernels.cpp", "-O2" )
 
-do
-	bin( "client", {
-		srcs = {
-			"source/cgame/*.cpp",
-			"source/client/**.cpp",
-			"source/game/**.cpp",
-			"source/gameshared/*.cpp",
-			"source/qcommon/**.cpp",
-			"source/server/sv_*.cpp",
-		},
+bin( "client", {
+	srcs = {
+		"source/cgame/*.cpp",
+		"source/client/**.cpp",
+		"source/game/**.cpp",
+		"source/gameshared/*.cpp",
+		"source/qcommon/**.cpp",
+		"source/server/sv_*.cpp",
+	},
 
-		libs = {
-			"imgui",
+	libs = {
+		"imgui",
 
-			"cgltf",
-			"clay",
-			"discord",
-			"dr_mp3",
-			"freetype",
-			"ggentropy",
-			"ggformat",
-			"ggtime",
-			"jsmn",
-			"luau",
-			"monocypher",
-			"openal",
-			"picohttpparser",
-			"sdl",
-			"stb_image",
-			"stb_image_write",
-			"stb_rect_pack",
-			"stb_vorbis",
-			"tracy",
-			"zstd",
-			platform_curl_libs,
-			{ OS == "macos" and "metal-cpp" or nil },
-		},
+		"cgltf",
+		"clay",
+		"discord",
+		"dr_mp3",
+		"freetype",
+		"ggentropy",
+		"ggformat",
+		"ggtime",
+		"jsmn",
+		"luau",
+		"monocypher",
+		"openal",
+		"picohttpparser",
+		"sdl",
+		"stb_image",
+		"stb_image_write",
+		"stb_rect_pack",
+		"stb_vorbis",
+		"tracy",
+		"zstd",
+		platform_curl_libs,
+		{ OS == "macos" and "metal-cpp" or nil },
+	},
 
-		rc = "source/client/platform/client",
+	rc = "source/client/platform/client",
 
-		windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib setupapi.lib /SUBSYSTEM:WINDOWS",
-		macos_ldflags = "-lcurl -framework AppKit -framework AudioToolbox -framework Cocoa -framework CoreAudio -framework CoreHaptics -framework CoreVideo -framework IOKit -framework Metal -framework GameController -framework ForceFeedback -framework Carbon -framework UniformTypeIdentifiers -framework QuartzCore",
-		linux_ldflags = "-lm -lpthread -ldl",
-		no_static_link = true,
-	} )
-end
+	windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib setupapi.lib /SUBSYSTEM:WINDOWS",
+	macos_ldflags = "-lcurl -framework AppKit -framework AudioToolbox -framework Cocoa -framework CoreAudio -framework CoreHaptics -framework CoreVideo -framework IOKit -framework Metal -framework GameController -framework ForceFeedback -framework Carbon -framework UniformTypeIdentifiers -framework QuartzCore",
+	linux_ldflags = "-lm -lpthread -ldl",
+	no_static_link = true,
+} )
 
-do
-	bin( "server", {
-		srcs = {
-			"source/game/**.cpp",
-			"source/gameshared/*.cpp",
-			"source/qcommon/**.cpp",
-			"source/server/**.cpp",
-		},
+bin( "server", {
+	srcs = {
+		"source/game/**.cpp",
+		"source/gameshared/*.cpp",
+		"source/qcommon/**.cpp",
+		"source/server/**.cpp",
+	},
 
-		libs = {
-			"cgltf",
-			"ggentropy",
-			"ggformat",
-			"ggtime",
-			"monocypher",
-			"picohttpparser",
-			"tracy",
-			"zstd",
-		},
+	libs = {
+		"cgltf",
+		"ggentropy",
+		"ggformat",
+		"ggtime",
+		"monocypher",
+		"picohttpparser",
+		"tracy",
+		"zstd",
+	},
 
-		windows_ldflags = "ole32.lib ws2_32.lib crypt32.lib shell32.lib user32.lib advapi32.lib",
-		linux_ldflags = "-lm -lpthread",
-	} )
-end
+	windows_ldflags = "ole32.lib ws2_32.lib crypt32.lib shell32.lib user32.lib advapi32.lib",
+	linux_ldflags = "-lm -lpthread",
+} )
 
 write_ninja_script()
 write_shaders_ninja_script()

@@ -623,16 +623,18 @@ static void SettingsVideo() {
 	{
 		SettingLabel( "Anti-aliasing" );
 
-		int samples = Cvar_Integer( "r_samples" );
+		u32 samples = Cvar_Integer( "r_samples" );
 
 		ImGui::PushItemWidth( 100 * GetContentScale() );
-		if( ImGui::BeginCombo( "##r_samples", samples == 0 ? "Off" : temp( "{}x", samples ) ) ) {
-			if( ImGui::Selectable( "Off", samples == 0 ) )
-				samples = 0;
-			if( samples == 0 )
+		if( ImGui::BeginCombo( "##r_samples", samples == 1 ? "Off" : temp( "{}x", samples ) ) ) {
+			if( ImGui::Selectable( "Off", samples == 1 ) )
+				samples = 1;
+			if( samples == 1 )
 				ImGui::SetItemDefaultFocus();
 
-			for( int i = 2; i <= 8; i *= 2 ) {
+			for( u32 i = 2; i <= MaxMSAA; i *= 2 ) {
+				if( !HasAnyBit( RenderBackendSupportedMSAA(), i ) )
+					continue;
 				if( ImGui::Selectable( temp( "{}x", i ), i == samples ) )
 					samples = i;
 				if( i == samples )

@@ -800,16 +800,8 @@ void DrawParticles() {
 	s64 total_new_particles = addParticleSystem.num_new_particles + blendParticleSystem.num_new_particles;
 
 	// TODO: probably merge these into one pass
-	frame_static.render_passes[ RenderPass_ParticleUpdate ] = NewComputePass( ComputePassConfig {
-		.name = "Update particles",
-		// .signal = ...,
-	} );
-
-	frame_static.render_passes[ RenderPass_ParticleSetupIndirect ] = NewComputePass( ComputePassConfig {
-		.name = "Particle setup indirect",
-		// .wait = ...,
-		// .signal = ...,
-	} );
+	frame_static.render_passes[ RenderPass_ParticleUpdate ] = NewComputePass( "Update particles" );
+	frame_static.render_passes[ RenderPass_ParticleSetupIndirect ] = NewComputePass( "Particle setup indirect" );
 
 	UpdateParticleSystem( &addParticleSystem, dt );
 	DrawParticleSystem( &addParticleSystem, dt );

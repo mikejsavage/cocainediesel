@@ -14,6 +14,8 @@ namespace MTL {
 }
 #include "SingleHeader/Metal.hpp"
 
+#include "SDL3/SDL_metal.h"
+
 #include <dispatch/dispatch.h>
 
 // #include "tracy/tracy/Tracy.hpp"
@@ -57,6 +59,8 @@ struct ComputePipeline {
 
 struct MetalDevice {
 	MTL::Device * device;
+	SDL_MetalView view;
+	CA::MetalLayer * swapchain;
 	MTL::CommandQueue * command_queue;
 	MTL::Event * event;
 	u64 pass_counter;
@@ -83,7 +87,6 @@ struct BindGroup {
 };
 
 static MetalDevice global_device;
-static CA::MetalLayer * global_swapchain;
 static dispatch_semaphore_t frame_semaphore;
 static u64 frame_counter;
 static u64 pass_counter;
@@ -180,6 +183,7 @@ void RemoveAllDebugMarkers( PoolHandle< GPUAllocation > allocation ) {
 
 Opaque< CommandBuffer > NewTransferCommandBuffer() {
 	MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
+	command_buffer->setLabel( NSString( "Transfer" ) );
 	return CommandBuffer {
 		.command_buffer = command_buffer,
 		.bce = command_buffer->blitCommandEncoder(),
@@ -381,7 +385,7 @@ static MTL::PixelFormat TextureFormatToMetal( TextureFormat format ) {
 
 		case TextureFormat_Depth: return MTL::PixelFormatDepth32Float;
 
-		case TextureFormat_Swapchain: return global_swapchain->pixelFormat();
+		case TextureFormat_Swapchain: return global_device.swapchain->pixelFormat();
 	}
 }
 
@@ -467,13 +471,13 @@ MTL::Texture * NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & co
 	return texture;
 }
 
-PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, MTL::Texture * texture, SamplerType sampler, GPUBuffer properties ) {
+PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, MTL::Texture * texture, SamplerType sampler, GPUBuffer properties ) {
 	MTL::ArgumentEncoder * encoder = global_device.material_argument_encoder;
 
 	// ArgumentEncoders can't write into private memory so we have to encode
 	// into a coherent buffer and upload that, i.e. run it through the staging
 	// buffer
-	GPUBuffer args = NewBuffer( "material argument buffer", encoder->encodedLength(), encoder->alignment(), false );
+	GPUBuffer args = NewBuffer( name, encoder->encodedLength(), encoder->alignment(), false );
 	GPUBuffer staging = StageArgumentBuffer( args, encoder->encodedLength(), encoder->alignment() );
 
 	encoder->setArgumentBuffer( allocations[ staging.allocation ].buffer, staging.offset );
@@ -508,6 +512,10 @@ static MTL::VertexFormat VertexFormatToMetal( VertexFormat format ) {
 	}
 }
 
+static const char * StripPrefix( const char * str, const char * prefix ) {
+	return StartsWith( str, prefix ) ? str + strlen( prefix ) : str;
+}
+
 static Optional< ArgumentBufferEncoder > ParseArgumentBuffer( MTL::Function * func, const NS::Array * args, DescriptorSetType descriptor_set ) {
 	constexpr const char * descriptor_set_prefix = "spvDescriptorSet";
 
@@ -528,15 +536,19 @@ static Optional< ArgumentBufferEncoder > ParseArgumentBuffer( MTL::Function * fu
 		const NS::Array * members = arg->bufferStructType()->members();
 		for( size_t i = 0; i < members->count(); i++ ) {
 			const MTL::StructMember * member = members->object< const MTL::StructMember >( i );
+
+			// NOTE(mike 20251103): slang adds args_ to descriptor names
+			StringHash name = StringHash( StripPrefix( member->name()->utf8String(), "args_" ) );
+
 			switch( member->dataType() ) {
 				case MTL::DataTypePointer:
-					buffer.buffers.must_add( StringHash( member->name()->utf8String() ), member->argumentIndex() );
+					buffer.buffers.must_add( name, member->argumentIndex() );
 					break;
 				case MTL::DataTypeTexture:
-					buffer.textures.must_add( StringHash( member->name()->utf8String() ), member->argumentIndex() );
+					buffer.textures.must_add( name, member->argumentIndex() );
 					break;
 				case MTL::DataTypeSampler:
-					buffer.samplers.must_add( StringHash( member->name()->utf8String() ), member->argumentIndex() );
+					buffer.samplers.must_add( name, member->argumentIndex() );
 					break;
 				default: break;
 			}
@@ -553,6 +565,7 @@ dispatch_data_t SpanToDispatchData( Span< const T > data ) {
 	return dispatch_data_create( data.ptr, data.num_bytes(), NULL, DISPATCH_DATA_DESTRUCTOR_DEFAULT );
 }
 
+// NOMERGE: Optional
 PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -930,14 +943,23 @@ void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< Compute
 	cb->cce->dispatchThreadgroups( allocations[ indirect_args.allocation ].buffer, indirect_args.offset, SubgroupSize( pipeline ) );
 }
 
-void InitRenderBackend() {
+void InitRenderBackend( SDL_Window * window ) {
 	frame_semaphore = dispatch_semaphore_create( MaxFramesInFlight );
 	frame_counter = 0;
 	pass_counter = 0;
 
 	MTL::Device * device = MTL::CreateSystemDefaultDevice();
+	if( device == NULL ) {
+		Fatal( "MTL::CreateSystemDefaultDevice" );
+	}
+
 	MTL::CommandQueue * command_queue = device->newCommandQueue();
 	MTL::Event * event = device->newEvent();
+
+	SDL_MetalView view = SDL_Metal_CreateView( window );
+	if( view == NULL ) {
+		Fatal( "SDL_Metal_CreateView: %s", SDL_GetError() );
+	}
 
 	// see some combination of
 	// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
@@ -948,11 +970,17 @@ void InitRenderBackend() {
 
 	global_device = MetalDevice {
 		.device = device,
+		.view = view,
+		.swapchain = ( CA::MetalLayer * ) SDL_Metal_GetLayer( view ),
 		.command_queue = command_queue,
 		.event = event,
 		.pass_counter = 1,
 		.argument_buffers_tier = device->argumentBuffersSupport(),
 	};
+
+	global_device.swapchain->setDevice( device );
+	global_device.swapchain->setPixelFormat( MTL::PixelFormatBGRA8Unorm ); // NOMERGE: hdr
+	global_device.swapchain->setFramebufferOnly( true );
 
 	for( u32 i = 1; i <= MaxMSAA; i *= 2 ) {
 		if( device->supportsTextureSampleCount( i ) ) {
@@ -961,11 +989,6 @@ void InitRenderBackend() {
 	}
 
 	InitRenderBackendAllocators( slab_size, constant_buffer_alignment, metal_doesnt_have_buffer_image_granularity );
-
-	global_swapchain = CA::MetalLayer::layer();
-	global_swapchain->setDevice( device );
-	global_swapchain->setPixelFormat( MTL::PixelFormatBGRA8Unorm );
-	global_swapchain->setFramebufferOnly( true );
 
 	GetFramebufferSize( &old_framebuffer_width, &old_framebuffer_height );
 
@@ -1029,6 +1052,7 @@ void ShutdownRenderBackend() {
 	DeleteDepthFuncs();
 	ShutdownRenderBackendAllocators();
 	global_device.command_queue->release();
+	SDL_Metal_DestroyView( global_device.view );
 	global_device.device->release();
 }
 
@@ -1047,12 +1071,12 @@ void RenderBackendBeginFrame( bool capture ) {
 	bool nonzero = framebuffer_width > 0 && framebuffer_height > 0;
 
 	if( resized && nonzero ) {
-		global_swapchain->setDrawableSize( CGSize { CGFloat( framebuffer_width ), CGFloat( framebuffer_height ) } );
+		global_device.swapchain->setDrawableSize( CGSize { CGFloat( framebuffer_width ), CGFloat( framebuffer_height ) } );
 		old_framebuffer_width = framebuffer_width;
 		old_framebuffer_height = framebuffer_height;
 	}
 
-	CA::MetalDrawable * surface = global_swapchain->nextDrawable();
+	CA::MetalDrawable * surface = global_device.swapchain->nextDrawable();
 	frame = {
 		.pool = pool,
 		.swapchain_surface = surface,
@@ -1170,12 +1194,12 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 	};
 }
 
-Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config ) {
+Opaque< CommandBuffer > NewComputePass( const char * name ) {
 	MTL::ComputePassDescriptor * compute_pass = MTL::ComputePassDescriptor::alloc()->init();
 	compute_pass->setDispatchType( MTL::DispatchTypeSerial );
 
 	MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
-	command_buffer->setLabel( NSString( config.name ) );
+	command_buffer->setLabel( NSString( name ) );
 
 	if( global_device.pass_counter > 1 ) {
 		command_buffer->encodeWait( global_device.event, global_device.pass_counter );

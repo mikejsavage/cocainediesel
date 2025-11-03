@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/livepp.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/text.h"
+#include "client/sdl_window.h"
 #include "server/server.h"
 #include "qcommon/compression.h"
 #include "qcommon/csprng.h"
@@ -1144,7 +1145,7 @@ void CL_Init() {
 #endif
 	}
 
-	InitRenderer();
+	InitRenderer( sdl_window );
 	InitGLTFModels();
 	InitMaps();
 	InitSound();

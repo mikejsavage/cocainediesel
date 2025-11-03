@@ -7,13 +7,11 @@
  * Init
  */
 
-void InitRenderBackend();
+void InitRenderBackend( SDL_Window * window );
 void ShutdownRenderBackend();
 
 void InitShaders();
 void HotloadShaders();
-
-u32 RenderBackendSupportedMSAA();
 
 /*
  * Memory allocation
@@ -98,7 +96,6 @@ struct Texture {
 BackendTexture NewBackendTexture( const TextureConfig & config, Optional< BackendTexture > old_texture = NONE );
 BackendTexture NewRenderTargetBackendTexture( const TextureConfig & config, Optional< BackendTexture > old_texture );
 BackendTexture NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< BackendTexture > = NONE );
-PoolHandle< Texture > UploadBC4( GPUSlabAllocator * a, const char * path );
 
 u32 TextureWidth( PoolHandle< Texture > texture );
 u32 TextureHeight( PoolHandle< Texture > texture );
@@ -131,7 +128,7 @@ void UploadTexture( const TextureConfig & config, BackendTexture dest );
 void AddDebugMarker( PoolHandle< GPUAllocation > allocation, size_t offset, size_t size, const char * label );
 void RemoveAllDebugMarkers( PoolHandle< GPUAllocation > allocation );
 
-PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, BackendTexture texture, SamplerType sampler, GPUBuffer properties );
+PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, BackendTexture texture, SamplerType sampler, GPUBuffer properties );
 
 size_t FrameSlot();
 
@@ -146,8 +143,6 @@ constexpr u32 Log2_CT( u64 x ) {
 
 	return log;
 }
-
-constexpr u32 MaxMSAA = 8;
 
 constexpr size_t MaxBufferBindings = 8;
 constexpr size_t MaxTextureBindings = 8;

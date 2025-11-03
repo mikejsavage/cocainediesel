@@ -40,5 +40,6 @@ float Unlerp01( Time lo, Time x, Time hi );
 
 // FYI: old style sinf( t / x ) is equivalent to Sin( t, Seconds( x * 2pi / 1000 ) )
 float Sin( Time t, Time period );
+float Cos( Time t, Time period );
 
 float Sawtooth01( Time t, Time period );

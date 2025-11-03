@@ -359,12 +359,14 @@ static Material2 MaterialFromDescriptor( Span< const char > name, const Material
 		pass = RenderPass_Transparent;
 	}
 
-	GPUBuffer properties = NewBuffer( "material properties", desc.properties );
+	TempAllocator temp = cls.frame_arena.temp();
+	GPUBuffer properties = NewBuffer( temp( "{} properties", name ), desc.properties );
+
 	return Material2 {
 		.name = name,
 		.render_pass = pass,
 		.shader = shader,
-		.bind_group = NewMaterialBindGroup( name, textures[ desc.texture ].handle, desc.sampler, properties ),
+		.bind_group = NewMaterialBindGroup( temp( "{}", name ), textures[ desc.texture ].handle, desc.sampler, properties ),
 		.texture = desc.texture,
 		.dynamic_state = desc.dynamic_state,
 		.rgbgen = desc.rgbgen,

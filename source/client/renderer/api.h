@@ -8,8 +8,12 @@
 
 constexpr size_t MaxFramesInFlight = 2;
 
-void InitRenderer();
+struct SDL_Window;
+void InitRenderer( SDL_Window * window );
 void ShutdownRenderer();
+
+constexpr u32 MaxMSAA = 8;
+u32 RenderBackendSupportedMSAA();
 
 /*
  * Memory allocation
@@ -32,13 +36,13 @@ struct CoherentBuffer {
 GPUBuffer NewBuffer( const char * label, size_t size, size_t alignment, bool texture, const void * data = NULL );
 
 template< typename T >
-GPUBuffer NewBuffer( const char * label, Span< const T > xs, size_t alignment = alignof( T ) ) {
-	return NewBuffer( label, sizeof( T ) * xs.n, alignment, false, xs.ptr );
+GPUBuffer NewBuffer( const char * label, const T & x, size_t alignment = alignof( T ) ) {
+	return NewBuffer( label, sizeof( T ), alignment, false, &x );
 }
 
 template< typename T >
-GPUBuffer NewBuffer( const char * label, const T & x, size_t alignment = alignof( T ) ) {
-	return NewBuffer( label, sizeof( T ), alignment, false, &x );
+GPUBuffer NewBuffer( const char * label, Span< const T > xs, size_t alignment = alignof( T ) ) {
+	return NewBuffer( label, sizeof( T ) * xs.n, alignment, false, xs.ptr );
 }
 
 GPUBuffer NewTempBuffer( const void * data, size_t size, size_t alignment );
@@ -372,13 +376,7 @@ struct IndirectComputeArgs {
 	u32 num_threadgroups_x, num_threadgroups_y, num_threadgroups_z;
 };
 
-struct ComputePassConfig {
-	const char * name;
-	Optional< u64 > wait;
-	Optional< u64 > signal;
-};
-
-Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & compute_pass );
+Opaque< CommandBuffer > NewComputePass( const char * name );
 
 void EncodeComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers );
 void EncodeIndirectComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, GPUBuffer indirect_args, Span< const BufferBinding > buffers );

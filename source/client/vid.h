@@ -1,3 +1,5 @@
+#pragma once
+
 #include "qcommon/types.h"
 
 struct Cvar;

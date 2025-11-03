@@ -89,14 +89,14 @@ static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
 	return { };
 }
 
-void InitRenderer() {
+void InitRenderer( SDL_Window * window ) {
 	TracyZoneScoped;
 
-	InitRenderBackend();
+	InitRenderBackend( window );
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	r_samples = NewCvar( "r_samples", "0", CvarFlag_Archive );
+	r_samples = NewCvar( "r_samples", "1", CvarFlag_Archive );
 	r_shadow_quality = NewCvar( "r_shadow_quality", temp.sv( "{}", ShadowQuality_Ultra ), CvarFlag_Archive );
 
 	frame_static = { };
@@ -367,7 +367,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	memset( &frame_static.render_passes, 0, sizeof( frame_static.render_passes ) );
 	RenderBackendBeginFrame( false );
 
-	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer < 0 || r_samples->integer == 1 || !HasAnyBit( RenderBackendSupportedMSAA(), u32( r_samples->integer ) ) ) {
+	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer < 0 || !HasAnyBit( RenderBackendSupportedMSAA(), u32( r_samples->integer ) ) ) {
 		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
 		Cvar_Set( "r_samples", r_samples->default_value );
 	}

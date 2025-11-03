@@ -183,9 +183,7 @@ void UploadDecalBuffers() {
 	memcpy( decals_buffer.ptr, decals.ptr(), decals.num_bytes() );
 	memcpy( lights_buffer.ptr, lights.ptr(), lights.num_bytes() );
 
-	frame_static.render_passes[ RenderPass_TileCulling ] = NewComputePass( ComputePassConfig {
-		.name = "Particle/light tile culling",
-	} );
+	frame_static.render_passes[ RenderPass_TileCulling ] = NewComputePass( "Particle/light tile culling" );
 
 	GPUBuffer tile_culling = NewTempBuffer( TileCullingInputs {
 		.rows = rows,

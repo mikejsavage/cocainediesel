@@ -201,14 +201,11 @@ static void SubmitDrawCalls() {
 				// TODO
 				// pipeline.bind_uniform( "u_MaterialStatic", lodbias_uniforms );
 
-				Draw(
-					rp, pipeline, mesh,
-					{
-						{ "u_Model", frame_static.identity_model_transform_uniforms },
-						{ "u_MaterialDynamic", frame_static.identity_material_properties_uniforms },
-					},
-					{ .override_num_vertices = pcmd->ElemCount, .first_index = pcmd->IdxOffset }
-				);
+				DrawCallExtras extras = {
+					.override_num_vertices = pcmd->ElemCount,
+					.first_index = pcmd->IdxOffset,
+				};
+				Draw( rp, pipeline, mesh, { }, extras );
 			}
 		}
 	}

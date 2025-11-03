@@ -182,13 +182,13 @@ static void SubmitPostprocessPass() {
 		.bindings = {
 			.buffers = {
 				{ "u_View", frame_static.ortho_view_uniforms },
-				{ "u_PostProcess", NewTempBuffer( uniforms ) },
+				{ "u_Postprocess", NewTempBuffer( uniforms ) },
 			},
 			.textures = {
-				{ "u_Screen", frame_static.render_targets.resolved_color },
-				{ "u_Noise", RGBNoiseTexture() },
+				{ "u_Framebuffer", frame_static.render_targets.resolved_color },
+				{ "u_RGBNoise", RGBNoiseTexture() },
 			},
-			.samplers = { { "u_Sampler", Sampler_Standard } },
+			.samplers = { { "u_StandardSampler", Sampler_Standard } },
 		},
 	} );
 

@@ -686,7 +686,7 @@ static void DrawModelNode( const GLTFRenderData::Node * node, bool view_weapon, 
 	Vec4 color = EvaluateMaterialColor( material, entity_color );
 
 	BoundedDynamicArray< BufferBinding, 3 > buffers = {
-		{ "u_Model", model_uniforms },
+		{ "u_ModelTransform", model_uniforms },
 		{ "u_MaterialColor", NewTempBuffer( color ) },
 	};
 	if( pose_uniforms.exists ) {
@@ -705,7 +705,7 @@ static void DrawShadowsNode( const Mesh & mesh, GPUBuffer model_uniforms, Option
 
 	PipelineState pipeline = { .shader = pose_uniforms.exists ? shaders.depth_only_skinned : shaders.depth_only };
 
-	BoundedDynamicArray< BufferBinding, 2 > buffers = { { "u_Model", model_uniforms } };
+	BoundedDynamicArray< BufferBinding, 2 > buffers = { { "u_ModelTransform", model_uniforms } };
 	if( pose_uniforms.exists ) {
 		buffers.must_add( { "u_Pose", pose_uniforms.value } );
 	}
@@ -732,7 +732,7 @@ static void DrawOutlinesNode( const Mesh & mesh, GPUBuffer model_uniforms, GPUBu
 	}
 
 	BoundedDynamicArray< BufferBinding, 3 > buffers = {
-		{ "u_Model", model_uniforms },
+		{ "u_ModelTransform", model_uniforms },
 		{ "u_Outline", outline_uniforms },
 	};
 	if( pose_uniforms.exists ) {
@@ -750,7 +750,7 @@ static void DrawSilhouetteNode( const Mesh & mesh, GPUBuffer model_uniforms, GPU
 	};
 
 	BoundedDynamicArray< BufferBinding, 3 > buffers = {
-		{ "u_Model", model_uniforms },
+		{ "u_ModelTransform", model_uniforms },
 		{ "u_Silhouette", silhouette_uniforms },
 	};
 	if( pose_uniforms.exists ) {

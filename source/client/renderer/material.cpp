@@ -291,6 +291,7 @@ static void SkipComment( MaterialDescriptor * material, Span< const char > name,
 }
 
 static constexpr MaterialSpecKey shaderkeys[] = {
+	{ "sprite", SkipComment }, // NOMERGE
 	{ "alphagen", ParseAlphaGen },
 	{ "blendfunc", ParseBlendFunc },
 	{ "cull", ParseCull },

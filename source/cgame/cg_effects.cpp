@@ -75,7 +75,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash materia
 	mesh.vertex_buffers[ 0 ] = NewTempBuffer( vertices );
 	mesh.index_buffer = NewTempBuffer( indices );
 
-	Draw( RenderPass_Transparent, pipeline, mesh, { { "u_Model", frame_static.identity_model_transform_uniforms } } );
+	Draw( RenderPass_Transparent, pipeline, mesh, { { "u_ModelTransform", frame_static.identity_model_transform_uniforms } } );
 }
 
 struct PersistentBeam {

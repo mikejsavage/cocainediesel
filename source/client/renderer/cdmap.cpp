@@ -30,7 +30,7 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 
 	const Map * map = FindMap( render_data->base_hash );
 
-	BufferBinding model_binding = { "u_Model", NewTempBuffer( transform ) };
+	BufferBinding model_binding = { "u_ModelTransform", NewTempBuffer( transform ) };
 
 	u32 first_mesh = map->data.models[ render_data->sub_model ].first_mesh;
 	for( u32 i = 0; i < map->data.models[ render_data->sub_model ].num_meshes; i++ ) {

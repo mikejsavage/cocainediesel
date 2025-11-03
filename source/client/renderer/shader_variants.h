@@ -72,10 +72,15 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 	skybox_vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx4, 0, 0 },
 	skybox_vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec4 );
 
-	VertexDescriptor text_vertex_descriptor = { };
-	text_vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, 0 };
-	text_vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, sizeof( Vec3 ) };
-	text_vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec3 ) + sizeof( Vec2 );
+	struct TextVertex { // NOMERGE
+		Vec3 position;
+		Vec2 uv;
+	};
+
+	VertexDescriptor text_3d_vertex_descriptor = { };
+	text_3d_vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( TextVertex, position ) },
+	text_3d_vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( TextVertex, uv ) },
+	text_3d_vertex_descriptor.buffer_strides[ 0 ] = sizeof( TextVertex );
 
 	RenderPipelineOutputFormat standard_output = {
 		.colors = {
@@ -243,14 +248,14 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.field = &Shaders::skybox,
 				.src = "skybox.slang",
 				.output_format = depthy,
-				.mesh_variants = { { skybox_vertex_descriptor } },
+				.mesh_variants = { skybox_vertex_descriptor },
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::text,
 				.src = "text.slang",
 				.output_format = depthless,
-				.mesh_variants = { { text_vertex_descriptor } },
+				.mesh_variants = { ImGuiVertexDescriptor() },
 				.blend_func = BlendFunc_Blend,
 			},
 			GraphicsShaderDescriptor {
@@ -258,7 +263,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.src = "text.slang",
 				.output_format = depth_only,
 				.features = { "DEPTH_ONLY" },
-				.mesh_variants = { { text_vertex_descriptor } },
+				.mesh_variants = { text_3d_vertex_descriptor },
 				.clamp_depth = true,
 				.alpha_to_coverage = true,
 			},
@@ -274,6 +279,13 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.src = "particle.slang",
 				.output_format = depthless,
 				.blend_func = BlendFunc_Blend,
+			},
+
+			GraphicsShaderDescriptor {
+				.field = &Shaders::postprocess,
+				.src = "postprocess.slang",
+				.output_format = depthless,
+				.mesh_variants = { fullscreen_vertex_descriptor },
 			},
 		},
 

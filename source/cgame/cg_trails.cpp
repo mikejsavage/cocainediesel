@@ -218,7 +218,7 @@ static void DrawActualTrail( const Trail & trail ) {
 	mesh.index_buffer = NewTempBuffer( indices );
 
 	Draw( RenderPass_Transparent, pipeline, mesh, {
-		{ "u_Model", frame_static.identity_model_transform_uniforms },
+		{ "u_ModelTransform", frame_static.identity_model_transform_uniforms },
 		{ "u_Color", NewTempBuffer( EvaluateMaterialColor( material, trail.color ) ) },
 	} );
 }

@@ -569,7 +569,7 @@ dispatch_data_t SpanToDispatchData( Span< const T > data ) {
 PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	Span< const u8 > metallib = AssetBinary( temp.sv( "shaders/{}.metallib", config.path ) );
+	Span< const u8 > metallib = AssetBinary( temp.sv( "{}.metallib", config.path ) );
 
 	MTL::Library * library;
 	{
@@ -825,6 +825,7 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline
 	}
 
 	CommandBuffer * cb = ocb.unwrap();
+	Assert( cb->command_buffer != NULL );
 
 	cb->rce->setRenderPipelineState( pso );
 	cb->rce->setDepthClipMode( render_pipelines[ pipeline.shader ].clamp_depth ? MTL::DepthClipModeClamp : MTL::DepthClipModeClip );
@@ -873,7 +874,7 @@ void EncodeScissor( Opaque< CommandBuffer > ocb, Optional< Scissor > scissor ) {
 PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	Span< const u8 > metallib = AssetBinary( temp.sv( "shaders/{}.metallib", path ) );
+	Span< const u8 > metallib = AssetBinary( temp.sv( "{}.metallib", path ) );
 
 	MTL::Library * library;
 	{

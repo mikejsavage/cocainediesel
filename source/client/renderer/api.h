@@ -483,6 +483,7 @@ struct Material2 {
 template<> struct PoolHandleType< Material2 > { using T = u16; };
 // NOMERGE should name go in materialdescriptor?
 PoolHandle< Material2 > NewMaterial( Span< const char > name, const MaterialDescriptor & desc );
+PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, PoolHandle< Texture > texture, SamplerType sampler, MaterialProperties properties );
 
 PoolHandle< Material2 > FindMaterial( StringHash name );
 // PoolHandle< Material2 > FindMaterial( const char * name );

@@ -8,14 +8,13 @@
 
 Shaders shaders;
 
-constexpr Span< const char > ShaderExtension = IFDEF( PLATFORM_MACOS ) ? ".metallib"_sp : ".spv"_sp;
+static constexpr Span< const char > ShaderExtension = IFDEF( PLATFORM_MACOS ) ? ".metallib"_sp : ".spv"_sp;
 
 static Span< const char > ShaderFilename( Allocator * a, Span< const char > src_filename, Span< Span< const char > > features ) {
-       DynamicString filename( a, "{}", StripExtension( src_filename ) );
+       DynamicString filename( a, "shaders/{}", src_filename );
        for( Span< const char > feature : features ) {
                filename.append( "_{}", feature );
        }
-       // filename += ShaderExtension;
        return CloneSpan( a, filename.span() );
 }
 

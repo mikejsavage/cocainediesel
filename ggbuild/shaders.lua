@@ -62,7 +62,7 @@ rule metallib
 	print( "# Graphics shaders" )
 	local dedupe = { }
 	for graphics_shader in shader_variants_h:gmatch( ReadableWhitespace( "GraphicsShaderDescriptor (%b{}) ," ) ) do
-		local src = graphics_shader:match( ReadableWhitespace( "%.src = \"([^\"]+)\"" ) )
+		local src = graphics_shader:match( ReadableWhitespace( "%.src = \"([^\"]+)\"" ) ) .. ".slang"
 		local cli_features, filename_features = ParseFeatures( graphics_shader:match( ReadableWhitespace( "%.features = (%b{})" ) ) )
 		local out_filename = StripExtension( src ) .. filename_features
 
@@ -97,8 +97,7 @@ rule metallib
 
 	print( "# Compute shaders" )
 	for compute_shader in shader_variants_h:gmatch( ReadableWhitespace( "ComputeShaderDescriptor (%b{}) ," ) ) do
-		local src = compute_shader:match( "\"([^\"]+)\"" )
-		local src = compute_shader:match( ReadableWhitespace( "{.-, \"([^\"]+)\" }" ) )
+		local src = compute_shader:match( ReadableWhitespace( "{.-, \"([^\"]+)\" }" ) ) .. ".slang"
 		local out_filename = StripExtension( src )
 
 		printf( "build %s/shaders/%s.comp.spv: slangc_compute base/glsl/%s", spv_dir, out_filename, src )

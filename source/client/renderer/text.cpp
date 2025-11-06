@@ -80,6 +80,8 @@ const Font * RegisterFont( Span< const char > path ) {
 			.height = checked_cast< u32 >( h ),
 			.data = pixels,
 		} );
+
+		font.bind_group = NewMaterialBindGroup( temp( "{}", path ), font.atlas, Sampler_Standard, MaterialProperties { } );
 	}
 
 	// this is a little silly because Font has an internal pointer

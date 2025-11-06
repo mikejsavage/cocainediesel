@@ -106,20 +106,20 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 		.graphics_shaders = {
 			GraphicsShaderDescriptor {
 				.field = &Shaders::standard,
-				.src = "standard.slang",
+				.src = "standard",
 				.output_format = standard_output,
 				.mesh_variants = { standard_vertex },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::standard_skinned,
-				.src = "standard.slang",
+				.src = "standard",
 				.output_format = standard_output,
 				.features = { "SKINNED" },
 				.mesh_variants = { pos_normal_uv_skinned },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::world,
-				.src = "standard.slang",
+				.src = "standard",
 				.output_format = standard_output,
 				.features = {
 					"APPLY_DRAWFLAT",
@@ -133,7 +133,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::imgui,
-				.src = "simple.slang",
+				.src = "simple",
 				.output_format = depthless,
 				.features = { "IMGUI" },
 				.mesh_variants = { ImGuiVertexDescriptor() },
@@ -142,14 +142,14 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::vfx_add,
-				.src = "simple.slang",
+				.src = "simple",
 				.output_format = depthless,
 				.mesh_variants = { vfx },
 				.blend_func = BlendFunc_Add,
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::vfx_blend,
-				.src = "simple.slang",
+				.src = "simple",
 				.output_format = depthless,
 				.mesh_variants = { vfx },
 				.blend_func = BlendFunc_Blend,
@@ -157,7 +157,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::viewmodel,
-				.src = "standard.slang",
+				.src = "standard",
 				.output_format = standard_output,
 				.mesh_variants = { standard_vertex },
 				.viewmodel_depth = true,
@@ -165,14 +165,14 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::depth_only,
-				.src = "depth_only.slang",
+				.src = "depth_only",
 				.output_format = depth_only,
 				.mesh_variants = { standard_vertex },
 				.clamp_depth = true,
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::depth_only_skinned,
-				.src = "depth_only.slang",
+				.src = "depth_only",
 				.output_format = depth_only,
 				.features = { "SKINNED" },
 				.mesh_variants = { pos_normal_uv_skinned },
@@ -181,14 +181,14 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::postprocess_world_gbuffer,
-				.src = "postprocess_world_gbuffer.slang",
+				.src = "postprocess_world_gbuffer",
 				.output_format = depthless,
 				.mesh_variants = { fullscreen_vertex_descriptor },
 				.blend_func = BlendFunc_Blend,
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::postprocess_world_gbuffer_msaa,
-				.src = "postprocess_world_gbuffer.slang",
+				.src = "postprocess_world_gbuffer",
 				.output_format = depthless,
 				.features = { "MSAA" },
 				.mesh_variants = { fullscreen_vertex_descriptor },
@@ -197,20 +197,20 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::write_silhouette_mask,
-				.src = "write_silhouette_mask.slang",
+				.src = "write_silhouette_mask",
 				.output_format = { .colors = { TextureFormat_RGBA_U8_sRGB } },
 				.mesh_variants = { standard_vertex },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::write_silhouette_mask_skinned,
-				.src = "write_silhouette_mask.slang",
+				.src = "write_silhouette_mask",
 				.output_format = { .colors = { TextureFormat_RGBA_U8_sRGB } },
 				.features = { "SKINNED" },
 				.mesh_variants = { pos_normal_uv_skinned },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::postprocess_silhouette_mask,
-				.src = "postprocess_silhouette_mask.slang",
+				.src = "postprocess_silhouette_mask",
 				.output_format = depthless,
 				.mesh_variants = { fullscreen_vertex_descriptor },
 				.blend_func = BlendFunc_Blend,
@@ -218,7 +218,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::outline,
-				.src = "outline.slang",
+				.src = "outline",
 				.output_format = {
 					.colors = { TextureFormat_Swapchain },
 					.has_depth = true,
@@ -227,7 +227,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::outline_skinned,
-				.src = "outline.slang",
+				.src = "outline",
 				.output_format = {
 					.colors = { TextureFormat_Swapchain },
 					.has_depth = true,
@@ -238,7 +238,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::scope,
-				.src = "scope.slang",
+				.src = "scope",
 				.output_format = depthless,
 				.mesh_variants = { fullscreen_vertex_descriptor },
 				.blend_func = BlendFunc_Blend,
@@ -246,21 +246,21 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::skybox,
-				.src = "skybox.slang",
+				.src = "skybox",
 				.output_format = depthy,
 				.mesh_variants = { skybox_vertex_descriptor },
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::text,
-				.src = "text.slang",
+				.src = "text",
 				.output_format = depthless,
 				.mesh_variants = { ImGuiVertexDescriptor() },
 				.blend_func = BlendFunc_Blend,
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::text_depth_only,
-				.src = "text.slang",
+				.src = "text",
 				.output_format = depth_only,
 				.features = { "DEPTH_ONLY" },
 				.mesh_variants = { text_3d_vertex_descriptor },
@@ -270,29 +270,29 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::particle_add,
-				.src = "particle.slang",
+				.src = "particle",
 				.output_format = depthless,
 				.blend_func = BlendFunc_Add,
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::particle_blend,
-				.src = "particle.slang",
+				.src = "particle",
 				.output_format = depthless,
 				.blend_func = BlendFunc_Blend,
 			},
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::postprocess,
-				.src = "postprocess.slang",
+				.src = "postprocess",
 				.output_format = depthless,
 				.mesh_variants = { fullscreen_vertex_descriptor },
 			},
 		},
 
 		.compute_shaders = {
-			ComputeShaderDescriptor { &Shaders::particle_compute, "particle_compute.slang" },
-			ComputeShaderDescriptor { &Shaders::particle_setup_indirect, "particle_setup_indirect.slang" },
-			ComputeShaderDescriptor { &Shaders::tile_culling, "tile_culling.slang" },
+			ComputeShaderDescriptor { &Shaders::particle_compute, "particle_compute" },
+			ComputeShaderDescriptor { &Shaders::particle_setup_indirect, "particle_setup_indirect" },
+			ComputeShaderDescriptor { &Shaders::tile_culling, "tile_culling" },
 		},
 	}, rest... );
 }

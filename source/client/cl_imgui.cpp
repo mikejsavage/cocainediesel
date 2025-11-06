@@ -15,7 +15,6 @@
 #include <algorithm>
 
 static PoolHandle< Texture > atlas_texture;
-static PoolHandle< BindGroup > atlas_bind_group;
 
 static ImFont * AddFontAsset( StringHash path, float pixel_size ) {
 	Span< const u8 > data = AssetBinary( path );
@@ -68,7 +67,7 @@ void CL_InitImGui() {
 			.data = pixels,
 		} );
 
-		// TODO: atlas_bind_group
+		PoolHandle< BindGroup > atlas_bind_group = NewMaterialBindGroup( "ImGui font atlas", atlas_texture, Sampler_Standard, MaterialProperties { } );
 		io.Fonts->TexID = ImGuiShaderAndMaterial( atlas_bind_group );
 	}
 
@@ -162,8 +161,8 @@ static void SubmitDrawCalls() {
 
 		Mesh mesh = {
 			.vertex_descriptor = ImGuiVertexDescriptor(),
-			.vertex_buffers = { NewTempBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size, alignof( ImDrawVert ) ) },
-			.index_buffer = NewTempBuffer( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size, alignof( u16 ) ),
+			.vertex_buffers = { NewTempBuffer( Span< const ImDrawVert >( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size ), alignof( ImDrawVert ) ) },
+			.index_buffer = NewTempBuffer( Span< const ImDrawIdx >( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size ), alignof( u16 ) ),
 		};
 
 		for( int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++ ) {
@@ -181,7 +180,8 @@ static void SubmitDrawCalls() {
 				if( pcmd->ElemCount == 0 )
 					continue;
 
-				RenderPass rp = pass == 0 ? RenderPass_UIBeforePostprocessing : RenderPass_UIAfterPostprocessing;
+				// RenderPass rp = pass == 0 ? RenderPass_UIBeforePostprocessing : RenderPass_UIAfterPostprocessing;
+				RenderPass rp = RenderPass_UIAfterPostprocessing;
 				EncodeScissor( rp, Scissor {
 					.x = u32( Max2( scissor.mins.x, 0.0f ) ),
 					.y = u32( Max2( scissor.mins.y, 0.0f ) ),

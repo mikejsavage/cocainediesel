@@ -446,6 +446,7 @@ void EncodeScissor( RenderPass pass, Optional< Scissor > scissor );
 
 #include "material.h"
 
+// NOMERGE consistency between *Config and this
 struct MaterialDescriptor {
 	BlendFunc blend_func = BlendFunc_Disabled;
 

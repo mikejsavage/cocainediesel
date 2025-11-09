@@ -450,10 +450,11 @@ MTL::Texture * NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & co
 		old_texture.value->release();
 	}
 
+	TempAllocator temp = cls.frame_arena.temp();
 	MTL::Texture * texture;
 	if( a != NULL ) {
 		MTL::SizeAndAlign memory_requirements = global_device.device->heapTextureSizeAndAlign( descriptor );
-		GPUBuffer alloc = NewBuffer( a, "texture", memory_requirements.size, memory_requirements.align, true );
+		GPUBuffer alloc = NewBuffer( a, temp( "{} texture memory", config.name ), memory_requirements.size, memory_requirements.align, true );
 
 		texture = allocations[ alloc.allocation ].heap->newTexture( descriptor, alloc.offset );
 	}
@@ -461,7 +462,6 @@ MTL::Texture * NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & co
 		texture = global_device.device->newTexture( descriptor );
 	}
 
-	TempAllocator temp = cls.frame_arena.temp();
 	texture->setLabel( NSString( temp( "{}", config.name ) ) );
 
 	if( config.data != NULL ) {

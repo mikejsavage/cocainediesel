@@ -1174,6 +1174,8 @@ void CL_Init() {
 	cls.fontNormalBold = RegisterFont( "fonts/Decalotype-Black" );
 	cls.fontItalic = RegisterFont( "fonts/Decalotype-BoldItalic" );
 	cls.fontBoldItalic = RegisterFont( "fonts/Decalotype-BlackItalic" );
+
+	FlushStagingBuffer();
 }
 
 void CL_Shutdown() {

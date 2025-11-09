@@ -352,7 +352,7 @@ static void UnloadTexture( PoolHandle< Texture > texture ) {
 
 static Material2 MaterialFromDescriptor( Span< const char > name, const MaterialDescriptor & desc ) {
 	RenderPass pass;
-	PoolHandle< RenderPipeline > shader = shaders.standard; // TODO: shader from desc
+	PoolHandle< RenderPipeline > shader = shaders.standard; // NOMERGE TODO: shader from desc
 	if( desc.blend_func == BlendFunc_Disabled ) {
 		pass = desc.outlined ? RenderPass_NonworldOpaqueOutlined : RenderPass_NonworldOpaque;
 	}
@@ -363,11 +363,12 @@ static Material2 MaterialFromDescriptor( Span< const char > name, const Material
 	TempAllocator temp = cls.frame_arena.temp();
 	GPUBuffer properties = NewBuffer( temp( "{} properties", name ), desc.properties );
 
+	// TODO NOMERGE reuse the old bindgroup
 	return Material2 {
 		.name = name,
 		.render_pass = pass,
 		.shader = shader,
-		.bind_group = NewMaterialBindGroup( temp( "{}", name ), textures[ desc.texture ].handle, desc.sampler, properties ),
+		.bind_group = NewMaterialBindGroup( temp( "{} bind group", name ), textures[ desc.texture ].handle, desc.sampler, properties ),
 		.texture = desc.texture,
 		.dynamic_state = desc.dynamic_state,
 		.rgbgen = desc.rgbgen,
@@ -409,7 +410,7 @@ static Texture MakeTexture( const TextureConfig & config, u64 hash, Optional< Po
 
 PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, PoolHandle< Texture > texture, SamplerType sampler, MaterialProperties properties ) {
 	TempAllocator temp = cls.frame_arena.temp();
-	return NewMaterialBindGroup( name, textures[ texture ].handle, sampler, NewBuffer( temp( "{} properties", name ), properties ) );
+	return NewMaterialBindGroup( temp( "{} bind group", name ), textures[ texture ].handle, sampler, NewBuffer( temp( "{} properties", name ), properties ) );
 }
 
 // NOMERGE unify this and addtexture
@@ -448,6 +449,7 @@ u32 TextureHeight( PoolHandle< Material2 > material ) {
 	TracyZoneScoped;
 
 	u64 hash = Hash64( config.name );
+	bool also_add_material = false;
 
 	Optional< PoolHandle< Texture > > handle;
 	Optional< PoolHandle< Texture > > old_handle = textures.get( hash );
@@ -461,6 +463,7 @@ u32 TextureHeight( PoolHandle< Material2 > material ) {
 	}
 	else {
 		handle = textures.add( hash );
+		also_add_material = true;
 	}
 
 	if( !handle.exists ) {
@@ -469,6 +472,11 @@ u32 TextureHeight( PoolHandle< Material2 > material ) {
 	}
 
 	textures[ handle.value ] = MakeTexture( config, hash, old_handle );
+
+	if( also_add_material ) {
+		// TODO NOMERGE: need to recreate the bind group either way to point at the new texture
+		AddMaterial( config.name, MaterialDescriptor { .texture = handle.value } );
+	}
 
 	return handle;
 }
@@ -680,7 +688,7 @@ static Vec4 TrimTexture( Span2D< const BC4Block > bc4 ) {
 	return trim;
 }
 
-static void PackSpriteAtlas() {
+static void PackSpriteAtlas( bool first_time ) {
 	TracyZoneScoped;
 
 	sprites.clear();
@@ -854,7 +862,7 @@ static void PackSpriteAtlas() {
 			.num_layers = num_layers,
 			.num_mipmaps = num_mipmaps,
 			.data = blocks.ptr,
-		}, sprite_atlas );
+		}, first_time ? NONE : MakeOptional( sprite_atlas ) );
 	}
 }
 
@@ -876,12 +884,12 @@ static void LoadBuiltinMaterials() {
 			.height = 2,
 			.data = pixels,
 		} );
-	}
 
-	missing_material = Unwrap( AddMaterial( "missing", MaterialDescriptor {
-		.outlined = false,
-		.texture = missing_texture,
-	} ) );
+		missing_material = Unwrap( AddMaterial( "missing", MaterialDescriptor {
+			.outlined = false,
+			.texture = missing_texture,
+		} ) );
+	}
 
 	{
 		u8 white = 255;
@@ -1037,7 +1045,7 @@ void InitMaterials() {
 	}
 
 	{
-		PackSpriteAtlas();
+		PackSpriteAtlas( true );
 		GPUBuffer buffer = NewBuffer( "Sprite atlas properties", MaterialProperties { } );
 		sprite_atlas_bind_group = NewMaterialBindGroup( "Sprite atlas", textures[ sprite_atlas ].handle, Sampler_Standard, buffer );
 	}
@@ -1081,7 +1089,7 @@ void HotloadMaterials() {
 	}
 
 	if( changes ) {
-		PackSpriteAtlas();
+		PackSpriteAtlas( false );
 	}
 }
 

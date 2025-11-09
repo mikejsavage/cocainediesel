@@ -50,7 +50,7 @@ rule slangc_compute
 rule spirv-cross
     command = spirv-cross --msl --msl-version 20000 --msl-argument-buffers --msl-decoration-binding --msl-argument-buffer-tier 1 --msl-force-active-argument-buffer-resources --output $out $in
 rule metal
-    command = xcrun -sdk macosx metal -c $in -o $out
+    command = xcrun -sdk macosx metal -c $in -o $out -gline-tables-only -frecord-sources
 rule metallib
     command = xcrun -sdk macosx metallib $in -o $out
 ]]

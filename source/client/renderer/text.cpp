@@ -84,7 +84,6 @@ const Font * RegisterFont( Span< const char > path ) {
 		font.bind_group = NewMaterialBindGroup( temp( "{}", path ), font.atlas, Sampler_Standard, MaterialProperties { } );
 	}
 
-	// this is a little silly because Font has an internal pointer
 	Optional< Font * > slot = fonts.add();
 	if( !slot.exists ) {
 		Com_Printf( S_COLOR_YELLOW "Too many fonts\n" );

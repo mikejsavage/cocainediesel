@@ -34,7 +34,7 @@ static void LoadShaders( const ShaderDescriptors & desc ) {
 	}
 
 	for( const ComputeShaderDescriptor & shader : desc.compute_shaders ) {
-		shaders.*shader.field = NewComputePipeline( StripExtension( shader.src ) );
+		shaders.*shader.field = NewComputePipeline( StripExtension( temp( "shaders/{}", shader.src ) ) );
 	}
 }
 

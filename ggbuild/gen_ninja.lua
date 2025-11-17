@@ -350,7 +350,7 @@ rule lib
     description = $out
 
 rule rc
-    command = rc /fo$out /nologo $in_rc
+    command = rc /fo$out /nologo $in
     description = $in
 ]] )
 
@@ -459,7 +459,6 @@ rule lib
 		if OS == "windows" and cfg.rc then
 			srcs = { cfg.srcs, cfg.rc }
 			printf( "build %s/%s%s: rc %s.rc", dir, cfg.rc, obj_suffix, cfg.rc )
-			printf( "    in_rc = %s.rc", cfg.rc )
 		end
 
 		local full_name = output_dir .. bin_name .. bin_suffix

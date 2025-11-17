@@ -460,6 +460,8 @@ rule lib
 
 	for bin_name, cfg in sort_by_key( bins ) do
 		local srcs = { cfg.srcs }
+		local implicit_outputs = ""
+		local implicit_dependencies = { }
 
 		if OS == "windows" and cfg.rc then
 			srcs = { cfg.srcs, cfg.rc }
@@ -467,29 +469,34 @@ rule lib
 			printf( "    in_rc = %s.rc", cfg.rc )
 		end
 
+		local plist_ldflags = nil
+		if OS == "macos" and cfg.plist then
+			plist_ldflags = "-Wl,-sectcreate,__TEXT,__info_plist," .. cfg.plist
+			table.insert( implicit_dependencies, cfg.plist )
+		end
+
 		local full_name = output_dir .. bin_name .. bin_suffix
 
-		local implicit_outputs = ""
-		local implicit_dependencies = ""
 		if OS == "linux" then
 			if config == "release" then
 				implicit_outputs = ( " | %s/%s.fat %s.debug" ):format( dir, full_name, full_name )
 			end
-			implicit_dependencies = " | " .. zig
+			table.insert( implicit_dependencies, zig )
 		end
 
-		printf( "build %s%s: %s %s %s%s",
+		printf( "build %s%s: %s %s %s %s%s",
 			full_name,
 			implicit_outputs,
 			( can_static_link and not cfg.no_static_link ) and "bin-static" or "bin",
 			join_srcs( srcs ),
 			join_libs( cfg.libs ),
-			implicit_dependencies
+			#implicit_dependencies > 0 and " | " or "",
+			table.concat( implicit_dependencies, " " )
 		)
 
 		local ldflags_key = OS .. "_ldflags"
-		if cfg[ ldflags_key ] then
-			printf( "    extra_ldflags = %s", cfg[ ldflags_key ] )
+		if cfg[ ldflags_key ] or plist_ldflags then
+			printf( "    extra_ldflags = %s %s", cfg[ ldflags_key ] or "", plist_ldflags or "" )
 		end
 
 		if not cfg.dont_build_by_default then

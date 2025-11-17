@@ -1,9 +1,8 @@
 #pragma once
 
-#ifdef SKINNED
-
-float3x4 SkinningMatrix( uint4 indices, float4 weights ) {
-	return weights.x * u_Pose[ indices.x ] + weights.y * u_Pose[ indices.y ] + weights.z * u_Pose[ indices.z ] + weights.w * u_Pose[ indices.w ];
+float3x4 SkinningMatrix( StructuredBuffer< float3x4 > pose, uint4 indices, float4 weights ) {
+	return weights.x * pose[ indices.x ]
+		+ weights.y * pose[ indices.y ]
+		+ weights.z * pose[ indices.z ]
+		+ weights.w * pose[ indices.w ];
 }
-
-#endif

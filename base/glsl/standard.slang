@@ -61,7 +61,7 @@ VertexOutput VertexMain( VertexInput input ) {
 	float3x4 M = u_ModelTransform[ 0 ];
 
 #ifdef SKINNED
-	M = mul34( M, SkinningMatrix( input.indices, input.weights ) );
+	M = mul34( M, SkinningMatrix( u_Pose, input.indices, input.weights ) );
 #endif
 
 	VertexOutput output;

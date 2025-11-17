@@ -30,7 +30,7 @@ end
 
 function write_shaders_ninja_script()
 	printf( [[
-slangflags = -Ibase/glsl -I. -unscoped-enum -fvk-use-entrypoint-name -fvk-use-scalar-layout
+slangflags = -Ibase/glsl -I. -unscoped-enum -preserve-params -fvk-use-entrypoint-name -fvk-use-scalar-layout
 rule slangc_vertex
     command = slangc $slangflags -depfile $out.d -stage vertex -entry VertexMain $in -o $out $features
     deps = gcc

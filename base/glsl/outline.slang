@@ -29,7 +29,7 @@ VertexOutput VertexMain( VertexInput input ) {
 	float3 normal = input.normal;
 
 #ifdef SKINNED
-	float3x4 skin = SkinningMatrix( input.indices, input.weights );
+	float3x4 skin = SkinningMatrix( u_Pose, input.indices, input.weights );
 	position4 = mul34( skin, position4 );
 	normal = mul( Adjugate( skin ), normal );
 #endif

@@ -1,4 +1,4 @@
-#include "include/common.slang"
+#include "include/common.hlsl"
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 [[vk::binding( 1, DescriptorSet_RenderPass )]] StructuredBuffer< PostprocessUniforms > u_Postprocess;
@@ -35,7 +35,7 @@ float2 lensDistort( float2 p, float power ) {
 	new_p *= 1.0f - ( 0.25f * power );
 	new_p += 0.5f;
 	new_p = saturate( new_p );
-	return lerp( p, new_p, step( abs( p - 0.5f ), float2( 0.5f ) ) );
+	return lerp( p, new_p, step( abs( p - 0.5f ), Broadcast2( 0.5f ) ) );
 }
 
 float4 noise( float2 p ) {
@@ -43,19 +43,19 @@ float4 noise( float2 p ) {
 }
 
 float fnoise( float2 v ) {
-	return fract( sin( dot( v, float2( 12.9898f, 78.233f ) ) ) * 43758.5453f );
+	return frac( sin( dot( v, float2( 12.9898f, 78.233f ) ) ) * 43758.5453f );
 }
 
 float4 float4pow( float4 v, float p ) {
-	return float4( pow( v.xyz, float3( p ) ), v.w );
+	return float4( pow( v.xyz, Broadcast3( p ) ), v.w );
 }
 
 float3 interleave( float2 uv ) {
-	float line = fract( uv.y / MPEG_INTERLEAVE );
+	float row = frac( uv.y / MPEG_INTERLEAVE );
 	float3 mask = float3( MPEG_INTERLEAVE, 0.0f, 0.0f );
-	if( line > 0.333f )
+	if( row > 0.333f )
 		mask = float3( 0.0f, MPEG_INTERLEAVE, 0.0f );
-	if( line > 0.666f )
+	if( row > 0.666f )
 		mask = float3( 0.0f, 0.0f, MPEG_INTERLEAVE );
 
 	return mask;
@@ -67,10 +67,10 @@ float3 glitch( float2 uv, float amount ) {
 	float2 distorted_fragCoord = uv * u_View[ 0 ].viewport_size;
 
 	float2 block = floor( distorted_fragCoord / MPEG_BLOCKSIZE );
-	float2 uv_noise = block / float2( 64.0f ) + floor( float2( time ) * float2( 1234.0f, 3543.0f ) ) / float2( 64.0f );
+	float2 uv_noise = block / Broadcast2( 64.0f ) + floor( Broadcast2( time ) * float2( 1234.0f, 3543.0f ) ) / Broadcast2( 64.0f );
 
-	float block_thresh = pow( fract( time * 1236.0453f ), 2.0f ) * MPEG_BLOCKS * amount;
-	float line_thresh = pow( fract( time * 2236.0453f ), 3.0f ) * MPEG_LINES * amount;
+	float block_thresh = pow( frac( time * 1236.0453f ), 2.0f ) * MPEG_BLOCKS * amount;
+	float line_thresh = pow( frac( time * 2236.0453f ), 3.0f ) * MPEG_LINES * amount;
 
 	float2 uv_r = uv;
 	float2 uv_g = uv;
@@ -81,14 +81,14 @@ float3 glitch( float2 uv, float amount ) {
 
 	// glitch some blocks and lines / chromatic aberration
 	if( blocknoise.r < block_thresh || linenoise.g < line_thresh ) {
-		float2 dist = ( fract( uv_noise ) - 0.5f ) * MPEG_OFFSET * ABERRATION;
+		float2 dist = ( frac( uv_noise ) - 0.5f ) * MPEG_OFFSET * ABERRATION;
 		uv_r += dist * 0.1f;
 		uv_g += dist * 0.2f;
 		uv_b += dist * 0.125f;
 	}
 	else { // remainder gets just chromatic aberration
 		float4 power = float4pow( noise( float2( time, time * 0.08f ) ), 8.0f );
-		float4 shift = power * float4( float3( amount * ABERRATION ), 1.0f );
+		float4 shift = power * float4( Broadcast3( amount * ABERRATION ), 1.0f );
 		shift *= 2.0f * shift.w - 1.0f;
 		uv_r += float2( shift.x, -shift.y );
 		uv_g += float2( shift.y, -shift.z );
@@ -102,12 +102,14 @@ float3 glitch( float2 uv, float amount ) {
 	);
 
 	// lose luma for some blocks
-	if( blocknoise.g < block_thresh * MPEG_BLOCK_LUMA )
+	if( blocknoise.g < block_thresh * MPEG_BLOCK_LUMA ) {
 		col = col.ggg;
+	}
 
 	// discolor block lines
-	if( linenoise.b < line_thresh * MPEG_LINE_DISCOLOR )
-		col = float3( 0.0f );
+	if( linenoise.b < line_thresh * MPEG_LINE_DISCOLOR ) {
+		col = Broadcast3( 0.0f );
+	}
 
 	// interleave lines in some blocks
 	if( blocknoise.g < block_thresh * MPEG_BLOCK_INTERLEAVE || linenoise.g < line_thresh * MPEG_LINE_INTERLEAVE ) {
@@ -122,7 +124,7 @@ float roundBox( float2 p, float2 b, float r ) {
 }
 
 float crt_on_screen( float2 uv ) {
-	float dist_screen = roundBox( uv, float2( 1.0f ), 0.0f ) * 150.0f;
+	float dist_screen = roundBox( uv, Broadcast2( 1.0f ), 0.0f ) * 150.0f;
 	return 1.0f - saturate( dist_screen );
 }
 
@@ -162,14 +164,14 @@ float3 crtEffect( float3 color, float2 uv, float amount ) {
 
 	float on_screen = crt_on_screen( screen_uv );
 
-	float light = dot( screen_uv, float2( -1.0f ) );
+	float light = dot( screen_uv, Broadcast2( -1.0f ) );
 	light = smoothstep( -0.05f, 0.2f, saturate( light ) );
 	// return float3( light );
 
-	float3 screen_edge = lerp( ( edge_color + light * 0.03f ) * dist_in, float3( 0.0f ), 0.0f );
+	float3 screen_edge = lerp( ( edge_color + light * 0.03f ) * dist_in, Broadcast3( 0.0f ), 0.0f );
 
 	// banding
-	float banding = 0.6f + fract( uv.y + fnoise( uv ) * 0.05f - u_Postprocess[ 0 ].time * 0.3f ) * 0.4f;
+	float banding = 0.6f + frac( uv.y + fnoise( uv ) * 0.05f - u_Postprocess[ 0 ].time * 0.3f ) * 0.4f;
 	new_color = lerp( screen_edge, new_color, banding * on_screen );
 
 	// scanlines
@@ -194,7 +196,7 @@ float4 FragmentMain( float4 v : SV_Position ) : FragmentShaderOutput_Albedo {
 
 	float3 color = glitch( uv, glitch_amount );
 	color = crtEffect( color, uv, crt_amount );
-	if( all( abs( uv - 0.5f ) <= float2( 0.5f ) ) ) {
+	if( all( abs( uv - 0.5f ) <= Broadcast2( 0.5f ) ) ) {
 		color = sRGBToLinear( brightnessContrast( LinearTosRGB( color ) ) );
 	}
 	return float4( color, 1.0f );

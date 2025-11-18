@@ -1,4 +1,4 @@
-#include "include/common.slang"
+#include "include/common.hlsl"
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 [[vk::binding( 0, DescriptorSet_DrawCall )]] StructuredBuffer< float3x4 > u_ModelTransform;
@@ -6,7 +6,7 @@
 [[vk::binding( 1, DescriptorSet_DrawCall )]] StructuredBuffer< float3x4 > u_Pose;
 #endif
 
-#include "include/skinning.slang"
+#include "include/skinning.hlsl"
 
 struct VertexInput {
 	[[vk::location( VertexAttribute_Position )]] float3 position : POSITION;

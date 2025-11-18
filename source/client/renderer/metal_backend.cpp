@@ -119,7 +119,7 @@ static void StartCapture( MTL::Device * gpu ) {
 	capture->setOutputURL( url );
 	capture->setCaptureObject( gpu );
 
-	printf( "Captured into %s\n", capture_filename->utf8String() );
+	printf( "Capturing into %s...\n", capture_filename->utf8String() );
 
 	NS::Error * pError = NULL;
 	if( !capture_manager->startCapture( capture, &pError ) ) {
@@ -135,6 +135,7 @@ static void StartCapture( MTL::Device * gpu ) {
 
 static void EndCapture() {
 	MTL::CaptureManager::sharedCaptureManager()->stopCapture();
+	printf( "Captured!\n" );
 	frame.capture = false;
 }
 
@@ -265,6 +266,7 @@ enum SamplerWrap : u8 {
 };
 
 struct SamplerConfig {
+	const char * name;
 	SamplerWrap wrap = SamplerWrap_Repeat;
 	bool filter = true;
 	bool shadowmap_sampler = false;
@@ -281,6 +283,7 @@ static MTL::SamplerState * NewSampler( const SamplerConfig & config ) {
 	MTL::SamplerDescriptor * desc = MTL::SamplerDescriptor::alloc()->init();
 	defer { desc->release(); };
 
+	desc->setLabel( NSString( config.name ) );
 	desc->setSAddressMode( SamplerWrapToMetal( config.wrap ) );
 	desc->setTAddressMode( SamplerWrapToMetal( config.wrap ) );
 
@@ -307,10 +310,10 @@ static void DeleteSampler( MTL::SamplerState * sampler ) {
 static MTL::SamplerState * samplers[ Sampler_Count ];
 
 static void CreateSamplers() {
-	samplers[ Sampler_Standard ] = NewSampler( SamplerConfig { } );
-	samplers[ Sampler_Clamp ] = NewSampler( SamplerConfig { .wrap = SamplerWrap_Clamp } );
-	samplers[ Sampler_Unfiltered ] = NewSampler( SamplerConfig { .filter = false } );
-	samplers[ Sampler_Shadowmap ] = NewSampler( SamplerConfig { .shadowmap_sampler = true } );
+	samplers[ Sampler_Standard ] = NewSampler( SamplerConfig { .name = "Standard" } );
+	samplers[ Sampler_Clamp ] = NewSampler( SamplerConfig { .name = "Clamp", .wrap = SamplerWrap_Clamp } );
+	samplers[ Sampler_Unfiltered ] = NewSampler( SamplerConfig { .name = "Unfiltered", .filter = false } );
+	samplers[ Sampler_Shadowmap ] = NewSampler( SamplerConfig { .name = "Shadowmap", .shadowmap_sampler = true } );
 }
 
 static void DeleteSamplers() {
@@ -400,6 +403,7 @@ MTL::Texture * NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & co
 
 	constexpr MTL::TextureSwizzle R = MTL::TextureSwizzleRed;
 	constexpr MTL::TextureSwizzle G = MTL::TextureSwizzleGreen;
+	constexpr MTL::TextureSwizzle A = MTL::TextureSwizzleAlpha;
 	constexpr MTL::TextureSwizzle ONE = MTL::TextureSwizzleOne;
 
 	Optional< MTL::TextureSwizzleChannels > swizzle = NONE;
@@ -422,6 +426,9 @@ MTL::Texture * NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & co
 				 break;
 
 			case TextureFormat_A_U8:
+				 swizzle = { ONE, ONE, ONE, A };
+				 break;
+
 			case TextureFormat_BC4:
 				 swizzle = { ONE, ONE, ONE, R };
 				 break;

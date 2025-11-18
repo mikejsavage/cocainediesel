@@ -1,6 +1,6 @@
 require( "ggbuild.gen_ninja" )
 require( "ggbuild.git_version" )
-require( "ggbuild.shaders" )
+require( "ggbuild.shaders_dxc" )
 
 global_cxxflags( "-I source -I libs" )
 

@@ -1,12 +1,13 @@
-#include "include/common.slang"
+#include "include/common.hlsl"
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 [[vk::binding( 0, DescriptorSet_DrawCall )]] StructuredBuffer< float3x4 > u_ModelTransform;
+[[vk::binding( 1, DescriptorSet_DrawCall )]] StructuredBuffer< float4 > u_SilhouetteColor;
 #ifdef SKINNED
-[[vk::binding( 1, DescriptorSet_DrawCall )]] StructuredBuffer< float3x4 > u_Pose;
+[[vk::binding( 2, DescriptorSet_DrawCall )]] StructuredBuffer< float3x4 > u_Pose;
 #endif
 
-#include "include/skinning.slang"
+#include "include/skinning.hlsl"
 
 struct VertexInput {
 	[[vk::location( VertexAttribute_Position )]] float3 position : POSITION;
@@ -24,5 +25,6 @@ float4 VertexMain( VertexInput input ) : SV_Position {
 	return mul( u_View[ 0 ].P, mul34( u_View[ 0 ].V, mul34( u_ModelTransform[ 0 ], position4 ) ) );
 }
 
-void FragmentMain( float4 vertex : SV_Position ) {
+float4 FragmentMain() : FragmentShaderOutput_Albedo {
+	return u_SilhouetteColor[ 0 ];
 }

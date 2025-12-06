@@ -735,6 +735,7 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 
 	DeltaEnum( buf, player.weapon_state, baseline.weapon_state, WeaponState_Count );
 	Delta( buf, player.weapon_state_time, baseline.weapon_state_time );
+	Delta( buf, player.weapon_state_duration, baseline.weapon_state_duration );
 
 	DeltaEnum( buf, player.weapon, baseline.weapon, Weapon_Count );
 	DeltaEnum( buf, player.pending_weapon, baseline.pending_weapon, Weapon_Count );

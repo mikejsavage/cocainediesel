@@ -74,6 +74,7 @@ enum EntityType : u8 {
 
 enum DamageCategory {
 	DamageCategory_Weapon,
+	DamageCategory_WeaponAlt,
 	DamageCategory_Gadget,
 	DamageCategory_World,
 };
@@ -144,16 +145,22 @@ enum WorldDamage : u8 {
 };
 
 struct DamageType {
-	u8 encoded;
+	u8 encoded : 7;
+	u8 altfire : 1;
 
 	DamageType() = default;
 	DamageType( WeaponType weapon );
+	DamageType( WeaponType weapon, bool altfire );
 	DamageType( GadgetType gadget );
 	DamageType( WorldDamage world );
-};
 
-bool operator==( DamageType a, DamageType b );
-bool operator!=( DamageType a, DamageType b );
+	bool operator==( DamageType d );
+	bool operator==( WeaponType w );
+	bool operator==( GadgetType g );
+	bool operator==( WorldDamage w );
+
+	bool operator!=( auto g );
+};
 
 enum PerkType : u8 {
 	Perk_None,
@@ -490,6 +497,7 @@ struct SyncPlayerState {
 
 	WeaponState weapon_state;
 	u16 weapon_state_time;
+	u16 weapon_state_duration;
 	s16 zoom_time;
 
 	WeaponType weapon;

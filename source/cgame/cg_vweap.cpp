@@ -58,20 +58,20 @@ static void AddViewWeaponAnimations( Vec3 * origin, EulerDegrees3 * angles, cg_v
 		}
 	}
 	else {
-		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 		if( ps->weapon == Weapon_None )
 			return;
 
+		float weapon_state_duration = float( ps->weapon_state_duration );
 		if( ps->weapon_state == WeaponState_Firing || ps->weapon_state == WeaponState_FiringSemiAuto ) {
-			float frac = float( ps->weapon_state_time ) / float( def->refire_time );
+			float frac = float( ps->weapon_state_time ) / weapon_state_duration;
 			if( ps->weapon == Weapon_Knife ) {
 				*origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 30.0f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
-				angles->roll += def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
-				angles->yaw -= def->refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
-				angles->pitch += def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->roll += weapon_state_duration * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->yaw -= weapon_state_duration * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->pitch += weapon_state_duration * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 			}
 			else {
-				angles->pitch += def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->pitch += ps->weapon_state_duration * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 			}
 		}
 		else if( ps->weapon_state == WeaponState_Reloading || ps->weapon_state == WeaponState_StagedReloading ) {
@@ -80,7 +80,7 @@ static void AddViewWeaponAnimations( Vec3 * origin, EulerDegrees3 * angles, cg_v
 			if( model != NULL ) {
 				u8 animation;
 				if( !FindAnimationByName( model, viewweapon->eventAnim, &animation ) ) {
-					float t = float( ps->weapon_state_time ) / def->reload_time;
+					float t = float( ps->weapon_state_time ) / weapon_state_duration;
 					angles->roll -= Lerp( 0.0f, SmoothStep( t ), 360.0f );
 				}
 			}
@@ -88,15 +88,15 @@ static void AddViewWeaponAnimations( Vec3 * origin, EulerDegrees3 * angles, cg_v
 		else if( ps->weapon_state == WeaponState_SwitchingIn || ps->weapon_state == WeaponState_SwitchingOut ) {
 			float frac;
 			if( ps->weapon_state == WeaponState_SwitchingIn ) {
-				frac = EaseOutQuadratic( float( ps->weapon_state_time ) / float( def->switch_in_time ) );
+				frac = EaseOutQuadratic( float( ps->weapon_state_time ) / weapon_state_duration );
 			}
 			else {
-				frac = EaseInQuadratic( float( ps->weapon_state_time ) / float( def->switch_out_time ) );
+				frac = EaseInQuadratic( float( ps->weapon_state_time ) / weapon_state_duration );
 			}
 			angles->pitch -= Lerp( 0.0f, frac, 60.0f );
 		}
 		else if( ps->weapon == Weapon_Bat && ps->weapon_state == WeaponState_Cooking ) {
-			float charge = float( ps->weapon_state_time ) / float( def->reload_time );
+			float charge = float( ps->weapon_state_time ) / weapon_state_duration;
 			float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 4.0f;
 			*origin -= FromQFAxis( cg.view.axis, AXIS_FORWARD ) * pull_back;
 			angles->pitch += pull_back * 10.0f;
@@ -209,14 +209,14 @@ void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
 	}
 }
 
-void CG_AddRecoil( WeaponType weapon ) {
+void CG_AddRecoil( WeaponType weapon, bool altfire ) {
 	if( !cg.recoiling ) {
 		cg.recoil_initial_angles = cl.viewangles;
 		cg.recoiling = true;
 	}
 
-	EulerDegrees2 min = GS_GetWeaponDef( weapon )->recoil_min;
-	EulerDegrees2 max = GS_GetWeaponDef( weapon )->recoil_max;
+	EulerDegrees2 min = GetWeaponDefFire( weapon, altfire )->recoil_min;
+	EulerDegrees2 max = GetWeaponDefFire( weapon, altfire )->recoil_max;
 
 	cg.recoil_velocity.pitch = -RandomUniformFloat( &cls.rng, min.pitch, max.pitch );
 	cg.recoil_velocity.yaw = RandomUniformFloat( &cls.rng, min.yaw, max.yaw );
@@ -240,7 +240,7 @@ void CG_Recoil( WeaponType weapon ) {
 	recovery_delta = AngleDelta( cg.recoil_initial_angles, viewangles );
 
 	constexpr float recenter_speed_scale = 1.0f / 16.0f;
-	float recenter_accel = GS_GetWeaponDef( weapon )->recoil_recovery;
+	float recenter_accel = GetWeaponDefProperties( weapon )->recoil_recovery;
 
 	// pitch
 	{

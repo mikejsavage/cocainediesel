@@ -90,7 +90,7 @@ float CG_CalcViewFov() {
 	if( weapon == Weapon_None )
 		return FOV;
 
-	float zoom_fov = GS_GetWeaponDef( weapon )->zoom_fov;
+	float zoom_fov = GetWeaponDefProperties( weapon )->zoom_fov;
 	float frac = float( cg.predictedPlayerState.zoom_time ) / float( ZOOMTIME );
 	return Lerp( FOV, frac, float( zoom_fov ) );
 }

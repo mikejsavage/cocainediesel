@@ -197,8 +197,7 @@ static void CG_Cmd_UseWeapon_f( const Tokenized & args ) {
 	}
 
 	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
-		const WeaponDef * weapon = GS_GetWeaponDef( i );
-		if( StrCaseEqual( weapon->name, args.tokens[ 1 ] ) && GS_CanEquip( &cg.predictedPlayerState, i ) ) {
+		if( StrCaseEqual( GetWeaponDefProperties( i )->name, args.tokens[ 1 ] ) && GS_CanEquip( &cg.predictedPlayerState, i ) ) {
 			SwitchWeapon( i );
 		}
 	}
@@ -230,7 +229,7 @@ static void ScrollWeapon( int step ) {
 		return;
 
 	WeaponType weapon = ps->weapons[ slot ].weapon;
-	if( weapon != Weapon_None && GS_GetWeaponDef( weapon )->category != WeaponCategory_Melee ) {
+	if( weapon != Weapon_None && GetWeaponDefProperties( weapon )->category != WeaponCategory_Melee ) {
 		SwitchWeapon( weapon );
 	}
 }
@@ -250,7 +249,7 @@ static void CG_Cmd_PrevWeapon_f() {
 		return;
 	}
 
-	if( GS_GetWeaponDef( cg.predictedPlayerState.weapon )->category == WeaponCategory_Melee ) {
+	if( GetWeaponDefProperties( cg.predictedPlayerState.weapon )->category == WeaponCategory_Melee ) {
 		SwitchWeapon( cg.predictedPlayerState.last_weapon );
 	} else {
 		ScrollWeapon( -1 );

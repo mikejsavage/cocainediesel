@@ -358,7 +358,7 @@ static const Material * DamageTypeToIcon( DamageType type ) {
 	WorldDamage world;
 	DamageCategory category = DecodeDamageType( type, &weapon, &gadget, &world );
 
-	if( category == DamageCategory_Weapon ) {
+	if( category == DamageCategory_Weapon || category == DamageCategory_WeaponAlt ) {
 		return FindMaterial( cgs.media.shaderWeaponIcon[ weapon ] );
 	}
 
@@ -403,7 +403,7 @@ static void GlitchText( Span< char > msg ) {
 }
 
 void CG_DrawScope() {
-	const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
+	const WeaponDef::Properties * def = GetWeaponDefProperties( cg.predictedPlayerState.weapon );
 	if( def->zoom_fov != 0 && cg.predictedPlayerState.zoom_time > 0 ) {
 		float frac = cg.predictedPlayerState.zoom_time / float( ZOOMTIME );
 
@@ -855,14 +855,14 @@ static int LuauGetPerkIcon( lua_State * L ) {
 static int LuauGetWeaponReloadTime( lua_State * L ) {
 	u8 w = luaL_checknumber( L, 1 );
 	lua_newtable( L );
-	lua_pushnumber( L, GS_GetWeaponDef( WeaponType( w ) )->reload_time );
+	lua_pushnumber( L, GetWeaponDefProperties( WeaponType( w ) )->reload_time );
 	return 1;
 }
 
 static int LuauGetWeaponStagedReload( lua_State * L ) {
 	u8 w = luaL_checknumber( L, 1 );
 	lua_newtable( L );
-	lua_pushboolean( L, GS_GetWeaponDef( WeaponType( w ) )->staged_reload );
+	lua_pushboolean( L, GetWeaponDefProperties( WeaponType( w ) )->staged_reload );
 	return 1;
 }
 
@@ -1833,7 +1833,7 @@ void CG_DrawHUD() {
 
 	lua_createtable( hud_L, Weapon_Count - 1, 0 );
 	for( size_t i = 0; i < ARRAY_COUNT( cg.predictedPlayerState.weapons ); i++ ) {
-		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapons[ i ].weapon );
+		const WeaponDef::Properties * def = GetWeaponDefProperties( cg.predictedPlayerState.weapons[ i ].weapon );
 
 		if( cg.predictedPlayerState.weapons[ i ].weapon == Weapon_None )
 			continue;

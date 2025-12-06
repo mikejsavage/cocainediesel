@@ -72,7 +72,6 @@ struct gs_module_api_t {
 	trace_t ( *Trace )( Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask, int timeDelta );
 	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
 	void ( *PredictedFireWeapon )( int entNum, u64 parm );
-	void ( *PredictedAltFireWeapon )( int entNum, u64 parm );
 	void ( *PredictedUseGadget )( int entNum, GadgetType gadget, u64 parm, bool dead );
 	void ( *PMoveTouchTriggers )( const pmove_t * pm, Vec3 previous_origin );
 };

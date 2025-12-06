@@ -12,7 +12,7 @@ static struct GladiatorState {
 		WeaponType id;
 
 		WeaponType next() {
-			while( GS_GetWeaponDef( (id = WeaponType((id + 1) % Weapon_Count)) )->category != Category );
+			while( GetWeaponDefProperties( (id = WeaponType((id + 1) % Weapon_Count)) )->category != Category );
 			return id;
 		}
 

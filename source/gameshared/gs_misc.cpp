@@ -49,30 +49,37 @@ void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, 
 
 DamageType::DamageType( WeaponType weapon ) {
 	encoded = u8( weapon );
+	altfire = u8( false );
+}
+
+DamageType::DamageType( WeaponType weapon, bool altfire = false ) {
+	encoded = u8( weapon );
+	altfire = u8( altfire );
 }
 
 DamageType::DamageType( GadgetType gadget ) {
 	encoded = u8( gadget ) + u8( Weapon_Count );
+	altfire = u8( 0 );
 }
 
 DamageType::DamageType( WorldDamage world ) {
 	encoded = u8( world ) + u8( Weapon_Count ) + u8( Gadget_Count );
+	altfire = u8( 0 );
 }
 
-bool operator==( DamageType a, DamageType b ) {
-	return a.encoded == b.encoded;
-}
+bool DamageType::operator==( DamageType d ) { return encoded == d.encoded; }
+bool DamageType::operator==( WeaponType w ) { return encoded == w; }
+bool DamageType::operator==( GadgetType g ) { return encoded == g; }
+bool DamageType::operator==( WorldDamage w ) { return encoded == w; }
+bool DamageType::operator!=( auto g ) { return !( operator==( g ) ); }
 
-bool operator!=( DamageType a, DamageType b ) {
-	return !( a == b );
-}
 
 DamageCategory DecodeDamageType( DamageType type, WeaponType * weapon, GadgetType * gadget, WorldDamage * world ) {
 	if( type.encoded < Weapon_Count ) {
 		if( weapon != NULL ) {
 			*weapon = WeaponType( type.encoded );
 		}
-		return DamageCategory_Weapon;
+		return type.altfire ? DamageCategory_WeaponAlt : DamageCategory_Weapon;
 	}
 
 	if( type.encoded < u8( Weapon_Count ) + u8( Gadget_Count ) ) {

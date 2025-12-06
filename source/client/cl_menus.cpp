@@ -1935,7 +1935,7 @@ static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 i
 	InitCategory( label, icon_size.y * 0.5 );
 
 	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
-		const WeaponDef * def = GS_GetWeaponDef( i );
+		const WeaponDef::Properties * def = GetWeaponDefProperties( i );
 		if( def->category == category ) {
 			const Material * icon = FindMaterial( cgs.media.shaderWeaponIcon[ i ] );
 			if( LoadoutButton( ToUpperASCII( &temp, def->name ), icon_size, icon, loadout.weapons[ def->category ] == i ) ) {
@@ -2019,7 +2019,7 @@ static bool LoadoutMenu() {
 			for( WeaponCategory category = WeaponCategory( 0 ); category < WeaponCategory_Count; category++ ) {
 				do {
 					loadout.weapons[ category ] = WeaponType( RandomUniform( &cls.rng, Weapon_None + 1, Weapon_Count ) );
-				} while( GS_GetWeaponDef( loadout.weapons[ category ] )->category != category );
+				} while( GetWeaponDefProperties( loadout.weapons[ category ] )->category != category );
 			}
 
 			loadout.gadget = GadgetType( RandomUniform( &cls.rng, Gadget_None + 1, Gadget_Count ) );

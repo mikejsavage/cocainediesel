@@ -24,7 +24,7 @@ void CG_RegisterMedia() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
-		cgs.media.shaderWeaponIcon[ i ] = StringHash( temp( "loadout/{}/icon", GS_GetWeaponDef( i )->name ) );
+		cgs.media.shaderWeaponIcon[ i ] = StringHash( temp( "loadout/{}/icon", GetWeaponDefProperties( i )->name ) );
 	}
 
 	for( GadgetType i = Gadget_None; i < Gadget_Count; i++ ) {

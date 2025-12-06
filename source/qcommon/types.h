@@ -509,7 +509,7 @@ constexpr Mat4::Mat4( const Mat3x4 & m34 ) :
 struct EulerDegrees2 {
 	float pitch, yaw;
 
-	EulerDegrees2() = default;
+	constexpr EulerDegrees2() : pitch( 0.f ), yaw( 0.f ) { }
 	constexpr EulerDegrees2( float p, float y ) : pitch( p ), yaw( y ) { }
 	explicit constexpr EulerDegrees2( Vec2 v ) : pitch( v.x ), yaw( v.y ) { }
 };

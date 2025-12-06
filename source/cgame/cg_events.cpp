@@ -63,8 +63,8 @@ static void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
 	DoVisualEffect( "loadout/rail/trail", start, end, count, color );
 }
 
-static void FireRail( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Rail );
+static void FireRail( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin, bool altfire ) {
+	const WeaponDef::Fire * def = GetWeaponDefFire( Weapon_Rail, altfire );
 
 	float range = def->range;
 	Vec3 end = origin + dir * range;
@@ -126,7 +126,7 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 	}
 
 	// trace the beam: for tracing we use the real beam origin
-	float range = GS_GetWeaponDef( Weapon_Laser )->range;
+	float range = GS_GetWeaponDef( Weapon_Laser )->fire.range;
 	trace_t trace = GS_TraceLaserBeam( &client_gs, laserOrigin, laserAngles, range, cent->current.number, 0 );
 	if( trace.HitSomething() ) {
 		DrawDynamicLight( trace.endpos, color.xyz(), 10000.0f );
@@ -154,21 +154,25 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 	}
 }
 
-static void CG_Event_LaserBeam( Vec3 origin, Vec3 dir, int entNum ) {
+static void CG_Event_LaserBeam( Vec3 origin, Vec3 dir, int entNum, bool altfire ) {
+	const WeaponDef::Fire * def = GetWeaponDefFire( Weapon_Laser, altfire );
+
 	// lasergun's smooth refire
 	// it appears that 64ms is that maximum allowed time interval between prediction events on localhost
-	unsigned int range = Max2( GS_GetWeaponDef( Weapon_Laser )->refire_time + 10, 65 );
+	unsigned int range = Max2( def->refire_time + 10, 65 );
 
 	centity_t * cent = &cg_entities[ entNum ];
 	cent->laserOrigin = origin;
-	cent->laserPoint = cent->laserOrigin + dir * GS_GetWeaponDef( Weapon_Laser )->range;
+	cent->laserPoint = cent->laserOrigin + dir * def->range;
 
 	cent->laserOriginOld = cent->laserOrigin;
 	cent->laserPointOld = cent->laserPoint;
 	cent->localEffects[ LOCALEFFECT_LASERBEAM ] = cl.serverTime + range;
 }
 
-static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
+static void CG_FireWeaponEvent( int entNum, WeaponType weapon, bool altfire ) {
+	const WeaponDef::Fire * def = GetWeaponDefFire( weapon, altfire );
+
 	const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( weapon );
 	StringHash sfx = weaponInfo->fire_sound;
 
@@ -180,7 +184,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 	}
 
 	if( weapon != Weapon_Laser && ISVIEWERENTITY( entNum ) ) {
-		CG_ScreenCrosshairShootUpdate( GS_GetWeaponDef( weapon )->refire_time );
+		CG_ScreenCrosshairShootUpdate( def->refire_time );
 	}
 
 	// add animation to the player model
@@ -222,18 +226,18 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 
 	// recoil
 	if( ISVIEWERENTITY( entNum ) && cg.view.playerPrediction ) {
-		CG_AddRecoil( weapon );
+		CG_AddRecoil( weapon, altfire );
 	}
 }
 
-static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_time, WeaponType weapon, int owner, Vec4 team_color ) {
-	const WeaponDef * def = GS_GetWeaponDef( weapon );
+static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_time, WeaponType weapon, int owner, Vec4 team_color, bool altfire ) {
+	const WeaponDef::Fire * fire = GetWeaponDefFire( weapon, altfire );
 
 	Vec3 right, up;
 	ViewVectors( dir, &right, &up );
 
-	Vec2 spread = RandomSpreadPattern( entropy, def->spread + ZoomSpreadness( zoom_time, def ) );
-	int range = def->range;
+	Vec2 spread = RandomSpreadPattern( entropy, fire->spread + ZoomSpreadness( zoom_time, weapon, altfire ) );
+	int range = fire->range;
 
 	trace_t trace, wallbang;
 	GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, spread, range, owner, 0 );
@@ -258,8 +262,8 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 	AddPersistentBeam( GetMuzzleTransform( owner ).col3, trace.endpos, 1.0f, team_color, "tracer", Milliseconds( 200 ), Milliseconds( 100 ) );
 }
 
-static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_color, WeaponType weapon ) {
-	const WeaponDef * def = GS_GetWeaponDef( weapon );
+static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_color, WeaponType weapon, bool altfire ) {
+	const WeaponDef::Fire * def = GetWeaponDefFire( weapon, altfire );
 
 	Vec3 right, up;
 	ViewVectors( dir, &right, &up );
@@ -613,21 +617,25 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_SMOOTHREFIREWEAPON: // the server never sends this event
 			if( predicted ) {
-				if( parm == Weapon_Laser ) {
+				WeaponType weapon = WeaponType( parm & 0xFF );
+				bool altfire = ( parm >> 8 ) & 0xFF;
+				
+				if( weapon == Weapon_Laser ) {
 					Vec3 origin = cg.predictedPlayerState.pmove.origin;
 					origin.z += cg.predictedPlayerState.viewheight;
 
 					Vec3 dir;
 					AngleVectors( cg.predictedPlayerState.viewangles, &dir, NULL, NULL );
 
-					CG_Event_LaserBeam( origin, dir, ent->number );
+					CG_Event_LaserBeam( origin, dir, ent->number, altfire );
 				}
 			}
 			break;
 
-		case EV_FIREWEAPON:
-		case EV_ALTFIREWEAPON: {
+		case EV_FIREWEAPON: {
 			WeaponType weapon = WeaponType( parm & 0xFF );
+			bool altfire = ( parm >> 8 ) & 0xFF;
+
 			if( weapon <= Weapon_None || weapon >= Weapon_Count )
 				return;
 
@@ -636,7 +644,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				return;
 			}
 
-			if( weapon == Weapon_Rail && ev == EV_ALTFIREWEAPON ) {
+			if( weapon == Weapon_Rail && altfire ) {
 				return;
 			}
 
@@ -655,25 +663,25 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				angles = EulerDegrees3( ent->origin2 );
 			}
 
-			CG_FireWeaponEvent( owner, weapon );
+			CG_FireWeaponEvent( owner, weapon, altfire );
 			CG_ViewWeapon_AddAnimation( owner, "fire" );
 
 			Vec3 dir;
 			AngleVectors( angles, &dir, NULL, NULL );
 
 			if( weapon == Weapon_Rail ) {
-				FireRail( origin, dir, owner, false );
+				FireRail( origin, dir, owner, false, altfire );
 			}
 			else if( weapon == Weapon_Shotgun || weapon == Weapon_SawnOff ) {
-				CG_Event_FireShotgun( origin, dir, owner, team_color, weapon );
+				CG_Event_FireShotgun( origin, dir, owner, team_color, weapon, altfire );
 			}
 			else if( weapon == Weapon_Laser ) {
-				CG_Event_LaserBeam( origin, dir, owner );
+				CG_Event_LaserBeam( origin, dir, owner, altfire );
 			}
 			else if( weapon == Weapon_9mm || weapon == Weapon_Smg || weapon == Weapon_Deagle || weapon == Weapon_Burst || weapon == Weapon_Sniper || weapon == Weapon_Scout /* || weapon == Weapon_Minigun */ ) {
 				u16 entropy = parm >> 8;
-				s16 zoom_time = parm >> 24;
-				CG_Event_FireBullet( origin, dir, entropy, zoom_time, weapon, owner, team_color );
+				s16 zoom_time = parm >> 32;
+				CG_Event_FireBullet( origin, dir, entropy, zoom_time, weapon, owner, team_color, altfire );
 			}
 
 			// if( predicted && weapon == Weapon_Minigun ) {
@@ -810,7 +818,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_RAIL_ALTFIRE: {
 			Vec3 dir;
 			AngleVectors( ent->angles, &dir, NULL, NULL );
-			FireRail( ent->origin, dir, ent->ownerNum, true );
+			FireRail( ent->origin, dir, ent->ownerNum, true, false );
 		} break;
 
 		case EV_LAUNCHER_BOUNCE: {

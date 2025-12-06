@@ -6,42 +6,61 @@
 struct gs_state_t;
 
 struct WeaponDef {
-	Span< const char > name;
+	struct Properties {
+		Span< const char > name;
 
-	WeaponCategory category;
+		WeaponCategory category;
 
-	int projectile_count = 1;
-	int clip_size;
-	u16 reload_time;
-	bool staged_reload;
+		int clip_size;
+		u16 reload_time;
+		bool staged_reload;
 
-	u16 switch_in_time;
-	u16 switch_out_time;
-	u16 refire_time;
-	s64 range;
+		u16 switch_in_time;
+		u16 switch_out_time;
 
-	EulerDegrees2 recoil_max;
-	EulerDegrees2 recoil_min;
-	float recoil_recovery = 500.0f;
+		float zoom_fov = 0.f;
+		float zoom_spread = 0.f;
 
-	FiringMode firing_mode;
+		float recoil_recovery = 500.0f;
+	};
 
-	float zoom_fov;
-	float zoom_spread;
+	struct Fire {
+		int projectile_count = 1;
+		
+		u16 refire_time = 0;
+		s64 range = 0;
 
-	int damage;
-	float self_damage_scale = 1.0f;
-	float wallbang_damage_scale = 1.0f;
-	int knockback;
-	int splash_radius;
-	int min_damage;
-	int min_knockback;
+		EulerDegrees2 recoil_max;
+		EulerDegrees2 recoil_min;
 
-	int speed;
-	float gravity_scale = 1.0f;
-	float restitution = 1.0f;
-	float spread;
+		FiringMode firing_mode = FiringMode_Auto;
+
+		int damage = 0;
+		float self_damage_scale = 1.0f;
+		float wallbang_damage_scale = 1.0f;
+		int knockback = 0;
+		int splash_radius = 0;
+		int min_damage = 0;
+		int min_knockback = 0;
+
+		int speed = 0;
+		float gravity_scale = 1.0f;
+		float restitution = 1.0f;
+		float spread = 0.f;
+	};
+
+	Properties properties;	
+	Fire fire;
+	Fire altfire;
 	bool has_altfire;
+
+	constexpr WeaponDef(const Properties& prop, const Fire& f, bool has_alt_fire):
+		properties{prop}, fire{f}, altfire{f}, has_altfire{has_alt_fire}
+	{ }
+	
+	constexpr WeaponDef(const Properties& prop, const Fire& f1, const Fire& f2):
+		properties{prop}, fire{f1}, altfire{f2}
+	{ }
 };
 
 struct GadgetDef {
@@ -82,6 +101,8 @@ void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd
 void ClearInventory( SyncPlayerState * ps );
 
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
+const WeaponDef::Properties * GetWeaponDefProperties( WeaponType weapon );
+const WeaponDef::Fire * GetWeaponDefFire( WeaponType weapon, bool altfire );
 const GadgetDef * GetGadgetDef( GadgetType gadget );
 const PerkDef * GetPerkDef( PerkType perk );
 
@@ -90,7 +111,7 @@ const WeaponSlot * GS_FindWeapon( const SyncPlayerState * player, WeaponType wea
 
 void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, Vec3 start, Vec3 dir, Vec3 right, Vec3 up, Vec2 spread, int range, int ignore, int timeDelta );
 Vec2 RandomSpreadPattern( u16 entropy, float spread );
-float ZoomSpreadness( s16 zoom_time, const WeaponDef * def );
+float ZoomSpreadness( s16 zoom_time, WeaponType w, bool alt );
 Vec2 FixedSpreadPattern( int i, float spread );
 trace_t GS_TraceLaserBeam( const gs_state_t * gs, Vec3 origin, EulerDegrees3 angles, float range, int ignore, int timeDelta );
 

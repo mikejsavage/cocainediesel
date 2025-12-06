@@ -39,9 +39,9 @@ Vec2 RandomSpreadPattern( u16 entropy, float spread ) {
 	return spread * UniformSampleInsideCircle( &rng );
 }
 
-float ZoomSpreadness( s16 zoom_time, const WeaponDef * def ) {
+float ZoomSpreadness( s16 zoom_time, WeaponType w, bool alt ) {
 	float frac = 1.0f - float( zoom_time ) / float( ZOOMTIME );
-	return frac * def->range * atanf( Radians( def->zoom_spread ) );
+	return frac * GetWeaponDefFire( w, alt )->range * atanf( Radians( GetWeaponDefProperties( w )->zoom_spread ) );
 }
 
 Vec2 FixedSpreadPattern( int i, float spread ) {
@@ -78,7 +78,7 @@ const WeaponSlot * GetSelectedWeapon( const SyncPlayerState * player ) {
 	return FindWeapon( player, player->weapon );
 }
 
-static bool HasAmmo( const WeaponDef * def, const WeaponSlot * slot ) {
+static bool HasAmmo( const WeaponDef::Properties * def, const WeaponSlot * slot ) {
 	return def->clip_size == 0 || slot->ammo > 0;
 }
 
@@ -99,6 +99,12 @@ struct ItemStateTransition {
 		state = s;
 	}
 };
+
+static void FireWeaponEvent( const gs_state_t * gs, SyncPlayerState * ps, const UserCommand * cmd, WeaponType weapon, bool altfire ) {
+	// 8 | 8 | 16 | 32
+	u64 parm = weapon | u64( altfire ) << 8 | u64( cmd->entropy ) << 16 | ( u64( ps->zoom_time ) << 32 );
+	gs->api.PredictedFireWeapon( ps->POVnum, parm );
+}
 
 static ItemStateTransition NoReset( WeaponState state ) {
 	ItemStateTransition t;
@@ -128,7 +134,7 @@ static ItemStateTransition GenericDelay( WeaponState state, SyncPlayerState * ps
 }
 
 static void HandleZoom( const gs_state_t * gs, SyncPlayerState * ps, const UserCommand * cmd ) {
-	const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
+	const WeaponDef::Properties * def = GetWeaponDefProperties( ps->weapon );
 	const WeaponSlot * slot = GetSelectedWeapon( ps );
 
 	s16 last_zoom_time = ps->zoom_time;
@@ -149,18 +155,14 @@ static void HandleZoom( const gs_state_t * gs, SyncPlayerState * ps, const UserC
 }
 
 static void FireWeapon( const gs_state_t * gs, SyncPlayerState * ps, const UserCommand * cmd, bool smooth, bool altfire ) {
-	const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
+	const WeaponDef::Properties * def = GetWeaponDefProperties( ps->weapon );
 	WeaponSlot * slot = GetSelectedWeapon( ps );
 
-	if( altfire ) {
-		gs->api.PredictedAltFireWeapon( ps->POVnum, ps->weapon );
-	}
-	else if( smooth ) {
+	if( smooth ) {
 		gs->api.PredictedEvent( ps->POVnum, EV_SMOOTHREFIREWEAPON, ps->weapon );
 	}
 	else {
-		u64 parm = ps->weapon | ( cmd->entropy << 8 ) | ( u64( ps->zoom_time ) << 24 ) ;
-		gs->api.PredictedFireWeapon( ps->POVnum, parm );
+		FireWeaponEvent( gs, ps, cmd, ps->weapon, altfire );
 	}
 
 	if( def->clip_size > 0 ) {
@@ -178,6 +180,7 @@ static ItemStateTransition Dispatch( const gs_state_t * gs, WeaponState state, S
 	}
 	else {
 		ps->weapon = ps->pending_weapon;
+		ps->weapon_state_duration = GetWeaponDefProperties( ps->pending_weapon )->switch_in_time;
 	}
 
 	ps->pending_weapon = Weapon_None;
@@ -210,18 +213,18 @@ static ItemStateTransition AllowWeaponSwitch( const gs_state_t * gs, SyncPlayerS
 
 	gs->api.PredictedEvent( ps->POVnum, EV_WEAPONDROP, 0 );
 
+	ps->weapon_state_duration = GetWeaponDefProperties( ps->weapon )->switch_out_time;
 	return WeaponState_SwitchingOut;
 }
 
 static constexpr ItemState generic_gun_switching_in_state =
 	ItemState( WeaponState_SwitchingIn, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
-		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
-		return AllowWeaponSwitch( gs, ps, GenericDelay( state, ps, def->switch_in_time, WeaponState_Idle ) );
+		return AllowWeaponSwitch( gs, ps, GenericDelay( state, ps, ps->weapon_state_duration, WeaponState_Idle ) );
 	} );
 
 static constexpr ItemState generic_gun_switching_out_state =
 	ItemState( WeaponState_SwitchingOut, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
-		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
+		const WeaponDef::Properties * def = GetWeaponDefProperties( ps->weapon );
 		if( ps->weapon_state_time >= def->switch_out_time ) {
 			ps->last_weapon = ps->weapon;
 			ps->weapon = Weapon_None;
@@ -233,8 +236,7 @@ static constexpr ItemState generic_gun_switching_out_state =
 
 static constexpr ItemState generic_gun_refire_state =
 	ItemState( WeaponState_Firing, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
-		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
-		return GenericDelay( state, ps, def->refire_time, AllowWeaponSwitch( gs, ps, WeaponState_Idle ) );
+		return GenericDelay( state, ps, ps->weapon_state_duration, AllowWeaponSwitch( gs, ps, WeaponState_Idle ) );
 	} );
 
 static UserCommandButton WeaponAttackBits( const WeaponDef * def ) {
@@ -248,13 +250,17 @@ static constexpr ItemState generic_gun_states[] = {
 
 	ItemState( WeaponState_Idle, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
+		const WeaponDef::Properties * prop = GetWeaponDefProperties( ps->weapon );
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
 		if( HasAnyBit( cmd->buttons, WeaponAttackBits( def ) ) ) {
-			if( HasAmmo( def, slot ) ) {
-				FireWeapon( gs, ps, cmd, false, def->has_altfire && HasAllBits( cmd->buttons, Button_Attack2 ) );
+			if( HasAmmo( prop, slot ) ) {
+				bool altfire = def->has_altfire && HasAllBits( cmd->buttons, Button_Attack2 );
+				FireWeapon( gs, ps, cmd, false, altfire );
 
-				switch( def->firing_mode ) {
+				ps->weapon_state_duration = GetWeaponDefFire( ps->weapon, altfire )->refire_time;
+
+				switch( GetWeaponDefFire( ps->weapon, altfire )->firing_mode ) {
 					case FiringMode_Auto: return WeaponState_Firing;
 					case FiringMode_SemiAuto: return WeaponState_FiringSemiAuto;
 					case FiringMode_Smooth: return WeaponState_FiringSmooth;
@@ -263,8 +269,9 @@ static constexpr ItemState generic_gun_states[] = {
 			}
 		}
 
-		bool wants_reload = HasAllBits( cmd->buttons, Button_Reload ) && def->clip_size != 0 && slot->ammo < def->clip_size;
-		if( wants_reload || !HasAmmo( def, slot ) ) {
+		bool wants_reload = HasAllBits( cmd->buttons, Button_Reload ) && prop->clip_size != 0 && slot->ammo < prop->clip_size;
+		if( wants_reload || !HasAmmo( prop, slot ) ) {
+			ps->weapon_state_duration = prop->reload_time;
 			return WeaponState_Reloading;
 		}
 
@@ -273,10 +280,9 @@ static constexpr ItemState generic_gun_states[] = {
 
 	ItemState( WeaponState_FiringSemiAuto, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		if( HasAllBits( cmd->buttons, Button_Attack1 ) ) {
-			const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
-			ps->weapon_state_time = Min2( def->refire_time, ps->weapon_state_time );
+			ps->weapon_state_time = Min2( ps->weapon_state_duration, ps->weapon_state_time );
 
-			if( ps->weapon_state_time >= def->refire_time ) {
+			if( ps->weapon_state_time >= ps->weapon_state_duration ) {
 				return AllowWeaponSwitch( gs, ps, state );
 			}
 
@@ -287,8 +293,7 @@ static constexpr ItemState generic_gun_states[] = {
 	} ),
 
 	ItemState( WeaponState_FiringSmooth, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
-		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
-		if( ps->weapon_state_time < def->refire_time ) {
+		if( ps->weapon_state_time < ps->weapon_state_duration ) {
 			return state;
 		}
 
@@ -304,8 +309,7 @@ static constexpr ItemState generic_gun_states[] = {
 	} ),
 
 	ItemState( WeaponState_FiringEntireClip, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
-		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
-		if( ps->weapon_state_time < def->refire_time ) {
+		if( ps->weapon_state_time < ps->weapon_state_duration ) {
 			return state;
 		}
 
@@ -324,10 +328,10 @@ static constexpr ItemState generic_gun_states[] = {
 			gs->api.PredictedEvent( ps->POVnum, EV_RELOAD, ps->weapon );
 		}
 
-		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
+		const WeaponDef::Properties * def = GetWeaponDefProperties( ps->weapon );
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
-		if( HasAnyBit( cmd->buttons, WeaponAttackBits( def ) ) ) {
+		if( HasAnyBit( cmd->buttons, WeaponAttackBits( GS_GetWeaponDef( ps->weapon ) ) ) ) {
 			gs->api.PredictedEvent( ps->POVnum, EV_NOAMMOCLICK, ps->weapon_state_time );
 		}
 
@@ -353,10 +357,10 @@ static constexpr ItemState generic_gun_states[] = {
 			gs->api.PredictedEvent( ps->POVnum, EV_RELOAD, ps->weapon );
 		}
 
-		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
+		const WeaponDef::Properties * def = GetWeaponDefProperties( ps->weapon );
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
-		if( HasAnyBit( cmd->buttons, WeaponAttackBits( def ) ) && HasAmmo( def, slot ) ) {
+		if( HasAnyBit( cmd->buttons, WeaponAttackBits( GS_GetWeaponDef( ps->weapon ) ) ) && HasAmmo( def, slot ) ) {
 			return WeaponState_Idle;
 		}
 
@@ -377,12 +381,14 @@ static constexpr ItemState rail_states[] = {
 
 	ItemState( WeaponState_Idle, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		if( HasAllBits( cmd->buttons, Button_Attack1 ) ) {
-			gs->api.PredictedFireWeapon( ps->POVnum, Weapon_Rail );
+			FireWeaponEvent( gs, ps, cmd, Weapon_Rail, false );
+			ps->weapon_state_duration = GetWeaponDefFire( ps->weapon, false )->refire_time;
 			return WeaponState_Firing;
 		}
 
 		if( HasAllBits( cmd->buttons, Button_Attack2 ) ) {
-			gs->api.PredictedAltFireWeapon( ps->POVnum, Weapon_Rail );
+			FireWeaponEvent( gs, ps, cmd, Weapon_Rail, true );
+			ps->weapon_state_duration = GetWeaponDefFire( ps->weapon, true )->refire_time;
 			return WeaponState_Firing;
 		}
 
@@ -397,6 +403,7 @@ static constexpr ItemState bat_states[] = {
 
 	ItemState( WeaponState_Idle, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		if( HasAllBits( cmd->buttons, Button_Attack1 ) ) {
+			ps->weapon_state_duration = GetWeaponDefProperties( Weapon_Bat )->reload_time;
 			return WeaponState_Cooking;
 		}
 
@@ -404,10 +411,11 @@ static constexpr ItemState bat_states[] = {
 	} ),
 
 	ItemState( WeaponState_Cooking, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
-		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
+		const WeaponDef::Properties * def = GetWeaponDefProperties( ps->weapon );
 
 		if( !HasAllBits( cmd->buttons, Button_Attack1 ) ) {
-			gs->api.PredictedFireWeapon( ps->POVnum, ps->weapon );
+			FireWeaponEvent( gs, ps, cmd, ps->weapon, false );
+			ps->weapon_state_duration = GetWeaponDefFire( ps->weapon, false )->refire_time;
 			return WeaponState_Firing;
 		}
 
@@ -636,7 +644,7 @@ Optional< Loadout > ParseLoadout( Span< const char > loadout_string ) {
 		if( !weapon.exists )
 			return NONE;
 
-		WeaponCategory category = GS_GetWeaponDef( WeaponType( weapon.value ) )->category;
+		WeaponCategory category = GetWeaponDefProperties( WeaponType( weapon.value ) )->category;
 		if( category != i )
 			return NONE;
 

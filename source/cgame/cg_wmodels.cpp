@@ -32,7 +32,7 @@ static WeaponModelMetadata BuildWeaponModelMetadata( WeaponType weapon ) {
 
 	WeaponModelMetadata metadata;
 
-	Span< const char > name = GS_GetWeaponDef( weapon )->name;
+	const Span< const char > & name = GetWeaponDefProperties( weapon )->name;
 
 	metadata.model = StringHash( temp( "loadout/{}/weapon", name ) );
 

@@ -685,23 +685,6 @@ void G_PredictedFireWeapon( int entNum, u64 parm ) {
 	event->s.team = ent->s.team;
 }
 
-void G_PredictedAltFireWeapon( int entNum, u64 parm ) {
-	edict_t * ent = &game.edicts[ entNum ];
-	G_AltFireWeapon( ent, parm );
-
-	Vec3 start = ent->s.origin;
-	start.z += ent->r.client->ps.viewheight;
-
-	edict_t * event = G_SpawnEvent( EV_ALTFIREWEAPON, parm, start );
-	event->s.ownerNum = entNum;
-	event->s.origin2 = Vec3(
-		ent->r.client->ps.viewangles.pitch,
-		ent->r.client->ps.viewangles.yaw,
-		ent->r.client->ps.viewangles.roll
-	);
-	event->s.team = ent->s.team;
-}
-
 void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead ) {
 	edict_t * ent = &game.edicts[ entNum ];
 	G_UseGadget( ent, gadget, parm, dead );
@@ -728,7 +711,7 @@ void G_GiveWeapon( edict_t * ent, WeaponType weapon ) {
 	for( size_t i = 0; i < ARRAY_COUNT( ps->weapons ); i++ ) {
 		if( ps->weapons[ i ].weapon == weapon || ps->weapons[ i ].weapon == Weapon_None ) {
 			ps->weapons[ i ].weapon = weapon;
-			ps->weapons[ i ].ammo = GS_GetWeaponDef( weapon )->clip_size;
+			ps->weapons[ i ].ammo = GetWeaponDefProperties( weapon )->clip_size;
 			break;
 		}
 	}
@@ -745,6 +728,7 @@ void G_SelectWeapon( edict_t * ent, int index ) {
 	ps->pending_weapon = ps->weapons[ index ].weapon;
 	ps->weapon_state = WeaponState_DispatchQuiet;
 	ps->weapon_state_time = 0;
+	ps->weapon_state_duration = GetWeaponDefProperties( ps->pending_weapon )->switch_in_time;
 }
 
 void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {

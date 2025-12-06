@@ -728,7 +728,6 @@ void G_SelectWeapon( edict_t * ent, int index ) {
 	ps->pending_weapon = ps->weapons[ index ].weapon;
 	ps->weapon_state = WeaponState_DispatchQuiet;
 	ps->weapon_state_time = 0;
-	ps->weapon_state_duration = GetWeaponDefProperties( ps->pending_weapon )->switch_in_time;
 }
 
 void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {

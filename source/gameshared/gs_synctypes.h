@@ -496,8 +496,8 @@ struct SyncPlayerState {
 	TouchInfo last_touch;
 
 	WeaponState weapon_state;
+	bool weapon_alt_fire;
 	u16 weapon_state_time;
-	u16 weapon_state_duration;
 	s16 zoom_time;
 
 	WeaponType weapon;

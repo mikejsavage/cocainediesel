@@ -61,17 +61,19 @@ static void AddViewWeaponAnimations( Vec3 * origin, EulerDegrees3 * angles, cg_v
 		if( ps->weapon == Weapon_None )
 			return;
 
-		float weapon_state_duration = float( ps->weapon_state_duration );
+		const WeaponDef::Properties * def = GetWeaponDefProperties( ps->weapon );
+
 		if( ps->weapon_state == WeaponState_Firing || ps->weapon_state == WeaponState_FiringSemiAuto ) {
-			float frac = float( ps->weapon_state_time ) / weapon_state_duration;
+			float refire_time = GetWeaponDefFire( ps->weapon, ps->weapon_alt_fire )->refire_time;
+			float frac = float( ps->weapon_state_time ) / refire_time;
 			if( ps->weapon == Weapon_Knife ) {
 				*origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 30.0f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
-				angles->roll += weapon_state_duration * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
-				angles->yaw -= weapon_state_duration * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
-				angles->pitch += weapon_state_duration * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->roll += refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->yaw -= refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->pitch += refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 			}
 			else {
-				angles->pitch += ps->weapon_state_duration * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->pitch += refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 			}
 		}
 		else if( ps->weapon_state == WeaponState_Reloading || ps->weapon_state == WeaponState_StagedReloading ) {
@@ -80,7 +82,7 @@ static void AddViewWeaponAnimations( Vec3 * origin, EulerDegrees3 * angles, cg_v
 			if( model != NULL ) {
 				u8 animation;
 				if( !FindAnimationByName( model, viewweapon->eventAnim, &animation ) ) {
-					float t = float( ps->weapon_state_time ) / weapon_state_duration;
+					float t = float( ps->weapon_state_time ) / def->reload_time;
 					angles->roll -= Lerp( 0.0f, SmoothStep( t ), 360.0f );
 				}
 			}
@@ -88,15 +90,15 @@ static void AddViewWeaponAnimations( Vec3 * origin, EulerDegrees3 * angles, cg_v
 		else if( ps->weapon_state == WeaponState_SwitchingIn || ps->weapon_state == WeaponState_SwitchingOut ) {
 			float frac;
 			if( ps->weapon_state == WeaponState_SwitchingIn ) {
-				frac = EaseOutQuadratic( float( ps->weapon_state_time ) / weapon_state_duration );
+				frac = EaseOutQuadratic( float( ps->weapon_state_time ) / def->switch_in_time );
 			}
 			else {
-				frac = EaseInQuadratic( float( ps->weapon_state_time ) / weapon_state_duration );
+				frac = EaseInQuadratic( float( ps->weapon_state_time ) / def->switch_out_time );
 			}
 			angles->pitch -= Lerp( 0.0f, frac, 60.0f );
 		}
 		else if( ps->weapon == Weapon_Bat && ps->weapon_state == WeaponState_Cooking ) {
-			float charge = float( ps->weapon_state_time ) / weapon_state_duration;
+			float charge = float( ps->weapon_state_time ) / def->reload_time;
 			float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 4.0f;
 			*origin -= FromQFAxis( cg.view.axis, AXIS_FORWARD ) * pull_back;
 			angles->pitch += pull_back * 10.0f;

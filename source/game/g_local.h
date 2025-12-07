@@ -393,7 +393,6 @@ void ClientDisconnect( edict_t * ent, const char *reason );
 void ClientBegin( edict_t * ent );
 void ClientCommand( edict_t * ent, ClientCommandType command, msg_t args );
 void G_PredictedEvent( int entNum, int ev, u64 parm );
-void G_PredictedFireWeapon( int entNum, u64 parm );
 void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead );
 void G_SelectWeapon( edict_t * ent, int index );
 void G_GiveWeapon( edict_t * ent, WeaponType weapon );

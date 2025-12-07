@@ -75,7 +75,6 @@ static void G_InitGameShared() {
 	server_gs.maxclients = sv_maxclients->integer;
 
 	server_gs.api.PredictedEvent = G_PredictedEvent;
-	server_gs.api.PredictedFireWeapon = G_PredictedFireWeapon;
 	server_gs.api.PredictedUseGadget = G_PredictedUseGadget;
 	server_gs.api.Trace = G_GS_Trace;
 	server_gs.api.PMoveTouchTriggers = G_PMoveTouchTriggers;

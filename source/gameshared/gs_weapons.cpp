@@ -107,11 +107,7 @@ template <EventType event>
 static void FireWeaponEvent( const gs_state_t * gs, SyncPlayerState * ps, const UserCommand * cmd, WeaponType weapon, bool altfire ) {
 	// 8 | 8 | 16 | 32
 	u64 parm = weapon | u64( altfire ) << 8 | u64( cmd->entropy ) << 16 | ( u64( ps->zoom_time ) << 32 );
-	if constexpr (event == EV_FIREWEAPON) {
-		gs->api.PredictedFireWeapon( ps->POVnum, parm );
-	} else {
-		gs->api.PredictedEvent( ps->POVnum, event, parm );
-	}
+	gs->api.PredictedEvent( ps->POVnum, event, parm );
 }
 
 

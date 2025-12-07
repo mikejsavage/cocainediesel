@@ -635,16 +635,33 @@ void ClientDisconnect( edict_t * ent, const char * reason ) {
 }
 
 //==============================================================
+static void G_PredictedFireWeapon( edict_t * ent, u64 parm ) {
+	G_FireWeapon( ent, parm );
+
+	Vec3 start = ent->s.origin;
+	start.z += ent->r.client->ps.viewheight;
+
+	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, parm, start );
+	event->s.ownerNum = ent->s.number;
+	event->s.origin2 = Vec3(
+		ent->r.client->ps.viewangles.pitch,
+		ent->r.client->ps.viewangles.yaw,
+		ent->r.client->ps.viewangles.roll
+	);
+	event->s.team = ent->s.team;
+}
 
 void G_PredictedEvent( int entNum, int ev, u64 parm ) {
-	Assert( ev != EV_FIREWEAPON );
-
 	edict_t *ent = &game.edicts[entNum];
 
 	switch( ev ) {
 		case EV_SMOOTHREFIREWEAPON: // update the firing
 			G_FireWeapon( ent, parm );
 			break; // don't send the event
+
+		case EV_FIREWEAPON:
+			G_PredictedFireWeapon( ent, parm );
+			break;
 
 		case EV_MARTYR_EXPLODE: {
 			ent->health = 0;
@@ -666,23 +683,6 @@ void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 			G_AddEvent( ent, ev, parm, true );
 			break;
 	}
-}
-
-void G_PredictedFireWeapon( int entNum, u64 parm ) {
-	edict_t * ent = &game.edicts[ entNum ];
-	G_FireWeapon( ent, parm );
-
-	Vec3 start = ent->s.origin;
-	start.z += ent->r.client->ps.viewheight;
-
-	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, parm, start );
-	event->s.ownerNum = entNum;
-	event->s.origin2 = Vec3(
-		ent->r.client->ps.viewangles.pitch,
-		ent->r.client->ps.viewangles.yaw,
-		ent->r.client->ps.viewangles.roll
-	);
-	event->s.team = ent->s.team;
 }
 
 void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead ) {

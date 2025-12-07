@@ -101,6 +101,7 @@ struct WeaponModelMetadata {
 	EulerDegrees3 handpositionAngles;
 
 	StringHash fire_sound;
+	StringHash alt_fire_sound;
 	StringHash reload_sound;
 	StringHash switch_in_sound;
 	StringHash zoom_in_sound;

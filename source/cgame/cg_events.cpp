@@ -174,7 +174,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon, bool altfire ) {
 	const WeaponDef::Fire * def = GetWeaponDefFire( weapon, altfire );
 
 	const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( weapon );
-	StringHash sfx = weaponInfo->fire_sound;
+	StringHash sfx = altfire ? weaponInfo->alt_fire_sound : weaponInfo->fire_sound;
 
 	if( ISVIEWERENTITY( entNum ) ) {
 		PlaySFX( sfx );

@@ -100,11 +100,21 @@ struct ItemStateTransition {
 	}
 };
 
+
+
+
+template <EventType event>
 static void FireWeaponEvent( const gs_state_t * gs, SyncPlayerState * ps, const UserCommand * cmd, WeaponType weapon, bool altfire ) {
 	// 8 | 8 | 16 | 32
 	u64 parm = weapon | u64( altfire ) << 8 | u64( cmd->entropy ) << 16 | ( u64( ps->zoom_time ) << 32 );
-	gs->api.PredictedFireWeapon( ps->POVnum, parm );
+	if constexpr (event == EV_FIREWEAPON) {
+		gs->api.PredictedFireWeapon( ps->POVnum, parm );
+	} else {
+		gs->api.PredictedEvent( ps->POVnum, event, parm );
+	}
 }
+
+
 
 static ItemStateTransition NoReset( WeaponState state ) {
 	ItemStateTransition t;
@@ -159,10 +169,10 @@ static void FireWeapon( const gs_state_t * gs, SyncPlayerState * ps, const UserC
 	WeaponSlot * slot = GetSelectedWeapon( ps );
 
 	if( smooth ) {
-		gs->api.PredictedEvent( ps->POVnum, EV_SMOOTHREFIREWEAPON, ps->weapon );
+		FireWeaponEvent<EV_SMOOTHREFIREWEAPON>( gs, ps, cmd, ps->weapon, altfire );
 	}
 	else {
-		FireWeaponEvent( gs, ps, cmd, ps->weapon, altfire );
+		FireWeaponEvent<EV_FIREWEAPON>( gs, ps, cmd, ps->weapon, altfire );
 	}
 
 	if( def->clip_size > 0 ) {
@@ -306,11 +316,13 @@ static constexpr ItemState generic_gun_states[] = {
 
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
-		if( !HasAllBits( cmd->buttons, Button_Attack1 ) || slot->ammo == 0 ) {
+		if( !HasAllBits( cmd->buttons, ps->weapon_alt_fire ? Button_Attack2 : Button_Attack1 ) ||
+			!HasAmmo( ps->weapon, ps->weapon_alt_fire, slot ) )
+		{
 			return WeaponState_Idle;
 		}
 
-		FireWeapon( gs, ps, cmd, true, false );
+		FireWeapon( gs, ps, cmd, true, ps->weapon_alt_fire );
 
 		return AllowWeaponSwitch( gs, ps, ForceReset( state ) );
 	} ),
@@ -326,7 +338,7 @@ static constexpr ItemState generic_gun_states[] = {
 			return WeaponState_Idle;
 		}
 
-		FireWeapon( gs, ps, cmd, false, false );
+		FireWeapon( gs, ps, cmd, false, ps->weapon_alt_fire );
 
 		return ForceReset( state );
 	} ),
@@ -401,7 +413,7 @@ static constexpr ItemState bat_states[] = {
 		const WeaponDef::Properties * def = GetWeaponDefProperties( ps->weapon );
 
 		if( !HasAllBits( cmd->buttons, Button_Attack1 ) ) {
-			FireWeaponEvent( gs, ps, cmd, ps->weapon, false );
+			FireWeaponEvent<EV_FIREWEAPON>( gs, ps, cmd, ps->weapon, false );
 			ps->weapon_alt_fire = false;
 			return WeaponState_Firing;
 		}

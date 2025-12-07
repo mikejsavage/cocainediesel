@@ -117,6 +117,11 @@ enum WeaponType : u8 {
 	Weapon_Count
 };
 
+enum ZoomType : u8 {
+	Zoom_ADS,
+	Zoom_Scope,
+};
+
 enum GadgetType : u8 {
 	Gadget_None,
 

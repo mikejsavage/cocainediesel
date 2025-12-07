@@ -404,7 +404,7 @@ static void GlitchText( Span< char > msg ) {
 
 void CG_DrawScope() {
 	const WeaponDef::Properties * def = GetWeaponDefProperties( cg.predictedPlayerState.weapon );
-	if( def->zoom_fov != 0 && cg.predictedPlayerState.zoom_time > 0 ) {
+	if( def->zoom_type == Zoom_Scope && def->zoom_fov != 0 && cg.predictedPlayerState.zoom_time > 0 ) {
 		float frac = cg.predictedPlayerState.zoom_time / float( ZOOMTIME );
 
 		PipelineState pipeline;
@@ -1696,7 +1696,8 @@ void CG_DrawHUD() {
 	lua_pushnumber( hud_L, cg.predictedPlayerState.max_health );
 	lua_setfield( hud_L, -2, "max_health" );
 
-	lua_pushboolean( hud_L, cg.predictedPlayerState.zoom_time > 0 );
+	bool scoping = GetWeaponDefProperties( cg.predictedPlayerState.weapon )->zoom_type == Zoom_Scope && cg.predictedPlayerState.zoom_time > 0;
+	lua_pushboolean( hud_L, scoping );
 	lua_setfield( hud_L, -2, "zooming" );
 
 	lua_pushnumber( hud_L, cg.predictedPlayerState.weapon );

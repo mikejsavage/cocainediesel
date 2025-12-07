@@ -18,6 +18,7 @@ struct WeaponDef {
 		u16 switch_in_time;
 		u16 switch_out_time;
 
+		ZoomType zoom_type = Zoom_ADS;
 		float zoom_fov = 0.f;
 		float zoom_spread = 0.f;
 

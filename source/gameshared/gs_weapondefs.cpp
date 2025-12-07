@@ -147,6 +147,10 @@ static constexpr WeaponDef weapon_defs[] = {
 			.switch_out_time = WEAPONDOWN_TIME,
 			
 			.recoil_recovery = 1500.0f,
+
+			.zoom_type = Zoom_ADS,
+			.zoom_fov = 100.0f,
+			.zoom_spread = 5.0f,
 		},
 
 		{
@@ -513,6 +517,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.switch_in_time = WEAPONUP_TIME_VERY_SLOW,
 			.switch_out_time = WEAPONDOWN_TIME,
 			
+			.zoom_type = Zoom_Scope,
 			.zoom_fov = 25.0f,
 			.zoom_spread = 30.0f,
 			
@@ -545,6 +550,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.switch_in_time = WEAPONUP_TIME_NORMAL,
 			.switch_out_time = WEAPONDOWN_TIME,
 		
+			.zoom_type = Zoom_Scope,
 			.zoom_fov = 40.0f,
 			.zoom_spread = 5.0f,
 			

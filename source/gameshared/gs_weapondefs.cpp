@@ -463,34 +463,12 @@ static constexpr WeaponDef weapon_defs[] = {
 
 	WeaponDef (
 		{
-			.name = "laser",
-			.category = WeaponCategory_Primary,
-
-			.clip_size = 40,
-			.reload_time = 1500,
-
-			.switch_in_time = WEAPONUP_TIME_FAST,
-			.switch_out_time = WEAPONDOWN_TIME,
-		},
-
-		{
-			.refire_time = 50,
-			.range = 900,
-			.firing_mode = FiringMode_Smooth,
-
-			.damage = 5,
-			.knockback = 14,
-		},
-
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
-		{
 			.name = "rail",
 			.category = WeaponCategory_Primary,
 
-			.reload_time = 1000, // time to fully charge for rail
+			.clip_size = 40,
+
+			.reload_time = 3000,
 
 			.switch_in_time = WEAPONUP_TIME_SLOW,
 			.switch_out_time = WEAPONDOWN_TIME,
@@ -499,6 +477,8 @@ static constexpr WeaponDef weapon_defs[] = {
 		},
 
 		{
+			.ammo_use = 0,
+
 			.refire_time = 1250,
 			.range = HITSCAN_RANGE,
 			.recoil_max = EulerDegrees2( 150.0f, 40.0f ),
@@ -510,7 +490,16 @@ static constexpr WeaponDef weapon_defs[] = {
 			.knockback = 50,
 		},
 
-		WEAPON_HAS_ALTFIRE
+		{
+			.ammo_use = 1,
+
+			.refire_time = 50,
+			.range = 900,
+			.firing_mode = FiringMode_Smooth,
+
+			.damage = 5,
+			.knockback = 14,
+		}
 	),
 
 	WeaponDef (

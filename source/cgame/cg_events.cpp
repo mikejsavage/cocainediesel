@@ -63,8 +63,8 @@ static void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
 	DoVisualEffect( "loadout/rail/trail", start, end, count, color );
 }
 
-static void FireRail( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin, bool altfire ) {
-	const WeaponDef::Fire * def = GetWeaponDefFire( Weapon_Rail, altfire );
+static void FireRail( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin ) {
+	const WeaponDef::Fire * def = GetWeaponDefFire( Weapon_Rail, false );
 
 	float range = def->range;
 	Vec3 end = origin + dir * range;
@@ -126,7 +126,7 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 	}
 
 	// trace the beam: for tracing we use the real beam origin
-	float range = GS_GetWeaponDef( Weapon_Laser )->fire.range;
+	float range = GetWeaponDefFire( Weapon_Rail, true )->range;
 	trace_t trace = GS_TraceLaserBeam( &client_gs, laserOrigin, laserAngles, range, cent->current.number, 0 );
 	if( trace.HitSomething() ) {
 		DrawDynamicLight( trace.endpos, color.xyz(), 10000.0f );
@@ -154,8 +154,8 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 	}
 }
 
-static void CG_Event_LaserBeam( Vec3 origin, Vec3 dir, int entNum, bool altfire ) {
-	const WeaponDef::Fire * def = GetWeaponDefFire( Weapon_Laser, altfire );
+static void CG_Event_LaserBeam( Vec3 origin, Vec3 dir, int entNum ) {
+	const WeaponDef::Fire * def = GetWeaponDefFire( Weapon_Rail, true );
 
 	// lasergun's smooth refire
 	// it appears that 64ms is that maximum allowed time interval between prediction events on localhost
@@ -183,7 +183,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon, bool altfire ) {
 		PlaySFX( sfx, PlaySFXConfigEntity( entNum ) );
 	}
 
-	if( weapon != Weapon_Laser && ISVIEWERENTITY( entNum ) ) {
+	if( !(weapon == Weapon_Rail && altfire) && ISVIEWERENTITY( entNum ) ) {
 		CG_ScreenCrosshairShootUpdate( def->refire_time );
 	}
 
@@ -194,7 +194,6 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon, bool altfire ) {
 			break;
 
 		case Weapon_9mm:
-		case Weapon_Laser:
 		case Weapon_Deagle:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_PISTOL, 0, EVENT_CHANNEL );
 			break;
@@ -620,14 +619,14 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				WeaponType weapon = WeaponType( parm & 0xFF );
 				bool altfire = ( parm >> 8 ) & 0xFF;
 				
-				if( weapon == Weapon_Laser ) {
+				if( weapon == Weapon_Rail && altfire ) {
 					Vec3 origin = cg.predictedPlayerState.pmove.origin;
 					origin.z += cg.predictedPlayerState.viewheight;
 
 					Vec3 dir;
 					AngleVectors( cg.predictedPlayerState.viewangles, &dir, NULL, NULL );
 
-					CG_Event_LaserBeam( origin, dir, ent->number, altfire );
+					CG_Event_LaserBeam( origin, dir, ent->number );
 				}
 			}
 			break;
@@ -641,10 +640,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 			// check the owner for predicted case
 			if( ISVIEWERENTITY( ent->ownerNum ) && ev < PREDICTABLE_EVENTS_MAX && predicted != cg.view.playerPrediction ) {
-				return;
-			}
-
-			if( weapon == Weapon_Rail && altfire ) {
 				return;
 			}
 
@@ -670,13 +665,14 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			AngleVectors( angles, &dir, NULL, NULL );
 
 			if( weapon == Weapon_Rail ) {
-				FireRail( origin, dir, owner, false, altfire );
+				if( altfire ) {
+					CG_Event_LaserBeam( origin, dir, owner );
+				} else {
+					FireRail( origin, dir, owner, false );
+				}
 			}
 			else if( weapon == Weapon_Shotgun || weapon == Weapon_SawnOff ) {
 				CG_Event_FireShotgun( origin, dir, owner, team_color, weapon, altfire );
-			}
-			else if( weapon == Weapon_Laser ) {
-				CG_Event_LaserBeam( origin, dir, owner, altfire );
 			}
 			else if( weapon == Weapon_9mm || weapon == Weapon_Smg || weapon == Weapon_Deagle || weapon == Weapon_Burst || weapon == Weapon_Sniper || weapon == Weapon_Scout /* || weapon == Weapon_Minigun */ ) {
 				u16 entropy = parm >> 8;
@@ -808,17 +804,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			if( parm == 0 ) {
 				PlaySFX( "loadout/sticky/explode", PlaySFXConfigPosition( ent->origin ) );
 			}
-		} break;
-
-		case EV_RAIL_ALTENT: {
-			DoVisualEffect( "loadout/rail/charge", ent->origin, Vec3( 0.0f ), 1.0f, team_color );
-			PlaySFX( "loadout/rail/charge", PlaySFXConfigPosition( ent->origin ) );
-		} break;
-
-		case EV_RAIL_ALTFIRE: {
-			Vec3 dir;
-			AngleVectors( ent->angles, &dir, NULL, NULL );
-			FireRail( ent->origin, dir, ent->ownerNum, true, false );
 		} break;
 
 		case EV_LAUNCHER_BOUNCE: {

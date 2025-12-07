@@ -556,20 +556,76 @@ void W_Fire_Bubble( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDe
 	}
 }
 
-static void RailAltDeploy( edict_t * ent );
+
+static void G_Laser_Think( edict_t * ent ) {
+	edict_t * owner = &game.edicts[ ent->s.ownerNum ];
+
+	if( G_ISGHOSTING( owner ) || owner->s.weapon != Weapon_Rail ||
+		PF_GetClientState( PLAYERNUM( owner )) < CS_SPAWNED ||
+		owner->r.client->ps.weapon_state != WeaponState_FiringSmooth ) {
+		G_FreeEdict( ent );
+		return;
+	}
+
+	ent->nextThink = level.time + 1;
+}
+
+static void LaserImpact( const trace_t & trace, Vec3 dir, int damage, int knockback, edict_t * attacker ) {
+	if( trace.ent == ENTNUM( attacker ) ) {
+		return; // should not be possible theoretically but happened at least once in practice
+	}
+
+	G_Damage( &game.edicts[ trace.ent ], attacker, attacker, dir, dir, trace.endpos, damage, knockback, 0, Weapon_Rail );
+}
+
+static edict_t * FindOrSpawnLaser( edict_t * owner ) {
+	int ownerNum = ENTNUM( owner );
+
+	for( size_t i = server_gs.maxclients + 1; i < ARRAY_COUNT( game.edicts ); i++ ) {
+		edict_t * e = &game.edicts[ i ];
+		if( !e->r.inuse ) {
+			continue;
+		}
+
+		if( e->s.ownerNum == ownerNum && e->s.type == ET_LASERBEAM ) {
+			return e;
+		}
+	}
+
+	edict_t * laser = G_Spawn();
+	laser->s.type = ET_LASERBEAM;
+	laser->s.ownerNum = ownerNum;
+	laser->movetype = MOVETYPE_NONE;
+	laser->s.solidity = Solid_NotSolid;
+	laser->s.svflags &= ~SVF_NOCLIENT;
+	return laser;
+}
+
+static void W_Fire_Laser( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
+	const WeaponDef::Fire * def = GetWeaponDefFire( Weapon_Rail, true );
+
+	edict_t * laser = FindOrSpawnLaser( self );
+
+	Vec3 dir;
+	AngleVectors( angles, &dir, NULL, NULL );
+
+	trace_t trace = GS_TraceLaserBeam( &server_gs, start, angles, def->range, ENTNUM( self ), timeDelta );
+	if( trace.HitSomething() ) {
+		LaserImpact( trace, dir, def->damage, def->knockback, self );
+	}
+
+	laser->s.svflags |= SVF_FORCEOWNER;
+
+	laser->s.origin = start;
+	laser->s.origin2 = laser->s.origin + dir * def->range;
+
+	laser->think = G_Laser_Think;
+	laser->nextThink = level.time + 1;
+}
 
 static void W_Fire_Rail( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
 	if ( alt ) {
-		edict_t * ent = GenEntity( self, start, angles, GetWeaponDefProperties( Weapon_Rail )->reload_time );
-		ent->s.type = ET_RAILALT;
-		ent->classname = "railalt";
-		ent->think = RailAltDeploy;
-
-		edict_t * event = G_SpawnEvent( EV_RAIL_ALTENT, 0, ent->s.origin );
-		event->s.ownerNum = ent->s.ownerNum;
-		event->s.angles = ent->s.angles;
-		event->s.team = self->s.team;
-
+		W_Fire_Laser( self, start, angles, timeDelta );
 		return;
 	}
 
@@ -624,83 +680,6 @@ static void W_Fire_Rail( edict_t * self, Vec3 start, EulerDegrees3 angles, int t
 			break;
 		}
 	}
-}
-
-static void RailAltDeploy( edict_t * ent ) {
-	edict_t * event = G_SpawnEvent( EV_RAIL_ALTFIRE, 0, ent->s.origin );
-	event->s.ownerNum = ent->s.ownerNum;
-	event->s.angles = ent->s.angles;
-
-	edict_t * owner = &game.edicts[ ent->s.ownerNum ];
-	W_Fire_Rail( owner, ent->s.origin, ent->s.angles, 0, false );
-
-	G_FreeEdict( ent );
-}
-
-static void G_Laser_Think( edict_t * ent ) {
-	edict_t * owner = &game.edicts[ ent->s.ownerNum ];
-
-	if( G_ISGHOSTING( owner ) || owner->s.weapon != Weapon_Laser ||
-		PF_GetClientState( PLAYERNUM( owner )) < CS_SPAWNED ||
-		owner->r.client->ps.weapon_state != WeaponState_FiringSmooth ) {
-		G_FreeEdict( ent );
-		return;
-	}
-
-	ent->nextThink = level.time + 1;
-}
-
-static void LaserImpact( const trace_t & trace, Vec3 dir, int damage, int knockback, edict_t * attacker ) {
-	if( trace.ent == ENTNUM( attacker ) ) {
-		return; // should not be possible theoretically but happened at least once in practice
-	}
-
-	G_Damage( &game.edicts[ trace.ent ], attacker, attacker, dir, dir, trace.endpos, damage, knockback, 0, Weapon_Laser );
-}
-
-static edict_t * FindOrSpawnLaser( edict_t * owner ) {
-	int ownerNum = ENTNUM( owner );
-
-	for( size_t i = server_gs.maxclients + 1; i < ARRAY_COUNT( game.edicts ); i++ ) {
-		edict_t * e = &game.edicts[ i ];
-		if( !e->r.inuse ) {
-			continue;
-		}
-
-		if( e->s.ownerNum == ownerNum && e->s.type == ET_LASERBEAM ) {
-			return e;
-		}
-	}
-
-	edict_t * laser = G_Spawn();
-	laser->s.type = ET_LASERBEAM;
-	laser->s.ownerNum = ownerNum;
-	laser->movetype = MOVETYPE_NONE;
-	laser->s.solidity = Solid_NotSolid;
-	laser->s.svflags &= ~SVF_NOCLIENT;
-	return laser;
-}
-
-static void W_Fire_Laser( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
-	const WeaponDef::Fire * def = GetWeaponDefFire( Weapon_Laser, alt );
-
-	edict_t * laser = FindOrSpawnLaser( self );
-
-	Vec3 dir;
-	AngleVectors( angles, &dir, NULL, NULL );
-
-	trace_t trace = GS_TraceLaserBeam( &server_gs, start, angles, def->range, ENTNUM( self ), timeDelta );
-	if( trace.HitSomething() ) {
-		LaserImpact( trace, dir, def->damage, def->knockback, self );
-	}
-
-	laser->s.svflags |= SVF_FORCEOWNER;
-
-	laser->s.origin = start;
-	laser->s.origin2 = laser->s.origin + dir * def->range;
-
-	laser->think = G_Laser_Think;
-	laser->nextThink = level.time + 1;
 }
 
 static void W_Touch_Rifle( edict_t * ent, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
@@ -963,10 +942,6 @@ void G_FireWeapon( edict_t * ent, u64 parm ) {
 
 		case Weapon_Bubble:
 			W_Fire_Bubble( ent, origin, angles, timeDelta, alt );
-			break;
-
-		case Weapon_Laser:
-			W_Fire_Laser( ent, origin, angles, timeDelta, alt );
 			break;
 
 		case Weapon_Rail:

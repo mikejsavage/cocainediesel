@@ -901,7 +901,6 @@ void CG_UpdateEntities() {
 			case ET_BLASTER:
 			case ET_SAWBLADE:
 			case ET_STICKY:
-			case ET_RAILALT:
 			case ET_AXE:
 			case ET_SHURIKEN:
 			case ET_CINEMATIC_MAPNAME:

@@ -780,7 +780,7 @@ const WeaponDef::Properties * GetWeaponDefProperties( WeaponType weapon ) {
 const WeaponDef::Fire * GetWeaponDefFire( WeaponType weapon, bool altfire ) {
 	Assert( weapon < Weapon_Count );
 	Assert( weapon_defs[ weapon ].has_altfire || !altfire ); // check the alt fire exists if you're looking for it
-	return altfire ? &weapon_defs[ weapon ].fire : &weapon_defs[ weapon ].altfire;
+	return altfire ? &weapon_defs[ weapon ].altfire : &weapon_defs[ weapon ].fire;
 }
 
 const GadgetDef gadget_defs[] = {

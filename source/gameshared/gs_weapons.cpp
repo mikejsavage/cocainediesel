@@ -78,8 +78,8 @@ const WeaponSlot * GetSelectedWeapon( const SyncPlayerState * player ) {
 	return FindWeapon( player, player->weapon );
 }
 
-static bool HasAmmo( const WeaponDef::Properties * def, const WeaponSlot * slot ) {
-	return def->clip_size == 0 || slot->ammo > 0;
+static bool HasAmmo( WeaponType w, bool altfire, const WeaponSlot * slot ) {
+	return GetWeaponDefProperties( w )->clip_size == 0 || slot->ammo >= GetWeaponDefFire( w, altfire )->ammo_use;
 }
 
 enum TransitionType {
@@ -138,7 +138,7 @@ static void HandleZoom( const gs_state_t * gs, SyncPlayerState * ps, const UserC
 	const WeaponSlot * slot = GetSelectedWeapon( ps );
 
 	s16 last_zoom_time = ps->zoom_time;
-	bool can_zoom = ( ps->weapon_state == WeaponState_Idle || ( ps->weapon_state == WeaponState_Firing && HasAmmo( def, slot ) ) ) && ( ps->pmove.features & PMFEAT_SCOPE );
+	bool can_zoom = ( ps->weapon_state == WeaponState_Idle || ( ps->weapon_state == WeaponState_Firing && HasAmmo( ps->weapon, false, slot ) ) ) && ( ps->pmove.features & PMFEAT_SCOPE );
 
 	if( can_zoom && def->zoom_fov != 0 && HasAllBits( cmd->buttons, Button_Attack2 ) ) {
 		ps->zoom_time = Min2( ps->zoom_time + cmd->msec, ZOOMTIME );
@@ -166,7 +166,7 @@ static void FireWeapon( const gs_state_t * gs, SyncPlayerState * ps, const UserC
 	}
 
 	if( def->clip_size > 0 ) {
-		slot->ammo--;
+		slot->ammo -= GetWeaponDefFire( ps->weapon, altfire )->ammo_use;
 	}
 }
 
@@ -253,8 +253,8 @@ static constexpr ItemState generic_gun_states[] = {
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
 		if( HasAnyBit( cmd->buttons, WeaponAttackBits( def ) ) ) {
-			if( HasAmmo( prop, slot ) ) {
-				bool altfire = def->has_altfire && HasAllBits( cmd->buttons, Button_Attack2 );
+			bool altfire = def->has_altfire && HasAllBits( cmd->buttons, Button_Attack2 );
+			if( HasAmmo( ps->weapon, altfire, slot ) ) {
 				FireWeapon( gs, ps, cmd, false, altfire );
 
 				ps->weapon_alt_fire = altfire;
@@ -264,11 +264,18 @@ static constexpr ItemState generic_gun_states[] = {
 					case FiringMode_Smooth: return WeaponState_FiringSmooth;
 					case FiringMode_Clip: return WeaponState_FiringEntireClip;
 				}
+			} else {
+				gs->api.PredictedEvent( ps->POVnum, EV_NOAMMOCLICK, ps->weapon_state_time );
 			}
 		}
 
+		bool has_ammo = HasAmmo( ps->weapon, false, slot );
+		if ( def->has_altfire ) {
+			has_ammo = has_ammo || HasAmmo( ps->weapon, true, slot );
+		}
+
 		bool wants_reload = HasAllBits( cmd->buttons, Button_Reload ) && prop->clip_size != 0 && slot->ammo < prop->clip_size;
-		if( wants_reload || !HasAmmo( prop, slot ) ) {
+		if( wants_reload || !has_ammo ) {
 			return WeaponState_Reloading;
 		}
 
@@ -361,15 +368,17 @@ static constexpr ItemState generic_gun_states[] = {
 		const WeaponDef::Properties * def = GetWeaponDefProperties( ps->weapon );
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
-		if( HasAnyBit( cmd->buttons, WeaponAttackBits( GS_GetWeaponDef( ps->weapon ) ) ) && HasAmmo( def, slot ) ) {
-			return WeaponState_Idle;
-		}
-
 		if( ps->weapon_state_time < def->reload_time ) {
 			return AllowWeaponSwitch( gs, ps, state );
 		}
 
 		slot->ammo++;
+
+		if( ( HasAnyBit( cmd->buttons, Button_Attack1 ) && HasAmmo( ps->weapon, false, slot ) ) || 
+			( GS_GetWeaponDef( ps->weapon )->has_altfire && HasAnyBit( cmd->buttons, Button_Attack2 ) && HasAmmo( ps->weapon, true, slot ) ) )
+		{
+			return WeaponState_Idle;
+		}
 
 		return slot->ammo == def->clip_size ? WeaponState_Idle : ForceReset( WeaponState_StagedReloading );
 	} ),

@@ -25,6 +25,7 @@ struct WeaponDef {
 	};
 
 	struct Fire {
+		int ammo_use = 1;
 		int projectile_count = 1;
 		
 		u16 refire_time = 0;
@@ -59,7 +60,7 @@ struct WeaponDef {
 	{ }
 	
 	constexpr WeaponDef(const Properties& prop, const Fire& f1, const Fire& f2):
-		properties{prop}, fire{f1}, altfire{f2}
+		properties{prop}, fire{f1}, altfire{f2}, has_altfire{true}
 	{ }
 };
 

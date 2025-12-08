@@ -218,14 +218,18 @@ vec3 radialBlur( vec2 uv ) {
 	vec2 center = vec2( 0.5, 0.5 ); 
     vec2 dist = uv - vec2( 0.5, 0.5 );
 
-    float l = sqrt( length( dist ) );
+    float len = length( dist );
+    float l = sqrt( len );
 	for( int j = 0; j < SAMPLES; j++ ) {
-		float scale = 1.0 - l * BLUR_INTENSITY * (float(j) / SAMPLES);
+		float scale = 1.0 - l * BLUR_INTENSITY * u_Zoom * (float(j) / SAMPLES);
         col += SampleScreen( dist * scale + center ).rgb;
     }
 
 	col /= SAMPLES;
-	return col;
+
+    // vignette effect
+    float vignette = 1.0 - max( len - 0.5, 0.0 ) * ( 1.0 + u_Zoom );
+	return col * vignette;
 }
 
 void main() {

@@ -144,7 +144,10 @@ static void HandleZoom( const gs_state_t * gs, SyncPlayerState * ps, const UserC
 	const WeaponSlot * slot = GetSelectedWeapon( ps );
 
 	s16 last_zoom_time = ps->zoom_time;
-	bool can_zoom = ( ps->weapon_state == WeaponState_Idle || ( ps->weapon_state == WeaponState_Firing && HasAmmo( ps->weapon, false, slot ) ) ) && ( ps->pmove.features & PMFEAT_SCOPE );
+	bool can_zoom = ( ps->weapon_state == WeaponState_Idle ||
+					( ( ps->weapon_state == WeaponState_Firing || ps->weapon_state == WeaponState_FiringEntireClip ) &&
+						HasAmmo( ps->weapon, false, slot ) ) )
+				&& ( ps->pmove.features & PMFEAT_SCOPE );
 
 	if( can_zoom && def->zoom_fov != 0 && HasAllBits( cmd->buttons, Button_Attack2 ) ) {
 		ps->zoom_time = Min2( ps->zoom_time + cmd->msec, ZOOMTIME );

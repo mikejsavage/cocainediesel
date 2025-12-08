@@ -162,12 +162,20 @@ struct ProjectileStats {
 	s64 timeout;
 	float gravity_scale;
 	float restitution;
+	Vec2 spread;
 	int splash_radius;
 	DamageType damage_type;
 };
 
-static ProjectileStats WeaponProjectileStats( WeaponType weapon, bool alt ) {
+static ProjectileStats WeaponProjectileStats( edict_t * self, WeaponType weapon, bool alt ) {
 	const WeaponDef::Fire * fire = GetWeaponDefFire( weapon, alt );
+	const WeaponDef::Properties * prop = GetWeaponDefProperties( weapon );
+
+	float spreadness = fire->spread;
+	if( prop->zoom_spread > 0.0f && self->r.client != NULL ) {
+		float frac = 1.0f - float( self->r.client->ps.zoom_time ) / float( ZOOMTIME );
+		spreadness += frac * atanf( Radians( prop->zoom_spread ) );
+	}
 
 	return ProjectileStats {
 		.min_damage = fire->min_damage,
@@ -178,6 +186,7 @@ static ProjectileStats WeaponProjectileStats( WeaponType weapon, bool alt ) {
 		.timeout = fire->range,
 		.gravity_scale = fire->gravity_scale,
 		.restitution = fire->restitution,
+		.spread = RandomSpreadPattern( self->r.client->ucmd.entropy, spreadness ),
 		.splash_radius = fire->splash_radius,
 		.damage_type = DamageType( weapon, alt ),
 	};
@@ -195,6 +204,7 @@ static ProjectileStats GadgetProjectileStats( GadgetType gadget ) {
 		.timeout = def->timeout,
 		.gravity_scale = def->gravity_scale,
 		.restitution = def->restitution,
+		.spread = Vec2( 0.f, 0.f ),
 		.splash_radius = def->splash_radius,
 		.damage_type = gadget,
 	};
@@ -232,10 +242,10 @@ static edict_t * FireProjectile(
 ) {
 	edict_t * projectile = GenEntity( owner, start, angles, stats.timeout );
 
-	Vec3 dir;
-	AngleVectors( angles, &dir, NULL, NULL );
+	Vec3 dir, right, up;
+	AngleVectors( angles, &dir, &right, &up );
 
-	projectile->velocity = dir * stats.speed;
+	projectile->velocity = ( dir + right * stats.spread.x + up * stats.spread.y ) * stats.speed;
 
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
 
@@ -435,7 +445,7 @@ static void W_Touch_Launcher( edict_t * ent, edict_t * other, Vec3 normal, Solid
 }
 
 static void W_Fire_Launcher( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
-	edict_t * launcher = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Launcher, alt ) );
+	edict_t * launcher = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Launcher, alt ) );
 
 	if( alt ) {
 		launcher->velocity *= 0.5;
@@ -460,7 +470,7 @@ static void W_Touch_Crossbow( edict_t * ent, edict_t * other, Vec3 normal, Solid
 }
 
 static void W_Fire_Crossbow( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
-	edict_t * crossbow = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Crossbow, alt ) );
+	edict_t * crossbow = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Crossbow, alt ) );
 
 	crossbow->s.type = ET_CROSSBOW;
 	crossbow->classname = "crossbow";
@@ -482,11 +492,11 @@ static void W_Fire_Bazooka( edict_t * self, Vec3 start, EulerDegrees3 angles, in
 	edict_t * rocket;
 
 	if( alt ) {
-		rocket = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Bazooka, alt ) );
+		rocket = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Bazooka, alt ) );
 		rocket->movetype = MOVETYPE_BOUNCE;
 	}
 	else {
-		rocket = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Bazooka, alt ) );
+		rocket = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Bazooka, alt ) );
 	}
 
 	rocket->s.type = ET_BAZOOKA;
@@ -499,7 +509,7 @@ static void W_Fire_Bazooka( edict_t * self, Vec3 start, EulerDegrees3 angles, in
 }
 
 static void W_Fire_Assault( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
-	edict_t * assault = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Assault, alt ) );
+	edict_t * assault = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Assault, alt ) );
 
 	assault->s.type = ET_ASSAULT;
 	assault->classname = "assault";
@@ -513,8 +523,8 @@ static void W_Fire_Assault( edict_t * self, Vec3 start, EulerDegrees3 angles, in
 	assault->nextThink = level.time + 1;
 }
 
-static void FireBubble( edict_t * owner, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
-	edict_t * bubble = FireLinearProjectile( owner, start, angles, timeDelta, WeaponProjectileStats( Weapon_Bubble, alt ) );
+static void FireBubble( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
+	edict_t * bubble = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Bubble, alt ) );
 
 	bubble->s.type = ET_BUBBLE;
 	bubble->classname = "bubble";
@@ -699,7 +709,7 @@ static void W_Touch_Rifle( edict_t * ent, edict_t * other, Vec3 normal, SolidBit
 }
 
 void W_Fire_Rifle( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
-	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Rifle, alt ) );
+	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Rifle, alt ) );
 
 	bullet->s.type = ET_RIFLE;
 	bullet->classname = "riflebullet";
@@ -765,7 +775,7 @@ void W_Fire_Sticky( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDe
 	angles.pitch += spread.x;
 	angles.yaw += spread.y;
 
-	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Sticky, alt ) );
+	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Sticky, alt ) );
 
 	bullet->s.type = ET_STICKY;
 	bullet->classname = "sticky";
@@ -810,7 +820,7 @@ void W_Fire_Blaster( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeD
 		Vec3 blast_dir = dir * fire->range + right * spread.x + up * spread.y;
 		EulerDegrees3 blast_angles = VecToAngles( blast_dir );
 
-		edict_t * blast = FireProjectile( self, start, blast_angles, timeDelta, WeaponProjectileStats( Weapon_Blaster, alt ) );
+		edict_t * blast = FireProjectile( self, start, blast_angles, timeDelta, WeaponProjectileStats( self, Weapon_Blaster, alt ) );
 
 		blast->s.type = ET_BLASTER;
 		blast->classname = "blaster";
@@ -831,7 +841,7 @@ static void W_Touch_Pistol( edict_t * ent, edict_t * other, Vec3 normal, SolidBi
 }
 
 void W_Fire_Pistol( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
-	edict_t * bullet = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Pistol, alt ) );
+	edict_t * bullet = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Pistol, alt ) );
 
 	bullet->s.type = ET_PISTOL;
 	bullet->classname = "pistol_bullet";
@@ -850,7 +860,7 @@ static void W_Touch_Sawblade( edict_t * ent, edict_t * other, Vec3 normal, Solid
 }
 
 void W_Fire_Sawblade( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
-	edict_t * blade = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Sawblade, alt ) );
+	edict_t * blade = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Sawblade, alt ) );
 
 	blade->s.type = ET_SAWBLADE;
 	blade->classname = "sawblade";
@@ -863,7 +873,7 @@ void W_Fire_Sawblade( edict_t * self, Vec3 start, EulerDegrees3 angles, int time
 }
 
 void W_Fire_Roadgun( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
-	edict_t * bullet = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Roadgun, alt ) );
+	edict_t * bullet = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Roadgun, alt ) );
 
 	bullet->s.type = ET_BLASTER;
 	bullet->classname = "roadgun";

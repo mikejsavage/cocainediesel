@@ -12,6 +12,7 @@ static constexpr int HITSCAN_RANGE = 9001;
 static constexpr bool WEAPON_NO_ALTFIRE = false;
 static constexpr bool WEAPON_HAS_ALTFIRE = true;
 
+static constexpr float DEFAULT_ADS_ZOOM = 90.f;
 
 static constexpr WeaponDef weapon_defs[] = {
 	// Weapon_None
@@ -88,6 +89,10 @@ static constexpr WeaponDef weapon_defs[] = {
 			.switch_out_time = WEAPONDOWN_TIME,
 			
 			.recoil_recovery = 2000.0f,
+
+			.zoom_type = Zoom_ADS,
+			.zoom_fov = DEFAULT_ADS_ZOOM,
+			.zoom_spread = 6.0f,
 		},
 
 		{
@@ -117,6 +122,10 @@ static constexpr WeaponDef weapon_defs[] = {
 			.switch_out_time = WEAPONDOWN_TIME,
 			
 			.recoil_recovery = 2000.0f,
+
+			.zoom_type = Zoom_ADS,
+			.zoom_fov = DEFAULT_ADS_ZOOM,
+			.zoom_spread = 6.0f,
 		},
 
 		{
@@ -149,8 +158,8 @@ static constexpr WeaponDef weapon_defs[] = {
 			.recoil_recovery = 1500.0f,
 
 			.zoom_type = Zoom_ADS,
-			.zoom_fov = 100.0f,
-			.zoom_spread = 5.0f,
+			.zoom_fov = DEFAULT_ADS_ZOOM,
+			.zoom_spread = 4.0f,
 		},
 
 		{
@@ -278,6 +287,9 @@ static constexpr WeaponDef weapon_defs[] = {
 			.switch_out_time = WEAPONDOWN_TIME,
 			
 			.recoil_recovery = 2500.0f,
+			.zoom_type = Zoom_ADS,
+			.zoom_fov = DEFAULT_ADS_ZOOM,
+			.zoom_spread = 6.0f,
 		},
 
 		{
@@ -411,6 +423,9 @@ static constexpr WeaponDef weapon_defs[] = {
 			.switch_out_time = WEAPONDOWN_TIME,
 			
 			.recoil_recovery = 1250.0f,
+			.zoom_type = Zoom_ADS,
+			.zoom_fov = DEFAULT_ADS_ZOOM,
+			.zoom_spread = 3.0f,
 		},
 
 		{
@@ -585,6 +600,10 @@ static constexpr WeaponDef weapon_defs[] = {
 			.switch_out_time = WEAPONDOWN_TIME,
 			
 			.recoil_recovery = 1500.0f,
+			
+			.zoom_type = Zoom_ADS,
+			.zoom_fov = DEFAULT_ADS_ZOOM,
+			.zoom_spread = 6.0f,
 		},
 
 		{

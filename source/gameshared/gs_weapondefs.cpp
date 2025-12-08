@@ -13,6 +13,7 @@ static constexpr bool WEAPON_NO_ALTFIRE = false;
 static constexpr bool WEAPON_HAS_ALTFIRE = true;
 
 static constexpr float DEFAULT_ADS_ZOOM = 90.f;
+static constexpr float DEFAULT_ZOOM_MOVEMENT_SPEED = 0.5f;
 
 static constexpr WeaponDef weapon_defs[] = {
 	// Weapon_None
@@ -93,6 +94,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_spread = 6.0f,
+			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 		},
 
 		{
@@ -126,6 +128,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_spread = 6.0f,
+			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 		},
 
 		{
@@ -160,6 +163,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_spread = 4.0f,
+			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 		},
 
 		{
@@ -290,6 +294,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_spread = 6.0f,
+			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 		},
 
 		{
@@ -426,6 +431,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_spread = 3.0f,
+			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 		},
 
 		{
@@ -535,6 +541,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.zoom_type = Zoom_Scope,
 			.zoom_fov = 25.0f,
 			.zoom_spread = 30.0f,
+			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 			
 			.recoil_recovery = 1750.0f,
 		},
@@ -568,6 +575,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.zoom_type = Zoom_Scope,
 			.zoom_fov = 40.0f,
 			.zoom_spread = 5.0f,
+			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 			
 			.recoil_recovery = 900.0f,
 		},
@@ -604,6 +612,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_spread = 6.0f,
+			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 		},
 
 		{

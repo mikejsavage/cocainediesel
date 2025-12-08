@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/collision.h"
 #include "gameshared/intersection_tests.h"
 #include "gameshared/movement.h"
+#include "gameshared/gs_weapons.h"
 
 static constexpr float pm_ladderspeed = 300.0f;
 
@@ -419,6 +420,9 @@ static void PM_Move() {
 	// clamp to server defined max speed
 
 	float maxspeed = pml.maxSpeed;
+	float zoom_maxspeed = pml.maxSpeed * GetWeaponDefProperties( pm->playerState->weapon )->zoom_movement_speed;
+	maxspeed = Lerp( maxspeed, float( pm->playerState->zoom_time ) / float( ZOOMTIME ), zoom_maxspeed );
+
 
 	if( wishspeed > maxspeed ) {
 		wishspeed = maxspeed / wishspeed;

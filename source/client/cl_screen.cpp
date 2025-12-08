@@ -139,10 +139,11 @@ struct PostprocessUniforms {
 	float crt;
 	float brightness;
 	float contrast;
+	float zoom;
 };
 
 static UniformBlock UploadPostprocessUniforms( PostprocessUniforms uniforms ) {
-	return UploadUniformBlock( uniforms.time, uniforms.damage, uniforms.crt, uniforms.brightness, uniforms.contrast );
+	return UploadUniformBlock( uniforms.time, uniforms.damage, uniforms.crt, uniforms.brightness, uniforms.contrast, uniforms.zoom );
 }
 
 static void SubmitPostprocessPass() {
@@ -189,6 +190,7 @@ static void SubmitPostprocessPass() {
 	uniforms.crt = chasing_amount;
 	uniforms.brightness = 0.0f;
 	uniforms.contrast = contrast;
+	uniforms.zoom = float( cg.predictedPlayerState.zoom_time ) / float( ZOOMTIME );
 
 	pipeline.bind_uniform( "u_PostProcess", UploadPostprocessUniforms( uniforms ) );
 

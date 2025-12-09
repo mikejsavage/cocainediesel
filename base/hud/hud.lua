@@ -1,6 +1,7 @@
 local dark_grey = "#222"
 local yellow = RGBALinear( 1, 0.64, 0.0225, 1 )
 local red = RGBALinear( 0.8, 0, 0.05, 1 )
+local border_size = "0.7vh"
 
 local function ShowHotkeys( state )
 	return state.show_hotkeys and state.chasing == NOT_CHASING
@@ -477,9 +478,9 @@ local function DrawPerk( state )
 	return cd.node( {
 		background = "#fff",
 		aspect_ratio = 1,
-		border = 8,
+		border = border_size,
 		border_color = dark_grey,
-		padding = 8,
+		padding = border_size,
 		width = "5.5vh",
 	}, {
 		cd.node( { color = "#000", aspect_ratio = 1, width = "100%" }, cd.getPerkIcon( state.perk ) ),
@@ -509,9 +510,9 @@ local function DrawWeaponOrGadget( width, ammo_font_size, icon, ammo, ammo_frac,
 		flow = "vertical",
 		width = width,
 		height = "fit",
-		padding = 8,
-		gap = 8,
-		border = 8,
+		padding = border_size,
+		gap = border_size,
+		border = border_size,
 		border_color = dark_grey,
 	}
 
@@ -678,12 +679,12 @@ local function DrawBottomLeft( state )
 		width = "40vh",
 		height = "100%",
 		background = dark_grey,
-		gap = 8,
-		border = 8,
-		padding = 8,
+		gap = border_size,
+		border = border_size,
+		padding = border_size,
 		border_color = dark_grey,
 	}, {
-		cd.node( { height = "30%", width = "100%", gap = 8 }, DrawStaminaBar( state ) ),
+		cd.node( { height = "30%", width = "100%", gap = border_size }, DrawStaminaBar( state ) ),
 		cd.node( { height = "35%", width = "100%", background = RGBALinear( 0.04, 0.04, 0.04, 1 ) }, {
 			cd.node( { height = "100%", width = health_percent, background = health_color } ),
 		} ),
@@ -703,9 +704,9 @@ local function DrawBottomLeft( state )
 	if state.is_carrier then
 		table.insert( health_and_weapons, cd.node( {
 			background = state.can_plant and cd.plantableColor() or "#666",
-			border = 8,
+			border = border_size,
 			border_color = dark_grey,
-			padding = 8,
+			padding = border_size,
 			width = "9.1vh",
 			height = "fit",
 		}, { cd.node( { width = "100%", color = dark_grey }, assets.bomb ) } ) )
@@ -721,7 +722,7 @@ local function DrawBottomLeft( state )
 			gap = "0.5vh",
 			flow = "vertical",
 		}, {
-			cd.node( { width = "fit", height = "fit", gap = 8 }, perk_and_gadget ),
+			cd.node( { width = "fit", height = "fit", gap = border_size }, perk_and_gadget ),
 			cd.node( { width = "fit", height = "fit", gap = "0.5vh" }, health_and_weapons ),
 		} )
 	)

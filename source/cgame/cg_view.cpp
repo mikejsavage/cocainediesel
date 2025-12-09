@@ -126,6 +126,9 @@ static void CG_CalcViewBob() {
 		}
 	}
 
+	constexpr float ZOOM_BOB_REDUCE = 0.7f;
+	cg.xyspeed *= 1.f - ZOOM_BOB_REDUCE * ( float( cg.predictedPlayerState.zoom_time ) / float( ZOOMTIME ) );
+
 	bobMove = cls.frametime * bobScale * 0.001f;
 	bobTime = ( cg.oldBobTime += bobMove );
 

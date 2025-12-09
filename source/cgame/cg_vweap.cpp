@@ -164,10 +164,11 @@ void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 	}
 
 	// scale forward gun offset depending on fov and aspect ratio
+	constexpr float ZOOM_REDUCE_FALLKICK = 0.7f;
 	float zoom_ads = float( GetWeaponDefProperties( cg.predictedPlayerState.weapon )->zoom_type == Zoom_ADS );
-	float frac = 1.f - zoom_ads * cg.predictedPlayerState.zoom_time / float( ZOOMTIME );
-	origin.x *= frac * frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV );
-	origin.y += CG_ViewSmoothFallKick();
+	float frac = zoom_ads * cg.predictedPlayerState.zoom_time / float( ZOOMTIME );
+	origin.x *= ( 1.f - frac ) * frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV );
+	origin.y += CG_ViewSmoothFallKick() * ( 1.f - ZOOM_REDUCE_FALLKICK * frac );
 
 	AddViewWeaponAnimations( &origin, &angles, viewweapon );
 

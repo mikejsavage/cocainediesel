@@ -89,12 +89,12 @@ static constexpr WeaponDef weapon_defs[] = {
 			.switch_in_time = WEAPONUP_TIME_FAST,
 			.switch_out_time = WEAPONDOWN_TIME,
 			
-			.recoil_recovery = 2000.0f,
-
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_spread = 6.0f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
+			
+			.recoil_recovery = 2000.0f,
 		},
 
 		{
@@ -123,12 +123,12 @@ static constexpr WeaponDef weapon_defs[] = {
 			.switch_in_time = WEAPONUP_TIME_FAST,
 			.switch_out_time = WEAPONDOWN_TIME,
 			
-			.recoil_recovery = 2000.0f,
-
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_spread = 6.0f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
+			
+			.recoil_recovery = 2000.0f,
 		},
 
 		{
@@ -158,12 +158,12 @@ static constexpr WeaponDef weapon_defs[] = {
 			.switch_in_time = WEAPONUP_TIME_NORMAL,
 			.switch_out_time = WEAPONDOWN_TIME,
 			
-			.recoil_recovery = 1500.0f,
-
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_spread = 4.0f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
+			
+			.recoil_recovery = 1500.0f,
 		},
 
 		{
@@ -290,11 +290,12 @@ static constexpr WeaponDef weapon_defs[] = {
 			.switch_in_time = WEAPONUP_TIME_NORMAL,
 			.switch_out_time = WEAPONDOWN_TIME,
 			
-			.recoil_recovery = 2500.0f,
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_spread = 6.0f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
+			
+			.recoil_recovery = 2500.0f,
 		},
 
 		{
@@ -427,11 +428,12 @@ static constexpr WeaponDef weapon_defs[] = {
 			.switch_in_time = WEAPONUP_TIME_NORMAL,
 			.switch_out_time = WEAPONDOWN_TIME,
 			
-			.recoil_recovery = 1250.0f,
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_spread = 3.0f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
+			
+			.recoil_recovery = 1250.0f,
 		},
 
 		{
@@ -607,12 +609,12 @@ static constexpr WeaponDef weapon_defs[] = {
 			.switch_in_time = WEAPONUP_TIME_NORMAL,
 			.switch_out_time = WEAPONDOWN_TIME,
 			
-			.recoil_recovery = 1500.0f,
-			
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_spread = 6.0f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
+			
+			.recoil_recovery = 1500.0f,
 		},
 
 		{

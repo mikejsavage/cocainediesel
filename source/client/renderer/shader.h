@@ -45,6 +45,7 @@ struct Shaders {
 	Shader text;
 	Shader text_alphatest;
 
+	Shader postprocess_preui;
 	Shader postprocess;
 };
 

@@ -168,6 +168,7 @@ void InitRenderer() {
 
 static void DeleteRenderTargets() {
 	DeleteRenderTargetAndTextures( frame_static.render_targets.silhouette_mask );
+	DeleteRenderTarget( frame_static.render_targets.postprocess_preui );
 	DeleteRenderTarget( frame_static.render_targets.postprocess );
 	DeleteRenderTarget( frame_static.render_targets.msaa );
 	DeleteRenderTargetAndTextures( frame_static.render_targets.postprocess_masked );
@@ -362,6 +363,12 @@ static void CreateRenderTargets() {
 	}
 
 	{
+		Texture albedo_preui = NewTexture( TextureConfig {
+			.format = TextureFormat_RGBA_U8_sRGB,
+			.width = frame_static.viewport_width,
+			.height = frame_static.viewport_height,
+		} );
+
 		Texture albedo = NewTexture( TextureConfig {
 			.format = TextureFormat_RGBA_U8_sRGB,
 			.width = frame_static.viewport_width,
@@ -382,7 +389,7 @@ static void CreateRenderTargets() {
 
 		{
 			RenderTargetConfig rt;
-			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
+			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo_preui };
 			rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ] = { curved_surface_mask };
 			rt.depth_attachment = { depth };
 			frame_static.render_targets.postprocess_masked = NewRenderTarget( rt );
@@ -397,7 +404,14 @@ static void CreateRenderTargets() {
 
 		{
 			RenderTargetConfig rt;
-			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
+			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo_preui };
+			rt.depth_attachment = { depth };
+			frame_static.render_targets.postprocess_preui = NewRenderTarget( rt );
+		}
+
+		{
+			RenderTargetConfig rt;
+			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo_preui };
 			frame_static.render_targets.postprocess_onlycolor = NewRenderTarget( rt );
 		}
 	}
@@ -489,6 +503,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	static const tracy::SourceLocationData msaa_tracy = TRACY_HACK( "Resolve MSAA" );
 	static const tracy::SourceLocationData transparent_tracy = TRACY_HACK( "Render transparent" );
 	static const tracy::SourceLocationData silhouettes_tracy = TRACY_HACK( "Render silhouettes" );
+	static const tracy::SourceLocationData postprocess_preui_tracy = TRACY_HACK( "Postprocess (before UI)" );
 	static const tracy::SourceLocationData ui_tracy = TRACY_HACK( "Render game HUD" );
 	static const tracy::SourceLocationData postprocess_tracy = TRACY_HACK( "Postprocess" );
 	static const tracy::SourceLocationData post_ui_tracy = TRACY_HACK( "Render non-game UI" );
@@ -519,13 +534,13 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.render_targets.msaa );
 	}
 	else {
-		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.postprocess, clear_color, clear_depth );
+		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.postprocess_preui, clear_color, clear_depth );
 		frame_static.world_opaque_pass = AddRenderPass( RenderPassConfig {
 			.target = frame_static.render_targets.postprocess_masked,
 			.barrier = true,
 			.tracy = &world_opaque_tracy,
 		} );
-		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.render_targets.postprocess );
+		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.render_targets.postprocess_preui );
 	}
 
 	frame_static.write_silhouette_gbuffer_pass = AddRenderPass( &write_silhouette_buffer_tracy, frame_static.render_targets.silhouette_mask, clear_color, NONE );
@@ -536,7 +551,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.render_targets.msaa );
 		AddRenderPass( RenderPassConfig {
 			.type = RenderPass_Blit,
-			.target = frame_static.render_targets.postprocess,
+			.target = frame_static.render_targets.postprocess_preui,
 			.blit_source = frame_static.render_targets.msaa,
 			.tracy = &msaa_tracy,
 		} );
@@ -544,16 +559,18 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	else {
 		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.render_targets.postprocess_masked );
 		frame_static.add_outlines_pass = AddRenderPass( &add_outlines_tracy, frame_static.render_targets.postprocess_onlycolor );
-		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.render_targets.postprocess );
+		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.render_targets.postprocess_preui );
 	}
 
 	frame_static.transparent_pass = AddRenderPass( RenderPassConfig {
-		.target = frame_static.render_targets.postprocess,
+		.target = frame_static.render_targets.postprocess_preui,
 		.barrier = true,
 		.tracy = &transparent_tracy,
 	} );
 
-	frame_static.add_silhouettes_pass = AddRenderPass( &silhouettes_tracy, frame_static.render_targets.postprocess );
+	frame_static.add_silhouettes_pass = AddRenderPass( &silhouettes_tracy, frame_static.render_targets.postprocess_preui );
+
+	frame_static.postprocess_preui_pass = AddRenderPass( &postprocess_preui_tracy, frame_static.render_targets.postprocess );
 
 	frame_static.ui_pass = AddRenderPass( RenderPassConfig {
 		.target = frame_static.render_targets.postprocess,

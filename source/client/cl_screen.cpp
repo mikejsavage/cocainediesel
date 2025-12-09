@@ -139,11 +139,27 @@ struct PostprocessUniforms {
 	float crt;
 	float brightness;
 	float contrast;
-	float zoom;
 };
 
 static UniformBlock UploadPostprocessUniforms( PostprocessUniforms uniforms ) {
-	return UploadUniformBlock( uniforms.time, uniforms.damage, uniforms.crt, uniforms.brightness, uniforms.contrast, uniforms.zoom );
+	return UploadUniformBlock( uniforms.time, uniforms.damage, uniforms.crt, uniforms.brightness, uniforms.contrast );
+}
+
+static void SubmitPostprocessPreuiPass() {
+	TracyZoneScoped;
+
+	PipelineState pipeline;
+	pipeline.pass = frame_static.postprocess_preui_pass;
+	pipeline.shader = &shaders.postprocess_preui;
+	pipeline.depth_func = DepthFunc_Disabled;
+	pipeline.write_depth = false;
+
+	const RenderTarget & rt = frame_static.render_targets.postprocess_preui;
+	pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
+	pipeline.bind_texture_and_sampler( "u_Screen", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Standard );
+	pipeline.bind_uniform( "u_PostProcess", UploadUniformBlock( float( cg.predictedPlayerState.zoom_time ) / float( ZOOMTIME ) ) );
+
+	DrawFullscreenMesh( pipeline );
 }
 
 static void SubmitPostprocessPass() {
@@ -190,7 +206,6 @@ static void SubmitPostprocessPass() {
 	uniforms.crt = chasing_amount;
 	uniforms.brightness = 0.0f;
 	uniforms.contrast = contrast;
-	uniforms.zoom = float( cg.predictedPlayerState.zoom_time ) / float( ZOOMTIME );
 
 	pipeline.bind_uniform( "u_PostProcess", UploadPostprocessUniforms( uniforms ) );
 
@@ -227,6 +242,7 @@ void SCR_UpdateScreen() {
 		cg.damage_effect = 0.0f;
 	}
 
+	SubmitPostprocessPreuiPass();
 	SubmitPostprocessPass();
 
 	UI_Refresh();

@@ -56,6 +56,7 @@ struct FrameStatic {
 	struct {
 		RenderTarget silhouette_mask;
 		RenderTarget msaa;
+		RenderTarget postprocess_preui;
 		RenderTarget postprocess;
 		RenderTarget msaa_masked;
 		RenderTarget postprocess_masked;
@@ -84,6 +85,7 @@ struct FrameStatic {
 
 	u8 add_silhouettes_pass;
 
+	u8 postprocess_preui_pass;
 	u8 ui_pass;
 	u8 postprocess_pass;
 	u8 post_ui_pass;

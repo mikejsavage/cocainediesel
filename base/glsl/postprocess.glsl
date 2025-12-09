@@ -209,29 +209,6 @@ vec3 brightnessContrast( vec3 value, float brightness, float contrast ) {
 	return (value - 0.5) * contrast + 0.5 + brightness;
 }
 
-vec3 radialBlur( vec2 uv ) {
-	const int SAMPLES = 16;
-	const float BLUR_INTENSITY = 0.04;
-	const vec2 OFFSET = vec2( 0.5, 0.5 );
-
-	vec3 col = vec3( 0.0 );
-	vec2 center = vec2( 0.5, 0.5 ); 
-    vec2 dist = uv - vec2( 0.5, 0.5 );
-
-    float len = length( dist );
-    float l = sqrt( len );
-	for( int j = 0; j < SAMPLES; j++ ) {
-		float scale = 1.0 - l * BLUR_INTENSITY * u_Zoom * (float(j) / SAMPLES);
-        col += SampleScreen( dist * scale + center ).rgb;
-    }
-
-	col /= SAMPLES;
-
-    // vignette effect
-    float vignette = 1.0 - max( len - 0.5, 0.0 ) * ( 1.0 + u_Zoom );
-	return col * vignette;
-}
-
 void main() {
 	vec2 uv = gl_FragCoord.xy / u_ViewportSize;
 
@@ -245,7 +222,7 @@ void main() {
 	if( all( lessThanEqual( abs( uv - 0.5 ), vec2( 0.5 ) ) ) ) {
 		color = sRGBToLinear( brightnessContrast( LinearTosRGB( color ), u_Brightness, u_Contrast ) );
 	}
-	f_Albedo = vec4( mix( color, radialBlur( uv ), u_Zoom ), 1.0 );
+	f_Albedo = vec4( color, 1.0 );
 }
 
 #endif

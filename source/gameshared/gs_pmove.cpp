@@ -823,10 +823,10 @@ static trace_t TestTrace( Vec3 start, MinMax3 bounds, Vec3 end, int ignore, Soli
 		.aabb = ToCenterExtents( bounds ),
 	};
 
-	Plane plane = {
+	/*Plane plane = {
 		.normal = Vec3( 1.0f, 0.0f, 0.0f ),
 		.distance = 0.0f,
-	};
+	};*/
 
 	BoundedDynamicArray< u32, 1 > brush_indices = { 0 };
 

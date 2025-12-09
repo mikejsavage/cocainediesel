@@ -33,17 +33,17 @@ struct UI_Color {
 		clay{ float( diesel_color.srgb.r ), float( diesel_color.srgb.g ), float( diesel_color.srgb.b ), float( diesel_color.srgb.a ) } {}
 };
 
-static constexpr UI_Color ui_diesel_green( diesel_green );
+// static constexpr UI_Color ui_diesel_green( diesel_green );
 static constexpr UI_Color ui_diesel_grey( diesel_grey );
-static constexpr UI_Color ui_diesel_red( diesel_red );
+// static constexpr UI_Color ui_diesel_red( diesel_red );
 static constexpr UI_Color ui_diesel_yellow( diesel_yellow );
 
 static constexpr UI_Color ui_white( white );
 static constexpr UI_Color ui_black( black );
 static constexpr UI_Color ui_dark( dark );
-static constexpr UI_Color ui_red( red );
-static constexpr UI_Color ui_green( green );
-static constexpr UI_Color ui_yellow( yellow );
+// static constexpr UI_Color ui_red( red );
+// static constexpr UI_Color ui_green( green );
+// static constexpr UI_Color ui_yellow( yellow );
 
 enum UIState {
 	UIState_Hidden,
@@ -110,10 +110,10 @@ static void ImGuiHorizontalGradient( const ImVec2 & top_left, const ImVec2 & siz
  	draw_list->AddRectFilledMultiColor( top_left, top_left + size, left_color, right_color, right_color, left_color );
 }
 
-static void ImGuiVerticalGradient( const ImVec2 & top_left, const ImVec2 & size, const ImU32 & top_color, const ImU32 & bottom_color ) {
+/*static void ImGuiVerticalGradient( const ImVec2 & top_left, const ImVec2 & size, const ImU32 & top_color, const ImU32 & bottom_color ) {
 	ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
  	draw_list->AddRectFilledMultiColor( top_left, top_left + size, top_color, top_color, bottom_color, bottom_color );
-}
+}*/
 
 static void ClayVerticalSpacing( Clay_SizingAxis spacing ) {
 	CLAY( {
@@ -475,7 +475,7 @@ static void CvarCheckbox( Span< const char > label, Span< const char > cvar_name
 	Cvar_Set( cvar_name, val ? "1" : "0" );
 }
 
-static void CvarSliderInt( Span< const char > label, Span< const char > cvar_name, int lo, int hi ) {
+/*static void CvarSliderInt( Span< const char > label, Span< const char > cvar_name, int lo, int hi ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	SettingLabel( label );
@@ -486,7 +486,7 @@ static void CvarSliderInt( Span< const char > label, Span< const char > cvar_nam
 	ImGui::PopID();
 
 	Cvar_Set( cvar_name, temp.sv( "{}", val ) );
-}
+}*/
 
 static void CvarSliderFloat( Span< const char > label, Span< const char > cvar_name, float lo, float hi ) {
 	TempAllocator temp = cls.frame_arena.temp();
@@ -2130,9 +2130,9 @@ static bool LoadoutMenu() {
 	return should_close || ( key1.exists && ImGui::Shortcut( KeyToImGui( key1.value ) ) ) || ( key2.exists && ImGui::Shortcut( KeyToImGui( key2.value ) ) );
 }
 
-static void VoteMenu() {
+/*static void VoteMenu() {
 
-}
+}*/
 
 static void GameMenu() {
 	TempAllocator temp = cls.frame_arena.temp();

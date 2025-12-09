@@ -15,6 +15,9 @@ uniform sampler2D u_Screen;
 
 layout( std140 ) uniform u_PostProcess {
 	float u_Zoom;
+	float u_Brightness;
+	float u_Contrast;
+	float u_Saturation;
 };
 
 layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
@@ -44,17 +47,16 @@ vec3 KelvinToRGB( float k ) {
 
 vec3 colorCorrection( vec3 color ) {
 	const vec3 LumCoeff = vec3( 0.2125, 0.7154, 0.0721 );
-	const float brightness = 1.0;
-	const float contrast = 1.0;
-	const float saturation = 4.0;
 
- 	vec3 AvgLumin = vec3(0.5, 0.5, 0.5);
+	color *= u_Brightness;
+
+ 	vec3 AvgLumin = vec3( 0.5, 0.5, 0.5 );
  	vec3 intensity = vec3( dot( color, LumCoeff ) );
 
-	vec3 satColor = mix( intensity, color, saturation );
- 	vec3 conColor = mix( AvgLumin, satColor, contrast );
+	vec3 satColor = mix( intensity, color, u_Saturation );
+ 	vec3 conColor = mix( AvgLumin, satColor, u_Contrast );
 
-	return brightness * conColor;
+	return conColor;
 }
 
 vec3 radialBlur( vec2 uv ) {

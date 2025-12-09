@@ -30,6 +30,9 @@ static Cvar *scr_debuggraph;
 static Cvar *scr_graphheight;
 static Cvar *scr_graphscale;
 static Cvar *scr_graphshift;
+static Cvar *scr_brightness;
+static Cvar *scr_contrast;
+static Cvar *scr_saturation;
 
 /*
 ===============================================================================
@@ -116,6 +119,9 @@ void SCR_InitScreen() {
 	scr_graphheight = NewCvar( "graphheight", "32" );
 	scr_graphscale = NewCvar( "graphscale", "1" );
 	scr_graphshift = NewCvar( "graphshift", "0" );
+	scr_brightness = NewCvar( "brightness", "1", CvarFlag_Archive | CvarFlag_Developer );
+	scr_contrast = NewCvar( "contrast", "1", CvarFlag_Archive | CvarFlag_Developer );
+	scr_saturation = NewCvar( "saturation", "1", CvarFlag_Archive | CvarFlag_Developer );
 }
 
 static void SCR_RenderView() {
@@ -148,6 +154,8 @@ static UniformBlock UploadPostprocessUniforms( PostprocessUniforms uniforms ) {
 static void SubmitPostprocessPreuiPass() {
 	TracyZoneScoped;
 
+	float zoom_time = float( cg.predictedPlayerState.zoom_time ) / float( ZOOMTIME );
+
 	PipelineState pipeline;
 	pipeline.pass = frame_static.postprocess_preui_pass;
 	pipeline.shader = &shaders.postprocess_preui;
@@ -157,7 +165,7 @@ static void SubmitPostprocessPreuiPass() {
 	const RenderTarget & rt = frame_static.render_targets.postprocess_preui;
 	pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
 	pipeline.bind_texture_and_sampler( "u_Screen", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Standard );
-	pipeline.bind_uniform( "u_PostProcess", UploadUniformBlock( float( cg.predictedPlayerState.zoom_time ) / float( ZOOMTIME ) ) );
+	pipeline.bind_uniform( "u_PostProcess", UploadUniformBlock( zoom_time, Cvar_Float( "brightness" ), Cvar_Float( "contrast" ), Cvar_Float( "saturation" ) ) );
 
 	DrawFullscreenMesh( pipeline );
 }

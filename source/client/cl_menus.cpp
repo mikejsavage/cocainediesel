@@ -68,6 +68,7 @@ enum MenuState {
 	MenuState_Career,
 	MenuState_Loadout,
 	MenuState_Vote,
+	MenuState_DevColorCorrection,
 	MenuState_Exit,
 };
 
@@ -2207,12 +2208,27 @@ static void GameMenu() {
 		ImGui::Dummy( frame_static.viewport ); // NOTE(mike): needed to fix the ErrorCheckUsingSetCursorPosToExtendParentBoundaries assert
 
 		SubMenuWindow();
+	} else if( menu_state == MenuState_DevColorCorrection ) {
+		ImGui::SetNextWindowPos( ImVec2() );
+		ImGui::SetNextWindowSize( frame_static.viewport );
+
+		ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_Interactive );
+
+		CvarSliderFloat( "Brightness", "brightness", 0.0, 5.0 );
+		CvarSliderFloat( "Contrast", "contrast", 0.0, 5.0 );
+		CvarSliderFloat( "Saturation", "saturation", 0.0, 5.0 );
 	} else {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, 0, Vec2( 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( 500, 0 ) * GetContentScale() );
 		ImGui::Begin( "gamemenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 		ImGuiStyle & style = ImGui::GetStyle();
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
+
+		if( cl_devtools->integer ) {
+			if( ImGui::Button( "Color correction", ImVec2( -1, 0 ) ) ) {
+				menu_state = MenuState_DevColorCorrection;
+			}
+		}
 
 		if( spectating ) {
 			GameMenuButton( "Join Game", "join", &should_close );

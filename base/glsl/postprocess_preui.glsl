@@ -20,9 +20,10 @@ layout( std140 ) uniform u_PostProcess {
 layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;
 
 vec3 radialBlur( vec2 uv ) {
-	const int SAMPLES = 16;
-	const float BLUR_INTENSITY = 0.04;
+	const int SAMPLES = 8;
+	const float BLUR_INTENSITY = 0.03;
 	const vec2 CENTER = vec2( 0.5, 0.5 );
+	const float VIGNETTE_OFFSET = 0.45;
 
 	vec3 col = vec3( 0.0 );
 	vec2 dist = uv - CENTER;
@@ -38,7 +39,7 @@ vec3 radialBlur( vec2 uv ) {
 	col /= SAMPLES;
 
 	// vignette effect
-	float vignette = 1.0 - max( len - 0.5, 0.0 ) * ( 1.0 + u_Zoom );
+	float vignette = 1.0 - max( len - VIGNETTE_OFFSET, 0.0 ) * ( 1.0 + u_Zoom );
 	return col * vignette;
 }
 

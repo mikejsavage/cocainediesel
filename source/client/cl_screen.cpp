@@ -30,6 +30,8 @@ static Cvar *scr_debuggraph;
 static Cvar *scr_graphheight;
 static Cvar *scr_graphscale;
 static Cvar *scr_graphshift;
+static Cvar *scr_exposure;
+static Cvar *scr_gamma;
 static Cvar *scr_brightness;
 static Cvar *scr_contrast;
 static Cvar *scr_saturation;
@@ -119,6 +121,8 @@ void SCR_InitScreen() {
 	scr_graphheight = NewCvar( "graphheight", "32" );
 	scr_graphscale = NewCvar( "graphscale", "1" );
 	scr_graphshift = NewCvar( "graphshift", "0" );
+	scr_exposure = NewCvar( "exposure", "1", CvarFlag_Archive | CvarFlag_Developer );
+	scr_gamma = NewCvar( "gamma", "1", CvarFlag_Archive | CvarFlag_Developer );
 	scr_brightness = NewCvar( "brightness", "1", CvarFlag_Archive | CvarFlag_Developer );
 	scr_contrast = NewCvar( "contrast", "1", CvarFlag_Archive | CvarFlag_Developer );
 	scr_saturation = NewCvar( "saturation", "1", CvarFlag_Archive | CvarFlag_Developer );
@@ -143,12 +147,10 @@ struct PostprocessUniforms {
 	float time;
 	float damage;
 	float crt;
-	float brightness;
-	float contrast;
 };
 
 static UniformBlock UploadPostprocessUniforms( PostprocessUniforms uniforms ) {
-	return UploadUniformBlock( uniforms.time, uniforms.damage, uniforms.crt, uniforms.brightness, uniforms.contrast );
+	return UploadUniformBlock( uniforms.time, uniforms.damage, uniforms.crt );
 }
 
 static void SubmitPostprocessPreuiPass() {
@@ -162,10 +164,29 @@ static void SubmitPostprocessPreuiPass() {
 	pipeline.depth_func = DepthFunc_Disabled;
 	pipeline.write_depth = false;
 
+	float contrast = 1.0f;
+	if( client_gs.gameState.exploding ) {
+		constexpr float duration = 4000.0f;
+		float t = ( cl.serverTime - client_gs.gameState.exploded_at ) / duration;
+
+		FlashStage( 0.00f, t, 0.05f, 1.0f, -1.0f, &contrast );
+		FlashStage( 0.05f, t, 0.10f, -1.0f, 1.0f, &contrast );
+		FlashStage( 0.10f, t, 0.15f, 1.0f, -1.0f, &contrast );
+		FlashStage( 0.15f, t, 0.80f, -1.0f, -1.0f, &contrast );
+		FlashStage( 0.80f, t, 1.00f, -1.0f, 1.0f, &contrast );
+	}
+
 	const RenderTarget & rt = frame_static.render_targets.postprocess_preui;
 	pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
 	pipeline.bind_texture_and_sampler( "u_Screen", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Standard );
-	pipeline.bind_uniform( "u_PostProcess", UploadUniformBlock( zoom_time, Cvar_Float( "brightness" ), Cvar_Float( "contrast" ), Cvar_Float( "saturation" ) ) );
+	pipeline.bind_uniform( "u_PostProcess",
+		UploadUniformBlock(
+			zoom_time,
+			Cvar_Float( "exposure" ),
+			Cvar_Float( "gamma" ),
+			Cvar_Float( "brightness" ),
+			Cvar_Float( "contrast" ) * contrast,
+			Cvar_Float( "saturation" ) ) );
 
 	DrawFullscreenMesh( pipeline );
 }
@@ -185,19 +206,6 @@ static void SubmitPostprocessPass() {
 	pipeline.bind_texture_and_sampler( "u_Noise", FindMaterial( "textures/noise" )->texture, Sampler_Standard );
 	float damage_effect = cg.view.type == ViewType_Player ? cg.damage_effect : 0.0f;
 
-	float contrast = 1.0f;
-	if( client_gs.gameState.exploding ) {
-		constexpr float duration = 4000.0f;
-		float t = ( cl.serverTime - client_gs.gameState.exploded_at ) / duration;
-
-		FlashStage( 0.00f, t, 0.05f, 1.0f, -1.0f, &contrast );
-		FlashStage( 0.05f, t, 0.10f, -1.0f, 1.0f, &contrast );
-		FlashStage( 0.10f, t, 0.15f, 1.0f, -1.0f, &contrast );
-		FlashStage( 0.15f, t, 0.50f, -1.0f, -1.0f, &contrast );
-		FlashStage( 0.50f, t, 0.80f, -1.0f, -1.0f, &contrast );
-		FlashStage( 0.80f, t, 1.00f, -1.0f, 1.0f, &contrast );
-	}
-
 	static float chasing_amount = 0.0f;
 	constexpr float chasing_speed = 4.0f;
 	bool chasing = cls.cgameActive && !CL_DemoPlaying() && cg.predictedPlayerState.team != Team_None && cg.predictedPlayerState.POVnum != cgs.playerNum + 1;
@@ -212,8 +220,6 @@ static void SubmitPostprocessPass() {
 	uniforms.time = ToSeconds( cls.shadertoy_time );
 	uniforms.damage = damage_effect;
 	uniforms.crt = chasing_amount;
-	uniforms.brightness = 0.0f;
-	uniforms.contrast = contrast;
 
 	pipeline.bind_uniform( "u_PostProcess", UploadPostprocessUniforms( uniforms ) );
 

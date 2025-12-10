@@ -2214,6 +2214,8 @@ static void GameMenu() {
 
 		ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_Interactive );
 
+		CvarSliderFloat( "Exposure", "exposure", 0.0, 1.0 );
+		CvarSliderFloat( "Gamma", "gamma", 0.0, 1.0 );
 		CvarSliderFloat( "Brightness", "brightness", 0.0, 5.0 );
 		CvarSliderFloat( "Contrast", "contrast", 0.0, 5.0 );
 		CvarSliderFloat( "Saturation", "saturation", 0.0, 5.0 );

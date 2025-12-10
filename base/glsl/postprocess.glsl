@@ -18,8 +18,6 @@ layout( std140 ) uniform u_PostProcess {
 	float u_Time;
 	float u_Damage;
 	float u_CrtEffect;
-	float u_Brightness;
-	float u_Contrast;
 	float u_Zoom;
 };
 
@@ -205,10 +203,6 @@ vec3 crtEffect( vec3 color, vec2 uv, float amount ) {
 	return mix( new_color, screen_edge, 1.0 - on_screen );
 }
 
-vec3 brightnessContrast( vec3 value, float brightness, float contrast ) {
-	return (value - 0.5) * contrast + 0.5 + brightness;
-}
-
 void main() {
 	vec2 uv = gl_FragCoord.xy / u_ViewportSize;
 
@@ -219,9 +213,6 @@ void main() {
 
 	vec3 color = glitch( uv, glitch_amount );
 	color = crtEffect( color, uv, crt_amount );
-	if( all( lessThanEqual( abs( uv - 0.5 ), vec2( 0.5 ) ) ) ) {
-		color = sRGBToLinear( brightnessContrast( LinearTosRGB( color ), u_Brightness, u_Contrast ) );
-	}
 	f_Albedo = vec4( color, 1.0 );
 }
 

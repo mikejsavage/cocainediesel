@@ -26,25 +26,6 @@ vec3 SampleScreen( vec2 uv ) {
 	return texture( u_Screen, uv ).rgb;
 }
 
-vec3 KelvinToRGB( float k ) {
-    vec3 ret = vec3( 1.0, 1.0, 1.0 );
-    float kelvin = clamp( k, 1000.0, 40000.0 ) / 100.0;
-    if( kelvin <= 66.0 ) {
-        ret.g = clamp( 0.39008157876901960784 * log( kelvin ) - 0.63184144378862745098, 0.0, 1.0 );
-    } else {
-        float t = max( kelvin - 60.0f, 0.0f );
-        ret.r = clamp( 1.29293618606274509804 * pow( t, -0.1332047592 ), 0.0, 1.0 );
-        ret.g = clamp( 1.12989086089529411765 * pow( t, -0.0755148492 ), 0.0, 1.0 );
-    }
-
-    if( kelvin < 19.0 ) {
-        ret.b = 0.0;
-    } else {
-        ret.b = clamp( 0.54320678911019607843 * log( kelvin - 10.0 ) - 1.19625408914, 0.0, 1.0 );
-    }
-    return ret;
-}
-
 vec3 colorCorrection( vec3 color ) {
 	const vec3 LumCoeff = vec3( 0.2125, 0.7154, 0.0721 );
 
@@ -60,7 +41,7 @@ vec3 colorCorrection( vec3 color ) {
 }
 
 vec3 radialBlur( vec2 uv ) {
-	const int SAMPLES = 8;
+	const int SAMPLES = 16;
 	const float BLUR_INTENSITY = 0.03;
 	const vec2 CENTER = vec2( 0.5, 0.5 );
 	const float VIGNETTE_OFFSET = 0.45;

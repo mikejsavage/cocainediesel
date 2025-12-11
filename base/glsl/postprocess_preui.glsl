@@ -114,9 +114,8 @@ float ExposureRamp( float t ){
 vec3 colorCorrection( vec3 color ) {
 	const vec3 LumCoeff = vec3( 0.2125, 0.7154, 0.0721 );
 
-	color *= u_Brightness;
-
 	float exposure = mix( 0.009, 0.98, u_Exposure );
+	float gamma = ( u_Gamma + 1.0 ) * 0.5;
 	vec3 res = mix( color, vec3( 1.0 ), exposure );
     vec3 blend = mix( vec3(1.0), pow( color, vec3( 1.0/0.7 ) ), exposure );
     res = max( 1.0 - ( ( 1.0 - res ) / blend ), 0.0 );
@@ -126,10 +125,12 @@ vec3 colorCorrection( vec3 color ) {
     		ExposureSetSaturation( color, ExposureSaturation( res ) ),
     		ExposureLuminance( res )
     	),
-    	vec3( ExposureRamp( 1.0 - ( u_Gamma + 1.0 ) / 2.0 ) )
+    	vec3( ExposureRamp( 1.0 - gamma ) )
     );
 
- 	vec3 AvgLumin = vec3( 0.5, 0.5, 0.5 );
+
+	color *= u_Brightness;
+ 	vec3 AvgLumin = vec3( gamma, gamma, gamma );
  	vec3 intensity = vec3( dot( color, LumCoeff ) );
 
 	vec3 satColor = mix( intensity, color, u_Saturation );

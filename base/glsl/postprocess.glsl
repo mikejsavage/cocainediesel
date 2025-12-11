@@ -18,7 +18,6 @@ layout( std140 ) uniform u_PostProcess {
 	float u_Time;
 	float u_Damage;
 	float u_CrtEffect;
-	float u_Zoom;
 };
 
 layout( location = FragmentShaderOutput_Albedo ) out vec4 f_Albedo;

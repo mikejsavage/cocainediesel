@@ -182,6 +182,7 @@ static void SubmitPostprocessPreuiPass() {
 	pipeline.bind_uniform( "u_PostProcess",
 		UploadUniformBlock(
 			zoom_time,
+			zoom_time,
 			Cvar_Float( "exposure" ),
 			Cvar_Float( "gamma" ),
 			Cvar_Float( "brightness" ),

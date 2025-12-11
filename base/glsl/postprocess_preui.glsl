@@ -14,7 +14,8 @@ void main() {
 uniform sampler2D u_Screen;
 
 layout( std140 ) uniform u_PostProcess {
-	float u_Zoom;
+	float u_Vignette;
+	float u_RadialBlur;
 	float u_Exposure;
 	float u_Gamma;
 	float u_Brightness;
@@ -141,34 +142,33 @@ vec3 radialBlur( vec2 uv ) {
 	const int SAMPLES = 16;
 	const float BLUR_INTENSITY = 0.03;
 	const vec2 CENTER = vec2( 0.5, 0.5 );
-	const float VIGNETTE_OFFSET = 0.45;
 
 	vec3 col = vec3( 0.0 );
 	vec2 dist = uv - CENTER;
 
-	float len = length( dist );
-	float l = sqrt( len );
-	
+	float len = sqrt( length( dist ) );
 	for( int j = 0; j < SAMPLES; j++ ) {
-		float scale = 1.0 - ( l * BLUR_INTENSITY * u_Zoom * j ) / SAMPLES;
+		float scale = 1.0 - ( len * BLUR_INTENSITY * u_RadialBlur * j ) / SAMPLES;
 		col += SampleScreen( clamp( dist * scale + CENTER, vec2( 0.0, 0.0 ), vec2( 1.0, 1.0 ) ) );
 	}
 
-	col /= SAMPLES;
+	return col / SAMPLES;
+}
 
-	// vignette effect
-	float vignette = 1.0 - max( len - VIGNETTE_OFFSET, 0.0 ) * ( 1.0 + u_Zoom );
-	return col * vignette;
+float vignette( vec2 uv ) {
+	const float VIGNETTE_OFFSET = 0.45;
+
+	float len = length( uv - vec2( 0.5, 0.5 ) ) + IGNDither( uv * u_ViewportSize, 0.02 );
+	return 1.0 - max( len - VIGNETTE_OFFSET, 0.0 ) * ( 1.0 + u_Vignette );
 }
 
 void main() {
 	vec2 uv = gl_FragCoord.xy / u_ViewportSize;
 	
-	vec3 color = texture( u_Screen, uv ).rgb;
-	color = mix( color, radialBlur( uv ), u_Zoom );
+	vec3 color = radialBlur( uv );
 	color = colorCorrection( color );
 
-	f_Albedo.rgb = color;
+	f_Albedo.rgb = color * vignette( uv );
 }
 
 #endif

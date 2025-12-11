@@ -111,3 +111,7 @@ void QuaternionToBasis( Quaternion q, out vec3 normal, out vec3 tangent, out vec
 		1.0 - 2.0 * ( q.q.x * q.q.x + q.q.y * q.q.y )
 	);
 }
+
+float IGNDither( vec2 pos, float intensity ) {
+	return (mod( 52.9829189 * mod( 0.06711056 * pos.x + 0.00583715 * pos.y, 1.0 ), 1.0 ) - 0.5) * intensity;
+}

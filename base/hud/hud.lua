@@ -68,10 +68,9 @@ local function DrawBombProgress( state )
 		local width = state.viewport_width * 0.2
 		local height = state.viewport_height / 30
 		local y = state.viewport_height * 0.8
-		local progress = state.bomb_progress / 100
 
 		cd.box( ( state.viewport_width - width ) * 0.5, y, width, height, "#2228" )
-		cd.box( ( state.viewport_width - width * progress ) * 0.5, y, width * progress, height, cd.allyColor() )
+		cd.box( ( state.viewport_width - width * state.bomb_progress ) * 0.5, y, width * state.bomb_progress, height, cd.allyColor() )
 
 		local text = { color = "#fff", border = "#000", font_size = height * 0.55, alignment = "center middle" }
 		local message = if state.bomb_progress_type == BombProgress_Planting then "Planting..." else "Defusing..."

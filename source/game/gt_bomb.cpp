@@ -105,7 +105,7 @@ static void BombStartPlanting( edict_t * carrier_ent, u32 site );
 static void BombSetCarrier( s32 player_num, bool no_sound );
 static void RoundWonBy( Team winner );
 static void RoundNewState( RoundState state );
-static void SetTeamProgress( Team team, int percent, BombProgress type );
+static void SetTeamProgress( Team team, u16 percent, BombProgress type );
 static void UpdateScore( s32 player_num );
 
 static void Show( edict_t * ent ) {
@@ -536,7 +536,7 @@ static void BombThink() {
 			}
 
 			if( frac != 0.0f ) {
-				SetTeamProgress( AttackingTeam(), int( frac * 100.0f ), BombProgress_Planting );
+				SetTeamProgress( AttackingTeam(), u16( frac * float( U16_MAX ) ), BombProgress_Planting );
 			}
 		} break;
 
@@ -565,10 +565,10 @@ static void BombThink() {
 				float frac = bomb_state.defuse_progress / bomb_defusetime;
 				if( frac >= 1.0f ) {
 					BombDefused();
-					SetTeamProgress( DefendingTeam(), 100, BombProgress_Defusing );
+					SetTeamProgress( DefendingTeam(), U16_MAX, BombProgress_Defusing );
 					break;
 				}
-				SetTeamProgress( DefendingTeam(), int( frac * 100.0f ), BombProgress_Defusing );
+				SetTeamProgress( DefendingTeam(), u16( frac * float( U16_MAX ) ), BombProgress_Defusing );
 			}
 
 			if( level.time >= bomb_state.bomb.action_time ) {
@@ -939,7 +939,7 @@ static void UpdateScore( s32 player_num ) {
 	stats->score = int( stats->kills * 0.5 + stats->total_damage_given * 0.01 );
 }
 
-static void SetTeamProgress( Team team, int percent, BombProgress type ) {
+static void SetTeamProgress( Team team, u16 percent, BombProgress type ) {
 	for( u32 i = 0; i < server_gs.gameState.teams[ team ].num_players; i++ ) {
 		edict_t * ent = PLAYERENT( server_gs.gameState.teams[ team ].player_indices[ i ] - 1 );
 		gclient_t * client = ent->r.client;

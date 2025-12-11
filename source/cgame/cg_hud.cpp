@@ -1749,7 +1749,7 @@ void CG_DrawHUD() {
 	lua_pushboolean( hud_L, cg.predictedPlayerState.can_change_loadout );
 	lua_setfield( hud_L, -2, "can_change_loadout" );
 
-	lua_pushnumber( hud_L, cg.predictedPlayerState.progress );
+	lua_pushnumber( hud_L, Unlerp01( u16( 0 ), cg.predictedPlayerState.progress, U16_MAX ) );
 	lua_setfield( hud_L, -2, "bomb_progress" );
 
 	lua_pushnumber( hud_L, cg.predictedPlayerState.progress_type );

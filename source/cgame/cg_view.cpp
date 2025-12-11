@@ -311,6 +311,15 @@ static void ScreenShake( cg_viewdef_t * view ) {
 	view->origin.z += shake_amount * RandomFloat11( &cls.rng );
 }
 
+static void CG_LerpPlayerState() {
+	const SyncPlayerState * cps = &cg.frame.playerState;
+	const SyncPlayerState * ops = &cg.oldFrame.playerState;
+	SyncPlayerState * ps = &cg.predictedPlayerState;
+
+	ps->flashed = Lerp( ops->flashed, cg.lerpfrac, cps->flashed );
+	ps->progress = Lerp( ops->progress, cg.lerpfrac, cps->progress );
+}
+
 static void CG_SetupViewDef( cg_viewdef_t *view, ViewType type, UserCommand * cmd ) {
 	*view = { .type = type };
 
@@ -353,6 +362,8 @@ static void CG_SetupViewDef( cg_viewdef_t *view, ViewType type, UserCommand * cm
 
 			if( view->playerPrediction ) {
 				CG_PredictMovement();
+
+				CG_LerpPlayerState();
 
 				Vec3 viewoffset = Vec3::Z( cg.predictedPlayerState.viewheight );
 				view->origin = cg.predictedPlayerState.pmove.origin + viewoffset - ( 1.0f - cg.lerpfrac ) * cg.predictionError;

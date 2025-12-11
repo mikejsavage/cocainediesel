@@ -515,7 +515,7 @@ struct SyncPlayerState {
 	Team real_team;
 
 	BombProgress progress_type;
-	u8 progress;
+	u16 progress;
 };
 
 enum UserCommandButton : u8 {

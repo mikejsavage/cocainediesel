@@ -143,16 +143,6 @@ static void FlashStage( float begin, float t, float end, float from, float to, f
 	*flash = Lerp( from, frac, to );
 }
 
-struct PostprocessUniforms {
-	float time;
-	float damage;
-	float crt;
-};
-
-static UniformBlock UploadPostprocessUniforms( PostprocessUniforms uniforms ) {
-	return UploadUniformBlock( uniforms.time, uniforms.damage, uniforms.crt );
-}
-
 static void SubmitPostprocessPreuiPass() {
 	TracyZoneScoped;
 
@@ -179,15 +169,25 @@ static void SubmitPostprocessPreuiPass() {
 	const RenderTarget & rt = frame_static.render_targets.postprocess_preui;
 	pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
 	pipeline.bind_texture_and_sampler( "u_Screen", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Standard );
+	
+
+	float u_Vignette = zoom_time;
+	float u_RadialBlur = zoom_time;
+	float u_Exposure = Cvar_Float( "exposure" );
+	float u_Gamma = Cvar_Float( "gamma" );
+	float u_Brightness = Cvar_Float( "brightness" );
+	float u_Contrast = Cvar_Float( "contrast" ) * contrast;
+	float u_Saturation = Cvar_Float( "saturation" );
+
 	pipeline.bind_uniform( "u_PostProcess",
 		UploadUniformBlock(
-			zoom_time,
-			zoom_time,
-			Cvar_Float( "exposure" ),
-			Cvar_Float( "gamma" ),
-			Cvar_Float( "brightness" ),
-			Cvar_Float( "contrast" ) * contrast,
-			Cvar_Float( "saturation" ) ) );
+			u_Vignette,
+			u_RadialBlur,
+			u_Exposure,
+			u_Gamma,
+			u_Brightness,
+			u_Contrast,
+			u_Saturation ) );
 
 	DrawFullscreenMesh( pipeline );
 }
@@ -205,7 +205,6 @@ static void SubmitPostprocessPass() {
 	pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
 	pipeline.bind_texture_and_sampler( "u_Screen", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Standard );
 	pipeline.bind_texture_and_sampler( "u_Noise", FindMaterial( "textures/noise" )->texture, Sampler_Standard );
-	float damage_effect = cg.view.type == ViewType_Player ? cg.damage_effect : 0.0f;
 
 	static float chasing_amount = 0.0f;
 	constexpr float chasing_speed = 4.0f;
@@ -215,14 +214,15 @@ static void SubmitPostprocessPass() {
 	} else {
 		chasing_amount -= cls.frametime * 0.001f * chasing_speed;
 	}
-	chasing_amount = Clamp01( chasing_amount );
 
-	PostprocessUniforms uniforms = { };
-	uniforms.time = ToSeconds( cls.shadertoy_time );
-	uniforms.damage = damage_effect;
-	uniforms.crt = chasing_amount;
+	float u_Time = ToSeconds( cls.shadertoy_time );
+	float u_Damage = cg.view.type == ViewType_Player ? cg.damage_effect : 0.0f;
+	float u_CrtEffect = Clamp01( chasing_amount );
 
-	pipeline.bind_uniform( "u_PostProcess", UploadPostprocessUniforms( uniforms ) );
+	pipeline.bind_uniform( "u_PostProcess", UploadUniformBlock(
+		u_Time,
+		u_Damage,
+		u_CrtEffect ) );
 
 	DrawFullscreenMesh( pipeline );
 }

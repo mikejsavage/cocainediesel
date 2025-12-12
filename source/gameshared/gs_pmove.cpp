@@ -507,17 +507,21 @@ static Optional< trace_t > PM_UnstickPosition() {
 	Vec3 origin = pml.origin;
 
 	// try all combinations
-	for( int j = 0; j < 8; j++ ) {
-		origin = pml.origin;
+	constexpr float UNSTICK_MOVE = 10.f;
+	for( int unstick_extent = 1; unstick_extent < 10; ++unstick_extent ) {
+		const float move = unstick_extent * UNSTICK_MOVE;
+		for( int j = 0; j < 8; j++ ) {
+			origin = pml.origin;
 
-		origin.x += ( j & 1 ) ? -1.0f : 1.0f;
-		origin.y += ( j & 2 ) ? -1.0f : 1.0f;
-		origin.z += ( j & 4 ) ? -1.0f : 1.0f;
+			origin.x += ( j & 1 ) ? -move : move;
+			origin.y += ( j & 2 ) ? -move : move;
+			origin.z += ( j & 4 ) ? -move : move;
 
-		trace_t inside_solid_trace = pmove_gs->api.Trace( origin, pm->bounds, origin, pm->playerState->POVnum, pm->solid_mask, 0 );
-		if( inside_solid_trace.GotSomewhere() ) {
-			pml.origin = origin;
-			return PM_GroundTrace();
+			trace_t inside_solid_trace = pmove_gs->api.Trace( origin, pm->bounds, origin, pm->playerState->POVnum, pm->solid_mask, 0 );
+			if( inside_solid_trace.GotSomewhere() ) {
+				pml.origin = origin;
+				return PM_GroundTrace();
+			}
 		}
 	}
 

@@ -148,6 +148,10 @@ struct cg_static_t {
 	unsigned extrapolationTime;
 };
 
+struct PlayerTweenState {
+	float chasing;
+};
+
 struct cg_state_t {
 	int frameCount;
 
@@ -174,6 +178,7 @@ struct cg_state_t {
 	float xerpTime;
 	float oldXerpTime;
 	float xerpSmoothFrac;
+	PlayerTweenState animationState;
 
 	bool showScoreboard;            // demos and multipov
 
@@ -427,3 +432,9 @@ UserCommandButton CG_GetButtonBits();
 UserCommandButton CG_GetButtonDownEdges();
 EulerDegrees2 CG_GetDeltaViewAngles();
 Vec2 CG_GetMovement();
+
+//
+// cg_anim.cpp
+//
+
+void CG_HandlePlayerTweens();

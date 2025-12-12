@@ -206,18 +206,9 @@ static void SubmitPostprocessPass() {
 	pipeline.bind_texture_and_sampler( "u_Screen", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Standard );
 	pipeline.bind_texture_and_sampler( "u_Noise", FindMaterial( "textures/noise" )->texture, Sampler_Standard );
 
-	static float chasing_amount = 0.0f;
-	constexpr float chasing_speed = 4.0f;
-	bool chasing = cls.cgameActive && !CL_DemoPlaying() && cg.predictedPlayerState.team != Team_None && cg.predictedPlayerState.POVnum != cgs.playerNum + 1;
-	if( chasing ) {
-		chasing_amount += cls.frametime * 0.001f * chasing_speed;
-	} else {
-		chasing_amount -= cls.frametime * 0.001f * chasing_speed;
-	}
-
 	float u_Time = ToSeconds( cls.shadertoy_time );
 	float u_Damage = cg.view.type == ViewType_Player ? cg.damage_effect : 0.0f;
-	float u_CrtEffect = Clamp01( chasing_amount );
+	float u_CrtEffect = cg.animationState.chasing;
 
 	pipeline.bind_uniform( "u_PostProcess", UploadUniformBlock(
 		u_Time,

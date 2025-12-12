@@ -426,6 +426,8 @@ static void CG_SetupViewDef( cg_viewdef_t *view, ViewType type, UserCommand * cm
 	if( !view->playerPrediction ) {
 		cg.recoiling = false;
 	}
+
+	CG_HandlePlayerTweens();
 }
 
 static void DrawSilhouettes() {

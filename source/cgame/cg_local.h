@@ -150,6 +150,7 @@ struct cg_static_t {
 
 struct PlayerTweenState {
 	float chasing;
+	float smoothed_health;
 };
 
 struct cg_state_t {

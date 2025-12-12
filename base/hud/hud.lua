@@ -672,6 +672,7 @@ local function DrawBottomLeft( state )
 
 	local health_color = HealthColor( state.health / state.max_health )
 	local health_percent = string.format( "%f%%", 100 * ( state.health / state.max_health ) )
+	local smoothed_health_percent = string.format( "%f%%", 100 * ( ( state.smoothed_health - state.health ) / state.max_health ) )
 
 	local health_node = cd.node( {
 		flow = "vertical",
@@ -686,6 +687,7 @@ local function DrawBottomLeft( state )
 		cd.node( { height = "30%", width = "100%", gap = border_size }, DrawStaminaBar( state ) ),
 		cd.node( { height = "35%", width = "100%", background = RGBALinear( 0.04, 0.04, 0.04, 1 ) }, {
 			cd.node( { height = "100%", width = health_percent, background = health_color } ),
+			cd.node( { height = "100%", width = smoothed_health_percent, background = RGBALinear( 1.0, 0.0, 0.0, 0.25 ) } ),
 		} ),
 		cd.node( { height = "35%", width = "grow", gap = "1vh", padding = "0.5vh" }, {
 			cd.node( { height = "100%", aspect_ratio = 1 }, DrawHealthCross, health_color ),

@@ -1693,6 +1693,9 @@ void CG_DrawHUD() {
 	lua_pushnumber( hud_L, cg.predictedPlayerState.health );
 	lua_setfield( hud_L, -2, "health" );
 
+	lua_pushnumber( hud_L, cg.animationState.smoothed_health );
+	lua_setfield( hud_L, -2, "smoothed_health" );
+
 	lua_pushnumber( hud_L, cg.predictedPlayerState.max_health );
 	lua_setfield( hud_L, -2, "max_health" );
 

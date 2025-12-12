@@ -50,7 +50,6 @@ static T TweenSquareOut( const Tween<T>& tween, Time now ) {
 
 
 
-
 static bool IsChasing( const SyncPlayerState * ps ) {
 	return cls.cgameActive && !CL_DemoPlaying() && ps->team != Team_None && ps->POVnum != cgs.playerNum + 1;
 }
@@ -65,17 +64,34 @@ void CG_HandlePlayerTweens() {
 
 	// chase tween
 	{
-		static Tween<float> tween_chase;
-		
-		constexpr Time CHASING_TIME = Milliseconds( 250 );
+		static Tween<float> tween;
+
+		constexpr Time TWEEN_TIME = Milliseconds( 250 );
 		bool ps_chasing = IsChasing( ps );
 		bool ops_chasing = IsChasing( ops );
 
 		if( ps_chasing != ops_chasing ) {
 			float start = ps_chasing ? 0.f : 1.f;
-			tween_chase = StartTween<float>( start, 1.f - start, CHASING_TIME );
+			tween = StartTween<float>( start, 1.f - start, TWEEN_TIME );
 		}
 
-		state->chasing = TweenSquareOut( tween_chase, now );
+		state->chasing = TweenSquareOut( tween, now );
+	}
+
+	// health tween
+	{
+		static Tween<float> tween;
+
+		constexpr Time TWEEN_TIME = Seconds( 2 );
+		if( ps->health != s16( tween.end ) ) {
+			float end = float( ps->health );
+			float start = ps->health == ps->max_health ?
+							end : state->smoothed_health > ops->health ?
+								state->smoothed_health :
+								float( ops->health );
+			tween = StartTween<float>( start, end, TWEEN_TIME );
+		}
+
+		state->smoothed_health = TweenSquareIn( tween, now );
 	}
 }

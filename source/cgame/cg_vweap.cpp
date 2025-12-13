@@ -133,10 +133,14 @@ void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 		return;
 	}
 
+	if( !model->camera_node.exists ) {
+		Com_GGPrint( S_COLOR_YELLOW "{} has no camera attached", GetWeaponDefProperties( cg.predictedPlayerState.weapon )->name );
+		return;
+	}
+
 	Vec3 origin = Vec3( 0.0f );
 	EulerDegrees3 angles = { };
 
-	Assert( model->camera_node.exists );
 	constexpr Mat4 y_up_to_camera_space = Mat4(
 		0.0f, 0.0f, 1.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
@@ -144,7 +148,6 @@ void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 		0.0f, 0.0f, 0.0f, 1.0f
 	);
 
-	// TODO: just use this transform directly
 	origin = ( y_up_to_camera_space * Vec4( -model->nodes[ model->camera_node.value ].global_transform.col3, 1.0f ) ).xyz();
 
 	// scale forward gun offset depending on fov and aspect ratio

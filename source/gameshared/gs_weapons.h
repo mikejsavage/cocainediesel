@@ -20,7 +20,7 @@ struct WeaponDef {
 
 		ZoomType zoom_type = Zoom_ADS;
 		float zoom_fov = 0.f;
-		float zoom_spread = 0.f;
+		float unzoom_spread = 0.f;
 		float zoom_movement_speed = 1.f;
 
 		float recoil_recovery = 500.0f;

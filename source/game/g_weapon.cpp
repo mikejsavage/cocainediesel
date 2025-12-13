@@ -175,9 +175,9 @@ static ProjectileStats WeaponProjectileStats( edict_t * self, WeaponType weapon,
 		const WeaponDef::Properties * prop = GetWeaponDefProperties( weapon );
 
 		spreadness = fire->spread;
-		if( prop->zoom_spread > 0.0f && self->r.client != NULL ) {
+		if( prop->unzoom_spread > 0.0f && self->r.client != NULL ) {
 			float frac = 1.0f - float( self->r.client->ps.zoom_time ) / float( ZOOMTIME );
-			spreadness += frac * atanf( Radians( prop->zoom_spread ) );
+			spreadness += frac * atanf( Radians( prop->unzoom_spread ) );
 		}
 	}
 
@@ -354,7 +354,7 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, EulerDegrees3 angles, int
 	AngleVectors( angles, &dir, &right, &up );
 
 	float spreadness = fire->spread;
-	if( GetWeaponDefProperties( weapon )->zoom_spread > 0.0f && self->r.client != NULL ) {
+	if( GetWeaponDefProperties( weapon )->unzoom_spread > 0.0f && self->r.client != NULL ) {
 		spreadness += ZoomSpreadness( self->r.client->ps.zoom_time, weapon, alt );
 	}
 
@@ -771,7 +771,7 @@ static void W_Touch_Sticky( edict_t * ent, edict_t * other, Vec3 normal, SolidBi
 }
 
 void W_Fire_Sticky( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
-	Vec2 spread = UniformSampleInsideCircle( &svs.rng ) * GetWeaponDefProperties( Weapon_Sticky )->zoom_spread;
+	Vec2 spread = UniformSampleInsideCircle( &svs.rng ) * GetWeaponDefProperties( Weapon_Sticky )->unzoom_spread;
 	angles.pitch += spread.x;
 	angles.yaw += spread.y;
 

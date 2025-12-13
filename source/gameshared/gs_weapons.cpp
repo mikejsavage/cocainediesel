@@ -41,7 +41,7 @@ Vec2 RandomSpreadPattern( u16 entropy, float spread ) {
 
 float ZoomSpreadness( s16 zoom_time, WeaponType w, bool alt ) {
 	float frac = 1.0f - float( zoom_time ) / float( ZOOMTIME );
-	return frac * GetWeaponDefProperties( w )->zoom_spread;
+	return frac * GetWeaponDefProperties( w )->unzoom_spread;
 }
 
 Vec2 FixedSpreadPattern( int i, float spread ) {

@@ -537,7 +537,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			
 			.zoom_type = Zoom_Scope,
 			.zoom_fov = 25.0f,
-			.zoom_spread = 0.25f,
+			.unzoom_spread = 0.25f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 			
 			.recoil_recovery = 1750.0f,
@@ -571,7 +571,7 @@ static constexpr WeaponDef weapon_defs[] = {
 		
 			.zoom_type = Zoom_Scope,
 			.zoom_fov = 40.0f,
-			.zoom_spread = 0.1f,
+			.unzoom_spread = 0.1f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 			
 			.recoil_recovery = 900.0f,
@@ -606,7 +606,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
-			.zoom_spread = 0.05f,
+			.unzoom_spread = 0.05f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 			
 			.recoil_recovery = 1500.0f,

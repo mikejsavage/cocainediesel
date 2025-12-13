@@ -145,11 +145,11 @@ static void HandleZoom( const gs_state_t * gs, SyncPlayerState * ps, const UserC
 
 	s16 last_zoom_time = ps->zoom_time;
 	bool can_zoom = ( ps->weapon_state == WeaponState_Idle ||
-					( ( ps->weapon_state == WeaponState_Firing || ps->weapon_state == WeaponState_FiringEntireClip ) &&
+					( ( ps->weapon_state == WeaponState_Firing || ps->weapon_state == WeaponState_FiringEntireClip || ps->weapon_state == WeaponState_FiringSemiAuto ) &&
 						HasAmmo( ps->weapon, false, slot ) ) )
 				&& ( ps->pmove.features & PMFEAT_SCOPE );
 
-	if( can_zoom && def->zoom_fov != 0 && HasAllBits( cmd->buttons, Button_Attack2 ) ) {
+	if( can_zoom && def->zoom_fov != 0 && HasAnyBit( cmd->buttons, Button_Attack2 ) ) {
 		ps->zoom_time = Min2( ps->zoom_time + cmd->msec, ZOOMTIME );
 		if( last_zoom_time == 0 ) {
 			gs->api.PredictedEvent( ps->POVnum, EV_ZOOM_IN, ps->weapon );
@@ -262,7 +262,7 @@ static constexpr ItemState generic_gun_states[] = {
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
 		if( HasAnyBit( cmd->buttons, WeaponAttackBits( def ) ) ) {
-			bool altfire = def->has_altfire && HasAllBits( cmd->buttons, Button_Attack2 );
+			bool altfire = def->has_altfire && HasAnyBit( cmd->buttons, Button_Attack2 );
 			if( HasAmmo( ps->weapon, altfire, slot ) ) {
 				FireWeapon( gs, ps, cmd, false, altfire );
 
@@ -295,7 +295,6 @@ static constexpr ItemState generic_gun_states[] = {
 		if( HasAllBits( cmd->buttons, Button_Attack1 ) ) {
 			u16 refire_time = GetWeaponDefFire( ps->weapon, ps->weapon_alt_fire )->refire_time;
 			ps->weapon_state_time = Min2( refire_time, ps->weapon_state_time );
-			ps->weapon_alt_fire = false;
 
 			if( ps->weapon_state_time >= refire_time ) {
 				return AllowWeaponSwitch( gs, ps, state );

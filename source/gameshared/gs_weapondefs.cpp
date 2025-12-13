@@ -709,10 +709,8 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_FAST,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
-			.zoom_spread = 0.0f, // actual spread
-			
-			.recoil_recovery = 1750.0f,
+						
+			.recoil_recovery = 1750.0f, // fuse time for sticky
 		},
 
 		{
@@ -731,7 +729,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.min_knockback = 25,
 
 			.speed = 3000,
-			.spread = 1750, // fuse time for sticky
+			.spread = 0,
 		},
 
 		WEAPON_NO_ALTFIRE

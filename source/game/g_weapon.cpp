@@ -745,7 +745,6 @@ static void StickyExplode( edict_t * ent ) {
 	StickyExplodeNormal( ent, Vec3( 0.0f ), false );
 }
 
-template <bool alt>
 static void W_Touch_Sticky( edict_t * ent, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
 	if( !CanHit( ent, other ) ) {
 		return;
@@ -760,11 +759,10 @@ static void W_Touch_Sticky( edict_t * ent, edict_t * other, Vec3 normal, SolidBi
 		StickyExplodeNormal( ent, normal, false );
 	}
 	else {
-		const WeaponDef::Fire * fire = GetWeaponDefFire( Weapon_Sticky, alt );
 		ent->s.linearMovementBegin = ent->s.origin;
 		ent->s.linearMovementVelocity = Vec3( 0.0f );
 		ent->avelocity = EulerDegrees3( 0.0f, 0.0f, 0.0f );
-		ent->nextThink = level.time + fire->spread; //gg
+		ent->nextThink = level.time + GetWeaponDefProperties( Weapon_Sticky )->recoil_recovery; //gg
 
 		SpawnFX( ent, normal, "loadout/sticky/impact", "loadout/sticky/impact" );
 	}
@@ -782,7 +780,7 @@ void W_Fire_Sticky( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDe
 	bullet->s.model = "loadout/sticky/projectile";
 	bullet->s.sound = "loadout/sticky/fuse";
 	bullet->avelocity = EulerDegrees3( UniformSampleInsideSphere( &svs.rng ) * 1800.0f );
-	bullet->touch = alt ? W_Touch_Sticky<true> : W_Touch_Sticky<false>;
+	bullet->touch = W_Touch_Sticky;
 	bullet->think = StickyExplode;
 }
 

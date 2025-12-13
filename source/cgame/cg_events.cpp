@@ -229,14 +229,10 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon, bool altfire ) {
 	}
 }
 
-static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_time, WeaponType weapon, int owner, Vec4 team_color, bool altfire ) {
-	const WeaponDef::Fire * fire = GetWeaponDefFire( weapon, altfire );
-
+template <bool WITH_SOUND>
+static void TraceBullet( Vec3 origin, Vec3 dir, Vec2 spread, float range, int owner, Vec4 team_color ) {
 	Vec3 right, up;
 	ViewVectors( dir, &right, &up );
-
-	Vec2 spread = RandomSpreadPattern( entropy, fire->spread + ZoomSpreadness( zoom_time, weapon, altfire ) );
-	int range = fire->range;
 
 	trace_t trace, wallbang;
 	GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, spread, range, owner, 0 );
@@ -247,10 +243,12 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 		}
 		else {
 			BulletImpact( &trace, team_color, 24 );
-			PlaySFX( "loadout/_sounds/bullet_impact", PlaySFXConfigPosition( trace.endpos ) );
+			if constexpr ( WITH_SOUND ) {
+				PlaySFX( "loadout/_sounds/bullet_impact", PlaySFXConfigPosition( trace.endpos ) );
 
-			if( !ISVIEWERENTITY( owner ) ) {
-				PlaySFX( "loadout/_sounds/bullet_whiz", PlaySFXConfigLineSegment( origin, trace.endpos ) );
+				if( !ISVIEWERENTITY( owner ) ) {
+					PlaySFX( "loadout/_sounds/bullet_whiz", PlaySFXConfigLineSegment( origin, trace.endpos ) );
+				}
 			}
 		}
 	}
@@ -259,6 +257,12 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 	}
 
 	AddPersistentBeam( GetMuzzleTransform( owner ).col3, trace.endpos, 1.0f, team_color, "tracer", Milliseconds( 200 ), Milliseconds( 100 ) );
+}
+
+static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_time, WeaponType weapon, int owner, Vec4 team_color, bool altfire ) {
+	const WeaponDef::Fire * fire = GetWeaponDefFire( weapon, altfire );
+	Vec2 spread = RandomSpreadPattern( entropy, fire->spread + ZoomSpreadness( zoom_time, weapon, altfire ) );
+	TraceBullet<true>( origin, dir, spread, fire->range, owner, team_color );
 }
 
 static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_color, WeaponType weapon, bool altfire ) {
@@ -272,21 +276,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 	for( int i = 0; i < def->projectile_count; i++ ) {
 		Vec2 spread = FixedSpreadPattern( i, def->spread );
 
-		trace_t trace, wallbang;
-		GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, spread, def->range, owner, 0 );
-
-		// don't create so many decals if they would all end up overlapping anyway
-		float distance = Length( trace.endpos - origin );
-		float decal_p = Lerp( 0.25f, Unlerp( 0.0f, distance, 256.0f ), 0.5f );
-		if( Probability( &cls.rng, decal_p ) ) {
-			if( trace.HitSomething() ) {
-				BulletImpact( &trace, team_color, 4, 0.5f );
-			}
-
-			WallbangImpact( &wallbang, team_color, 2, 0.5f );
-		}
-
-		AddPersistentBeam( muzzle, trace.endpos, 1.0f, team_color, "loadout/tracer", Milliseconds( 200 ), Milliseconds( 100 ) );
+		TraceBullet<false>( origin, dir, spread, def->range, owner, team_color );
 	}
 
 	// spawn a single sound at the impact

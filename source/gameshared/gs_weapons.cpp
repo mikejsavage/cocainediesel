@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/gs_weapons.h"
 
 void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, Vec3 start, Vec3 dir, Vec3 right, Vec3 up, Vec2 spread, int range, int ignore, int timeDelta ) {
-	Vec3 end = start + dir * range + right * spread.x + up * spread.y;
+	Vec3 end = start + ( dir + right * spread.x + up * spread.y ) * range;
 
 	*trace = gs->api.Trace( start, MinMax3( 0.0f ), end, ignore, SolidMask_WallbangShot, timeDelta );
 
@@ -41,7 +41,7 @@ Vec2 RandomSpreadPattern( u16 entropy, float spread ) {
 
 float ZoomSpreadness( s16 zoom_time, WeaponType w, bool alt ) {
 	float frac = 1.0f - float( zoom_time ) / float( ZOOMTIME );
-	return frac * GetWeaponDefFire( w, alt )->range * atanf( Radians( GetWeaponDefProperties( w )->zoom_spread ) );
+	return frac * GetWeaponDefProperties( w )->zoom_spread;
 }
 
 Vec2 FixedSpreadPattern( int i, float spread ) {

@@ -44,7 +44,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.firing_mode = FiringMode_Auto,
 
 			.damage = 10,
-			.spread = 30,
+			.spread = 0.15f,
 		},
 
 		WEAPON_NO_ALTFIRE
@@ -62,7 +62,7 @@ static constexpr WeaponDef weapon_defs[] = {
 		},
 
 		{
-			.projectile_count = 10,
+			.projectile_count = 12,
 
 			.refire_time = 350,
 			.range = 70,
@@ -72,7 +72,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.knockback = 220,
 			.min_damage = 10,
 
-			.spread = 40,
+			.spread = 0.2f,
 		},
 
 		WEAPON_NO_ALTFIRE
@@ -91,7 +91,6 @@ static constexpr WeaponDef weapon_defs[] = {
 			
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
-			.zoom_spread = 6.0f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 			
 			.recoil_recovery = 2000.0f,
@@ -125,7 +124,6 @@ static constexpr WeaponDef weapon_defs[] = {
 			
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
-			.zoom_spread = 6.0f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 			
 			.recoil_recovery = 2000.0f,
@@ -160,7 +158,6 @@ static constexpr WeaponDef weapon_defs[] = {
 			
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
-			.zoom_spread = 4.0f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 			
 			.recoil_recovery = 1500.0f,
@@ -239,7 +236,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.wallbang_damage_scale = 0.5f,
 			.knockback = 6,
 
-			.spread = 50,
+			.spread = 0.02f,
 		},
 
 		WEAPON_NO_ALTFIRE
@@ -273,7 +270,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.wallbang_damage_scale = 0.5f,
 			.knockback = 7,
 
-			.spread = 125,
+			.spread = 0.04f,
 		},
 
 		WEAPON_NO_ALTFIRE
@@ -292,7 +289,6 @@ static constexpr WeaponDef weapon_defs[] = {
 			
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
-			.zoom_spread = 6.0f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 			
 			.recoil_recovery = 2500.0f,
@@ -430,7 +426,6 @@ static constexpr WeaponDef weapon_defs[] = {
 			
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
-			.zoom_spread = 3.0f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 			
 			.recoil_recovery = 1250.0f,
@@ -482,7 +477,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.min_knockback = 25,
 
 			.speed = 900,
-			.spread = 3,
+			.spread = 0.05f,
 		},
 
 		WEAPON_NO_ALTFIRE
@@ -542,7 +537,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			
 			.zoom_type = Zoom_Scope,
 			.zoom_fov = 25.0f,
-			.zoom_spread = 30.0f,
+			.zoom_spread = 0.25f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 			
 			.recoil_recovery = 1750.0f,
@@ -576,7 +571,7 @@ static constexpr WeaponDef weapon_defs[] = {
 		
 			.zoom_type = Zoom_Scope,
 			.zoom_fov = 40.0f,
-			.zoom_spread = 5.0f,
+			.zoom_spread = 0.1f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 			
 			.recoil_recovery = 900.0f,
@@ -611,7 +606,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
-			.zoom_spread = 6.0f,
+			.zoom_spread = 0.05f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
 			
 			.recoil_recovery = 1500.0f,
@@ -662,7 +657,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.speed = 3000,
 			.restitution = 0.5f,
-			.spread = 30,
+			.spread = 0.0125f,
 		},
 
 		WEAPON_NO_ALTFIRE
@@ -729,7 +724,6 @@ static constexpr WeaponDef weapon_defs[] = {
 			.min_knockback = 25,
 
 			.speed = 3000,
-			.spread = 0,
 		},
 
 		WEAPON_NO_ALTFIRE

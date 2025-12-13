@@ -167,14 +167,18 @@ struct ProjectileStats {
 	DamageType damage_type;
 };
 
-static ProjectileStats WeaponProjectileStats( edict_t * self, WeaponType weapon, bool alt ) {
+static ProjectileStats WeaponProjectileStats( edict_t * self, WeaponType weapon, bool alt, bool spread = true ) {
 	const WeaponDef::Fire * fire = GetWeaponDefFire( weapon, alt );
-	const WeaponDef::Properties * prop = GetWeaponDefProperties( weapon );
+	float spreadness = 0.f;
 
-	float spreadness = fire->spread;
-	if( prop->zoom_spread > 0.0f && self->r.client != NULL ) {
-		float frac = 1.0f - float( self->r.client->ps.zoom_time ) / float( ZOOMTIME );
-		spreadness += frac * atanf( Radians( prop->zoom_spread ) );
+	if( spread ) {
+		const WeaponDef::Properties * prop = GetWeaponDefProperties( weapon );
+
+		spreadness = fire->spread;
+		if( prop->zoom_spread > 0.0f && self->r.client != NULL ) {
+			float frac = 1.0f - float( self->r.client->ps.zoom_time ) / float( ZOOMTIME );
+			spreadness += frac * atanf( Radians( prop->zoom_spread ) );
+		}
 	}
 
 	return ProjectileStats {
@@ -186,7 +190,7 @@ static ProjectileStats WeaponProjectileStats( edict_t * self, WeaponType weapon,
 		.timeout = fire->range,
 		.gravity_scale = fire->gravity_scale,
 		.restitution = fire->restitution,
-		.spread = RandomSpreadPattern( self->r.client->ucmd.entropy, spreadness ),
+		.spread = spread ? RandomSpreadPattern( self->r.client->ucmd.entropy, spreadness ) : Vec2( 0.f, 0.f ),
 		.splash_radius = fire->splash_radius,
 		.damage_type = DamageType( weapon, alt ),
 	};
@@ -288,15 +292,13 @@ static edict_t * FireLinearProjectile(
 }
 
 static void HitWithSpread( edict_t * self, Vec3 start, EulerDegrees3 angles, float range, float spread, int traces, float damage, float knockback, WeaponType weapon, int timeDelta ) {
-	Vec3 forward;
+	Vec3 forward, dir, right, up;
 	AngleVectors( angles, &forward, NULL, NULL );
 
 	for( int i = 0; i < traces; i++ ) {
-		EulerDegrees3 new_angles = angles;
-		new_angles.yaw += Lerp( -spread, float( i ) / float( traces - 1 ), spread );
-		Vec3 dir;
-		AngleVectors( new_angles, &dir, NULL, NULL );
-		Vec3 end = start + dir * range;
+		Vec2 s = FixedSpreadPattern( i, spread );
+		AngleVectors( angles, &dir, &right, &up );
+		Vec3 end = start + ( dir + right * s.x + up * s.y ) * range;
 
 		trace_t trace = G_Trace4D( start, MinMax3( 0.0f ), end, self, SolidMask_Shot, timeDelta );
 		if( trace.HitSomething() && game.edicts[ trace.ent ].takedamage ) {
@@ -815,10 +817,10 @@ void W_Fire_Blaster( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeD
 	for( int i = 0; i < fire->projectile_count; i++ ) {
 		Vec2 spread = FixedSpreadPattern( i, fire->spread );
 
-		Vec3 blast_dir = dir * fire->range + right * spread.x + up * spread.y;
+		Vec3 blast_dir = ( dir + right * spread.x + up * spread.y ) * fire->range;
 		EulerDegrees3 blast_angles = VecToAngles( blast_dir );
 
-		edict_t * blast = FireProjectile( self, start, blast_angles, timeDelta, WeaponProjectileStats( self, Weapon_Blaster, alt ) );
+		edict_t * blast = FireProjectile( self, start, blast_angles, timeDelta, WeaponProjectileStats( self, Weapon_Blaster, alt, false ) );
 
 		blast->s.type = ET_BLASTER;
 		blast->classname = "blaster";

@@ -136,32 +136,16 @@ void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 	Vec3 origin = Vec3( 0.0f );
 	EulerDegrees3 angles = { };
 
-	if( !model->camera_node.exists ) {
-		if( ps->using_gadget ) {
-			Com_Printf( S_COLOR_YELLOW "Gadget models must have a camera!\n" );
-			return;
-		}
+	Assert( model->camera_node.exists );
+	constexpr Mat4 y_up_to_camera_space = Mat4(
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		-1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	);
 
-		const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( ps->weapon );
-		// calculate the entity position
-		// weapon config offsets
-		angles = weaponInfo->handpositionAngles;
-
-		constexpr Vec3 old_gunpos_cvars = Vec3( 3, 10, -12 ); // depth, horizontal, vertical
-		origin = weaponInfo->handpositionOrigin + old_gunpos_cvars;
-		origin = Vec3( origin.y, origin.z, -origin.x );
-	}
-	else {
-		constexpr Mat4 y_up_to_camera_space = Mat4(
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			-1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		);
-
-		// TODO: just use this transform directly
-		origin = ( y_up_to_camera_space * Vec4( -model->nodes[ model->camera_node.value ].global_transform.col3, 1.0f ) ).xyz();
-	}
+	// TODO: just use this transform directly
+	origin = ( y_up_to_camera_space * Vec4( -model->nodes[ model->camera_node.value ].global_transform.col3, 1.0f ) ).xyz();
 
 	// scale forward gun offset depending on fov and aspect ratio
 	constexpr float ZOOM_REDUCE_FALLKICK = 0.7f;

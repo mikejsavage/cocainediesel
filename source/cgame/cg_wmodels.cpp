@@ -5,28 +5,6 @@
 static WeaponModelMetadata weapon_model_metadata[ Weapon_Count ];
 static GadgetModelMetadata gadget_model_metadata[ Gadget_Count ];
 
-static bool ParseWeaponModelConfig( WeaponModelMetadata * metadata, Span< const char > filename ) {
-	Span< const char > contents = AssetString( filename );
-	if( contents.ptr == NULL )
-		return false;
-
-	Span< const char > token = ParseToken( &contents, Parse_StopOnNewLine );
-	if( token != "handOffset" ) {
-		Com_GGPrint( S_COLOR_YELLOW "Bad weapon model config ({}): {}", filename, token );
-		return false;
-	}
-
-	for( int i = 0; i < 3; i++ ) {
-		metadata->handpositionOrigin[ i ] = ParseFloat( &contents, 0.0f, Parse_StopOnNewLine );
-	}
-
-	metadata->handpositionAngles.pitch = ParseFloat( &contents, 0.0f, Parse_StopOnNewLine );
-	metadata->handpositionAngles.yaw = ParseFloat( &contents, 0.0f, Parse_StopOnNewLine );
-	metadata->handpositionAngles.roll = ParseFloat( &contents, 0.0f, Parse_StopOnNewLine );
-
-	return true;
-}
-
 static WeaponModelMetadata BuildWeaponModelMetadata( WeaponType weapon ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -35,8 +13,6 @@ static WeaponModelMetadata BuildWeaponModelMetadata( WeaponType weapon ) {
 	const Span< const char > & name = GetWeaponDefProperties( weapon )->name;
 
 	metadata.model = StringHash( temp( "loadout/{}/weapon", name ) );
-
-	ParseWeaponModelConfig( &metadata, temp.sv( "loadout/{}/model.cfg", name ) );
 
 	metadata.fire_sound = StringHash( temp.sv( "loadout/{}/fire", name ) );
 	metadata.alt_fire_sound = StringHash( temp.sv( "loadout/{}/altfire", name ) );

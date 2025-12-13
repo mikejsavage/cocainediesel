@@ -22,6 +22,7 @@ struct WeaponDef {
 		float zoom_fov = 0.f;
 		float unzoom_spread = 0.f;
 		float zoom_movement_speed = 1.f;
+		Vec2 zoom_recoil_factor = Vec2( 1.f, 1.f );
 
 		float recoil_recovery = 500.0f;
 	};

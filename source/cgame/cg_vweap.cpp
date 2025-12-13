@@ -207,11 +207,13 @@ void CG_AddRecoil( WeaponType weapon, bool altfire ) {
 		cg.recoiling = true;
 	}
 
+	float frac = cg.predictedPlayerState.zoom_time / float( ZOOMTIME );
+	Vec2 zoom_recoil_factor = Vec2( 1.f - frac, 1.f - frac ) + GetWeaponDefProperties( weapon )->zoom_recoil_factor * frac;
 	EulerDegrees2 min = GetWeaponDefFire( weapon, altfire )->recoil_min;
 	EulerDegrees2 max = GetWeaponDefFire( weapon, altfire )->recoil_max;
 
-	cg.recoil_velocity.pitch = -RandomUniformFloat( &cls.rng, min.pitch, max.pitch );
-	cg.recoil_velocity.yaw = RandomUniformFloat( &cls.rng, min.yaw, max.yaw );
+	cg.recoil_velocity.pitch = -RandomUniformFloat( &cls.rng, min.pitch, max.pitch ) * zoom_recoil_factor.x;
+	cg.recoil_velocity.yaw = RandomUniformFloat( &cls.rng, min.yaw, max.yaw ) * zoom_recoil_factor.y;
 }
 
 static bool SameSign( float x, float y ) {

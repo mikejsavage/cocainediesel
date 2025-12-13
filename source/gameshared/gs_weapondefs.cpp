@@ -427,15 +427,16 @@ static constexpr WeaponDef weapon_defs[] = {
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
-			
+			.zoom_recoil_factor = Vec2( 0.5f, 0.5f ),
+
 			.recoil_recovery = 1250.0f,
 		},
 
 		{
 			.refire_time = 40,
 			.range = 10000,
-			.recoil_max = EulerDegrees2( 65.0f, 15.0f ),
-			.recoil_min = EulerDegrees2( 45.0f, -15.0f ),
+			.recoil_max = EulerDegrees2( 120.0f, 30.0f ),
+			.recoil_min = EulerDegrees2( 45.0f, -30.0f ),
 			.firing_mode = FiringMode_Auto,
 
 			.damage = 6,

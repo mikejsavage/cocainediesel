@@ -47,6 +47,8 @@ static void PM_HooliganDash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		pml->forwardPush = dashspeed;
 	}
 
+	ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
+
 	Dash( pm, pml, pmove_gs, dashdir, dashspeed, dashupspeed );
 }
 

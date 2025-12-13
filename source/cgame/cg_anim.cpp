@@ -21,7 +21,7 @@ static T TweenLerp( const Tween<T>& tween, float x ) {
 }
 
 static float Ramp( Time start, Time now, Time end ) {
-	return Min2( 1.f, float( now.flicks - start.flicks ) / float( end.flicks - start.flicks ) );
+	return Min2( 1.f, ToSeconds( now - start ) / ToSeconds( end - start ) );
 }
 
 
@@ -55,6 +55,9 @@ static bool IsChasing( const SyncPlayerState * ps ) {
 }
 
 
+Tween<float> chase_tween;
+Tween<float> health_tween;
+
 void CG_HandlePlayerTweens() {
 	const SyncPlayerState * ps = &cg.frame.playerState;
 	const SyncPlayerState * ops = &cg.oldFrame.playerState;
@@ -64,34 +67,30 @@ void CG_HandlePlayerTweens() {
 
 	// chase tween
 	{
-		static Tween<float> tween;
-
 		constexpr Time TWEEN_TIME = Milliseconds( 250 );
 		bool ps_chasing = IsChasing( ps );
 		bool ops_chasing = IsChasing( ops );
 
 		if( ps_chasing != ops_chasing ) {
 			float start = ps_chasing ? 0.f : 1.f;
-			tween = StartTween<float>( start, 1.f - start, TWEEN_TIME );
+			chase_tween = StartTween<float>( start, 1.f - start, TWEEN_TIME );
 		}
 
-		state->chasing = TweenSquareOut( tween, now );
+		state->chasing = TweenSquareOut( chase_tween, now );
 	}
 
 	// health tween
 	{
-		static Tween<float> tween;
-
 		constexpr Time TWEEN_TIME = Seconds( 2 );
-		if( ps->health != s16( tween.end ) ) {
+		if( ps->health != s16( health_tween.end ) ) {
 			float end = float( ps->health );
 			float start = ps->health == ps->max_health ?
 							end : state->smoothed_health > ops->health ?
 								state->smoothed_health :
 								float( ops->health );
-			tween = StartTween<float>( start, end, TWEEN_TIME );
+			health_tween = StartTween<float>( start, end, TWEEN_TIME );
 		}
 
-		state->smoothed_health = TweenSquareIn( tween, now );
+		state->smoothed_health = TweenSquareIn( health_tween, now );
 	}
 }

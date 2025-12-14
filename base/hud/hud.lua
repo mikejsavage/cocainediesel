@@ -575,7 +575,7 @@ local function DrawWeaponOrGadget( width, ammo_font_size, icon, ammo, ammo_frac,
 end
 
 local function DrawGadget( state, show_hotkeys )
-	local ammo_frac = state.gadget_ammo / cd.getGadgetMaxAmmo( state.gadget )
+	local ammo_frac = math.min( 1.0, state.gadget_ammo / cd.getGadgetMaxAmmo( state.gadget ) )
 	return DrawWeaponOrGadget( "5.5vh", "1vh", cd.getGadgetIcon( state.gadget ), state.gadget_ammo, ammo_frac, false, nil, cd.getBind( "+gadget" ) )
 end
 

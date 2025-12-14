@@ -230,7 +230,7 @@ void DrawText( const Font * font, float pixel_size, Span< const char > str, Alig
 
 	switch( align.y ) {
 		case YAlignment_Ascent: y += font->metadata.ascent * pixel_size; break;
-		case YAlignment_Baseline: y += ( font->metadata.ascent + font->metadata.descent ) * pixel_size / 2; break;
+		case YAlignment_Baseline: break;
 		case YAlignment_Descent: y += font->metadata.descent * pixel_size; break;
 	}
 

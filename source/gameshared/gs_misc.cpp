@@ -47,6 +47,10 @@ void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, 
 	gs->api.PredictedEvent( playerState->POVnum, EV_JUMP_PAD, 0 );
 }
 
+
+static constexpr u8 DamageType_GadgetOffset = u8( Weapon_Count );
+static constexpr u8 DamageType_WorldOffset = u8( Gadget_Count ) + DamageType_GadgetOffset;
+
 DamageType::DamageType( WeaponType weapon ) {
 	encoded = u8( weapon );
 	altfire = u8( false );
@@ -58,19 +62,19 @@ DamageType::DamageType( WeaponType weapon, bool altfire = false ) {
 }
 
 DamageType::DamageType( GadgetType gadget ) {
-	encoded = u8( gadget ) + u8( Weapon_Count );
+	encoded = u8( gadget ) + DamageType_GadgetOffset;
 	altfire = u8( 0 );
 }
 
 DamageType::DamageType( WorldDamage world ) {
-	encoded = u8( world ) + u8( Weapon_Count ) + u8( Gadget_Count );
+	encoded = u8( world ) + DamageType_WorldOffset;
 	altfire = u8( 0 );
 }
 
 bool DamageType::operator==( DamageType d ) { return encoded == d.encoded; }
 bool DamageType::operator==( WeaponType w ) { return encoded == w; }
-bool DamageType::operator==( GadgetType g ) { return encoded == g; }
-bool DamageType::operator==( WorldDamage w ) { return encoded == w; }
+bool DamageType::operator==( GadgetType g ) { return encoded == ( g + DamageType_GadgetOffset ); }
+bool DamageType::operator==( WorldDamage w ) { return encoded == ( w + DamageType_WorldOffset ); }
 bool DamageType::operator!=( auto g ) { return !( operator==( g ) ); }
 
 

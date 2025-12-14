@@ -362,7 +362,7 @@ void G_RadiusKnockback( float maxknockback, float minknockback, float radius, ed
 		if( frac == 0.0f )
 			continue;
 
-		if( G_CanSplashDamage( ent, NULL, normal, pos, timeDelta ) ) {
+		if( G_CanSplashDamage( ent, attacker, normal, pos, timeDelta ) ) {
 			float knockback = Lerp( minknockback, frac, maxknockback );
 			G_KnockBackPush( ent, attacker, pushDir, knockback, 0 );
 		}

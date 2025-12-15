@@ -285,7 +285,7 @@ static void PM_StepSlideMove() {
 	}
 
 	// Preserve speed when sliding up ramps
-	float hspeed = Length( initial_origin.xy() );
+	float hspeed = Length( initial_velocity.xy() );
 	if( hspeed && ISWALKABLEPLANE( normal ) ) {
 		if( normal.z >= 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
 			pml.velocity = initial_velocity;

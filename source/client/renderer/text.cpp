@@ -218,8 +218,8 @@ MinMax2 TextBaselineBounds( const Font * font, float pixel_size, Span< const cha
 }
 
 void DrawText( const Font * font, float pixel_size, Span< const char > str, Alignment align, float x, float y, Vec4 color, Optional< Vec4 > border_color ) {
-	MinMax2 bounds = TextVisualBounds( font, pixel_size, str );
 	if( align.x != XAlignment_Left ) {
+		MinMax2 bounds = TextVisualBounds( font, pixel_size, str );
 		if( align.x == XAlignment_Center ) {
 			x -= bounds.maxs.x / 2.0f;
 		}
@@ -228,13 +228,10 @@ void DrawText( const Font * font, float pixel_size, Span< const char > str, Alig
 		}
 	}
 
-	if( align.y != YAlignment_Ascent ) {
-		if( align.y == YAlignment_Baseline ) {
-			y += bounds.maxs.y / 2.0f;
-		}
-		else if( align.y == YAlignment_Descent ) {
-			y += bounds.maxs.y;
-		}
+	switch( align.y ) {
+		case YAlignment_Ascent: y += font->metadata.ascent * pixel_size; break;
+		case YAlignment_Baseline: y += ( font->metadata.ascent + font->metadata.descent ) * pixel_size / 2; break;
+		case YAlignment_Descent: y += font->metadata.descent * pixel_size; break;
 	}
 
 	DrawTextBaseline( font, pixel_size, str, x, y, color, border_color );

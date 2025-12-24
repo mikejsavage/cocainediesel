@@ -853,7 +853,7 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline
 			cb->rce->drawIndexedPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, Default( extras.override_num_vertices, mesh.num_vertices ), index_type, allocations[ mesh.index_buffer.value.allocation ].buffer, mesh.index_buffer.value.offset + extras.first_index * index_size, 1, extras.base_vertex, 0 );
 		}
 		else {
-			cb->rce->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, mesh.num_vertices, NS::UInteger( 0 ) );
+			cb->rce->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, NS::UInteger( 0 ), mesh.num_vertices );
 		}
 	// }
 	// else {

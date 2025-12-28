@@ -121,9 +121,9 @@ static void StartCapture( MTL::Device * gpu ) {
 
 	printf( "Capturing into %s...\n", capture_filename->utf8String() );
 
-	NS::Error * pError = NULL;
-	if( !capture_manager->startCapture( capture, &pError ) ) {
-		printf( "Failed to start capture: %s\n", pError->localizedDescription()->utf8String() );
+	NS::Error * error = NULL;
+	if( !capture_manager->startCapture( capture, &error ) ) {
+		printf( "Failed to start capture: %s\n", error->localizedDescription()->utf8String() );
 		abort();
 	}
 

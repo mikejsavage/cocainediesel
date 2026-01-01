@@ -95,7 +95,7 @@ bool CreateDirectory( Allocator * a, const char * path ) {
 	return CreateDirectoryW( wide_path, NULL ) != 0 || GetLastError() == ERROR_ALREADY_EXISTS;
 }
 
-struct ListDirHandleImpl {
+struct ListDirHandle {
 	HANDLE handle;
 	Allocator * a;
 	WIN32_FIND_DATAW * ffd;
@@ -103,22 +103,8 @@ struct ListDirHandleImpl {
 	bool first;
 };
 
-STATIC_ASSERT( sizeof( ListDirHandleImpl ) <= sizeof( ListDirHandle ) );
-
-static ListDirHandleImpl OpaqueToImpl( ListDirHandle opaque ) {
-	ListDirHandleImpl impl;
-	memcpy( &impl, opaque.impl, sizeof( impl ) );
-	return impl;
-}
-
-static ListDirHandle ImplToOpaque( ListDirHandleImpl impl ) {
-	ListDirHandle opaque;
-	memcpy( opaque.impl, &impl, sizeof( impl ) );
-	return opaque;
-}
-
-ListDirHandle BeginListDir( Allocator * a, const char * path ) {
-	ListDirHandleImpl handle = { };
+Opaque< ListDirHandle > BeginListDir( Allocator * a, const char * path ) {
+	ListDirHandle handle = { };
 	handle.a = a;
 	handle.ffd = Alloc< WIN32_FIND_DATAW >( a );
 	handle.first = true;
@@ -135,29 +121,29 @@ ListDirHandle BeginListDir( Allocator * a, const char * path ) {
 		handle.handle = NULL;
 	}
 
-	return ImplToOpaque( handle );
+	return handle;
 }
 
-bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
-	ListDirHandleImpl handle = OpaqueToImpl( *opaque );
-	if( handle.handle == NULL )
+bool ListDirNext( Opaque< ListDirHandle > * opaque, const char ** path, bool * dir ) {
+	ListDirHandle * handle = opaque->unwrap();
+	if( handle->handle == NULL )
 		return false;
 
-	Free( handle.a, handle.utf8_path );
+	Free( handle->a, handle->utf8_path );
 
-	if( !handle.first ) {
-		if( FindNextFileW( handle.handle, handle.ffd ) == 0 ) {
-			FindClose( handle.handle );
-			Free( handle.a, handle.ffd );
+	if( !handle->first ) {
+		if( FindNextFileW( handle->handle, handle->ffd ) == 0 ) {
+			FindClose( handle->handle );
+			Free( handle->a, handle->ffd );
 			return false;
 		}
 	}
 
-	handle.utf8_path = WideToUTF8( handle.a, handle.ffd->cFileName );
-	handle.first = false;
+	handle->utf8_path = WideToUTF8( handle->a, handle->ffd->cFileName );
+	handle->first = false;
 
-	*path = handle.utf8_path;
-	*dir = ( handle.ffd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0;
+	*path = handle->utf8_path;
+	*dir = HasAnyBit( handle->ffd->dwFileAttributes, FILE_ATTRIBUTE_DIRECTORY );
 
 	*opaque = ImplToOpaque( handle );
 

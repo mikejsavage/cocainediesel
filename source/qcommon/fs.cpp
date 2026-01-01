@@ -151,7 +151,7 @@ bool CloseFile( FILE * file ) {
 }
 
 static void ListDirRecursive( Allocator * a, NonRAIIDynamicArray< Span< char > > * files, DynamicString * path, bool recursive ) {
-	ListDirHandle scan = BeginListDir( a, path->c_str() );
+	Opaque< ListDirHandle > scan = BeginListDir( a, path->c_str() );
 
 	const char * name;
 	bool dir;
@@ -174,7 +174,8 @@ static void ListDirRecursive( Allocator * a, NonRAIIDynamicArray< Span< char > >
 	}
 }
 
-Span< Span< char > > ListDir( Allocator * a, const char * root, bool recursive ) {
+// NOMERGE actually use this
+Span< Span< char > > ListDir( Allocator * a, Span< const char > root, bool recursive ) {
 	NonRAIIDynamicArray< Span< char > > files( a );
 	DynamicString path( a, "{}", root );
 	ListDirRecursive( a, &files, &path, recursive );

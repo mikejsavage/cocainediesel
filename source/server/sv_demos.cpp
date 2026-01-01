@@ -175,7 +175,7 @@ void SV_Demo_Stop( bool silent ) {
 static Span< char * > GetServerDemos( TempAllocator * temp ) {
 	NonRAIIDynamicArray< char * > demos( temp );
 
-	ListDirHandle scan = BeginListDir( sys_allocator, GetDemoDir( temp ) );
+	Opaque< ListDirHandle > scan = BeginListDir( sys_allocator, GetDemoDir( temp ) );
 
 	const char * name;
 	bool dir;

@@ -286,7 +286,7 @@ Span< Span< const char > > TabCompleteArgument( TempAllocator * temp, Span< cons
 }
 
 static void FindMatchingFilesRecursive( TempAllocator * temp, NonRAIIDynamicArray< Span< const char > > * files, DynamicString * path, Span< const char > prefix, size_t skip, Span< const char > extension ) {
-	ListDirHandle scan = BeginListDir( sys_allocator, path->c_str() );
+	Opaque< ListDirHandle > scan = BeginListDir( sys_allocator, path->c_str() );
 
 	const char * name;
 	bool dir;

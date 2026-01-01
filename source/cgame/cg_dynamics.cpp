@@ -6,11 +6,11 @@
 #include "client/renderer/shader.h"
 #include "client/renderer/shader_shared.h"
 
-STATIC_ASSERT( sizeof( Decal ) == 2 * 4 * sizeof( float ) );
-STATIC_ASSERT( sizeof( Decal ) % alignof( Decal ) == 0 );
+static_assert( sizeof( Decal ) == 2 * 4 * sizeof( float ) );
+static_assert( sizeof( Decal ) % alignof( Decal ) == 0 );
 
-STATIC_ASSERT( sizeof( Light ) == 1 * 4 * sizeof( float ) );
-STATIC_ASSERT( sizeof( Light ) % alignof( Light ) == 0 );
+static_assert( sizeof( Light ) == 1 * 4 * sizeof( float ) );
+static_assert( sizeof( Light ) % alignof( Light ) == 0 );
 
 static GPUBuffer dynamic_count;
 static CoherentBuffer lights_buffer;

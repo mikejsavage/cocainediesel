@@ -12,7 +12,7 @@ class String {
 	char buf[ N ];
 
 public:
-	STATIC_ASSERT( N > 0 );
+	static_assert( N > 0 );
 
 	String() {
 		clear();

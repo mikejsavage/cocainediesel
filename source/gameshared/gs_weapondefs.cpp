@@ -571,7 +571,7 @@ static constexpr WeaponDef weapon_defs[] = {
 #endif
 };
 
-STATIC_ASSERT( ARRAY_COUNT( weapon_defs ) == Weapon_Count );
+static_assert( ARRAY_COUNT( weapon_defs ) == Weapon_Count );
 
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon ) {
 	Assert( weapon < Weapon_Count );
@@ -650,7 +650,7 @@ const GadgetDef gadget_defs[] = {
 	},
 };
 
-STATIC_ASSERT( ARRAY_COUNT( gadget_defs ) == Gadget_Count );
+static_assert( ARRAY_COUNT( gadget_defs ) == Gadget_Count );
 
 const GadgetDef * GetGadgetDef( GadgetType gadget ) {
 	Assert( gadget < Gadget_Count );

@@ -56,7 +56,7 @@ void ShutdownDownloads() {
 
 template< typename T >
 static void CheckedEasyOpt( CURL * request, CURLoption opt, T val ) {
-	STATIC_ASSERT( ( !SameType< T, int > || SameType< int, long > ) );
+	static_assert( ( !SameType< T, int > || SameType< int, long > ) );
 	CheckEasyError( "curl_easy_setopt", curl_easy_setopt( request, opt, val ) );
 }
 

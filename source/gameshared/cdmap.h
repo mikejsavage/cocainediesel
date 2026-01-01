@@ -25,7 +25,7 @@ enum MapSectionType {
 	MapSection_Count
 };
 
-STATIC_ASSERT( MapSection_Source == 0 ); // tools need to be forward compatible so we can recompile maps
+static_assert( MapSection_Source == 0 ); // tools need to be forward compatible so we can recompile maps
 
 struct MapSection {
 	u32 offset, size;
@@ -81,7 +81,7 @@ struct MapKDTreeNode {
 	};
 };
 
-STATIC_ASSERT( sizeof( MapKDTreeNode ) == 8 );
+static_assert( sizeof( MapKDTreeNode ) == 8 );
 
 struct MapBrush {
 	MinMax3 bounds;

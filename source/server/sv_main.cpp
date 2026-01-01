@@ -367,7 +367,7 @@ void SV_Init() {
 	// init server updates ratio
 	constexpr float pps = 20.0f;
 	constexpr float fps = 62.0f;
-	STATIC_ASSERT( fps >= pps );
+	static_assert( fps >= pps );
 	svc.snapFrameTime = int( 1000.0f / pps );
 	svc.gameFrameTime = int( 1000.0f / fps );
 

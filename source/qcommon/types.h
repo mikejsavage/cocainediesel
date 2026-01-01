@@ -89,7 +89,6 @@ constexpr size_t ARRAY_COUNT( M ( T::* )[ N ] ) {
 	return N;
 }
 
-#define STATIC_ASSERT( p ) static_assert( p, #p )
 #define NONCOPYABLE( T ) T( const T & ) = delete; void operator=( const T & ) = delete
 
 template< typename To, typename From >

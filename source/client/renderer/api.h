@@ -247,7 +247,7 @@ struct RenderPipelineDynamicState {
     CullFace cull_face : 2 = CullFace_Back;
 };
 
-STATIC_ASSERT( sizeof( RenderPipelineDynamicState ) == 1 );
+static_assert( sizeof( RenderPipelineDynamicState ) == 1 );
 
 /*
  * BindGroup

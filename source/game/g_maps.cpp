@@ -48,7 +48,7 @@ static bool AddGLTFModel( Span< const u8 > data, Span< const char > path ) {
 }
 
 static void LoadModelsRecursive( TempAllocator * temp, DynamicString * path, size_t skip ) {
-	ListDirHandle scan = BeginListDir( temp, path->c_str() );
+	Opaque< ListDirHandle > scan = BeginListDir( temp, path->c_str() );
 
 	const char * name;
 	bool dir;

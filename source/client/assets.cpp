@@ -333,7 +333,7 @@ void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip )
 #endif
 
 static void BuildAssetList( TempAllocator * temp, DynamicArray< const char * > * files, DynamicString * search_path ) {
-	ListDirHandle scan = BeginListDir( temp, search_path->c_str() );
+	Opaque< ListDirHandle > scan = BeginListDir( temp, search_path->c_str() );
 
 	const char * name;
 	bool dir;

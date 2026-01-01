@@ -445,7 +445,7 @@ static void Gladiator_MatchStateStarted() {
 
 static void LoadArenaFolder( const char * folder, PerkType perk, TempAllocator & temp ) {
 	const char * maps_dir = temp( "{}/base/maps/gladiator/{}", RootDirPath(), folder );
-	ListDirHandle scan = BeginListDir( sys_allocator, maps_dir );
+	Opaque< ListDirHandle > scan = BeginListDir( sys_allocator, maps_dir );
 
 	const char * name;
 	bool dir;

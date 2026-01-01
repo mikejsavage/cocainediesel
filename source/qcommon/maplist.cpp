@@ -36,7 +36,7 @@ void RefreshMapList( Allocator * a ) {
 	char * path = ( *a )( "{}/base/maps", RootDirPath() );
 	defer { Free( a, path ); };
 
-	ListDirHandle scan = BeginListDir( a, path );
+	Opaque< ListDirHandle > scan = BeginListDir( a, path );
 
 	const char * name;
 	bool dir;

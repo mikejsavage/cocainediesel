@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "qcommon/types.h"
+#include "qcommon/opaque.h"
 
 enum OpenFileMode {
 	OpenFile_Read,
@@ -40,12 +41,11 @@ bool RemoveFile( Allocator * a, const char * path );
 
 bool CreatePathForFile( Allocator * a, const char * path );
 
-struct ListDirHandle {
-	char impl[ 64 ];
-};
+struct ListDirHandle;
+template<> inline constexpr size_t OpaqueSize< ListDirHandle > = 64;
 
-ListDirHandle BeginListDir( Allocator * a, const char * path );
-bool ListDirNext( ListDirHandle * handle, const char ** path, bool * dir );
+Opaque< ListDirHandle > BeginListDir( Allocator * a, const char * path );
+bool ListDirNext( Opaque< ListDirHandle > * handle, const char ** path, bool * dir );
 
 struct FSChangeMonitor;
 

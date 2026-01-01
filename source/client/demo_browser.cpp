@@ -76,7 +76,7 @@ void DemoBrowserFrame() {
 }
 
 static void FindDemosRecursive( TempAllocator * temp, DynamicString * path, size_t skip ) {
-	ListDirHandle scan = BeginListDir( temp, path->c_str() );
+	Opaque< ListDirHandle > scan = BeginListDir( temp, path->c_str() );
 
 	const char * name;
 	bool dir;

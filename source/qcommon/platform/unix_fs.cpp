@@ -39,37 +39,21 @@ bool CreateDirectory( Allocator * a, const char * path ) {
 	return mkdir( path, 0755 ) == 0 || errno == EEXIST;
 }
 
-struct ListDirHandleImpl {
+struct ListDirHandle {
 	DIR * dir;
 };
 
-static_assert( sizeof( ListDirHandleImpl ) <= sizeof( ListDirHandle ) );
-
-static ListDirHandleImpl OpaqueToImpl( ListDirHandle opaque ) {
-	ListDirHandleImpl impl;
-	memcpy( &impl, opaque.impl, sizeof( impl ) );
-	return impl;
+Opaque< ListDirHandle > BeginListDir( Allocator * a, const char * path ) {
+	return ListDirHandle { opendir( path ) };
 }
 
-static ListDirHandle ImplToOpaque( ListDirHandleImpl impl ) {
-	ListDirHandle opaque;
-	memcpy( opaque.impl, &impl, sizeof( impl ) );
-	return opaque;
-}
-
-ListDirHandle BeginListDir( Allocator * a, const char * path ) {
-	ListDirHandleImpl handle;
-	handle.dir = opendir( path );
-	return ImplToOpaque( handle );
-}
-
-bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
-	ListDirHandleImpl handle = OpaqueToImpl( *opaque );
-	if( handle.dir == NULL )
+bool ListDirNext( Opaque< ListDirHandle > * opaque, const char ** path, bool * dir ) {
+	ListDirHandle * handle = opaque->unwrap();
+	if( handle->dir == NULL )
 		return false;
 
 	dirent * dirent;
-	while( ( dirent = readdir( handle.dir ) ) != NULL ) {
+	while( ( dirent = readdir( handle->dir ) ) != NULL ) {
 		if( StrEqual( dirent->d_name, "." ) || StrEqual( dirent->d_name, ".." ) )
 			continue;
 
@@ -79,7 +63,7 @@ bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 		return true;
 	}
 
-	closedir( handle.dir );
+	closedir( handle->dir );
 
 	return false;
 }

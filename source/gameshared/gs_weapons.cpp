@@ -663,7 +663,7 @@ Optional< Loadout > ParseLoadout( Span< const char > loadout_string ) {
 		loadout.gadget = GadgetType( gadget.value );
 	}
 
-	return loadout_string.n == 0 ? MakeOptional( loadout ) : NONE;
+	return loadout_string.n == 0 ? Optional( loadout ) : NONE;
 }
 
 void format( FormatBuffer * fb, const Loadout & loadout, const FormatOpts & opts ) {

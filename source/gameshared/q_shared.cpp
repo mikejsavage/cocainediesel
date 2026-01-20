@@ -178,7 +178,7 @@ static Optional< s64 > SpanToS64( Span< const char > str ) {
 	}
 
 	Optional< u64 > u = SpanToU64( str );
-	return u.exists && u.value <= S64_MAX ? MakeOptional( s64( u.value ) ) : NONE;
+	return u.exists && u.value <= S64_MAX ? Optional( s64( u.value ) ) : NONE;
 }
 
 Optional< s64 > SpanToSigned( Span< const char > str, s64 min, s64 max ) {
@@ -202,7 +202,7 @@ Optional< float > SpanToFloat( Span< const char > str ) {
 	char * end;
 	float x = strtof( buf, &end );
 
-	return end == buf + str.n ? MakeOptional( x ) : NONE;
+	return end == buf + str.n ? Optional( x ) : NONE;
 }
 
 bool SpanToFloat( Span< const char > str, float * x ) {
@@ -456,7 +456,7 @@ static Optional< u8 > ParseHexDigit( char c ) {
 static Optional< u8 > ParseHexByte( char a, char b ) {
 	Optional< u8 > a8 = ParseHexDigit( a );
 	Optional< u8 > b8 = ParseHexDigit( b );
-	return a8.exists && b8.exists ? MakeOptional( u8( a8.value * 16 + b8.value ) ) : NONE;
+	return a8.exists && b8.exists ? Optional( u8( a8.value * 16 + b8.value ) ) : NONE;
 }
 
 Optional< RGBA8 > ParseHexColor( Span< const char > str ) {

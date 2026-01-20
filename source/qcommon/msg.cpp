@@ -899,7 +899,7 @@ TEST( "Delta encoding" ) {
 	for( int i = 0; i < 100; i++ ) {
 		u8 buf[ 128 ];
 		DeltaTester baseline = { };
-		DeltaTester src = { .x = Probability( &rng, 0.5f ) ? NONE : MakeOptional( Random32( &rng ) ), .y = Random32( &rng ) };
+		DeltaTester src = { .x = Probability( &rng, 0.5f ) ? NONE : Optional( Random32( &rng ) ), .y = Random32( &rng ) };
 
 		DeltaBuffer writer = DeltaWriter( buf, sizeof( buf ) );
 		D( &writer, src, baseline );

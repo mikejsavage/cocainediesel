@@ -45,13 +45,13 @@ Optional< u64 > SpanToUnsigned( Span< const char > str, u64 max );
 template< typename T >
 Optional< T > SpanToSigned( Span< const char > str ) {
 	Optional< s64 > x64 = SpanToSigned( str, MinInt< T >, MaxInt< T > );
-	return x64.exists ? MakeOptional( T( x64.value ) ) : NONE;
+	return x64.exists ? Optional( T( x64.value ) ) : NONE;
 }
 
 template< typename T >
 Optional< T > SpanToUnsigned( Span< const char > str ) {
 	Optional< u64 > x64 = SpanToUnsigned( str, MaxInt< T > );
-	return x64.exists ? MakeOptional( T( x64.value ) ) : NONE;
+	return x64.exists ? Optional( T( x64.value ) ) : NONE;
 }
 
 template< typename T >

@@ -10,7 +10,7 @@ static Optional< RGB8 > ParseOutlineColor( const MapData & map ) {
 	Optional< u8 > g = SpanToUnsigned< u8 >( ParseToken( &value, Parse_StopOnNewLine ) );
 	Optional< u8 > b = SpanToUnsigned< u8 >( ParseToken( &value, Parse_StopOnNewLine ) );
 
-	return r.exists && b.exists && g.exists ? MakeOptional( RGB8( r.value, g.value, b.value ) ) : NONE;
+	return r.exists && b.exists && g.exists ? Optional( RGB8( r.value, g.value, b.value ) ) : NONE;
 }
 
 MapSharedRenderData NewMapRenderData( const MapData & map, Span< const char > name ) {

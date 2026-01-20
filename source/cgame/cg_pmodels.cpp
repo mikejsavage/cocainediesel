@@ -749,7 +749,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 		DrawModelConfig config = {
 			.draw_model = { .enabled = true },
 			.cast_shadows = true,
-			.silhouette_color = draw_silhouette ? MakeOptional( color ) : NONE,
+			.silhouette_color = draw_silhouette ? Optional( color ) : NONE,
 		};
 
 		if( draw_model && cent->current.perk != Perk_Jetpack ) {
@@ -768,7 +768,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 	DrawModelConfig config = {
 		.draw_model = { .enabled = true },
 		.cast_shadows = true,
-		.silhouette_color = draw_silhouette ? MakeOptional( color ) : NONE,
+		.silhouette_color = draw_silhouette ? Optional( color ) : NONE,
 	};
 
 	// add weapon model

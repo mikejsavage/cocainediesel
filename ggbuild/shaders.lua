@@ -29,18 +29,20 @@ local function ParseFeatures( features )
 end
 
 function write_shaders_ninja_script()
+	-- NOTE(mike 20251117): we have to do `dxc -MD -MF && dxc` because of
+	-- https://github.com/microsoft/DirectXShaderCompiler/issues/5416
 	printf( [[
-slangflags = -Ibase/glsl -I. -unscoped-enum -preserve-params -fvk-use-entrypoint-name -fvk-use-scalar-layout
-rule slangc_vertex
-    command = slangc $slangflags -depfile $out.d -stage vertex -entry VertexMain $in -o $out $features
+dxcflags = -spirv -Ibase/glsl -I. -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -fspv-preserve-bindings
+rule dxc_vertex
+    command = dxc $dxcflags -MD -MF $out.d -T vs_6_0 -E VertexMain $features -Fo $out $in && dxc $dxcflags -T vs_6_0 -E VertexMain $features -Fo $out $in
     deps = gcc
     depfile = $out.d
-rule slangc_fragment
-    command = slangc $slangflags -depfile $out.d -stage fragment -entry FragmentMain $in -o $out $features
+rule dxc_fragment
+    command = dxc $dxcflags -MD -MF $out.d -T ps_6_0 -E FragmentMain $features -Fo $out $in && dxc $dxcflags -T ps_6_0 -E FragmentMain $features -Fo $out $in
     deps = gcc
     depfile = $out.d
-rule slangc_compute
-    command = slangc $slangflags -depfile $out.d -stage compute -entry ComputeMain $in -o $out $features
+rule dxc_compute
+    command = dxc $dxcflags -MD -MF $out.d -T cs_6_0 -E ComputeMain $features -Fo $out $in && dxc $dxcflags -T cs_6_0 -E ComputeMain $features -Fo $out $in
     deps = gcc
     depfile = $out.d
 ]] )
@@ -50,7 +52,7 @@ rule slangc_compute
 rule spirv-cross
     command = spirv-cross --msl --msl-version 20000 --msl-argument-buffers --msl-decoration-binding --msl-argument-buffer-tier 1 --msl-force-active-argument-buffer-resources --output $out $in
 rule metal
-    command = xcrun -sdk macosx metal -c $in -o $out -gline-tables-only -frecord-sources
+    command = xcrun -sdk macosx metal -c $in -o $out -gline-tables-only -frecord-sources -Wno-unused-variable
 rule metallib
     command = xcrun -sdk macosx metallib $in -o $out
 ]]
@@ -62,16 +64,16 @@ rule metallib
 	print( "# Graphics shaders" )
 	local dedupe = { }
 	for graphics_shader in shader_variants_h:gmatch( ReadableWhitespace( "GraphicsShaderDescriptor (%b{}) ," ) ) do
-		local src = graphics_shader:match( ReadableWhitespace( "%.src = \"([^\"]+)\"" ) ) .. ".slang"
+		local src = graphics_shader:match( ReadableWhitespace( "%.src = \"([^\"]+)\"" ) ) .. ".hlsl"
 		local cli_features, filename_features = ParseFeatures( graphics_shader:match( ReadableWhitespace( "%.features = (%b{})" ) ) )
 		local out_filename = StripExtension( src ) .. filename_features
 
 		if not dedupe[ out_filename ] then
-			printf( "build %s/shaders/%s.vert.spv: slangc_vertex base/glsl/%s", spv_dir, out_filename, src )
+			printf( "build %s/shaders/%s.vert.spv: dxc_vertex base/glsl/%s", spv_dir, out_filename, src )
 			if cli_features ~= "" then
 				printf( "    features = %s", cli_features )
 			end
-			printf( "build %s/shaders/%s.frag.spv: slangc_fragment base/glsl/%s", spv_dir, out_filename, src )
+			printf( "build %s/shaders/%s.frag.spv: dxc_fragment base/glsl/%s", spv_dir, out_filename, src )
 			if cli_features ~= "" then
 				printf( "    features = %s", cli_features )
 			end
@@ -97,10 +99,10 @@ rule metallib
 
 	print( "# Compute shaders" )
 	for compute_shader in shader_variants_h:gmatch( ReadableWhitespace( "ComputeShaderDescriptor (%b{}) ," ) ) do
-		local src = compute_shader:match( ReadableWhitespace( "{.-, \"([^\"]+)\" }" ) ) .. ".slang"
+		local src = compute_shader:match( ReadableWhitespace( "{.-, \"([^\"]+)\" }" ) ) .. ".hlsl"
 		local out_filename = StripExtension( src )
 
-		printf( "build %s/shaders/%s.comp.spv: slangc_compute base/glsl/%s", spv_dir, out_filename, src )
+		printf( "build %s/shaders/%s.comp.spv: dxc_compute base/glsl/%s", spv_dir, out_filename, src )
 
 		if OS == "macos" then
 			printf( "build build/shaders/%s.comp.metal: spirv-cross build/shaders/%s.comp.spv", out_filename, out_filename )

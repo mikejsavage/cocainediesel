@@ -755,7 +755,7 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 			{ "b_NewParticles", ps->new_particles.buffer },
 			{ "b_ComputeCountIn", ps->compute_count1 },
 			{ "b_ComputeCountOut", ps->compute_count2 },
-			{ "b_ParticleUpdate", update },
+			{ "b_UpdateStep", update },
 		} );
 	}
 
@@ -770,7 +770,7 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 			{ "b_ComputeCount", ps->compute_count2 },
 			{ "b_ComputeIndirect", ps->compute_indirect },
 			{ "b_DrawIndirect", ps->draw_indirect },
-			{ "b_ParticleUpdate", NewTempBuffer( new_particles ) },
+			{ "b_NewParticles", NewTempBuffer( new_particles ) },
 		} );
 	}
 
@@ -785,6 +785,7 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 		.material_bind_group = SpriteAtlasBindGroup(),
 	};
 
+	// NOMERGE TODO use draw_indirect lol
 	Mesh mesh = { .num_vertices = 6 };
 	Draw( RenderPass_Transparent, pipeline, mesh, {
 		{ "b_Particles", ps->gpu_particles2 },
@@ -800,8 +801,14 @@ void DrawParticles() {
 	s64 total_new_particles = addParticleSystem.num_new_particles + blendParticleSystem.num_new_particles;
 
 	// TODO: probably merge these into one pass
-	frame_static.render_passes[ RenderPass_ParticleUpdate ] = NewComputePass( "Update particles" );
-	frame_static.render_passes[ RenderPass_ParticleSetupIndirect ] = NewComputePass( "Particle setup indirect" );
+	frame_static.render_passes[ RenderPass_ParticleUpdate ] = NewComputePass( ComputePassConfig {
+		.name = "Update particles",
+		.pass = RenderPass_ParticleUpdate,
+	} );
+	frame_static.render_passes[ RenderPass_ParticleSetupIndirect ] = NewComputePass( ComputePassConfig {
+		.name = "Particle setup indirect",
+		.pass = RenderPass_ParticleSetupIndirect,
+	} );
 
 	UpdateParticleSystem( &addParticleSystem, dt );
 	DrawParticleSystem( &addParticleSystem, dt );

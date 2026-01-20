@@ -180,6 +180,7 @@ static void SubmitDrawCalls() {
 				if( pcmd->ElemCount == 0 )
 					continue;
 
+				// NOMERGE
 				// RenderPass rp = pass == 0 ? RenderPass_UIBeforePostprocessing : RenderPass_UIAfterPostprocessing;
 				RenderPass rp = RenderPass_UIAfterPostprocessing;
 				EncodeScissor( rp, Scissor {
@@ -198,14 +199,19 @@ static void SubmitDrawCalls() {
 					.material_bind_group = pcmd->TextureId.material_bind_group,
 				};
 
-				// TODO
+				// TODO NOMERGE
 				// pipeline.bind_uniform( "u_MaterialStatic", lodbias_uniforms );
+
+				Span< const BufferBinding > buffers = { };
+				if( pcmd->TextureId.buffer.exists ) {
+					buffers = Span< const BufferBinding >( &pcmd->TextureId.buffer.value, 1 );
+				}
 
 				DrawCallExtras extras = {
 					.override_num_vertices = pcmd->ElemCount,
 					.first_index = pcmd->IdxOffset,
 				};
-				Draw( rp, pipeline, mesh, { }, extras );
+				Draw( rp, pipeline, mesh, buffers, extras );
 			}
 		}
 	}

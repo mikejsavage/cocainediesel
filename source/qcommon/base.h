@@ -88,11 +88,6 @@ constexpr Span< T > StaticSpan( T ( &arr )[ N ] ) {
  */
 
 template< typename T >
-constexpr Optional< T > MakeOptional( const T & x ) {
-	return x;
-}
-
-template< typename T >
 constexpr T Default( const Optional< T > & opt, const T & def ) {
 	return opt.exists ? opt.value : def;
 }

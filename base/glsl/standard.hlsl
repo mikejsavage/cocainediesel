@@ -1,7 +1,7 @@
 #include "include/common.hlsl"
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
-[[vk::binding( 1, DescriptorSet_RenderPass )]] Texture2D< float > u_BlueNoiseTexture;
+[[vk::binding( 1, DescriptorSet_RenderPass )]] Texture2D< float4 > u_BlueNoise;
 [[vk::binding( 2, DescriptorSet_RenderPass )]] SamplerState u_StandardSampler;
 #ifdef APPLY_SHADOWS
 [[vk::binding( 3, DescriptorSet_RenderPass )]] StructuredBuffer< ShadowmapUniforms > u_Shadowmap;
@@ -131,7 +131,7 @@ FragmentOutput FragmentMain( VertexOutput v ) {
 
 #ifdef APPLY_FOG
 	albedo.rgb = Fog( albedo.rgb, length( v.world_position - u_View[ 0 ].camera_pos ) );
-	albedo.rgb += Dither( v.position.xy );
+	albedo.rgb += Dither( u_BlueNoise, v.position.xy );
 #endif
 
 	albedo.rgb = VoidFog( albedo.rgb, v.world_position.z );

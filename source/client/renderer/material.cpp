@@ -399,7 +399,7 @@ static Texture MakeTexture( const TextureConfig & config, u64 hash, Optional< Po
 	return Texture {
 		.name = config.name,
 		.hash = hash,
-		.handle = NewBackendTexture( config, old_texture.exists ? MakeOptional( textures[ old_texture.value ].handle ) : NONE ),
+		.handle = NewBackendTexture( config, old_texture.exists ? Optional( textures[ old_texture.value ].handle ) : NONE ),
 		.format = config.format,
 		.width = config.width,
 		.height = config.height,
@@ -862,7 +862,7 @@ static void PackSpriteAtlas( bool first_time ) {
 			.num_layers = num_layers,
 			.num_mipmaps = num_mipmaps,
 			.data = blocks.ptr,
-		}, first_time ? NONE : MakeOptional( sprite_atlas ) );
+		}, first_time ? NONE : Optional( sprite_atlas ) );
 	}
 }
 
@@ -1118,7 +1118,7 @@ PoolHandle< Material2 > FindMaterial( const char * name ) {
 
 Optional< Sprite > TryFindSprite( StringHash name ) {
 	const Sprite * sprite = sprites.get( name.hash );
-	return sprite == NULL ? NONE : MakeOptional( *sprite );
+	return sprite == NULL ? NONE : Optional( *sprite );
 }
 
 PoolHandle< Texture > SpriteAtlasTexture() {

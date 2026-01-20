@@ -173,7 +173,7 @@ enum IndexFormat : u8 {
 struct Mesh {
 	VertexDescriptor vertex_descriptor;
 	IndexFormat index_format;
-	size_t num_vertices;
+	u32 num_vertices;
 
 	Optional< GPUBuffer > vertex_buffers[ VertexAttribute_Count ];
 	Optional< GPUBuffer > index_buffer;
@@ -299,103 +299,6 @@ struct GPUBindings {
 	Span< const SamplerBinding > samplers;
 };
 
-struct RenderPassConfig {
-	struct ColorTarget {
-		Optional< PoolHandle< Texture > > texture; // NONE = swapchain
-		u32 layer = 0;
-		bool preserve_contents = true;
-		Optional< Vec4 > clear = NONE;
-		Optional< PoolHandle< Texture > > resolve_from = NONE;
-	};
-
-	struct DepthTarget {
-		PoolHandle< Texture > texture;
-		u32 layer = 0;
-		bool preserve_contents = true;
-		Optional< float > clear = NONE;
-		Optional< PoolHandle< Texture > > resolve_from = NONE;
-	};
-
-	const char * name;
-	Span< const ColorTarget > color_targets;
-	Optional< DepthTarget > depth_target;
-
-	PoolHandle< RenderPipeline > representative_shader;
-	GPUBindings bindings;
-};
-
-Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & render_pass );
-void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitType type = SubmitCommandBuffer_Normal );
-
-/*
- * Draw calls
- */
-
-struct IndirectexedDrawArgs {
-	u32 num_vertices;
-	u32 num_instances;
-	u32 first_vertex;
-	u32 base_instance;
-};
-
-struct IndirectIndexedDrawArgs {
-	u32 num_indices;
-	u32 num_instances;
-	u32 first_index;
-	s32 base_vertex;
-	u32 base_instance;
-};
-
-struct PipelineState {
-	PoolHandle< RenderPipeline > shader;
-	RenderPipelineDynamicState dynamic_state;
-	PoolHandle< BindGroup > material_bind_group;
-};
-
-struct DrawCallExtras {
-	u32 first_index = 0;
-	u32 base_vertex = 0;
-	Optional< size_t > override_num_vertices = NONE;
-};
-
-void EncodeDrawCall( Opaque< CommandBuffer > cmd_buf, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers, DrawCallExtras extras );
-// void EncodeBindMesh( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
-// void EncodeBindMaterial( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
-
-struct Scissor {
-	u32 x, y, w, h;
-};
-
-void EncodeScissor( Opaque< CommandBuffer > cmd_buf, Optional< Scissor > scissor );
-
-/*
- * Compute passes
- */
-
-struct IndirectComputeArgs {
-	u32 num_threadgroups_x, num_threadgroups_y, num_threadgroups_z;
-};
-
-Opaque< CommandBuffer > NewComputePass( const char * name );
-
-void EncodeComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers );
-void EncodeIndirectComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, GPUBuffer indirect_args, Span< const BufferBinding > buffers );
-
-/*
- * High level stuff TODO
- */
-
-struct Transform {
-	Quaternion rotation;
-	Vec3 translation;
-	float scale;
-};
-
-struct MatrixPalettes {
-	Span< Mat3x4 > node_transforms;
-	Span< Mat3x4 > skinning_matrices;
-};
-
 enum RenderPass {
 	RenderPass_ParticleUpdate,
 	RenderPass_ParticleSetupIndirect, // could be merged into above?
@@ -430,6 +333,140 @@ enum RenderPass {
 	RenderPass_Count
 };
 
+enum LoadOp {
+	LoadOp_DontCare,
+	LoadOp_Load,
+	LoadOp_Clear,
+};
+
+enum StoreOp {
+	StoreOp_DontCare,
+	StoreOp_Store,
+	// StoreOp_Resolve,
+	// StoreOp_ResolveAndStore,
+};
+
+enum GPUBarrier {
+	GPUBarrier_ComputeToIndirect,
+	GPUBarrier_ComputeToCompute,
+	GPUBarrier_ComputeToFragment,
+	GPUBarrier_FragmentToFragmentSample,
+	GPUBarrier_FragmentToFragmentOutput,
+};
+
+struct RenderPassConfig {
+	struct ColorTarget {
+		Optional< PoolHandle< Texture > > texture; // NONE = swapchain
+		u32 layer = 0;
+		LoadOp load = LoadOp_DontCare;
+		Vec4 clear;
+		StoreOp store = StoreOp_Store;
+		Optional< PoolHandle< Texture > > resolve_target = NONE;
+	};
+
+	struct DepthTarget {
+		PoolHandle< Texture > texture;
+		u32 layer = 0;
+		LoadOp load = LoadOp_DontCare;
+		float clear;
+		StoreOp store = StoreOp_Store;
+		Optional< PoolHandle< Texture > > resolve_target = NONE;
+	};
+
+	const char * name;
+	Span< const ColorTarget > color_targets;
+	Optional< DepthTarget > depth_target;
+
+	// Vulkan synchronization
+	Optional< GPUBarrier > barrier; // TODO: maybe needs to be span
+	Span< const PoolHandle< Texture > > attachment_transitions;
+	Span< const PoolHandle< Texture > > readonly_transitions;
+	bool swapchain_attachment_transition;
+
+	// Metal synchronization
+	RenderPass pass;
+	PoolHandle< RenderPipeline > representative_shader;
+	GPUBindings bindings;
+};
+
+Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & render_pass );
+void SignalFirstRenderPass( RenderPass pass );
+void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitType type = SubmitCommandBuffer_Normal, Optional< RenderPass > next_pass = NONE );
+
+/*
+ * Draw calls
+ */
+
+struct IndirectexedDrawArgs {
+	u32 num_vertices;
+	u32 num_instances;
+	u32 first_vertex;
+	u32 base_instance;
+};
+
+struct IndirectIndexedDrawArgs {
+	u32 num_indices;
+	u32 num_instances;
+	u32 first_index;
+	s32 base_vertex;
+	u32 base_instance;
+};
+
+struct PipelineState {
+	PoolHandle< RenderPipeline > shader;
+	RenderPipelineDynamicState dynamic_state;
+	Optional< PoolHandle< BindGroup > > material_bind_group;
+};
+
+struct DrawCallExtras {
+	u32 first_index = 0;
+	u32 base_vertex = 0;
+	Optional< u32 > override_num_vertices = NONE;
+};
+
+void EncodeDrawCall( Opaque< CommandBuffer > cmd_buf, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers, DrawCallExtras extras );
+// void EncodeBindMesh( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
+// void EncodeBindMaterial( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
+
+struct Scissor {
+	u32 x, y, w, h;
+};
+
+void EncodeScissor( Opaque< CommandBuffer > cmd_buf, Optional< Scissor > scissor );
+
+/*
+ * Compute passes
+ */
+
+struct IndirectComputeArgs {
+	u32 num_threadgroups_x, num_threadgroups_y, num_threadgroups_z;
+};
+
+struct ComputePassConfig {
+	const char * name;
+
+	// Vulkan synchronization
+	Optional< GPUBarrier > barrier;
+
+	// Metal synchronization
+	RenderPass pass;
+};
+
+Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config );
+
+void EncodeComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers );
+void EncodeIndirectComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, GPUBuffer indirect_args, Span< const BufferBinding > buffers );
+
+/*
+ * High level stuff TODO
+ */
+
+struct MatrixPalettes {
+	Span< Mat3x4 > node_transforms;
+	Span< Mat3x4 > skinning_matrices;
+};
+
+// NOMERGE: maybe we should do this instead of n->n+1 deps everywhere
 enum RenderPassDependency {
 	RenderPassDependency_ParticleUpdate_To_ParticleSetupIndirect,
 	RenderPassDependency_Shadowmap_To_WorldOpaque,
@@ -551,7 +588,7 @@ struct FrameStatic {
 		PoolHandle< Texture > shadowmap;
 	} render_targets;
 
-	Opaque< CommandBuffer > render_passes[ RenderPass_Count ];
+	Optional< Opaque< CommandBuffer > > render_passes[ RenderPass_Count ];
 };
 
 inline FrameStatic frame_static;
@@ -561,5 +598,5 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov );
 void RendererEndFrame();
 
 void RenderBackendWaitForNewFrame();
-void RenderBackendBeginFrame( bool capture );
+void RenderBackendBeginFrame( int frames_to_capture );
 void RenderBackendEndFrame();

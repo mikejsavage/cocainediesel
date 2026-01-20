@@ -296,7 +296,7 @@ static void CreateRenderTargets( bool first_time ) {
 		.width = frame_static.viewport_width,
 		.height = frame_static.viewport_height,
 		.dedicated_allocation = true,
-	}, first_time ? NONE : MakeOptional( frame_static.render_targets.silhouette_mask ) );
+	}, first_time ? NONE : Optional( frame_static.render_targets.silhouette_mask ) );
 
 	frame_static.render_targets.curved_surface_mask = NewTexture( TextureConfig {
 		.name = "Curved surface mask RT",
@@ -305,7 +305,7 @@ static void CreateRenderTargets( bool first_time ) {
 		.height = frame_static.viewport_height,
 		.msaa_samples = frame_static.msaa_samples,
 		.dedicated_allocation = true,
-	}, first_time ? NONE : MakeOptional( frame_static.render_targets.curved_surface_mask ) );
+	}, first_time ? NONE : Optional( frame_static.render_targets.curved_surface_mask ) );
 
 	if( frame_static.msaa_samples > 1 ) {
 		frame_static.render_targets.msaa_color = NewTexture( TextureConfig {
@@ -337,7 +337,7 @@ static void CreateRenderTargets( bool first_time ) {
 		.width = frame_static.viewport_width,
 		.height = frame_static.viewport_height,
 		.dedicated_allocation = true,
-	}, first_time ? NONE : MakeOptional( frame_static.render_targets.resolved_color ) );
+	}, first_time ? NONE : Optional( frame_static.render_targets.resolved_color ) );
 
 	frame_static.render_targets.resolved_depth = NewTexture( TextureConfig {
 		.name = "Depth RT",
@@ -345,7 +345,7 @@ static void CreateRenderTargets( bool first_time ) {
 		.width = frame_static.viewport_width,
 		.height = frame_static.viewport_height,
 		.dedicated_allocation = true,
-	}, first_time ? NONE : MakeOptional( frame_static.render_targets.resolved_depth ) );
+	}, first_time ? NONE : Optional( frame_static.render_targets.resolved_depth ) );
 
 	frame_static.render_targets.shadowmap = NewTexture( TextureConfig {
 		.name = "Shadowmap RT",
@@ -365,7 +365,9 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadVisualEffects();
 
 	memset( &frame_static.render_passes, 0, sizeof( frame_static.render_passes ) );
-	RenderBackendBeginFrame( false );
+
+	bool capture = false;
+	RenderBackendBeginFrame( capture );
 
 	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer < 0 || !HasAnyBit( RenderBackendSupportedMSAA(), u32( r_samples->integer ) ) ) {
 		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
@@ -577,7 +579,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	};
 
 	BoundedDynamicArray< GPUBindings::TextureBinding, 4 > standard_textures = {
-		{ "u_BlueNoiseTexture", BlueNoiseTexture() },
+		{ "u_BlueNoise", BlueNoiseTexture() },
 		{ "u_ShadowmapTextureArray", frame_static.render_targets.shadowmap },
 		{ "u_SpriteAtlas", SpriteAtlasTexture() },
 	};
@@ -596,6 +598,8 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	Vec4 clear_color = Vec4( 0.0f );
 	float clear_depth = 1.0f;
 
+	const auto & targets = frame_static.render_targets;
+
 	// RenderPass_ParticleUpdate
 	// RenderPass_ParticleSetupIndirect
 	// RenderPass_TileCulling
@@ -603,10 +607,11 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
 		frame_static.render_passes[ RenderPass_ShadowmapCascade0 + i ] = NewRenderPass( RenderPassConfig {
 			.name = temp( "Shadowmap cascade {}", i ),
+			.pass = RenderPass_ShadowmapCascade0 + i,
 			.depth_target = RenderPassConfig::DepthTarget {
-				.texture = frame_static.render_targets.shadowmap,
+				.texture = targets.shadowmap,
 				.layer = i,
-				.preserve_contents = false,
+				.load = LoadOp_Clear,
 				.clear = clear_depth,
 			},
 			.representative_shader = shaders.depth_only,
@@ -617,14 +622,15 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	}
 
 	bool msaa = frame_static.msaa_samples > 1;
-	PoolHandle< Texture > color_target = msaa ? Unwrap( frame_static.render_targets.msaa_color ) : frame_static.render_targets.resolved_color;
-	PoolHandle< Texture > depth_target = msaa ? Unwrap( frame_static.render_targets.msaa_depth ) : frame_static.render_targets.resolved_depth;
+	PoolHandle< Texture > color_target = msaa ? Unwrap( targets.msaa_color ) : targets.resolved_color;
+	PoolHandle< Texture > depth_target = msaa ? Unwrap( targets.msaa_depth ) : targets.resolved_depth;
 
 	frame_static.render_passes[ RenderPass_WorldOpaqueZPrepass ] = NewRenderPass( RenderPassConfig {
 		.name = "World Z-prepass",
+		.pass = RenderPass_WorldOpaqueZPrepass,
 		.depth_target = RenderPassConfig::DepthTarget {
 			.texture = depth_target,
-			.preserve_contents = false,
+			.load = LoadOp_Clear,
 			.clear = clear_depth,
 		},
 		.representative_shader = shaders.depth_only,
@@ -635,15 +641,16 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 
 	frame_static.render_passes[ RenderPass_WorldOpaque ] = NewRenderPass( RenderPassConfig {
 		.name = "World opaque",
+		.pass = RenderPass_WorldOpaque,
 		.color_targets = {
 			RenderPassConfig::ColorTarget {
 				.texture = color_target,
-				.preserve_contents = false,
+				.load = LoadOp_Clear,
 				.clear = clear_color,
 			},
 			RenderPassConfig::ColorTarget {
-				.texture = frame_static.render_targets.curved_surface_mask,
-				.preserve_contents = false,
+				.texture = targets.curved_surface_mask,
+				.load = LoadOp_Clear,
 				.clear = clear_color,
 			},
 		},
@@ -657,9 +664,10 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 
 	frame_static.render_passes[ RenderPass_NonworldOpaqueOutlined ] = NewRenderPass( RenderPassConfig {
 		.name = "Nonworld opaque outlined",
+		.pass = RenderPass_NonworldOpaqueOutlined,
 		.color_targets = {
 			RenderPassConfig::ColorTarget { .texture = color_target },
-			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.curved_surface_mask },
+			RenderPassConfig::ColorTarget { .texture = targets.curved_surface_mask },
 		},
 		.depth_target = RenderPassConfig::DepthTarget { .texture = depth_target },
 		.representative_shader = shaders.world,
@@ -669,16 +677,17 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	// RenderPass_AddOutlines
 
 	frame_static.render_passes[ RenderPass_NonworldOpaque ] = NewRenderPass( RenderPassConfig {
-		.name = "Nonworld opaque",
+		.name = "Nonworld opaque + MSAA resolve",
+		.pass = RenderPass_NonworldOpaque,
 		.color_targets = {
 			RenderPassConfig::ColorTarget {
-				.texture = frame_static.render_targets.resolved_color,
-				.resolve_from = msaa ? frame_static.render_targets.msaa_color : NONE,
+				.texture = color_target,
+				.resolve_target = msaa ? Optional( targets.resolved_color ) : NONE,
 			},
 		},
 		.depth_target = RenderPassConfig::DepthTarget {
-			.texture = frame_static.render_targets.resolved_depth,
-			.resolve_from = msaa ? MakeOptional( frame_static.render_targets.resolved_depth ) : NONE,
+			.texture = depth_target,
+			.resolve_target = msaa ? Optional( targets.resolved_depth ) : NONE,
 		},
 		.representative_shader = shaders.world,
 		.bindings = standard_bindings,
@@ -686,7 +695,8 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 
 	frame_static.render_passes[ RenderPass_Transparent ] = NewRenderPass( RenderPassConfig {
 		.name = "Transparent",
-		.color_targets = { RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.resolved_color } },
+		.pass = RenderPass_Transparent,
+		.color_targets = { RenderPassConfig::ColorTarget { .texture = targets.resolved_color } },
 		// .barrier = true, particle rendering happens here
 	} );
 
@@ -694,10 +704,10 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 
 	frame_static.render_passes[ RenderPass_UIBeforePostprocessing ] = NewRenderPass( RenderPassConfig {
 		.name = "UI before postprocessing",
+		.pass = RenderPass_UIBeforePostprocessing,
 		.color_targets = {
 			RenderPassConfig::ColorTarget {
 				.texture = frame_static.render_targets.resolved_color,
-				.preserve_contents = false,
 			},
 		},
 		.representative_shader = shaders.imgui,
@@ -710,6 +720,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 
 	frame_static.render_passes[ RenderPass_UIAfterPostprocessing ] = NewRenderPass( RenderPassConfig {
 		.name = "UI after postprocessing",
+		.pass = RenderPass_UIAfterPostprocessing,
 		.color_targets = { RenderPassConfig::ColorTarget { .texture = NONE } },
 		.representative_shader = shaders.imgui,
 		.bindings = {
@@ -719,28 +730,50 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 }
 
 void RendererEndFrame() {
-	for( size_t i = 0; i < ARRAY_COUNT( frame_static.render_passes ); i++ ) {
-		bool last = i == ARRAY_COUNT( frame_static.render_passes ) - 1;
-		SubmitCommandBuffer( frame_static.render_passes[ i ],
-			last ? SubmitCommandBuffer_Present : SubmitCommandBuffer_Normal );
+	RenderPass next_pass[ ARRAY_COUNT( frame_static.render_passes ) ];
+	RenderPass next = RenderPass_Count;
+	for( size_t i = 0; i < ARRAY_COUNT( next_pass ); i++ ) {
+		size_t idx = ARRAY_COUNT( next_pass ) - i - 1;
+		next_pass[ idx ] = next;
+		if( frame_static.render_passes[ idx ].exists ) {
+			next = RenderPass( idx );
+		}
 	}
+
+	if( !frame_static.render_passes[ 0 ].exists ) {
+		SignalFirstRenderPass( next_pass[ 0 ] );
+	}
+
+	for( size_t i = 0; i < ARRAY_COUNT( next_pass ); i++ ) {
+		if( !frame_static.render_passes[ i ].exists )
+			continue;
+
+		SubmitCommandBuffer( frame_static.render_passes[ i ].value,
+			next_pass[ i ] == RenderPass_Count ? SubmitCommandBuffer_Present : SubmitCommandBuffer_Normal,
+			next_pass[ i ] );
+	}
+
 	RenderBackendEndFrame();
 }
 
 void EncodeComputeCall( RenderPass render_pass, PoolHandle< ComputePipeline > pipeline, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers ) {
-	EncodeComputeCall( frame_static.render_passes[ render_pass ], pipeline, x, y, z, buffers );
+	Assert( frame_static.render_passes[ render_pass ].exists );
+	EncodeComputeCall( frame_static.render_passes[ render_pass ].value, pipeline, x, y, z, buffers );
 }
 
 void EncodeIndirectComputeCall( RenderPass render_pass, PoolHandle< ComputePipeline > pipeline, GPUBuffer indirect_args, Span< const BufferBinding > buffers ) {
-	EncodeIndirectComputeCall( frame_static.render_passes[ render_pass ], pipeline, indirect_args, buffers );
+	Assert( frame_static.render_passes[ render_pass ].exists );
+	EncodeIndirectComputeCall( frame_static.render_passes[ render_pass ].value, pipeline, indirect_args, buffers );
 }
 
 void Draw( RenderPass render_pass, const PipelineState & pipeline, Mesh mesh, Span< const BufferBinding > buffers, DrawCallExtras extras ) {
-	EncodeDrawCall( frame_static.render_passes[ render_pass ], pipeline, mesh, buffers, extras );
+	Assert( frame_static.render_passes[ render_pass ].exists );
+	EncodeDrawCall( frame_static.render_passes[ render_pass ].value, pipeline, mesh, buffers, extras );
 }
 
 void EncodeScissor( RenderPass render_pass, Optional< Scissor > scissor ) {
-	EncodeScissor( frame_static.render_passes[ render_pass ], scissor );
+	Assert( frame_static.render_passes[ render_pass ].exists );
+	EncodeScissor( frame_static.render_passes[ render_pass ].value, scissor );
 }
 
 PoolHandle< Texture > RGBNoiseTexture() {

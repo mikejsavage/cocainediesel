@@ -172,11 +172,9 @@ static void SubmitPostprocessPass() {
 
 	frame_static.render_passes[ RenderPass_Postprocessing ] = NewRenderPass( RenderPassConfig {
 		.name = "Postprocessing",
+		.pass = RenderPass_Postprocessing,
 		.color_targets = {
-			RenderPassConfig::ColorTarget {
-				.texture = NONE,
-				.preserve_contents = false,
-			},
+			RenderPassConfig::ColorTarget { .texture = NONE },
 		},
 		.representative_shader = shaders.postprocess,
 		.bindings = {
@@ -232,7 +230,8 @@ void SCR_UpdateScreen() {
 		// TODO: need to clear the screen during post. or not do post and clear here
 		frame_static.render_passes[ RenderPass_UIAfterPostprocessing ] = NewRenderPass( RenderPassConfig {
 			.name = "UI after postprocessing",
-			.color_targets = { RenderPassConfig::ColorTarget { .texture = NONE, .preserve_contents = false, .clear = black.vec4 } },
+			.pass = RenderPass_UIAfterPostprocessing,
+			.color_targets = { RenderPassConfig::ColorTarget { .texture = NONE, .load = LoadOp_Clear, .clear = black.vec4 } },
 			.representative_shader = shaders.imgui,
 			.bindings = {
 				.buffers = { { "u_View", frame_static.ortho_view_uniforms } },

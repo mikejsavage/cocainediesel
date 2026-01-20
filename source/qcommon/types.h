@@ -553,6 +553,12 @@ struct Quaternion {
 	}
 };
 
+struct Transform {
+	Quaternion rotation;
+	Vec3 translation;
+	float scale;
+};
+
 struct Plane {
 	Vec3 normal;
 	float distance;

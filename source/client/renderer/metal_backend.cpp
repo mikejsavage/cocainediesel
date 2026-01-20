@@ -62,7 +62,8 @@ struct MetalDevice {
 	SDL_MetalView view;
 	CA::MetalLayer * swapchain;
 	MTL::CommandQueue * command_queue;
-	MTL::Event * event;
+	u64 frame_counter;
+	MTL::Event * pass_event;
 	u64 pass_counter;
 	MTL::ArgumentEncoder * material_argument_encoder;
 	MTL::ArgumentBuffersTier argument_buffers_tier;
@@ -79,7 +80,7 @@ struct CommandBuffer {
 	MTL::RenderCommandEncoder * rce;
 	MTL::ComputeCommandEncoder * cce;
 	MTL::BlitCommandEncoder * bce;
-	Optional< u64 > signal;
+	MTL::ScissorRect no_scissor;
 };
 
 struct BindGroup {
@@ -88,18 +89,16 @@ struct BindGroup {
 
 static MetalDevice global_device;
 static dispatch_semaphore_t frame_semaphore;
-static u64 frame_counter;
-static u64 pass_counter;
 static int old_framebuffer_width, old_framebuffer_height;
 
 static struct {
 	NS::AutoreleasePool * pool;
 	CA::MetalDrawable * swapchain_surface;
 	MTL::Texture * swapchain_texture;
-	bool capture;
+	Optional< int > capture;
 } frame;
 
-static void StartCapture( MTL::Device * gpu ) {
+static void StartCapture( MTL::Device * gpu, int frames ) {
 	MTL::CaptureManager * capture_manager = MTL::CaptureManager::sharedCaptureManager();
 	if( !capture_manager->supportsDestination( MTL::CaptureDestinationGPUTraceDocument ) ) {
 		printf( "Capture support is not enabled\n" );
@@ -130,13 +129,18 @@ static void StartCapture( MTL::Device * gpu ) {
 	url->release();
 	capture->release();
 
-	frame.capture = true;
+	frame.capture = frames;
 }
 
-static void EndCapture() {
-	MTL::CaptureManager::sharedCaptureManager()->stopCapture();
-	printf( "Captured!\n" );
-	frame.capture = false;
+static void MaybeEndCapture() {
+	if( !frame.capture.exists )
+		return;
+
+	frame.capture.value--;
+	if( frame.capture.value == 0 ) {
+		MTL::CaptureManager::sharedCaptureManager()->stopCapture();
+		frame.capture = NONE;
+	}
 }
 
 static Pool< GPUAllocation, 1024 > allocations;
@@ -195,10 +199,14 @@ void DeleteTransferCommandBuffer( Opaque< CommandBuffer > cb ) {
 	cb.unwrap()->bce->endEncoding();
 }
 
-void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitType type ) {
+void SignalFirstRenderPass( RenderPass pass ) {
+	MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
+	command_buffer->encodeSignalEvent( global_device.pass_event, global_device.pass_counter + pass );
+	command_buffer->commit();
+}
+
+void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitType type, Optional< RenderPass > next_pass ) {
 	CommandBuffer * cmd_buf = buffer.unwrap();
-	if( cmd_buf->command_buffer == NULL )
-		return;
 
 	if( type == SubmitCommandBuffer_Present ) {
 		cmd_buf->command_buffer->addCompletedHandler( [&]( MTL::CommandBuffer * ) {
@@ -217,8 +225,8 @@ void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitTyp
 		cmd_buf->bce->endEncoding();
 	}
 
-	if( cmd_buf->signal.exists ) {
-		cmd_buf->command_buffer->encodeSignalEvent( global_device.event, cmd_buf->signal.value );
+	if( next_pass.exists ) {
+		cmd_buf->command_buffer->encodeSignalEvent( global_device.pass_event, global_device.pass_counter + next_pass.value );
 	}
 
 	cmd_buf->command_buffer->commit();
@@ -790,8 +798,7 @@ static void BindArgumentBuffer( MTL::ComputeCommandEncoder * cce, GPUBuffer args
 	cce->setBuffer( allocations[ args.allocation ].buffer, args.offset, descriptor_set );
 }
 
-template< typename Encoder >
-void EncodeAndBindArgumentBuffer( Encoder * ce, ArgumentBufferEncoder * encoder, const GPUBindings & bindings, DescriptorSetType descriptor_set ) {
+static void EncodeAndBindArgumentBuffer( MTL::RenderCommandEncoder * rce, ArgumentBufferEncoder * encoder, const GPUBindings & bindings, DescriptorSetType descriptor_set ) {
 	GPUBuffer args = EncodeArgumentBuffer( encoder, bindings.buffers );
 
 	for( size_t i = 0; i < bindings.textures.n; i++ ) {
@@ -815,13 +822,12 @@ void EncodeAndBindArgumentBuffer( Encoder * ce, ArgumentBufferEncoder * encoder,
 		encoder->encoder->setSamplerState( samplers[ b.sampler ], idx.value );
 	}
 
-	BindArgumentBuffer( ce, args, descriptor_set );
+	BindArgumentBuffer( rce, args, descriptor_set );
 }
 
-template< typename Encoder >
-void EncodeAndBindArgumentBuffer( Encoder * ce, ArgumentBufferEncoder * encoder, Span< const BufferBinding > buffers, DescriptorSetType descriptor_set ) {
+static void EncodeAndBindArgumentBuffer( MTL::RenderCommandEncoder * rce, ArgumentBufferEncoder * encoder, Span< const BufferBinding > buffers, DescriptorSetType descriptor_set ) {
 	GPUBuffer args = EncodeArgumentBuffer( encoder, buffers );
-	BindArgumentBuffer( ce, args, descriptor_set );
+	BindArgumentBuffer( rce, args, descriptor_set );
 }
 
 void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline, Mesh mesh, Span< const BufferBinding > buffers, DrawCallExtras extras ) {
@@ -836,36 +842,27 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline
 
 	cb->rce->setRenderPipelineState( pso );
 	cb->rce->setDepthClipMode( render_pipelines[ pipeline.shader ].clamp_depth ? MTL::DepthClipModeClamp : MTL::DepthClipModeClip );
-	cb->rce->setFrontFacingWinding( MTL::WindingCounterClockwise );
 	cb->rce->setCullMode( CullFaceToMetal( pipeline.dynamic_state.cull_face ) );
 	cb->rce->setDepthStencilState( depth_funcs[ pipeline.dynamic_state.depth_func ] );
 
 	BindMesh( cb->rce, mesh );
-	BindBindGroup( cb->rce, pipeline.material_bind_group, DescriptorSet_Material );
+	if( pipeline.material_bind_group.exists ) {
+		BindBindGroup( cb->rce, pipeline.material_bind_group.value, DescriptorSet_Material );
+	}
 
 	EncodeAndBindArgumentBuffer( cb->rce, &render_pipelines[ pipeline.shader ].draw_call_args, buffers, DescriptorSet_DrawCall );
 
 	MTL::IndexType index_type = mesh.index_format == IndexFormat_U16 ? MTL::IndexTypeUInt16 : MTL::IndexTypeUInt32;
-	size_t index_size = mesh.index_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
-	// if( !draw_call.indirect_args.exists ) {
-		if( mesh.index_buffer.exists ) {
-			Assert( mesh.index_buffer.value.offset % 4 == 0 );
-			cb->rce->drawIndexedPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, Default( extras.override_num_vertices, mesh.num_vertices ), index_type, allocations[ mesh.index_buffer.value.allocation ].buffer, mesh.index_buffer.value.offset + extras.first_index * index_size, 1, extras.base_vertex, 0 );
-		}
-		else {
-			cb->rce->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, NS::UInteger( 0 ), mesh.num_vertices );
-		}
-	// }
-	// else {
-	// 	const MTL::Buffer * buffer = allocations[ draw_call.indirect_args.value.allocation ].buffer;
-	// 	if( draw_call.mesh.index_buffer.exists ) {
-	// 		Assert( draw_call.mesh.index_buffer.value.offset % 4 == 0 );
-	// 		cb->rce->drawIndexedPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, index_type, allocations[ draw_call.mesh.index_buffer.value.allocation ].buffer, draw_call.mesh.index_buffer.value.offset + draw_call.first_index * index_size, buffer, draw_call.indirect_args.value.offset );
-	// 	}
-	// 	else {
-	// 		cb->rce->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, buffer, draw_call.indirect_args.value.offset );
-	// 	}
-	// }
+	u32 num_vertices = Default( extras.override_num_vertices, mesh.num_vertices );
+	if( mesh.index_buffer.exists ) {
+		Assert( mesh.index_buffer.value.offset % 4 == 0 );
+		size_t index_size = mesh.index_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
+		cb->rce->drawIndexedPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, num_vertices, index_type, allocations[ mesh.index_buffer.value.allocation ].buffer, mesh.index_buffer.value.offset + extras.first_index * index_size, 1, extras.base_vertex, 0 );
+	}
+	else {
+		// NOMERGE TODO: set firstVertex?
+		cb->rce->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, NS::UInteger( 0 ), num_vertices );
+	}
 }
 
 void EncodeScissor( Opaque< CommandBuffer > ocb, Optional< Scissor > scissor ) {
@@ -874,7 +871,7 @@ void EncodeScissor( Opaque< CommandBuffer > ocb, Optional< Scissor > scissor ) {
 		ocb.unwrap()->rce->setScissorRect( MTL::ScissorRect { s.x, s.y, s.w, s.y } );
 	}
 	else {
-		ocb.unwrap()->rce->setScissorRect( { 0, 0, NS::UIntegerMax, NS::UIntegerMax } );
+		ocb.unwrap()->rce->setScissorRect( ocb.unwrap()->no_scissor );
 	}
 }
 
@@ -926,8 +923,8 @@ PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path ) {
 static CommandBuffer * PrepareCompute( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > pipeline, Span< const BufferBinding > buffers ) {
 	CommandBuffer * cb = ocb.unwrap();
 	cb->cce->setComputePipelineState( compute_pipelines[ pipeline ].pso );
-	GPUBindings bindings = { .buffers = buffers };
-	EncodeAndBindArgumentBuffer( cb->cce, &compute_pipelines[ pipeline ].args, bindings, DescriptorSetType( 0 ) );
+	GPUBuffer args = EncodeArgumentBuffer( &compute_pipelines[ pipeline ].args, buffers );
+	BindArgumentBuffer( cb->cce, args, DescriptorSetType( 0 ) );
 	return cb;
 }
 
@@ -953,8 +950,6 @@ void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< Compute
 
 void InitRenderBackend( SDL_Window * window ) {
 	frame_semaphore = dispatch_semaphore_create( MaxFramesInFlight );
-	frame_counter = 0;
-	pass_counter = 0;
 
 	MTL::Device * device = MTL::CreateSystemDefaultDevice();
 	if( device == NULL ) {
@@ -962,7 +957,7 @@ void InitRenderBackend( SDL_Window * window ) {
 	}
 
 	MTL::CommandQueue * command_queue = device->newCommandQueue();
-	MTL::Event * event = device->newEvent();
+	MTL::Event * pass_event = device->newEvent();
 
 	SDL_MetalView view = SDL_Metal_CreateView( window );
 	if( view == NULL ) {
@@ -981,8 +976,9 @@ void InitRenderBackend( SDL_Window * window ) {
 		.view = view,
 		.swapchain = ( CA::MetalLayer * ) SDL_Metal_GetLayer( view ),
 		.command_queue = command_queue,
-		.event = event,
-		.pass_counter = 1,
+		.frame_counter = 0,
+		.pass_event = pass_event,
+		.pass_counter = 0,
 		.argument_buffers_tier = device->argumentBuffersSupport(),
 	};
 
@@ -1029,7 +1025,7 @@ void InitRenderBackend( SDL_Window * window ) {
 }
 
 void ShutdownRenderBackend() {
-	for( u64 i = 0; i < Min2( frame_counter, u64( MaxFramesInFlight ) ); i++ ) {
+	for( u64 i = 0; i < Min2( global_device.frame_counter, u64( MaxFramesInFlight ) ); i++ ) {
 		dispatch_semaphore_wait( frame_semaphore, DISPATCH_TIME_FOREVER );
 	}
 
@@ -1068,7 +1064,7 @@ void RenderBackendWaitForNewFrame() {
 	dispatch_semaphore_wait( frame_semaphore, DISPATCH_TIME_FOREVER );
 }
 
-void RenderBackendBeginFrame( bool capture ) {
+void RenderBackendBeginFrame( int frames_to_capture ) {
 	NS::AutoreleasePool * pool = NS::AutoreleasePool::alloc()->init();
 
 	ClearGPUArenaAllocators();
@@ -1089,20 +1085,19 @@ void RenderBackendBeginFrame( bool capture ) {
 		.pool = pool,
 		.swapchain_surface = surface,
 		.swapchain_texture = surface->texture(),
-		.capture = capture,
+		.capture = frames_to_capture,
 	};
 
-	if( capture ) {
-		StartCapture( global_device.device );
+	if( frames_to_capture > 0 ) {
+		StartCapture( global_device.device, frames_to_capture );
 	}
 }
 
 void RenderBackendEndFrame() {
-	if( frame.capture ) {
-		EndCapture();
-	}
+	MaybeEndCapture();
 	frame.pool->release();
-	frame_counter++;
+	global_device.frame_counter++;
+	global_device.pass_counter += RenderPass_Count;
 }
 
 u32 RenderBackendSupportedMSAA() {
@@ -1110,7 +1105,7 @@ u32 RenderBackendSupportedMSAA() {
 }
 
 size_t FrameSlot() {
-	return frame_counter % MaxFramesInFlight;
+	return global_device.frame_counter % MaxFramesInFlight;
 }
 
 template< typename T >
@@ -1133,38 +1128,37 @@ static void UseAllocators( T * encoder ) {
 
 Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 	MTL::RenderPassDescriptor * render_pass = MTL::RenderPassDescriptor::alloc()->init();
+	defer { render_pass->release(); };
 
 	MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
 	command_buffer->setLabel( NSString( config.name ) );
 
-	if( global_device.pass_counter > 1 ) {
-		command_buffer->encodeWait( global_device.event, global_device.pass_counter );
-	}
+	Optional< u32 > width = NONE;
+	Optional< u32 > height = NONE;
+
+	command_buffer->encodeWait( global_device.pass_event, global_device.frame_counter * RenderPass_Count + config.pass );
+	ggprint( "wait {}\n", config.pass );
 
 	for( size_t i = 0; i < config.color_targets.n; i++ ) {
 		const RenderPassConfig::ColorTarget & attachment_config = config.color_targets[ i ];
 		MTL::RenderPassColorAttachmentDescriptor * attachment = render_pass->colorAttachments()->object( i );
 
-		if( attachment_config.clear.exists ) {
-			Assert( !attachment_config.preserve_contents );
+		if( attachment_config.load == LoadOp_Clear ) {
 			attachment->setLoadAction( MTL::LoadActionClear );
-			Vec4 color = attachment_config.clear.value;
+			Vec4 color = attachment_config.clear;
 			attachment->setClearColor( MTL::ClearColor( color.x, color.y, color.z, color.w ) );
 		}
 		else {
-			attachment->setLoadAction( attachment_config.preserve_contents ? MTL::LoadActionLoad : MTL::LoadActionDontCare );
+			attachment->setLoadAction( attachment_config.load == LoadOp_Load ? MTL::LoadActionLoad : MTL::LoadActionDontCare );
 		}
 
-		attachment->setStoreAction( MTL::StoreAction::StoreActionStore );
-
-		if( attachment_config.resolve_from.exists ) {
-			attachment->setStoreAction( MTL::StoreActionDontCare );
-			attachment->setTexture( textures[ attachment_config.resolve_from.value ].handle );
-			attachment->setSlice( attachment_config.layer );
+		if( attachment_config.resolve_target.exists ) {
+			attachment->setStoreAction( MTL::StoreActionMultisampleResolve );
 			attachment->setResolveTexture( attachment_config.texture.exists ? textures[ attachment_config.texture.value ].handle : frame.swapchain_texture );
 			// attachment->setResolveSlice( attachment_config.layer ); NOMERGE
 		}
 		else {
+			attachment->setStoreAction( attachment_config.store == StoreOp_Store ? MTL::StoreActionStore : MTL::StoreActionDontCare );
 			attachment->setTexture( attachment_config.texture.exists ? textures[ attachment_config.texture.value ].handle : frame.swapchain_texture );
 			attachment->setSlice( attachment_config.layer );
 		}
@@ -1174,13 +1168,13 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 		const RenderPassConfig::DepthTarget & attachment_config = config.depth_target.value;
 		MTL::RenderPassDepthAttachmentDescriptor * attachment = render_pass->depthAttachment();
 
-		if( attachment_config.clear.exists ) {
-			Assert( !attachment_config.preserve_contents );
+		if( attachment_config.load == LoadOp_Clear ) {
 			attachment->setLoadAction( MTL::LoadActionClear );
-			attachment->setClearDepth( attachment_config.clear.value );
+			attachment->setLoadAction( MTL::LoadActionClear );
+			attachment->setClearDepth( attachment_config.clear );
 		}
 		else {
-			attachment->setLoadAction( attachment_config.preserve_contents ? MTL::LoadActionLoad : MTL::LoadActionDontCare );
+			attachment->setLoadAction( attachment_config.load == LoadOp_Load ? MTL::LoadActionLoad : MTL::LoadActionDontCare );
 		}
 
 		// NOMERGE MSAA DEPTH
@@ -1193,25 +1187,23 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 	UseAllocators( encoder );
 	EncodeAndBindArgumentBuffer( encoder, &render_pipelines[ config.representative_shader ].render_pass_args, config.bindings, DescriptorSet_RenderPass );
 
-	render_pass->release();
+	encoder->setFrontFacingWinding( MTL::WindingCounterClockwise );
 
 	return CommandBuffer {
 		.command_buffer = command_buffer,
 		.rce = encoder,
-		.signal = ++global_device.pass_counter,
 	};
 }
 
-Opaque< CommandBuffer > NewComputePass( const char * name ) {
+Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config ) {
 	MTL::ComputePassDescriptor * compute_pass = MTL::ComputePassDescriptor::alloc()->init();
 	compute_pass->setDispatchType( MTL::DispatchTypeSerial );
 
 	MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
-	command_buffer->setLabel( NSString( name ) );
+	command_buffer->setLabel( NSString( config.name ) );
 
-	if( global_device.pass_counter > 1 ) {
-		command_buffer->encodeWait( global_device.event, global_device.pass_counter );
-	}
+	command_buffer->encodeWait( global_device.pass_event, global_device.frame_counter * RenderPass_Count + config.pass );
+	ggprint( "wait {}\n", config.pass );
 
 	MTL::ComputeCommandEncoder * encoder = command_buffer->computeCommandEncoder( compute_pass );
 	UseAllocators( encoder );
@@ -1221,6 +1213,5 @@ Opaque< CommandBuffer > NewComputePass( const char * name ) {
 	return CommandBuffer {
 		.command_buffer = command_buffer,
 		.cce = encoder,
-		.signal = ++global_device.pass_counter,
 	};
 }

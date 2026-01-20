@@ -159,7 +159,7 @@ static bool ParseEntityValue( Span< const char > name, StringHash * x, Span< con
 
 static Optional< float > TryParseFloat( Span< const char > * cursor ) {
 	float x;
-	return TrySpanToFloat( ParseToken( cursor, Parse_StopOnNewLine ), &x ) ? MakeOptional( x ) : NONE;
+	return TrySpanToFloat( ParseToken( cursor, Parse_StopOnNewLine ), &x ) ? Optional( x ) : NONE;
 }
 
 static bool ParseModelScale( Span< const char > name, Vec3 * scale, Span< const char > key, Span< const char > value ) {

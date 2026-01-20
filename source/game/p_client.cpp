@@ -486,7 +486,7 @@ static Optional< Span< const char > > ValidateAndTrimName( const char * name ) {
 			num_non_spaces++;
 	}
 
-	return state == 0 && num_non_spaces > 0 ? MakeOptional( trimmed ) : NONE;
+	return state == 0 && num_non_spaces > 0 ? Optional( trimmed ) : NONE;
 }
 
 static void G_SetName( edict_t * ent, const char * name ) {

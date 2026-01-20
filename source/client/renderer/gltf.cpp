@@ -768,9 +768,9 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 	bool animated = palettes.node_transforms.ptr != NULL;
 	bool any_skinned = render_data->skin.n > 0;
 
-	Optional< GPUBuffer > pose_uniforms = any_skinned && animated ? MakeOptional( NewTempBuffer( palettes.skinning_matrices ) ) : NONE;
-	Optional< GPUBuffer > outline_uniforms = config.outline.exists ? MakeOptional( NewTempBuffer( config.outline.value ) ) : NONE;
-	Optional< GPUBuffer > silhouette_uniforms = config.silhouette_color.exists ? MakeOptional( NewTempBuffer( config.silhouette_color.value ) ) : NONE;
+	Optional< GPUBuffer > pose_uniforms = any_skinned && animated ? Optional( NewTempBuffer( palettes.skinning_matrices ) ) : NONE;
+	Optional< GPUBuffer > outline_uniforms = config.outline.exists ? Optional( NewTempBuffer( config.outline.value ) ) : NONE;
+	Optional< GPUBuffer > silhouette_uniforms = config.silhouette_color.exists ? Optional( NewTempBuffer( config.silhouette_color.value ) ) : NONE;
 
 	for( u8 i = 0; i < render_data->nodes.n; i++ ) {
 		TracyZoneScopedN( "Render node" );

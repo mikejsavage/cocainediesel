@@ -29,7 +29,7 @@ struct ShaderDescriptors {
 
 constexpr VertexDescriptor ImGuiVertexDescriptor() {
 	VertexDescriptor imgui = { };
-	imgui.attributes[ VertexAttribute_Position ] = MakeOptional( VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, pos ) } );
+	imgui.attributes[ VertexAttribute_Position ] = Optional( VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, pos ) } );
 	imgui.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, uv ) };
 	imgui.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( ImDrawVert, col ) };
 	imgui.buffer_strides[ 0 ] = sizeof( ImDrawVert );

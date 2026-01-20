@@ -2,8 +2,8 @@
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 [[vk::binding( 1, DescriptorSet_RenderPass )]] StructuredBuffer< float > u_Time;
-[[vk::binding( 2, DescriptorSet_RenderPass )]] Texture2D< float4 > u_RGBNoiseTexture;
-[[vk::binding( 3, DescriptorSet_RenderPass )]] Texture2D< float4 > u_BlueNoiseTexture;
+[[vk::binding( 2, DescriptorSet_RenderPass )]] Texture2D< float4 > u_RGBNoise;
+[[vk::binding( 3, DescriptorSet_RenderPass )]] Texture2D< float4 > u_BlueNoise;
 [[vk::binding( 4, DescriptorSet_RenderPass )]] SamplerState u_StandardSampler;
 
 #include "include/dither.hlsl"
@@ -29,7 +29,7 @@ float value( float2 p ) {
 	float2 f = floor( p );
 	float2 s = ( p - f );
 	s *= s * ( 3.0f - 2.0f * s );
-	return u_RGBNoiseTexture.Sample( u_StandardSampler, ( f + s - 0.5f ) / 256.0f ).r;
+	return u_RGBNoise.Sample( u_StandardSampler, ( f + s - 0.5f ) / 256.0f ).r;
 }
 
 float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
@@ -66,5 +66,5 @@ float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
 
 	float3 color = lerp( sky_color, cloud_color, exp( g ) * n * m );
 	color = VoidFog( color, v.position.xy );
-	return float4( color + Dither( v.position.xy ), 1.0f );
+	return float4( color + Dither( u_BlueNoise, v.position.xy ), 1.0f );
 }

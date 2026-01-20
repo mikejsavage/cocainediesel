@@ -41,6 +41,7 @@ void DrawSkybox( Time time ) {
 
 	frame_static.render_passes[ RenderPass_Sky ] = NewRenderPass( RenderPassConfig {
 		.name = "Sky",
+		.pass = RenderPass_Sky,
 		.color_targets = {
 			RenderPassConfig::ColorTarget {
 				.texture = Default( frame_static.render_targets.msaa_color, frame_static.render_targets.resolved_color ),
@@ -51,12 +52,15 @@ void DrawSkybox( Time time ) {
 		},
 		.representative_shader = shaders.skybox,
 		.bindings = {
-			.buffers = { { "u_View", frame_static.view_uniforms } },
-			.textures = {
-				{ "u_Noise", RGBNoiseTexture() },
-				{ "u_BlueNoiseTexture", BlueNoiseTexture() },
+			.buffers = {
+				{ "u_View", frame_static.view_uniforms },
+				{ "u_Time", NewTempBuffer( ToSeconds( time ) ) },
 			},
-			.samplers = { { "u_Sampler", Sampler_Standard } },
+			.textures = {
+				{ "u_RGBNoise", RGBNoiseTexture() },
+				{ "u_BlueNoise", BlueNoiseTexture() },
+			},
+			.samplers = { { "u_StandardSampler", Sampler_Standard } },
 		},
 	} );
 
@@ -65,5 +69,5 @@ void DrawSkybox( Time time ) {
 		.dynamic_state = { .cull_face = CullFace_Front },
 	};
 
-	Draw( RenderPass_Sky, pipeline, sky_mesh, { { "u_Time", NewTempBuffer( ToSeconds( time ) ) } } );
+	Draw( RenderPass_Sky, pipeline, sky_mesh );
 }

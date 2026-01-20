@@ -191,13 +191,25 @@ struct ImGuiShaderAndMaterial {
 
 	Optional< PoolHandle< RenderPipeline > > shader;
 	PoolHandle< BindGroup > material_bind_group;
-	BufferBinding buffer;
+	Optional< BufferBinding > buffer;
 };
 
 inline bool operator==( const ImGuiShaderAndMaterial & lhs, const ImGuiShaderAndMaterial & rhs ) {
-	return lhs.shader.exists == rhs.shader.exists && ( !lhs.shader.exists || lhs.shader.value.x == rhs.shader.value.x )
-		&& lhs.material_bind_group.x == rhs.material_bind_group.x
-		&& lhs.buffer.buffer.allocation == rhs.buffer.buffer.allocation && lhs.buffer.buffer.offset == rhs.buffer.buffer.offset && lhs.buffer.buffer.size == rhs.buffer.buffer.size;
+	bool same_shader = lhs.shader.exists == rhs.shader.exists;
+	if( same_shader && !lhs.shader.exists ) {
+		same_shader = lhs.shader.value.x == rhs.shader.value.x;
+	}
+
+	bool same_material = lhs.material_bind_group.x == rhs.material_bind_group.x;
+
+	bool same_buffer = lhs.buffer.exists == rhs.buffer.exists;
+	if( same_buffer && !lhs.buffer.exists ) {
+		const BufferBinding & l = lhs.buffer.value;
+		const BufferBinding & r = rhs.buffer.value;
+		same_buffer = l.name == r.name && l.buffer.allocation == r.buffer.allocation && l.buffer.offset == r.buffer.offset && l.buffer.size == r.buffer.size;
+	}
+
+	return same_shader && same_material && same_buffer;
 }
 
 inline bool operator!=( const ImGuiShaderAndMaterial & lhs, const ImGuiShaderAndMaterial & rhs ) {

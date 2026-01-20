@@ -183,7 +183,10 @@ void UploadDecalBuffers() {
 	memcpy( decals_buffer.ptr, decals.ptr(), decals.num_bytes() );
 	memcpy( lights_buffer.ptr, lights.ptr(), lights.num_bytes() );
 
-	frame_static.render_passes[ RenderPass_TileCulling ] = NewComputePass( "Particle/light tile culling" );
+	frame_static.render_passes[ RenderPass_TileCulling ] = NewComputePass( ComputePassConfig {
+		.name = "Particle/light tile culling",
+		.pass = RenderPass_TileCulling,
+	} );
 
 	GPUBuffer tile_culling = NewTempBuffer( TileCullingInputs {
 		.rows = rows,
@@ -195,11 +198,11 @@ void UploadDecalBuffers() {
 	EncodeComputeCall( RenderPass_TileCulling, shaders.tile_culling, ( cols * rows ) / 64 + 1, 1, 1, {
 		{ "u_View", frame_static.view_uniforms },
 		{ "u_TileCulling", tile_culling },
-		{ "b_Decals", decals_buffer.buffer },
-		{ "b_lights", lights_buffer.buffer },
-		{ "b_TileCounts", dynamic_count },
-		{ "b_DecalTiles", decal_tiles_buffer },
-		{ "b_LightTiles", light_tiles_buffer },
+		{ "u_Decals", decals_buffer.buffer },
+		{ "u_Lights", lights_buffer.buffer },
+		{ "u_TileCounts", dynamic_count },
+		{ "u_DecalTiles", decal_tiles_buffer },
+		{ "u_LightTiles", light_tiles_buffer },
 	} );
 
 	decals.clear();

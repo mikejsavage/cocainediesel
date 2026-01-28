@@ -110,7 +110,7 @@ bool operator==( const T & x, const Optional< T > & opt ) {
 
 template< typename T >
 bool operator==( const Optional< T > & a, const Optional< T > & b ) {
-	return ( !a.exists && !b.exists ) || ( a.exists && b.exists && a.value == b.value );
+	return a.exists == b.exists && ( !a.exists || a.value == b.value );
 }
 
 template< typename T >

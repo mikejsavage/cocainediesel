@@ -788,6 +788,7 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	// NOMERGE TODO use draw_indirect lol
 	Mesh mesh = { .num_vertices = 6 };
 	Draw( RenderPass_Transparent, pipeline, mesh, {
+		// TODO: this is device memory and can't be passed with dynamic offsets, probably just use push descriptors instead
 		{ "b_Particles", ps->gpu_particles2 },
 	} );
 

@@ -68,6 +68,7 @@ struct MetalDevice {
 	MTL::ArgumentEncoder * material_argument_encoder;
 	MTL::ArgumentBuffersTier argument_buffers_tier;
 	u32 msaa;
+	Optional< int > capture;
 };
 
 struct GPUAllocation {
@@ -95,7 +96,6 @@ static struct {
 	NS::AutoreleasePool * pool;
 	CA::MetalDrawable * swapchain_surface;
 	MTL::Texture * swapchain_texture;
-	Optional< int > capture;
 } frame;
 
 static void StartCapture( MTL::Device * gpu, int frames ) {
@@ -129,17 +129,18 @@ static void StartCapture( MTL::Device * gpu, int frames ) {
 	url->release();
 	capture->release();
 
-	frame.capture = frames;
+	global_device.capture = frames;
 }
 
 static void MaybeEndCapture() {
-	if( !frame.capture.exists )
+	if( !global_device.capture.exists )
 		return;
 
-	frame.capture.value--;
-	if( frame.capture.value == 0 ) {
+	global_device.capture.value--;
+	if( global_device.capture.value == 0 ) {
 		MTL::CaptureManager::sharedCaptureManager()->stopCapture();
-		frame.capture = NONE;
+		global_device.capture = NONE;
+		printf( "Captured\n" );
 	}
 }
 
@@ -471,6 +472,7 @@ MTL::Texture * NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & co
 		MTL::SizeAndAlign memory_requirements = global_device.device->heapTextureSizeAndAlign( descriptor );
 		GPUBuffer alloc = NewBuffer( a, temp( "{} texture memory", config.name ), memory_requirements.size, memory_requirements.align, true );
 
+		descriptor->setHazardTrackingMode( MTL::HazardTrackingModeUntracked );
 		texture = allocations[ alloc.allocation ].heap->newTexture( descriptor, alloc.offset );
 	}
 	else {
@@ -1085,7 +1087,6 @@ void RenderBackendBeginFrame( int frames_to_capture ) {
 		.pool = pool,
 		.swapchain_surface = surface,
 		.swapchain_texture = surface->texture(),
-		.capture = frames_to_capture,
 	};
 
 	if( frames_to_capture > 0 ) {

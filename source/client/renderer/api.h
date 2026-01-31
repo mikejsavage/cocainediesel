@@ -42,14 +42,14 @@ GPUBuffer NewBuffer( const char * label, const T & x, size_t alignment = alignof
 
 template< typename T >
 GPUBuffer NewBuffer( const char * label, Span< const T > xs, size_t alignment = alignof( T ) ) {
-	return NewBuffer( label, sizeof( T ) * xs.n, alignment, false, xs.ptr );
+	return NewBuffer( label, xs.num_bytes(), alignment, false, xs.ptr );
 }
 
 GPUBuffer NewTempBuffer( const void * data, size_t size, size_t alignment );
 
 template< typename T >
 GPUBuffer NewTempBuffer( Span< const T > xs, size_t alignment = alignof( T ) ) {
-	return NewTempBuffer( xs.ptr, sizeof( T ) * xs.n, alignment );
+	return NewTempBuffer( xs.ptr, xs.num_bytes(), alignment );
 }
 
 template< typename T >

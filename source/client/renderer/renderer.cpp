@@ -366,7 +366,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	memset( &frame_static.render_passes, 0, sizeof( frame_static.render_passes ) );
 
-	bool capture = false;
+	int capture = 0;
 	RenderBackendBeginFrame( capture );
 
 	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer < 0 || !HasAnyBit( RenderBackendSupportedMSAA(), u32( r_samples->integer ) ) ) {

@@ -92,7 +92,6 @@ struct Texture {
 	bool atlased;
 };
 
-// pass a = NULL for a dedicated allocation
 BackendTexture NewBackendTexture( const TextureConfig & config, Optional< BackendTexture > old_texture = NONE );
 BackendTexture NewRenderTargetBackendTexture( const TextureConfig & config, Optional< BackendTexture > old_texture );
 BackendTexture NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< BackendTexture > = NONE );
@@ -147,6 +146,6 @@ constexpr u32 Log2_CT( u64 x ) {
 constexpr size_t MaxBufferBindings = 8;
 constexpr size_t MaxTextureBindings = 8;
 
-constexpr size_t MaxShaderVariants = 8;
+constexpr size_t MaxShaderVariants = 4;
 
 constexpr size_t MaxMaterials = 4096;

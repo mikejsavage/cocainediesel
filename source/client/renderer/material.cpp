@@ -263,7 +263,7 @@ static PoolHandle< Texture > FindTexture( Span< const char > name ) {
 	u64 hash = StringHash( name ).hash;
 	Optional< PoolHandle< Texture > > handle = textures.get( hash );
 	if( handle.exists ) {
-		if( textures[ handle.value ].handle == BackendTexture( 0 ) )
+		if( textures[ handle.value ].backend == BackendTexture( 0 ) )
 			return missing_texture;
 		return handle.value;
 	}
@@ -368,7 +368,7 @@ static Material2 MaterialFromDescriptor( Span< const char > name, const Material
 		.name = name,
 		.render_pass = pass,
 		.shader = shader,
-		.bind_group = NewMaterialBindGroup( temp( "{} bind group", name ), textures[ desc.texture ].handle, desc.sampler, properties ),
+		.bind_group = NewMaterialBindGroup( temp( "{} bind group", name ), textures[ desc.texture ].backend, desc.sampler, properties ),
 		.texture = desc.texture,
 		.dynamic_state = desc.dynamic_state,
 		.rgbgen = desc.rgbgen,
@@ -395,22 +395,22 @@ static Optional< PoolHandle< Material2 > > AddMaterial( Span< const char > name,
 	return NONE;
 }
 
-static Texture MakeTexture( const TextureConfig & config, u64 hash, Optional< PoolHandle< Texture > > old_texture ) {
+static Texture MakeTexture( const TextureConfig & config, u64 hash ) {
 	return Texture {
 		.name = config.name,
 		.hash = hash,
-		.handle = NewBackendTexture( config, old_texture.exists ? Optional( textures[ old_texture.value ].handle ) : NONE ),
+		.backend = NewBackendTexture( config ),
 		.format = config.format,
 		.width = config.width,
 		.height = config.height,
-		.depth = config.num_layers,
+		.num_layers = config.num_layers,
 		.num_mipmaps = config.num_mipmaps,
 	};
 }
 
 PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, PoolHandle< Texture > texture, SamplerType sampler, MaterialProperties properties ) {
 	TempAllocator temp = cls.frame_arena.temp();
-	return NewMaterialBindGroup( temp( "{} bind group", name ), textures[ texture ].handle, sampler, NewBuffer( temp( "{} properties", name ), properties ) );
+	return NewMaterialBindGroup( temp( "{} bind group", name ), textures[ texture ].backend, sampler, NewBuffer( temp( "{} properties", name ), properties ) );
 }
 
 // NOMERGE unify this and addtexture
@@ -428,7 +428,7 @@ PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHa
 		}
 	}
 
-	textures[ handle.value ] = MakeTexture( config, hash, old_texture );
+	textures[ handle.value ] = MakeTexture( config, hash );
 
 	return handle.value;
 }
@@ -471,7 +471,7 @@ u32 TextureHeight( PoolHandle< Material2 > material ) {
 		return NONE;
 	}
 
-	textures[ handle.value ] = MakeTexture( config, hash, old_handle );
+	textures[ handle.value ] = MakeTexture( config, hash );
 
 	if( also_add_material ) {
 		// TODO NOMERGE: need to recreate the bind group either way to point at the new texture
@@ -534,8 +534,8 @@ static void LoadDDSTexture( Span< const char > path ) {
 		.name = StripExtension( path ),
 		.width = header->width,
 		.height = header->height,
-		.data = dds.ptr + sizeof( DDSHeader ),
 		.num_mipmaps = Max2( header->mipmap_count, u32( 1 ) ),
+		.data = dds.ptr + sizeof( DDSHeader ),
 	};
 
 	switch( header->format ) {
@@ -886,8 +886,8 @@ static void LoadBuiltinMaterials() {
 		} );
 
 		missing_material = Unwrap( AddMaterial( "missing", MaterialDescriptor {
-			.outlined = false,
 			.texture = missing_texture,
+			.outlined = false,
 		} ) );
 	}
 
@@ -1047,7 +1047,7 @@ void InitMaterials() {
 	{
 		PackSpriteAtlas( true );
 		GPUBuffer buffer = NewBuffer( "Sprite atlas properties", MaterialProperties { } );
-		sprite_atlas_bind_group = NewMaterialBindGroup( "Sprite atlas", textures[ sprite_atlas ].handle, Sampler_Standard, buffer );
+		sprite_atlas_bind_group = NewMaterialBindGroup( "Sprite atlas", textures[ sprite_atlas ].backend, Sampler_Standard, buffer );
 	}
 }
 

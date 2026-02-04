@@ -32,21 +32,23 @@ function write_shaders_ninja_script()
 	-- NOTE(mike 20251117): we have to do `dxc -MD -MF && dxc` because of
 	-- https://github.com/microsoft/DirectXShaderCompiler/issues/5416
 	-- NOTE(mike 20260131): dxc -M -fspv-debug ICEs
+	-- NOTE(mike 20260204): dxc -fspv-debug always ICEs on Windows
+	local debug = OS == "windows" and "" or "-fspv-debug=vulkan-with-source"
 	printf( [[
-dxcflags = -spirv -Ibase/glsl -I. -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -fspv-preserve-bindings
+dxcflags = -Ibase/glsl -I. -spirv -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -fspv-preserve-bindings
 rule dxc_vertex
-    command = dxc $dxcflags -MD -MF $out.d -T vs_6_0 -E VertexMain $features -Fo $out $in && dxc $dxcflags -fspv-debug=vulkan-with-source -T vs_6_0 -E VertexMain $features -Fo $out $in
+    command = dxc $dxcflags -MD -MF $out.d -T vs_6_0 -E VertexMain $features -Fo $out $in && dxc $dxcflags %s -T vs_6_0 -E VertexMain $features -Fo $out $in
     deps = gcc
     depfile = $out.d
 rule dxc_fragment
-    command = dxc $dxcflags -MD -MF $out.d -T ps_6_0 -E FragmentMain $features -Fo $out $in && dxc $dxcflags -fspv-debug=vulkan-with-source -T ps_6_0 -E FragmentMain $features -Fo $out $in
+    command = dxc $dxcflags -MD -MF $out.d -T ps_6_0 -E FragmentMain $features -Fo $out $in && dxc $dxcflags %s -T ps_6_0 -E FragmentMain $features -Fo $out $in
     deps = gcc
     depfile = $out.d
 rule dxc_compute
-    command = dxc $dxcflags -MD -MF $out.d -T cs_6_0 -E ComputeMain $features -Fo $out $in && dxc $dxcflags -fspv-debug=vulkan-with-source -T cs_6_0 -E ComputeMain $features -Fo $out $in
+    command = dxc $dxcflags -MD -MF $out.d -T cs_6_0 -E ComputeMain $features -Fo $out $in && dxc $dxcflags %s -T cs_6_0 -E ComputeMain $features -Fo $out $in
     deps = gcc
     depfile = $out.d
-]] )
+]], debug, debug, debug )
 
 	if OS == "macos" then
 		printf( [[

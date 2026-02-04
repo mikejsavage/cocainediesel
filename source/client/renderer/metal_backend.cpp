@@ -1,3 +1,7 @@
+#include "qcommon/platform.h"
+
+#if PLATFORM_MACOS
+
 #include "qcommon/base.h"
 #include "qcommon/array.h"
 #include "qcommon/arraymap.h"
@@ -1216,3 +1220,5 @@ Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config ) {
 		.cce = encoder,
 	};
 }
+
+#endif // #if PLATFORM_MACOS

@@ -35,17 +35,51 @@ static void DeleteGPUSlabAllocator( GPUSlabAllocator * a ) {
 	}
 }
 
-void InitRenderBackendAllocators( size_t slab_size, size_t constant_buffer_alignment, size_t buffer_image_granularity ) {
+static GPUArenaAllocator NewDeviceGPUArenaAllocator( size_t size, size_t min_alignment ) {
+	Assert( IsPowerOf2( min_alignment ) );
+
+	return GPUArenaAllocator {
+		.allocation = AllocateGPUMemory( size * MaxFramesInFlight ),
+		.min_alignment = min_alignment,
+		.capacity = size,
+	};
+}
+
+static CoherentGPUArenaAllocator NewCoherentGPUArenaAllocator( size_t size, size_t min_alignment ) {
+	Assert( IsPowerOf2( min_alignment ) );
+
+	CoherentMemory memory = AllocateCoherentMemory( size * MaxFramesInFlight );
+	return CoherentGPUArenaAllocator {
+		.a = GPUArenaAllocator {
+			.allocation = memory.allocation,
+			.min_alignment = min_alignment,
+			.capacity = size,
+		},
+		.ptr = memory.ptr,
+	};
+}
+
+static void ClearGPUArenaAllocator( GPUArenaAllocator * a ) {
+	a->cursor = 0;
+	RemoveAllDebugMarkers( a->allocation );
+}
+
+void ClearGPUArenaAllocators() {
+	ClearGPUArenaAllocator( &device_temp_allocator );
+	ClearGPUArenaAllocator( &coherent_temp_allocator.a );
+}
+
+void InitGPUAllocators( size_t slab_size, size_t constant_buffer_alignment, size_t buffer_image_granularity ) {
 	staging_buffer = AllocateCoherentMemory( STAGING_BUFFER_CAPACITY );
 	staging_buffer_cursor = 0;
 	staging_command_buffer = NewTransferCommandBuffer();
 
 	persistent_allocator = NewGPUSlabAllocator( slab_size, constant_buffer_alignment, buffer_image_granularity );
-	device_temp_allocator = NewDeviceGPUArenaAllocator( Megabytes( 32 ), constant_buffer_alignment );
-	coherent_temp_allocator = NewCoherentGPUArenaAllocator( Megabytes( 32 ), constant_buffer_alignment );
+	device_temp_allocator = NewDeviceGPUArenaAllocator( ArenaAllocatorSize, constant_buffer_alignment );
+	coherent_temp_allocator = NewCoherentGPUArenaAllocator( ArenaAllocatorSize, constant_buffer_alignment );
 }
 
-void ShutdownRenderBackendAllocators() {
+void ShutdownGPUAllocators() {
 	DeleteTransferCommandBuffer( staging_command_buffer );
 	DeleteGPUSlabAllocator( &persistent_allocator );
 }
@@ -83,12 +117,12 @@ void UploadBuffer( GPUBuffer dest, const void * data, size_t n ) {
 	CopyGPUBufferToBuffer( staging_command_buffer, dest.allocation, dest.offset, staging_buffer.allocation, cursor, n );
 }
 
-static void UploadMipLevel( BackendTexture texture, TextureFormat format, u32 w, u32 h, u32 num_layers, u32 mip_level, const void * data, size_t n ) {
+static void UploadMipLevel( Opaque< BackendTexture > texture, TextureFormat format, u32 w, u32 h, u32 num_layers, u32 mip_level, const void * data, size_t n ) {
 	size_t cursor = Stage( data, n, 16 );
 	CopyGPUBufferToTexture( staging_command_buffer, texture, format, w, h, num_layers, mip_level, staging_buffer.allocation, cursor );
 }
 
-void UploadTexture( const TextureConfig & config, BackendTexture texture ) {
+void UploadTexture( const TextureConfig & config, Opaque< BackendTexture > texture ) {
 	const char * cursor = ( const char * ) config.data;
 	for( u32 i = 0; i < config.num_mipmaps; i++ ) {
 		u32 mip_w = config.width >> i;
@@ -175,40 +209,6 @@ GPUBuffer NewBuffer( const char * label, size_t size, size_t alignment, bool tex
 	return NewBuffer( &persistent_allocator, label, size, alignment, texture, data );
 }
 
-GPUArenaAllocator NewDeviceGPUArenaAllocator( size_t size, size_t min_alignment ) {
-	Assert( IsPowerOf2( min_alignment ) );
-
-	return GPUArenaAllocator {
-		.allocation = AllocateGPUMemory( size * MaxFramesInFlight ),
-		.min_alignment = min_alignment,
-		.capacity = size,
-	};
-}
-
-CoherentGPUArenaAllocator NewCoherentGPUArenaAllocator( size_t size, size_t min_alignment ) {
-	Assert( IsPowerOf2( min_alignment ) );
-
-	CoherentMemory memory = AllocateCoherentMemory( size * MaxFramesInFlight );
-	return CoherentGPUArenaAllocator {
-		.a = GPUArenaAllocator {
-			.allocation = memory.allocation,
-			.min_alignment = min_alignment,
-			.capacity = size,
-		},
-		.ptr = memory.ptr,
-	};
-}
-
-static void ClearGPUArenaAllocator( GPUArenaAllocator * a ) {
-	a->cursor = 0;
-	RemoveAllDebugMarkers( a->allocation );
-}
-
-void ClearGPUArenaAllocators() {
-	ClearGPUArenaAllocator( &device_temp_allocator );
-	ClearGPUArenaAllocator( &coherent_temp_allocator.a );
-}
-
 static GPUBuffer NewTempBuffer( GPUArenaAllocator * a, const char * label, size_t size, size_t alignment ) {
 	// alignment and min_alignment are both pow2 so Max2( alignment, min_alignment ) == LeastCommonMultiple( alignment, min_alignment )
 	Assert( IsPowerOf2( alignment ) );
@@ -248,8 +248,8 @@ GPUBuffer NewDeviceTempBuffer( const char * label, size_t size, size_t alignment
 	return NewTempBuffer( &device_temp_allocator, label, size, alignment );
 }
 
-BackendTexture NewBackendTexture( const TextureConfig & config, Optional< BackendTexture > old_texture ) {
-	return NewBackendTexture( config.dedicated_allocation ? NULL : &persistent_allocator, config, old_texture );
+Opaque< BackendTexture > NewBackendTexture( const TextureConfig & config ) {
+	return NewBackendTexture( &persistent_allocator, config );
 }
 
 bool operator==( const VertexAttribute & lhs, const VertexAttribute & rhs ) {

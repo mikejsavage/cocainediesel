@@ -840,7 +840,7 @@ static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Ve
 		.end_size = end_size,
 		.age = 0.0f,
 		.lifetime = lifetime,
-		.flags = flags,
+		.flags = checked_cast< u32 >( flags ),
 	};
 
 	ps->num_new_particles++;

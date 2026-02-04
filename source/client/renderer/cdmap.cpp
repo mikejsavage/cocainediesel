@@ -36,8 +36,8 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 	for( u32 i = 0; i < map->data.models[ render_data->sub_model ].num_meshes; i++ ) {
 		const MapMesh & mesh = map->data.meshes[ i + first_mesh ];
 		DrawCallExtras mesh_extras = {
-			.override_num_vertices = mesh.num_vertices,
 			.first_index = mesh.first_vertex_index,
+			.override_num_vertices = mesh.num_vertices,
 		};
 
 		for( u32 j = 0; j < frame_static.shadow_parameters.num_cascades; j++ ) {

@@ -143,9 +143,7 @@ bool ListDirNext( Opaque< ListDirHandle > * opaque, const char ** path, bool * d
 	handle->first = false;
 
 	*path = handle->utf8_path;
-	*dir = HasAnyBit( handle->ffd->dwFileAttributes, FILE_ATTRIBUTE_DIRECTORY );
-
-	*opaque = ImplToOpaque( handle );
+	*dir = HasAnyBit( handle->ffd->dwFileAttributes, DWORD( FILE_ATTRIBUTE_DIRECTORY ) );
 
 	return true;
 }

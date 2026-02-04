@@ -208,8 +208,8 @@ static void SubmitDrawCalls() {
 				}
 
 				DrawCallExtras extras = {
-					.override_num_vertices = pcmd->ElemCount,
 					.first_index = pcmd->IdxOffset,
+					.override_num_vertices = pcmd->ElemCount,
 				};
 				Draw( rp, pipeline, mesh, buffers, extras );
 			}

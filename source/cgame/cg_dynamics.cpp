@@ -212,9 +212,9 @@ void UploadDecalBuffers() {
 DynamicsBuffers GetDynamicsBuffers() {
 	return DynamicsBuffers {
 		.tile_counts = dynamic_count,
-		.decal_tiles = decal_tiles_buffer,
-		.light_tiles = light_tiles_buffer,
 		.decals = decals_buffer.buffer,
 		.lights = lights_buffer.buffer,
+		.decal_tiles = decal_tiles_buffer,
+		.light_tiles = light_tiles_buffer,
 	};
 }

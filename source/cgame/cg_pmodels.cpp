@@ -756,8 +756,8 @@ void CG_DrawPlayer( centity_t * cent ) {
 			float outline_height = CG_OutlineScaleForDist( &cent->interpolated );
 			if( outline_height > 0.0f ) {
 				config.outline = {
-					.height = outline_height,
 					.color = color * 0.5f,
+					.height = outline_height,
 				};
 			}
 		}

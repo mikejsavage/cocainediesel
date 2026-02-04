@@ -374,6 +374,7 @@ struct RenderPassConfig {
 	};
 
 	const char * name;
+	RenderPass pass; // Metal synchronization
 	Span< const ColorTarget > color_targets;
 	Optional< DepthTarget > depth_target;
 
@@ -383,8 +384,6 @@ struct RenderPassConfig {
 	Span< const PoolHandle< Texture > > readonly_transitions;
 	bool swapchain_attachment_transition;
 
-	// Metal synchronization
-	RenderPass pass;
 	PoolHandle< RenderPipeline > representative_shader;
 	GPUBindings bindings;
 };

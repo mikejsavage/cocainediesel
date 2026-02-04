@@ -497,7 +497,7 @@ void DeleteTexture( Opaque< BackendTexture > texture ) {
 	texture.unwrap()->texture->release();
 }
 
-PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, MTL::Texture * texture, SamplerType sampler, GPUBuffer properties ) {
+PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, Opaque< BackendTexture > texture, SamplerType sampler, GPUBuffer properties ) {
 	MTL::ArgumentEncoder * encoder = global_device.material_argument_encoder;
 
 	// ArgumentEncoders can't write into private memory so we have to encode
@@ -508,7 +508,7 @@ PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, MTL::Texture * 
 
 	encoder->setArgumentBuffer( allocations[ staging.allocation ].buffer, staging.offset );
 	encoder->setBuffer( allocations[ properties.allocation ].buffer, properties.offset, 0 );
-	encoder->setTexture( texture, 1 );
+	encoder->setTexture( texture.unwrap()->texture, 1 );
 	encoder->setSamplerState( samplers[ sampler ], 2 );
 
 	return bind_groups.allocate( { args } );

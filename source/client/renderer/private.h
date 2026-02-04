@@ -82,6 +82,7 @@ struct Texture {
 	u32 num_layers;
 	u32 num_mipmaps;
 
+	bool dummy_slot_for_missing_texture;
 	void * stb_data;
 	Span< const BC4Block > bc4_data;
 	bool atlased;

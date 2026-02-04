@@ -92,6 +92,10 @@ struct BindGroup {
 	GPUBuffer argument_buffer;
 };
 
+struct BackendTexture {
+	MTL::Texture * texture;
+};
+
 static MetalDevice global_device;
 static dispatch_semaphore_t frame_semaphore;
 static int old_framebuffer_width, old_framebuffer_height;
@@ -252,7 +256,7 @@ void CopyGPUBufferToBuffer(
 
 void CopyGPUBufferToTexture(
 	Opaque< CommandBuffer > cmd_buf,
-	BackendTexture dest, TextureFormat format, u32 w, u32 h, u32 num_layers, u32 mip_level,
+	Opaque< BackendTexture > dest, TextureFormat format, u32 w, u32 h, u32 num_layers, u32 mip_level,
 	PoolHandle< GPUAllocation > src, size_t src_offset
 ) {
 	u32 block_size = BlockSize( format );
@@ -264,7 +268,7 @@ void CopyGPUBufferToTexture(
 		cmd_buf.unwrap()->bce->copyFromBuffer( allocations[ src ].buffer, cursor,
 			bytes_per_row_of_blocks, bytes_per_layer,
 			MTL::Size::Make( w, h, 1 ),
-			dest, i, mip_level, MTL::Origin::Make( 0, 0, 0 ) );
+			dest.unwrap()->texture, i, mip_level, MTL::Origin::Make( 0, 0, 0 ) );
 		cursor += bytes_per_layer;
 	}
 }
@@ -405,7 +409,7 @@ static MTL::PixelFormat TextureFormatToMetal( TextureFormat format ) {
 	}
 }
 
-MTL::Texture * NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & config, Optional< MTL::Texture * > old_texture ) {
+Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & config ) {
 	MTL::TextureType type;
 	if( config.num_layers == 1 ) {
 		type = config.msaa_samples > 1 ? MTL::TextureType2DMultisample : MTL::TextureType2D;
@@ -466,10 +470,6 @@ MTL::Texture * NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & co
 	descriptor->setUsage( usage );
 	defer { descriptor->release(); };
 
-	if( old_texture.exists ) {
-		old_texture.value->release();
-	}
-
 	TempAllocator temp = cls.frame_arena.temp();
 	MTL::Texture * texture;
 	if( a != NULL ) {
@@ -485,11 +485,16 @@ MTL::Texture * NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & co
 
 	texture->setLabel( NSString( temp( "{}", config.name ) ) );
 
+	BackendTexture backend = { texture };
 	if( config.data != NULL ) {
-		UploadTexture( config, texture );
+		UploadTexture( config, backend );
 	}
 
-	return texture;
+	return backend;
+}
+
+void DeleteTexture( Opaque< BackendTexture > texture ) {
+	texture.unwrap()->texture->release();
 }
 
 PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, MTL::Texture * texture, SamplerType sampler, GPUBuffer properties ) {
@@ -815,7 +820,7 @@ static void EncodeAndBindArgumentBuffer( MTL::RenderCommandEncoder * rce, Argume
 			ggprint( "can't bind {}\n", b.name );
 			continue;
 		}
-		encoder->encoder->setTexture( textures[ b.texture ].handle, idx.value );
+		encoder->encoder->setTexture( textures[ b.texture ].backend.unwrap()->texture, idx.value );
 	}
 
 	for( size_t i = 0; i < bindings.samplers.n; i++ ) {
@@ -998,7 +1003,7 @@ void InitRenderBackend( SDL_Window * window ) {
 		}
 	}
 
-	InitRenderBackendAllocators( slab_size, constant_buffer_alignment, metal_doesnt_have_buffer_image_granularity );
+	InitGPUAllocators( slab_size, constant_buffer_alignment, metal_doesnt_have_buffer_image_granularity );
 
 	GetFramebufferSize( &old_framebuffer_width, &old_framebuffer_height );
 
@@ -1045,9 +1050,7 @@ void ShutdownRenderBackend() {
 	}
 
 	for( Texture texture : textures.span() ) {
-		if( texture.handle != NULL ) {
-			texture.handle->release();
-		}
+		texture.backend.unwrap()->texture->release();
 	}
 
 	for( RenderPipeline shader : render_pipelines ) {
@@ -1060,7 +1063,7 @@ void ShutdownRenderBackend() {
 
 	DeleteSamplers();
 	DeleteDepthFuncs();
-	ShutdownRenderBackendAllocators();
+	ShutdownGPUAllocators();
 	global_device.command_queue->release();
 	SDL_Metal_DestroyView( global_device.view );
 	global_device.device->release();
@@ -1141,51 +1144,80 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 	Optional< u32 > width = NONE;
 	Optional< u32 > height = NONE;
 
+	auto set_width_height_color = [&]( Optional< PoolHandle< Texture > > texture ) {
+		u32 w, h;
+
+		if( texture.exists ) {
+			w = TextureWidth( texture.value );
+			h = TextureHeight( texture.value );
+		}
+		else {
+			w = frame_static.viewport_width;
+			h = frame_static.viewport_height;
+		}
+
+		Assert( !width.exists || ( *width == w && *height == h ) );
+		width = w;
+		height = h;
+	};
+
+	auto set_width_height_depth = [&]( PoolHandle< Texture > texture ) {
+		u32 w = TextureWidth( texture );
+		u32 h = TextureHeight( texture );
+		Assert( !width.exists || ( *width == w && *height == h ) );
+		width = w;
+		height = h;
+	};
+
 	command_buffer->encodeWait( global_device.pass_event, global_device.frame_counter * RenderPass_Count + config.pass );
-	ggprint( "wait {}\n", config.pass );
 
 	for( size_t i = 0; i < config.color_targets.n; i++ ) {
-		const RenderPassConfig::ColorTarget & attachment_config = config.color_targets[ i ];
+		const RenderPassConfig::ColorTarget & target = config.color_targets[ i ];
 		MTL::RenderPassColorAttachmentDescriptor * attachment = render_pass->colorAttachments()->object( i );
 
-		if( attachment_config.load == LoadOp_Clear ) {
+		set_width_height_color( target.texture );
+
+		if( target.load == LoadOp_Clear ) {
 			attachment->setLoadAction( MTL::LoadActionClear );
-			Vec4 color = attachment_config.clear;
+			Vec4 color = target.clear;
 			attachment->setClearColor( MTL::ClearColor( color.x, color.y, color.z, color.w ) );
 		}
 		else {
-			attachment->setLoadAction( attachment_config.load == LoadOp_Load ? MTL::LoadActionLoad : MTL::LoadActionDontCare );
+			attachment->setLoadAction( target.load == LoadOp_Load ? MTL::LoadActionLoad : MTL::LoadActionDontCare );
 		}
 
-		if( attachment_config.resolve_target.exists ) {
+		attachment->setTexture( target.texture.exists ? textures[ target.texture.value ].backend.unwrap()->texture : frame.swapchain_texture );
+		attachment->setSlice( target.layer );
+
+		if( target.resolve_target.exists ) {
 			attachment->setStoreAction( MTL::StoreActionMultisampleResolve );
-			attachment->setResolveTexture( attachment_config.texture.exists ? textures[ attachment_config.texture.value ].handle : frame.swapchain_texture );
-			// attachment->setResolveSlice( attachment_config.layer ); NOMERGE
+			attachment->setResolveTexture( target.texture.exists ? textures[ target.texture.value ].backend.unwrap()->texture : frame.swapchain_texture );
+			// attachment->setResolveSlice( target.layer ); NOMERGE
 		}
 		else {
-			attachment->setStoreAction( attachment_config.store == StoreOp_Store ? MTL::StoreActionStore : MTL::StoreActionDontCare );
-			attachment->setTexture( attachment_config.texture.exists ? textures[ attachment_config.texture.value ].handle : frame.swapchain_texture );
-			attachment->setSlice( attachment_config.layer );
+			attachment->setStoreAction( target.store == StoreOp_Store ? MTL::StoreActionStore : MTL::StoreActionDontCare );
 		}
 	}
 
 	if( config.depth_target.exists ) {
-		const RenderPassConfig::DepthTarget & attachment_config = config.depth_target.value;
+		const RenderPassConfig::DepthTarget & target = config.depth_target.value;
 		MTL::RenderPassDepthAttachmentDescriptor * attachment = render_pass->depthAttachment();
 
-		if( attachment_config.load == LoadOp_Clear ) {
+		set_width_height_depth( target.texture );
+
+		if( target.load == LoadOp_Clear ) {
 			attachment->setLoadAction( MTL::LoadActionClear );
 			attachment->setLoadAction( MTL::LoadActionClear );
-			attachment->setClearDepth( attachment_config.clear );
+			attachment->setClearDepth( target.clear );
 		}
 		else {
-			attachment->setLoadAction( attachment_config.load == LoadOp_Load ? MTL::LoadActionLoad : MTL::LoadActionDontCare );
+			attachment->setLoadAction( target.load == LoadOp_Load ? MTL::LoadActionLoad : MTL::LoadActionDontCare );
 		}
 
 		// NOMERGE MSAA DEPTH
 
-		attachment->setTexture( textures[ attachment_config.texture ].handle );
-		attachment->setSlice( attachment_config.layer );
+		attachment->setTexture( textures[ target.texture ].backend.unwrap()->texture );
+		attachment->setSlice( target.layer );
 	}
 
 	MTL::RenderCommandEncoder * encoder = command_buffer->renderCommandEncoder( render_pass );

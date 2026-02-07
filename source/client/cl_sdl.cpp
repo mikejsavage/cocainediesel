@@ -11,11 +11,15 @@
 #include "imgui/imgui_internal.h"
 #include "imgui/imgui_impl_sdl3.h"
 
+// #define CD 1
+
 #define SDL_MAIN_USE_CALLBACKS
 #include "sdl/SDL3/SDL_audio.h"
 #include "sdl/SDL3/SDL_events.h"
 #include "sdl/SDL3/SDL_init.h"
+#if CD == 1
 #include "sdl/SDL3/SDL_main.h"
+#endif
 #include "sdl/SDL3/SDL_mouse.h"
 #include "sdl/SDL3/SDL_video.h"
 
@@ -408,6 +412,7 @@ void ShutdownAudioDevice() {
  * main
  */
 
+#if CD == 1
 static s64 oldtime;
 
 SDL_AppResult SDL_AppInit( void ** appstate, int argc, char ** argv ) {
@@ -487,3 +492,4 @@ void SDL_AppQuit( void * appstate, SDL_AppResult result ) {
 	Qcommon_Shutdown();
 	SDL_Quit();
 }
+#endif

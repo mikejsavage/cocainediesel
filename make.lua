@@ -142,5 +142,54 @@ bin( "server", {
 	linux_ldflags = "-lm -lpthread",
 } )
 
+obj_cxxflags( "source/sample.cpp", "-I libs/sdl" )
+if true then
+	bin( "test", {
+		srcs = {
+			"source/sample.cpp",
+			"source/client/**.cpp",
+			"source/cgame/**.cpp",
+			"source/game/**.cpp",
+			"source/gameshared/*.cpp",
+			"source/qcommon/**.cpp",
+			"source/server/sv_*.cpp",
+		},
+
+		libs = {
+			"imgui",
+
+			"cgltf",
+			"clay",
+			"discord",
+			"dr_mp3",
+			"freetype",
+			"ggentropy",
+			"ggformat",
+			"ggtime",
+			"jsmn",
+			"luau",
+			"monocypher",
+			"openal",
+			"picohttpparser",
+			"sdl",
+			"stb_image",
+			"stb_image_write",
+			"stb_rect_pack",
+			"stb_vorbis",
+			"tracy",
+			"volk",
+			"zstd",
+			platform_curl_libs,
+			{ OS == "macos" and "metal-cpp" or nil },
+		},
+		plist = config == "debug" and "source/client/platform/enable_metal_capture.plist",
+
+		windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib setupapi.lib /SUBSYSTEM:WINDOWS",
+		macos_ldflags = "-lcurl -framework AppKit -framework AudioToolbox -framework Cocoa -framework CoreAudio -framework CoreHaptics -framework CoreVideo -framework IOKit -framework Metal -framework GameController -framework ForceFeedback -framework Carbon -framework UniformTypeIdentifiers -framework QuartzCore",
+		linux_ldflags = "-lm -lpthread -ldl",
+		no_static_link = true,
+	} )
+end
+
 write_ninja_script()
 write_shaders_ninja_script()

@@ -1099,8 +1099,6 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	cl.prevviewangles = cl.viewangles;
 
 	cls.framecount++;
-
-	SwapBuffers();
 }
 
 void CL_Init() {

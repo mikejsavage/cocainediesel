@@ -435,12 +435,20 @@ TextureFormat GetTextureFormat( PoolHandle< Texture > texture ) {
 	return textures[ texture ].format;
 }
 
+u32 TextureWidth( PoolHandle< Texture > texture ) {
+	return textures[ texture ].width;
+}
+
+u32 TextureHeight( PoolHandle< Texture > texture ) {
+	return textures[ texture ].height;
+}
+
 u32 TextureWidth( PoolHandle< Material2 > material ) {
-	return textures[ materials[ material ].texture ].width;
+	return TextureWidth( materials[ material ].texture );
 }
 
 u32 TextureHeight( PoolHandle< Material2 > material ) {
-	return textures[ materials[ material ].texture ].height;
+	return TextureHeight( materials[ material ].texture );
 }
 
 [[nodiscard]] static Optional< PoolHandle< Texture > > AddTexture( const TextureConfig & config ) {

@@ -50,6 +50,7 @@ require( "libs.rgbcx" )
 require( "libs.sdl" )
 require( "libs.stb" )
 require( "libs.tracy" )
+require( "libs.volk" )
 require( "libs.zstd" )
 
 require( "source.tools.bc4" )
@@ -65,9 +66,9 @@ obj_cxxflags( "source/client/cl_imgui.cpp", "-I libs/sdl" )
 obj_cxxflags( "source/client/cl_menus.cpp", "-I libs/sdl" )
 obj_cxxflags( "source/client/cl_sdl.cpp", "-I libs/sdl" )
 obj_cxxflags( "source/client/keys.cpp", "-I libs/sdl" )
-obj_cxxflags( "source/client/renderer/generic_backend.cpp", "-Ilibs/metal-cpp" )
-obj_cxxflags( "source/client/renderer/metal_backend.cpp", "-Ilibs/metal-cpp -Ilibs/sdl" )
-obj_cxxflags( "source/client/platform/macos_client.cpp", "-Ilibs/metal-cpp" )
+obj_cxxflags( "source/client/renderer/metal_backend.cpp", "-I libs/metal-cpp -I libs/sdl" )
+obj_cxxflags( "source/client/renderer/vulkan_backend.cpp", "-I libs/vulkan-headers -I libs/sdl" )
+obj_cxxflags( "source/client/platform/macos_client.cpp", "-I libs/metal-cpp" )
 
 obj_cxxflags( "source/qcommon/linear_algebra_kernels.cpp", "-O2" )
 
@@ -103,9 +104,10 @@ bin( "client", {
 		"stb_rect_pack",
 		"stb_vorbis",
 		"tracy",
+		"volk",
 		"zstd",
 		platform_curl_libs,
-		{ OS == "macos" and "metal-cpp" or nil },
+		{ OS == "macos" and "metal-cpp" },
 	},
 
 	rc = "source/client/platform/client",

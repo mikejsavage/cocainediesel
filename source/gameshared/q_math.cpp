@@ -429,15 +429,3 @@ MinMax1 Union( MinMax1 a, float x ) {
 MinMax1 Union( MinMax1 a, MinMax1 b ) {
 	return MinMax1( Min2( a.lo, b.lo ), Max2( a.hi, b.hi ) );
 }
-
-u32 Log2( u64 x ) {
-	u32 log = 0;
-	x >>= 1;
-
-	while( x > 0 ) {
-		x >>= 1;
-		log++;
-	}
-
-	return log;
-}

@@ -13,6 +13,10 @@ static GPUSlabAllocator persistent_allocator;
 static GPUArenaAllocator device_temp_allocator;
 static CoherentGPUArenaAllocator coherent_temp_allocator;
 
+PoolHandle< GPUAllocation > ShitGuh() {
+	return coherent_temp_allocator.a.allocation;
+}
+
 static GPUSlabAllocator NewGPUSlabAllocator( size_t slab_size, size_t min_alignment, size_t buffer_image_granularity ) {
 	GPUSlabAllocator::Slab * dummy = Alloc< GPUSlabAllocator::Slab >( sys_allocator );
 	*dummy = { };

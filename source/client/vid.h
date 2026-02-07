@@ -33,8 +33,6 @@ void VID_Init();
 void CreateWindow( WindowMode mode );
 void DestroyWindow();
 
-void SwapBuffers();
-
 void GetFramebufferSize( int * width, int * height );
 float GetContentScale();
 Vec2 GetRelativeMouseMovement();

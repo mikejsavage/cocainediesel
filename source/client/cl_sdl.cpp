@@ -23,11 +23,6 @@
 
 const bool is_dedicated_server = false;
 
-#if !PLATFORM_MACOS
-static SDL_GLContext gl_context;
-#endif
-
-static bool running_in_renderdoc;
 static bool route_inputs_to_imgui;
 
 static float content_scale;
@@ -56,26 +51,10 @@ static SDL_DisplayID DisplayIndexToID( int monitor ) {
 void CreateWindow( WindowMode mode ) {
 	TracyZoneScoped;
 
-#if !PLATFORM_MACOS
-	TrySDL( SDL_GL_SetAttribute, SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
-	TrySDL( SDL_GL_SetAttribute, SDL_GL_CONTEXT_MAJOR_VERSION, 4 );
-	TrySDL( SDL_GL_SetAttribute, SDL_GL_CONTEXT_MINOR_VERSION, 5 );
-	TrySDL( SDL_GL_SetAttribute, SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, true );
-
-	SDL_GLContextFlag gl_flags = SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG;
-	if( is_public_build ) {
-		TrySDL( SDL_GL_SetAttribute, SDL_GL_CONTEXT_NO_ERROR, true );
-	}
-	else {
-		gl_flags |= SDL_GL_CONTEXT_DEBUG_FLAG;
-	}
-	TrySDL( SDL_GL_SetAttribute, SDL_GL_CONTEXT_FLAGS, gl_flags );
-#endif
-
 	SDL_PropertiesID props = TrySDLR( SDL_PropertiesID, SDL_CreateProperties );
 	defer { SDL_DestroyProperties( props ); };
 
-	constexpr const char * graphics_api = IFDEF( PLATFORM_MACOS ) ? SDL_PROP_WINDOW_CREATE_METAL_BOOLEAN : SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN;
+	constexpr const char * graphics_api = IFDEF( PLATFORM_MACOS ) && false ? SDL_PROP_WINDOW_CREATE_METAL_BOOLEAN : SDL_PROP_WINDOW_CREATE_VULKAN_BOOLEAN;
 
 	TrySDL( SDL_SetStringProperty, props, SDL_PROP_WINDOW_CREATE_TITLE_STRING, APPLICATION );
 	TrySDL( SDL_SetBooleanProperty, props, graphics_api, true );
@@ -106,10 +85,6 @@ void CreateWindow( WindowMode mode ) {
 		TrySDL( SDL_SetWindowFullscreenMode, sdl_window, &closest );
 	}
 
-#if !PLATFORM_MACOS
-	gl_context = TrySDLR( SDL_GLContext, SDL_GL_CreateContext, sdl_window );
-#endif
-
 	TrySDL( SDL_GetWindowSizeInPixels, sdl_window, &framebuffer_width, &framebuffer_height );
 
 	content_scale = TrySDLR( float, SDL_GetWindowDisplayScale, sdl_window );
@@ -129,9 +104,6 @@ void CreateWindow( WindowMode mode ) {
 
 void DestroyWindow() {
 	TracyZoneScoped;
-#if !PLATFORM_MACOS
-	TrySDL( SDL_GL_DestroyContext, gl_context );
-#endif
 	SDL_DestroyWindow( sdl_window );
 }
 
@@ -226,6 +198,7 @@ void SetWindowMode( WindowMode mode ) {
 
 static Optional< bool > has_gsync;
 void EnableVSync( bool enabled ) {
+	// TODO NOMERGE
 #if !PLATFORM_MACOS
 	if( enabled ) {
 		if( !has_gsync.exists ) {
@@ -251,13 +224,6 @@ static Vec2 relative_mouse_movement;
 
 Vec2 GetRelativeMouseMovement() {
 	return relative_mouse_movement;
-}
-
-void SwapBuffers() {
-#if !PLATFORM_MACOS
-	TracyZoneScopedNC( "SDL_GL_SwapWindow", 0xff0000 );
-	TrySDL( SDL_GL_SwapWindow, sdl_window );
-#endif
 }
 
 Optional< Key > KeyFromSDL( SDL_Scancode sdl );

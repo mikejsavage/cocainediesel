@@ -58,7 +58,13 @@ GPUBuffer NewTempBuffer( const T & x, size_t alignment = alignof( T ) ) {
 }
 
 CoherentBuffer NewTempBuffer( size_t size, size_t alignment );
+
 GPUBuffer NewDeviceTempBuffer( const char * label, size_t size, size_t alignment );
+
+template< typename T >
+GPUBuffer NewDeviceTempBuffer( const char * label, size_t alignment = alignof( T ) ) {
+	return NewDeviceTempBuffer( label, sizeof( T ), alignment );
+}
 
 void FlushStagingBuffer();
 
@@ -192,7 +198,7 @@ enum BlendFunc : u8 {
 };
 
 struct RenderPipelineOutputFormat {
-	Optional< TextureFormat > colors[ FragmentShaderOutput_Count ];
+	Span< const TextureFormat > colors;
 	bool has_depth;
 };
 

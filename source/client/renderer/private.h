@@ -128,20 +128,9 @@ PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, Opaque< Backend
 
 size_t FrameSlot();
 
-constexpr u32 Log2_CT( u64 x ) {
-	u32 log = 0;
-	x >>= 1;
-
-	while( x > 0 ) {
-		x >>= 1;
-		log++;
-	}
-
-	return log;
-}
-
 constexpr size_t MaxBufferBindings = 8;
 constexpr size_t MaxTextureBindings = 8;
+constexpr size_t MaxBindings = MaxBufferBindings + 2 * MaxTextureBindings;
 
 constexpr size_t MaxShaderVariants = 4;
 

@@ -119,4 +119,14 @@ MinMax3 Union( const MinMax3 & a, const MinMax3 & b );
 MinMax1 Union( MinMax1 bounds, float x );
 MinMax1 Union( MinMax1 a, MinMax1 b );
 
-u32 Log2( u64 x );
+constexpr u32 Log2( u64 x ) {
+	u32 log = 0;
+	x >>= 1;
+
+	while( x > 0 ) {
+		x >>= 1;
+		log++;
+	}
+
+	return log;
+}

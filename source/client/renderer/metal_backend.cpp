@@ -39,7 +39,7 @@ struct RenderPipeline {
 	Span< const char > name;
 
 	struct Variant {
-		MTL::RenderPipelineState * msaa_variants[ Log2_CT( MaxMSAA ) + 1 ];
+		MTL::RenderPipelineState * msaa_variants[ Log2( MaxMSAA ) + 1 ];
 	};
 
 	ArrayMap< VertexDescriptor, Variant, MaxShaderVariants > mesh_variants;
@@ -565,7 +565,6 @@ static Optional< ArgumentBufferEncoder > ParseArgumentBuffer( MTL::Function * fu
 
 			// NOTE(mike 20251103): slang adds args_ to descriptor names
 			StringHash name = StringHash( StripPrefix( member->name()->utf8String(), "args_" ) );
-
 			switch( member->dataType() ) {
 				case MTL::DataTypePointer:
 					buffer.buffers.must_add( name, member->argumentIndex() );

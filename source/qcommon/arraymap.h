@@ -34,6 +34,12 @@ public:
 		}
 	}
 
+	void must_add_or_exists( const K & key, const V & value ) {
+		if( get( key ) != NULL )
+			return;
+		must_add( key, value );
+	}
+
 	const V * get( const K & key ) const {
 		for( size_t i = 0; i < n; i++ ) {
 			if( slots[ i ].key == key ) {

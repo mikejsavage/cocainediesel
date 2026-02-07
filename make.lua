@@ -107,7 +107,7 @@ bin( "client", {
 		"volk",
 		"zstd",
 		platform_curl_libs,
-		{ OS == "macos" and "metal-cpp" },
+		{ OS == "macos" and "metal-cpp" or nil },
 	},
 
 	rc = "source/client/platform/client",

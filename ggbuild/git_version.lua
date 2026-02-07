@@ -1,14 +1,18 @@
-local function exec( cmd )
-	local pipe = assert( io.popen( cmd ) )
-	local res = pipe:read( "*line" )
-	pipe:close()
-	return res or ""
+local head = ReadFile( ".git/HEAD" )
+local branch = head:match( "^ref: ([^\n]+)" )
+if branch then
+	head = ReadFile( ".git/" .. branch )
+end
+local packed_refs = ReadFile( ".git/packed-refs" )
+
+local version
+for commit, ref in packed_refs:gmatch( "(%x+) ([^\n]+)" ) do
+	if commit == head then
+		version = ref:match( "^refs/tags/(.*)$" )
+	end
 end
 
-local version = exec( "git tag --points-at HEAD" )
-if version == "" then
-	version = "git-" .. exec( "git rev-parse --short HEAD" )
-end
+version = version or head:sub( 1, 8 )
 
 local a, b, c, d = version:match( "^v(%d+)%.(%d+)%.(%d+)%.(%d+)$" )
 if not a then

@@ -68,7 +68,6 @@ struct MetalDevice {
 	MTL::CommandQueue * command_queue;
 	u64 frame_counter;
 	MTL::Event * pass_event;
-	u64 pass_counter;
 	MTL::ArgumentEncoder * material_argument_encoder;
 	MTL::ArgumentBuffersTier argument_buffers_tier;
 	u32 msaa;
@@ -210,7 +209,7 @@ void DeleteTransferCommandBuffer( Opaque< CommandBuffer > cb ) {
 
 void SignalFirstRenderPass( RenderPass pass ) {
 	MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
-	command_buffer->encodeSignalEvent( global_device.pass_event, global_device.pass_counter + pass );
+	command_buffer->encodeSignalEvent( global_device.pass_event, global_device.frame_counter * RenderPass_Count + pass );
 	command_buffer->commit();
 }
 
@@ -235,7 +234,7 @@ void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitTyp
 	}
 
 	if( next_pass.exists ) {
-		cmd_buf->command_buffer->encodeSignalEvent( global_device.pass_event, global_device.pass_counter + next_pass.value );
+		cmd_buf->command_buffer->encodeSignalEvent( global_device.pass_event, global_device.frame_counter * RenderPass_Count + next_pass.value );
 	}
 
 	cmd_buf->command_buffer->commit();
@@ -988,7 +987,6 @@ void InitRenderBackend( SDL_Window * window ) {
 		.command_queue = command_queue,
 		.frame_counter = 0,
 		.pass_event = pass_event,
-		.pass_counter = 0,
 		.argument_buffers_tier = device->argumentBuffersSupport(),
 	};
 
@@ -1104,7 +1102,6 @@ void RenderBackendEndFrame() {
 	MaybeEndCapture();
 	frame.pool->release();
 	global_device.frame_counter++;
-	global_device.pass_counter += RenderPass_Count;
 }
 
 u32 RenderBackendSupportedMSAA() {

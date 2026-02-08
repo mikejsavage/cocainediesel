@@ -195,6 +195,8 @@ enum BlendFunc : u8 {
 	BlendFunc_Disabled,
 	BlendFunc_Blend,
 	BlendFunc_Add,
+
+	BlendFunc_Count
 };
 
 struct RenderPipelineOutputFormat {

@@ -606,11 +606,12 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 			.pNext = &features11,
 			.features = {
 				.multiDrawIndirect = VK_TRUE,
+				.depthClamp = VK_TRUE,
 				.samplerAnisotropy = VK_TRUE,
 				.textureCompressionBC = VK_TRUE,
 				// .pipelineStatisticsQuery = VK_TRUE,
-				// .shaderInt16 = VK_TRUE,
 				// .shaderInt64 = VK_TRUE,
+				// .shaderInt16 = VK_TRUE,
 			},
 		};
 
@@ -650,7 +651,7 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 	// TODO: size these according MaxMaterials etc
 	{
 		const VkDescriptorPoolSize pool_sizes[] = {
-			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 10 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 100 },
 			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10000 },
 			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 10000 },
 			{ VK_DESCRIPTOR_TYPE_SAMPLER, 10000 },
@@ -1176,6 +1177,30 @@ static VkFormat TextureFormatToVulkan( TextureFormat format ) {
 
 PoolHandle< GPUAllocation > ShitGuh();
 
+static constexpr VkPipelineColorBlendAttachmentState blend_states[ BlendFunc_Count ] = {
+	{ .blendEnable = false },
+	{
+		.blendEnable = VK_TRUE,
+		.srcColorBlendFactor = VK_BLEND_FACTOR_ONE,
+		.dstColorBlendFactor = VK_BLEND_FACTOR_DST_ALPHA,
+		.colorBlendOp = VK_BLEND_OP_ADD,
+		.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+		.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+		.alphaBlendOp = VK_BLEND_OP_ADD,
+		.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+	},
+	{
+		.blendEnable = VK_TRUE,
+		.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+		.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+		.colorBlendOp = VK_BLEND_OP_ADD,
+		.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+		.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
+		.alphaBlendOp = VK_BLEND_OP_ADD,
+		.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+	},
+};
+
 PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config ) {
 	ReflectedDescriptorSet descriptor_sets[ DescriptorSet_Count ] = { };
 
@@ -1263,8 +1288,10 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 
 	// create pipelines
 	BoundedDynamicArray< VkFormat, FragmentShaderOutput_Count > output_formats = { };
+	BoundedDynamicArray< VkPipelineColorBlendAttachmentState, FragmentShaderOutput_Count > color_blends = { };
 	for( TextureFormat format : config.output_format.colors ) {
 		output_formats.must_add( TextureFormatToVulkan( format ) );
+		color_blends.must_add( blend_states[ config.blend_func ] );
 	}
 
 	const VkPipelineRenderingCreateInfo rendering_info = {
@@ -1300,21 +1327,10 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 		// .depthCompareOp is dynamic state
 	};
 
-	const VkPipelineColorBlendAttachmentState color_attachment_state = {
-		.blendEnable = VK_TRUE,
-		.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
-		.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-		.colorBlendOp = VK_BLEND_OP_ADD,
-		.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-		.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
-		.alphaBlendOp = VK_BLEND_OP_ADD,
-		.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
-	};
-
 	const VkPipelineColorBlendStateCreateInfo color_blend_state = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-		.attachmentCount = 1,
-		.pAttachments = &color_attachment_state,
+		.attachmentCount = u32( config.output_format.colors.n ),
+		.pAttachments = color_blends.ptr(),
 	};
 
 	// https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkDynamicState.html

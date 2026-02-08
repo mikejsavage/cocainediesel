@@ -73,7 +73,6 @@ struct ViewUniforms {
 	Vec3 camera_pos;
 	Vec2 viewport_size;
 	float near_clip;
-	u32 msaa_samples;
 	Vec3 sun_direction;
 };
 

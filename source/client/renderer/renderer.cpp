@@ -405,7 +405,6 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		.camera_pos = Vec3( 0.0f ),
 		.viewport_size = frame_static.viewport,
 		.near_clip = -1.0f,
-		.msaa_samples = frame_static.msaa_samples,
 		.sun_direction = Vec3( 0.0f ),
 	} );
 	frame_static.identity_model_transform_uniforms = NewTempBuffer( Mat3x4::Identity() );
@@ -562,7 +561,6 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		.camera_pos = position,
 		.viewport_size = frame_static.viewport,
 		.near_clip = near_plane,
-		.msaa_samples = frame_static.msaa_samples,
 		.sun_direction = frame_static.sun_direction,
 	} );
 

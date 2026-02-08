@@ -366,6 +366,8 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	memset( &frame_static.render_passes, 0, sizeof( frame_static.render_passes ) );
 
+	RenderBackendWaitForNewFrame();
+
 	int capture = 0;
 	RenderBackendBeginFrame( capture );
 

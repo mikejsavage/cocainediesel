@@ -263,13 +263,14 @@ static PoolHandle< Texture > FindTexture( Span< const char > name ) {
 	u64 hash = StringHash( name ).hash;
 	Optional< PoolHandle< Texture > > handle = textures.get( hash );
 	if( handle.exists ) {
-		return textures[ handle.value ].dummy_slot_for_missing_texture ? missing_texture : handle.value;
+		return handle.value;
 	}
 
 	Optional< PoolHandle< Texture > > new_handle = textures.add( hash );
 	if( !new_handle.exists )
 		return missing_texture;
-	textures[ new_handle.value ] = { .dummy_slot_for_missing_texture = true };
+	textures[ new_handle.value ] = textures[ missing_texture ];
+	textures[ new_handle.value ].dummy_slot_for_missing_texture = true;
 	return new_handle.value;
 }
 

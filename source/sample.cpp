@@ -48,29 +48,15 @@ static Mat4 PerspectiveProjection( float vertical_fov_degrees, float aspect_rati
 	);
 }
 
-constexpr Mat4 Mat4TranslationLmao( float x, float y, float z ) {
-	return Mat4(
-		1.0f, 0.0f, 0.0f, x,
-		0.0f, 1.0f, 0.0f, y,
-		0.0f, 0.0f, 1.0f, z,
-		0.0f, 0.0f, 0.0f, 1.0f
-	);
-}
-
-constexpr Mat4 Mat4TranslationLmao( Vec3 v ) {
-	return Mat4TranslationLmao( v.x, v.y, v.z );
-}
-
-static Mat4 ViewMatrix( Vec3 position, Vec3 forward ) {
+static Mat3x4 ViewMatrix( Vec3 position, Vec3 forward ) {
 	Vec3 right, up;
 	ViewVectors( forward, &right, &up );
-	Mat4 rotation(
+	Mat3x4 rotation(
 		right.x, right.y, right.z, 0.0f,
 		up.x, up.y, up.z, 0.0f,
-		-forward.x, -forward.y, -forward.z, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f
+		-forward.x, -forward.y, -forward.z, 0.0f
 	);
-	return rotation * Mat4TranslationLmao( -position );
+	return rotation * Mat4Translation( -position );
 }
 
 PoolHandle< Texture > UploadBC4( const char * path ) {
@@ -338,7 +324,7 @@ SDL_AppResult SDL_AppIterate( void * appstate ) {
 		Vec3 camera_pos = Vec3( 1.5f * Vec2( Cos( t, Seconds( 4 ) ), Sin( t, Seconds( 4 ) ) ), 1.0f /*500.0f*/ );
 
 		struct ViewData {
-			Mat4 camera_from_world;
+			Mat3x4 camera_from_world;
 			Mat4 clip_from_camera;
 		};
 

@@ -265,7 +265,6 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.features = { "DEPTH_ONLY" },
 				.mesh_variants = { text_3d_vertex_descriptor },
 				.clamp_depth = true,
-				.alpha_to_coverage = true,
 			},
 
 			GraphicsShaderDescriptor {

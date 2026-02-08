@@ -28,32 +28,37 @@ local function ParseFeatures( features )
 	return cli, filename
 end
 
-function write_shaders_ninja_script()
+local function PlatformSpecificDxcStuff( cmd )
 	-- NOTE(mike 20251117): we have to do `dxc -MD -MF && dxc` because of
 	-- https://github.com/microsoft/DirectXShaderCompiler/issues/5416
 	-- NOTE(mike 20260131): dxc -M -fspv-debug ICEs
 	-- NOTE(mike 20260204): dxc -fspv-debug always ICEs on Windows
-	-- NOTE(mike 20260208): && doesn't work on Windows so dxc_deps needs to be
-	-- its own rule, also dxc insists on -T even if it's not actually compiling
-	-- the shader as with -M
+	-- NOTE(mike 20260208): dxc && dxc isn't valid PowerShell so we have to do cmd /c on Windows
 	local debug = OS == "windows" and "" or "-fspv-debug=vulkan-with-source"
+	cmd = cmd:format( debug )
+	return OS == "windows" and ( "cmd /c \"%s\"" ):format( cmd ) or cmd
+end
+
+function write_shaders_ninja_script()
 	printf( [[
 
 
 # Shaders
 dxcflags = -Ibase/glsl -I. -spirv -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -fspv-preserve-bindings
-rule dxc_deps
-    command = dxc $dxcflags -T vs_6_0 -MD -MF $out $in
 rule dxc_vertex
-    command = dxc $dxcflags %s -T vs_6_0 -E VertexMain $features -Fo $out $in
+    command = %s
     deps = gcc
 rule dxc_fragment
-    command = dxc $dxcflags %s -T ps_6_0 -E FragmentMain $features -Fo $out $in
+    command = %s
     deps = gcc
 rule dxc_compute
-    command = dxc $dxcflags %s -T cs_6_0 -E ComputeMain $features -Fo $out $in
+    command = %s
     deps = gcc
-]], debug, debug, debug )
+]],
+		PlatformSpecificDxcStuff( "dxc $dxcflags -MD -MF $depfile -T vs_6_0 $features $in && dxc $dxcflags %s -T vs_6_0 -E VertexMain $features -Fo $out $in" ),
+		PlatformSpecificDxcStuff( "dxc $dxcflags -MD -MF $depfile -T ps_6_0 $features $in && dxc $dxcflags %s -T ps_6_0 -E FragmentMain $features -Fo $out $in" ),
+		PlatformSpecificDxcStuff( "dxc $dxcflags -MD -MF $depfile -T cs_6_0 $features $in && dxc $dxcflags %s -T cs_6_0 -E ComputeMain $features -Fo $out $in" )
+	)
 
 	if OS == "macos" then
 		printf( [[
@@ -78,8 +83,6 @@ rule metallib
 		local depfile = "build/shaders/" .. out_filename .. ".d"
 
 		if not dedupe[ out_filename ] then
-			printf( "build %s: dxc_deps base/glsl/%s", depfile, src )
-
 			printf( "build %s/shaders/%s.vert.spv: dxc_vertex base/glsl/%s", spv_dir, out_filename, src )
 			printf( "    depfile = %s", depfile )
 			if cli_features ~= "" then

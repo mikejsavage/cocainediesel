@@ -640,11 +640,9 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 			// https://developer.apple.com/documentation/metal/render_passes/rendering_to_multiple_texture_slices_in_a_draw_command#3362353
 			pipeline->setInputPrimitiveTopology( MTL::PrimitiveTopologyClassTriangle );
 
-			for( size_t color_output_index = 0; color_output_index < ARRAY_COUNT( config.output_format.colors ); color_output_index++ ) {
-				if( !config.output_format.colors[ color_output_index ].exists )
-					continue;
+			for( size_t color_output_index = 0; color_output_index < config.output_format.colors.n; color_output_index++ ) {
 				MTL::RenderPipelineColorAttachmentDescriptor * attachment = pipeline->colorAttachments()->object( color_output_index );
-				attachment->setPixelFormat( TextureFormatToMetal( config.output_format.colors[ color_output_index ].value ) );
+				attachment->setPixelFormat( TextureFormatToMetal( config.output_format.colors[ color_output_index ] ) );
 
 				if( config.blend_func == BlendFunc_Blend ) {
 					attachment->setBlendingEnabled( true );

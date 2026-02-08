@@ -349,7 +349,7 @@ static VkBool32 VKAPI_CALL debugReportCallback(VkDebugReportFlagsEXT flags, VkDe
 	printf( "%s:\033[0m %s\n", type, pMessage );
 
 	if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
-		abort();
+		Fatal( pMessage );
 	}
 
 	return VK_FALSE;
@@ -605,6 +605,7 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
 			.pNext = &features11,
 			.features = {
+				.sampleRateShading = VK_TRUE,
 				.multiDrawIndirect = VK_TRUE,
 				.depthClamp = VK_TRUE,
 				.samplerAnisotropy = VK_TRUE,
@@ -1545,7 +1546,7 @@ PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path ) {
 
 	// compile and parse shaders
 	ReflectedDescriptorSet descriptor_sets[ DescriptorSet_Count ] = { };
-	VkPipelineShaderStageCreateInfo stage = CompileShader( temp.sv( "{}.spv", path ), VK_SHADER_STAGE_COMPUTE_BIT, descriptor_sets );
+	VkPipelineShaderStageCreateInfo stage = CompileShader( temp.sv( "{}.comp.spv", path ), VK_SHADER_STAGE_COMPUTE_BIT, descriptor_sets );
 
 	// create descriptor set layout
 	VkDescriptorSetLayout descriptor_set_layout;
@@ -2316,7 +2317,7 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 		.extent = {
 			.width = config.width,
 			.height = config.height,
-			.depth = config.num_layers,
+			.depth = 1,
 		},
 		.mipLevels = config.num_mipmaps,
 		.arrayLayers = config.num_layers,
@@ -2334,7 +2335,7 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 	vkGetImageMemoryRequirements( global_device.device, image, &memory_requirements );
 
 	Optional< GPUAllocation > dedicated_allocation = NONE;
-	if( a == NULL ) {
+	if( config.dedicated_allocation ) {
 		dedicated_allocation = GPUMalloc( memory_requirements.size, true );
 		VK_CHECK( vkBindImageMemory( global_device.device, image, dedicated_allocation->memory, 0 ) );
 	}
@@ -2370,7 +2371,7 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 	const VkImageViewCreateInfo image_view_info = {
 		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 		.image = image,
-		.viewType = VK_IMAGE_VIEW_TYPE_2D,
+		.viewType = config.num_layers == 1 ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY,
 		.format = TextureFormatToVulkan( config.format ),
 		.components = swizzle,
 		.subresourceRange = {

@@ -33,21 +33,26 @@ function write_shaders_ninja_script()
 	-- https://github.com/microsoft/DirectXShaderCompiler/issues/5416
 	-- NOTE(mike 20260131): dxc -M -fspv-debug ICEs
 	-- NOTE(mike 20260204): dxc -fspv-debug always ICEs on Windows
+	-- NOTE(mike 20260208): && doesn't work on Windows so dxc_deps needs to be
+	-- its own rule, also dxc insists on -T even if it's not actually compiling
+	-- the shader as with -M
 	local debug = OS == "windows" and "" or "-fspv-debug=vulkan-with-source"
 	printf( [[
+
+
+# Shaders
 dxcflags = -Ibase/glsl -I. -spirv -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -fspv-preserve-bindings
+rule dxc_deps
+    command = dxc $dxcflags -T vs_6_0 -MD -MF $out $in
 rule dxc_vertex
-    command = dxc $dxcflags -MD -MF $out.d -T vs_6_0 -E VertexMain $features -Fo $out $in && dxc $dxcflags %s -T vs_6_0 -E VertexMain $features -Fo $out $in
+    command = dxc $dxcflags %s -T vs_6_0 -E VertexMain $features -Fo $out $in
     deps = gcc
-    depfile = $out.d
 rule dxc_fragment
-    command = dxc $dxcflags -MD -MF $out.d -T ps_6_0 -E FragmentMain $features -Fo $out $in && dxc $dxcflags %s -T ps_6_0 -E FragmentMain $features -Fo $out $in
+    command = dxc $dxcflags %s -T ps_6_0 -E FragmentMain $features -Fo $out $in
     deps = gcc
-    depfile = $out.d
 rule dxc_compute
-    command = dxc $dxcflags -MD -MF $out.d -T cs_6_0 -E ComputeMain $features -Fo $out $in && dxc $dxcflags %s -T cs_6_0 -E ComputeMain $features -Fo $out $in
+    command = dxc $dxcflags %s -T cs_6_0 -E ComputeMain $features -Fo $out $in
     deps = gcc
-    depfile = $out.d
 ]], debug, debug, debug )
 
 	if OS == "macos" then
@@ -70,13 +75,19 @@ rule metallib
 		local src = graphics_shader:match( ReadableWhitespace( "%.src = \"([^\"]+)\"" ) ) .. ".hlsl"
 		local cli_features, filename_features = ParseFeatures( graphics_shader:match( ReadableWhitespace( "%.features = (%b{})" ) ) )
 		local out_filename = StripExtension( src ) .. filename_features
+		local depfile = "build/shaders/" .. out_filename .. ".d"
 
 		if not dedupe[ out_filename ] then
+			printf( "build %s: dxc_deps base/glsl/%s", depfile, src )
+
 			printf( "build %s/shaders/%s.vert.spv: dxc_vertex base/glsl/%s", spv_dir, out_filename, src )
+			printf( "    depfile = %s", depfile )
 			if cli_features ~= "" then
 				printf( "    features = %s", cli_features )
 			end
+
 			printf( "build %s/shaders/%s.frag.spv: dxc_fragment base/glsl/%s", spv_dir, out_filename, src )
+			printf( "    depfile = %s", depfile )
 			if cli_features ~= "" then
 				printf( "    features = %s", cli_features )
 			end
@@ -98,14 +109,13 @@ rule metallib
 		end
 	end
 
-	print()
-
 	print( "# Compute shaders" )
 	for compute_shader in shader_variants_h:gmatch( ReadableWhitespace( "ComputeShaderDescriptor (%b{}) ," ) ) do
 		local src = compute_shader:match( ReadableWhitespace( "{.-, \"([^\"]+)\" }" ) ) .. ".hlsl"
 		local out_filename = StripExtension( src )
 
 		printf( "build %s/shaders/%s.comp.spv: dxc_compute base/glsl/%s", spv_dir, out_filename, src )
+		printf( "    depfile = build/shaders/%s.d", out_filename )
 
 		if OS == "macos" then
 			printf( "build build/shaders/%s.comp.metal: spirv-cross build/shaders/%s.comp.spv", out_filename, out_filename )

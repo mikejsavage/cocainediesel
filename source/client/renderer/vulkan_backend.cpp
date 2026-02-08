@@ -1141,7 +1141,7 @@ static PushDescriptorTemplate NewPushDescriptorTemplate( const ReflectedDescript
 			.templateType = VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_PUSH_DESCRIPTORS_KHR,
 			.pipelineBindPoint = bind_point,
 			.pipelineLayout = layout,
-			.set = set,
+			.set = u32( set ),
 		};
 
 		VK_CHECK( vkCreateDescriptorUpdateTemplate( global_device.device, &create_info, NULL, &descriptor_template.update_template ) );
@@ -1424,13 +1424,13 @@ static VkPipeline SelectRenderPipelineVariant( const RenderPipeline & shader, co
 	return mesh_variant == NULL ? VkPipeline( VK_NULL_HANDLE ) : mesh_variant->msaa_variants[ Log2( msaa ) ];
 }
 
-static void DeleteRenderPipeline( RenderPipeline pipeline ) {
-	vkDestroyDescriptorUpdateTemplate( global_device.device, pipeline.render_pass_push_descriptors.update_template, NULL );
-	for( VkDescriptorSetLayout & set : pipeline.descriptor_set_layouts ) {
+static void DeleteRenderPipeline( RenderPipeline shader ) {
+	vkDestroyDescriptorUpdateTemplate( global_device.device, shader.render_pass_push_descriptors.update_template, NULL );
+	for( VkDescriptorSetLayout & set : shader.descriptor_set_layouts ) {
 		vkDestroyDescriptorSetLayout( global_device.device, set, NULL );
 	}
-	vkDestroyPipelineLayout( global_device.device, pipeline.layout, NULL );
-	for( auto [ k, v ] : pipeline.mesh_variants ) {
+	vkDestroyPipelineLayout( global_device.device, shader.layout, NULL );
+	for( auto [ k, v ] : shader.mesh_variants ) {
 		for( VkPipeline pipeline : v.msaa_variants ) {
 			if( pipeline != VK_NULL_HANDLE ) {
 				vkDestroyPipeline( global_device.device, pipeline, NULL );

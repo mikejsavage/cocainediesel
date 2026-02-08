@@ -11,7 +11,7 @@
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
 #include "client/renderer/renderer.h"
-#include "client/platform/browser.h"
+#include "client/platform/api.h"
 #include "qcommon/array.h"
 #include "qcommon/maplist.h"
 #include "qcommon/time.h"

@@ -13,6 +13,15 @@
 extern "C" __declspec( dllexport ) DWORD NvOptimusEnablement = 1;
 extern "C" __declspec( dllexport ) int AmdPowerXpressRequestHighPerformance = 1;
 
+void InitClientPlatform() {
+	BOOL reattached = AttachConsole( ATTACH_PARENT_PROCESS );
+	if( reattached == TRUE ) {
+		FILE * dont_care;
+		freopen_s( &dont_care, "CON", "w", stdout );
+		freopen_s( &dont_care, "CON", "w", stderr );
+	}
+}
+
 void CreateAutoreleasePoolOnMacOS() { }
 void ReleaseAutoreleasePoolOnMacOS() { }
 

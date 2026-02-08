@@ -3,6 +3,7 @@
 #include "client/keys.h"
 #include "client/sdl_window.h"
 #include "client/audio/backend.h"
+#include "client/platform/api.h"
 #include "client/platform/renderdoc.h"
 #include "qcommon/array.h"
 #include "qcommon/version.h"
@@ -417,6 +418,8 @@ static s64 oldtime;
 
 SDL_AppResult SDL_AppInit( void ** appstate, int argc, char ** argv ) {
 	running_in_renderdoc = IsRenderDocAttached();
+
+	InitClientPlatform();
 
 	{
 		TracyZoneScopedN( "Init SDL" );

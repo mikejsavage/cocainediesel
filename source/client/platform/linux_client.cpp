@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
+void InitClientPlatform() { }
+
 void CreateAutoreleasePoolOnMacOS() { }
 void ReleaseAutoreleasePoolOnMacOS() { }
 

@@ -11,6 +11,7 @@
 #include "client/vid.h"
 #include "client/renderer/api.h"
 #include "client/renderer/private.h"
+#include "client/platform/api.h"
 
 #define SDL_MAIN_USE_CALLBACKS
 #include "sdl/SDL3/SDL_audio.h"

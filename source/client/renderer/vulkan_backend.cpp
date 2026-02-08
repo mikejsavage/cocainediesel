@@ -11,19 +11,17 @@
 #include "client/platform/renderdoc.h"
 #include "gameshared/q_math.h"
 
-#if PLATFORM_WINDOWS
-#include <windows.h>
-#endif
-
 #include "SDL3/SDL_vulkan.h"
 
 #define VK_ENABLE_BETA_EXTENSIONS
 #define VK_USE_PLATFORM_WIN32_KHR
-#include "volk/volk.h"
 #include "vulkan/spirv.h"
+#include "volk/volk.h"
 
-#define KHR_VALIDATION 1
-#define SYNC_VALIDATION 1
+#if !PUBLIC_BUILD
+#define ENABLE_VALIDATION_LAYERS 1
+#define ENABLE_SYNC_VALIDATION 1
+#endif
 
 static constexpr bool macOS = IFDEF( PLATFORM_MACOS );
 
@@ -280,11 +278,11 @@ static VkInstance createInstance() {
 	if( macOS ) {
 		layers.must_add( "VK_LAYER_KHRONOS_synchronization2" );
 	}
-	if( IFDEF( KHR_VALIDATION ) && !running_in_renderdoc ) {
+	if( IFDEF( ENABLE_VALIDATION_LAYERS ) && !running_in_renderdoc ) {
 		layers.must_add( "VK_LAYER_KHRONOS_validation" );
 		enabledValidationFeatures.must_add( VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT );
 	}
-	if( IFDEF( SYNC_VALIDATION ) ) {
+	if( IFDEF( ENABLE_SYNC_VALIDATION ) ) {
 		enabledValidationFeatures.must_add( VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT );
 		// VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
 	}
@@ -307,7 +305,7 @@ static VkInstance createInstance() {
 #if PLATFORM_MACOS
 		VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
 #endif
-#if KHR_VALIDATION
+#if ENABLE_VALIDATION_LAYERS
 		VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
 #endif
 	};
@@ -2528,7 +2526,7 @@ void InitRenderBackend( SDL_Window * window ) {
 	volkLoadInstanceOnly( global_instance );
 
 	global_debug_callback = VK_NULL_HANDLE;
-	if( IFDEF( KHR_VALIDATION ) ) {
+	if( IFDEF( ENABLE_VALIDATION_LAYERS ) ) {
 		global_debug_callback = RegisterDebugCallback( global_instance );
 	}
 

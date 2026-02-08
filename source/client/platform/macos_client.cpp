@@ -13,6 +13,8 @@
 
 static NS::AutoreleasePool * global_pool;
 
+void InitClientPlatform() { }
+
 void CreateAutoreleasePoolOnMacOS() {
 	global_pool = NS::AutoreleasePool::alloc()->init();
 }

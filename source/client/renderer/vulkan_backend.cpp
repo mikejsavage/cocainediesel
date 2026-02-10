@@ -551,7 +551,7 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 
 		VkPhysicalDevicePortabilitySubsetFeaturesKHR features_portability_subset = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR,
-			.pNext = &features_13,
+			.pNext = &features13,
 			.imageViewFormatSwizzle = VK_TRUE,
 		};
 

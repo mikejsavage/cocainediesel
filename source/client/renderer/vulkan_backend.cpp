@@ -2254,7 +2254,7 @@ static void GPUUploadTexture( const TextureConfig & config, Opaque< BackendTextu
 		.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
 		.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
 		.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-		.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		.newLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
 		.image = texture.unwrap()->image,
 		.subresourceRange = {
 			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,

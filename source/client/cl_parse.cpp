@@ -95,7 +95,7 @@ static void CL_ParseServerData( msg_t *msg ) {
 		}
 	}
 
-	cl.servercount = MSG_ReadInt32( msg );
+	s32 ticket = MSG_ReadInt32( msg );
 	cl.snapFrameTime = (unsigned int)MSG_ReadInt16( msg );
 
 	TempAllocator temp = cls.frame_arena.temp();
@@ -117,7 +117,7 @@ static void CL_ParseServerData( msg_t *msg ) {
 	}
 
 	msg_t * args = CL_AddReliableCommand( ClientCommand_Baselines );
-	MSG_WriteInt32( args, cl.servercount );
+	MSG_WriteInt32( args, ticket );
 	MSG_WriteUint32( args, 0 );
 }
 
@@ -172,8 +172,8 @@ static void CL_RequestMoreBaselines( const Tokenized & args ) {
 	}
 
 	msg_t * msg = CL_AddReliableCommand( ClientCommand_Baselines );
-	MSG_WriteInt32( msg, SpanToInt( args.tokens[ 1 ], 0 ) );
-	MSG_WriteUint32( msg, SpanToInt( args.tokens[ 2 ], 0 ) );
+	MSG_WriteInt32( msg, Default( SpanToSigned< s32 >( args.tokens[ 1 ] ), 0 ) );
+	MSG_WriteUint32( msg, Default( SpanToUnsigned< u32 >( args.tokens[ 2 ] ), 0_u32 ) );
 }
 
 static const struct {

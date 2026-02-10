@@ -469,27 +469,27 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span
 				}
 			}
 			else if( key == "delay" ) {
-				float delay;
-				if( !TrySpanToFloat( value, &delay ) ) {
+				Optional< float > delay = SpanToFloat( value );
+				if( !delay.exists ) {
 					Com_Printf( S_COLOR_YELLOW "Argument to delay should be a number\n" );
 					return false;
 				}
-				config.delay = Seconds( double( delay ) );
+				config.delay = Seconds( double( delay.value ) );
 			}
 			else if( key == "volume" ) {
-				if( !TrySpanToFloat( value, &config.volume ) ) {
+				if( !SpanToFloat( value, &config.volume ) ) {
 					Com_Printf( S_COLOR_YELLOW "Argument to volume should be a number\n" );
 					return false;
 				}
 			}
 			else if( key == "pitch" ) {
-				if( !TrySpanToFloat( value, &config.pitch ) ) {
+				if( !SpanToFloat( value, &config.pitch ) ) {
 					Com_Printf( S_COLOR_YELLOW "Argument to pitch should be a number\n" );
 					return false;
 				}
 			}
 			else if( key == "pitch_random" ) {
-				if( !TrySpanToFloat( value, &config.pitch_random ) ) {
+				if( !SpanToFloat( value, &config.pitch_random ) ) {
 					Com_Printf( S_COLOR_YELLOW "Argument to pitch_random should be a number\n" );
 					return false;
 				}

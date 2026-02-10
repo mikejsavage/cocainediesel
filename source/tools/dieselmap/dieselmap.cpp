@@ -31,6 +31,7 @@ static void LogDebugInstructions() {
 struct InterleavedMapVertex {
 	Vec3 position;
 	Vec3 normal;
+	Vec2 uv;
 };
 
 template< typename T >
@@ -161,6 +162,32 @@ static std::vector< Vec3 > BrushFaceToHull( Span< const Plane > brush, size_t fa
 	return sorted_points;
 }
 
+struct PlaneAndUVProjection {
+	Plane plane;
+	Mat3x4 uv_from_world;
+};
+
+static Mat3x4 CreateQ3FaceBasis( Vec3 normal ) {
+	// from NetRadiant-custom, see ComputeAxisBase
+	constexpr float epsilon = 1e-6f;
+
+	Vec3 s, t;
+	if( NearlyEqual( normal.x, 0.0f, epsilon ) && NearlyEqual( normal.y, 0.0f, epsilon ) ) {
+		s = Vec3( 0.0f, 1.0f, 0.0f );
+		t = Vec3( normal.z > 0.0f ? 1.0f : -1.0f, 0.0f, 0.0f );
+	}
+	else {
+		s = Normalize( Cross( Vec3( 0.0f, 0.0f, 1.0f ), normal ) );
+		t = -Cross( normal, s );
+	}
+
+	return Mat3x4(
+		s.x, s.y, s.z, 0.0f,
+		t.x, t.y, t.z, 0.0f,
+		normal.x, normal.y, normal.z, 0.0f
+	);
+}
+
 static std::vector< CompiledMesh > BrushToCompiledMeshes( const ParsedBrush & brush, bool extend_void_verts ) {
 	// convert 3 verts to planes
 	std::vector< Plane > planes;
@@ -186,8 +213,12 @@ static std::vector< CompiledMesh > BrushToCompiledMeshes( const ParsedBrush & br
 
 		std::vector< Vec3 > hull = BrushFaceToHull( VectorToSpan( planes ), i );
 		Vec3 normal = planes[ i ].normal;
+
+		Mat3x4 uv_from_world = brush.faces[ i ].uv_basis_transform * CreateQ3FaceBasis( normal );
+
 		for( Vec3 position : hull ) {
-			InterleavedMapVertex v = { position, normal };
+			Vec2 uv = ( uv_from_world * Vec4( position, 1.0f ) ).xy();
+			InterleavedMapVertex v = { position, normal, uv };
 			if( extend_void_verts && v.position.z <= -1024.0f ) {
 				v.position.z = -999999.0f;
 			}
@@ -487,13 +518,13 @@ static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & 
 		if( face_meshes[ i ].material == face_meshes[ material_start_index ].material )
 			continue;
 
-		Span< const CompiledMesh > meshes_with_the_same_material( &face_meshes[ material_start_index ], i - material_start_index + 1 );
+		Span< const CompiledMesh > meshes_with_the_same_material( &face_meshes[ material_start_index ], i - material_start_index );
 		CompiledMesh merged = MergeMeshes( meshes_with_the_same_material );
 		if( merged.indices.size() > 0 ) {
 			merged_meshes.push_back( merged );
 		}
 
-		material_start_index = i + 1;
+		material_start_index = i;
 	}
 
 	std::vector< CompiledMesh > optimized_meshes;
@@ -505,8 +536,7 @@ static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & 
 			merged.indices.data(), merged.indices.size(),
 			merged.vertices.data(), merged.vertices.size(), sizeof( InterleavedMapVertex ) );
 
-		CompiledMesh optimized;
-		optimized.material = merged.material;
+		CompiledMesh optimized = { .material = merged.material };
 		optimized.vertices.resize( unique_verts );
 		optimized.indices.resize( merged.indices.size() );
 
@@ -541,9 +571,10 @@ static bool IsNearlyAxial( Vec3 v ) {
 static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 	TracyZoneScoped;
 
-	CompiledKDTree kd_tree;
-	kd_tree.bounds = MinMax3::Empty();
-	kd_tree.solidity = Solid_NotSolid;
+	CompiledKDTree kd_tree = {
+		.bounds = MinMax3::Empty(),
+		.solidity = Solid_NotSolid,
+	};
 
 	if( entity.brushes.size() == 0 ) {
 		return kd_tree;
@@ -573,7 +604,7 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 		}
 
 		if( editor_material == NULL ) {
-			editor_material = FindEditorMaterial( StringHash( "editor/clip" ) ); // default material
+			editor_material = FindEditorMaterial( StringHash( "textures/editor/clip" ) ); // default material
 		}
 
 		// compute brush bounds
@@ -587,10 +618,11 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 		brush_bounds.push_back( bounds );
 
 		// make MapBrush
-		MapBrush map_brush = { };
-		map_brush.bounds = bounds;
-		map_brush.first_plane = checked_cast< u16 >( kd_tree.planes.size() );
-		map_brush.solidity = editor_material->solidity;
+		MapBrush map_brush = {
+			.bounds = bounds,
+			.first_plane = checked_cast< u16 >( kd_tree.planes.size() ),
+			.solidity = editor_material->solidity,
+		};
 
 		size_t num_planes = 0;
 
@@ -652,7 +684,7 @@ static constexpr const char * section_names[] = {
 
 	"Meshes",
 	"VertexPositions",
-	"VertexNormals",
+	"Vertices",
 	"VertexIndices",
 };
 static_assert( ARRAY_COUNT( section_names ) == MapSection_Count );
@@ -694,7 +726,7 @@ static void WriteCDMap( ArenaAllocator * arena, const char * path, Span< const c
 	Pack( packed, &header, MapSection_Nodes, map->nodes, &last_alignment );
 	Pack( packed, &header, MapSection_BrushPlanes, map->brush_planes, &last_alignment );
 	Pack( packed, &header, MapSection_VertexPositions, map->vertex_positions, &last_alignment );
-	Pack( packed, &header, MapSection_VertexNormals, map->vertex_normals, &last_alignment );
+	Pack( packed, &header, MapSection_Vertices, map->vertices, &last_alignment );
 	Pack( packed, &header, MapSection_VertexIndices, map->vertex_indices, &last_alignment );
 	Pack( packed, &header, MapSection_BrushIndices, map->brush_indices, &last_alignment );
 	Pack( packed, &header, MapSection_Brushes, map->brushes, &last_alignment );
@@ -727,7 +759,7 @@ static void WriteObj( ArenaAllocator * arena, const char * path, const MapData *
 
 	for( size_t i = 0; i < map->vertex_positions.n; i++ ) {
 		Vec3 p = map->vertex_positions[ i ];
-		Vec3 n = map->vertex_normals[ i ];
+		Vec3 n = map->vertices[ i ].normal;
 
 		// note the Z-up to Y-up/left to right handedness transforms
 		obj.append( "v {} {} {}\n", -p.x, p.z, p.y );
@@ -823,6 +855,14 @@ int main( int argc, char ** argv ) {
 	// parse the .map
 	std::vector< ParsedEntity > entities = ParseEntities( src );
 
+	// warn if there are any patches
+	for( const ParsedEntity & entity : entities ) {
+		if( entity.patches.size() > 0 ) {
+			printf( "Dieselmap doesn't support patches btw\n" );
+			break;
+		}
+	}
+
 	// flatten func_groups into entity 0
 	{
 		TracyZoneScopedN( "Flatten func_groups" );
@@ -862,9 +902,10 @@ int main( int argc, char ** argv ) {
 			if( GetKey( entity.kvs.span(), "classname" ) == "func_group" )
 				continue;
 
-			CompiledEntity compiled;
-			compiled.render_geometry = GenerateRenderGeometry( entity, !write_obj );
-			compiled.collision_geometry = GenerateCollisionGeometry( entity );
+			CompiledEntity compiled = {
+				.render_geometry = GenerateRenderGeometry( entity, !write_obj ),
+				.collision_geometry = GenerateCollisionGeometry( entity ),
+			};
 
 			for( ParsedKeyValue kv : entity.kvs ) {
 				compiled.key_values.push_back( kv );
@@ -885,7 +926,7 @@ int main( int argc, char ** argv ) {
 	DynamicArray< Plane > flat_brush_planes( &arena );
 	DynamicArray< MapMesh > flat_meshes( &arena );
 	DynamicArray< Vec3 > flat_vertex_positions( &arena );
-	DynamicArray< Vec3 > flat_vertex_normals( &arena );
+	DynamicArray< MapVertex > flat_vertices( &arena );
 	DynamicArray< u32 > flat_vertex_indices( &arena );
 
 	{
@@ -904,7 +945,7 @@ int main( int argc, char ** argv ) {
 				size_t base_vertex = flat_vertex_positions.size();
 				for( const InterleavedMapVertex & v : mesh.vertices ) {
 					flat_vertex_positions.add( v.position );
-					flat_vertex_normals.add( v.normal );
+					flat_vertices.add( { v.normal, v.uv } );
 				}
 				for( u32 idx : mesh.indices ) {
 					flat_vertex_indices.add( base_vertex + idx );
@@ -987,7 +1028,7 @@ int main( int argc, char ** argv ) {
 	flattened.brush_planes = flat_brush_planes.span();
 	flattened.meshes = flat_meshes.span();
 	flattened.vertex_positions = flat_vertex_positions.span();
-	flattened.vertex_normals = flat_vertex_normals.span();
+	flattened.vertices = flat_vertices.span();
 	flattened.vertex_indices = flat_vertex_indices.span();
 
 	if( write_obj ) {

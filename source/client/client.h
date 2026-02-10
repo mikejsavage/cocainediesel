@@ -78,7 +78,6 @@ struct client_state_t {
 	//
 	// server state information
 	//
-	int servercount;        // server identification for prespawns
 	int max_clients;
 	int playernum;
 };
@@ -98,7 +97,7 @@ struct client_static_t {
 	ArenaAllocator frame_arena;
 
 	RNG rng;
-	u64 per_launch_entropy;
+	u64 launch_day;
 
 	u64 session_id;
 	connstate_t state;          // only set through CL_SetClientState

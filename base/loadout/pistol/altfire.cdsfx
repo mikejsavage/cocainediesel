@@ -1,0 +1,7 @@
+{
+	attenuation distant
+	find_sounds ./fire
+	pitch 1.5
+	pitch_random 0.05
+	volume 0.65
+}

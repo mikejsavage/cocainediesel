@@ -659,7 +659,7 @@ void G_RespawnEffect( edict_t * ent ) {
 void G_CheckGround( edict_t * ent ) {
 	float up_speed_limit = ent->r.client == NULL ? 1.0f : 180.0f;
 
-	Vec3 ground_point = ent->s.origin - Vec3( 0.0f, 0.0f, 0.25f );
+	Vec3 ground_point = ent->s.origin - Vec3::Z( 0.25f );
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
 	trace_t trace = G_Trace( ent->s.origin, bounds, ground_point, ent, EntitySolidity( ServerCollisionModelStorage(), &ent->s ) );
 
@@ -712,9 +712,9 @@ void G_ClearPlayerStateEvents( gclient_t *client ) {
 * Returns player matching given text. It can be either number of the player or player's name.
 */
 edict_t * G_PlayerForText( Span< const char > text ) {
-	u64 num;
-	if( TrySpanToU64( text, &num ) && num < u64( server_gs.maxclients ) && game.edicts[ num + 1 ].r.inuse ) {
-		return &game.edicts[ num + 1 ];
+	Optional< u64 > num = SpanToUnsigned( text, server_gs.maxclients - 1 );
+	if( num.exists && game.edicts[ num.value + 1 ].r.inuse ) {
+		return &game.edicts[ num.value + 1 ];
 	}
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {

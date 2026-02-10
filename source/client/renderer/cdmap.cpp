@@ -7,18 +7,16 @@
 Mesh NewMapRenderData( const MapData & map, Span< const char > name ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	GPUBuffer positions_buffer = NewBuffer( temp( "{} positions", name ), map.vertex_positions );
-	GPUBuffer normals_buffer = NewBuffer( temp( "{} normals", name ), map.vertex_normals );
-
 	Mesh mesh = { };
 	mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx3, 0, 0 };
-	mesh.vertex_descriptor.attributes[ VertexAttribute_Normal ] = { VertexFormat_Floatx3, 1, 0 };
-	mesh.vertex_descriptor.buffer_strides[ VertexAttribute_Position ] = sizeof( Vec3 );
-	mesh.vertex_descriptor.buffer_strides[ VertexAttribute_Normal ] = sizeof( Vec3 );
+	mesh.vertex_descriptor.attributes[ VertexAttribute_Normal ] = { VertexFormat_Floatx3, 1, offsetof( MapVertex, normal ) };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = { VertexFormat_Floatx2, 1, offsetof( MapVertex, uv ) };
+	mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec3 );
+	mesh.vertex_descriptor.buffer_strides[ 1 ] = sizeof( MapVertex );
 	mesh.index_format = IndexFormat_U32,
 	mesh.num_vertices = map.vertex_positions.n;
-	mesh.vertex_buffers[ VertexAttribute_Position ] = positions_buffer;
-	mesh.vertex_buffers[ VertexAttribute_Position ] = normals_buffer;
+	mesh.vertex_buffers[ 0 ] = NewBuffer( temp( "{} positions", name ), map.vertex_positions );
+	mesh.vertex_buffers[ 1 ] = NewBuffer( temp( "{} vertices", name ), map.vertices );
 	mesh.index_buffer = NewBuffer( temp( "{} indices", name ), map.vertex_indices );
 
 	return mesh;

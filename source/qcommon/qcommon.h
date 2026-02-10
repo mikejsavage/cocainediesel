@@ -69,7 +69,6 @@ msg_t NewMSGWriter( u8 * data, size_t n );
 void MSG_Clear( msg_t * msg );
 void *MSG_GetSpace( msg_t * msg, size_t length );
 void MSG_Write( msg_t * msg, const void * data, size_t length );
-void MSG_WriteZeroes( msg_t * msg, size_t n );
 int MSG_SkipData( msg_t * msg, size_t length );
 
 //============================================================================

@@ -334,6 +334,7 @@ enum RenderPass {
 
 	RenderPass_AddSilhouettes,
 
+	RenderPass_PreUIPostprocessing,
 	RenderPass_UIBeforePostprocessing,
 	RenderPass_Postprocessing,
 	RenderPass_UIAfterPostprocessing,

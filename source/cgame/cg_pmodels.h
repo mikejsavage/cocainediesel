@@ -101,6 +101,7 @@ struct WeaponModelMetadata {
 	EulerDegrees3 handpositionAngles;
 
 	StringHash fire_sound;
+	StringHash alt_fire_sound;
 	StringHash reload_sound;
 	StringHash switch_in_sound;
 	StringHash zoom_in_sound;
@@ -219,13 +220,11 @@ const GLTFRenderData * GetEquippedItemRenderData( const SyncPlayerState * ps );
 //=================================================
 
 struct cg_viewweapon_t {
-	mat3_t axis;
-	Vec3 origin;
+	Mat3x4 transform;
+	Mat3x4 muzzle_transform;
 
 	StringHash baseAnim;
 	int64_t baseAnimStartTime;
 	StringHash eventAnim;
 	int64_t eventAnimStartTime;
-
-	Mat3x4 muzzle_transform;
 };

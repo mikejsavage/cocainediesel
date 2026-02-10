@@ -22,46 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/time.h"
 #include "gameshared/vsays.h"
 
-/*
-* G_Teleport
-*
-* Teleports client to specified position
-* If client is not spectator teleporting is only done if position is free and teleport effects are drawn.
-*/
-static bool G_Teleport( edict_t * ent, Vec3 origin, EulerDegrees3 angles ) {
-	if( !ent->r.inuse || !ent->r.client ) {
-		return false;
-	}
-
-	if( ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
-		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
-		trace_t trace = G_Trace( origin, bounds, origin, ent, SolidMask_AnySolid );
-		if( trace.HitSomething() && game.edicts[ trace.ent ].s.team != ent->s.team ) {
-			return false;
-		}
-
-		G_TeleportEffect( ent, false );
-	}
-
-	ent->s.origin = origin;
-	ent->s.teleported = true;
-
-	ent->velocity = Vec3( 0.0f );
-
-	if( ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
-		G_TeleportEffect( ent, true );
-	}
-
-	// set angles
-	ent->s.angles = angles;
-	ent->r.client->ps.viewangles = angles;
-	ent->r.client->ps.pmove.angles = angles;
-
-	return true;
-}
-
-//=================================================================================
-
 static void Cmd_Noclip_f( edict_t * ent, msg_t args ) {
 	const char *msg;
 
@@ -99,73 +59,8 @@ void Cmd_ChasePrev_f( edict_t * ent, msg_t args ) {
 }
 
 static void Cmd_Position_f( edict_t * ent, msg_t msg ) {
-	if( !sv_cheats->integer && server_gs.gameState.match_state > MatchState_Warmup &&
-		ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
-		G_PrintMsg( ent, "Position command is only available in warmup and in spectator mode.\n" );
-		return;
-	}
-
-	// flood protect
-	if( ent->r.client->teamstate.position_lastcmd + Milliseconds( 500 ) > svs.monotonic_time ) {
-		return;
-	}
-	ent->r.client->teamstate.position_lastcmd = svs.monotonic_time;
-
-	TempAllocator temp = svs.frame_arena.temp();
-	Tokenized args = Tokenize( &temp, MakeSpan( MSG_ReadString( &msg ) ) );
-
-	if( args.tokens.n == 0 ) {
-		G_PrintMsg( ent,
-			"Usage:\n"
-			"position save - Save current position\n"
-			"position load - Teleport to saved position\n"
-			"position set <x> <y> <z> <pitch> <yaw> - Teleport to specified position\n"
-			"Current position: %.4f %.4f %.4f %.4f %.4f\n",
-			ent->s.origin.x, ent->s.origin.y, ent->s.origin.z, ent->s.angles.pitch, ent->s.angles.yaw );
-		return;
-	}
-
-	Span< const char > action = args.tokens[ 0 ];
-
-	if( action == "save" && args.tokens.n == 1 ) {
-		ent->r.client->teamstate.position_saved = true;
-		ent->r.client->teamstate.position_origin = ent->s.origin;
-		ent->r.client->teamstate.position_angles = ent->s.angles;
-		G_PrintMsg( ent, "Position saved.\n" );
-	}
-	else if( action == "load" && args.tokens.n == 1 ) {
-		if( !ent->r.client->teamstate.position_saved ) {
-			G_PrintMsg( ent, "No position saved.\n" );
-		}
-		else {
-			if( G_Teleport( ent, ent->r.client->teamstate.position_origin, ent->r.client->teamstate.position_angles ) ) {
-				G_PrintMsg( ent, "Position loaded.\n" );
-			}
-			else {
-				G_PrintMsg( ent, "Position not available.\n" );
-			}
-		}
-	}
-	else if( action == "set" && args.tokens.n == 6 ) {
-		Vec3 origin = Vec3( SpanToFloat( args.tokens[ 1 ], 0.0f ), SpanToFloat( args.tokens[ 2 ], 0.0f ), SpanToFloat( args.tokens[ 3 ], 0.0f ) );
-		EulerDegrees3 angles = EulerDegrees3( SpanToFloat( args.tokens[ 4 ], 0.0f ), SpanToFloat( args.tokens[ 5 ], 0.0f ), 0.0f );
-
-		if( G_Teleport( ent, origin, angles ) ) {
-			G_PrintMsg( ent, "Position set.\n" );
-		}
-		else {
-			G_PrintMsg( ent, "Position not available.\n" );
-		}
-	}
-	else {
-		G_PrintMsg( ent,
-			"Usage:\n"
-			"position save - Save current position\n"
-			"position load - Teleport to saved position\n"
-			"position set <x> <y> <z> <pitch> <yaw> - Teleport to specified position\n"
-			"Current position: %.4f %.4f %.4f %.4f %.4f\n",
-			ent->s.origin.x, ent->s.origin.y, ent->s.origin.z, ent->s.angles.pitch, ent->s.angles.yaw );
-	}
+	G_PrintMsg( ent, "Current position: %.4f %.4f %.4f %.4f %.4f\n",
+		ent->s.origin.x, ent->s.origin.y, ent->s.origin.z, ent->s.angles.pitch, ent->s.angles.yaw );
 }
 
 bool CheckFlood( edict_t * ent, bool teamonly ) {
@@ -301,7 +196,7 @@ static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 	AngleVectors( ent->r.client->ps.viewangles, &forward, NULL, NULL );
 
 	constexpr float range = 96.0f;
-	Vec3 start = ent->s.origin + Vec3( 0.0f, 0.0f, ent->r.client->ps.viewheight );
+	Vec3 start = ent->s.origin + Vec3::Z( ent->r.client->ps.viewheight );
 	Vec3 end = start + forward * range;
 
 	trace_t trace = G_Trace( start, MinMax3( 0.0f ), end, ent, SolidMask_Opaque );

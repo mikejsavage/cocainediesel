@@ -10,6 +10,7 @@ enum XAlignment {
 
 enum YAlignment {
 	YAlignment_Ascent,
+	YAlignment_Middle,
 	YAlignment_Baseline,
 	YAlignment_Descent,
 };
@@ -22,9 +23,9 @@ struct Alignment {
 constexpr Alignment Alignment_LeftTop = { XAlignment_Left, YAlignment_Ascent };
 constexpr Alignment Alignment_CenterTop = { XAlignment_Center, YAlignment_Ascent };
 constexpr Alignment Alignment_RightTop = { XAlignment_Right, YAlignment_Ascent };
-constexpr Alignment Alignment_LeftMiddle = { XAlignment_Left, YAlignment_Baseline };
-constexpr Alignment Alignment_CenterMiddle = { XAlignment_Center, YAlignment_Baseline };
-constexpr Alignment Alignment_RightMiddle = { XAlignment_Right, YAlignment_Baseline };
+constexpr Alignment Alignment_LeftMiddle = { XAlignment_Left, YAlignment_Middle };
+constexpr Alignment Alignment_CenterMiddle = { XAlignment_Center, YAlignment_Middle };
+constexpr Alignment Alignment_RightMiddle = { XAlignment_Right, YAlignment_Middle };
 constexpr Alignment Alignment_LeftBottom = { XAlignment_Left, YAlignment_Descent };
 constexpr Alignment Alignment_CenterBottom = { XAlignment_Center, YAlignment_Descent };
 constexpr Alignment Alignment_RightBottom = { XAlignment_Right, YAlignment_Descent };

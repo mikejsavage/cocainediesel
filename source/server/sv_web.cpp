@@ -91,7 +91,7 @@ static HTTPResponseCode RouteRequest( HTTPConnection * con, Span< const char > m
 		Span< const char > header = Span< const char >( headers[ i ].name, headers[ i ].name_len );
 		if( StrCaseEqual( header, "Content-Length" ) ) {
 			Span< const char > value = Span< const char >( headers[ i ].value, headers[ i ].value_len );
-			if( SpanToInt( value, 0 ) != 0 ) {
+			if( Default( SpanToUnsigned< u32 >( value ), 0_u32 ) != 0 ) {
 				return HTTPResponseCode_BadRequest;
 			}
 		}

@@ -54,6 +54,7 @@ static constexpr EntitySpawnCallback spawn_callbacks[] = {
 	{ "misc_teleporter_dest", SP_target_position },
 
 	{ "model", SP_model },
+	{ "light", SP_light },
 	{ "decal", SP_decal },
 
 	{ "spike", SP_spike },
@@ -88,21 +89,21 @@ static bool SpawnEntity( edict_t * ent, const spawn_temp_t * st ) {
 static bool ParseEntityValue( Span< const char > name, int * x, Span< const char > key, Span< const char > value ) {
 	if( !StrEqual( name, key ) )
 		return false;
-	*x = SpanToInt( value, 0 );
+	*x = Default( SpanToSigned< int >( value ), 0 );
 	return true;
 }
 
 static bool ParseEntityValue( Span< const char > name, s64 * x, Span< const char > key, Span< const char > value ) {
 	if( !StrEqual( name, key ) )
 		return false;
-	*x = SpanToU64( value, 0 ); // TODO: wrong type
+	*x = Default( SpanToSigned< s64 >( value ), s64( 0 ) );
 	return true;
 }
 
 static bool ParseEntityValue( Span< const char > name, float * x, Span< const char > key, Span< const char > value ) {
 	if( !StrEqual( name, key ) )
 		return false;
-	*x = SpanToFloat( value, 0.0f );
+	*x = Default( SpanToFloat( value ), 0.0f );
 	return true;
 }
 
@@ -127,12 +128,24 @@ static bool ParseEntityValue( Span< const char > name, EulerDegrees3 * x, Span< 
 static bool ParseEntityValue( Span< const char > name, RGBA8 * x, Span< const char > key, Span< const char > value ) {
 	if( !StrEqual( name, key ) )
 		return false;
-	// TODO: accept hex colors etc
-	Vec4 vec4;
-	for( int i = 0; i < 4; i++ ) {
-		vec4[ i ] = ParseFloat( &value, 1.0f, Parse_StopOnNewLine );
+
+	*x = RGBA8( 255, 255, 255, 255 );
+
+	Optional< RGBA8 > hex = ParseHexColor( value );
+	if( hex.exists ) {
+		*x = hex.value;
+		return true;
 	}
-	*x = LinearTosRGB( vec4 );
+
+	Optional< u8 > r = SpanToUnsigned< u8 >( ParseToken( &value, Parse_StopOnNewLine ) );
+	Optional< u8 > g = SpanToUnsigned< u8 >( ParseToken( &value, Parse_StopOnNewLine ) );
+	Optional< u8 > b = SpanToUnsigned< u8 >( ParseToken( &value, Parse_StopOnNewLine ) );
+	Optional< u8 > a = SpanToUnsigned< u8 >( ParseToken( &value, Parse_StopOnNewLine ) );
+	if( r.exists && g.exists && b.exists ) {
+		*x = RGBA8( r.value, g.value, b.value, Default( a, u8( 255 ) ) );
+		return true;
+	}
+
 	return true;
 }
 
@@ -157,18 +170,13 @@ static bool ParseEntityValue( Span< const char > name, StringHash * x, Span< con
 	return true;
 }
 
-static Optional< float > TryParseFloat( Span< const char > * cursor ) {
-	float x;
-	return TrySpanToFloat( ParseToken( cursor, Parse_StopOnNewLine ), &x ) ? Optional( x ) : NONE;
-}
-
 static bool ParseModelScale( Span< const char > name, Vec3 * scale, Span< const char > key, Span< const char > value ) {
 	if( !StrEqual( name, key ) )
 		return false;
 
-	Optional< float > first = TryParseFloat( &value );
-	Optional< float > second = TryParseFloat( &value );
-	Optional< float > third = TryParseFloat( &value );
+	Optional< float > first = SpanToFloat( ParseToken( &value, Parse_StopOnNewLine ) );
+	Optional< float > second = SpanToFloat( ParseToken( &value, Parse_StopOnNewLine ) );
+	Optional< float > third = SpanToFloat( ParseToken( &value, Parse_StopOnNewLine ) );
 
 	if( first.exists && !second.exists && !third.exists ) {
 		*scale = Vec3( first.value );
@@ -189,6 +197,7 @@ static void ParseEntityKeyValue( Span< const char > key, Span< const char > valu
 	used = used || ParseEntityValue( "model2", &ent->s.model2, key, value, map_base_hash );
 	used = used || ParseEntityValue( "material", &ent->s.material, key, value );
 	used = used || ParseEntityValue( "color", &ent->s.color, key, value );
+	used = used || ParseEntityValue( "intensity", &ent->s.radius, key, value );
 	used = used || ParseEntityValue( "spawnflags", &ent->spawnflags, key, value );
 	used = used || ParseEntityValue( "speed", &ent->speed, key, value );
 	used = used || ParseEntityValue( "target", &ent->target, key, value );
@@ -209,7 +218,7 @@ static void ParseEntityKeyValue( Span< const char > key, Span< const char > valu
 
 	// yaw
 	if( !used && key == "angle" ) {
-		ent->s.angles = EulerDegrees3( 0.0f, AngleNormalize360( SpanToFloat( value, 0.0f ) ), 0.0f );
+		ent->s.angles = EulerDegrees3( 0.0f, AngleNormalize360( Default( SpanToFloat( value ), 0.0f ) ), 0.0f );
 		used = true;
 	}
 

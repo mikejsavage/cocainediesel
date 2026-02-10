@@ -456,7 +456,7 @@ static void CG_LerpLaser( centity_t *cent ) {
 }
 
 static void CG_AddLaserEnt( centity_t *cent ) {
-	DrawBeam( cent->interpolated.origin, cent->interpolated.origin2, cent->current.radius, white.vec4, "entities/laser/laser" );
+	DrawBeam( cent->interpolated.origin, cent->interpolated.origin2, cent->current.radius, white.linear, "entities/laser/laser" );
 }
 
 static void CG_UpdateLaserbeamEnt( centity_t *cent ) {
@@ -728,6 +728,10 @@ void DrawEntities() {
 			case ET_GHOST:
 				break;
 
+			case ET_LIGHT:
+				DrawLight( cent->current.origin, sRGBToLinear( cent->current.color.rgb() ), cent->current.radius );
+				break;
+
 			case ET_DECAL: {
 				Quaternion orientation = EulerDegrees3ToQuaternion( cent->current.angles );
 				DrawDecal( cent->current.origin, orientation, cent->current.scale.x, cent->current.material, sRGBToLinear( cent->current.color ) );
@@ -772,7 +776,7 @@ void DrawEntities() {
 			case ET_CINEMATIC_MAPNAME: {
 				TempAllocator temp = cls.frame_arena.temp();
 				Span< const char > big = ToUpperASCII( &temp, cl.map->name );
-				Draw3DText( cls.fontBoldItalic, 256.0f, big, cent->current.origin, cent->current.angles, white.vec4 );
+				Draw3DText( cls.fontBoldItalic, 256.0f, big, cent->current.origin, cent->current.angles, white.linear );
 			} break;
 
 			case ET_MAPMODEL:
@@ -832,6 +836,7 @@ void CG_LerpEntities() {
 				}
 				break;
 
+			case ET_LIGHT:
 			case ET_DECAL:
 				break;
 
@@ -896,7 +901,6 @@ void CG_UpdateEntities() {
 			case ET_BLASTER:
 			case ET_SAWBLADE:
 			case ET_STICKY:
-			case ET_RAILALT:
 			case ET_AXE:
 			case ET_SHURIKEN:
 			case ET_CINEMATIC_MAPNAME:
@@ -911,6 +915,7 @@ void CG_UpdateEntities() {
 			case ET_GHOST:
 				break;
 
+			case ET_LIGHT:
 			case ET_DECAL:
 				break;
 

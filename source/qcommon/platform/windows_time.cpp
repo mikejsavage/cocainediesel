@@ -22,4 +22,11 @@ bool FormatCurrentTime( char * buf, size_t buf_size, const char * fmt ) {
 	return FormatTimestamp( buf, buf_size, fmt, time( NULL ) );
 }
 
+s64 GetDayID() {
+	time_t now = time( NULL );
+	struct tm tm;
+	localtime_s( &tm, &now );
+	return s64( tm.tm_year ) * 1000 + tm.tm_yday;
+}
+
 #endif // #if PLATFORM_WINDOWS

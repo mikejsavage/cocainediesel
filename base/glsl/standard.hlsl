@@ -82,7 +82,7 @@ struct FragmentOutput {
 
 FragmentOutput FragmentMain( VertexOutput v ) {
 	float4 albedo = u_MaterialColor[ 0 ];
-#ifndef APPLY_DRAWFLAT
+#ifndef WORLD
 	albedo *= u_Texture.SampleBias( u_Sampler, v.uv, u_MaterialProperties[ 0 ].lod_bias );
 #endif
 #ifdef VERTEX_COLORS
@@ -122,7 +122,7 @@ FragmentOutput FragmentMain( VertexOutput v ) {
 	#endif
 	lambertlight = lambertlight * 0.5f + 0.5f;
 
-	#ifdef APPLY_DRAWFLAT
+	#ifdef WORLD
 		lambertlight = lambertlight * 0.5f + 0.5f;
 	#endif
 

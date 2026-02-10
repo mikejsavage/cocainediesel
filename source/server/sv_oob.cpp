@@ -281,14 +281,14 @@ static void SVC_GetChallenge( const NetAddress & address, const Tokenized & args
 * A connection request that did not come from the master
 */
 static void SVC_DirectConnect( const NetAddress & address, const Tokenized & args ) {
-	u64 version = SpanToU64( args.tokens[ 1 ], U64_MAX );
+	Optional< u32 > version = SpanToUnsigned< u32 >( args.tokens[ 1 ] );
 	if( version != APP_PROTOCOL_VERSION ) {
 		Netchan_OutOfBandPrint( svs.socket, address, "reject\n%i\nServer and client don't have the same version\n", 0 );
 		return;
 	}
 
-	u64 session_id = SpanToU64( args.tokens[ 2 ], 0 );
-	int challenge = SpanToInt( args.tokens[ 3 ], 0 );
+	u64 session_id = Default( SpanToUnsigned< u64 >( args.tokens[ 2 ] ), u64( 0 ) );
+	int challenge = Default( SpanToSigned< int >( args.tokens[ 3 ] ), 0 );
 
 	char userinfo[ MAX_INFO_STRING ];
 	ggformat( userinfo, sizeof( userinfo ), "{}", args.tokens[ 4 ] );

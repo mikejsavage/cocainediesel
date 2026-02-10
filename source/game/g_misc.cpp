@@ -91,6 +91,13 @@ void SP_model( edict_t * ent, const spawn_temp_t * st ) {
 	GClip_LinkEntity( ent );
 }
 
+void SP_light( edict_t * ent, const spawn_temp_t * st ) {
+	ent->s.svflags &= ~SVF_NOCLIENT;
+	ent->s.type = ET_LIGHT;
+	Com_Printf( "spawn light\n" );
+	GClip_LinkEntity( ent );
+}
+
 void SP_decal( edict_t * ent, const spawn_temp_t * st ) {
 	ent->s.svflags &= ~SVF_NOCLIENT;
 	ent->s.type = ET_DECAL;

@@ -31,6 +31,11 @@ static Cvar *scr_debuggraph;
 static Cvar *scr_graphheight;
 static Cvar *scr_graphscale;
 static Cvar *scr_graphshift;
+static Cvar *scr_exposure;
+static Cvar *scr_gamma;
+static Cvar *scr_brightness;
+static Cvar *scr_contrast;
+static Cvar *scr_saturation;
 
 /*
 ===============================================================================
@@ -93,7 +98,7 @@ static void SCR_DrawDebugGraph() {
 	int w = frame_static.viewport_width;
 	int x = 0;
 	int y = 0 + frame_static.viewport_height;
-	SCR_DrawFillRect( x, y - scr_graphheight->integer, w, scr_graphheight->integer, black.vec4 );
+	SCR_DrawFillRect( x, y - scr_graphheight->integer, w, scr_graphheight->integer, black.linear );
 
 	int s = ( w + 1024 - 1 ) / 1024; //scale for resolutions with width >1024
 
@@ -117,6 +122,11 @@ void SCR_InitScreen() {
 	scr_graphheight = NewCvar( "graphheight", "32" );
 	scr_graphscale = NewCvar( "graphscale", "1" );
 	scr_graphshift = NewCvar( "graphshift", "0" );
+	scr_exposure = NewCvar( "exposure", "1", CvarFlag_Archive | CvarFlag_Developer );
+	scr_gamma = NewCvar( "gamma", "1", CvarFlag_Archive | CvarFlag_Developer );
+	scr_brightness = NewCvar( "brightness", "1", CvarFlag_Archive | CvarFlag_Developer );
+	scr_contrast = NewCvar( "contrast", "1", CvarFlag_Archive | CvarFlag_Developer );
+	scr_saturation = NewCvar( "saturation", "1", CvarFlag_Archive | CvarFlag_Developer );
 }
 
 static void SCR_RenderView() {
@@ -134,10 +144,10 @@ static void FlashStage( float begin, float t, float end, float from, float to, f
 	*flash = Lerp( from, frac, to );
 }
 
-static void SubmitPostprocessPass() {
+static void SubmitPostprocessPreuiPass() {
 	TracyZoneScoped;
 
-	float damage_effect = cg.view.type == ViewType_Player ? cg.damage_effect : 0.0f;
+	float zoom_time = float( cg.predictedPlayerState.zoom_time ) / float( ZOOMTIME );
 
 	float contrast = 1.0f;
 	if( client_gs.gameState.exploding ) {
@@ -147,10 +157,58 @@ static void SubmitPostprocessPass() {
 		FlashStage( 0.00f, t, 0.05f, 1.0f, -1.0f, &contrast );
 		FlashStage( 0.05f, t, 0.10f, -1.0f, 1.0f, &contrast );
 		FlashStage( 0.10f, t, 0.15f, 1.0f, -1.0f, &contrast );
-		FlashStage( 0.15f, t, 0.50f, -1.0f, -1.0f, &contrast );
-		FlashStage( 0.50f, t, 0.80f, -1.0f, -1.0f, &contrast );
+		FlashStage( 0.15f, t, 0.80f, -1.0f, -1.0f, &contrast );
+		// FlashStage( 0.50f, t, 0.80f, -1.0f, -1.0f, &contrast );
 		FlashStage( 0.80f, t, 1.00f, -1.0f, 1.0f, &contrast );
 	}
+
+	PostprocessPreUIUniforms uniforms = {
+		.vignette = zoom_time,
+		.radial_blur = zoom_time,
+		.exposure = Cvar_Float( "exposure" ),
+		.gamma = Cvar_Float( "gamma" ),
+		.brightness = Cvar_Float( "brightness" ),
+		.contrast = Cvar_Float( "contrast" ) * contrast,
+		.saturation = Cvar_Float( "saturation" ),
+	};
+
+	frame_static.render_passes[ RenderPass_PreUIPostprocessing ] = NewRenderPass( RenderPassConfig {
+		.name = "Pre-UI postprocessing",
+		.pass = RenderPass_PreUIPostprocessing,
+		.color_targets = {
+			RenderPassConfig::ColorTarget { .texture = NONE },
+		},
+		.readonly_transitions = { frame_static.render_targets.resolved_color },
+		.representative_shader = shaders.postprocess,
+		.bindings = {
+			.buffers = {
+				{ "u_View", frame_static.ortho_view_uniforms },
+				{ "u_Postprocess", NewTempBuffer( uniforms ) },
+			},
+			.textures = {
+				{ "u_Framebuffer", frame_static.render_targets.resolved_color },
+				{ "u_RGBNoise", RGBNoiseTexture() },
+			},
+			.samplers = { { "u_StandardSampler", Sampler_Standard } },
+		},
+	} );
+
+	PipelineState pipeline = {
+		.shader = shaders.postprocess_preui,
+		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
+	};
+
+	Draw( RenderPass_PreUIPostprocessing, pipeline, FullscreenMesh() );
+}
+
+static void SubmitPostprocessPass() {
+	TracyZoneScoped;
+
+	float damage_effect = cg.view.type == ViewType_Player ? cg.damage_effect : 0.0f;
+
+	float u_Time = ToSeconds( cls.shadertoy_time );
+	float u_Damage = cg.view.type == ViewType_Player ? cg.damage_effect : 0.0f;
+	float u_CrtEffect = cg.animationState.chasing;
 
 	static float chasing_amount = 0.0f;
 	constexpr float chasing_speed = 4.0f;
@@ -166,8 +224,6 @@ static void SubmitPostprocessPass() {
 		.time = ToSeconds( cls.shadertoy_time ),
 		.damage = damage_effect,
 		.crt = chasing_amount,
-		.brightness = 0.0f,
-		.contrast = contrast,
 	};
 
 	frame_static.render_passes[ RenderPass_Postprocessing ] = NewRenderPass( RenderPassConfig {
@@ -217,6 +273,7 @@ void SCR_UpdateScreen() {
 
 	if( cls.state == CA_ACTIVE ) {
 		SCR_RenderView();
+		SubmitPostprocessPreuiPass();
 		SubmitPostprocessPass();
 
 		if( scr_timegraph->integer ) {
@@ -233,7 +290,7 @@ void SCR_UpdateScreen() {
 		frame_static.render_passes[ RenderPass_UIAfterPostprocessing ] = NewRenderPass( RenderPassConfig {
 			.name = "UI after postprocessing",
 			.pass = RenderPass_UIAfterPostprocessing,
-			.color_targets = { RenderPassConfig::ColorTarget { .texture = NONE, .load = LoadOp_Clear, .clear = black.vec4 } },
+			.color_targets = { RenderPassConfig::ColorTarget { .texture = NONE, .load = LoadOp_Clear, .clear = black.linear } },
 			.swapchain_attachment_transition = true,
 			.representative_shader = shaders.imgui,
 			.bindings = {

@@ -157,12 +157,20 @@ struct DrawArraysIndirectArguments {
 	u32 base_instance;
 };
 
+struct PostprocessPreUIUniforms {
+	float vignette;
+	float radial_blur;
+	float exposure;
+	float gamma;
+	float brightness;
+	float contrast;
+	float saturation;
+};
+
 struct PostprocessUniforms {
 	float time;
 	float damage;
 	float crt;
-	float brightness;
-	float contrast;
 };
 
 struct TileCullingInputs {

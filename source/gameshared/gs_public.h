@@ -72,7 +72,6 @@ struct gs_module_api_t {
 	trace_t ( *Trace )( Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask, int timeDelta );
 	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
 	void ( *PredictedFireWeapon )( int entNum, u64 parm );
-	void ( *PredictedAltFireWeapon )( int entNum, u64 parm );
 	void ( *PredictedUseGadget )( int entNum, GadgetType gadget, u64 parm, bool dead );
 	void ( *PMoveTouchTriggers )( const pmove_t * pm, Vec3 previous_origin );
 };
@@ -96,7 +95,7 @@ struct gs_state_t {
 
 constexpr bool ISWALKABLEPLANE( Vec3 normal ) { return normal.z >= 0.7f; }
 
-Vec3 GS_ClipVelocity( Vec3 in, Vec3 normal, float overbounce );
+Vec3 GS_ClipVelocity( Vec3 in, Vec3 normal );
 
 int GS_LinearMovement( const SyncEntityState *ent, int64_t time, Vec3 * dest );
 void GS_LinearMovementDelta( const SyncEntityState *ent, int64_t oldTime, int64_t curTime, Vec3 * dest );
@@ -159,7 +158,6 @@ enum EventType {
 
 	EV_WEAPONACTIVATE,
 	EV_FIREWEAPON,
-	EV_ALTFIREWEAPON,
 	EV_USEGADGET,
 	EV_SMOOTHREFIREWEAPON,
 	EV_NOAMMOCLICK,
@@ -192,8 +190,6 @@ enum EventType {
 	EV_FX,
 
 	EV_LAUNCHER_BOUNCE,
-	EV_RAIL_ALTENT,
-	EV_RAIL_ALTFIRE,
 	EV_RAIL_EXPLOSION,
 	EV_STICKY_EXPLOSION,
 

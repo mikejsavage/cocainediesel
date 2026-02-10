@@ -40,7 +40,6 @@ enum EntityType : u8 {
 	ET_FLASH,
 	ET_ASSAULT,
 	ET_BUBBLE,
-	ET_RAILALT,
 	ET_RIFLE,
 	ET_PISTOL,
 	ET_CROSSBOW,
@@ -53,6 +52,7 @@ enum EntityType : u8 {
 
 	ET_LASERBEAM,
 
+	ET_LIGHT,
 	ET_DECAL,
 
 	ET_BOMB,
@@ -73,6 +73,7 @@ enum EntityType : u8 {
 
 enum DamageCategory {
 	DamageCategory_Weapon,
+	DamageCategory_WeaponAlt,
 	DamageCategory_Gadget,
 	DamageCategory_World,
 };
@@ -103,7 +104,6 @@ enum WeaponType : u8 {
 	Weapon_Bazooka,
 	Weapon_Assault,
 	Weapon_Bubble,
-	Weapon_Laser,
 	Weapon_Rail,
 	Weapon_Sniper,
 	Weapon_Scout,
@@ -115,6 +115,11 @@ enum WeaponType : u8 {
 	// Weapon_Minigun,
 
 	Weapon_Count
+};
+
+enum ZoomType : u8 {
+	Zoom_ADS,
+	Zoom_Scope,
 };
 
 enum GadgetType : u8 {
@@ -143,16 +148,22 @@ enum WorldDamage : u8 {
 };
 
 struct DamageType {
-	u8 encoded;
+	u8 encoded : 7;
+	u8 altfire : 1;
 
 	DamageType() = default;
 	DamageType( WeaponType weapon );
+	DamageType( WeaponType weapon, bool altfire );
 	DamageType( GadgetType gadget );
 	DamageType( WorldDamage world );
-};
 
-bool operator==( DamageType a, DamageType b );
-bool operator!=( DamageType a, DamageType b );
+	bool operator==( DamageType d );
+	bool operator==( WeaponType w );
+	bool operator==( GadgetType g );
+	bool operator==( WorldDamage w );
+
+	bool operator!=( auto g );
+};
 
 enum PerkType : u8 {
 	Perk_None,
@@ -488,6 +499,7 @@ struct SyncPlayerState {
 	TouchInfo last_touch;
 
 	WeaponState weapon_state;
+	bool weapon_alt_fire;
 	u16 weapon_state_time;
 	s16 zoom_time;
 
@@ -503,7 +515,7 @@ struct SyncPlayerState {
 	Team real_team;
 
 	BombProgress progress_type;
-	u8 progress;
+	u16 progress;
 };
 
 enum UserCommandButton : u8 {

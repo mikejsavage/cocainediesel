@@ -49,63 +49,19 @@ static Loadout DefaultLoadout() {
 	return loadout;
 }
 
-static bool ParseLoadout( Loadout * loadout, const char * loadout_string ) {
-	if( loadout_string == NULL )
-		return false;
-
-	*loadout = { };
-
-	Span< const char > cursor = MakeSpan( loadout_string );
-
-	for( int i = 0; i < WeaponCategory_Count; i++ ) {
-		Span< const char > token = ParseToken( &cursor, Parse_DontStopOnNewLine );
-		int weapon;
-		if( !TrySpanToInt( token, &weapon ) )
-			return false;
-
-		if( weapon <= Weapon_None || weapon >= Weapon_Count )
-			return false;
-
-		WeaponCategory category = GS_GetWeaponDef( WeaponType( weapon ) )->category;
-		if( category != i )
-			return false;
-
-		loadout->weapons[ category ] = WeaponType( weapon );
-	}
-
-	{
-		Span< const char > token = ParseToken( &cursor, Parse_DontStopOnNewLine );
-		int perk;
-		if( !TrySpanToInt( token, &perk ) || perk <= Perk_None || perk >= Perk_Count )
-			return false;
-		if( GetPerkDef( PerkType( perk ) )->disabled )
-			return false;
-		loadout->perk = PerkType( perk );
-	}
-
-	{
-		Span< const char > token = ParseToken( &cursor, Parse_DontStopOnNewLine );
-		int gadget;
-		if( !TrySpanToInt( token, &gadget ) || gadget <= Gadget_None || gadget >= Gadget_Count )
-			return false;
-		loadout->gadget = GadgetType( gadget );
-	}
-
-	return cursor.ptr != NULL && cursor.n == 0;
-}
-
 void SetLoadout( edict_t * ent, const char * loadout_string, bool fallback_to_default ) {
-	Loadout loadout;
-	if( !ParseLoadout( &loadout, loadout_string ) ) {
+	Span< const char > loadout_span = loadout_string == NULL ? ""_sp : MakeSpan( loadout_string );
+	Optional< Loadout > loadout = ParseLoadout( loadout_span );
+	if( !loadout.exists ) {
 		if( !fallback_to_default )
 			return;
 		loadout = DefaultLoadout();
 	}
 
 	TempAllocator temp = svs.frame_arena.temp();
-	PF_GameCmd( ent, temp( "saveloadout {}", loadout ) );
+	PF_GameCmd( ent, temp( "saveloadout {}", loadout.value ) );
 
-	loadouts[ PLAYERNUM( ent ) ] = loadout;
+	loadouts[ PLAYERNUM( ent ) ] = loadout.value;
 
 	if( G_ISGHOSTING( ent ) ) {
 		return;

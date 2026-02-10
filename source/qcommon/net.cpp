@@ -111,7 +111,7 @@ Span< const char > SplitIntoHostnameAndPort( Span< const char > str, u16 * port 
 		return str;
 	}
 
-	*port = SpanToU64( str.slice( last_colon - str.ptr + 1, str.n ), 0 );
+	*port = Default( SpanToUnsigned< u16 >( str.slice( last_colon - str.ptr + 1, str.n ) ), u16( 0 ) );
 	return str.slice( 0, last_colon - str.ptr );
 }
 

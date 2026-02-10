@@ -2,8 +2,7 @@
 #include "gameshared/gs_weapons.h"
 
 static void Shooter_Think( edict_t * shooter ) {
-	const WeaponDef * weapon = GS_GetWeaponDef( shooter->s.weapon );
-	if( weapon->speed == 0 ) { // hitscan
+	if( GetWeaponDefFire( shooter->s.weapon, false )->speed == 0 ) { // hitscan
 		edict_t * event = G_SpawnEvent( EV_FIREWEAPON, shooter->s.weapon, shooter->s.origin );
 		event->s.ownerNum = ENTNUM( shooter );
 		event->s.origin2 = Vec3( shooter->s.angles.pitch, shooter->s.angles.yaw, shooter->s.angles.roll );
@@ -23,10 +22,11 @@ void SP_shooter( edict_t * shooter, const spawn_temp_t * st ) {
 
 	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
 		TempAllocator temp = svs.frame_arena.temp();
-		const WeaponDef * weapon = GS_GetWeaponDef( i );
-		if( st->weapon == StringHash( weapon->name ) ) {
+		const Span< const char > & name = GetWeaponDefProperties( i )->name;
+
+		if( st->weapon == StringHash( name ) ) {
 			shooter->s.weapon = i;
-			shooter->s.model = StringHash( temp( "loadout/{}/weapon", weapon->name ) );
+			shooter->s.model = StringHash( temp( "loadout/{}/weapon", name ) );
 			shooter->nextThink = level.time + 2000;
 			return;
 		}

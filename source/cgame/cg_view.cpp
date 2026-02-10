@@ -90,7 +90,7 @@ float CG_CalcViewFov() {
 	if( weapon == Weapon_None )
 		return FOV;
 
-	float zoom_fov = GS_GetWeaponDef( weapon )->zoom_fov;
+	float zoom_fov = GetWeaponDefProperties( weapon )->zoom_fov;
 	float frac = float( cg.predictedPlayerState.zoom_time ) / float( ZOOMTIME );
 	return Lerp( FOV, frac, float( zoom_fov ) );
 }
@@ -117,7 +117,7 @@ static void CG_CalcViewBob() {
 			const centity_t * cent = &cg_entities[cg.view.POVent];
 			MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), &cent->current );
 			Vec3 maxs = bounds.mins;
-			Vec3 mins = maxs - Vec3( 0.0f, 0.0f, 1.6f * STEPSIZE );
+			Vec3 mins = maxs - Vec3::Z( 1.6f * STEPSIZE );
 
 			trace_t trace = CG_Trace( cg.predictedPlayerState.pmove.origin, MinMax3( mins, maxs ), cg.predictedPlayerState.pmove.origin, cg.view.POVent, SolidMask_Opaque );
 			if( trace.GotNowhere() ) {
@@ -125,6 +125,9 @@ static void CG_CalcViewBob() {
 			}
 		}
 	}
+
+	constexpr float ZOOM_BOB_REDUCE = 0.7f;
+	cg.xyspeed *= 1.f - ZOOM_BOB_REDUCE * ( float( cg.predictedPlayerState.zoom_time ) / float( ZOOMTIME ) );
 
 	bobMove = cls.frametime * bobScale * 0.001f;
 	bobTime = ( cg.oldBobTime += bobMove );
@@ -308,6 +311,15 @@ static void ScreenShake( cg_viewdef_t * view ) {
 	view->origin.z += shake_amount * RandomFloat11( &cls.rng );
 }
 
+static void CG_LerpPlayerState() {
+	const SyncPlayerState * cps = &cg.frame.playerState;
+	const SyncPlayerState * ops = &cg.oldFrame.playerState;
+	SyncPlayerState * ps = &cg.predictedPlayerState;
+
+	ps->flashed = Lerp( ops->flashed, cg.lerpfrac, cps->flashed );
+	ps->progress = Lerp( ops->progress, cg.lerpfrac, cps->progress );
+}
+
 static void CG_SetupViewDef( cg_viewdef_t *view, ViewType type, UserCommand * cmd ) {
 	*view = { .type = type };
 
@@ -351,7 +363,9 @@ static void CG_SetupViewDef( cg_viewdef_t *view, ViewType type, UserCommand * cm
 			if( view->playerPrediction ) {
 				CG_PredictMovement();
 
-				Vec3 viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
+				CG_LerpPlayerState();
+
+				Vec3 viewoffset = Vec3::Z( cg.predictedPlayerState.viewheight );
 				view->origin = cg.predictedPlayerState.pmove.origin + viewoffset - ( 1.0f - cg.lerpfrac ) * cg.predictionError;
 
 				view->angles = cg.predictedPlayerState.viewangles;
@@ -367,7 +381,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, ViewType type, UserCommand * cm
 				// we don't run prediction, but we still set cg.predictedPlayerState with the interpolation
 				CG_InterpolatePlayerState( &cg.predictedPlayerState );
 
-				Vec3 viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
+				Vec3 viewoffset = Vec3::Z( cg.predictedPlayerState.viewheight );
 
 				view->origin = cg.predictedPlayerState.pmove.origin + viewoffset;
 				view->angles = cg.predictedPlayerState.viewangles;
@@ -412,6 +426,8 @@ static void CG_SetupViewDef( cg_viewdef_t *view, ViewType type, UserCommand * cm
 	if( !view->playerPrediction ) {
 		cg.recoiling = false;
 	}
+
+	CG_HandlePlayerTweens();
 }
 
 static void DrawSilhouettes() {

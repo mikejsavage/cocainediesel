@@ -1,0 +1,11 @@
+{
+	attenuation distant
+	find_sounds ./fire
+	volume 0.8
+}
+
+{
+	delay 0.65
+	volume 0.5
+	sound ./reload1
+}

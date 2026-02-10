@@ -50,7 +50,7 @@ static void ClearButton( Button * b ) {
 }
 
 static void KeyDown( Button * b, const Tokenized & args ) {
-	int k = args.tokens.n < 2 ? -1 : SpanToInt( args.tokens[ 1 ], -1 );
+	int k = args.tokens.n < 2 ? -1 : Default( SpanToUnsigned< int >( args.tokens[ 1 ] ), -1 );
 	if( k == b->keys[ 0 ] || k == b->keys[ 1 ] ) {
 		return;
 	}
@@ -79,7 +79,7 @@ static void KeyUp( Button * b, const Tokenized & args ) {
 		return;
 	}
 
-	int k = SpanToInt( args.tokens[ 1 ], -1 );
+	int k = Default( SpanToSigned< int >( args.tokens[ 1 ] ), -1 );
 	if( b->keys[ 0 ] == k ) {
 		b->keys[ 0 ] = 0;
 	}

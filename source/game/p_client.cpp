@@ -409,9 +409,9 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 	velocity.z = 0; // ignore vertical velocity
 	float speed = Length( velocity );
 
-	mat3_t axis;
-	AnglesToAxis( dest->s.angles, axis );
-	client->ps.pmove.velocity = FromQFAxis( axis, AXIS_FORWARD ) * ( speed );
+	Vec3 forward;
+	AngleVectors( dest->s.angles, &forward, NULL, NULL );
+	client->ps.pmove.velocity = forward * speed;
 
 	client->ps.viewangles = dest->s.angles;
 	client->ps.pmove.origin = dest->s.origin;
@@ -635,16 +635,33 @@ void ClientDisconnect( edict_t * ent, const char * reason ) {
 }
 
 //==============================================================
+static void G_PredictedFireWeapon( edict_t * ent, u64 parm ) {
+	G_FireWeapon( ent, parm );
+
+	Vec3 start = ent->s.origin;
+	start.z += ent->r.client->ps.viewheight;
+
+	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, parm, start );
+	event->s.ownerNum = ent->s.number;
+	event->s.origin2 = Vec3(
+		ent->r.client->ps.viewangles.pitch,
+		ent->r.client->ps.viewangles.yaw,
+		ent->r.client->ps.viewangles.roll
+	);
+	event->s.team = ent->s.team;
+}
 
 void G_PredictedEvent( int entNum, int ev, u64 parm ) {
-	Assert( ev != EV_FIREWEAPON );
-
 	edict_t *ent = &game.edicts[entNum];
 
 	switch( ev ) {
 		case EV_SMOOTHREFIREWEAPON: // update the firing
 			G_FireWeapon( ent, parm );
 			break; // don't send the event
+
+		case EV_FIREWEAPON:
+			G_PredictedFireWeapon( ent, parm );
+			break;
 
 		case EV_MARTYR_EXPLODE: {
 			ent->health = 0;
@@ -666,40 +683,6 @@ void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 			G_AddEvent( ent, ev, parm, true );
 			break;
 	}
-}
-
-void G_PredictedFireWeapon( int entNum, u64 parm ) {
-	edict_t * ent = &game.edicts[ entNum ];
-	G_FireWeapon( ent, parm );
-
-	Vec3 start = ent->s.origin;
-	start.z += ent->r.client->ps.viewheight;
-
-	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, parm, start );
-	event->s.ownerNum = entNum;
-	event->s.origin2 = Vec3(
-		ent->r.client->ps.viewangles.pitch,
-		ent->r.client->ps.viewangles.yaw,
-		ent->r.client->ps.viewangles.roll
-	);
-	event->s.team = ent->s.team;
-}
-
-void G_PredictedAltFireWeapon( int entNum, u64 parm ) {
-	edict_t * ent = &game.edicts[ entNum ];
-	G_AltFireWeapon( ent, parm );
-
-	Vec3 start = ent->s.origin;
-	start.z += ent->r.client->ps.viewheight;
-
-	edict_t * event = G_SpawnEvent( EV_ALTFIREWEAPON, parm, start );
-	event->s.ownerNum = entNum;
-	event->s.origin2 = Vec3(
-		ent->r.client->ps.viewangles.pitch,
-		ent->r.client->ps.viewangles.yaw,
-		ent->r.client->ps.viewangles.roll
-	);
-	event->s.team = ent->s.team;
 }
 
 void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead ) {
@@ -728,7 +711,7 @@ void G_GiveWeapon( edict_t * ent, WeaponType weapon ) {
 	for( size_t i = 0; i < ARRAY_COUNT( ps->weapons ); i++ ) {
 		if( ps->weapons[ i ].weapon == weapon || ps->weapons[ i ].weapon == Weapon_None ) {
 			ps->weapons[ i ].weapon = weapon;
-			ps->weapons[ i ].ammo = GS_GetWeaponDef( weapon )->clip_size;
+			ps->weapons[ i ].ammo = GetWeaponDefProperties( weapon )->clip_size;
 			break;
 		}
 	}

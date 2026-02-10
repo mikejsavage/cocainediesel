@@ -216,7 +216,7 @@ static void SV_Baselines_f( client_t *client, msg_t args ) {
 	if( start == MAX_EDICTS ) {
 		SV_SendServerCommand( client, "precache %i \"%s\"", svs.spawncount, sv.mapname );
 	} else {
-		SV_SendServerCommand( client, "baselines %i %i", svs.spawncount, start );
+		SV_SendServerCommand( client, "baselines %i %u", svs.spawncount, start );
 	}
 
 	SV_AddReliableCommandsToMessage( client, &tmpMessage );

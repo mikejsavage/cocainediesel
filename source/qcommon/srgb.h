@@ -2,7 +2,7 @@
 
 #include "qcommon/types.h"
 
-float sRGBToLinear( float srgb );
+float sRGBToLinear( u8 srgb );
 Vec3 sRGBToLinear( RGB8 srgb );
 Vec4 sRGBToLinear( RGBA8 srgb );
 

@@ -292,7 +292,6 @@ static int CG_MoveFlagsToUpperAnimation( uint32_t moveflags, int carried_weapon 
 		case Weapon_Knife:
 			return TORSO_HOLD_BLADE;
 		case Weapon_9mm:
-		case Weapon_Laser:
 		case Weapon_Deagle:
 			return TORSO_HOLD_PISTOL;
 		case Weapon_Shotgun:
@@ -798,7 +797,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			if( cent->current.effects & EF_HAT )
 				tag = meta->tag_hat;
 			Mat3x4 tag_transform = unscaled_transform * TagTransform( model, pose, tag );
-			DrawGLTFModel( config, attached_model, tag_transform, white.vec4 );
+			DrawGLTFModel( config, attached_model, tag_transform, white.linear );
 		}
 	}
 
@@ -808,7 +807,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 		if( mask_model != NULL ) {
 			PlayerModelMetadata::Tag tag = meta->tag_mask;
 			Mat3x4 tag_transform = unscaled_transform * TagTransform( model, pose, tag );
-			DrawGLTFModel( config, mask_model, tag_transform, white.vec4 );
+			DrawGLTFModel( config, mask_model, tag_transform, white.linear );
 		}
 	}
 }

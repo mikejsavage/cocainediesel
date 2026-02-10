@@ -190,7 +190,7 @@ void WaitForSockets( TempAllocator * temp, const Socket * sockets, size_t num_so
 		FatalWSA( "select" );
 	}
 
-	if( ret == 0 || results == NULL )
+	if( results == NULL )
 		return;
 
 	for( size_t i = 0; i < num_sockets; i++ ) {

@@ -265,13 +265,13 @@ static Span< char > MakeObituary( Allocator * a, RNG * rng, int type, DamageType
 }
 
 void CG_SC_Obituary( const Tokenized & args ) {
-	int victimNum = SpanToInt( args.tokens[ 1 ], 0 );
-	int attackerNum = SpanToInt( args.tokens[ 2 ], 0 );
-	int topAssistorNum = SpanToInt( args.tokens[ 3 ], 0 );
+	int victimNum = Default( SpanToSigned< int >( args.tokens[ 1 ] ), 0 );
+	int attackerNum = Default( SpanToSigned< int >( args.tokens[ 2 ] ), 0 );
+	int topAssistorNum = Default( SpanToSigned< int >( args.tokens[ 3 ] ), 0 );
 	DamageType damage_type;
-	damage_type.encoded = SpanToInt( args.tokens[ 4 ], 0 );
-	bool wallbang = SpanToInt( args.tokens[ 5 ], 0 ) == 1;
-	u64 entropy = SpanToU64( args.tokens[ 6 ], 0 );
+	damage_type.encoded = Default( SpanToSigned< int >( args.tokens[ 4 ] ), 0 );
+	bool wallbang = Default( SpanToSigned< int >( args.tokens[ 5 ] ), 0 ) == 1;
+	u64 entropy = Default( SpanToUnsigned< u64 >( args.tokens[ 6 ] ), 0_u64 );
 
 	Span< const char > victim = PlayerName( victimNum - 1 );
 	Span< const char > attacker = attackerNum == 0 ? ""_sp : PlayerName( attackerNum - 1 );
@@ -310,10 +310,10 @@ void CG_SC_Obituary( const Tokenized & args ) {
 		current->type = OBITUARY_ACCIDENT;
 
 		if( damage_type == WorldDamage_Void ) {
-			attacker_name = temp.sv( "{}{}", ImGuiColorToken( black.rgba8 ), "THE VOID" );
+			attacker_name = temp.sv( "{}{}", ImGuiColorToken( black.srgb ), "THE VOID" );
 		}
 		else if( damage_type == WorldDamage_Spike ) {
-			attacker_name = temp.sv( "{}{}", ImGuiColorToken( black.rgba8 ), "A SPIKE" );
+			attacker_name = temp.sv( "{}{}", ImGuiColorToken( black.srgb ), "A SPIKE" );
 		}
 		else {
 			return;
@@ -332,7 +332,7 @@ void CG_SC_Obituary( const Tokenized & args ) {
 	if( assistor == "" ) {
 		CG_AddChat( temp.sv( "{} {}{} {}",
 			attacker_name,
-			ImGuiColorToken( diesel_yellow.rgba8 ), obituary,
+			ImGuiColorToken( diesel_yellow.srgb ), obituary,
 			victim_name
 		) );
 	}
@@ -342,7 +342,7 @@ void CG_SC_Obituary( const Tokenized & args ) {
 			attacker_name,
 			ImGuiColorToken( 255, 255, 255, 255 ), conjugation,
 			assistor_name,
-			ImGuiColorToken( diesel_yellow.rgba8 ), obituary,
+			ImGuiColorToken( diesel_yellow.srgb ), obituary,
 			victim_name
 		) );
 	}
@@ -358,7 +358,7 @@ static PoolHandle< Material2 > DamageTypeToIcon( DamageType type ) {
 	WorldDamage world;
 	DamageCategory category = DecodeDamageType( type, &weapon, &gadget, &world );
 
-	if( category == DamageCategory_Weapon ) {
+	if( category == DamageCategory_Weapon || category == DamageCategory_WeaponAlt ) {
 		return FindMaterial( cgs.media.shaderWeaponIcon[ weapon ] );
 	}
 
@@ -403,8 +403,8 @@ static void GlitchText( Span< char > msg ) {
 }
 
 void CG_DrawScope() {
-	const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
-	if( def->zoom_fov != 0 && cg.predictedPlayerState.zoom_time > 0 ) {
+	const WeaponDef::Properties * def = GetWeaponDefProperties( cg.predictedPlayerState.weapon );
+	if( def->zoom_type == Zoom_Scope && def->zoom_fov != 0 && cg.predictedPlayerState.zoom_time > 0 ) {
 		float frac = cg.predictedPlayerState.zoom_time / float( ZOOMTIME );
 
 		PipelineState pipeline = {
@@ -428,7 +428,7 @@ void CG_DrawScope() {
 				char * msg = temp( "{.2}m", distance / 32.0f );
 				GlitchText( Span< char >( msg + strlen( msg ) - 3, 2 ) );
 
-				DrawText( cls.fontItalic, cgs.textSizeSmall, msg, Alignment_RightTop, frame_static.viewport_width / 2 - offset, frame_static.viewport_height / 2 + offset, red.vec4 );
+				DrawText( cls.fontItalic, cgs.textSizeSmall, msg, Alignment_RightTop, frame_static.viewport_width / 2 - offset, frame_static.viewport_height / 2 + offset, red.linear );
 			}
 
 			if( trace.ent > 0 && trace.ent <= MAX_CLIENTS ) {
@@ -439,7 +439,7 @@ void CG_DrawScope() {
 				char * msg = temp( "{}?", RandomElement( &obituary_rng, normal_obituaries ) );
 				GlitchText( Span< char >( msg, strlen( msg ) - 1 ) );
 
-				DrawText( cls.fontItalic, cgs.textSizeSmall, msg, Alignment_LeftTop, frame_static.viewport_width / 2 + offset, frame_static.viewport_height / 2 + offset, color, black.vec4 );
+				DrawText( cls.fontItalic, cgs.textSizeSmall, msg, Alignment_LeftTop, frame_static.viewport_width / 2 + offset, frame_static.viewport_height / 2 + offset, color, black.linear );
 			}
 		}
 	}
@@ -484,72 +484,16 @@ static u8 CheckRGBA8Component( lua_State * L, int idx, int narg ) {
 	return u8( val );
 }
 
-static bool IsHex( char c ) {
-	return ( c >= '0' && c <= '9' ) || ( c >= 'a' && c <= 'f' ) || ( c >= 'A' && c <= 'F' );
-}
-
-static bool ParseHexDigit( u8 * digit, char c ) {
-	if( !IsHex( c ) )
-		return false;
-	if( c >= '0' && c <= '9' ) *digit = c - '0';
-	if( c >= 'a' && c <= 'f' ) *digit = 10 + c - 'a';
-	if( c >= 'A' && c <= 'F' ) *digit = 10 + c - 'A';
-	return true;
-}
-
-static bool ParseHexByte( u8 * byte, char a, char b ) {
-	u8 x, y;
-	if( !ParseHexDigit( &x, a ) || !ParseHexDigit( &y, b ) )
-		return false;
-	*byte = x * 16 + y;
-	return true;
-}
-
-static bool ParseHexColor( RGBA8 * rgba, Span< const char > str ) {
-	if( str.n == 0 || str[ 1 ] == '#' )
-		return false;
-
-	str++;
-
-	char digits[ 8 ];
-	digits[ 6 ] = 'f';
-	digits[ 7 ] = 'f';
-
-	if( str.n == 3 || str.n == 4 ) {
-		// #rgb #rgba
-		for( size_t i = 0; i < str.n; i++ ) {
-			digits[ i * 2 + 0 ] = str[ i ];
-			digits[ i * 2 + 1 ] = str[ i ];
-		}
-	}
-	else if( str.n == 6 || str.n == 8 ) {
-		// #rrggbb #rrggbbaa
-		for( size_t i = 0; i < str.n; i++ ) {
-			digits[ i ] = str[ i ];
-		}
-	}
-	else {
-		return false;
-	}
-
-	bool ok = true;
-	ok = ok && ParseHexByte( &rgba->r, digits[ 0 ], digits[ 1 ] );
-	ok = ok && ParseHexByte( &rgba->g, digits[ 2 ], digits[ 3 ] );
-	ok = ok && ParseHexByte( &rgba->b, digits[ 4 ], digits[ 5 ] );
-	ok = ok && ParseHexByte( &rgba->a, digits[ 6 ], digits[ 7 ] );
-	return ok;
-}
-
 static Vec4 CheckColor( lua_State * L, int narg ) {
 	int type = lua_type( L, narg );
 	luaL_argcheck( L, type == LUA_TSTRING || type == LUA_TTABLE, narg, "colors must be strings or tables" );
 
 	if( lua_type( L, narg ) == LUA_TSTRING ) {
-		RGBA8 rgba;
-		if( !ParseHexColor( &rgba, LuaToSpan( L, narg ) ) ) {
+		Optional< RGBA8 > rgba = ParseHexColor( LuaToSpan( L, narg ) );
+		if( !rgba.exists ) {
 			luaL_error( L, "color doesn't parse as a hex string: %s", lua_tostring( L, narg ) );
 		}
-		return sRGBToLinear( rgba );
+		return sRGBToLinear( rgba.value );
 	}
 
 	lua_getfield( L, narg, "srgb" );
@@ -909,14 +853,14 @@ static int LuauGetPerkIcon( lua_State * L ) {
 static int LuauGetWeaponReloadTime( lua_State * L ) {
 	u8 w = luaL_checknumber( L, 1 );
 	lua_newtable( L );
-	lua_pushnumber( L, GS_GetWeaponDef( WeaponType( w ) )->reload_time );
+	lua_pushnumber( L, GetWeaponDefProperties( WeaponType( w ) )->reload_time );
 	return 1;
 }
 
 static int LuauGetWeaponStagedReload( lua_State * L ) {
 	u8 w = luaL_checknumber( L, 1 );
 	lua_newtable( L );
-	lua_pushboolean( L, GS_GetWeaponDef( WeaponType( w ) )->staged_reload );
+	lua_pushboolean( L, GetWeaponDefProperties( WeaponType( w ) )->staged_reload );
 	return 1;
 }
 
@@ -1065,7 +1009,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 		int obituary_y = y + yoffset + ( line_height - font_size ) / 2;
 		if( obr->type != OBITUARY_ACCIDENT ) {
 			Vec4 color = CG_TeamColorVec4( obr->attacker_team );
-			DrawText( font, font_size, obr->attacker, x + xoffset, obituary_y, color, black.vec4 );
+			DrawText( font, font_size, obr->attacker, x + xoffset, obituary_y, color, black.linear );
 			xoffset += attacker_width;
 		}
 
@@ -1080,7 +1024,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 		}
 
 		Vec4 color = CG_TeamColorVec4( obr->victim_team );
-		DrawText( font, font_size, obr->victim, x + xoffset, obituary_y, color, black.vec4 );
+		DrawText( font, font_size, obr->victim, x + xoffset, obituary_y, color, black.linear );
 
 		yoffset += line_height;
 	} while( i != next );
@@ -1124,11 +1068,11 @@ static Optional< float > CheckFloat( lua_State * L, int idx, const char * key, b
 	if( lua_type( L, -1 ) == LUA_TSTRING ) {
 		Span< const char > str = LuaToSpan( L, -1 );
 		if( EndsWith( str, "vw" ) || EndsWith( str, "vh" ) ) {
-			float v;
-			if( !TrySpanToFloat( str.slice( 0, str.n - 2 ), &v ) ) {
+			Optional< float > v = SpanToFloat( str.slice( 0, str.n - 2 ) );
+			if( !v.exists ) {
 				luaL_error( L, "%s doesn't parse as a vw/vh: %s", key, str.ptr );
 			}
-			return v * 0.01f * checked_cast< float >( EndsWith( str, "vw" ) ? frame_static.viewport_width : frame_static.viewport_height );
+			return v.value * 0.01f * checked_cast< float >( EndsWith( str, "vw" ) ? frame_static.viewport_width : frame_static.viewport_height );
 		}
 	}
 
@@ -1170,11 +1114,11 @@ static Optional< Clay_SizingAxis > CheckClaySize( lua_State * L, int idx, const 
 	}
 
 	if( EndsWith( str, "%" ) ) {
-		float percent;
-		if( !TrySpanToFloat( str.slice( 0, str.n - 1 ), &percent ) ) {
+		Optional< float > percent = SpanToFloat( str.slice( 0, str.n - 1 ) );
+		if( !percent.exists ) {
 			luaL_error( L, "size doesn't parse as a percent: %s", str.ptr );
 		}
-		return CLAY_SIZING_PERCENT( 0.01f * percent );
+		return CLAY_SIZING_PERCENT( 0.01f * percent.value );
 	}
 
 	luaL_error( L, "bad size: %s = %s", key, str.ptr );
@@ -1342,7 +1286,6 @@ static Optional< ClayTextAndConfig > GetOptionalClayTextConfig( lua_State * L, i
 			.letterSpacing = 0,
 			.lineHeight = u16( Default( CheckFloat( L, -1, "line_height" ), 1.0f ) * size ),
 			.wrapMode = CLAY_TEXT_WRAP_NONE,
-			.hashStringContents = true,
 		},
 		.border_color = CheckOptionalColor( L, -1, "text_border" ),
 		.fitted_text = CheckClayFittedText( L, idx ),
@@ -1383,7 +1326,7 @@ static Clay_BorderElementConfig GetClayBorderConfig( lua_State * L, int idx ) {
 	return border;
 }
 
-static Clay_ImageElementConfig GetClayImageConfig( lua_State * L, int idx, Vec4 * tint ) {
+static Clay_ImageElementConfig GetClayImageConfig( lua_State * L, int idx, Vec4 * tint, float * aspect_ratio ) {
 	lua_getfield( L, idx, "image" );
 	StringHash name = CheckHash( L, -1 );
 	lua_pop( L, 1 );
@@ -1391,11 +1334,11 @@ static Clay_ImageElementConfig GetClayImageConfig( lua_State * L, int idx, Vec4 
 	if( name == EMPTY_HASH )
 		return { };
 
-	*tint = Default( CheckOptionalColor( L, -1, "color" ), white.vec4 );
+	*tint = Default( CheckOptionalColor( L, -1, "color" ), white.linear );
+	*aspect_ratio = 1.0f; // TODO
 
 	return Clay_ImageElementConfig {
 		.imageData = bit_cast< void * >( name.hash ),
-		.sourceDimensions = { 1, 1 }, // TODO
 	};
 }
 
@@ -1505,8 +1448,9 @@ static void DrawClayNodeRecursive( lua_State * L ) {
 		custom = GetOptionalClayCallbackConfig( L, -1 );
 	}
 
-	Vec4 image_tint;
-	Clay_ImageElementConfig image_config = GetClayImageConfig( L, -1, &image_tint );
+	Vec4 image_tint = Vec4( 0.0f );
+	float image_aspect_ratio = 0.0f;
+	Clay_ImageElementConfig image_config = GetClayImageConfig( L, -1, &image_tint, &image_aspect_ratio );
 
 	Clay__OpenElement();
 	Clay__ConfigureOpenElement( Clay_ElementDeclaration {
@@ -1514,6 +1458,7 @@ static void DrawClayNodeRecursive( lua_State * L ) {
 		.layout = GetClayLayoutConfig( L, -1 ),
 		.backgroundColor = Default( GetOptionalClayColor( L, -1, "background" ), { } ),
 		.cornerRadius = GetClayBorderRadius( L, -1 ),
+		.aspectRatio = { Default( CheckFloat( L, -1, "aspect_ratio" ), image_aspect_ratio ) },
 		.image = image_config,
 		.floating = GetClayFloatConfig( L, -1 ),
 		.custom = Clay_CustomElementConfig {
@@ -1746,10 +1691,14 @@ void CG_DrawHUD() {
 	lua_pushnumber( hud_L, cg.predictedPlayerState.health );
 	lua_setfield( hud_L, -2, "health" );
 
+	lua_pushnumber( hud_L, cg.animationState.smoothed_health );
+	lua_setfield( hud_L, -2, "smoothed_health" );
+
 	lua_pushnumber( hud_L, cg.predictedPlayerState.max_health );
 	lua_setfield( hud_L, -2, "max_health" );
 
-	lua_pushboolean( hud_L, cg.predictedPlayerState.zoom_time > 0 );
+	bool scoping = GetWeaponDefProperties( cg.predictedPlayerState.weapon )->zoom_type == Zoom_Scope && cg.predictedPlayerState.zoom_time > 0;
+	lua_pushboolean( hud_L, scoping );
 	lua_setfield( hud_L, -2, "zooming" );
 
 	lua_pushnumber( hud_L, cg.predictedPlayerState.weapon );
@@ -1801,7 +1750,7 @@ void CG_DrawHUD() {
 	lua_pushboolean( hud_L, cg.predictedPlayerState.can_change_loadout );
 	lua_setfield( hud_L, -2, "can_change_loadout" );
 
-	lua_pushnumber( hud_L, cg.predictedPlayerState.progress );
+	lua_pushnumber( hud_L, Unlerp01( u16( 0 ), cg.predictedPlayerState.progress, U16_MAX ) );
 	lua_setfield( hud_L, -2, "bomb_progress" );
 
 	lua_pushnumber( hud_L, cg.predictedPlayerState.progress_type );
@@ -1886,7 +1835,7 @@ void CG_DrawHUD() {
 
 	lua_createtable( hud_L, Weapon_Count - 1, 0 );
 	for( size_t i = 0; i < ARRAY_COUNT( cg.predictedPlayerState.weapons ); i++ ) {
-		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapons[ i ].weapon );
+		const WeaponDef::Properties * def = GetWeaponDefProperties( cg.predictedPlayerState.weapons[ i ].weapon );
 
 		if( cg.predictedPlayerState.weapons[ i ].weapon == Weapon_None )
 			continue;
@@ -1959,7 +1908,7 @@ void CG_DrawHUD() {
 	lua_pushboolean( hud_L, CG_ScoreboardShown() );
 	lua_setfield( hud_L, -2, "scoreboard" );
 
-	bool hud_lua_ran_ok;
+	[[maybe_unused]] bool hud_lua_ran_ok;
 	clay_element_counter = 1;
 	{
 		TracyZoneScopedN( "Luau" );

@@ -3,7 +3,8 @@
 	<group name="worldspawn" color="0 0 0">
 		The world
 		<string key="gametype" name="Gametype">Set to gladiator to make this a gladiator map</string>
-		<boolean key="randomise_arena" name="Randomise Arena">Only for the gladiator shim map</boolean>
+		<boolean key="randomise_arena" name="Randomise arena">Only for the gladiator shim map</boolean>
+		<color key="outline_color" name="Outlines color" value="">Outline colors, RGB 0-255/#hex</color>
 	</group>
 
 	<point name="spawn_gladiator" color="0 0.2 1" box="-16 -16 -24 16 16 40" model="players/rigg/model.glb">
@@ -95,14 +96,21 @@
 		<angles key="angles" name="Pitch Yaw Roll" value="0 0 0">Individual control of PITCH, YAW, and ROLL (default 0 0 0).</angles>
 		<real key="modelscale" name="Uniform Scale" value="1">Floating-point value used to scale a model up or down (default 1.0).</real>
 		<real3 key="modelscale_vec" name="Scale XYZ" value="1 1 1">Floating-point vector used to scale a model's axes individually (default 1.0 1.0 1.0).</real3>
+		<color key="color" name="Color" value="255 255 255 255">Model color, RGBA 0-255/#hex</color>
 	</point>
 
-	<point name="decal" color="1 0 0" box="-8 -8 -8 8 8 8" model="entities/decal/radiant_model.glb">
+	<point name="light" color="1 1 1" box="-4 -4 -4 4 4 4" model="dev/editor_models/light.glb">
+		It's a light
+		<color key="color" name="Color" value="255 255 255">Light color, RGB 0-255/#hex</color>
+		<real key="intensity" name="Intensity" value="10000">Brightness, see cdvfx for reference values e.g. rocket explosion = 1,000,000/bullet impact = 500</real>
+	</point>
+
+	<point name="decal" color="1 0 0" box="-8 -8 0 8 8 16" model="entities/decal/radiant_model.glb">
 		Place a decal to be loaded at runtime. MAKE SURE RADIANT ISN'T SETTING modelscale_vec, DECALS ONLY SUPPORT UNIFORM SCALING
 		<texture key="material" name="material">Name of material</texture>
 		<angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
 		<real key="modelscale" name="Uniform Scale" value="16">Radius</real>
-		<color key="color" name="color" value="1 1 1 1">Decal color, RGBA 0-1</color>
+		<color key="color" name="Color" value="255 255 255 255">Decal color, RGBA 0-255/#hex</color>
 		<model key="model" name="Model File" value="entities/decal/radiant_model.glb">We need this key so radiant lets you scale the ent, ignore</model>
 	</point>
 

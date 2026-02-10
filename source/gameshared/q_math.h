@@ -63,6 +63,7 @@ Vec3 AngleDelta( Vec3 angle1, Vec3 angle2 );
 EulerDegrees2 AngleDelta( EulerDegrees2 a, EulerDegrees2 b );
 EulerDegrees3 VecToAngles( Vec3 vec );
 void AnglesToAxis( EulerDegrees3 angles, mat3_t axis );
+Mat3x4 AnglesToMat3x4( EulerDegrees3 angles );
 void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent );
 
 void Matrix3_TransformVector( const mat3_t m, Vec3 v, Vec3 * out );
@@ -73,24 +74,24 @@ float PositiveMod( float x, float y );
 double PositiveMod( double x, double y );
 
 template< typename T, u64 Bits = sizeof( T ) * 8 >
-float Dequantize01( T x ) {
+constexpr float Dequantize01( T x ) {
 	return x / float( ( 1_u64 << Bits ) - 1 );
 }
 
 template< typename T, u64 Bits = sizeof( T ) * 8 >
-T Quantize01( float x ) {
+constexpr T Quantize01( float x ) {
 	Assert( x >= 0.0f && x <= 1.0f );
 	return T( x * float( ( 1_u64 << Bits ) - 1 ) + 0.5f );
 }
 
 // these map 2^n - 1 and 2^n - 2 to 1.0f so we can exactly represent 0
 template< typename T, u64 Bits = sizeof( T ) * 8 >
-float Dequantize11( T x ) {
+constexpr float Dequantize11( T x ) {
 	return Min2( 1.0f, ( x / float( ( 1_u64 << Bits ) - 2 ) - 0.5f ) * 2.0f );
 }
 
 template< typename T, u64 Bits = sizeof( T ) * 8 >
-T Quantize11( float x ) {
+constexpr T Quantize11( float x ) {
 	Assert( x >= -1.0f && x <= 1.0f );
 	return T( ( x * 0.5f + 0.5f ) * float( ( 1_u64 << Bits ) - 2 ) + 0.5f );
 }

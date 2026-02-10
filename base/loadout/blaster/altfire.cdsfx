@@ -1,0 +1,4 @@
+{
+	attenuation idle
+	find_sounds ./fire
+}

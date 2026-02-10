@@ -1,0 +1,5 @@
+{
+	attenuation static
+	volume 1
+	find_sounds ./fire
+}

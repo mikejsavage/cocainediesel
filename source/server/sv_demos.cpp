@@ -123,7 +123,7 @@ void SV_Demo_Record( Span< const char > name ) {
 
 	Com_Printf( "Recording server demo: %s\n", filename );
 
-	bool recording = StartRecordingDemo( &temp, &record_demo_context, filename, svs.spawncount, svc.snapFrameTime, server_gs.maxclients, sv.baselines );
+	bool recording = StartRecordingDemo( &temp, &record_demo_context, filename, svc.snapFrameTime, server_gs.maxclients, sv.baselines );
 	if( !recording )
 		return;
 
@@ -275,11 +275,11 @@ void SV_DemoGetUrl_f( edict_t * ent, msg_t msg ) {
 		}
 	};
 
-	u64 id;
-	if( !TrySpanToU64( args.tokens[ 1 ], &id ) || id > demos.n ) {
+	Optional< u64 > id = SpanToUnsigned< u64 >( args.tokens[ 1 ] );
+	if( !id.exists || id.value > demos.n ) {
 		PF_GameCmd( ent, "pr \"demoget <id from demolist>\"\n" );
 		return;
 	}
 
-	PF_GameCmd( ent, temp( "downloaddemo \"{}/{}\"", GetDemoDir( &temp ), demos[ id - 1 ] ) );
+	PF_GameCmd( ent, temp( "downloaddemo \"{}/{}\"", GetDemoDir( &temp ), demos[ id.value - 1 ] ) );
 }

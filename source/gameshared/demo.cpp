@@ -105,7 +105,7 @@ static void CheckedZstdSetParameter( ZSTD_CCtx * zstd, ZSTD_cParameter parameter
 }
 
 bool StartRecordingDemo(
-	TempAllocator * temp, RecordDemoContext * ctx, const char * filename, unsigned int spawncount, unsigned int snapFrameTime,
+	TempAllocator * temp, RecordDemoContext * ctx, const char * filename, unsigned int snapFrameTime,
 	int max_clients, const SyncEntityState * baselines
 ) {
 	*ctx = { };
@@ -149,7 +149,7 @@ bool StartRecordingDemo(
 	// serverdata message
 	MSG_WriteUint8( &msg, svc_serverdata );
 	MSG_WriteUint32( &msg, APP_PROTOCOL_VERSION );
-	MSG_WriteInt32( &msg, spawncount );
+	MSG_WriteInt32( &msg, 0 ); // spawncount
 	MSG_WriteInt16( &msg, (unsigned short)snapFrameTime );
 	MSG_WriteUint8( &msg, max_clients );
 	MSG_WriteInt16( &msg, -1 ); // playernum

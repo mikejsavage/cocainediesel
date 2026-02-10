@@ -62,7 +62,7 @@ void CG_CenterPrint( Span< const char > str ) {
 }
 
 static void CG_DrawCenterString() {
-	DrawText( cls.fontNormal, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, frame_static.viewport_width * 0.5f, frame_static.viewport_height * 0.75f, white.vec4, black.vec4 );
+	DrawText( cls.fontNormal, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, frame_static.viewport_width * 0.5f, frame_static.viewport_height * 0.75f, white.linear, black.linear );
 }
 
 //============================================================================
@@ -82,7 +82,7 @@ static bool CG_IsShownCrosshair() {
 	WeaponType weapon = cg.predictedPlayerState.weapon;
 	return cg.predictedPlayerState.health > 0 &&
 			!( weapon == Weapon_Knife || weapon == Weapon_Sniper || weapon == Weapon_Bat ) &&
-			!( weapon == Weapon_Scout && cg.predictedPlayerState.zoom_time > 0 );
+			cg.predictedPlayerState.zoom_time <= 0;
 }
 
 void CG_ScreenCrosshairShootUpdate( u16 refire_time ) {
@@ -105,7 +105,7 @@ void CG_DrawCrosshair( int x, int y ) {
 		return;
 
 	static constexpr Time crosshairDamageTime = Milliseconds( 200 );
-	Vec4 color = cls.monotonicTime - scr_damagetime <= crosshairDamageTime ? red.vec4 : white.vec4;
+	Vec4 color = cls.monotonicTime - scr_damagetime <= crosshairDamageTime ? red.linear : white.linear;
 
 	int size = Clamp( 1, cg_crosshair_size->integer, maxCrosshairSize );
 	int gap = Clamp( 0, cg_crosshair_gap->integer, maxCrosshairGapSize );
@@ -116,11 +116,11 @@ void CG_DrawCrosshair( int x, int y ) {
 		size += diff * 0.5f;
 	}
 
-	CG_FillRect( x - 2, y - 2 - size - gap, 4, 4 + size, black.vec4 );
-	CG_FillRect( x - 2, y - 2 + gap, 4, 4 + size, black.vec4 );
+	CG_FillRect( x - 2, y - 2 - size - gap, 4, 4 + size, black.linear );
+	CG_FillRect( x - 2, y - 2 + gap, 4, 4 + size, black.linear );
 
-	CG_FillRect( x - 2 - size - gap, y - 2, 4 + size, 4, black.vec4 );
-	CG_FillRect( x - 2 + gap, y - 2, 4 + size, 4, black.vec4 );
+	CG_FillRect( x - 2 - size - gap, y - 2, 4 + size, 4, black.linear );
+	CG_FillRect( x - 2 + gap, y - 2, 4 + size, 4, black.linear );
 
 	CG_FillRect( x - 1, y - 1 - gap - size, 2, 2 + size, color );
 	CG_FillRect( x - 1, y - 1 + gap, 2, 2 + size, color );
@@ -159,7 +159,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size ) {
 			continue;
 		}
 
-		Vec4 color = white.vec4;
+		Vec4 color = white.linear;
 
 		float fadeFrac;
 		if( cent->current.number != cg.pointedNum ) {
@@ -180,13 +180,13 @@ void CG_DrawPlayerNames( const Font * font, float font_size ) {
 			continue;
 		}
 
-		Vec3 headpos = Vec3( 0.0f, 0.0f, 34.0f * cent->interpolated.scale.z );
+		Vec3 headpos = Vec3::Z( 34.0f * cent->interpolated.scale.z );
 		trace_t trace = CG_Trace( cg.view.origin, MinMax3( 0.0f ), cent->interpolated.origin + headpos, cg.predictedPlayerState.POVnum, SolidMask_Opaque );
 		if( trace.HitSomething() && trace.ent != cent->current.number ) {
 			continue;
 		}
 
-		Vec3 drawOrigin = cent->interpolated.origin + Vec3( 0.0f, 0.0f, playerbox_stand.maxs.z + 8 );
+		Vec3 drawOrigin = cent->interpolated.origin + Vec3::Z( playerbox_stand.maxs.z + 8 );
 
 		Vec2 coords = WorldToScreen( drawOrigin );
 		if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
@@ -194,7 +194,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size ) {
 		}
 
 		float size = font_size * playerNamesZgrow * ( 1.0f - ( dist / ( playerNamesZfar * 1.8f ) ) );
-		DrawText( font, size, PlayerName( i ), Alignment_CenterBottom, coords.x, coords.y, color, black.vec4 );
+		DrawText( font, size, PlayerName( i ), Alignment_CenterBottom, coords.x, coords.y, color, black.linear );
 	}
 }
 
@@ -283,14 +283,14 @@ void CG_DrawDamageNumbers( float obi_size, float dmg_size ) {
 		}
 		else {
 			snprintf( buf, sizeof( buf ), "%d", dn.damage );
-			color = dn.headshot ? sRGBToLinear( diesel_yellow.rgba8 ) : white.vec4;
+			color = dn.headshot ? diesel_yellow.linear : white.linear;
 			font_size = Lerp( dmg_size, Unlerp01( 0, dn.damage, 50 ), cgs.textSizeSmall );
 		}
 
 		float alpha = 1 - Max2( 0.0f, frac - 0.75f ) / 0.25f;
 		color.w *= alpha;
 
-		DrawText( cls.fontNormal, font_size, buf, Alignment_CenterBottom, coords.x, coords.y, color, black.vec4 );
+		DrawText( cls.fontNormal, font_size, buf, Alignment_CenterBottom, coords.x, coords.y, color, black.linear );
 	}
 }
 
@@ -342,7 +342,7 @@ void CG_AddBombIndicator( const centity_t * cent ) {
 		Span< Transform > pose = SampleAnimation( &temp, model, cent->interpolated.animation_time );
 		MatrixPalettes palettes = ComputeMatrixPalettes( &temp, model, pose );
 
-		Vec3 bomb_origin = cent->interpolated.origin - Vec3( 0.0f, 0.0f, 32.0f ); // BOMB_HUD_OFFSET
+		Vec3 bomb_origin = cent->interpolated.origin - Vec3::Z( 32.0f ); // BOMB_HUD_OFFSET
 
 		Mat3x4 transform = FromAxisAndOrigin( cent->interpolated.axis, bomb_origin );
 		Vec3 tip = ( transform * model->transform * palettes.node_transforms[ tip_node ] * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xyz();
@@ -368,7 +368,7 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 	Team my_team = cg.predictedPlayerState.team;
 	bool show_labels = my_team != Team_None && client_gs.gameState.match_state == MatchState_Playing;
 
-	Vec4 yellow = sRGBToLinear( diesel_yellow.rgba8 );
+	Vec4 yellow = diesel_yellow.linear;
 
 	// TODO: draw arrows when clamped
 
@@ -380,12 +380,12 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 
 			char buf[ 4 ];
 			snprintf( buf, sizeof( buf ), "%c", site->letter );
-			DrawText( cls.fontNormal, name_size, buf, Alignment_CenterMiddle, coords.x, coords.y, yellow, black.vec4 );
+			DrawText( cls.fontNormal, name_size, buf, Alignment_CenterMiddle, coords.x, coords.y, yellow, black.linear );
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
 				const char * msg = my_team == client_gs.gameState.bomb.attacking_team ? "ATTACK" : "DEFEND";
 				coords.y += name_size * 0.8f;
-				DrawText( cls.fontNormal, goal_size, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, black.vec4 );
+				DrawText( cls.fontNormal, goal_size, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, black.linear );
 			}
 		}
 	}
@@ -400,7 +400,7 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 		}
 		else {
 			if( show_labels ) {
-				Vec4 color = white.vec4;
+				Vec4 color = white.linear;
 				const char * msg = "";
 
 				if( bomb.state == BombState_Dropped ) {
@@ -408,7 +408,7 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 					color = AttentionGettingColor();
 
 					// TODO: lol
-					DoVisualEffect( "loadout/bomb/pickup_sparkle", bomb.origin - Vec3( 0.0f, 0.0f, 32.0f ), Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, AttentionGettingColor() );
+					DoVisualEffect( "loadout/bomb/pickup_sparkle", bomb.origin - Vec3::Z( 32.0f ), Vec3::Z( 1.0f ), 1.0f, AttentionGettingColor() );
 				}
 				else if( bomb.state == BombState_Planting ) {
 					msg = "PLANTING";
@@ -425,7 +425,7 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 				}
 
 				float y = coords.y - name_size / 3;
-				DrawText( cls.fontNormal, goal_size, msg, Alignment_CenterMiddle, coords.x, y, color, black.vec4 );
+				DrawText( cls.fontNormal, goal_size, msg, Alignment_CenterMiddle, coords.x, y, color, black.linear );
 			}
 		}
 	}

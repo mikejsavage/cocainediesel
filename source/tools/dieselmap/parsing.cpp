@@ -12,6 +12,10 @@
 
 static constexpr Span< const char > NullSpan( NULL, 0 );
 
+// NOTE(mike): Radiant strips the textures/ prefix from material names and we
+// have configured TrenchBroom to do the same, readd it here
+static constexpr u64 textures_prefix_hash = Hash64_CT( "textures/" );
+
 static Span< const char > ParseRange( Span< const char > str, char lo, char hi ) {
 	return str.n > 0 && str[ 0 ] >= lo && str[ 0 ] <= hi ? str + 1 : NullSpan;
 }
@@ -169,7 +173,7 @@ static Span< const char > Capture( u32 * capture, Span< const char > str ) {
 	if( res.ptr == NULL )
 		return NullSpan;
 
-	if( !TrySpanToU32( capture_str, capture ) )
+	if( !SpanToUnsigned< u32 >( capture_str, capture ) )
 		return NullSpan;
 
 	return res;
@@ -191,9 +195,11 @@ static Span< const char > Capture( float * capture, Span< const char > str ) {
 	if( res.ptr == NULL )
 		return NullSpan;
 
-	if( !TrySpanToFloat( capture_str, capture ) )
+	Optional< float > x = SpanToFloat( capture_str );
+	if( !x.exists )
 		return NullSpan;
 
+	*capture = x.value;
 	return res;
 }
 
@@ -222,12 +228,13 @@ static Span< const char > ParsePlane( Vec3 * points, Span< const char > str ) {
 // map specific stuff
 
 static Span< const char > SkipFlags( Span< const char > str ) {
+	// content flags
 	str = ParseOr( str,
 		[]( Span< const char > str ) { return SkipToken( str, "0" ); },
 		[]( Span< const char > str ) { return SkipToken( str, "134217728" ); } // detail bit
 	);
-	str = SkipToken( str, "0" );
-	str = SkipToken( str, "0" );
+	str = SkipToken( str, "0" ); // surface flags
+	str = SkipToken( str, "0" ); // nobody knows, radiant calls this "value"
 	return str;
 }
 
@@ -235,7 +242,8 @@ static Span< const char > ParseQ1Face( ParsedBrushFace * face, Span< const char 
 	str = ParsePlane( face->plane, str );
 	str = ParseWord( &face->material, str );
 
-	face->material_hash = Hash64( face->material );
+	face->material_hash = Hash64( face->material, textures_prefix_hash );
+	face->uv_basis_transform = { };
 
 	float u, v, angle, scale_x, scale_y;
 	str = ParseFloat( &u, str );
@@ -243,8 +251,6 @@ static Span< const char > ParseQ1Face( ParsedBrushFace * face, Span< const char 
 	str = ParseFloat( &angle, str );
 	str = ParseFloat( &scale_x, str );
 	str = ParseFloat( &scale_y, str );
-
-	// TODO: convert to transform
 
 	str = ParseOptional( str, SkipFlags );
 
@@ -262,21 +268,22 @@ static Span< const char > ParseQ1Brush( ParsedBrush * brush, Span< const char > 
 static Span< const char > ParseQ3Face( ParsedBrushFace * face, Span< const char > str ) {
 	str = ParsePlane( face->plane, str );
 
-	Vec3 uv_row1 = { };
-	Vec3 uv_row2 = { };
+	Vec3 s = { };
+	Vec3 t = { };
 	str = SkipToken( str, "(" );
-	str = ParseVec3( &uv_row1, str );
-	str = ParseVec3( &uv_row2, str );
+	str = ParseVec3( &s, str );
+	str = ParseVec3( &t, str );
 	str = SkipToken( str, ")" );
 
-	face->texcoords_transform = Mat3(
-		uv_row1.x, uv_row1.y, uv_row1.z,
-		uv_row2.x, uv_row2.y, uv_row2.z,
-		0.0f, 0.0f, 1.0f
+	face->uv_basis_transform = Mat3x4(
+		s.x, s.y, 0.0f, s.z,
+		t.x, t.y, 0.0f, t.z,
+		0.0f, 0.0f, 1.0f, 0.0f
 	);
 
 	str = ParseWord( &face->material, str );
-	face->material_hash = Hash64( face->material.ptr, face->material.num_bytes() );
+	face->material_hash = Hash64( face->material, textures_prefix_hash );
+
 	str = SkipFlags( str );
 
 	return str;
@@ -303,7 +310,7 @@ static Span< const char > ParsePatch( ParsedPatch * patch, Span< const char > st
 	str = SkipToken( str, "{" );
 
 	str = ParseWord( &patch->material, str );
-	patch->material_hash = Hash64( patch->material.ptr, patch->material.num_bytes() );
+	patch->material_hash = Hash64( patch->material, textures_prefix_hash );
 
 	str = SkipToken( str, "(" );
 

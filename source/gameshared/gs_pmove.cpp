@@ -19,7 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/base.h"
+#include "qcommon/array.h"
+#include "gameshared/collision.h"
+#include "gameshared/intersection_tests.h"
 #include "gameshared/movement.h"
+#include "gameshared/gs_weapons.h"
 
 static constexpr float pm_ladderspeed = 300.0f;
 
@@ -59,56 +63,55 @@ constexpr float SLIDEMOVE_PLANEINTERACT_EPSILON = 0.05f;
 * Does not modify any world state?
 */
 
-#define MAX_CLIP_PLANES 5
-
-static void PM_AddTouchEnt( int entNum ) {
-	if( pm->numtouch >= MAXTOUCH || entNum < 0 ) {
+static void PM_AddTouchEnt( int entNum, pmove_t * my_pm ) {
+	if( my_pm->numtouch >= ARRAY_COUNT( my_pm->touchents ) ) {
 		return;
 	}
 
 	// see if it is already added
-	for( int i = 0; i < pm->numtouch; i++ ) {
-		if( pm->touchents[i] == entNum ) {
+	for( int i = 0; i < my_pm->numtouch; i++ ) {
+		if( my_pm->touchents[i] == entNum ) {
 			return;
 		}
 	}
 
 	// add it
-	pm->touchents[pm->numtouch] = entNum;
-	pm->numtouch++;
+	my_pm->touchents[my_pm->numtouch] = entNum;
+	my_pm->numtouch++;
 }
 
+static int PM_SlideMove( const gs_module_api_t & api, pmove_t * my_pm, pml_t * my_pml ) {
+	constexpr size_t MAX_CLIP_PLANES = 5;
 
-static int PM_SlideMove() {
 	TracyZoneScoped;
 
 	Vec3 planes[MAX_CLIP_PLANES];
 	constexpr int maxmoves = 4;
-	float remainingTime = pml.frametime;
+	float remainingTime = my_pml->frametime;
 	int blockedmask = 0;
 
-	Vec3 last_valid_origin = pml.origin;
+	Vec3 last_valid_origin = my_pml->origin;
 
-	if( pm->groundentity != -1 ) { // clip velocity to ground, no need to wait
+	if( my_pm->groundentity != -1 ) { // clip velocity to ground, no need to wait
 		// if the ground is not horizontal (a ramp) clipping will slow the player down
-		if( pml.groundplane.z == 1.0f && pml.velocity.z < 0.0f ) {
-			pml.velocity.z = 0.0f;
+		if( my_pml->groundplane.z == 1.0f && my_pml->velocity.z < 0.0f ) {
+			my_pml->velocity.z = 0.0f;
 		}
 	}
 
 	int numplanes = 0; // clean up planes count for checking
 
 	for( int moves = 0; moves < maxmoves; moves++ ) {
-		Vec3 end = pml.origin + pml.velocity * remainingTime;
+		Vec3 end = my_pml->origin + my_pml->velocity * remainingTime;
 
-		trace_t trace = pmove_gs->api.Trace( pml.origin, pm->bounds, end, pm->playerState->POVnum, pm->solid_mask, 0 );
+		trace_t trace = api.Trace( my_pml->origin, my_pm->bounds, end, my_pm->playerState->POVnum, my_pm->solid_mask, 0 );
 		if( trace.GotNowhere() ) { // trapped into a solid
-			pml.origin = last_valid_origin;
+			my_pml->origin = last_valid_origin;
 			return SLIDEMOVEFLAG_TRAPPED;
 		}
 
 		if( trace.GotSomewhere() ) {
-			pml.origin = trace.endpos;
+			my_pml->origin = trace.endpos;
 			last_valid_origin = trace.endpos;
 		}
 
@@ -117,7 +120,7 @@ static int PM_SlideMove() {
 		}
 
 		// save touched entity for return output
-		PM_AddTouchEnt( trace.ent );
+		PM_AddTouchEnt( trace.ent, my_pm );
 
 		// at this point we are blocked but not trapped.
 
@@ -136,7 +139,7 @@ static int PM_SlideMove() {
 			int i;
 			for( i = 0; i < numplanes; i++ ) {
 				if( Dot( trace.normal, planes[i] ) > ( 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) ) {
-					pml.velocity = trace.normal + pml.velocity;
+					my_pml->velocity = trace.normal + my_pml->velocity;
 					break;
 				}
 			}
@@ -147,7 +150,7 @@ static int PM_SlideMove() {
 
 		// security check: we can't store more planes
 		if( numplanes >= MAX_CLIP_PLANES ) {
-			pml.velocity = Vec3( 0.0f );
+			my_pml->velocity = Vec3( 0.0f );
 			return SLIDEMOVEFLAG_TRAPPED;
 		}
 
@@ -160,42 +163,42 @@ static int PM_SlideMove() {
 		//
 
 		for( int i = 0; i < numplanes; i++ ) {
-			if( Dot( pml.velocity, planes[i] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) { // would not touch it
+			if( Dot( my_pml->velocity, planes[i] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) { // would not touch it
 				continue;
 			}
 
-			pml.velocity = GS_ClipVelocity( pml.velocity, planes[i], PM_OVERBOUNCE );
+			my_pml->velocity = GS_ClipVelocity( my_pml->velocity, planes[i] );
 			// see if we enter a second plane
 			for( int j = 0; j < numplanes; j++ ) {
 				if( j == i ) { // it's the same plane
 					continue;
 				}
-				if( Dot( pml.velocity, planes[j] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+				if( Dot( my_pml->velocity, planes[j] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
 					continue; // not with this one
 				}
 
 				//there was a second one. Try to slide along it too
-				pml.velocity = GS_ClipVelocity( pml.velocity, planes[j], PM_OVERBOUNCE );
+				my_pml->velocity = GS_ClipVelocity( my_pml->velocity, planes[j] );
 
 				// check if the slide sent it back to the first plane
-				if( Dot( pml.velocity, planes[i] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+				if( Dot( my_pml->velocity, planes[i] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
 					continue;
 				}
 
 				// bad luck: slide the original velocity along the crease
 				Vec3 dir = SafeNormalize( Cross( planes[i], planes[j] ) );
-				float value = Dot( dir, pml.velocity );
-				pml.velocity = dir * value;
+				float value = Dot( dir, my_pml->velocity );
+				my_pml->velocity = dir * value;
 
 				// check if there is a third plane, in that case we're trapped
 				for( int k = 0; k < numplanes; k++ ) {
 					if( j == k || i == k ) { // it's the same plane
 						continue;
 					}
-					if( Dot( pml.velocity, planes[k] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+					if( Dot( my_pml->velocity, planes[k] ) >= SLIDEMOVE_PLANEINTERACT_EPSILON ) {
 						continue; // not with this one
 					}
-					pml.velocity = Vec3( 0.0f );
+					my_pml->velocity = Vec3( 0.0f );
 					break;
 				}
 			}
@@ -214,54 +217,78 @@ static int PM_SlideMove() {
 static void PM_StepSlideMove() {
 	TracyZoneScoped;
 
-	Vec3 start_o = pml.origin;
-	Vec3 start_v = pml.velocity;
+	Vec3 initial_origin = pml.origin;
+	Vec3 initial_velocity = pml.velocity;
 
-	int blocked = PM_SlideMove();
-
-	Vec3 down_o = pml.origin;
-	Vec3 down_v = pml.velocity;
-
-	Vec3 up = start_o + Vec3( 0.0f, 0.0f, STEPSIZE );
-
-	trace_t trace = pmove_gs->api.Trace( up, pm->bounds, up, pm->playerState->POVnum, pm->solid_mask, 0 );
-	if( trace.GotNowhere() ) // can't step up
+	int blocked = PM_SlideMove( pmove_gs->api, pm, &pml );
+	if( blocked == 0 )
 		return;
 
-	// try sliding above
-	pml.origin = up;
-	pml.velocity = start_v;
+	// try to step over the obstruction, try n candidates up to STEPSIZE height and take the one that goes the furthest
+	// NOTE(mike 20250913): we need to try multiple candidates so you can walk through doors that have a step
+	struct Candidate {
+		Vec3 endpos;
+		Vec3 velocity;
+		Vec3 normal;
+	};
 
-	PM_SlideMove();
+	constexpr size_t num_step_over_candidates = 4;
+	BoundedDynamicArray< Candidate, num_step_over_candidates + 1 > candidates = { };
+	candidates.must_add( { pml.origin, pml.velocity } );
 
-	// push down the final amount
-	Vec3 down = pml.origin - Vec3( 0.0f, 0.0f, STEPSIZE );
-	trace = pmove_gs->api.Trace( pml.origin, pm->bounds, down, pm->playerState->POVnum, pm->solid_mask, 0 );
-	if( trace.GotSomewhere() )
-		pml.origin = trace.endpos;
+	for( size_t i = 0; i < num_step_over_candidates; i++ ) {
+		float step_size = ( float( i + 1 ) / float( num_step_over_candidates ) ) * STEPSIZE;
 
-	up = pml.origin;
+		trace_t up_trace = pmove_gs->api.Trace( initial_origin, pm->bounds, initial_origin + Vec3::Z( step_size ), pm->playerState->POVnum, pm->solid_mask, 0 );
+		if( i == 0 && up_trace.GotNowhere() )
+			break;
 
-	// decide which one went farther
-	float down_dist = LengthSquared( down_o.xy() - start_o.xy() );
-	float up_dist = LengthSquared( up.xy() - start_o.xy() );
+		pml.origin = up_trace.endpos;
+		pml.velocity = initial_velocity;
 
-	if( down_dist >= up_dist || trace.GotNowhere() || ( trace.HitSomething() && !ISWALKABLEPLANE( trace.normal ) ) ) {
-		pml.origin = down_o;
-		pml.velocity = down_v;
+		PM_SlideMove( pmove_gs->api, pm, &pml );
+
+		trace_t down_trace = pmove_gs->api.Trace( pml.origin, pm->bounds, pml.origin - Vec3::Z( step_size ), pm->playerState->POVnum, pm->solid_mask, 0 );
+		if( !down_trace.HitSomething() || ISWALKABLEPLANE( down_trace.normal ) ) {
+			candidates.must_add( {
+				.endpos = down_trace.endpos,
+				.velocity = pml.velocity,
+				.normal = down_trace.normal,
+			} );
+		}
+
+		if( up_trace.HitSomething() )
+			break;
+	}
+
+	size_t best_candidate = 0;
+	float best_sqdistance = LengthSquared( candidates[ 0 ].endpos - initial_origin );
+	for( size_t i = 1; i < candidates.size(); i++ ) {
+		float d = LengthSquared( candidates[ i ].endpos - initial_origin );
+		if( d > best_sqdistance ) {
+			best_candidate = i;
+			best_sqdistance = d;
+		}
+	}
+
+	pml.origin = candidates[ best_candidate ].endpos;
+	pml.velocity = candidates[ best_candidate ].velocity;
+
+	if( best_candidate == 0 ) {
 		return;
 	}
 
 	// only add the stepping output when it was a vertical step (second case is at the exit of a ramp)
-	if( ( blocked & SLIDEMOVEFLAG_WALL_BLOCKED ) || trace.normal.z == 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+	Vec3 normal = candidates[ best_candidate ].normal;
+	if( ( blocked & SLIDEMOVEFLAG_WALL_BLOCKED ) || normal.z == 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
 		pm->step = pml.origin.z - pml.previous_origin.z;
 	}
 
 	// Preserve speed when sliding up ramps
-	float hspeed = Length( start_v.xy() );
-	if( hspeed && ISWALKABLEPLANE( trace.normal ) ) {
-		if( trace.normal.z >= 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
-			pml.velocity = start_v;
+	float hspeed = Length( initial_velocity.xy() );
+	if( hspeed && ISWALKABLEPLANE( normal ) ) {
+		if( normal.z >= 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+			pml.velocity = initial_velocity;
 		} else {
 			Normalize2D( &pml.velocity );
 			pml.velocity = Vec3( pml.velocity.xy() * hspeed, pml.velocity.z );
@@ -272,7 +299,7 @@ static void PM_StepSlideMove() {
 
 	//!! Special case
 	// if we were walking along a plane, then we need to copy the Z over
-	pml.velocity.z = down_v.z;
+	pml.velocity.z = candidates[ 0 ].velocity.z;
 }
 
 /*
@@ -393,6 +420,9 @@ static void PM_Move() {
 	// clamp to server defined max speed
 
 	float maxspeed = pml.maxSpeed;
+	float zoom_maxspeed = pml.maxSpeed * GetWeaponDefProperties( pm->playerState->weapon )->zoom_movement_speed;
+	maxspeed = Lerp( maxspeed, float( pm->playerState->zoom_time ) / float( ZOOMTIME ), zoom_maxspeed );
+
 
 	if( wishspeed > maxspeed ) {
 		wishspeed = maxspeed / wishspeed;
@@ -467,7 +497,7 @@ static void PM_Move() {
 * If the player hull point one-quarter unit down is solid, the player is on ground
 */
 static trace_t PM_GroundTrace() {
-	Vec3 point = pml.origin - Vec3( 0.0f, 0.0f, 0.25f );
+	Vec3 point = pml.origin - Vec3::Z( 0.25f );
 	return pmove_gs->api.Trace( pml.origin, pm->bounds, point, pm->playerState->POVnum, pm->solid_mask, 0 );
 }
 
@@ -526,7 +556,7 @@ static void PM_CategorizePosition() {
 			}
 		}
 
-		if( pm->numtouch < MAXTOUCH && trace.HitSomething() ) {
+		if( pm->numtouch < ARRAY_COUNT( pm->touchents ) && trace.HitSomething() ) {
 			pm->touchents[pm->numtouch] = trace.ent;
 			pm->numtouch++;
 		}
@@ -559,7 +589,7 @@ static void PM_FlyMove() {
 	Vec3 origin = pml.origin;
 	Vec3 velocity = pml.velocity;
 
-	int blocked = PM_SlideMove();
+	int blocked = PM_SlideMove( pmove_gs->api, pm, &pml );
 
 	if( blocked & SLIDEMOVEFLAG_TRAPPED ) { //noclip if we're blocked
 		pml.origin = origin + velocity * pml.frametime;
@@ -778,4 +808,209 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 			pmove_gs->api.PredictedEvent( ps->POVnum, EV_FALL, frac * 255 );
 		}
 	}
+}
+
+bool SweptShapeVsMapModel( const MapData * map, const MapModel * model, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection );
+trace_t MakeTrace( const Ray & ray, const Shape & shape, const Intersection & intersection, const SyncEntityState * ent );
+
+static trace_t TestTrace( Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask, int timeDelta ) {
+	solid_mask = SolidBits( 1 );
+
+	Ray ray = MakeRayStartEnd( start, end );
+
+	Shape aabb = {
+		.type = ShapeType_AABB,
+		.aabb = ToCenterExtents( bounds ),
+	};
+
+	/*Plane plane = {
+		.normal = Vec3( 1.0f, 0.0f, 0.0f ),
+		.distance = 0.0f,
+	};*/
+
+	BoundedDynamicArray< u32, 1 > brush_indices = { 0 };
+
+	BoundedDynamicArray< Plane, 6 > brush_planes = {
+		Plane { .normal = Vec3( 1.0f, 0.0f, 0.0f ), .distance = 0.0f },
+		Plane { .normal = Vec3( -1.0f, 0.0f, 0.0f ), .distance = 1.0f },
+		Plane { .normal = Vec3( 0.0f, 1.0f, 0.0f ), .distance = 1000.0f },
+		Plane { .normal = Vec3( 0.0f, -1.0f, 0.0f ), .distance = 1000.0f },
+		Plane { .normal = Vec3( 0.0f, 0.0f, 1.0f ), .distance = 1000.0f },
+		Plane { .normal = Vec3( 0.0f, 0.0f, -1.0f ), .distance = 1000.0f },
+	};
+
+	MapBrush brush = {
+		.bounds = MinMax3( Vec3( -1.0f, -1000.0f, -1000.0f ), Vec3( 0.0f, 1000.0f, 1000.0f ) ),
+		.first_plane = 0,
+		.num_planes = 6,
+		.solidity = solid_mask,
+	};
+
+	MapKDTreeNode leaf = {
+		.leaf = {
+			.first_brush = 0,
+			.is_leaf = MapKDTreeNode::LEAF,
+			.num_brushes = 1,
+		},
+	};
+
+	MapModel model = {
+		.bounds = brush.bounds,
+		.solidity = solid_mask,
+		.root_node = 0,
+	};
+
+	MapData map = {
+		.models = Span< const MapModel >( &model, 1 ),
+		.nodes = Span< const MapKDTreeNode >( &leaf, 1 ),
+		.brushes = Span< const MapBrush >( &brush, 1 ),
+		.brush_indices = brush_indices.span(),
+		.brush_planes = brush_planes.span(),
+	};
+
+	Intersection intersection;
+	bool hit = SweptShapeVsMapModel( &map, &model, ray, aabb, solid_mask, &intersection );
+
+	SyncEntityState ent = { };
+	return hit ? MakeTrace( ray, aabb, intersection, &ent ) : MakeMissedTrace( ray );
+}
+
+TEST( "Trivial miss slidemove" ) {
+	SyncPlayerState player = { };
+
+	pmove_t test_pm = {
+		.playerState = &player,
+		.bounds = MinMax3( Vec3( -1.0f ), Vec3( 1.0f ) ),
+		.groundentity = -1,
+	};
+
+	pml_t test_pml = {
+		.origin = Vec3( 10.0f, 0.0f, 0.0f ),
+		.velocity = Vec3( -5.0f, 0.0f, 0.0f ),
+		.frametime = 1.0f,
+	};
+
+	gs_module_api_t api = { .Trace = TestTrace };
+
+	int blocked = PM_SlideMove( api, &test_pm, &test_pml );
+
+	Vec3 expected_endpos = Vec3( 5.0f, 0.0f, 0.0f );
+	Vec3 expected_velocity = Vec3( -5.0f, 0.0f, 0.0f );
+
+	return blocked == 0 && Length( expected_endpos - test_pml.origin ) < 0.05f && Length( expected_velocity - test_pml.velocity ) < 0.01f;
+}
+
+TEST( "Directly into plane slidemove" ) {
+	SyncPlayerState player = { };
+
+	pmove_t test_pm = {
+		.playerState = &player,
+		.bounds = MinMax3( Vec3( -1.0f ), Vec3( 1.0f ) ),
+		.groundentity = -1,
+	};
+
+	pml_t test_pml = {
+		.origin = Vec3( 10.0f, 0.0f, 0.0f ),
+		.velocity = Vec3( -20.0f, 0.0f, 0.0f ),
+		.frametime = 1.0f,
+	};
+
+	gs_module_api_t api = { .Trace = TestTrace };
+
+	int blocked = PM_SlideMove( api, &test_pm, &test_pml );
+
+	Vec3 expected_endpos = Vec3( 1.0f, 0.0f, 0.0f );
+	Vec3 expected_velocity = Vec3( 0.0f );
+
+	return blocked != 0 && Length( expected_endpos - test_pml.origin ) < 0.05f && Length( expected_velocity - test_pml.velocity ) < 0.01f;
+}
+
+// TODO: contact is set incorrectly for this test
+// TODO: "modify original_velocity so it parallels all of the clip planes" loop seems busted
+// TODO: the backoff in MakeTrace steps back spatially but not temporarily so slidey slidemoves are slightly shorter than they should be
+TEST( "Single plane slide slidemove" ) {
+	SyncPlayerState player = { };
+
+	pmove_t test_pm = {
+		.playerState = &player,
+		.bounds = MinMax3( Vec3( -1.0f ), Vec3( 1.0f ) ),
+		.groundentity = -1,
+	};
+
+	pml_t test_pml = {
+		.origin = Vec3( 10.0f, 0.0f, 0.0f ),
+		.velocity = Vec3( -20.0f, 0.0f, 20.0f ),
+		.frametime = 1.0f,
+	};
+
+	gs_module_api_t api = { .Trace = TestTrace };
+
+	int blocked = PM_SlideMove( api, &test_pm, &test_pml );
+
+	Vec3 expected_endpos = Vec3( 1.0f, 0.0f, 20.0f );
+	Vec3 expected_velocity = Vec3( 0.0f, 0.0f, 20.0f );
+
+	return blocked != 0 && Length( expected_endpos - test_pml.origin ) < 0.05f && Length( expected_velocity - test_pml.velocity ) < 0.01f;
+}
+
+TEST( "Many frame single plane slide slidemove" ) {
+	SyncPlayerState player = { };
+
+	pmove_t test_pm = {
+		.playerState = &player,
+		.bounds = MinMax3( Vec3( -1.0f ), Vec3( 1.0f ) ),
+		.groundentity = -1,
+	};
+
+	pml_t test_pml = {
+		.origin = Vec3( 10.0f, 0.0f, 0.0f ),
+		.velocity = Vec3( -20.0f, 0.0f, 20.0f ),
+		.frametime = 0.05f,
+	};
+
+	gs_module_api_t api = { .Trace = TestTrace };
+
+	int num_collisions = 0;
+	for( int i = 0; i < 20; i++ ) {
+		int blocked = PM_SlideMove( api, &test_pm, &test_pml );
+		if( blocked != 0 ) {
+			num_collisions++;
+		}
+	}
+
+	Vec3 expected_endpos = Vec3( 1.0f, 0.0f, 20.0f );
+	Vec3 expected_velocity = Vec3( 0.0f, 0.0f, 20.0f );
+
+	return num_collisions == 1 && Length( expected_endpos - test_pml.origin ) < 0.05f && Length( expected_velocity - test_pml.velocity ) < 0.01f;
+}
+
+TEST( "Many frame single plane holding direction slide slidemove" ) {
+	SyncPlayerState player = { };
+
+	pmove_t test_pm = {
+		.playerState = &player,
+		.bounds = MinMax3( Vec3( -1.0f ), Vec3( 1.0f ) ),
+		.groundentity = -1,
+	};
+
+	pml_t test_pml = {
+		.origin = Vec3( 10.0f, 0.0f, 0.0f ),
+		.frametime = 0.05f,
+	};
+
+	gs_module_api_t api = { .Trace = TestTrace };
+
+	int num_collisions = 0;
+	for( int i = 0; i < 20; i++ ) {
+		test_pml.velocity = Vec3( -20.0f, 0.0f, 500.0f );
+		int blocked = PM_SlideMove( api, &test_pm, &test_pml );
+		if( blocked != 0 ) {
+			num_collisions++;
+		}
+	}
+
+	Vec3 expected_endpos = Vec3( 1.0f, 0.0f, 500.0f );
+	Vec3 expected_velocity = Vec3( 0.0f, 0.0f, 500.0f );
+
+	return num_collisions == 12 && Length( expected_endpos - test_pml.origin ) < 10.0f && Length( expected_velocity - test_pml.velocity ) < 0.01f;
 }

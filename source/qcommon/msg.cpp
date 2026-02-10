@@ -390,10 +390,6 @@ void MSG_Write( msg_t * msg, const void * data, size_t length ) {
 	memcpy( MSG_GetSpace( msg, length ), data, length );
 }
 
-void MSG_WriteZeroes( msg_t * msg, size_t n ) {
-	memset( MSG_GetSpace( msg, n ), 0, n );
-}
-
 template< typename T >
 void MSG_WriteFundamental( msg_t * msg, T x ) {
 	memcpy( MSG_GetSpace( msg, sizeof( T ) ), &x, sizeof( T ) );
@@ -738,6 +734,7 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 	Delta( buf, player.flashed, baseline.flashed );
 
 	DeltaEnum( buf, player.weapon_state, baseline.weapon_state, WeaponState_Count );
+	Delta( buf, player.weapon_alt_fire, baseline.weapon_alt_fire );
 	Delta( buf, player.weapon_state_time, baseline.weapon_state_time );
 
 	DeltaEnum( buf, player.weapon, baseline.weapon, Weapon_Count );
@@ -870,7 +867,7 @@ void MSG_ReadDeltaGameState( msg_t * msg, const SyncGameState * baseline, SyncGa
 	MSG_FinishReadingDeltaBuffer( msg, delta );
 }
 
-[[maybe_unused]] DeltaBuffer ReaderFromWriter( const DeltaBuffer & writer ) {
+[[maybe_unused]] static DeltaBuffer ReaderFromWriter( const DeltaBuffer & writer ) {
 	DeltaBuffer reader = {
 		.buf = writer.buf,
 		.cursor = writer.buf,

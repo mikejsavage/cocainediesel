@@ -201,34 +201,7 @@ static Mat4 InvertPerspectiveProjection( const Mat4 & P ) {
 }
 
 static Mat3x4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
-	float pitch = Radians( angles.pitch );
-	float sp = sinf( pitch );
-	float cp = cosf( pitch );
-	float yaw = Radians( angles.yaw );
-	float sy = sinf( yaw );
-	float cy = cosf( yaw );
-	float roll = Radians( angles.roll );
-	float sr = sinf( roll );
-	float cr = cosf( roll );
-
-	Vec3 forward = Vec3( cp * cy, cp * sy, -sp );
-	Vec3 right = Vec3(
-		sy * cr - sp * cy * sr,
-		-cy * cr - sp * sy * sr,
-		-cp * sr
-	);
-	Vec3 up = Vec3(
-		sy * sr + sp * cy * cr,
-		-cy * sr + sp * sy * cr,
-		cp * cr
-	);
-
-	Mat3x4 rotation(
-		right.x, right.y, right.z, 0,
-		up.x, up.y, up.z, 0,
-		-forward.x, -forward.y, -forward.z, 0
-	);
-	return rotation * Mat4Translation( -position );
+	return AnglesToMat3x4( angles ) * Mat4Translation( -position );
 }
 
 static Mat3x4 ViewMatrix( Vec3 position, Vec3 forward ) {
@@ -285,6 +258,12 @@ static void CreateRenderTargets( bool first_time ) {
 	else {
 		frame_static.render_targets.msaa_color = NONE;
 	}
+
+		// Texture albedo_preui = NewTexture( TextureConfig {
+		// 	.format = TextureFormat_RGBA_U8_sRGB,
+		// 	.width = frame_static.viewport_width,
+		// 	.height = frame_static.viewport_height,
+		// } );
 
 	frame_static.render_targets.resolved_color = NewTexture( TextureConfig {
 		.name = "Color RT",
@@ -367,7 +346,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	} );
 	frame_static.identity_model_transform_uniforms = NewTempBuffer( Mat3x4::Identity() );
 	frame_static.identity_material_properties_uniforms = NewTempBuffer( MaterialProperties { .shininess = 64.0f } );
-	frame_static.identity_material_color_uniforms = NewTempBuffer( white.vec4 );
+	frame_static.identity_material_color_uniforms = NewTempBuffer( white.linear );
 }
 
 static Mat4 InverseScaleTranslation( const Mat4 & m ) {

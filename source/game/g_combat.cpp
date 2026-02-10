@@ -222,8 +222,10 @@ void G_Damage( edict_t * targ, edict_t * inflictor, edict_t * attacker, Vec3 pus
 
 	float take = damage;
 	if( attacker == targ ) {
-		if( level.gametype.selfDamage && damage_category == DamageCategory_Weapon ) {
-			take = damage * GS_GetWeaponDef( weapon )->self_damage_scale;
+		if( level.gametype.selfDamage &&
+			( damage_category == DamageCategory_Weapon || damage_category == DamageCategory_WeaponAlt ) )
+		{
+			take = damage * GetWeaponDefFire( weapon, damage_category == DamageCategory_WeaponAlt )->self_damage_scale;
 		}
 		else {
 			take = 0;
@@ -360,7 +362,7 @@ void G_RadiusKnockback( float maxknockback, float minknockback, float radius, ed
 		if( frac == 0.0f )
 			continue;
 
-		if( G_CanSplashDamage( ent, NULL, normal, pos, timeDelta ) ) {
+		if( G_CanSplashDamage( ent, attacker, normal, pos, timeDelta ) ) {
 			float knockback = Lerp( minknockback, frac, maxknockback );
 			G_KnockBackPush( ent, attacker, pushDir, knockback, 0 );
 		}

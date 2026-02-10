@@ -138,6 +138,36 @@ void AnglesToAxis( EulerDegrees3 angles, mat3_t axis ) {
 	axis[8] = up.z;
 }
 
+Mat3x4 AnglesToMat3x4( EulerDegrees3 angles ) {
+	float pitch = Radians( angles.pitch );
+	float sp = sinf( pitch );
+	float cp = cosf( pitch );
+	float yaw = Radians( angles.yaw );
+	float sy = sinf( yaw );
+	float cy = cosf( yaw );
+	float roll = Radians( angles.roll );
+	float sr = sinf( roll );
+	float cr = cosf( roll );
+
+	Vec3 forward = Vec3( cp * cy, cp * sy, -sp );
+	Vec3 right = Vec3(
+		sy * cr - sp * cy * sr,
+		-cy * cr - sp * sy * sr,
+		-cp * sr
+	);
+	Vec3 up = Vec3(
+		sy * sr + sp * cy * cr,
+		-cy * sr + sp * sy * cr,
+		cp * cr
+	);
+
+	return Mat3x4 (
+		right.x, right.y, right.z, 0,
+		up.x, up.y, up.z, 0,
+		-forward.x, -forward.y, -forward.z, 0
+	);
+}
+
 void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent ) {
 	float s = SignedOne( v.z );
 	float a = -1.0f / ( s + v.z );

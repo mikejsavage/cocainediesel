@@ -162,24 +162,37 @@ struct ProjectileStats {
 	s64 timeout;
 	float gravity_scale;
 	float restitution;
+	Vec2 spread;
 	int splash_radius;
 	DamageType damage_type;
 };
 
-static ProjectileStats WeaponProjectileStats( WeaponType weapon ) {
-	const WeaponDef * def = GS_GetWeaponDef( weapon );
+static ProjectileStats WeaponProjectileStats( edict_t * self, WeaponType weapon, bool alt, bool spread = true ) {
+	const WeaponDef::Fire * fire = GetWeaponDefFire( weapon, alt );
+	float spreadness = 0.f;
+
+	if( spread ) {
+		const WeaponDef::Properties * prop = GetWeaponDefProperties( weapon );
+
+		spreadness = fire->spread;
+		if( prop->unzoom_spread > 0.0f && self->r.client != NULL ) {
+			float frac = 1.0f - float( self->r.client->ps.zoom_time ) / float( ZOOMTIME );
+			spreadness += frac * atanf( Radians( prop->unzoom_spread ) );
+		}
+	}
 
 	return ProjectileStats {
-		.min_damage = def->min_damage,
-		.max_damage = def->damage,
-		.min_knockback = def->min_knockback,
-		.max_knockback = def->knockback,
-		.speed = def->speed,
-		.timeout = def->range,
-		.gravity_scale = def->gravity_scale,
-		.restitution = def->restitution,
-		.splash_radius = def->splash_radius,
-		.damage_type = weapon,
+		.min_damage = fire->min_damage,
+		.max_damage = fire->damage,
+		.min_knockback = fire->min_knockback,
+		.max_knockback = fire->knockback,
+		.speed = fire->speed,
+		.timeout = fire->range,
+		.gravity_scale = fire->gravity_scale,
+		.restitution = fire->restitution,
+		.spread = spread ? RandomSpreadPattern( self->r.client->ucmd.entropy, spreadness ) : Vec2( 0.f, 0.f ),
+		.splash_radius = fire->splash_radius,
+		.damage_type = DamageType( weapon, alt ),
 	};
 }
 
@@ -195,6 +208,7 @@ static ProjectileStats GadgetProjectileStats( GadgetType gadget ) {
 		.timeout = def->timeout,
 		.gravity_scale = def->gravity_scale,
 		.restitution = def->restitution,
+		.spread = Vec2( 0.f, 0.f ),
 		.splash_radius = def->splash_radius,
 		.damage_type = gadget,
 	};
@@ -232,10 +246,10 @@ static edict_t * FireProjectile(
 ) {
 	edict_t * projectile = GenEntity( owner, start, angles, stats.timeout );
 
-	Vec3 dir;
-	AngleVectors( angles, &dir, NULL, NULL );
+	Vec3 dir, right, up;
+	AngleVectors( angles, &dir, &right, &up );
 
-	projectile->velocity = dir * stats.speed;
+	projectile->velocity = ( dir + right * stats.spread.x + up * stats.spread.y ) * stats.speed;
 
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
 
@@ -278,15 +292,13 @@ static edict_t * FireLinearProjectile(
 }
 
 static void HitWithSpread( edict_t * self, Vec3 start, EulerDegrees3 angles, float range, float spread, int traces, float damage, float knockback, WeaponType weapon, int timeDelta ) {
-	Vec3 forward;
+	Vec3 forward, dir, right, up;
 	AngleVectors( angles, &forward, NULL, NULL );
 
 	for( int i = 0; i < traces; i++ ) {
-		EulerDegrees3 new_angles = angles;
-		new_angles.yaw += Lerp( -spread, float( i ) / float( traces - 1 ), spread );
-		Vec3 dir;
-		AngleVectors( new_angles, &dir, NULL, NULL );
-		Vec3 end = start + dir * range;
+		Vec2 s = FixedSpreadPattern( i, spread );
+		AngleVectors( angles, &dir, &right, &up );
+		Vec3 end = start + ( dir + right * s.x + up * s.y ) * range;
 
 		trace_t trace = G_Trace4D( start, MinMax3( 0.0f ), end, self, SolidMask_Shot, timeDelta );
 		if( trace.HitSomething() && game.edicts[ trace.ent ].takedamage ) {
@@ -318,40 +330,41 @@ static void HitOrStickToWall( edict_t * ent, edict_t * other, DamageType weapon,
 	}
 }
 
-static void W_Fire_Knife( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Knife );
+static void W_Fire_Knife( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
+	const WeaponDef::Fire * fire = GetWeaponDefFire( Weapon_Knife, alt );
 
-	HitWithSpread( self, start, angles, def->range, def->spread, def->projectile_count, def->damage, def->knockback, Weapon_Knife, timeDelta );
+	HitWithSpread( self, start, angles, fire->range, fire->spread, fire->projectile_count, fire->damage, fire->knockback, Weapon_Knife, timeDelta );
 }
 
-static void W_Fire_Bat( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Bat );
+static void W_Fire_Bat( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
+	const WeaponDef::Properties * prop = GetWeaponDefProperties( Weapon_Bat );
+	const WeaponDef::Fire * fire = GetWeaponDefFire( Weapon_Bat, alt );
 
-	float charge = Min2( 1.0f, float( self->r.client->ps.weapon_state_time ) / float( def->reload_time ) );
-	float damage = Lerp( float( def->min_damage ), charge, float( def->damage ) );
-	float knockback = def->knockback * charge;
+	float charge = Min2( 1.0f, float( self->r.client->ps.weapon_state_time ) / float( prop->reload_time ) );
+	float damage = Lerp( float( fire->min_damage ), charge, float( fire->damage ) );
+	float knockback = fire->knockback * charge;
 
-	HitWithSpread( self, start, angles, def->range, def->spread, def->projectile_count, damage, knockback, Weapon_Bat, timeDelta );
+	HitWithSpread( self, start, angles, fire->range, fire->spread, fire->projectile_count, damage, knockback, Weapon_Bat, timeDelta );
 }
 
-static void W_Fire_Bullet( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, WeaponType weapon ) {
-	const WeaponDef * def = GS_GetWeaponDef( weapon );
+static void W_Fire_Bullet( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, WeaponType weapon, bool alt ) {
+	const WeaponDef::Fire * fire = GetWeaponDefFire( weapon, alt );
 
 	Vec3 dir, right, up;
 	AngleVectors( angles, &dir, &right, &up );
 
-	float spreadness = def->spread;
-	if( def->zoom_spread > 0.0f && self->r.client != NULL ) {
-		spreadness += ZoomSpreadness( self->r.client->ps.zoom_time, def );
+	float spreadness = fire->spread;
+	if( GetWeaponDefProperties( weapon )->unzoom_spread > 0.0f && self->r.client != NULL ) {
+		spreadness += ZoomSpreadness( self->r.client->ps.zoom_time, weapon, alt );
 	}
 
 	Vec2 spread = RandomSpreadPattern( self->r.client->ucmd.entropy, spreadness );
 
 	trace_t trace, wallbang;
-	GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, spread, def->range, ENTNUM( self ), timeDelta );
+	GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, spread, fire->range, ENTNUM( self ), timeDelta );
 	if( trace.HitSomething() && game.edicts[ trace.ent ].takedamage ) {
 		int dmgflags = 0;
-		float damage = def->damage;
+		float damage = fire->damage;
 
 		if( IsHeadshot( trace.ent, trace.endpos, timeDelta ) ) {
 			dmgflags |= DAMAGE_HEADSHOT;
@@ -359,15 +372,15 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, EulerDegrees3 angles, int
 
 		if( wallbang.HitSomething() ) {
 			dmgflags |= DAMAGE_WALLBANG;
-			damage *= def->wallbang_damage_scale;
+			damage *= fire->wallbang_damage_scale;
 		}
 
-		G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, damage, def->knockback, dmgflags, weapon );
+		G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, damage, fire->knockback, dmgflags, weapon );
 	}
 }
 
-static void W_Fire_Shotgun( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, WeaponType weapon ) {
-	const WeaponDef * def = GS_GetWeaponDef( weapon );
+static void W_Fire_Shotgun( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, WeaponType weapon, bool alt ) {
+	const WeaponDef::Fire * fire = GetWeaponDefFire( weapon, alt );
 
 	Vec3 dir, right, up;
 	AngleVectors( angles, &dir, &right, &up );
@@ -375,21 +388,21 @@ static void W_Fire_Shotgun( edict_t * self, Vec3 start, EulerDegrees3 angles, in
 	float damage_dealt[ MAX_CLIENTS + 1 ] = { };
 	Vec3 hit_locations[ MAX_CLIENTS + 1 ] = { }; // arbitrary trace end pos to use as blood origin
 
-	for( int i = 0; i < def->projectile_count; i++ ) {
-		Vec2 spread = FixedSpreadPattern( i, def->spread );
+	for( int i = 0; i < fire->projectile_count; i++ ) {
+		Vec2 spread = FixedSpreadPattern( i, fire->spread );
 
 		trace_t trace, wallbang;
-		GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, spread, def->range, ENTNUM( self ), timeDelta );
+		GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, spread, fire->range, ENTNUM( self ), timeDelta );
 		if( trace.HitSomething() && game.edicts[ trace.ent ].takedamage ) {
 			int dmgflags = 0;
-			float damage = def->damage;
+			float damage = fire->damage;
 
 			if( wallbang.HitSomething() ) {
 				dmgflags |= DAMAGE_WALLBANG;
-				damage *= def->wallbang_damage_scale;
+				damage *= fire->wallbang_damage_scale;
 			}
 
-			G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, damage, def->knockback, dmgflags, weapon );
+			G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, damage, fire->knockback, dmgflags, weapon );
 
 			if( !G_IsTeamDamage( &game.edicts[ trace.ent ].s, &self->s ) && trace.ent <= MAX_CLIENTS ) {
 				damage_dealt[ trace.ent ] += damage;
@@ -409,8 +422,9 @@ static void W_Launcher_Explode( edict_t * ent ) {
 	Explode( ent, NULL, NONE );
 }
 
+template <bool alt>
 static void W_Touch_Launcher( edict_t * ent, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Launcher );
+	const WeaponDef::Fire * fire = GetWeaponDefFire( Weapon_Launcher, alt );
 
 	if( !CanHit( ent, other ) ) {
 		return;
@@ -423,7 +437,7 @@ static void W_Touch_Launcher( edict_t * ent, edict_t * other, Vec3 normal, Solid
 		float friction = 0.1f;
 		float velocity = Length( parallel ) + Length( perpendicular ) * friction;
 
-		u16 volume = Lerp( 0_u16, Unlerp01( 0.0f, velocity, float( def->speed ) ), U16_MAX );
+		u16 volume = Lerp( 0_u16, Unlerp01( 0.0f, velocity, float( fire->speed ) ), U16_MAX );
 		G_AddEvent( ent, EV_LAUNCHER_BOUNCE, volume, true );
 
 		return;
@@ -432,10 +446,10 @@ static void W_Touch_Launcher( edict_t * ent, edict_t * other, Vec3 normal, Solid
 	Explode( ent, other, normal );
 }
 
-static void W_Fire_Launcher( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool altfire ) {
-	edict_t * launcher = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Launcher ) );
+static void W_Fire_Launcher( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
+	edict_t * launcher = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Launcher, alt ) );
 
-	if( altfire ) {
+	if( alt ) {
 		launcher->velocity *= 0.5;
 	}
 
@@ -446,7 +460,7 @@ static void W_Fire_Launcher( edict_t * self, Vec3 start, EulerDegrees3 angles, i
 	launcher->projectileInfo.explosion_vfx = "loadout/_effects/explosion";
 	launcher->projectileInfo.explosion_sfx = "loadout/launcher/explode";
 	launcher->think = W_Launcher_Explode;
-	launcher->touch = W_Touch_Launcher;
+	launcher->touch = alt ? W_Touch_Launcher<true> : W_Touch_Launcher<false>;
 }
 
 static void W_Touch_Crossbow( edict_t * ent, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
@@ -457,8 +471,8 @@ static void W_Touch_Crossbow( edict_t * ent, edict_t * other, Vec3 normal, Solid
 	HitOrStickToWall( ent, other, Weapon_Crossbow, "loadout/crossbow/impale", "loadout/crossbow/hit" );
 }
 
-static void W_Fire_Crossbow( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
-	edict_t * crossbow = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Crossbow ) );
+static void W_Fire_Crossbow( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
+	edict_t * crossbow = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Crossbow, alt ) );
 
 	crossbow->s.type = ET_CROSSBOW;
 	crossbow->classname = "crossbow";
@@ -476,15 +490,15 @@ static void W_Touch_Bazooka( edict_t * ent, edict_t * other, Vec3 normal, SolidB
 	Explode( ent, other, normal );
 }
 
-static void W_Fire_Bazooka( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool altfire ) {
+static void W_Fire_Bazooka( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
 	edict_t * rocket;
 
-	if( altfire ) {
-		rocket = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Bazooka ) );
+	if( alt ) {
+		rocket = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Bazooka, alt ) );
 		rocket->movetype = MOVETYPE_BOUNCE;
 	}
 	else {
-		rocket = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Bazooka ) );
+		rocket = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Bazooka, alt ) );
 	}
 
 	rocket->s.type = ET_BAZOOKA;
@@ -496,8 +510,8 @@ static void W_Fire_Bazooka( edict_t * self, Vec3 start, EulerDegrees3 angles, in
 	rocket->touch = W_Touch_Bazooka;
 }
 
-static void W_Fire_Assault( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
-	edict_t * assault = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Assault ) );
+static void W_Fire_Assault( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
+	edict_t * assault = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Assault, alt ) );
 
 	assault->s.type = ET_ASSAULT;
 	assault->classname = "assault";
@@ -511,8 +525,8 @@ static void W_Fire_Assault( edict_t * self, Vec3 start, EulerDegrees3 angles, in
 	assault->nextThink = level.time + 1;
 }
 
-static void FireBubble( edict_t * owner, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
-	edict_t * bubble = FireLinearProjectile( owner, start, angles, timeDelta, WeaponProjectileStats( Weapon_Bubble ) );
+static void FireBubble( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
+	edict_t * bubble = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Bubble, alt ) );
 
 	bubble->s.type = ET_BUBBLE;
 	bubble->classname = "bubble";
@@ -525,14 +539,14 @@ static void FireBubble( edict_t * owner, Vec3 start, EulerDegrees3 angles, int t
 	bubble->nextThink = level.time + 1;
 }
 
-void W_Fire_Bubble( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
+void W_Fire_Bubble( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
 	constexpr int bubble_spacing = 0;
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Bubble );
+	const WeaponDef::Fire * def = GetWeaponDefFire( Weapon_Bubble, alt );
 
 	Vec3 dir, right, up;
 	AngleVectors( angles, &dir, &right, &up );
 
-	FireBubble( self, start, angles, timeDelta );
+	FireBubble( self, start, angles, timeDelta, alt );
 
 	int n = def->projectile_count - 1;
 	float base_angle = RandomFloat01( &svs.rng ) * 2.0f * PI;
@@ -550,16 +564,88 @@ void W_Fire_Bubble( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDe
 		new_dir = Normalize( new_dir );
 
 		EulerDegrees3 new_angles = VecToAngles( new_dir );
-		FireBubble( self, pos, new_angles, timeDelta );
+		FireBubble( self, pos, new_angles, timeDelta, alt );
 	}
 }
 
-static void W_Fire_Rail( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Rail );
+
+static void G_Laser_Think( edict_t * ent ) {
+	edict_t * owner = &game.edicts[ ent->s.ownerNum ];
+
+	if( G_ISGHOSTING( owner ) || owner->s.weapon != Weapon_Rail ||
+		PF_GetClientState( PLAYERNUM( owner )) < CS_SPAWNED ||
+		owner->r.client->ps.weapon_state != WeaponState_FiringSmooth ) {
+		G_FreeEdict( ent );
+		return;
+	}
+
+	ent->nextThink = level.time + 1;
+}
+
+static void LaserImpact( const trace_t & trace, Vec3 dir, int damage, int knockback, edict_t * attacker ) {
+	if( trace.ent == ENTNUM( attacker ) ) {
+		return; // should not be possible theoretically but happened at least once in practice
+	}
+
+	G_Damage( &game.edicts[ trace.ent ], attacker, attacker, dir, dir, trace.endpos, damage, knockback, 0, Weapon_Rail );
+}
+
+static edict_t * FindOrSpawnLaser( edict_t * owner ) {
+	int ownerNum = ENTNUM( owner );
+
+	for( size_t i = server_gs.maxclients + 1; i < ARRAY_COUNT( game.edicts ); i++ ) {
+		edict_t * e = &game.edicts[ i ];
+		if( !e->r.inuse ) {
+			continue;
+		}
+
+		if( e->s.ownerNum == ownerNum && e->s.type == ET_LASERBEAM ) {
+			return e;
+		}
+	}
+
+	edict_t * laser = G_Spawn();
+	laser->s.type = ET_LASERBEAM;
+	laser->s.ownerNum = ownerNum;
+	laser->movetype = MOVETYPE_NONE;
+	laser->s.solidity = Solid_NotSolid;
+	laser->s.svflags &= ~SVF_NOCLIENT;
+	return laser;
+}
+
+static void W_Fire_Laser( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
+	const WeaponDef::Fire * def = GetWeaponDefFire( Weapon_Rail, true );
+
+	edict_t * laser = FindOrSpawnLaser( self );
 
 	Vec3 dir;
 	AngleVectors( angles, &dir, NULL, NULL );
-	Vec3 end = start + dir * def->range;
+
+	trace_t trace = GS_TraceLaserBeam( &server_gs, start, angles, def->range, ENTNUM( self ), timeDelta );
+	if( trace.HitSomething() ) {
+		LaserImpact( trace, dir, def->damage, def->knockback, self );
+	}
+
+	laser->s.svflags |= SVF_FORCEOWNER;
+
+	laser->s.origin = start;
+	laser->s.origin2 = laser->s.origin + dir * def->range;
+
+	laser->think = G_Laser_Think;
+	laser->nextThink = level.time + 1;
+}
+
+static void W_Fire_Rail( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
+	if ( alt ) {
+		W_Fire_Laser( self, start, angles, timeDelta );
+		return;
+	}
+
+
+	const WeaponDef::Fire * fire = GetWeaponDefFire( Weapon_Rail, alt );
+	Vec3 dir;
+	AngleVectors( angles, &dir, NULL, NULL );
+	Vec3 end = start + dir * fire->range;
 	Vec3 from = start;
 
 	const edict_t * ignore = self;
@@ -590,7 +676,7 @@ static void W_Fire_Rail( edict_t * self, Vec3 start, EulerDegrees3 angles, int t
 				dmgflags |= DAMAGE_HEADSHOT;
 			}
 
-			G_Damage( hit, self, self, dir, dir, tr.endpos, def->damage, def->knockback, dmgflags, Weapon_Rail );
+			G_Damage( hit, self, self, dir, dir, tr.endpos, fire->damage, fire->knockback, dmgflags, Weapon_Rail );
 
 			// spawn a impact event on each damaged ent
 			edict_t * event = G_SpawnEvent( EV_RAIL_EXPLOSION, DirToU64( tr.normal ), tr.endpos );
@@ -606,96 +692,6 @@ static void W_Fire_Rail( edict_t * self, Vec3 start, EulerDegrees3 angles, int t
 			break;
 		}
 	}
-}
-
-static void RailAltDeploy( edict_t * ent ) {
-	edict_t * event = G_SpawnEvent( EV_RAIL_ALTFIRE, 0, ent->s.origin );
-	event->s.ownerNum = ent->s.ownerNum;
-	event->s.angles = ent->s.angles;
-
-	edict_t * owner = &game.edicts[ ent->s.ownerNum ];
-	W_Fire_Rail( owner, ent->s.origin, ent->s.angles, 0 );
-
-	G_FreeEdict( ent );
-}
-
-static void W_Fire_RailAlt( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Rail );
-	edict_t * ent = GenEntity( self, start, angles, def->reload_time );
-	ent->s.type = ET_RAILALT;
-	ent->classname = "railalt";
-	ent->think = RailAltDeploy;
-
-	edict_t * event = G_SpawnEvent( EV_RAIL_ALTENT, 0, ent->s.origin );
-	event->s.ownerNum = ent->s.ownerNum;
-	event->s.angles = ent->s.angles;
-	event->s.team = self->s.team;
-}
-
-static void G_Laser_Think( edict_t * ent ) {
-	edict_t * owner = &game.edicts[ ent->s.ownerNum ];
-
-	if( G_ISGHOSTING( owner ) || owner->s.weapon != Weapon_Laser ||
-		PF_GetClientState( PLAYERNUM( owner )) < CS_SPAWNED ||
-		owner->r.client->ps.weapon_state != WeaponState_FiringSmooth ) {
-		G_FreeEdict( ent );
-		return;
-	}
-
-	ent->nextThink = level.time + 1;
-}
-
-static void LaserImpact( const trace_t & trace, Vec3 dir, int damage, int knockback, edict_t * attacker ) {
-	if( trace.ent == ENTNUM( attacker ) ) {
-		return; // should not be possible theoretically but happened at least once in practice
-	}
-
-	G_Damage( &game.edicts[ trace.ent ], attacker, attacker, dir, dir, trace.endpos, damage, knockback, 0, Weapon_Laser );
-}
-
-static edict_t * FindOrSpawnLaser( edict_t * owner ) {
-	int ownerNum = ENTNUM( owner );
-
-	for( size_t i = server_gs.maxclients + 1; i < ARRAY_COUNT( game.edicts ); i++ ) {
-		edict_t * e = &game.edicts[ i ];
-		if( !e->r.inuse ) {
-			continue;
-		}
-
-		if( e->s.ownerNum == ownerNum && e->s.type == ET_LASERBEAM ) {
-			return e;
-		}
-	}
-
-	edict_t * laser = G_Spawn();
-	laser->s.type = ET_LASERBEAM;
-	laser->s.ownerNum = ownerNum;
-	laser->movetype = MOVETYPE_NONE;
-	laser->s.solidity = Solid_NotSolid;
-	laser->s.svflags &= ~SVF_NOCLIENT;
-	return laser;
-}
-
-static void W_Fire_Laser( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Laser );
-
-	edict_t * laser = FindOrSpawnLaser( self );
-
-	Vec3 dir;
-	AngleVectors( angles, &dir, NULL, NULL );
-
-	trace_t trace = GS_TraceLaserBeam( &server_gs, start, angles, def->range, ENTNUM( self ), timeDelta );
-	if( trace.HitSomething() ) {
-		LaserImpact( trace, dir, def->damage, def->knockback, self );
-	}
-
-	laser->s.svflags |= SVF_FORCEOWNER;
-
-	laser->s.origin = start;
-	laser->s.origin2 = laser->s.origin + dir * def->range;
-
-	laser->think = G_Laser_Think;
-	laser->nextThink = level.time + 1;
 }
 
 static void W_Touch_Rifle( edict_t * ent, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
@@ -714,8 +710,8 @@ static void W_Touch_Rifle( edict_t * ent, edict_t * other, Vec3 normal, SolidBit
 	}
 }
 
-void W_Fire_Rifle( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
-	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Rifle ) );
+void W_Fire_Rifle( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
+	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Rifle, alt ) );
 
 	bullet->s.type = ET_RIFLE;
 	bullet->classname = "riflebullet";
@@ -765,24 +761,21 @@ static void W_Touch_Sticky( edict_t * ent, edict_t * other, Vec3 normal, SolidBi
 		StickyExplodeNormal( ent, normal, false );
 	}
 	else {
-		const WeaponDef * def = GS_GetWeaponDef( Weapon_Sticky );
 		ent->s.linearMovementBegin = ent->s.origin;
 		ent->s.linearMovementVelocity = Vec3( 0.0f );
 		ent->avelocity = EulerDegrees3( 0.0f, 0.0f, 0.0f );
-		ent->nextThink = level.time + def->spread; //gg
+		ent->nextThink = level.time + GetWeaponDefProperties( Weapon_Sticky )->recoil_recovery; //gg
 
 		SpawnFX( ent, normal, "loadout/sticky/impact", "loadout/sticky/impact" );
 	}
 }
 
-void W_Fire_Sticky( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Sticky );
-
-	Vec2 spread = UniformSampleInsideCircle( &svs.rng ) * def->zoom_spread;
+void W_Fire_Sticky( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
+	Vec2 spread = UniformSampleInsideCircle( &svs.rng ) * GetWeaponDefProperties( Weapon_Sticky )->unzoom_spread;
 	angles.pitch += spread.x;
 	angles.yaw += spread.y;
 
-	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Sticky ) );
+	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Sticky, alt ) );
 
 	bullet->s.type = ET_STICKY;
 	bullet->classname = "sticky";
@@ -816,18 +809,18 @@ static void W_Touch_Blaster( edict_t * ent, edict_t * other, Vec3 normal, SolidB
 	}
 }
 
-void W_Fire_Blaster( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Blaster );
+void W_Fire_Blaster( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
+	const WeaponDef::Fire * fire = GetWeaponDefFire( Weapon_Blaster, alt );
 	Vec3 dir, right, up;
 	AngleVectors( angles, &dir, &right, &up );
 
-	for( int i = 0; i < def->projectile_count; i++ ) {
-		Vec2 spread = FixedSpreadPattern( i, def->spread );
+	for( int i = 0; i < fire->projectile_count; i++ ) {
+		Vec2 spread = FixedSpreadPattern( i, fire->spread );
 
-		Vec3 blast_dir = dir * def->range + right * spread.x + up * spread.y;
+		Vec3 blast_dir = ( dir + right * spread.x + up * spread.y ) * fire->range;
 		EulerDegrees3 blast_angles = VecToAngles( blast_dir );
 
-		edict_t * blast = FireProjectile( self, start, blast_angles, timeDelta, WeaponProjectileStats( Weapon_Blaster ) );
+		edict_t * blast = FireProjectile( self, start, blast_angles, timeDelta, WeaponProjectileStats( self, Weapon_Blaster, alt, false ) );
 
 		blast->s.type = ET_BLASTER;
 		blast->classname = "blaster";
@@ -838,23 +831,24 @@ void W_Fire_Blaster( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeD
 	}
 }
 
+template <bool alt>
 static void W_Touch_Pistol( edict_t * ent, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
 	if( BouncingProjectile( ent, other, normal, solid_mask, 3, "loadout/pistol/bullet_impact", "loadout/pistol/bullet_impact" ) ) {
 		G_FreeEdict( ent );
 	} else {
-		ent->gravity_scale = GS_GetWeaponDef( Weapon_Pistol )->gravity_scale;
+		ent->gravity_scale = GetWeaponDefFire( Weapon_Pistol, alt )->gravity_scale;
 	}
 }
 
-void W_Fire_Pistol( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
-	edict_t * bullet = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Pistol ) );
+void W_Fire_Pistol( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
+	edict_t * bullet = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Pistol, alt ) );
 
 	bullet->s.type = ET_PISTOL;
 	bullet->classname = "pistol_bullet";
 	bullet->s.model = "loadout/pistol/projectile";
 	bullet->movetype = MOVETYPE_BOUNCE;
 	bullet->s.sound = "loadout/_sounds/bullet_whiz";
-	bullet->touch = W_Touch_Pistol;
+	bullet->touch = alt ? W_Touch_Pistol<true> : W_Touch_Pistol<false>;
 	bullet->stop = G_FreeEdict;
 	bullet->gravity_scale = 0.0f;
 }
@@ -865,8 +859,8 @@ static void W_Touch_Sawblade( edict_t * ent, edict_t * other, Vec3 normal, Solid
 	}
 }
 
-void W_Fire_Sawblade( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
-	edict_t * blade = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Sawblade ) );
+void W_Fire_Sawblade( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
+	edict_t * blade = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Sawblade, alt ) );
 
 	blade->s.type = ET_SAWBLADE;
 	blade->classname = "sawblade";
@@ -878,8 +872,8 @@ void W_Fire_Sawblade( edict_t * self, Vec3 start, EulerDegrees3 angles, int time
 	blade->stop = G_FreeEdict;
 }
 
-void W_Fire_Roadgun( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
-	edict_t * bullet = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Roadgun ) );
+void W_Fire_Roadgun( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
+	edict_t * bullet = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( self, Weapon_Roadgun, alt ) );
 
 	bullet->s.type = ET_BLASTER;
 	bullet->classname = "roadgun";
@@ -889,8 +883,9 @@ void W_Fire_Roadgun( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeD
 	bullet->stop = G_FreeEdict;
 }
 
-static void CallFireWeapon( edict_t * ent, u64 parm, bool alt ) {
+void G_FireWeapon( edict_t * ent, u64 parm ) {
 	WeaponType weapon = WeaponType( parm & 0xFF );
+	bool alt = ( parm >> 8 ) & 0xFF;
 
 	Vec3 origin;
 	EulerDegrees3 angles;
@@ -914,11 +909,11 @@ static void CallFireWeapon( edict_t * ent, u64 parm, bool alt ) {
 			return;
 
 		case Weapon_Knife:
-			W_Fire_Knife( ent, origin, angles, timeDelta );
+			W_Fire_Knife( ent, origin, angles, timeDelta, alt );
 			break;
 
 		case Weapon_Bat:
-			W_Fire_Bat( ent, origin, angles, timeDelta );
+			W_Fire_Bat( ent, origin, angles, timeDelta, alt );
 			break;
 
 		case Weapon_9mm:
@@ -927,20 +922,20 @@ static void CallFireWeapon( edict_t * ent, u64 parm, bool alt ) {
 		case Weapon_Burst:
 		case Weapon_Sniper:
 		case Weapon_Scout:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, weapon );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, weapon, alt );
 			break;
 
 		case Weapon_Pistol:
-			W_Fire_Pistol( ent, origin, angles, timeDelta );
+			W_Fire_Pistol( ent, origin, angles, timeDelta, alt );
 			break;
 
 		case Weapon_Shotgun:
 		case Weapon_SawnOff:
-			W_Fire_Shotgun( ent, origin, angles, timeDelta, weapon );
+			W_Fire_Shotgun( ent, origin, angles, timeDelta, weapon, alt );
 			break;
 
 		case Weapon_Crossbow:
-			W_Fire_Crossbow( ent, origin, angles, timeDelta );
+			W_Fire_Crossbow( ent, origin, angles, timeDelta, alt );
 			break;
 
 		case Weapon_Launcher:
@@ -952,44 +947,35 @@ static void CallFireWeapon( edict_t * ent, u64 parm, bool alt ) {
 			break;
 
 		case Weapon_Assault:
-			W_Fire_Assault( ent, origin, angles, timeDelta );
+			W_Fire_Assault( ent, origin, angles, timeDelta, alt );
 			break;
 
 		case Weapon_Bubble:
-			W_Fire_Bubble( ent, origin, angles, timeDelta );
-			break;
-
-		case Weapon_Laser:
-			W_Fire_Laser( ent, origin, angles, timeDelta );
+			W_Fire_Bubble( ent, origin, angles, timeDelta, alt );
 			break;
 
 		case Weapon_Rail:
-			if( alt ) {
-				W_Fire_RailAlt( ent, origin, angles, timeDelta );
-			}
-			else {
-				W_Fire_Rail( ent, origin, angles, timeDelta );
-			}
+			W_Fire_Rail( ent, origin, angles, timeDelta, alt );
 			break;
 
 		case Weapon_Rifle:
-			W_Fire_Rifle( ent, origin, angles, timeDelta );
+			W_Fire_Rifle( ent, origin, angles, timeDelta, alt );
 			break;
 
 		case Weapon_Blaster:
-			W_Fire_Blaster( ent, origin, angles, timeDelta );
+			W_Fire_Blaster( ent, origin, angles, timeDelta, alt );
 			break;
 
 		case Weapon_Roadgun:
-			W_Fire_Roadgun( ent, origin, angles, timeDelta );
+			W_Fire_Roadgun( ent, origin, angles, timeDelta, alt );
 			break;
 
 		case Weapon_Sticky:
-			W_Fire_Sticky( ent, origin, angles, timeDelta );
+			W_Fire_Sticky( ent, origin, angles, timeDelta, alt );
 			break;
 
 		case Weapon_Sawblade:
-			W_Fire_Sawblade( ent, origin, angles, timeDelta );
+			W_Fire_Sawblade( ent, origin, angles, timeDelta, alt );
 			break;
 
 			// case Weapon_Minigun: {
@@ -1000,14 +986,6 @@ static void CallFireWeapon( edict_t * ent, u64 parm, bool alt ) {
 			// 	ent->velocity -= dir * GS_GetWeaponDef( Weapon_Minigun )->knockback;
 			// } break;
 	}
-}
-
-void G_FireWeapon( edict_t * ent, u64 parm ) {
-	CallFireWeapon( ent, parm, false );
-}
-
-void G_AltFireWeapon( edict_t * ent, u64 parm ) {
-	CallFireWeapon( ent, parm, true );
 }
 
 static void TouchAxe( edict_t * ent, edict_t * other, Vec3 normal, SolidBits solid_mask ) {

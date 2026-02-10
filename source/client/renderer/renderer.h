@@ -16,5 +16,5 @@ struct VFXVertex {
 	RGBA8 color;
 };
 
-void Draw2DBox( float x, float y, float w, float h, PoolHandle< Material2 > material, Vec4 color = white.vec4 );
-void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, PoolHandle< Material2 > material, Vec4 color = white.vec4 );
+void Draw2DBox( float x, float y, float w, float h, PoolHandle< Material2 > material, Vec4 color = white.linear );
+void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, PoolHandle< Material2 > material, Vec4 color = white.linear );

@@ -45,6 +45,7 @@ struct Shaders {
 	PoolHandle< RenderPipeline > text;
 	PoolHandle< RenderPipeline > text_depth_only;
 
+	PoolHandle< RenderPipeline > postprocess_preui;
 	PoolHandle< RenderPipeline > postprocess;
 };
 

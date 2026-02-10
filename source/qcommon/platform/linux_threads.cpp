@@ -40,4 +40,18 @@ void Wait( Opaque< Semaphore > * sem ) {
 	}
 }
 
+// this is only used by the hang detector, which is built in Linux server builds
+bool Wait( Opaque< Semaphore > * sem, int timeout_seconds ) {
+	struct timespec timeout = { .tv_sec = timeout_seconds };
+	while( true ) {
+		if( sem_timedwait( &sem->unwrap()->sem, &timeout ) == 0 )
+			return true;
+		if( errno == ETIMEDOUT )
+			return false;
+		if( errno == EINTR )
+			continue;
+		Fatal( "sem_timedwait" );
+	}
+}
+
 #endif // #if PLATFORM_LINUX

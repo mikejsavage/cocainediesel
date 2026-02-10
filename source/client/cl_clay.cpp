@@ -122,6 +122,23 @@ static void DrawBorderCorner( Corner corner, Clay_BoundingBox bounds, const Clay
 	draw_list->PathStroke( ClayToImGui( color ), 0, width );
 }
 
+void DrawClayText( Span<const char> text, const Clay_TextElementConfig & config, const Clay_BoundingBox & bounds, Optional< FittedTextShadow > shadow, XAlignment alignment, const Clay_Padding & padding ) {
+	Vec2 mins = Vec2( bounds.x + padding.left, bounds.y + padding.top );
+	Vec2 maxs = Vec2( bounds.x + bounds.width - padding.right, bounds.y + bounds.height - padding.bottom );
+
+	if( shadow.exists ) {
+		float angle = Default( shadow.value.angle, 45.0f );
+		Vec2 offset = Vec2( cosf( Radians( angle ) ), sinf( Radians( angle ) ) ) * shadow.value.offset;
+		DrawFittedText(
+			fonts[ config.fontId ], text, MinMax2( mins, maxs ) + offset,
+			alignment, shadow.value.color );
+	}
+
+	DrawFittedText(
+		fonts[ config.fontId ], text, MinMax2( mins, maxs ), alignment,
+		ClayToCD( config.textColor ), { } );
+}
+
 void ClaySubmitFrame() {
 	Clay_RenderCommandArray render_commands;
 	{
@@ -206,25 +223,8 @@ void ClaySubmitFrame() {
 							break;
 
 						case ClayCustomElementType_FittedText: {
-							const Clay_TextElementConfig & text_config = config->fitted_text.config;
-							const Clay_Padding & pad = config->fitted_text.padding;
-
-							Vec2 mins = Vec2( bounds.x + pad.left, bounds.y + pad.top );
-							Vec2 maxs = Vec2( bounds.x + bounds.width - pad.right, bounds.y + bounds.height - pad.bottom );
 							Span< const char > text = Span< const char >( config->fitted_text.text.chars, config->fitted_text.text.length );
-
-							if( config->fitted_text.shadow.exists ) {
-								const FittedTextShadow & shadow = config->fitted_text.shadow.value;
-								float angle = Default( shadow.angle, 45.0f );
-								Vec2 offset = Vec2( cosf( Radians( angle ) ), sinf( Radians( angle ) ) ) * shadow.offset;
-								DrawFittedText(
-									fonts[ text_config.fontId ], text, MinMax2( mins, maxs ) + offset,
-									config->fitted_text.alignment, shadow.color );
-							}
-
-							DrawFittedText(
-								fonts[ text_config.fontId ], text, MinMax2( mins, maxs ), config->fitted_text.alignment,
-								ClayToCD( text_config.textColor ), config->fitted_text.border_color );
+							DrawClayText( text, config->fitted_text.config, bounds, config->fitted_text.shadow, config->fitted_text.alignment, config->fitted_text.padding );
 						} break;
 					}
 				} break;

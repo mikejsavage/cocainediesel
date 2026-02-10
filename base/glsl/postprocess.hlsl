@@ -182,10 +182,6 @@ float3 crtEffect( float3 color, float2 uv, float amount ) {
 	return lerp( new_color, screen_edge, 1.0f - on_screen );
 }
 
-float3 brightnessContrast( float3 value ) {
-	return ( value - 0.5f ) * u_Postprocess[ 0 ].contrast + 0.5f + u_Postprocess[ 0 ].brightness;
-}
-
 float4 FragmentMain( float4 v : SV_Position ) : FragmentShaderOutput_Albedo {
 	float2 uv = v.xy / u_View[ 0 ].viewport_size;
 
@@ -196,8 +192,5 @@ float4 FragmentMain( float4 v : SV_Position ) : FragmentShaderOutput_Albedo {
 
 	float3 color = glitch( uv, glitch_amount );
 	color = crtEffect( color, uv, crt_amount );
-	if( all( abs( uv - 0.5f ) <= Broadcast2( 0.5f ) ) ) {
-		color = sRGBToLinear( brightnessContrast( LinearTosRGB( color ) ) );
-	}
 	return float4( color, 1.0f );
 }

@@ -357,6 +357,7 @@ void ThrowSmallPileOfGibs( edict_t * self, Vec3 knockback, int damage );
 
 void SP_path_corner( edict_t * ent, const spawn_temp_t * st );
 void SP_model( edict_t * ent, const spawn_temp_t * st );
+void SP_light( edict_t * ent, const spawn_temp_t * st );
 void SP_decal( edict_t * ent, const spawn_temp_t * st );
 
 //
@@ -392,8 +393,6 @@ void ClientDisconnect( edict_t * ent, const char *reason );
 void ClientBegin( edict_t * ent );
 void ClientCommand( edict_t * ent, ClientCommandType command, msg_t args );
 void G_PredictedEvent( int entNum, int ev, u64 parm );
-void G_PredictedFireWeapon( int entNum, u64 parm );
-void G_PredictedAltFireWeapon( int entNum, u64 parm );
 void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead );
 void G_SelectWeapon( edict_t * ent, int index );
 void G_GiveWeapon( edict_t * ent, WeaponType weapon );
@@ -560,16 +559,6 @@ struct client_levelreset_t {
 	Time callvote_when;
 };
 
-struct client_teamreset_t {
-	int64_t timeStamp; // last time it was reset
-
-	// for position command
-	bool position_saved;
-	Vec3 position_origin;
-	EulerDegrees3 position_angles;
-	Time position_lastcmd;
-};
-
 struct gclient_t {
 	SyncPlayerState ps;
 	int frags;
@@ -577,7 +566,6 @@ struct gclient_t {
 	client_snapreset_t snap;
 	client_respawnreset_t resp;
 	client_levelreset_t level;
-	client_teamreset_t teamstate;
 
 	char userinfo[ MAX_INFO_STRING ];
 	char name[ MAX_NAME_CHARS + 1 ];

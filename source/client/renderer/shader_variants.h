@@ -122,7 +122,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.src = "standard",
 				.output_format = standard_output,
 				.features = {
-					"APPLY_DRAWFLAT",
+					"WORLD",
 					"APPLY_FOG",
 					"APPLY_DYNAMICS",
 					"APPLY_SHADOWS",
@@ -280,6 +280,12 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.blend_func = BlendFunc_Blend,
 			},
 
+			GraphicsShaderDescriptor {
+				.field = &Shaders::postprocess_preui,
+				.src = "postprocess_preui",
+				.output_format = depthless,
+				.mesh_variants = { fullscreen_vertex_descriptor },
+			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::postprocess,
 				.src = "postprocess",

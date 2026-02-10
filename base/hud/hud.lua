@@ -1,6 +1,7 @@
 local dark_grey = "#222"
 local yellow = RGBALinear( 1, 0.64, 0.0225, 1 )
 local red = RGBALinear( 0.8, 0, 0.05, 1 )
+local border_size = "0.7vh"
 
 local function ShowHotkeys( state )
 	return state.show_hotkeys and state.chasing == NOT_CHASING
@@ -67,10 +68,9 @@ local function DrawBombProgress( state )
 		local width = state.viewport_width * 0.2
 		local height = state.viewport_height / 30
 		local y = state.viewport_height * 0.8
-		local progress = state.bomb_progress / 100
 
 		cd.box( ( state.viewport_width - width ) * 0.5, y, width, height, "#2228" )
-		cd.box( ( state.viewport_width - width * progress ) * 0.5, y, width * progress, height, cd.allyColor() )
+		cd.box( ( state.viewport_width - width * state.bomb_progress ) * 0.5, y, width * state.bomb_progress, height, cd.allyColor() )
 
 		local text = { color = "#fff", border = "#000", font_size = height * 0.55, alignment = "center middle" }
 		local message = if state.bomb_progress_type == BombProgress_Planting then "Planting..." else "Defusing..."
@@ -476,14 +476,13 @@ end
 local function DrawPerk( state )
 	return cd.node( {
 		background = "#fff",
-		height = "100%",
-		width = "fit",
-		border = 8,
+		aspect_ratio = 1,
+		border = border_size,
 		border_color = dark_grey,
-		padding = 8,
+		padding = border_size,
+		width = "5.5vh",
 	}, {
-		-- TODO: clay can solve the width here but it doesn't bubble up properly yet
-		cd.node( { color = "#000", height = "100%", width = "4.5vh" }, cd.getPerkIcon( state.perk ) ),
+		cd.node( { color = "#000", aspect_ratio = 1, width = "100%" }, cd.getPerkIcon( state.perk ) ),
 	} )
 end
 
@@ -510,14 +509,15 @@ local function DrawWeaponOrGadget( width, ammo_font_size, icon, ammo, ammo_frac,
 		flow = "vertical",
 		width = width,
 		height = "fit",
-		padding = 8,
-		gap = 8,
-		border = 8,
+		padding = border_size,
+		gap = border_size,
+		border = border_size,
 		border_color = dark_grey,
 	}
 
 	local icon_container = {
 		width = "grow",
+		aspect_ratio = 1,
 	}
 
 	local icon_background = {
@@ -575,8 +575,8 @@ local function DrawWeaponOrGadget( width, ammo_font_size, icon, ammo, ammo_frac,
 end
 
 local function DrawGadget( state, show_hotkeys )
-	local ammo_frac = state.gadget_ammo / cd.getGadgetMaxAmmo( state.gadget )
-	return DrawWeaponOrGadget( "100%", "1vh", cd.getGadgetIcon( state.gadget ), state.gadget_ammo, ammo_frac, false, nil, cd.getBind( "+gadget" ) )
+	local ammo_frac = math.min( 1.0, state.gadget_ammo / cd.getGadgetMaxAmmo( state.gadget ) )
+	return DrawWeaponOrGadget( "5.5vh", "1vh", cd.getGadgetIcon( state.gadget ), state.gadget_ammo, ammo_frac, false, nil, cd.getBind( "+gadget" ) )
 end
 
 local function DrawStaminaBarBackground( x, y, w, h, frac )
@@ -604,7 +604,7 @@ local function DrawStaminaBar( state )
 end
 
 local function HealthColor( frac )
-	return RGBALinear( sRGBToLinear( 1 - frac ), sRGBToLinear( frac ), sRGBToLinear( frac * 0.3 ), 1 )
+	return RGBALinear( 1 - frac, frac, frac * 0.15, 1 )
 end
 
 local function DrawHealthCross( x, y, w, h, color )
@@ -672,23 +672,25 @@ local function DrawBottomLeft( state )
 
 	local health_color = HealthColor( state.health / state.max_health )
 	local health_percent = string.format( "%f%%", 100 * ( state.health / state.max_health ) )
+	local smoothed_health_percent = string.format( "%f%%", 100 * ( ( state.smoothed_health - state.health ) / state.max_health ) )
 
 	local health_node = cd.node( {
 		flow = "vertical",
 		width = "40vh",
 		height = "100%",
 		background = dark_grey,
-		gap = 8,
-		border = 8,
-		padding = 8,
+		gap = border_size,
+		border = border_size,
+		padding = border_size,
 		border_color = dark_grey,
 	}, {
-		cd.node( { height = "30%", width = "100%", gap = 8 }, DrawStaminaBar( state ) ),
+		cd.node( { height = "30%", width = "100%", gap = border_size }, DrawStaminaBar( state ) ),
 		cd.node( { height = "35%", width = "100%", background = RGBALinear( 0.04, 0.04, 0.04, 1 ) }, {
 			cd.node( { height = "100%", width = health_percent, background = health_color } ),
+			cd.node( { height = "100%", width = smoothed_health_percent, background = RGBALinear( 1.0, 0.0, 0.0, 0.25 ) } ),
 		} ),
 		cd.node( { height = "35%", width = "grow", gap = "1vh", padding = "0.5vh" }, {
-			cd.node( { height = "100%", width = 39 }, DrawHealthCross, health_color ),
+			cd.node( { height = "100%", aspect_ratio = 1 }, DrawHealthCross, health_color ),
 			cd.node( { color = health_color, height = "100%", width = "5vh", font = "bold", fit = "left" }, string.format( "%d", state.health ) ),
 			DrawHealthBarHotkey( state ),
 		} ),
@@ -703,9 +705,9 @@ local function DrawBottomLeft( state )
 	if state.is_carrier then
 		table.insert( health_and_weapons, cd.node( {
 			background = state.can_plant and cd.plantableColor() or "#666",
-			border = 8,
+			border = border_size,
 			border_color = dark_grey,
-			padding = 8,
+			padding = border_size,
 			width = "9.1vh",
 			height = "fit",
 		}, { cd.node( { width = "100%", color = dark_grey }, assets.bomb ) } ) )
@@ -721,7 +723,7 @@ local function DrawBottomLeft( state )
 			gap = "0.5vh",
 			flow = "vertical",
 		}, {
-			cd.node( { width = "fit", height = "5.5vh", gap = 8 }, perk_and_gadget ),
+			cd.node( { width = "fit", height = "fit", gap = border_size }, perk_and_gadget ),
 			cd.node( { width = "fit", height = "fit", gap = "0.5vh" }, health_and_weapons ),
 		} )
 	)

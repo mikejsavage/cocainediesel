@@ -24,47 +24,56 @@ static float SmoothStep( float t ) {
 	return t * t * ( 3.0f - 2.0f * t );
 }
 
-static void CG_ViewWeapon_AddAngleEffects( EulerDegrees3 * angles, cg_viewweapon_t * viewweapon ) {
+static float EaseInQuadratic( float t ) {
+	return Square( t );
+}
+
+static float EaseOutQuadratic( float t ) {
+	return /*1.0f -*/ Square( 1.0f - t );
+}
+
+static void AddViewWeaponAnimations( Vec3 * origin, EulerDegrees3 * angles, cg_viewweapon_t * viewweapon ) {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
 
 	if( ps->using_gadget ) {
 		const GadgetDef * def = GetGadgetDef( ps->gadget );
 
 		if( ps->weapon_state == WeaponState_SwitchingIn ) {
-			float frac = 1.0f - float( ps->weapon_state_time ) / float( def->switch_in_time );
-			frac *= frac; //smoother curve
-			viewweapon->origin -= FromQFAxis( cg.view.axis, AXIS_UP ) * frac * 10.0f;
-			angles->pitch += Lerp( 0.0f, frac, 60.0f );
+			float frac = EaseOutQuadratic( float( ps->weapon_state_time ) / float( def->switch_in_time ) );
+			*origin -= FromQFAxis( cg.view.axis, AXIS_UP ) * frac * 10.0f;
+			angles->pitch -= Lerp( 0.0f, frac, 60.0f );
 		}
 		else if( ps->weapon_state == WeaponState_Cooking ) {
 			float charge = float( ps->weapon_state_time ) / float( def->cook_time );
 			float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 9.0f;
-			viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_UP ) * pull_back;
-			angles->pitch -= Lerp( 0.0f, pull_back, 4.0f );
+			*origin += FromQFAxis( cg.view.axis, AXIS_UP ) * pull_back;
+			angles->pitch += Lerp( 0.0f, pull_back, 4.0f );
 		}
 		else if( ps->weapon_state == WeaponState_Throwing ) {
 			float frac = float( ps->weapon_state_time ) / float( def->using_time );
-			viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * frac * 16.0f;
+			*origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * frac * 16.0f;
 		}
 		else if( ps->weapon_state == WeaponState_SwitchingOut ) {
-			viewweapon->origin.z -= 1000.0f; // TODO: lol
+			origin->z -= 1000.0f; // TODO: lol
 		}
 	}
 	else {
-		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 		if( ps->weapon == Weapon_None )
 			return;
 
+		const WeaponDef::Properties * def = GetWeaponDefProperties( ps->weapon );
+
 		if( ps->weapon_state == WeaponState_Firing || ps->weapon_state == WeaponState_FiringSemiAuto ) {
-			float frac = float( ps->weapon_state_time ) / float( def->refire_time );
+			float refire_time = GetWeaponDefFire( ps->weapon, ps->weapon_alt_fire )->refire_time;
+			float frac = float( ps->weapon_state_time ) / refire_time;
 			if( ps->weapon == Weapon_Knife ) {
-				viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 30.0f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
-				angles->roll -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
-				angles->yaw += def->refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
-				angles->pitch -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				*origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 30.0f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->roll += refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->yaw -= refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->pitch += refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 			}
 			else {
-				angles->pitch -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->pitch += refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 			}
 		}
 		else if( ps->weapon_state == WeaponState_Reloading || ps->weapon_state == WeaponState_StagedReloading ) {
@@ -73,40 +82,39 @@ static void CG_ViewWeapon_AddAngleEffects( EulerDegrees3 * angles, cg_viewweapon
 			if( model != NULL ) {
 				u8 animation;
 				if( !FindAnimationByName( model, viewweapon->eventAnim, &animation ) ) {
-					float frac = float( ps->weapon_state_time ) / def->reload_time;
-					angles->roll += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
+					float t = float( ps->weapon_state_time ) / def->reload_time;
+					angles->roll -= Lerp( 0.0f, SmoothStep( t ), 360.0f );
 				}
 			}
 		}
 		else if( ps->weapon_state == WeaponState_SwitchingIn || ps->weapon_state == WeaponState_SwitchingOut ) {
 			float frac;
 			if( ps->weapon_state == WeaponState_SwitchingIn ) {
-				frac = 1.0f - float( ps->weapon_state_time ) / float( def->switch_in_time );
+				frac = EaseOutQuadratic( float( ps->weapon_state_time ) / def->switch_in_time );
 			}
 			else {
-				frac = float( ps->weapon_state_time ) / float( def->switch_out_time );
+				frac = EaseInQuadratic( float( ps->weapon_state_time ) / def->switch_out_time );
 			}
-			frac *= frac; //smoother curve
-			angles->pitch += Lerp( 0.0f, frac, 60.0f );
+			angles->pitch -= Lerp( 0.0f, frac, 60.0f );
 		}
 		else if( ps->weapon == Weapon_Bat && ps->weapon_state == WeaponState_Cooking ) {
-			float charge = float( ps->weapon_state_time ) / float( def->reload_time );
+			float charge = float( ps->weapon_state_time ) / def->reload_time;
 			float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 4.0f;
-			viewweapon->origin -= FromQFAxis( cg.view.axis, AXIS_FORWARD ) * pull_back;
-			angles->pitch -= pull_back * 10.0f;
-			angles->yaw += pull_back * 2.0f;
+			*origin -= FromQFAxis( cg.view.axis, AXIS_FORWARD ) * pull_back;
+			angles->pitch += pull_back * 10.0f;
+			angles->yaw -= pull_back * 2.0f;
 		}
 	}
 
 	// gun angles from bobbing
 	if( cg.bobCycle & 1 ) {
-		angles->roll -= cg.xyspeed * cg.bobFracSin * 0.012f;
-		angles->yaw -= cg.xyspeed * cg.bobFracSin * 0.006f;
-	} else {
 		angles->roll += cg.xyspeed * cg.bobFracSin * 0.012f;
 		angles->yaw += cg.xyspeed * cg.bobFracSin * 0.006f;
+	} else {
+		angles->roll -= cg.xyspeed * cg.bobFracSin * 0.012f;
+		angles->yaw -= cg.xyspeed * cg.bobFracSin * 0.006f;
 	}
-	angles->pitch += cg.xyspeed * cg.bobFracSin * 0.012f;
+	angles->pitch -= cg.xyspeed * cg.bobFracSin * 0.012f;
 }
 
 void CG_ViewWeapon_AddAnimation( int ent_num, StringHash anim ) {
@@ -119,59 +127,49 @@ void CG_ViewWeapon_AddAnimation( int ent_num, StringHash anim ) {
 void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
 	const GLTFRenderData * model = GetEquippedItemRenderData( ps );
-	if( model == NULL )
+	if( model == NULL ) {
+		viewweapon->transform = Mat3x4::Identity();
+		viewweapon->muzzle_transform = Mat3x4::Identity();
 		return;
+	}
 
-	Vec3 gunOffset;
-	EulerDegrees3 gunAngles;
 	if( !model->camera_node.exists ) {
-		if( ps->using_gadget ) {
-			Com_Printf( S_COLOR_YELLOW "Gadget models must have a camera!\n" );
-			return;
-		}
-
-		const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( ps->weapon );
-		// calculate the entity position
-		// weapon config offsets
-		gunAngles = weaponInfo->handpositionAngles;
-
-		constexpr Vec3 old_gunpos_cvars = Vec3( 3, 10, -12 ); // depth, horizontal, vertical
-		gunOffset = weaponInfo->handpositionOrigin + old_gunpos_cvars;
-		gunOffset = Vec3( gunOffset.y, gunOffset.z, -gunOffset.x );
+		Com_GGPrint( S_COLOR_YELLOW "{} has no camera attached", GetWeaponDefProperties( cg.predictedPlayerState.weapon )->name );
+		return;
 	}
-	else {
-		constexpr Mat4 y_up_to_camera_space = Mat4(
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			-1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f
-		);
 
-		gunOffset = ( y_up_to_camera_space * Vec4( -model->nodes[ model->camera_node.value ].global_transform.col3, 1.0f ) ).xyz();
-		gunAngles = EulerDegrees3( 0.0f, 0.0f, 0.0f );
-	}
+	Vec3 origin = Vec3( 0.0f );
+	EulerDegrees3 angles = { };
+
+	constexpr Mat4 y_up_to_camera_space = Mat4(
+		0.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		-1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 1.0f
+	);
+
+	origin = ( y_up_to_camera_space * Vec4( -model->nodes[ model->camera_node.value ].global_transform.col3, 1.0f ) ).xyz();
 
 	// scale forward gun offset depending on fov and aspect ratio
-	gunOffset.x *= frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV );
+	constexpr float ZOOM_REDUCE_FALLKICK = 0.7f;
+	float zoom_ads = float( GetWeaponDefProperties( cg.predictedPlayerState.weapon )->zoom_type == Zoom_ADS );
+	float frac = zoom_ads * cg.predictedPlayerState.zoom_time / float( ZOOMTIME );
+	origin.x *= ( 1.f - frac ) * frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV );
+	origin.y += CG_ViewSmoothFallKick() * ( 1.f - ZOOM_REDUCE_FALLKICK * frac );
 
-	viewweapon->origin = ( frame_static.inverse_V * Vec4( gunOffset, 1.0 ) ).xyz();
-	viewweapon->origin.z += CG_ViewSmoothFallKick();
+	AddViewWeaponAnimations( &origin, &angles, viewweapon );
 
-	// add angles effects
-	gunAngles += cg.predictedPlayerState.viewangles;
-	CG_ViewWeapon_AddAngleEffects( &gunAngles, viewweapon );
+	// TODO: maybe it would be easier to give viewmodels their own render pass with identity view transform. might be required for the depth hack anyway later
+	// TODO: shouldn't this have a model->transform on the end? why does the muzzle transform have it?
+	viewweapon->transform = frame_static.inverse_V * Mat4Translation( origin ) * AnglesToMat3x4( angles );
 
-	// finish
-	AnglesToAxis( gunAngles, viewweapon->axis );
-
-	Mat3x4 gun_transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
 	u8 muzzle;
 	if( FindNodeByName( model, "muzzle", &muzzle ) ) {
-		viewweapon->muzzle_transform = gun_transform * model->transform * model->nodes[ muzzle ].global_transform;
+		viewweapon->muzzle_transform = viewweapon->transform * model->transform * model->nodes[ muzzle ].global_transform;
 	}
 	else {
 		constexpr Mat3x4 hardcoded_offset = Mat4Translation( Vec3( 16, 0, 8 ) );
-		viewweapon->muzzle_transform = gun_transform * hardcoded_offset;
+		viewweapon->muzzle_transform = viewweapon->transform * hardcoded_offset;
 	}
 }
 
@@ -186,8 +184,6 @@ void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
 		return;
 	}
 
-	Mat3x4 transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
-
 	DrawModelConfig config = { };
 	config.draw_model.enabled = true;
 	config.draw_model.view_weapon = true;
@@ -198,24 +194,26 @@ void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
 		TempAllocator temp = cls.frame_arena.temp();
 		Span< Transform > pose = SampleAnimation( &temp, model, t, animation );
 		MatrixPalettes palettes = ComputeMatrixPalettes( &temp, model, pose );
-		DrawGLTFModel( config, model, transform, CG_TeamColorVec4( ps->team ), palettes );
+		DrawGLTFModel( config, model, viewweapon->transform, CG_TeamColorVec4( ps->team ), palettes );
 	}
 	else {
-		DrawGLTFModel( config, model, transform, CG_TeamColorVec4( ps->team ) );
+		DrawGLTFModel( config, model, viewweapon->transform, CG_TeamColorVec4( ps->team ) );
 	}
 }
 
-void CG_AddRecoil( WeaponType weapon ) {
+void CG_AddRecoil( WeaponType weapon, bool altfire ) {
 	if( !cg.recoiling ) {
 		cg.recoil_initial_angles = cl.viewangles;
 		cg.recoiling = true;
 	}
 
-	EulerDegrees2 min = GS_GetWeaponDef( weapon )->recoil_min;
-	EulerDegrees2 max = GS_GetWeaponDef( weapon )->recoil_max;
+	float frac = cg.predictedPlayerState.zoom_time / float( ZOOMTIME );
+	Vec2 zoom_recoil_factor = Vec2( 1.f - frac, 1.f - frac ) + GetWeaponDefProperties( weapon )->zoom_recoil_factor * frac;
+	EulerDegrees2 min = GetWeaponDefFire( weapon, altfire )->recoil_min;
+	EulerDegrees2 max = GetWeaponDefFire( weapon, altfire )->recoil_max;
 
-	cg.recoil_velocity.pitch = -RandomUniformFloat( &cls.rng, min.pitch, max.pitch );
-	cg.recoil_velocity.yaw = RandomUniformFloat( &cls.rng, min.yaw, max.yaw );
+	cg.recoil_velocity.pitch = -RandomUniformFloat( &cls.rng, min.pitch, max.pitch ) * zoom_recoil_factor.x;
+	cg.recoil_velocity.yaw = RandomUniformFloat( &cls.rng, min.yaw, max.yaw ) * zoom_recoil_factor.y;
 }
 
 static bool SameSign( float x, float y ) {
@@ -236,7 +234,7 @@ void CG_Recoil( WeaponType weapon ) {
 	recovery_delta = AngleDelta( cg.recoil_initial_angles, viewangles );
 
 	constexpr float recenter_speed_scale = 1.0f / 16.0f;
-	float recenter_accel = GS_GetWeaponDef( weapon )->recoil_recovery;
+	float recenter_accel = GetWeaponDefProperties( weapon )->recoil_recovery;
 
 	// pitch
 	{

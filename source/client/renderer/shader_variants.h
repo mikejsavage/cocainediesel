@@ -50,8 +50,8 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 	standard_vertex.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, 0 };
 	standard_vertex.attributes[ VertexAttribute_Normal ] = VertexAttribute { VertexFormat_Floatx3, 1, 0 };
 	standard_vertex.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 1, sizeof( Vec3 ) };
-	standard_vertex.buffer_strides[ 0 ] = sizeof( u16 ) * 3;
-	standard_vertex.buffer_strides[ 1 ] = sizeof( u16 ) * 4;
+	standard_vertex.buffer_strides[ 0 ] = sizeof( Vec3 );
+	standard_vertex.buffer_strides[ 1 ] = sizeof( Vec3 ) + sizeof( Vec2 );
 
 	VertexDescriptor vfx = { };
 	vfx.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( VFXVertex, position ) };

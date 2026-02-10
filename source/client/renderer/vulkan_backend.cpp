@@ -1,3 +1,7 @@
+#include "qcommon/platform.h"
+
+#if !PLATFORM_MACOS
+
 #include "qcommon/base.h"
 #include "qcommon/array.h"
 #include "qcommon/arraymap.h"
@@ -267,7 +271,7 @@ static void PrintExtensions() {
 static VkInstance createInstance() {
 	const VkApplicationInfo appInfo = {
 		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-		.apiVersion = macOS ? VK_API_VERSION_1_2 : VK_API_VERSION_1_3,
+		.apiVersion = VK_API_VERSION_1_3,
 	};
 
 	Assert( volkGetInstanceVersion() >= appInfo.apiVersion );
@@ -275,9 +279,6 @@ static VkInstance createInstance() {
 	BoundedDynamicArray< const char *, 2 > layers = { };
 	BoundedDynamicArray< VkValidationFeatureEnableEXT, 3 > enabledValidationFeatures = { };
 
-	if( macOS ) {
-		layers.must_add( "VK_LAYER_KHRONOS_synchronization2" );
-	}
 	if( IFDEF( ENABLE_VALIDATION_LAYERS ) && !running_in_renderdoc ) {
 		layers.must_add( "VK_LAYER_KHRONOS_validation" );
 		enabledValidationFeatures.must_add( VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT );
@@ -536,11 +537,7 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 			VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME,
 #endif
 #if PLATFORM_MACOS
-			VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
 			VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
-			VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
-			VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
-			VK_EXT_SHADER_DEMOTE_TO_HELPER_INVOCATION_EXTENSION_NAME, // implements hlsl discard semantics, core 1.3
 #endif
 		};
 
@@ -552,38 +549,15 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 			// .maintenance4 = VK_TRUE,
 		};
 
-		VkPhysicalDeviceExtendedDynamicStateFeaturesEXT features_dynamic_state = {
-			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT,
-			.extendedDynamicState = VK_TRUE,
-		};
-
 		VkPhysicalDevicePortabilitySubsetFeaturesKHR features_portability_subset = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR,
-			.pNext = &features_dynamic_state,
+			.pNext = &features_13,
 			.imageViewFormatSwizzle = VK_TRUE,
-		};
-
-		VkPhysicalDeviceDynamicRenderingFeaturesKHR features_dynamic_rendering = {
-			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
-			.pNext = &features_portability_subset,
-			.dynamicRendering = VK_TRUE,
-		};
-
-		VkPhysicalDeviceSynchronization2FeaturesKHR features_synchronization2 = {
-			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR,
-			.pNext = &features_dynamic_rendering,
-			.synchronization2 = VK_TRUE,
-		};
-
-		VkPhysicalDeviceShaderDemoteToHelperInvocationFeatures features_shader_demote = {
-			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DEMOTE_TO_HELPER_INVOCATION_FEATURES_EXT,
-			.pNext = &features_synchronization2,
-			.shaderDemoteToHelperInvocation = VK_TRUE,
 		};
 
 		VkPhysicalDeviceVulkan12Features features12 = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-			.pNext = macOS ? ( void * ) &features_shader_demote : ( void * ) &features13,
+			.pNext = macOS ? ( void * ) &features_portability_subset : ( void * ) &features13,
 			// .drawIndirectCount = VK_TRUE, XXX metal doesn't have this
 			// .storageBuffer8BitAccess = VK_TRUE,
 			// .uniformAndStorageBuffer8BitAccess = VK_TRUE,
@@ -1496,9 +1470,9 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline
 	CommandBuffer * cb = ocb.unwrap();
 
 	vkCmdBindPipeline( cb->buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pso );
-	( macOS ? vkCmdSetCullModeEXT : vkCmdSetCullMode )( cb->buffer, pipeline_state.dynamic_state.cull_face == CullFace_Back ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_FRONT_BIT );
-	( macOS ? vkCmdSetDepthCompareOpEXT : vkCmdSetDepthCompareOp )( cb->buffer, depth_funcs[ pipeline_state.dynamic_state.depth_func ].op );
-	( macOS ? vkCmdSetDepthWriteEnableEXT : vkCmdSetDepthWriteEnable )( cb->buffer, depth_funcs[ pipeline_state.dynamic_state.depth_func ].write_depth );
+	vkCmdSetCullMode( cb->buffer, pipeline_state.dynamic_state.cull_face == CullFace_Back ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_FRONT_BIT );
+	vkCmdSetDepthCompareOp( cb->buffer, depth_funcs[ pipeline_state.dynamic_state.depth_func ].op );
+	vkCmdSetDepthWriteEnable( cb->buffer, depth_funcs[ pipeline_state.dynamic_state.depth_func ].write_depth );
 
 	BindMesh( cb->buffer, mesh );
 
@@ -1632,12 +1606,7 @@ static void Barriers( VkCommandBuffer command_buffer, Optional< VkMemoryBarrier2
 		.pImageMemoryBarriers = image_barriers.ptr,
 	};
 
-	if( macOS ) {
-		vkCmdPipelineBarrier2KHR( command_buffer, &dependency_info );
-	}
-	else {
-		vkCmdPipelineBarrier2( command_buffer, &dependency_info );
-	}
+	vkCmdPipelineBarrier2( command_buffer, &dependency_info );
 }
 
 static void Barrier( VkCommandBuffer command_buffer, VkImageMemoryBarrier2 barrier ) {
@@ -1976,12 +1945,7 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 		.pDepthAttachment = config.depth_target.exists ? &depth_attachment : NULL,
 	};
 
-	if( macOS ) {
-		vkCmdBeginRenderingKHR( command_buffer, &rendering_info );
-	}
-	else {
-		vkCmdBeginRendering( command_buffer, &rendering_info );
-	}
+	vkCmdBeginRendering( command_buffer, &rendering_info );
 
 	// bindings
 	RenderPipeline representative_shader = render_pipelines[ config.representative_shader ];
@@ -2116,12 +2080,7 @@ void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitTyp
 	CommandBuffer * command_buffer = buffer.unwrap();
 
 	if( command_buffer->is_render_command_buffer ) {
-		if( macOS ) {
-			vkCmdEndRenderingKHR( command_buffer->buffer );
-		}
-		else {
-			vkCmdEndRendering( command_buffer->buffer );
-		}
+		vkCmdEndRendering( command_buffer->buffer );
 	}
 
 	if( type == SubmitCommandBuffer_Present ) {
@@ -2186,12 +2145,7 @@ void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitTyp
 		submit_info.signalSemaphoreInfoCount = ARRAY_COUNT( present_signal_semaphores );
 	}
 
-	if( macOS ) {
-		VK_CHECK( vkQueueSubmit2KHR( global_device.queue, 1, &submit_info, VK_NULL_HANDLE ) );
-	}
-	else {
-		VK_CHECK( vkQueueSubmit2( global_device.queue, 1, &submit_info, VK_NULL_HANDLE ) );
-	}
+	VK_CHECK( vkQueueSubmit2( global_device.queue, 1, &submit_info, VK_NULL_HANDLE ) );
 
 	if( type == SubmitCommandBuffer_Wait ) {
 		VK_CHECK( vkDeviceWaitIdle( global_device.device ) );
@@ -2649,3 +2603,5 @@ u32 RenderBackendSupportedMSAA() {
 size_t FrameSlot() {
 	return frame_counter % MaxFramesInFlight;
 }
+
+#endif // #if PLATFORM_MACOS

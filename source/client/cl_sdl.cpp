@@ -12,7 +12,7 @@
 #include "imgui/imgui_internal.h"
 #include "imgui/imgui_impl_sdl3.h"
 
-// #define CD 1
+#define CD 1
 
 #define SDL_MAIN_USE_CALLBACKS
 #include "sdl/SDL3/SDL_audio.h"
@@ -204,17 +204,17 @@ void SetWindowMode( WindowMode mode ) {
 static Optional< bool > has_gsync;
 void EnableVSync( bool enabled ) {
 	// TODO NOMERGE
-#if !PLATFORM_MACOS
-	if( enabled ) {
-		if( !has_gsync.exists ) {
-			has_gsync = SDL_GL_SetSwapInterval( -1 );
-		}
-		TrySDL( SDL_GL_SetSwapInterval, has_gsync.value ? -1 : 1 );
-	}
-	else {
-		TrySDL( SDL_GL_SetSwapInterval, 0 );
-	}
-#endif
+// #if !PLATFORM_MACOS
+// 	if( enabled ) {
+// 		if( !has_gsync.exists ) {
+// 			has_gsync = SDL_GL_SetSwapInterval( -1 );
+// 		}
+// 		TrySDL( SDL_GL_SetSwapInterval, has_gsync.value ? -1 : 1 );
+// 	}
+// 	else {
+// 		TrySDL( SDL_GL_SetSwapInterval, 0 );
+// 	}
+// #endif
 }
 
 bool IsWindowFocused() {

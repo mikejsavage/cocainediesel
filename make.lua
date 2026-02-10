@@ -142,8 +142,8 @@ bin( "server", {
 	linux_ldflags = "-lm -lpthread",
 } )
 
-obj_cxxflags( "source/sample.cpp", "-I libs/sdl" )
-if true then
+if false then
+	obj_cxxflags( "source/sample.cpp", "-I libs/sdl" )
 	bin( "test", {
 		srcs = {
 			"source/sample.cpp",

@@ -10,6 +10,7 @@
 #include "client/client.h"
 #include "client/assets.h"
 #include "client/renderer/api.h"
+#include "client/renderer/blue_noise.h"
 #include "client/renderer/dds.h"
 #include "client/renderer/shader.h"
 #include "client/renderer/material.h"
@@ -35,6 +36,9 @@ static HashPool< Material2, MaxMaterials > materials;
 
 static PoolHandle< Texture > missing_texture;
 static PoolHandle< Material2 > missing_material;
+
+static PoolHandle< Texture > rgb_noise;
+static PoolHandle< Texture > blue_noise;
 
 static HashMap< Sprite, MAX_SPRITES > sprites;
 static PoolHandle< Texture > sprite_atlas;
@@ -404,6 +408,7 @@ static Texture MakeTexture( const TextureConfig & config, u64 hash ) {
 		.height = config.height,
 		.num_layers = config.num_layers,
 		.num_mipmaps = config.num_mipmaps,
+		.msaa_samples = config.msaa_samples,
 	};
 }
 
@@ -416,9 +421,15 @@ PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, PoolHandle< Tex
 PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {
 	Assert( config.name != "" );
 
+	if( old_texture.exists ) {
+		DeleteDedicatedAllocationTexture( textures[ old_texture.value ].backend );
+	}
+
 	u64 hash = Hash64( config.name );
 
+	// NOMERGE assert that textures[hash] doesn't exist because it should be old_texture
 	Optional< PoolHandle< Texture > > handle = old_texture.exists ? old_texture : textures.get( hash );
+
 	if( !handle.exists ) {
 		handle = textures.add( hash );
 		if( !handle.exists ) {
@@ -442,6 +453,10 @@ u32 TextureWidth( PoolHandle< Texture > texture ) {
 
 u32 TextureHeight( PoolHandle< Texture > texture ) {
 	return textures[ texture ].height;
+}
+
+u32 TextureMSAASamples( PoolHandle< Texture > texture ) {
+	return textures[ texture ].msaa_samples;
 }
 
 u32 TextureWidth( PoolHandle< Material2 > material ) {
@@ -873,6 +888,14 @@ static void PackSpriteAtlas( bool first_time ) {
 	}
 }
 
+static void Must( Optional< PoolHandle< Texture > > texture ) {
+	Assert( texture.exists );
+}
+
+static void Must( Optional< PoolHandle< Material2 > > material ) {
+	Assert( material.exists );
+}
+
 static void LoadBuiltinMaterials() {
 	TracyZoneScoped;
 
@@ -892,10 +915,10 @@ static void LoadBuiltinMaterials() {
 			.data = pixels,
 		} );
 
-		missing_material = Unwrap( AddMaterial( "missing", MaterialDescriptor {
+		missing_material = *AddMaterial( "missing", MaterialDescriptor {
 			.texture = missing_texture,
 			.outlined = false,
-		} ) );
+		} );
 	}
 
 	{
@@ -908,7 +931,7 @@ static void LoadBuiltinMaterials() {
 			.data = &white,
 		};
 
-		Unwrap( AddTexture( config ) );
+		Must( AddTexture( config ) );
 	}
 
 	{
@@ -934,17 +957,17 @@ static void LoadBuiltinMaterials() {
 			.properties = world_material.properties,
 		};
 
-		Unwrap( AddMaterial( "editor/world", world_material ) );
-		Unwrap( AddMaterial( "world", world_material ) );
+		Must( AddMaterial( "editor/world", world_material ) );
+		Must( AddMaterial( "world", world_material ) );
 
-		Unwrap( AddMaterial( "editor/wallbangable", wallbang_material ) );
-		Unwrap( AddMaterial( "wallbangable", wallbang_material ) );
+		Must( AddMaterial( "editor/wallbangable", wallbang_material ) );
+		Must( AddMaterial( "wallbangable", wallbang_material ) );
 
 		// for use in models, wallbangable is for collision geometry
-		Unwrap( AddMaterial( "wallbang_visible", wallbang_material ) );
+		Must( AddMaterial( "wallbang_visible", wallbang_material ) );
 	}
 
-	Unwrap( AddMaterial( "textures/editor/glass", MaterialDescriptor {
+	Must( AddMaterial( "textures/editor/glass", MaterialDescriptor {
 		.rgbgen = { .args = { 0.0f, 0.35f, 0.8f } },
 		.world = true,
 		.properties = {
@@ -1109,6 +1132,14 @@ void ShutdownMaterials() {
 	// 	Free( sys_allocator, materials[ i ].name.ptr );
 	// }
 	// Free( sys_allocator, missing_material.name.ptr );
+}
+
+PoolHandle< Texture > RGBNoiseTexture() {
+	return rgb_noise;
+}
+
+PoolHandle< Texture > BlueNoiseTexture() {
+	return blue_noise;
 }
 
 Optional< PoolHandle< Material2 > > TryFindMaterial( StringHash name ) {

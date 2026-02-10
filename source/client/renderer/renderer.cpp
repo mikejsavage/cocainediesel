@@ -6,7 +6,6 @@
 #include "client/client.h"
 #include "client/gltf.h"
 #include "client/renderer/renderer.h"
-#include "client/renderer/blue_noise.h"
 #include "client/renderer/cdmap.h"
 #include "client/renderer/gltf.h"
 #include "client/renderer/private.h"
@@ -22,9 +21,6 @@
 
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
-
-static PoolHandle< Texture > rgb_noise;
-static PoolHandle< Texture > blue_noise;
 
 static Mesh fullscreen_mesh;
 
@@ -104,37 +100,6 @@ void InitRenderer( SDL_Window * window ) {
 	last_viewport_height = 0;
 	last_msaa = 0;
 	last_shadow_quality = ShadowQuality_Count;
-
-	// {
-	// 	int w, h;
-	// 	u8 * img = stbi_load_from_memory( rgb_noise_png, rgb_noise_png_len, &w, &h, NULL, 4 );
-	// 	Assert( img != NULL );
-    //
-	// 	rgb_noise = NewTexture( TextureConfig {
-	// 		.format = TextureFormat_RGBA_U8_sRGB,
-	// 		.width = u32( w ),
-	// 		.height = u32( h ),
-	// 		.data = img,
-	// 	} );
-    //
-	// 	stbi_image_free( img );
-	// }
-
-	{
-		int w, h;
-		u8 * img = stbi_load_from_memory( blue_noise_png, blue_noise_png_len, &w, &h, NULL, 1 );
-		Assert( img != NULL );
-
-		blue_noise = NewTexture( TextureConfig {
-			.name = "Blue noise",
-			.format = TextureFormat_R_S8,
-			.width = u32( w ),
-			.height = u32( h ),
-			.data = img,
-		} );
-
-		stbi_image_free( img );
-	}
 
 	{
 		constexpr Vec3 positions[] = {
@@ -310,42 +275,33 @@ static void CreateRenderTargets( bool first_time ) {
 	if( frame_static.msaa_samples > 1 ) {
 		frame_static.render_targets.msaa_color = NewTexture( TextureConfig {
 			.name = "MSAA color RT",
-			.format = TextureFormat_RGBA_U8_sRGB,
+			.format = TextureFormat_Swapchain,
 			.width = frame_static.viewport_width,
 			.height = frame_static.viewport_height,
 			.msaa_samples = frame_static.msaa_samples,
 			.dedicated_allocation = true,
 		}, frame_static.render_targets.msaa_color );
-
-		frame_static.render_targets.msaa_depth = NewTexture( TextureConfig {
-			.name = "MSAA depth RT",
-			.format = TextureFormat_Depth,
-			.width = frame_static.viewport_width,
-			.height = frame_static.viewport_height,
-			.msaa_samples = frame_static.msaa_samples,
-			.dedicated_allocation = true,
-		}, frame_static.render_targets.msaa_depth );
 	}
 	else {
 		frame_static.render_targets.msaa_color = NONE;
-		frame_static.render_targets.msaa_depth = NONE;
 	}
 
 	frame_static.render_targets.resolved_color = NewTexture( TextureConfig {
 		.name = "Color RT",
-		.format = TextureFormat_RGBA_U8_sRGB,
+		.format = TextureFormat_Swapchain,
 		.width = frame_static.viewport_width,
 		.height = frame_static.viewport_height,
 		.dedicated_allocation = true,
 	}, first_time ? NONE : Optional( frame_static.render_targets.resolved_color ) );
 
-	frame_static.render_targets.resolved_depth = NewTexture( TextureConfig {
+	frame_static.render_targets.depth = NewTexture( TextureConfig {
 		.name = "Depth RT",
 		.format = TextureFormat_Depth,
 		.width = frame_static.viewport_width,
 		.height = frame_static.viewport_height,
+		.msaa_samples = frame_static.msaa_samples,
 		.dedicated_allocation = true,
-	}, first_time ? NONE : Optional( frame_static.render_targets.resolved_depth ) );
+	}, first_time ? NONE : Optional( frame_static.render_targets.depth ) );
 
 	frame_static.render_targets.shadowmap = NewTexture( TextureConfig {
 		.name = "Shadowmap RT",
@@ -614,6 +570,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 				.load = LoadOp_Clear,
 				.clear = clear_depth,
 			},
+			.attachment_transitions = Span( &targets.shadowmap, i == 0 ? 1 : 0 ),
 			.representative_shader = shaders.depth_only,
 			.bindings = {
 				.buffers = { { "u_View", frame_static.shadowmap_view_uniforms[ i ] } },
@@ -622,17 +579,17 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	}
 
 	bool msaa = frame_static.msaa_samples > 1;
-	PoolHandle< Texture > color_target = msaa ? Unwrap( targets.msaa_color ) : targets.resolved_color;
-	PoolHandle< Texture > depth_target = msaa ? Unwrap( targets.msaa_depth ) : targets.resolved_depth;
+	PoolHandle< Texture > color_target = msaa ? *targets.msaa_color : targets.resolved_color;
 
 	frame_static.render_passes[ RenderPass_WorldOpaqueZPrepass ] = NewRenderPass( RenderPassConfig {
 		.name = "World Z-prepass",
 		.pass = RenderPass_WorldOpaqueZPrepass,
 		.depth_target = RenderPassConfig::DepthTarget {
-			.texture = depth_target,
+			.texture = targets.depth,
 			.load = LoadOp_Clear,
 			.clear = clear_depth,
 		},
+		.attachment_transitions = { targets.depth },
 		.representative_shader = shaders.depth_only,
 		.bindings = {
 			.buffers = { { "u_View", frame_static.view_uniforms } },
@@ -654,7 +611,9 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 				.clear = clear_color,
 			},
 		},
-		.depth_target = RenderPassConfig::DepthTarget { .texture = depth_target },
+		.depth_target = RenderPassConfig::DepthTarget { .texture = targets.depth },
+		.barriers = { GPUBarrier_ComputeToFragment, GPUBarrier_FragmentToFragmentSample },
+		.attachment_transitions = { color_target, targets.curved_surface_mask },
 		.representative_shader = shaders.world,
 		.bindings = standard_bindings,
 	} );
@@ -669,35 +628,44 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 			RenderPassConfig::ColorTarget { .texture = color_target },
 			RenderPassConfig::ColorTarget { .texture = targets.curved_surface_mask },
 		},
-		.depth_target = RenderPassConfig::DepthTarget { .texture = depth_target },
+		.depth_target = RenderPassConfig::DepthTarget { .texture = targets.depth },
 		.representative_shader = shaders.world,
 		.bindings = standard_bindings,
 	} );
 
 	// RenderPass_AddOutlines
 
-	frame_static.render_passes[ RenderPass_NonworldOpaque ] = NewRenderPass( RenderPassConfig {
-		.name = "Nonworld opaque + MSAA resolve",
-		.pass = RenderPass_NonworldOpaque,
-		.color_targets = {
-			RenderPassConfig::ColorTarget {
-				.texture = color_target,
-				.resolve_target = msaa ? Optional( targets.resolved_color ) : NONE,
+	{
+		BoundedDynamicArray< PoolHandle< Texture >, 2 > attachment_transitions = { targets.depth };
+		if( msaa ) {
+			attachment_transitions.must_add( targets.resolved_color );
+		}
+
+		frame_static.render_passes[ RenderPass_NonworldOpaque ] = NewRenderPass( RenderPassConfig {
+			.name = "Nonworld opaque + MSAA resolve",
+			.pass = RenderPass_NonworldOpaque,
+			.color_targets = {
+				RenderPassConfig::ColorTarget {
+					.texture = color_target,
+					.resolve_target = msaa ? Optional( targets.resolved_color ) : NONE,
+				},
 			},
-		},
-		.depth_target = RenderPassConfig::DepthTarget {
-			.texture = depth_target,
-			.resolve_target = msaa ? Optional( targets.resolved_depth ) : NONE,
-		},
-		.representative_shader = shaders.world,
-		.bindings = standard_bindings,
-	} );
+			.depth_target = RenderPassConfig::DepthTarget { .texture = targets.depth },
+			.attachment_transitions = attachment_transitions.span(),
+			.representative_shader = shaders.world,
+			.bindings = standard_bindings,
+		} );
+	}
 
 	frame_static.render_passes[ RenderPass_Transparent ] = NewRenderPass( RenderPassConfig {
 		.name = "Transparent",
 		.pass = RenderPass_Transparent,
 		.color_targets = { RenderPassConfig::ColorTarget { .texture = targets.resolved_color } },
-		// .barrier = true, particle rendering happens here
+		.barriers = { GPUBarrier_ComputeToIndirect, GPUBarrier_ComputeToFragment },
+		.representative_shader = shaders.particle_add,
+		.bindings = {
+			.buffers = { { "u_View", frame_static.view_uniforms } },
+		},
 	} );
 
 	// RenderPass_AddSilhouettes
@@ -774,14 +742,6 @@ void Draw( RenderPass render_pass, const PipelineState & pipeline, Mesh mesh, Sp
 void EncodeScissor( RenderPass render_pass, Optional< Scissor > scissor ) {
 	Assert( frame_static.render_passes[ render_pass ].exists );
 	EncodeScissor( frame_static.render_passes[ render_pass ].value, scissor );
-}
-
-PoolHandle< Texture > RGBNoiseTexture() {
-	return rgb_noise;
-}
-
-PoolHandle< Texture > BlueNoiseTexture() {
-	return blue_noise;
 }
 
 Mesh FullscreenMesh() {

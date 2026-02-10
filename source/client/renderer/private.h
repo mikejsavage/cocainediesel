@@ -81,6 +81,7 @@ struct Texture {
 	u32 width, height;
 	u32 num_layers;
 	u32 num_mipmaps;
+	u32 msaa_samples;
 
 	bool dummy_slot_for_missing_texture;
 	void * stb_data;
@@ -90,10 +91,11 @@ struct Texture {
 
 Opaque< BackendTexture > NewBackendTexture( const TextureConfig & config );
 Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & config );
-void DeleteTexture( Opaque< BackendTexture > texture );
+void DeleteDedicatedAllocationTexture( Opaque< BackendTexture > texture );
 
 u32 TextureWidth( PoolHandle< Texture > texture );
 u32 TextureHeight( PoolHandle< Texture > texture );
+u32 TextureMSAASamples( PoolHandle< Texture > texture );
 
 /*
  * Resource transfers

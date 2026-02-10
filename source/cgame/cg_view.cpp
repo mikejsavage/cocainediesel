@@ -423,6 +423,7 @@ static void DrawSilhouettes() {
 		.color_targets = {
 			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.silhouette_mask },
 		},
+		.attachment_transitions = { frame_static.render_targets.silhouette_mask },
 		.representative_shader = shaders.write_silhouette_mask,
 		.bindings = {
 			.buffers = {
@@ -437,6 +438,7 @@ static void DrawSilhouettes() {
 		.color_targets = {
 			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.resolved_color },
 		},
+		.readonly_transitions = { frame_static.render_targets.silhouette_mask },
 		.representative_shader = shaders.postprocess_silhouette_mask,
 		.bindings = {
 			.textures = { { "u_SilhouetteMask", frame_static.render_targets.silhouette_mask } },
@@ -464,6 +466,7 @@ static void DrawOutlines() {
 				.texture = Default( frame_static.render_targets.msaa_color, frame_static.render_targets.resolved_color ),
 			},
 		},
+		.readonly_transitions = { frame_static.render_targets.depth, frame_static.render_targets.curved_surface_mask },
 		.representative_shader = shaders.postprocess_world_gbuffer,
 		.bindings = {
 			.buffers = {
@@ -471,7 +474,7 @@ static void DrawOutlines() {
 				{ "u_OutlineColor", NewTempBuffer( sRGBToLinear( gray ) ) },
 			},
 			.textures = {
-				{ "u_DepthTexture", Default( frame_static.render_targets.msaa_depth, frame_static.render_targets.resolved_depth ) },
+				{ "u_DepthTexture", frame_static.render_targets.depth },
 				{ "u_CurvedSurfaceMask", frame_static.render_targets.curved_surface_mask },
 			},
 		},

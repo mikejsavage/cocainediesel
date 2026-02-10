@@ -809,6 +809,7 @@ void DrawParticles() {
 	frame_static.render_passes[ RenderPass_ParticleSetupIndirect ] = NewComputePass( ComputePassConfig {
 		.name = "Particle setup indirect",
 		.pass = RenderPass_ParticleSetupIndirect,
+		.barriers = { GPUBarrier_ComputeToCompute },
 	} );
 
 	UpdateParticleSystem( &addParticleSystem, dt );

@@ -85,6 +85,7 @@ struct CommandBuffer {
 	MTL::ComputeCommandEncoder * cce;
 	MTL::BlitCommandEncoder * bce;
 	MTL::ScissorRect no_scissor;
+	u32 msaa_samples;
 };
 
 struct BindGroup {
@@ -492,7 +493,7 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 	return backend;
 }
 
-void DeleteTexture( Opaque< BackendTexture > texture ) {
+void DeleteDedicatedAllocationTexture( Opaque< BackendTexture > texture ) {
 	texture.unwrap()->texture->release();
 }
 
@@ -838,14 +839,13 @@ static void EncodeAndBindArgumentBuffer( MTL::RenderCommandEncoder * rce, Argume
 }
 
 void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline, Mesh mesh, Span< const BufferBinding > buffers, DrawCallExtras extras ) {
-	const MTL::RenderPipelineState * pso = SelectRenderPipelineVariant( render_pipelines[ pipeline.shader ], mesh.vertex_descriptor, 1 );
+	CommandBuffer * cb = ocb.unwrap();
+
+	const MTL::RenderPipelineState * pso = SelectRenderPipelineVariant( render_pipelines[ pipeline.shader ], mesh.vertex_descriptor, cb->msaa_samples );
 	if( pso == NULL ) {
 		printf( "no shader variant!\n" );
 		return;
 	}
-
-	CommandBuffer * cb = ocb.unwrap();
-	Assert( cb->command_buffer != NULL );
 
 	cb->rce->setRenderPipelineState( pso );
 	cb->rce->setDepthClipMode( render_pipelines[ pipeline.shader ].clamp_depth ? MTL::DepthClipModeClamp : MTL::DepthClipModeClip );
@@ -1045,7 +1045,9 @@ void ShutdownRenderBackend() {
 	}
 
 	for( Texture texture : textures.span() ) {
-		texture.backend.unwrap()->texture->release();
+		if( !texture.dummy_slot_for_missing_texture ) {
+			texture.backend.unwrap()->texture->release();
+		}
 	}
 
 	for( RenderPipeline shader : render_pipelines ) {
@@ -1137,30 +1139,23 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 
 	Optional< u32 > width = NONE;
 	Optional< u32 > height = NONE;
+	Optional< u32 > msaa = NONE;
 
-	auto set_width_height_color = [&]( Optional< PoolHandle< Texture > > texture ) {
-		u32 w, h;
-
-		if( texture.exists ) {
-			w = TextureWidth( texture.value );
-			h = TextureHeight( texture.value );
-		}
-		else {
-			w = frame_static.viewport_width;
-			h = frame_static.viewport_height;
-		}
-
+	auto set_rt_params = [&]( u32 w, u32 h, u32 m ) {
 		Assert( !width.exists || ( *width == w && *height == h ) );
+		Assert( !msaa.exists || *msaa == m );
 		width = w;
 		height = h;
+		msaa = m;
 	};
 
-	auto set_width_height_depth = [&]( PoolHandle< Texture > texture ) {
-		u32 w = TextureWidth( texture );
-		u32 h = TextureHeight( texture );
-		Assert( !width.exists || ( *width == w && *height == h ) );
-		width = w;
-		height = h;
+	auto set_rt_params_optional = [&]( Optional< PoolHandle< Texture > > texture ) {
+		if( texture.exists ) {
+			set_rt_params( TextureWidth( texture.value ), TextureHeight( texture.value ), TextureMSAASamples( texture.value ) );
+		}
+		else {
+			set_rt_params( frame_static.viewport_width, frame_static.viewport_height, 1 );
+		}
 	};
 
 	command_buffer->encodeWait( global_device.pass_event, global_device.frame_counter * RenderPass_Count + config.pass );
@@ -1169,7 +1164,7 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 		const RenderPassConfig::ColorTarget & target = config.color_targets[ i ];
 		MTL::RenderPassColorAttachmentDescriptor * attachment = render_pass->colorAttachments()->object( i );
 
-		set_width_height_color( target.texture );
+		set_rt_params_optional( target.texture );
 
 		if( target.load == LoadOp_Clear ) {
 			attachment->setLoadAction( MTL::LoadActionClear );
@@ -1197,7 +1192,7 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 		const RenderPassConfig::DepthTarget & target = config.depth_target.value;
 		MTL::RenderPassDepthAttachmentDescriptor * attachment = render_pass->depthAttachment();
 
-		set_width_height_depth( target.texture );
+		set_rt_params( TextureWidth( target.texture ), TextureHeight( target.texture ), TextureMSAASamples( target.texture ) );
 
 		if( target.load == LoadOp_Clear ) {
 			attachment->setLoadAction( MTL::LoadActionClear );

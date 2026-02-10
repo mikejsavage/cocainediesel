@@ -174,6 +174,7 @@ struct CommandBuffer {
 	VkCommandBuffer buffer;
 	bool is_render_command_buffer;
 	bool wait_on_swapchain_acquire;
+	u32 msaa_samples;
 };
 
 static VkInstance global_instance;
@@ -214,7 +215,7 @@ void DebugLabel( T handle, VkObjectType type, const char * name ) {
 }
 
 static GPUAllocation GPUMalloc( size_t size, bool device_local ) {
-	constexpr VkBufferUsageFlags common_flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	constexpr VkBufferUsageFlags common_flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 	constexpr VkBufferUsageFlags device_local_flags = common_flags | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	constexpr VkBufferUsageFlags coherent_flags = common_flags | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
@@ -1460,14 +1461,14 @@ static void BindMesh( VkCommandBuffer cb, const Mesh & mesh ) {
 }
 
 void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers, DrawCallExtras extras ) {
+	CommandBuffer * cb = ocb.unwrap();
+
 	RenderPipeline shader = render_pipelines[ pipeline_state.shader ];
-	VkPipeline pso = SelectRenderPipelineVariant( shader, mesh.vertex_descriptor, 1 );
+	VkPipeline pso = SelectRenderPipelineVariant( shader, mesh.vertex_descriptor, cb->msaa_samples );
 	if( pso == VK_NULL_HANDLE ) {
 		printf( "no shader variant!\n" );
 		return;
 	}
-
-	CommandBuffer * cb = ocb.unwrap();
 
 	vkCmdBindPipeline( cb->buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pso );
 	vkCmdSetCullMode( cb->buffer, pipeline_state.dynamic_state.cull_face == CullFace_Back ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_FRONT_BIT );
@@ -1708,56 +1709,52 @@ static VkCommandBuffer NewCommandBuffer() {
 	return pool->free_list[ pool->num_used++ ];
 }
 
-static Optional< VkMemoryBarrier2 > MakeGlobalBarrier( Optional< GPUBarrier > type ) {
-	if( !type.exists )
+static Optional< VkMemoryBarrier2 > MakeGlobalBarrier( Span< const GPUBarrier > barriers ) {
+	if( barriers.n == 0 )
 		return NONE;
 
-	switch( type.value ) {
-		case GPUBarrier_ComputeToIndirect:
-			return VkMemoryBarrier2 {
-				.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
-				.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-				.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
-				.dstStageMask = VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
-				.dstAccessMask = VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT,
-			};
+	VkMemoryBarrier2 barrier = { .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2 };
 
-		case GPUBarrier_ComputeToCompute:
-			return VkMemoryBarrier2 {
-				.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
-				.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-				.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
-				.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-				.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
-			};
+	for( GPUBarrier b : barriers ) {
+		switch( b ) {
+			case GPUBarrier_ComputeToIndirect:
+				barrier.srcStageMask |= VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+				barrier.srcAccessMask |= VK_ACCESS_2_SHADER_WRITE_BIT;
+				barrier.dstStageMask |= VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT;
+				barrier.dstAccessMask |= VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
+				break;
 
-		case GPUBarrier_ComputeToFragment:
-			return VkMemoryBarrier2 {
-				.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
-				.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-				.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT,
-				.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-				.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
-			};
+			case GPUBarrier_ComputeToCompute:
+				barrier.srcStageMask |= VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+				barrier.srcAccessMask |= VK_ACCESS_2_SHADER_WRITE_BIT;
+				barrier.dstStageMask |= VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+				barrier.dstAccessMask |= VK_ACCESS_2_SHADER_READ_BIT;
+				break;
 
-		case GPUBarrier_FragmentToFragmentSample:
-			return VkMemoryBarrier2 {
-				.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
-				.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-				.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-				.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-				.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT,
-			};
+			case GPUBarrier_ComputeToFragment:
+				barrier.srcStageMask |= VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+				barrier.srcAccessMask |= VK_ACCESS_2_SHADER_WRITE_BIT;
+				barrier.dstStageMask |= VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+				barrier.dstAccessMask |= VK_ACCESS_2_SHADER_READ_BIT;
+				break;
 
-		case GPUBarrier_FragmentToFragmentOutput:
-			return VkMemoryBarrier2 {
-				.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
-				.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
-				.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-				.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-				.dstAccessMask = VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT,
-			};
+			case GPUBarrier_FragmentToFragmentSample:
+				barrier.srcStageMask |= VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+				barrier.srcAccessMask |= VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+				barrier.dstStageMask |= VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+				barrier.dstAccessMask |= VK_ACCESS_2_SHADER_READ_BIT;
+				break;
+
+			case GPUBarrier_FragmentToFragmentOutput:
+				barrier.srcStageMask |= VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+				barrier.srcAccessMask |= VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+				barrier.dstStageMask |= VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+				barrier.dstAccessMask |= VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT;
+				break;
+		}
 	}
+
+	return barrier;
 }
 
 static VkImageMemoryBarrier2 MakeImageTransition( VkImage image, u32 num_layers, u32 num_mipmaps, bool is_depth, bool to_attachment ) {
@@ -1841,18 +1838,22 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 
 	Optional< u32 > width = NONE;
 	Optional< u32 > height = NONE;
-	auto set_width_height = [&]( u32 w, u32 h ) {
+	Optional< u32 > msaa = NONE;
+
+	auto set_rt_params = [&]( u32 w, u32 h, u32 m ) {
 		Assert( !width.exists || ( *width == w && *height == h ) );
+		Assert( !msaa.exists || *msaa == m );
 		width = w;
 		height = h;
+		msaa = m;
 	};
 
-	auto set_width_height_optional = [&]( Optional< PoolHandle< Texture > > texture ) {
+	auto set_rt_params_optional = [&]( Optional< PoolHandle< Texture > > texture ) {
 		if( texture.exists ) {
-			set_width_height( TextureWidth( texture.value ), TextureHeight( texture.value ) );
+			set_rt_params( TextureWidth( texture.value ), TextureHeight( texture.value ), TextureMSAASamples( texture.value ) );
 		}
 		else {
-			set_width_height( global_swapchain.width, global_swapchain.height );
+			set_rt_params( global_swapchain.width, global_swapchain.height, 1 );
 		}
 	};
 
@@ -1868,7 +1869,7 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 			image_view = textures[ *target.texture ].backend.unwrap()->per_layer_image_views[ target.layer ];
 		}
 
-		set_width_height_optional( target.texture );
+		set_rt_params_optional( target.texture );
 
 		*attachment = {
 			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -1898,7 +1899,7 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 	if( config.depth_target.exists ) {
 		const RenderPassConfig::DepthTarget & target = config.depth_target.value;
 
-		set_width_height( TextureWidth( target.texture ), TextureHeight( target.texture ) );
+		set_rt_params( TextureWidth( target.texture ), TextureHeight( target.texture ), TextureMSAASamples( target.texture ) );
 
 		depth_attachment = {
 			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -1933,7 +1934,7 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 		image_barriers.must_add( MakeImageTransition( swapchain.image, 1, 1, false, true ) );
 	}
 
-	Barriers( command_buffer, MakeGlobalBarrier( config.barrier.value ), image_barriers.span() );
+	Barriers( command_buffer, MakeGlobalBarrier( config.barriers ), image_barriers.span() );
 
 	// BeginRendering
 	const VkRenderingInfo rendering_info = {
@@ -1961,7 +1962,7 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 				.buffer = {
 					.buffer = allocations[ buffer.buffer.allocation ].buffer,
 					.offset = buffer.buffer.offset,
-					.range = buffer.buffer.size,
+					.range = Max2( buffer.buffer.size, size_t( 1 ) ),
 				},
 			};
 		}
@@ -1973,7 +1974,7 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 			push_descriptors[ b->index ] = PushDescriptor {
 				.image = {
 					.imageView = textures[ texture.texture ].backend.unwrap()->image_view,
-					.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+					.imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
 				},
 			};
 		}
@@ -2007,6 +2008,7 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 		.buffer = command_buffer,
 		.is_render_command_buffer = true,
 		.wait_on_swapchain_acquire = config.swapchain_attachment_transition,
+		.msaa_samples = *msaa,
 	};
 }
 
@@ -2029,6 +2031,8 @@ Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config ) {
 
 		vkCmdBeginDebugUtilsLabelEXT( command_buffer, &label );
 	}
+
+	Barriers( command_buffer, MakeGlobalBarrier( config.barriers ), { } );
 
 	return CommandBuffer {
 		.buffer = command_buffer,
@@ -2053,7 +2057,7 @@ static VkCommandBuffer PrepareCompute( Opaque< CommandBuffer > ocb, PoolHandle< 
 			.buffer = {
 				.buffer = allocations[ b.buffer.allocation ].buffer,
 				.offset = b.buffer.offset,
-				.range = b.buffer.size,
+				.range = Max2( b.buffer.size, size_t( 1 ) ),
 			},
 		};
 	}
@@ -2301,27 +2305,27 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 		VK_CHECK( vkBindImageMemory( global_device.device, image, allocations[ alloc.allocation ].memory, alloc.offset ) );
 	}
 
-	VkComponentMapping swizzle;
-	switch( config.format ) {
-		default:
-			swizzle = { };
-			break;
+	VkComponentMapping swizzle = { };
+	if( !HasAnyBit( usage, VkImageUsageFlags( VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT ) ) ) {
+		switch( config.format ) {
+			default: break;
 
-		case TextureFormat_R_U8:
-		case TextureFormat_R_U8_sRGB:
-		case TextureFormat_R_S8:
-		case TextureFormat_R_UI8:
-			 swizzle = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ONE };
-			 break;
+			case TextureFormat_R_U8:
+			case TextureFormat_R_U8_sRGB:
+			case TextureFormat_R_S8:
+			case TextureFormat_R_UI8:
+				 swizzle = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ONE };
+				 break;
 
-		case TextureFormat_A_U8:
-		case TextureFormat_BC4:
-			 swizzle = { VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_R };
-			 break;
+			case TextureFormat_A_U8:
+			case TextureFormat_BC4:
+				 swizzle = { VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_R };
+				 break;
 
-		case TextureFormat_RA_U8:
-			 swizzle = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G };
-			 break;
+			case TextureFormat_RA_U8:
+				 swizzle = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G };
+				 break;
+		}
 	}
 
 	VkImageAspectFlags aspect_mask = config.format == TextureFormat_Depth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
@@ -2367,7 +2371,7 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 	return texture;
 }
 
-void DeleteTexture( Opaque< BackendTexture > texture ) {
+void DeleteDedicatedAllocationTexture( Opaque< BackendTexture > texture ) {
 	Assert( texture.unwrap()->allocation.exists );
 	DeleteTexture( *texture.unwrap() );
 }
@@ -2450,7 +2454,7 @@ PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, Opaque< Backend
 
 	const VkDescriptorImageInfo descriptor_image_info = {
 		.imageView = texture.unwrap()->image_view,
-		.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		.imageLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
 	};
 
 	const VkDescriptorImageInfo descriptor_sampler_info = {
@@ -2525,7 +2529,9 @@ void ShutdownRenderBackend() {
 
 	DeleteSamplers();
 	for( Texture texture : textures.span() ) {
-		DeleteTexture( *texture.backend.unwrap() );
+		if( !texture.dummy_slot_for_missing_texture ) {
+			DeleteTexture( *texture.backend.unwrap() );
+		}
 	}
 	for( GPUAllocation allocation : allocations ) {
 		GPUFree( allocation );

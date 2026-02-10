@@ -176,6 +176,8 @@ static void SubmitPostprocessPass() {
 		.color_targets = {
 			RenderPassConfig::ColorTarget { .texture = NONE },
 		},
+		.readonly_transitions = { frame_static.render_targets.resolved_color },
+		.swapchain_attachment_transition = true,
 		.representative_shader = shaders.postprocess,
 		.bindings = {
 			.buffers = {
@@ -215,6 +217,7 @@ void SCR_UpdateScreen() {
 
 	if( cls.state == CA_ACTIVE ) {
 		SCR_RenderView();
+		SubmitPostprocessPass();
 
 		if( scr_timegraph->integer ) {
 			SCR_DebugGraph( cls.frametime * 0.3f, 1, 1, 1 );
@@ -227,19 +230,17 @@ void SCR_UpdateScreen() {
 	else {
 		cg.damage_effect = 0.0f;
 
-		// TODO: need to clear the screen during post. or not do post and clear here
 		frame_static.render_passes[ RenderPass_UIAfterPostprocessing ] = NewRenderPass( RenderPassConfig {
 			.name = "UI after postprocessing",
 			.pass = RenderPass_UIAfterPostprocessing,
 			.color_targets = { RenderPassConfig::ColorTarget { .texture = NONE, .load = LoadOp_Clear, .clear = black.vec4 } },
+			.swapchain_attachment_transition = true,
 			.representative_shader = shaders.imgui,
 			.bindings = {
 				.buffers = { { "u_View", frame_static.ortho_view_uniforms } },
 			},
 		} );
 	}
-
-	SubmitPostprocessPass();
 
 	UI_Refresh();
 

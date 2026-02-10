@@ -387,7 +387,7 @@ struct RenderPassConfig {
 	Optional< DepthTarget > depth_target;
 
 	// Vulkan synchronization
-	Optional< GPUBarrier > barrier; // TODO: maybe needs to be span
+	Span< const GPUBarrier > barriers;
 	Span< const PoolHandle< Texture > > attachment_transitions;
 	Span< const PoolHandle< Texture > > readonly_transitions;
 	bool swapchain_attachment_transition;
@@ -451,12 +451,8 @@ struct IndirectComputeArgs {
 
 struct ComputePassConfig {
 	const char * name;
-
-	// Vulkan synchronization
-	Optional< GPUBarrier > barrier;
-
-	// Metal synchronization
-	RenderPass pass;
+	RenderPass pass; // Metal synchronization
+	Span< const GPUBarrier > barriers; // Vulkan synchronization
 };
 
 Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config );
@@ -589,9 +585,8 @@ struct FrameStatic {
 		PoolHandle< Texture > silhouette_mask;
 		PoolHandle< Texture > curved_surface_mask;
 		Optional< PoolHandle< Texture > > msaa_color;
-		Optional< PoolHandle< Texture > > msaa_depth;
 		PoolHandle< Texture > resolved_color;
-		PoolHandle< Texture > resolved_depth;
+		PoolHandle< Texture > depth;
 		PoolHandle< Texture > shadowmap;
 	} render_targets;
 

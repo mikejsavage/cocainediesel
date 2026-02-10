@@ -311,7 +311,7 @@ SDL_AppResult SDL_AppIterate( void * appstate ) {
 				.clear = 1.0f,
 				.store = StoreOp_Store,
 			},
-			.barrier = GPUBarrier_FragmentToFragmentSample, // TODO: also needs frag2fragwrite
+			.barriers = { GPUBarrier_FragmentToFragmentSample }, // TODO: also needs frag2fragwrite
 			.attachment_transitions = { depth_framebuffer },
 			.readonly_transitions = { offscreen_framebuffer },
 			.swapchain_attachment_transition = true,

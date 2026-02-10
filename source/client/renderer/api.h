@@ -278,7 +278,7 @@ template<> struct PoolHandleType< BindGroup > { using T = u16; };
  */
 
 struct CommandBuffer;
-template<> inline constexpr size_t OpaqueSize< CommandBuffer > = 64;
+template<> inline constexpr size_t OpaqueSize< CommandBuffer > = 80;
 
 enum CommandBufferSubmitType {
 	SubmitCommandBuffer_Normal,

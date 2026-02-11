@@ -80,6 +80,7 @@ static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf
 
 		if( attr.type == cgltf_attribute_type_position ) {
 			mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx3, VertexAttribute_Position };
+			mesh.vertex_descriptor.buffer_strides[ VertexAttribute_Position ] = sizeof( Vec3 );
 			mesh.vertex_buffers[ VertexAttribute_Position ] = NewBuffer( temp( "{} positions", render_data->name ), AccessorToSpan( attr.data ) );
 
 			Vec3 min, max;
@@ -94,6 +95,7 @@ static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf
 
 		if( attr.type == cgltf_attribute_type_normal ) {
 			mesh.vertex_descriptor.attributes[ VertexAttribute_Normal ] = { VertexFormat_Floatx3, VertexAttribute_Normal };
+			mesh.vertex_descriptor.buffer_strides[ VertexAttribute_Normal ] = sizeof( Vec3 );
 			mesh.vertex_buffers[ VertexAttribute_Normal ] = NewBuffer( temp( "{} normals", render_data->name ), AccessorToSpan( attr.data ) );
 		}
 
@@ -104,6 +106,7 @@ static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf
 			else {
 				VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 				mesh.vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = { format, VertexAttribute_TexCoord };
+				mesh.vertex_descriptor.buffer_strides[ VertexAttribute_TexCoord ] = sizeof( Vec2 );
 				mesh.vertex_buffers[ VertexAttribute_TexCoord ] = NewBuffer( temp( "{} uvs", render_data->name ), AccessorToSpan( attr.data ) );
 			}
 		}
@@ -111,18 +114,21 @@ static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf
 		if( attr.type == cgltf_attribute_type_color ) {
 			VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 			mesh.vertex_descriptor.attributes[ VertexAttribute_Color ] = { format, VertexAttribute_Color };
+			mesh.vertex_descriptor.buffer_strides[ VertexAttribute_Color ] = sizeof( Vec3 );
 			mesh.vertex_buffers[ VertexAttribute_Color ] = NewBuffer( temp( "{} colors", render_data->name ), AccessorToSpan( attr.data ) );
 		}
 
 		if( attr.type == cgltf_attribute_type_joints ) {
 			VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 			mesh.vertex_descriptor.attributes[ VertexAttribute_JointIndices ] = { format, VertexAttribute_JointIndices };
+			mesh.vertex_descriptor.buffer_strides[ VertexAttribute_JointIndices ] = sizeof( u16 ) * 4;
 			mesh.vertex_buffers[ VertexAttribute_JointIndices ] = NewBuffer( temp( "{} joint indices", render_data->name ), AccessorToSpan( attr.data ) );
 		}
 
 		if( attr.type == cgltf_attribute_type_weights ) {
 			VertexFormat format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 			mesh.vertex_descriptor.attributes[ VertexAttribute_JointWeights ] = { format, VertexAttribute_JointWeights };
+			mesh.vertex_descriptor.buffer_strides[ VertexAttribute_JointWeights ] = sizeof( Vec4 );
 			mesh.vertex_buffers[ VertexAttribute_JointWeights ] = NewBuffer( temp( "{} joint weights", render_data->name ), AccessorToSpan( attr.data ) );
 		}
 	}

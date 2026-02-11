@@ -2384,6 +2384,7 @@ enum SamplerWrap : u8 {
 };
 
 struct SamplerConfig {
+	const char * name;
 	SamplerWrap wrap = SamplerWrap_Repeat;
 	bool filter = true;
 	bool shadowmap_sampler = false;
@@ -2414,6 +2415,8 @@ static VkSampler NewSampler( const SamplerConfig & config ) {
 
 	VkSampler sampler;
 	VK_CHECK( vkCreateSampler( global_device.device, &sampler_info, NULL, &sampler ) );
+	DebugLabel( sampler, VK_OBJECT_TYPE_SAMPLER, config.name );
+
 	return sampler;
 }
 
@@ -2421,17 +2424,11 @@ static void DeleteSampler( VkSampler sampler ) {
 	vkDestroySampler( global_device.device, sampler, NULL );
 }
 
-static void CreateSamplers() {
-	samplers[ Sampler_Standard ] = NewSampler( SamplerConfig { } );
-	samplers[ Sampler_Clamp ] = NewSampler( SamplerConfig { .wrap = SamplerWrap_Clamp } );
-	samplers[ Sampler_Unfiltered ] = NewSampler( SamplerConfig { .filter = false } );
-	samplers[ Sampler_Shadowmap ] = NewSampler( SamplerConfig { .shadowmap_sampler = true } );
-}
-
-static void DeleteSamplers() {
-	for( VkSampler sampler : samplers ) {
-		DeleteSampler( sampler );
-	}
+static void CreateSamplers() { // NOMERGE: move this into generic I guess
+	samplers[ Sampler_Standard ] = NewSampler( SamplerConfig { .name = "Standard" } );
+	samplers[ Sampler_Clamp ] = NewSampler( SamplerConfig { .name = "Clamp", .wrap = SamplerWrap_Clamp } );
+	samplers[ Sampler_Unfiltered ] = NewSampler( SamplerConfig { .name = "Unfiltered", .filter = false } );
+	samplers[ Sampler_Shadowmap ] = NewSampler( SamplerConfig { .name = "Shadowmap", .shadowmap_sampler = true } );
 }
 
 PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, Opaque< BackendTexture > texture, SamplerType sampler, GPUBuffer properties ) {
@@ -2529,7 +2526,9 @@ void InitRenderBackend( SDL_Window * window ) {
 void ShutdownRenderBackend() {
 	VK_CHECK( vkDeviceWaitIdle( global_device.device ) );
 
-	DeleteSamplers();
+	for( VkSampler sampler : samplers ) {
+		DeleteSampler( sampler );
+	}
 	for( Texture texture : textures.span() ) {
 		if( !texture.dummy_slot_for_missing_texture ) {
 			DeleteTexture( *texture.backend.unwrap() );

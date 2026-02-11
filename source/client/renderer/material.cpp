@@ -416,7 +416,7 @@ static Texture MakeTexture( const TextureConfig & config, u64 hash ) {
 
 PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, PoolHandle< Texture > texture, SamplerType sampler, MaterialProperties properties ) {
 	TempAllocator temp = cls.frame_arena.temp();
-	return NewMaterialBindGroup( temp( "{} bind group", name ), textures[ texture ].backend, sampler, NewBuffer( temp( "{} properties", name ), properties ) );
+	return NewMaterialBindGroup( name, textures[ texture ].backend, sampler, NewBuffer( temp( "{} properties", name ), properties ) );
 }
 
 // NOMERGE unify this and addtexture

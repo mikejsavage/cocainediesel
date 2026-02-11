@@ -437,7 +437,11 @@ static void DrawSilhouettes() {
 		.name = "Write silhouette masks",
 		.pass = RenderPass_WriteSilhouetteMask,
 		.color_targets = {
-			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.silhouette_mask },
+			RenderPassConfig::ColorTarget {
+				.texture = frame_static.render_targets.silhouette_mask,
+				.load = LoadOp_Clear,
+				.clear = black.linear,
+			},
 		},
 		.attachment_transitions = { frame_static.render_targets.silhouette_mask },
 		.representative_shader = shaders.write_silhouette_mask,
@@ -452,7 +456,7 @@ static void DrawSilhouettes() {
 		.name = "Add silhouettes",
 		.pass = RenderPass_AddSilhouettes,
 		.color_targets = {
-			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.resolved_color },
+			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.resolved_color, .load = LoadOp_Load },
 		},
 		.readonly_transitions = { frame_static.render_targets.silhouette_mask },
 		.representative_shader = shaders.postprocess_silhouette_mask,
@@ -480,6 +484,7 @@ static void DrawOutlines() {
 		.color_targets = {
 			RenderPassConfig::ColorTarget {
 				.texture = Default( frame_static.render_targets.msaa_color, frame_static.render_targets.resolved_color ),
+				.load = LoadOp_Load,
 			},
 		},
 		.readonly_transitions = { frame_static.render_targets.depth, frame_static.render_targets.curved_surface_mask },

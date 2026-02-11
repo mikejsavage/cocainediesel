@@ -224,7 +224,7 @@ static void SubmitPostprocessPass() {
 		.name = "Postprocessing",
 		.pass = RenderPass_Postprocessing,
 		.color_targets = {
-			RenderPassConfig::ColorTarget { .texture = NONE },
+			RenderPassConfig::ColorTarget { .texture = NONE, .load = LoadOp_DontCare },
 		},
 		.readonly_transitions = { frame_static.render_targets.resolved_color },
 		.swapchain_attachment_transition = true,

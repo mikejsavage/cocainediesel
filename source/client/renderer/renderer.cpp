@@ -503,7 +503,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 
 	DynamicsBuffers dynamics_buffers = GetDynamicsBuffers();
 
-	BoundedDynamicArray< BufferBinding, 16 > standard_buffers = {
+	BufferBinding standard_buffers[] = {
 		{ "u_View", frame_static.view_uniforms },
 		{ "u_Shadowmap", frame_static.shadow_uniforms },
 		{ "u_TileCounts", dynamics_buffers.tile_counts },
@@ -513,21 +513,21 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		{ "u_Lights", dynamics_buffers.lights },
 	};
 
-	BoundedDynamicArray< GPUBindings::TextureBinding, 4 > standard_textures = {
+	GPUBindings::TextureBinding standard_textures[] = {
 		{ "u_BlueNoise", BlueNoiseTexture() },
 		{ "u_ShadowmapTextureArray", frame_static.render_targets.shadowmap },
 		{ "u_SpriteAtlas", SpriteAtlasTexture() },
 	};
 
-	BoundedDynamicArray< GPUBindings::SamplerBinding, 2 > standard_samplers = {
+	GPUBindings::SamplerBinding standard_samplers[] = {
 		{ "u_StandardSampler", Sampler_Standard },
 		{ "u_ShadowmapSampler", Sampler_Shadowmap },
 	};
 
 	GPUBindings standard_bindings = {
-		.buffers = standard_buffers.span(),
-		.textures = standard_textures.span(),
-		.samplers = standard_samplers.span(),
+		.buffers = StaticSpan( standard_buffers ),
+		.textures = StaticSpan( standard_textures ),
+		.samplers = StaticSpan( standard_samplers ),
 	};
 
 	Vec4 clear_color = Vec4( 0.0f );
@@ -590,7 +590,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 				.clear = clear_color,
 			},
 		},
-		.depth_target = RenderPassConfig::DepthTarget { .texture = targets.depth },
+		.depth_target = RenderPassConfig::DepthTarget { .texture = targets.depth, .load = LoadOp_Load },
 		.barriers = { GPUBarrier_ComputeToFragment, GPUBarrier_FragmentToFragmentSample },
 		.attachment_transitions = { color_target, targets.curved_surface_mask },
 		.representative_shader = shaders.world,
@@ -604,10 +604,10 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		.name = "Nonworld opaque outlined",
 		.pass = RenderPass_NonworldOpaqueOutlined,
 		.color_targets = {
-			RenderPassConfig::ColorTarget { .texture = color_target },
-			RenderPassConfig::ColorTarget { .texture = targets.curved_surface_mask },
+			RenderPassConfig::ColorTarget { .texture = color_target, .load = LoadOp_Load },
+			RenderPassConfig::ColorTarget { .texture = targets.curved_surface_mask, .load = LoadOp_Load },
 		},
-		.depth_target = RenderPassConfig::DepthTarget { .texture = targets.depth },
+		.depth_target = RenderPassConfig::DepthTarget { .texture = targets.depth, .load = LoadOp_Load },
 		.representative_shader = shaders.world,
 		.bindings = standard_bindings,
 	} );
@@ -626,10 +626,11 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 			.color_targets = {
 				RenderPassConfig::ColorTarget {
 					.texture = color_target,
+					.load = LoadOp_Load,
 					.resolve_target = msaa ? Optional( targets.resolved_color ) : NONE,
 				},
 			},
-			.depth_target = RenderPassConfig::DepthTarget { .texture = targets.depth },
+			.depth_target = RenderPassConfig::DepthTarget { .texture = targets.depth, .load = LoadOp_Load },
 			.attachment_transitions = attachment_transitions.span(),
 			.representative_shader = shaders.world,
 			.bindings = standard_bindings,
@@ -639,7 +640,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	frame_static.render_passes[ RenderPass_Transparent ] = NewRenderPass( RenderPassConfig {
 		.name = "Transparent",
 		.pass = RenderPass_Transparent,
-		.color_targets = { RenderPassConfig::ColorTarget { .texture = targets.resolved_color } },
+		.color_targets = { RenderPassConfig::ColorTarget { .texture = targets.resolved_color, .load = LoadOp_Load } },
 		.barriers = { GPUBarrier_ComputeToIndirect, GPUBarrier_ComputeToFragment },
 		.representative_shader = shaders.particle_add,
 		.bindings = {
@@ -648,14 +649,13 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	} );
 
 	// RenderPass_AddSilhouettes
+	// RenderPass_PreUIPostprocessing
 
 	frame_static.render_passes[ RenderPass_UIBeforePostprocessing ] = NewRenderPass( RenderPassConfig {
 		.name = "UI before postprocessing",
 		.pass = RenderPass_UIBeforePostprocessing,
 		.color_targets = {
-			RenderPassConfig::ColorTarget {
-				.texture = frame_static.render_targets.resolved_color,
-			},
+			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.resolved_color, .load = LoadOp_Load },
 		},
 		.representative_shader = shaders.imgui,
 		.bindings = {
@@ -668,7 +668,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	frame_static.render_passes[ RenderPass_UIAfterPostprocessing ] = NewRenderPass( RenderPassConfig {
 		.name = "UI after postprocessing",
 		.pass = RenderPass_UIAfterPostprocessing,
-		.color_targets = { RenderPassConfig::ColorTarget { .texture = NONE } },
+		.color_targets = { RenderPassConfig::ColorTarget { .texture = NONE, .load = LoadOp_Load } },
 		.representative_shader = shaders.imgui,
 		.bindings = {
 			.buffers = { { "u_View", frame_static.ortho_view_uniforms } },

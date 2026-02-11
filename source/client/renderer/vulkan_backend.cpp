@@ -935,8 +935,9 @@ static const char * StripPrefix( const char * str, const char * prefix ) {
 static void ParseSPIRV( Span< const u32 > spirv, ReflectedDescriptorSet ( &sets )[ DescriptorSet_Count ] ) {
 	Assert( spirv[ 0 ] == SpvMagicNumber );
 
-	SpirvID ids[ 2048 ] = { };
-	Assert( spirv[ 3 ] < ARRAY_COUNT( ids ) );
+	TempAllocator temp = cls.frame_arena.temp();
+	Span< SpirvID > ids = AllocSpan< SpirvID >( &temp, spirv[ 3 ] );
+	memset( ids.ptr, 0, ids.num_bytes() );
 
 	constexpr size_t skip_spirv_headers = 5;
 	size_t cursor = skip_spirv_headers;
@@ -1000,8 +1001,7 @@ static void ParseSPIRV( Span< const u32 > spirv, ReflectedDescriptorSet ( &sets 
 		cursor += op_size;
 	}
 
-	for( size_t i = 0; i < ARRAY_COUNT( ids ); i++ ) {
-		SpirvID id = ids[ i ];
+	for( SpirvID id : ids ) {
 		if( !id.op.exists )
 			continue;
 		if( id.op.value == SpvOpVariable ) {

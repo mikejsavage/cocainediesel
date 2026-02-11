@@ -32,9 +32,8 @@ local function PlatformSpecificDxcStuff( cmd )
 	-- NOTE(mike 20251117): we have to do `dxc -MD -MF && dxc` because of
 	-- https://github.com/microsoft/DirectXShaderCompiler/issues/5416
 	-- NOTE(mike 20260131): dxc -M -fspv-debug ICEs
-	-- NOTE(mike 20260204): dxc -fspv-debug always ICEs on Windows
 	-- NOTE(mike 20260208): dxc && dxc isn't valid PowerShell so we have to do cmd /c on Windows
-	local debug = OS == "windows" and "" or "-fspv-debug=vulkan-with-source"
+	local debug = "-fspv-debug=vulkan-with-source"
 	cmd = cmd:format( debug )
 	return OS == "windows" and ( "cmd /c \"%s\"" ):format( cmd ) or cmd
 end

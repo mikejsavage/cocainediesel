@@ -350,13 +350,19 @@ static void UnloadTexture( PoolHandle< Texture > texture ) {
 }
 
 static Material2 MaterialFromDescriptor( Span< const char > name, const MaterialDescriptor & desc ) {
-	RenderPass pass;
-	PoolHandle< RenderPipeline > shader = shaders.standard; // NOMERGE TODO: shader from desc
+	RenderPass pass = RenderPass_NonworldOpaque;
 	if( desc.blend_func == BlendFunc_Disabled ) {
 		pass = desc.outlined ? RenderPass_NonworldOpaqueOutlined : RenderPass_NonworldOpaque;
 	}
 	else {
 		pass = RenderPass_Transparent;
+	}
+
+	PoolHandle< RenderPipeline > shader = shaders.standard;
+	if( desc.shaded ) shader = shaders.standard_shaded;
+	if( desc.world ) {
+		pass = RenderPass_WorldOpaque;
+		shader = shaders.world;
 	}
 
 	TempAllocator temp = cls.frame_arena.temp();

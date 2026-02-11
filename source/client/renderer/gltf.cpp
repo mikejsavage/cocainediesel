@@ -679,6 +679,14 @@ static CullFace FlipCullFace( CullFace cull ) {
 	return { };
 }
 
+static PoolHandle< RenderPipeline > SkinnedShader( PoolHandle< RenderPipeline > shader ) {
+	if( shader == shaders.standard )
+		return shaders.standard_skinned;
+	if( shader == shaders.standard_shaded )
+		return shaders.standard_skinned_shaded;
+	return shader;
+}
+
 static void DrawModelNode( const GLTFRenderData::Node * node, bool view_weapon, GPUBuffer model_uniforms, Optional< GPUBuffer > pose_uniforms, Vec4 entity_color, bool flip_cull_face ) {
 	TracyZoneScoped;
 
@@ -697,6 +705,7 @@ static void DrawModelNode( const GLTFRenderData::Node * node, bool view_weapon, 
 	};
 	if( pose_uniforms.exists ) {
 		buffers.must_add( { "u_Pose", pose_uniforms.value } );
+		pipeline.shader = SkinnedShader( pipeline.shader );
 	}
 
 	if( flip_cull_face ) {

@@ -939,6 +939,7 @@ static void LoadBuiltinMaterials() {
 	{
 		MaterialDescriptor world_material = MaterialDescriptor {
 			.rgbgen = { .args = { 0.17f, 0.17f, 0.17f, 1.0f } },
+			.texture = FindTexture( "white" ),
 			.world = true,
 			.properties = {
 				.specular = 3.0f,
@@ -955,6 +956,7 @@ static void LoadBuiltinMaterials() {
 					1.0f,
 				},
 			},
+			.texture = FindTexture( "white" ),
 			.world = true,
 			.properties = world_material.properties,
 		};
@@ -971,6 +973,7 @@ static void LoadBuiltinMaterials() {
 
 	Must( AddMaterial( "textures/editor/glass", MaterialDescriptor {
 		.rgbgen = { .args = { 0.0f, 0.35f, 0.8f } },
+		.texture = FindTexture( "white" ),
 		.world = true,
 		.properties = {
 			.specular = 100.0f,

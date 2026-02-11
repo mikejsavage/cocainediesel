@@ -112,6 +112,7 @@ void InitRenderer( SDL_Window * window ) {
 		fullscreen_mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx3 };
 		fullscreen_mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec3 );
 		fullscreen_mesh.vertex_buffers[ 0 ] = NewBuffer( "Fullscreen triangle vertices", positions );
+		fullscreen_mesh.num_vertices = 3;
 	}
 
 	AddCommand( "screenshot", []( const Tokenized & args ) { TakeScreenshot(); } );

@@ -59,10 +59,30 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 	vfx.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( VFXVertex, color ) };
 	vfx.buffer_strides[ 0 ] = sizeof( VFXVertex );
 
-	VertexDescriptor pos_normal_uv_skinned = standard_vertex;
-	pos_normal_uv_skinned.attributes[ VertexAttribute_JointIndices ] = VertexAttribute { VertexFormat_U8x4, 1, sizeof( u8 ) * 4 };
-	pos_normal_uv_skinned.attributes[ VertexAttribute_JointWeights ] = VertexAttribute { VertexFormat_U16x4_01, 1, sizeof( u16 ) * 4 };
-	pos_normal_uv_skinned.buffer_strides[ 1 ] = sizeof( u8 ) * 4 + sizeof( u16 ) * 4;
+	// VertexDescriptor pos_normal_uv_skinned = standard_vertex;
+	// pos_normal_uv_skinned.attributes[ VertexAttribute_JointIndices ] = VertexAttribute { VertexFormat_U8x4, 1, sizeof( u8 ) * 4 };
+	// pos_normal_uv_skinned.attributes[ VertexAttribute_JointWeights ] = VertexAttribute { VertexFormat_U16x4_01, 1, sizeof( u16 ) * 4 };
+	// pos_normal_uv_skinned.buffer_strides[ 1 ] = sizeof( u8 ) * 4 + sizeof( u16 ) * 4;
+
+	VertexDescriptor gltf_pn = { };
+	gltf_pn.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, VertexAttribute_Position, 0 };
+	gltf_pn.buffer_strides[ VertexAttribute_Position ] = sizeof( Vec3 );
+	gltf_pn.attributes[ VertexAttribute_Normal ] = VertexAttribute { VertexFormat_Floatx3, VertexAttribute_Normal, 0 };
+	gltf_pn.buffer_strides[ VertexAttribute_Normal ] = sizeof( Vec3 );
+
+	VertexDescriptor gltf_pnu = gltf_pn;
+	gltf_pnu.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, VertexAttribute_TexCoord, 0 };
+	gltf_pnu.buffer_strides[ VertexAttribute_TexCoord ] = sizeof( Vec2 );
+
+	VertexDescriptor gltf_pnuc = gltf_pnu;
+	gltf_pnuc.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_Floatx3, VertexAttribute_Color, 0 };
+	gltf_pnuc.buffer_strides[ VertexAttribute_Color ] = sizeof( Vec3 );
+
+	VertexDescriptor gltf_pnuj = gltf_pnu;
+	gltf_pnuj.attributes[ VertexAttribute_JointIndices ] = VertexAttribute { VertexFormat_U16x4, VertexAttribute_JointIndices, 0 };
+	gltf_pnuj.buffer_strides[ VertexAttribute_JointIndices ] = sizeof( u16 ) * 4;
+	gltf_pnuj.attributes[ VertexAttribute_JointWeights ] = VertexAttribute { VertexFormat_Floatx4, VertexAttribute_JointWeights, 0 };
+	gltf_pnuj.buffer_strides[ VertexAttribute_JointWeights ] = sizeof( Vec4 );
 
 	VertexDescriptor fullscreen_vertex_descriptor = { };
 	fullscreen_vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, 0 },
@@ -108,14 +128,28 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.field = &Shaders::standard,
 				.src = "standard",
 				.output_format = standard_output,
-				.mesh_variants = { standard_vertex },
+				.mesh_variants = { standard_vertex, gltf_pn, gltf_pnu, gltf_pnuc },
+			},
+			GraphicsShaderDescriptor {
+				.field = &Shaders::standard_shaded,
+				.src = "standard",
+				.output_format = standard_output,
+				.features = { "SHADED" },
+				.mesh_variants = { standard_vertex, gltf_pn, gltf_pnu, gltf_pnuc },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::standard_skinned,
 				.src = "standard",
 				.output_format = standard_output,
 				.features = { "SKINNED" },
-				.mesh_variants = { pos_normal_uv_skinned },
+				.mesh_variants = { gltf_pnuj },
+			},
+			GraphicsShaderDescriptor {
+				.field = &Shaders::standard_skinned_shaded,
+				.src = "standard",
+				.output_format = standard_output,
+				.features = { "SKINNED", "SHADED" },
+				.mesh_variants = { gltf_pnuj },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::world,
@@ -159,7 +193,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.field = &Shaders::viewmodel,
 				.src = "standard",
 				.output_format = standard_output,
-				.mesh_variants = { standard_vertex },
+				.mesh_variants = { standard_vertex, gltf_pn, gltf_pnu, gltf_pnuc },
 				.viewmodel_depth = true,
 			},
 
@@ -167,16 +201,16 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.field = &Shaders::depth_only,
 				.src = "depth_only",
 				.output_format = depth_only,
-				.mesh_variants = { standard_vertex },
-				.clamp_depth = true,
+				.mesh_variants = { standard_vertex, gltf_pn, gltf_pnu, gltf_pnuc },
+				// .clamp_depth = true, NOMERGE clamp_depth on shadowmap shader
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::depth_only_skinned,
 				.src = "depth_only",
 				.output_format = depth_only,
 				.features = { "SKINNED" },
-				.mesh_variants = { pos_normal_uv_skinned },
-				.clamp_depth = true,
+				.mesh_variants = { gltf_pnuj },
+				// .clamp_depth = true,
 			},
 
 			GraphicsShaderDescriptor {
@@ -206,7 +240,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.src = "write_silhouette_mask",
 				.output_format = { .colors = { TextureFormat_RGBA_U8_sRGB } },
 				.features = { "SKINNED" },
-				.mesh_variants = { pos_normal_uv_skinned },
+				.mesh_variants = { gltf_pnuj },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::postprocess_silhouette_mask,
@@ -233,7 +267,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 					.has_depth = true,
 				},
 				.features = { "SKINNED" },
-				.mesh_variants = { pos_normal_uv_skinned },
+				.mesh_variants = { gltf_pnuj },
 			},
 
 			GraphicsShaderDescriptor {
@@ -271,12 +305,14 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.field = &Shaders::particle_add,
 				.src = "particle",
 				.output_format = depthless,
+				.mesh_variants = { { } },
 				.blend_func = BlendFunc_Add,
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::particle_blend,
 				.src = "particle",
 				.output_format = depthless,
+				.mesh_variants = { { } },
 				.blend_func = BlendFunc_Blend,
 			},
 

@@ -281,3 +281,70 @@ struct PersistentBufferAllocator {
 	size_t capacity;
 	size_t cursor;
 };
+
+static Span< const char > VertexAttributeToString( VertexAttributeType attr ) {
+	switch( attr ) {
+		case VertexAttribute_Position: return "Pos";
+		case VertexAttribute_Normal: return "Norm";
+		case VertexAttribute_TexCoord: return "UV";
+		case VertexAttribute_Color: return "Col";
+		case VertexAttribute_JointIndices: return "JIdx";
+		case VertexAttribute_JointWeights: return "JWgt";
+	}
+
+	Assert( false );
+	return "";
+}
+
+static Span< const char > VertexFormatToString( VertexFormat format ) {
+	switch( format ) {
+		case VertexFormat_U8x2: return "U8x2";
+		case VertexFormat_U8x2_01: return "U8x2_01";
+		case VertexFormat_U8x3: return "U8x3";
+		case VertexFormat_U8x3_01: return "U8x3_01";
+		case VertexFormat_U8x4: return "U8x4";
+		case VertexFormat_U8x4_01: return "U8x4_01";
+
+		case VertexFormat_U16x2: return "U16x2";
+		case VertexFormat_U16x2_01: return "U16x2_01";
+		case VertexFormat_U16x3: return "U16x3";
+		case VertexFormat_U16x3_01: return "U16x3_01";
+		case VertexFormat_U16x4: return "U16x4";
+		case VertexFormat_U16x4_01: return "U16x4_01";
+
+		case VertexFormat_U10x3_U2x1_01: return "U10x3_U2x1_01";
+
+		case VertexFormat_Floatx2: return "Floatx2";
+		case VertexFormat_Floatx3: return "Floatx3";
+		case VertexFormat_Floatx4: return "Floatx4";
+	}
+
+	Assert( false );
+	return "";
+}
+
+void format( FormatBuffer * fb, const VertexDescriptor & v, const FormatOpts & opts ) {
+	format( fb, "VertexDescriptor( " );
+
+	for( size_t i = 0; i < VertexAttribute_Count; i++ ) {
+		if( v.attributes[ i ].exists ) {
+			VertexAttribute attr = v.attributes[ i ].value;
+			ggformat_impl( fb, "{}:{}@{}+{}, ",
+				VertexAttributeToString( VertexAttributeType( i ) ),
+				VertexFormatToString( attr.format ),
+				attr.buffer, attr.offset );
+		}
+	}
+
+	format( fb, "[" );
+	bool first = true;
+	for( size_t i = 0; i < ARRAY_COUNT( v.buffer_strides ); i++ ) {
+		if( v.buffer_strides[ i ].exists ) {
+			if( !first )
+				format( fb, " ", { } );
+			format( fb, v.buffer_strides[ i ].value, { } );
+			first = false;
+		}
+	}
+	format( fb, "] )" );
+}

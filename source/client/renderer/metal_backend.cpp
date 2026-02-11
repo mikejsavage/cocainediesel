@@ -36,7 +36,7 @@ struct ArgumentBufferEncoder {
 };
 
 struct RenderPipeline {
-	Span< const char > name;
+	Span< char > name;
 
 	struct Variant {
 		MTL::RenderPipelineState * msaa_variants[ Log2( MaxMSAA ) + 1 ];
@@ -615,7 +615,7 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 	}
 
 	RenderPipeline shader = { };
-	shader.name = config.path;
+	shader.name = CloneSpan( sys_allocator, config.path );
 	shader.clamp_depth = config.clamp_depth;
 
 	bool first = true;
@@ -744,6 +744,7 @@ static const MTL::RenderPipelineState * SelectRenderPipelineVariant( const Rende
 }
 
 static void DeleteRenderPipeline( const RenderPipeline & shader ) {
+	Free( sys_allocator, shader.name );
 	for( const auto & [ _, mesh_variant ] : shader.mesh_variants ) {
 		for( MTL::RenderPipelineState * pso : mesh_variant.msaa_variants ) {
 			if( pso != NULL ) {
@@ -843,7 +844,7 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline
 
 	const MTL::RenderPipelineState * pso = SelectRenderPipelineVariant( render_pipelines[ pipeline.shader ], mesh.vertex_descriptor, cb->msaa_samples );
 	if( pso == NULL ) {
-		printf( "no shader variant!\n" );
+		Com_GGPrint( S_COLOR_YELLOW "No shader variant: {} {}", shader.name, mesh.vertex_descriptor );
 		return;
 	}
 

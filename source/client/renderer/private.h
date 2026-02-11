@@ -138,3 +138,5 @@ constexpr size_t MaxBindings = MaxBufferBindings + 2 * MaxTextureBindings;
 constexpr size_t MaxShaderVariants = 4;
 
 constexpr size_t MaxMaterials = 4096;
+
+void format( FormatBuffer * fb, const VertexDescriptor & v, const FormatOpts & opts );

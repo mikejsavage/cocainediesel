@@ -155,6 +155,7 @@ struct RenderPipeline {
 		VkPipeline msaa_variants[ Log2( MaxMSAA ) + 1 ];
 	};
 
+	Span< char > name;
 	ArrayMap< VertexDescriptor, Variant, MaxShaderVariants > mesh_variants;
 	VkPipelineLayout layout;
 	VkDescriptorSetLayout descriptor_set_layouts[ DescriptorSet_Count ];
@@ -1403,6 +1404,7 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 	}
 
 	RenderPipeline pso = {
+		.name = CloneSpan( sys_allocator, config.path ),
 		.mesh_variants = mesh_variants,
 		.layout = layout,
 		.render_pass_push_descriptors = NewPushDescriptorTemplate( descriptor_sets[ DescriptorSet_RenderPass ], VK_PIPELINE_BIND_POINT_GRAPHICS, layout, DescriptorSet_RenderPass ),
@@ -1419,6 +1421,7 @@ static VkPipeline SelectRenderPipelineVariant( const RenderPipeline & shader, co
 }
 
 static void DeleteRenderPipeline( RenderPipeline shader ) {
+	Free( sys_allocator, shader.name.ptr );
 	vkDestroyDescriptorUpdateTemplate( global_device.device, shader.render_pass_push_descriptors.update_template, NULL );
 	for( VkDescriptorSetLayout & set : shader.descriptor_set_layouts ) {
 		vkDestroyDescriptorSetLayout( global_device.device, set, NULL );
@@ -1467,7 +1470,7 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline
 	RenderPipeline shader = render_pipelines[ pipeline_state.shader ];
 	VkPipeline pso = SelectRenderPipelineVariant( shader, mesh.vertex_descriptor, cb->msaa_samples );
 	if( pso == VK_NULL_HANDLE ) {
-		printf( "no shader variant!\n" );
+		Com_GGPrint( S_COLOR_YELLOW "No shader variant: {} {}", shader.name, mesh.vertex_descriptor );
 		return;
 	}
 

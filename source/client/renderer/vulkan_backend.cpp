@@ -2000,6 +2000,7 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 		.width = float( *width ),
 		// NOTE(mike 20260119): negative viewport height makes NDC Y point downwards to match Metal, see VK_KHR_maintenance1
 		.height = -float( *height ),
+		.maxDepth = 1.0f,
 	};
 	vkCmdSetViewport( command_buffer, 0, 1, &viewport );
 

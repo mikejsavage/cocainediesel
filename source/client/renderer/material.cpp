@@ -12,6 +12,7 @@
 #include "client/renderer/api.h"
 #include "client/renderer/blue_noise.h"
 #include "client/renderer/dds.h"
+#include "client/renderer/rgb_noise.h"
 #include "client/renderer/shader.h"
 #include "client/renderer/material.h"
 #include "client/renderer/private.h"
@@ -971,20 +972,21 @@ static void LoadBuiltinMaterials() {
 		},
 	} ) );
 
-	// {
-	// 	int w, h;
-	// 	u8 * img = stbi_load_from_memory( rgb_noise_png, rgb_noise_png_len, &w, &h, NULL, 4 );
-	// 	Assert( img != NULL );
-	//
-	// 	rgb_noise = NewTexture( TextureConfig {
-	// 		.format = TextureFormat_RGBA_U8_sRGB,
-	// 		.width = u32( w ),
-	// 		.height = u32( h ),
-	// 		.data = img,
-	// 	} );
-	//
-	// 	stbi_image_free( img );
-	// }
+	{
+		int w, h;
+		u8 * img = stbi_load_from_memory( rgb_noise_png, rgb_noise_png_len, &w, &h, NULL, 4 );
+		Assert( img != NULL );
+
+		rgb_noise = NewTexture( TextureConfig {
+			.name = "RGB noise",
+			.format = TextureFormat_RGBA_U8_sRGB,
+			.width = u32( w ),
+			.height = u32( h ),
+			.data = img,
+		} );
+
+		stbi_image_free( img );
+	}
 
 	{
 		int w, h;

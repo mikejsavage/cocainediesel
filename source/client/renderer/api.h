@@ -98,12 +98,6 @@ enum TextureFormat : u8 {
 	TextureFormat_Swapchain,
 };
 
-enum TextureType : u8 {
-	TextureType_Normal,
-	TextureType_DedicatedAllocation,
-	TextureType_RenderTarget,
-};
-
 struct TextureConfig {
 	Span< const char > name;
 	TextureFormat format;
@@ -125,8 +119,6 @@ enum TextureLayout {
 
 PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture = NONE );
 PoolHandle< Texture > NewRenderTargetTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture );
-
-TextureFormat GetTextureFormat( PoolHandle< Texture > texture );
 
 PoolHandle< Texture > RGBNoiseTexture();
 PoolHandle< Texture > BlueNoiseTexture();
@@ -278,7 +270,7 @@ template<> struct PoolHandleType< BindGroup > { using T = u16; };
  */
 
 struct CommandBuffer;
-template<> inline constexpr size_t OpaqueSize< CommandBuffer > = 80;
+template<> inline constexpr size_t OpaqueSize< CommandBuffer > = 96;
 
 enum CommandBufferSubmitType {
 	SubmitCommandBuffer_Normal,

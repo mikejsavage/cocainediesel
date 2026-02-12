@@ -1218,6 +1218,8 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 	return CommandBuffer {
 		.command_buffer = command_buffer,
 		.rce = encoder,
+		.no_scissor = MTL::ScissorRect { .width = *width, .height = *height },
+		.msaa_samples = *msaa,
 	};
 }
 
@@ -1229,7 +1231,6 @@ Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config ) {
 	command_buffer->setLabel( NSString( config.name ) );
 
 	command_buffer->encodeWait( global_device.pass_event, global_device.frame_counter * RenderPass_Count + config.pass );
-	ggprint( "wait {}\n", config.pass );
 
 	MTL::ComputeCommandEncoder * encoder = command_buffer->computeCommandEncoder( compute_pass );
 	UseAllocators( encoder );

@@ -96,6 +96,7 @@ void DeleteDedicatedAllocationTexture( Opaque< BackendTexture > texture );
 u32 TextureWidth( PoolHandle< Texture > texture );
 u32 TextureHeight( PoolHandle< Texture > texture );
 u32 TextureMSAASamples( PoolHandle< Texture > texture );
+TextureFormat GetTextureFormat( PoolHandle< Texture > texture );
 
 /*
  * Resource transfers

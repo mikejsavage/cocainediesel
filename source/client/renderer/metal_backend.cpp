@@ -413,7 +413,7 @@ static MTL::PixelFormat TextureFormatToMetal( TextureFormat format ) {
 
 Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & config ) {
 	MTL::TextureType type;
-	if( config.num_layers == 1 ) {
+	if( !config.num_layers.exists ) {
 		type = config.msaa_samples > 1 ? MTL::TextureType2DMultisample : MTL::TextureType2D;
 	}
 	else {
@@ -463,7 +463,7 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 	descriptor->setPixelFormat( TextureFormatToMetal( config.format ) );
 	descriptor->setWidth( config.width );
 	descriptor->setHeight( config.height );
-	descriptor->setArrayLength( config.num_layers );
+	descriptor->setArrayLength( Default( config.num_layers, 1_u32 ) );
 	descriptor->setMipmapLevelCount( config.num_mipmaps );
 	if( swizzle.exists ) {
 		descriptor->setSwizzle( swizzle.value );
@@ -746,7 +746,7 @@ static const MTL::RenderPipelineState * SelectRenderPipelineVariant( const Rende
 }
 
 static void DeleteRenderPipeline( const RenderPipeline & shader ) {
-	Free( sys_allocator, shader.name );
+	Free( sys_allocator, shader.name.ptr );
 	for( const auto & [ _, mesh_variant ] : shader.mesh_variants ) {
 		for( MTL::RenderPipelineState * pso : mesh_variant.msaa_variants ) {
 			if( pso != NULL ) {
@@ -844,7 +844,8 @@ static void EncodeAndBindArgumentBuffer( MTL::RenderCommandEncoder * rce, Argume
 void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline, Mesh mesh, Span< const BufferBinding > buffers, DrawCallExtras extras ) {
 	CommandBuffer * cb = ocb.unwrap();
 
-	const MTL::RenderPipelineState * pso = SelectRenderPipelineVariant( render_pipelines[ pipeline.shader ], mesh.vertex_descriptor, cb->msaa_samples );
+	const RenderPipeline & shader = render_pipelines[ pipeline.shader ];
+	const MTL::RenderPipelineState * pso = SelectRenderPipelineVariant( shader, mesh.vertex_descriptor, cb->msaa_samples );
 	if( pso == NULL ) {
 		Com_GGPrint( S_COLOR_YELLOW "No shader variant: {} {}", shader.name, mesh.vertex_descriptor );
 		return;

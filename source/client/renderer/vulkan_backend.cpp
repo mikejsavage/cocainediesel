@@ -1228,6 +1228,7 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 
 	VkPipelineLayout layout;
 	VK_CHECK( vkCreatePipelineLayout( global_device.device, &pipeline_layout_info, NULL, &layout ) );
+	DebugLabel( layout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, temp( "{} pipeline layout", config.path ) );
 
 	// create draw call descriptor set
 	VkDescriptorSet draw_call_descriptor_set = VK_NULL_HANDLE;
@@ -1491,7 +1492,7 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline
 		for( BufferBinding buffer : buffers ) {
 			Optional< ReflectedDescriptorSet::Binding > binding = shader.reflection[ DescriptorSet_DrawCall ].bindings.get2( buffer.name );
 			if( !binding.exists ) {
-				printf( "can't bind\n" );
+				Com_Printf( "can't bind\n" );
 				continue;
 			}
 
@@ -2054,7 +2055,7 @@ static VkCommandBuffer PrepareCompute( Opaque< CommandBuffer > ocb, PoolHandle< 
 	for( BufferBinding b : buffers ) {
 		Optional< u32 > idx = pipeline.push_descriptors.buffers.get2( b.name );
 		if( !idx.exists ) {
-			printf( "can't bind\n" );
+			Com_Printf( "can't bind\n" );
 			continue;
 		}
 

@@ -34,6 +34,7 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 	};
 
 	Span< BufferBinding > bindings = StaticSpan( draw_call_bindings );
+	Span< BufferBinding > depth_only_bindings = Span( draw_call_bindings, 1 );
 
 	u32 first_mesh = map->data.models[ render_data->sub_model ].first_mesh;
 	for( u32 i = 0; i < map->data.models[ render_data->sub_model ].num_meshes; i++ ) {
@@ -45,12 +46,12 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 
 		for( u32 j = 0; j < frame_static.shadow_parameters.num_cascades; j++ ) {
 			PipelineState pipeline = { .shader = shaders.depth_only };
-			Draw( RenderPass_ShadowmapCascade0 + j, pipeline, map->render_data, bindings, mesh_extras );
+			Draw( RenderPass_ShadowmapCascade0 + j, pipeline, map->render_data, depth_only_bindings, mesh_extras );
 		}
 
 		{
 			PipelineState pipeline = { .shader = shaders.depth_only };
-			Draw( RenderPass_WorldOpaqueZPrepass, pipeline, map->render_data, bindings, mesh_extras );
+			Draw( RenderPass_WorldOpaqueZPrepass, pipeline, map->render_data, depth_only_bindings, mesh_extras );
 		}
 
 		{

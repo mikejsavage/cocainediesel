@@ -215,6 +215,8 @@ void SignalFirstRenderPass( RenderPass pass ) {
 }
 
 void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitType type, Optional< RenderPass > next_pass ) {
+	TracyZoneScoped;
+
 	CommandBuffer * cmd_buf = buffer.unwrap();
 
 	if( type == SubmitCommandBuffer_Present ) {
@@ -1068,10 +1070,13 @@ void ShutdownRenderBackend() {
 }
 
 void RenderBackendWaitForNewFrame() {
+	TracyZoneScopedNC( "RenderBackendWaitForNewFrame", 0xff0000 );
 	dispatch_semaphore_wait( frame_semaphore, DISPATCH_TIME_FOREVER );
 }
 
 void RenderBackendBeginFrame( int frames_to_capture ) {
+	TracyZoneScoped;
+
 	NS::AutoreleasePool * pool = NS::AutoreleasePool::alloc()->init();
 
 	ClearGPUArenaAllocators();
@@ -1087,12 +1092,15 @@ void RenderBackendBeginFrame( int frames_to_capture ) {
 		old_framebuffer_height = framebuffer_height;
 	}
 
-	CA::MetalDrawable * surface = global_device.swapchain->nextDrawable();
-	frame = {
-		.pool = pool,
-		.swapchain_surface = surface,
-		.swapchain_texture = surface->texture(),
-	};
+	{
+		TracyZoneScopedNC( "Acquire swapchain", 0xff0000 );
+		CA::MetalDrawable * surface = global_device.swapchain->nextDrawable();
+		frame = {
+			.pool = pool,
+			.swapchain_surface = surface,
+			.swapchain_texture = surface->texture(),
+		};
+	}
 
 	if( frames_to_capture > 0 ) {
 		StartCapture( global_device.device, frames_to_capture );
@@ -1132,11 +1140,17 @@ static void UseAllocators( T * encoder ) {
 }
 
 Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
+	TracyZoneScoped;
+	TracyZoneSpan( config.name );
+
+	TempAllocator temp = cls.frame_arena.temp();
+	const char * name = temp( "{}", config.name );
+
 	MTL::RenderPassDescriptor * render_pass = MTL::RenderPassDescriptor::alloc()->init();
 	defer { render_pass->release(); };
 
 	MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
-	command_buffer->setLabel( NSString( config.name ) );
+	command_buffer->setLabel( NSString( name ) );
 
 	Optional< u32 > width = NONE;
 	Optional< u32 > height = NONE;
@@ -1225,11 +1239,17 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 }
 
 Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config ) {
+	TracyZoneScoped;
+	TracyZoneSpan( config.name );
+
+	TempAllocator temp = cls.frame_arena.temp();
+	const char * name = temp( "{}", config.name );
+
 	MTL::ComputePassDescriptor * compute_pass = MTL::ComputePassDescriptor::alloc()->init();
 	compute_pass->setDispatchType( MTL::DispatchTypeSerial );
 
 	MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
-	command_buffer->setLabel( NSString( config.name ) );
+	command_buffer->setLabel( NSString( name ) );
 
 	command_buffer->encodeWait( global_device.pass_event, global_device.frame_counter * RenderPass_Count + config.pass );
 

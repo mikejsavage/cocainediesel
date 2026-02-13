@@ -374,7 +374,7 @@ struct RenderPassConfig {
 		Optional< PoolHandle< Texture > > resolve_target = NONE;
 	};
 
-	const char * name;
+	Span< const char > name;
 	RenderPass pass; // Metal synchronization
 	Span< const ColorTarget > color_targets;
 	Optional< DepthTarget > depth_target;
@@ -443,7 +443,7 @@ struct IndirectComputeArgs {
 };
 
 struct ComputePassConfig {
-	const char * name;
+	Span< const char > name;
 	RenderPass pass; // Metal synchronization
 	Span< const GPUBarrier > barriers; // Vulkan synchronization
 };

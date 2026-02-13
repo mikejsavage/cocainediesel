@@ -228,6 +228,8 @@ static Mat3x4 InvertViewMatrix( const Mat3x4 & V, Vec3 position ) {
 }
 
 static void CreateRenderTargets( bool first_time ) {
+	TracyZoneScoped;
+
 	// NOMERGE use NewRenderTargetTexture
 	frame_static.render_targets.silhouette_mask = NewTexture( TextureConfig {
 		.name = "Silhouette mask RT",
@@ -294,6 +296,8 @@ static void CreateRenderTargets( bool first_time ) {
 }
 
 void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
+	TracyZoneScoped;
+
 	HotloadShaders();
 	HotloadMaterials();
 	HotloadGLTFModels();
@@ -542,7 +546,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 
 	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
 		frame_static.render_passes[ RenderPass_ShadowmapCascade0 + i ] = NewRenderPass( RenderPassConfig {
-			.name = temp( "Shadowmap cascade {}", i ),
+			.name = temp.sv( "Shadowmap cascade {}", i ),
 			.pass = RenderPass_ShadowmapCascade0 + i,
 			.depth_target = RenderPassConfig::DepthTarget {
 				.texture = targets.shadowmap,
@@ -679,6 +683,8 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 }
 
 void RendererEndFrame() {
+	TracyZoneScoped;
+
 	RenderPass next_pass[ ARRAY_COUNT( frame_static.render_passes ) ];
 	RenderPass next = RenderPass_Count;
 	for( size_t i = 0; i < ARRAY_COUNT( next_pass ); i++ ) {

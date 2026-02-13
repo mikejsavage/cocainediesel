@@ -1820,10 +1820,17 @@ static VkImageMemoryBarrier2 MakeImageTransition( PoolHandle< Texture > handle, 
 }
 
 Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
+	TracyZoneScoped;
+	TracyZoneSpan( config.name );
+
 	Assert( config.color_targets.n <= FragmentShaderOutput_Count );
 
+	TempAllocator temp = cls.frame_arena.temp();
+	const char * name = temp( "{}", config.name );
+
 	VkCommandBuffer command_buffer = NewCommandBuffer();
-	DebugLabel( command_buffer, VK_OBJECT_TYPE_COMMAND_BUFFER, config.name );
+	DebugLabel( command_buffer, VK_OBJECT_TYPE_COMMAND_BUFFER, name );
+
 
 	const VkCommandBufferBeginInfo begin_info = {
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -1835,9 +1842,8 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 	{
 		VkDebugUtilsLabelEXT label = {
 			.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
-			.pLabelName = config.name,
+			.pLabelName = name,
 		};
-
 		vkCmdBeginDebugUtilsLabelEXT( command_buffer, &label );
 	}
 
@@ -2019,8 +2025,14 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 }
 
 Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config ) {
+	TracyZoneScoped;
+	TracyZoneSpan( config.name );
+
+	TempAllocator temp = cls.frame_arena.temp();
+	const char * name = temp( "{}", config.name );
+
 	VkCommandBuffer command_buffer = NewCommandBuffer();
-	DebugLabel( command_buffer, VK_OBJECT_TYPE_COMMAND_BUFFER, config.name );
+	DebugLabel( command_buffer, VK_OBJECT_TYPE_COMMAND_BUFFER, name );
 
 	const VkCommandBufferBeginInfo begin_info = {
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -2032,7 +2044,7 @@ Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config ) {
 	{
 		VkDebugUtilsLabelEXT label = {
 			.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
-			.pLabelName = config.name,
+			.pLabelName = name,
 		};
 
 		vkCmdBeginDebugUtilsLabelEXT( command_buffer, &label );
@@ -2087,6 +2099,8 @@ void SignalFirstRenderPass( RenderPass metal_only_dont_care ) {
 }
 
 void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitType type, Optional< RenderPass > metal_only_dont_care ) {
+	TracyZoneScoped;
+
 	CommandBuffer * command_buffer = buffer.unwrap();
 
 	if( command_buffer->is_render_command_buffer ) {
@@ -2161,6 +2175,7 @@ void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitTyp
 		VK_CHECK( vkDeviceWaitIdle( global_device.device ) );
 	}
 	else if( type == SubmitCommandBuffer_Present ) {
+		TracyZoneScopedN( "vkQueuePresentKHR" );
 		const VkPresentInfoKHR present_info = {
 			.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 			.waitSemaphoreCount = 1,
@@ -2578,6 +2593,8 @@ void ShutdownRenderBackend() {
 }
 
 void RenderBackendWaitForNewFrame() {
+	TracyZoneScopedNC( "RenderBackendWaitForNewFrame", 0xff0000 );
+
 	const VkSemaphoreWaitInfo wait_info = {
 		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
 		.semaphoreCount = 1,
@@ -2589,17 +2606,25 @@ void RenderBackendWaitForNewFrame() {
 }
 
 void RenderBackendBeginFrame( int frames_to_capture ) {
+	TracyZoneScoped;
+
 	VkSurfaceCapabilitiesKHR surface_capabilities;
 	VK_CHECK( vkGetPhysicalDeviceSurfaceCapabilitiesKHR( global_device.physical_device, global_surface, &surface_capabilities ) );
 	MaybeRecreateSwapchain( surface_capabilities );
 
-	VK_CHECK( vkResetCommandPool( global_device.device, global_device.command_pools[ FrameSlot() ].pool, 0 ) );
+	{
+		TracyZoneScopedN( "vkResetCommandPool" );
+		VK_CHECK( vkResetCommandPool( global_device.device, global_device.command_pools[ FrameSlot() ].pool, 0 ) );
+	}
 
-	Swapchain::Semaphores semaphores = global_swapchain.semaphores[ frame_counter % global_swapchain.semaphores.n ];
+	{
+		TracyZoneScopedNC( "vkAcquireNextImageKHR", 0xff0000 );
+		Swapchain::Semaphores semaphores = global_swapchain.semaphores[ frame_counter % global_swapchain.semaphores.n ];
 
-	VkResult res = vkAcquireNextImageKHR( global_device.device, global_swapchain.swapchain, U64_MAX, semaphores.acquire, VK_NULL_HANDLE, &frame.image_index );
-	if( res != VK_SUCCESS && res != VK_SUBOPTIMAL_KHR ) {
-		VkAbort( res );
+		VkResult res = vkAcquireNextImageKHR( global_device.device, global_swapchain.swapchain, U64_MAX, semaphores.acquire, VK_NULL_HANDLE, &frame.image_index );
+		if( res != VK_SUCCESS && res != VK_SUBOPTIMAL_KHR ) {
+			VkAbort( res );
+		}
 	}
 
 	ClearGPUArenaAllocators();

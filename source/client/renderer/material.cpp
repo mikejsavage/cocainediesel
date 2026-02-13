@@ -408,7 +408,7 @@ static Texture MakeTexture( const TextureConfig & config, u64 hash ) {
 		.format = config.format,
 		.width = config.width,
 		.height = config.height,
-		.num_layers = config.num_layers,
+		.num_layers = Default( config.num_layers, 1_u32 ),
 		.num_mipmaps = config.num_mipmaps,
 		.msaa_samples = config.msaa_samples,
 	};

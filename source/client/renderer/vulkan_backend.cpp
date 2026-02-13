@@ -2276,6 +2276,8 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 		usage |= config.format == TextureFormat_Depth ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	}
 
+	u32 num_layers = Default( config.num_layers, 1_u32 );
+
 	const VkImageCreateInfo image_info = {
 		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 		.imageType = VK_IMAGE_TYPE_2D,
@@ -2286,7 +2288,7 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 			.depth = 1,
 		},
 		.mipLevels = config.num_mipmaps,
-		.arrayLayers = config.num_layers,
+		.arrayLayers = num_layers,
 		.samples = VkSampleCountFlagBits( config.msaa_samples ),
 		.tiling = VK_IMAGE_TILING_OPTIMAL,
 		.usage = usage,
@@ -2337,21 +2339,21 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 	const VkImageViewCreateInfo image_view_info = {
 		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 		.image = image,
-		.viewType = config.num_layers == 1 ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+		.viewType = config.num_layers.exists ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D ,
 		.format = TextureFormatToVulkan( config.format ),
 		.components = swizzle,
 		.subresourceRange = {
 			.aspectMask = aspect_mask,
 			.levelCount = config.num_mipmaps,
-			.layerCount = config.num_layers,
+			.layerCount = num_layers,
 		},
 	};
 
 	VkImageView image_view;
 	VK_CHECK( vkCreateImageView( global_device.device, &image_view_info, NULL, &image_view ) );
 
-	Span< VkImageView > per_layer_image_views = AllocSpan< VkImageView >( sys_allocator, config.num_layers );
-	for( u32 i = 0; i < config.num_layers; i++ ) {
+	Span< VkImageView > per_layer_image_views = AllocSpan< VkImageView >( sys_allocator, num_layers );
+	for( u32 i = 0; i < num_layers; i++ ) {
 		VkImageViewCreateInfo layer_image_view_info = image_view_info;
 		layer_image_view_info.subresourceRange.baseArrayLayer = i;
 		layer_image_view_info.subresourceRange.layerCount = 1;

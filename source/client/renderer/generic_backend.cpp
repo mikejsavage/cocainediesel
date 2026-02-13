@@ -127,12 +127,13 @@ static void UploadMipLevel( Opaque< BackendTexture > texture, TextureFormat form
 }
 
 void UploadTexture( const TextureConfig & config, Opaque< BackendTexture > texture ) {
+	u32 num_layers = Default( config.num_layers, 1_u32 );
 	const char * cursor = ( const char * ) config.data;
 	for( u32 i = 0; i < config.num_mipmaps; i++ ) {
 		u32 mip_w = config.width >> i;
 		u32 mip_h = config.height >> i;
-		size_t mip_bytes = ( mip_w * mip_h * config.num_layers * BitsPerPixel( config.format ) ) / 8;
-		UploadMipLevel( texture, config.format, mip_w, mip_h, config.num_layers, i, cursor, mip_bytes );
+		size_t mip_bytes = ( mip_w * mip_h * num_layers * BitsPerPixel( config.format ) ) / 8;
+		UploadMipLevel( texture, config.format, mip_w, mip_h, num_layers, i, cursor, mip_bytes );
 
 		cursor += mip_bytes;
 	}

@@ -103,7 +103,7 @@ struct TextureConfig {
 	TextureFormat format;
 	u32 width;
 	u32 height;
-	u32 num_layers = 1;
+	Optional< u32 > num_layers;
 	u32 num_mipmaps = 1;
 	u32 msaa_samples = 1;
 	const void * data;

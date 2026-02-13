@@ -594,6 +594,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		.depth_target = RenderPassConfig::DepthTarget { .texture = targets.depth, .load = LoadOp_Load },
 		.barriers = { GPUBarrier_ComputeToFragment, GPUBarrier_FragmentToFragmentSample },
 		.attachment_transitions = { color_target, targets.curved_surface_mask },
+		.readonly_transitions = { targets.shadowmap },
 		.representative_shader = shaders.world,
 		.bindings = standard_bindings,
 	} );

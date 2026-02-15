@@ -425,7 +425,7 @@ static void SetupShadowCascades() {
 	}
 
 	ShadowmapUniforms uniforms = {
-		.VP = shadow_views[ 0 ],
+		.V = shadow_views[ 0 ],
 		.num_cascades = frame_static.shadow_parameters.num_cascades,
 	};
 

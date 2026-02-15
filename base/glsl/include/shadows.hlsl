@@ -91,7 +91,7 @@ float ShadowCascade( float3 position, float3 normal, uint32_t cascadeIdx ) {
 	float3 cascadeScale = u_Shadowmap[ 0 ].cascades[ cascadeIdx ].scale;
 
 	float3 offset = GetShadowPosOffset( dot( normal, u_View[ 0 ].sun_direction ), normal ) / abs( cascadeScale.z );
-	float3 shadowPos = mul( u_Shadowmap[ 0 ].VP, float4( position + offset, 1.0f ) ).xyz;
+	float3 shadowPos = mul( u_Shadowmap[ 0 ].V, float4( position + offset, 1.0f ) ).xyz;
 	float3 shadowPosDX = ddx( shadowPos ) * cascadeScale;
 	float3 shadowPosDY = ddy( shadowPos ) * cascadeScale;
 	shadowPos = ( shadowPos + cascadeOffset ) * cascadeScale;

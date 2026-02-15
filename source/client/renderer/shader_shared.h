@@ -83,7 +83,7 @@ struct ShadowmapUniforms {
 		Vec3 scale;
 	};
 
-	Mat3x4 VP;
+	Mat3x4 V;
 	Cascade cascades[ 4 ];
 	u32 num_cascades;
 };

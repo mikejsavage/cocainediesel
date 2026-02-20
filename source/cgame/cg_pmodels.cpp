@@ -746,7 +746,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 	{
 		DrawModelConfig config = {
-			.draw_model = { .enabled = true },
+			.draw_model = { .enabled = draw_model },
 			.cast_shadows = true,
 			.silhouette_color = draw_silhouette ? Optional( color ) : NONE,
 		};
@@ -765,7 +765,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 	}
 
 	DrawModelConfig config = {
-		.draw_model = { .enabled = true },
+		.draw_model = { .enabled = draw_model },
 		.cast_shadows = true,
 		.silhouette_color = draw_silhouette ? Optional( color ) : NONE,
 	};

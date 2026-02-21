@@ -1,5 +1,6 @@
 #pragma once
 
+// types and constants
 #ifdef __cplusplus
   #include "qcommon/types.h"
   #define shaderconst constexpr
@@ -58,13 +59,20 @@ enum DescriptorSetType {
 	DescriptorSet_Count
 };
 
-struct TextUniforms {
-	Vec4 color;
-	Vec4 border_color;
-	float dSDF_dTexel;
-	u32 has_border;
+struct DispatchComputeIndirectArguments {
+	u32 num_groups_x;
+	u32 num_groups_y;
+	u32 num_groups_z;
 };
 
+struct DrawArraysIndirectArguments {
+	u32 count;
+	u32 num_instances;
+	u32 base_vertex;
+	u32 base_instance;
+};
+
+// general
 struct ViewUniforms {
 	Mat3x4 V;
 	Mat3x4 inverse_V;
@@ -74,6 +82,13 @@ struct ViewUniforms {
 	Vec2 viewport_size;
 	float near_clip;
 	Vec3 sun_direction;
+};
+
+// standard.hlsl
+struct MaterialProperties {
+	float specular;
+	float shininess;
+	float lod_bias;
 };
 
 struct ShadowmapUniforms {
@@ -88,12 +103,42 @@ struct ShadowmapUniforms {
 	u32 num_cascades;
 };
 
-struct MaterialProperties {
-	float specular;
-	float shininess;
-	float lod_bias;
+// dynamics
+struct TileCullingInputs {
+	u32 rows, cols;
+	u32 num_decals;
+	u32 num_lights;
 };
 
+struct TileCountsUniforms {
+	u32 num_decals;
+	u32 num_lights;
+};
+
+struct TileIndices {
+	u32 indices[ FORWARD_PLUS_TILE_CAPACITY ];
+};
+
+// TODO: use half floats etc
+struct Decal {
+	Vec3 origin_orientation_xyz; // floor( origin ) + ( orientation.xyz * 0.49 + 0.5 )
+	float radius_orientation_w; // floor( radius ) + ( orientation.w * 0.49 + 0.5 )
+	Vec4 color_uvwh_height; // vec4( u + layer, v + floor( r * 255 ) + floor( height ) * 256, w + floor( g * 255 ), h + floor( b * 255 ) )
+	// NOTE(msc): uvwh should all be < 1.0
+};
+
+struct Light {
+	Vec3 origin_color; // floor( origin ) + ( color * 0.9 )
+	float radius;
+};
+
+// outline.hlsl
+struct OutlineUniforms {
+	Vec4 color;
+	float height;
+};
+
+// particles
 struct Particle {
 	Vec3 position;
 	float angle;
@@ -126,37 +171,7 @@ struct ParticleUpdateUniforms {
 	u32 num_new_particles;
 };
 
-// TODO: use half floats etc
-struct Decal {
-	Vec3 origin_orientation_xyz; // floor( origin ) + ( orientation.xyz * 0.49 + 0.5 )
-	float radius_orientation_w; // floor( radius ) + ( orientation.w * 0.49 + 0.5 )
-	Vec4 color_uvwh_height; // vec4( u + layer, v + floor( r * 255 ) + floor( height ) * 256, w + floor( g * 255 ), h + floor( b * 255 ) )
-	// NOTE(msc): uvwh should all be < 1.0
-};
-
-struct Light {
-	Vec3 origin_color; // floor( origin ) + ( color * 0.9 )
-	float radius;
-};
-
-struct OutlineUniforms {
-	Vec4 color;
-	float height;
-};
-
-struct DispatchComputeIndirectArguments {
-	u32 num_groups_x;
-	u32 num_groups_y;
-	u32 num_groups_z;
-};
-
-struct DrawArraysIndirectArguments {
-	u32 count;
-	u32 num_instances;
-	u32 base_vertex;
-	u32 base_instance;
-};
-
+// postprocessing
 struct PostprocessPreUIUniforms {
 	float vignette;
 	float radial_blur;
@@ -173,17 +188,10 @@ struct PostprocessUniforms {
 	float crt;
 };
 
-struct TileCullingInputs {
-	u32 rows, cols;
-	u32 num_decals;
-	u32 num_lights;
-};
-
-struct TileCountsUniforms {
-	u32 num_decals;
-	u32 num_lights;
-};
-
-struct TileIndices {
-	u32 indices[ FORWARD_PLUS_TILE_CAPACITY ];
+// text.hlsl
+struct TextUniforms {
+	Vec4 color;
+	Vec4 border_color;
+	float dSDF_dTexel;
+	u32 has_border;
 };

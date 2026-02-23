@@ -108,12 +108,12 @@ void DrawTextBaseline( const Font * font, float pixel_size, Span< const char > s
 	ImGuiShaderAndMaterial imgui;
 	imgui.shader = shaders.text;
 	imgui.material_bind_group = font->bind_group;
-	imgui.buffer = { "u_Text", NewTempBuffer( TextUniforms {
+	imgui.buffer = NewTempBuffer( TextUniforms {
 		.color = color,
 		.border_color = Default( border_color, Vec4( 0.0f ) ),
 		.dSDF_dTexel = font->metadata.dSDF_dTexel,
 		.has_border = border_color.exists ? 1_u32 : 0_u32,
-	} ) };
+	} );
 
 	ImDrawList * bg = ImGui::GetBackgroundDrawList();
 	bg->PushTextureID( imgui );
@@ -322,10 +322,10 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Vec3 ori
 		.material_bind_group = font->bind_group,
 	};
 
-	Draw( RenderPass_NonworldOpaque, pipeline, mesh, { { "u_Text", text_uniforms } } );
+	Draw( RenderPass_NonworldOpaque, pipeline, mesh, { text_uniforms } );
 
 	pipeline.shader = shaders.text_depth_only;
 	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
-		Draw( RenderPass_ShadowmapCascade0 + i, pipeline, mesh, { { "u_Text", text_uniforms } } );
+		Draw( RenderPass_ShadowmapCascade0 + i, pipeline, mesh, { text_uniforms } );
 	}
 }

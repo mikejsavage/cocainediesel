@@ -3,28 +3,24 @@
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 [[vk::binding( 1, DescriptorSet_RenderPass )]] Texture2D< float4 > u_BlueNoise;
 [[vk::binding( 2, DescriptorSet_RenderPass )]] SamplerState u_StandardSampler;
-#ifdef APPLY_SHADOWS
 [[vk::binding( 3, DescriptorSet_RenderPass )]] StructuredBuffer< ShadowmapUniforms > u_Shadowmap;
 [[vk::binding( 4, DescriptorSet_RenderPass )]] Texture2DArray< float > u_ShadowmapTextureArray;
 [[vk::binding( 5, DescriptorSet_RenderPass )]] SamplerComparisonState u_ShadowmapSampler;
-#endif
-#ifdef APPLY_DYNAMICS
 [[vk::binding( 6, DescriptorSet_RenderPass )]] StructuredBuffer< TileCountsUniforms > u_TileCounts;
 [[vk::binding( 7, DescriptorSet_RenderPass )]] StructuredBuffer< TileIndices > u_DecalTiles;
 [[vk::binding( 8, DescriptorSet_RenderPass )]] StructuredBuffer< TileIndices > u_LightTiles;
 [[vk::binding( 9, DescriptorSet_RenderPass )]] StructuredBuffer< Decal > u_Decals;
 [[vk::binding( 10, DescriptorSet_RenderPass )]] StructuredBuffer< Light > u_Lights;
 [[vk::binding( 11, DescriptorSet_RenderPass )]] Texture2DArray< float > u_SpriteAtlas;
-#endif
 
 #include "include/standard_material.hlsl"
 
-[[vk::binding( 0, DescriptorSet_DrawCall )]] StructuredBuffer< float3x4 > u_ModelTransform;
-
-[[vk::binding( 1, DescriptorSet_DrawCall )]] StructuredBuffer< float4 > u_MaterialColor;
-#ifdef SKINNED
-[[vk::binding( 2, DescriptorSet_DrawCall )]] StructuredBuffer< float3x4 > u_Pose;
-#endif
+struct DrawCallPushConstants {
+	vk::BufferPointer< Float3x4 > model_transform;
+	vk::BufferPointer< float4 > material_color;
+	vk::BufferPointer< Float3x4 > pose;
+};
+[[vk::push_constant]] DrawCallPushConstants u_DrawCall;
 
 #include "include/decals.hlsl"
 #include "include/dither.hlsl"
@@ -58,10 +54,10 @@ struct VertexOutput {
 };
 
 VertexOutput VertexMain( VertexInput input ) {
-	float3x4 M = u_ModelTransform[ 0 ];
+	float3x4 M = u_DrawCall.model_transform.Get().m;
 
 #ifdef SKINNED
-	M = mul34( M, SkinningMatrix( u_Pose, input.indices, input.weights ) );
+	M = mul34( M, SkinningMatrix( u_DrawCall.pose, input.indices, input.weights ) );
 #endif
 
 	VertexOutput output;
@@ -81,7 +77,7 @@ struct FragmentOutput {
 };
 
 FragmentOutput FragmentMain( VertexOutput v ) {
-	float4 albedo = u_MaterialColor[ 0 ];
+	float4 albedo = u_DrawCall.material_color.Get();
 #ifndef WORLD
 	albedo *= u_Texture.SampleBias( u_Sampler, v.uv, u_MaterialProperties[ 0 ].lod_bias );
 #endif

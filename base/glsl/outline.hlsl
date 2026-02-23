@@ -1,11 +1,15 @@
 #include "include/common.hlsl"
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
-[[vk::binding( 0, DescriptorSet_DrawCall )]] StructuredBuffer< float3x4 > u_ModelTransform;
-[[vk::binding( 1, DescriptorSet_DrawCall )]] StructuredBuffer< OutlineUniforms > u_Outline;
+
+struct DrawCallPushConstants {
+	vk::BufferPointer< Float3x4 > model_transform;
+	vk::BufferPointer< OutlineUniforms > outline;
 #ifdef SKINNED
-[[vk::binding( 2, DescriptorSet_DrawCall )]] StructuredBuffer< float3x4 > u_Pose;
+	vk::BufferPointer< Float3x4 > pose;
 #endif
+};
+[[vk::push_constant]] DrawCallPushConstants u_DrawCall;
 
 #include "include/fog.hlsl"
 #include "include/skinning.hlsl"
@@ -29,17 +33,17 @@ VertexOutput VertexMain( VertexInput input ) {
 	float3 normal = input.normal;
 
 #ifdef SKINNED
-	float3x4 skin = SkinningMatrix( u_Pose, input.indices, input.weights );
+	float3x4 skin = SkinningMatrix( u_DrawCall.pose, input.indices, input.weights );
 	position4 = mul34( skin, position4 );
 	normal = mul( Adjugate( skin ), normal );
 #endif
 
 	VertexOutput output;
-	output.world_position = mul34( u_ModelTransform[ 0 ], position4 ).xyz + normal * u_Outline[ 0 ].height;
+	output.world_position = mul34( u_DrawCall.model_transform.Get().m, position4 ).xyz + normal * u_DrawCall.outline.Get().height;
 	output.position = mul( u_View[ 0 ].P, mul34( u_View[ 0 ].V, float4( output.world_position, 1.0f ) ) );
 	return output;
 }
 
 float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
-	return float4( VoidFog( u_Outline[ 0 ].color.rgb, v.world_position.z ), VoidFogAlpha( u_Outline[ 0 ].color.a, v.world_position.z ) );
+	return float4( VoidFog( u_DrawCall.outline.Get().color.rgb, v.world_position.z ), VoidFogAlpha( u_DrawCall.outline.Get().color.a, v.world_position.z ) );
 }

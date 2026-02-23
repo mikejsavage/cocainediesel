@@ -1,11 +1,15 @@
 #include "include/common.hlsl"
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
-[[vk::binding( 0, DescriptorSet_DrawCall )]] StructuredBuffer< float3x4 > u_ModelTransform;
-[[vk::binding( 1, DescriptorSet_DrawCall )]] StructuredBuffer< float4 > u_SilhouetteColor;
+
+struct DrawCallPushConstants {
+	vk::BufferPointer< Float3x4 > model_transform;
+	vk::BufferPointer< float4 > silhouette_color;
 #ifdef SKINNED
-[[vk::binding( 2, DescriptorSet_DrawCall )]] StructuredBuffer< float3x4 > u_Pose;
+	vk::BufferPointer< Float3x4 > pose;
 #endif
+};
+[[vk::push_constant]] DrawCallPushConstants u_DrawCall;
 
 #include "include/skinning.hlsl"
 
@@ -20,11 +24,11 @@ struct VertexInput {
 float4 VertexMain( VertexInput input ) : SV_Position {
 	float4 position4 = float4( input.position, 1.0f );
 #ifdef SKINNED
-	position4 = mul34( SkinningMatrix( u_Pose, input.indices, input.weights ), position4 );
+	position4 = mul34( SkinningMatrix( u_DrawCall.pose, input.indices, input.weights ), position4 );
 #endif
-	return mul( u_View[ 0 ].P, mul34( u_View[ 0 ].V, mul34( u_ModelTransform[ 0 ], position4 ) ) );
+	return mul( u_View[ 0 ].P, mul34( u_View[ 0 ].V, mul34( u_DrawCall.model_transform.Get().m, position4 ) ) );
 }
 
 float4 FragmentMain() : FragmentShaderOutput_Albedo {
-	return u_SilhouetteColor[ 0 ];
+	return u_DrawCall.silhouette_color.Get();
 }

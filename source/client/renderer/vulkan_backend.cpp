@@ -60,6 +60,7 @@ Span< T > VulkanSpanUnchecked( Allocator * a, F f, Rest... rest ) {
 struct GPUAllocation {
 	VkDeviceMemory memory;
 	VkBuffer buffer;
+	u64 addr;
 };
 
 struct BackendTexture {
@@ -161,7 +162,7 @@ struct RenderPipeline {
 	VkDescriptorSetLayout descriptor_set_layouts[ DescriptorSet_Count ];
 	ReflectedDescriptorSet reflection[ DescriptorSet_Count ];
 	PushDescriptorTemplate render_pass_push_descriptors;
-	VkDescriptorSet draw_call_descriptor_set;
+	u32 push_constant_size;
 };
 
 struct ComputePipeline {
@@ -216,7 +217,7 @@ void DebugLabel( T handle, VkObjectType type, const char * name ) {
 }
 
 static GPUAllocation GPUMalloc( size_t size, bool device_local ) {
-	constexpr VkBufferUsageFlags common_flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+	constexpr VkBufferUsageFlags common_flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 	constexpr VkBufferUsageFlags device_local_flags = common_flags | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	constexpr VkBufferUsageFlags coherent_flags = common_flags | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
@@ -233,8 +234,14 @@ static GPUAllocation GPUMalloc( size_t size, bool device_local ) {
 	VkMemoryRequirements memory_requirements;
 	vkGetBufferMemoryRequirements( global_device.device, buffer, &memory_requirements );
 
+	const VkMemoryAllocateFlagsInfo alloc_flags = {
+		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
+		.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT,
+	};
+
 	const VkMemoryAllocateInfo alloc_info = {
 		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+		.pNext = &alloc_flags,
 		.allocationSize = memory_requirements.size,
 		.memoryTypeIndex = device_local ? global_device.device_local_memory_type : global_device.coherent_memory_type,
 	};
@@ -243,9 +250,16 @@ static GPUAllocation GPUMalloc( size_t size, bool device_local ) {
 	VK_CHECK( vkAllocateMemory( global_device.device, &alloc_info, NULL, &memory ) );
 	VK_CHECK( vkBindBufferMemory( global_device.device, buffer, memory, 0 ) );
 
+	VkBufferDeviceAddressInfo address_info = {
+		.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+		.buffer = buffer,
+	};
+	VkDeviceAddress addr = vkGetBufferDeviceAddress( global_device.device, &address_info );
+
 	return GPUAllocation {
 		.memory = memory,
 		.buffer = buffer,
+		.addr = addr,
 	};
 }
 
@@ -569,6 +583,7 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 			// .samplerFilterMinmax = VK_TRUE,
 			.scalarBlockLayout = VK_TRUE,
 			.timelineSemaphore = VK_TRUE,
+			.bufferDeviceAddress = VK_TRUE,
 		};
 
 		VkPhysicalDeviceVulkan11Features features11 = {
@@ -588,7 +603,7 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 				.samplerAnisotropy = VK_TRUE,
 				.textureCompressionBC = VK_TRUE,
 				// .pipelineStatisticsQuery = VK_TRUE,
-				// .shaderInt64 = VK_TRUE,
+				.shaderInt64 = VK_TRUE,
 				// .shaderInt16 = VK_TRUE,
 			},
 		};
@@ -629,7 +644,6 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 	// TODO: size these according MaxMaterials etc
 	{
 		const VkDescriptorPoolSize pool_sizes[] = {
-			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 100 },
 			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10000 },
 			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 10000 },
 			{ VK_DESCRIPTOR_TYPE_SAMPLER, 10000 },
@@ -924,6 +938,7 @@ struct SpirvID {
 	Optional< const char * > name;
 	Optional< u32 > next;
 	Optional< SpvStorageClass > storage_class;
+	Optional< u32 > num_members;
 	Optional< u32 > stride;
 	Optional< u32 > descriptor_set;
 	Optional< u32 > binding;
@@ -933,7 +948,7 @@ static const char * StripPrefix( const char * str, const char * prefix ) {
 	return StartsWith( str, prefix ) ? str + strlen( prefix ) : str;
 }
 
-static void ParseSPIRV( Span< const u32 > spirv, ReflectedDescriptorSet ( &sets )[ DescriptorSet_Count ] ) {
+static void ParseSPIRV( Span< const u32 > spirv, ReflectedDescriptorSet ( &sets )[ DescriptorSet_Count ], u32 * push_constant_size ) {
 	Assert( spirv[ 0 ] == SpvMagicNumber );
 
 	TempAllocator temp = cls.frame_arena.temp();
@@ -977,6 +992,9 @@ static void ParseSPIRV( Span< const u32 > spirv, ReflectedDescriptorSet ( &sets 
 				if( op != SpvOpTypeSampler ) {
 					u32 type = spirv[ cursor + 2 ];
 					ids[ id ].next = type;
+					if( op == SpvOpTypeStruct ) {
+						ids[ id ].num_members = op_size - 2;
+					}
 				}
 			} break;
 
@@ -993,6 +1011,7 @@ static void ParseSPIRV( Span< const u32 > spirv, ReflectedDescriptorSet ( &sets 
 				u32 id = spirv[ cursor + 1 ];
 				Assert( !ids[ id ].op.exists );
 				ids[ id ].op = op;
+				ids[ id ].storage_class = SpvStorageClass( spirv[ cursor + 2 ] );
 				ids[ id ].next = spirv[ cursor + 3 ];
 			} break;
 
@@ -1005,6 +1024,20 @@ static void ParseSPIRV( Span< const u32 > spirv, ReflectedDescriptorSet ( &sets 
 	for( SpirvID id : ids ) {
 		if( !id.op.exists )
 			continue;
+
+		if( id.op.value == SpvOpTypePointer && id.storage_class == SpvStorageClassPushConstant ) {
+			SpirvID resource = ids[ id.next.value ];
+			if( resource.op.exists ) {
+				if( resource.op.value == SpvOpTypeStruct && resource.num_members.exists ) {
+					u32 size = ids[ id.next.value ].num_members.value * sizeof( u64 );
+					// Assert( *push_constant_size == 0 || *push_constant_size == size );
+					// *push_constant_size = size;
+					*push_constant_size = Max2( *push_constant_size, size );
+				}
+			}
+			continue;
+		}
+
 		if( id.op.value == SpvOpVariable ) {
 			Assert( id.storage_class.exists );
 			if( id.storage_class.value != SpvStorageClassUniform && id.storage_class.value != SpvStorageClassUniformConstant && id.storage_class.value != SpvStorageClassStorageBuffer )
@@ -1021,7 +1054,7 @@ static void ParseSPIRV( Span< const u32 > spirv, ReflectedDescriptorSet ( &sets 
 			switch( resource.op.value ) {
 				case SpvOpTypeStruct:
 					Assert( type.op.exists && type.stride.exists && type.stride.value > 0 );
-					descriptor_type = id.descriptor_set.value == DescriptorSet_DrawCall ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+					descriptor_type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 					break;
 				case SpvOpTypeImage:
 					descriptor_type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
@@ -1041,12 +1074,12 @@ static void ParseSPIRV( Span< const u32 > spirv, ReflectedDescriptorSet ( &sets 
 	}
 }
 
-static VkPipelineShaderStageCreateInfo CompileShader( Span< const char > path, VkShaderStageFlagBits stage, ReflectedDescriptorSet ( &reflected_descriptor_sets )[ DescriptorSet_Count ] ) {
+static VkPipelineShaderStageCreateInfo CompileShader( Span< const char > path, VkShaderStageFlagBits stage, ReflectedDescriptorSet ( &reflected_descriptor_sets )[ DescriptorSet_Count ], u32 * push_constant_size ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	Span< const u32 > spirv = AssetBinary( path ).cast< const u32 >();
 
-	ParseSPIRV( spirv, reflected_descriptor_sets );
+	ParseSPIRV( spirv, reflected_descriptor_sets, push_constant_size );
 
 	const VkShaderModuleCreateInfo create_info = {
 		.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -1097,7 +1130,6 @@ static PushDescriptorTemplate NewPushDescriptorTemplate( const ReflectedDescript
 
 		switch( binding.type ) {
 			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-			case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
 				descriptor_template.buffers.must_add( name, binding.index );
 				break;
 			case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
@@ -1184,12 +1216,13 @@ static constexpr VkPipelineColorBlendAttachmentState blend_states[ BlendFunc_Cou
 
 PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config ) {
 	ReflectedDescriptorSet descriptor_sets[ DescriptorSet_Count ] = { };
+	u32 push_constant_size = 0;
 
 	// compile and parse shaders
 	TempAllocator temp = cls.frame_arena.temp();
 	VkPipelineShaderStageCreateInfo stages[] = {
-		CompileShader( temp.sv( "{}.vert.spv", config.path ), VK_SHADER_STAGE_VERTEX_BIT, descriptor_sets ),
-		CompileShader( temp.sv( "{}.frag.spv", config.path ), VK_SHADER_STAGE_FRAGMENT_BIT, descriptor_sets ),
+		CompileShader( temp.sv( "{}.vert.spv", config.path ), VK_SHADER_STAGE_VERTEX_BIT, descriptor_sets, &push_constant_size ),
+		CompileShader( temp.sv( "{}.frag.spv", config.path ), VK_SHADER_STAGE_FRAGMENT_BIT, descriptor_sets, &push_constant_size ),
 	};
 
 	// create descriptor set layouts
@@ -1220,53 +1253,22 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 		DebugLabel( descriptor_set_layouts[ i ], VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, temp( "{} descriptor layout {}", config.path, i ) );
 	}
 
+	const VkPushConstantRange push_constant = {
+		.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
+		.size = push_constant_size,
+	};
+
 	const VkPipelineLayoutCreateInfo pipeline_layout_info = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 		.setLayoutCount = u32( ARRAY_COUNT( descriptor_set_layouts ) ),
 		.pSetLayouts = descriptor_set_layouts,
+		.pushConstantRangeCount = push_constant_size > 0 ? 1_u32 : 0_u32,
+		.pPushConstantRanges = &push_constant,
 	};
 
 	VkPipelineLayout layout;
 	VK_CHECK( vkCreatePipelineLayout( global_device.device, &pipeline_layout_info, NULL, &layout ) );
 	DebugLabel( layout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, temp( "{} pipeline layout", config.path ) );
-
-	// create draw call descriptor set
-	VkDescriptorSet draw_call_descriptor_set = VK_NULL_HANDLE;
-	{
-		const VkDescriptorSetAllocateInfo descriptor_set_info = {
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-			.descriptorPool = global_device.descriptor_pool,
-			.descriptorSetCount = 1,
-			.pSetLayouts = &descriptor_set_layouts[ DescriptorSet_DrawCall ],
-		};
-
-		VK_CHECK( vkAllocateDescriptorSets( global_device.device, &descriptor_set_info, &draw_call_descriptor_set ) );
-		DebugLabel( draw_call_descriptor_set, VK_OBJECT_TYPE_DESCRIPTOR_SET, "pso.draw_call_descriptor_set" );
-
-		BoundedDynamicArray< VkDescriptorBufferInfo, 4 > buffer_infos = { };
-		BoundedDynamicArray< VkWriteDescriptorSet, 4 > descriptor_writes = { };
-
-		for( const auto & [ name, binding ] : descriptor_sets[ DescriptorSet_DrawCall ].bindings ) {
-			Assert( binding.type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC );
-
-			buffer_infos.must_add( VkDescriptorBufferInfo {
-				.buffer = allocations[ ShitGuh() ].buffer,
-				.range = binding.stride,
-			} );
-
-			descriptor_writes.must_add( VkWriteDescriptorSet {
-				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-				.dstSet = draw_call_descriptor_set,
-				.dstBinding = binding.index,
-				.dstArrayElement = 0,
-				.descriptorCount = 1,
-				.descriptorType = binding.type,
-				.pBufferInfo = &buffer_infos[ buffer_infos.size() - 1 ],
-			} );
-		}
-
-		vkUpdateDescriptorSets( global_device.device, descriptor_writes.size(), descriptor_writes.ptr(), 0, NULL );
-	}
 
 	// create pipelines
 	BoundedDynamicArray< VkFormat, FragmentShaderOutput_Count > output_formats = { };
@@ -1409,7 +1411,7 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 		.mesh_variants = mesh_variants,
 		.layout = layout,
 		.render_pass_push_descriptors = NewPushDescriptorTemplate( descriptor_sets[ DescriptorSet_RenderPass ], VK_PIPELINE_BIND_POINT_GRAPHICS, layout, DescriptorSet_RenderPass ),
-		.draw_call_descriptor_set = draw_call_descriptor_set,
+		.push_constant_size = push_constant_size,
 	};
 	memcpy( pso.descriptor_set_layouts, descriptor_set_layouts, sizeof( descriptor_set_layouts ) );
 	memcpy( pso.reflection, descriptor_sets, sizeof( descriptor_sets ) );
@@ -1465,51 +1467,60 @@ static void BindMesh( VkCommandBuffer cb, const Mesh & mesh ) {
 	}
 }
 
-void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers, DrawCallExtras extras ) {
-	CommandBuffer * cb = ocb.unwrap();
+static VkCommandBuffer PrepareDraw( Opaque< CommandBuffer > ocb, const PipelineState & pipeline_state, Mesh mesh, Span< const GPUBuffer > buffers ) {
+	VkCommandBuffer cb = ocb.unwrap()->buffer;
 
-	RenderPipeline shader = render_pipelines[ pipeline_state.shader ];
-	VkPipeline pso = SelectRenderPipelineVariant( shader, mesh.vertex_descriptor, cb->msaa_samples );
+	const RenderPipeline & shader = render_pipelines[ pipeline_state.shader ];
+	VkPipeline pso = SelectRenderPipelineVariant( shader, mesh.vertex_descriptor, ocb.unwrap()->msaa_samples );
 	if( pso == VK_NULL_HANDLE ) {
 		Com_GGPrint( S_COLOR_YELLOW "No shader variant: {} {}", shader.name, mesh.vertex_descriptor );
-		return;
+		return cb;
 	}
 
-	vkCmdBindPipeline( cb->buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pso );
-	vkCmdSetCullMode( cb->buffer, pipeline_state.dynamic_state.cull_face == CullFace_Back ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_FRONT_BIT );
-	vkCmdSetDepthCompareOp( cb->buffer, depth_funcs[ pipeline_state.dynamic_state.depth_func ].op );
-	vkCmdSetDepthWriteEnable( cb->buffer, depth_funcs[ pipeline_state.dynamic_state.depth_func ].write_depth );
+	vkCmdBindPipeline( cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pso );
+	vkCmdSetCullMode( cb, pipeline_state.dynamic_state.cull_face == CullFace_Back ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_FRONT_BIT );
+	vkCmdSetDepthCompareOp( cb, depth_funcs[ pipeline_state.dynamic_state.depth_func ].op );
+	vkCmdSetDepthWriteEnable( cb, depth_funcs[ pipeline_state.dynamic_state.depth_func ].write_depth );
 
-	BindMesh( cb->buffer, mesh );
+	BindMesh( cb, mesh );
 
 	if( pipeline_state.material_bind_group.exists ) {
-		vkCmdBindDescriptorSets( cb->buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.layout, DescriptorSet_Material, 1, &bind_groups[ pipeline_state.material_bind_group.value ].descriptor_set, 0, NULL );
+		vkCmdBindDescriptorSets( cb, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.layout, DescriptorSet_Material, 1, &bind_groups[ pipeline_state.material_bind_group.value ].descriptor_set, 0, NULL );
 	}
 
-	if( buffers.n > 0 ) {
-		u32 offsets[ MaxBufferBindings ] = { };
-		Optional< u32 > max_idx = NONE;
-		for( BufferBinding buffer : buffers ) {
-			Optional< ReflectedDescriptorSet::Binding > binding = shader.reflection[ DescriptorSet_DrawCall ].bindings.get2( buffer.name );
-			if( !binding.exists ) {
-				Com_Printf( "can't bind\n" );
-				continue;
-			}
-
-			offsets[ binding->index ] = buffer.buffer.offset;
-			max_idx = Max2( Default( max_idx, 0_u32 ), binding->index );
+	if( shader.push_constant_size > 0 ) {
+		TempAllocator temp = cls.frame_arena.temp();
+		Span< u64 > addrs = AllocSpan< u8 >( &temp, shader.push_constant_size ).cast< u64 >();
+		memset( addrs.ptr, 0, addrs.num_bytes() );
+		for( size_t i = 0; i < buffers.n; i++ ) {
+			addrs[ i ] = allocations[ buffers[ i ].allocation ].addr + buffers[ i ].offset;
 		}
-		if( max_idx.exists ) {
-			vkCmdBindDescriptorSets( cb->buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.layout, DescriptorSet_DrawCall, 1, &shader.draw_call_descriptor_set, max_idx.value + 1, offsets );
-		}
+		vkCmdPushConstants( cb, shader.layout, VK_SHADER_STAGE_ALL_GRAPHICS, 0, addrs.num_bytes(), addrs.ptr );
 	}
+
+	return cb;
+}
+
+void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline_state, Mesh mesh, Span< const GPUBuffer > buffers, DrawCallExtras extras ) {
+	VkCommandBuffer cb = PrepareDraw( ocb, pipeline_state, mesh, buffers );
 
 	u32 num_vertices = Default( extras.override_num_vertices, mesh.num_vertices );
 	if( mesh.index_buffer.exists ) {
-		vkCmdDrawIndexed( cb->buffer, num_vertices, 1, extras.first_index, extras.base_vertex, 0 );
+		vkCmdDrawIndexed( cb, num_vertices, 1, extras.first_index, extras.base_vertex, 0 );
 	}
 	else {
-		vkCmdDraw( cb->buffer, num_vertices, 1, extras.first_index, 0 );
+		vkCmdDraw( cb, num_vertices, 1, extras.first_index, 0 );
+	}
+}
+
+void EncodeIndirectDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline_state, Mesh mesh, GPUBuffer indirect_args, Span< const GPUBuffer > buffers ) {
+	VkCommandBuffer cb = PrepareDraw( ocb, pipeline_state, mesh, buffers );
+
+	if( mesh.index_buffer.exists ) {
+		vkCmdDrawIndexedIndirect( cb, allocations[ indirect_args.allocation ].buffer, indirect_args.offset, 1, 0 );
+	}
+	else {
+		vkCmdDrawIndirect( cb, allocations[ indirect_args.allocation ].buffer, indirect_args.offset, 1, 0 );
 	}
 }
 
@@ -1529,7 +1540,8 @@ PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path ) {
 
 	// compile and parse shaders
 	ReflectedDescriptorSet descriptor_sets[ DescriptorSet_Count ] = { };
-	VkPipelineShaderStageCreateInfo stage = CompileShader( temp.sv( "{}.comp.spv", path ), VK_SHADER_STAGE_COMPUTE_BIT, descriptor_sets );
+	u32 push_constant_size = 0;
+	VkPipelineShaderStageCreateInfo stage = CompileShader( temp.sv( "{}.comp.spv", path ), VK_SHADER_STAGE_COMPUTE_BIT, descriptor_sets, &push_constant_size );
 
 	// create descriptor set layout
 	VkDescriptorSetLayout descriptor_set_layout;
@@ -1559,14 +1571,22 @@ PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path ) {
 		DebugLabel( descriptor_set_layout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, "descriptor set layout" );
 	}
 
+	const VkPushConstantRange push_constant = {
+		.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
+		.size = push_constant_size,
+	};
+
 	const VkPipelineLayoutCreateInfo pipeline_layout_info = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 		.setLayoutCount = 1,
 		.pSetLayouts = &descriptor_set_layout,
+		.pushConstantRangeCount = push_constant_size > 0 ? 1_u32 : 0_u32,
+		.pPushConstantRanges = &push_constant,
 	};
 
 	VkPipelineLayout layout;
 	VK_CHECK( vkCreatePipelineLayout( global_device.device, &pipeline_layout_info, NULL, &layout ) );
+	DebugLabel( layout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, temp( "{} pipeline layout", path ) );
 
 	// create pipeline
 	VkComputePipelineCreateInfo create_info = {

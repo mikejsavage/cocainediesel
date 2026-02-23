@@ -721,9 +721,14 @@ void EncodeIndirectComputeCall( RenderPass render_pass, PoolHandle< ComputePipel
 	EncodeIndirectComputeCall( frame_static.render_passes[ render_pass ].value, pipeline, indirect_args, buffers );
 }
 
-void Draw( RenderPass render_pass, const PipelineState & pipeline, Mesh mesh, Span< const BufferBinding > buffers, DrawCallExtras extras ) {
+void Draw( RenderPass render_pass, const PipelineState & pipeline, Mesh mesh, Span< const GPUBuffer > buffers, DrawCallExtras extras ) {
 	Assert( frame_static.render_passes[ render_pass ].exists );
 	EncodeDrawCall( frame_static.render_passes[ render_pass ].value, pipeline, mesh, buffers, extras );
+}
+
+void DrawIndirect( RenderPass render_pass, const PipelineState & pipeline, Mesh mesh, GPUBuffer indirect_args, Span< const GPUBuffer > buffers ) {
+	Assert( frame_static.render_passes[ render_pass ].exists );
+	EncodeIndirectDrawCall( frame_static.render_passes[ render_pass ].value, pipeline, mesh, indirect_args, buffers );
 }
 
 void EncodeScissor( RenderPass render_pass, Optional< Scissor > scissor ) {

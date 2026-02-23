@@ -3,8 +3,8 @@
 [[vk::binding( 0 )]] StructuredBuffer< NewParticlesUniforms > b_NewParticles;
 [[vk::binding( 1 )]] RWStructuredBuffer< uint32_t > b_NextComputeCount;
 [[vk::binding( 2 )]] RWStructuredBuffer< uint32_t > b_ComputeCount;
-[[vk::binding( 3 )]] RWStructuredBuffer< DispatchComputeIndirectArguments > b_ComputeIndirect;
-[[vk::binding( 4 )]] RWStructuredBuffer< DrawArraysIndirectArguments > b_DrawIndirect;
+[[vk::binding( 3 )]] RWStructuredBuffer< IndirectComputeArgs > b_ComputeIndirect;
+[[vk::binding( 4 )]] RWStructuredBuffer< IndirectDrawArgs > b_DrawIndirect;
 
 [numthreads( 1, 1, 1 )]
 void ComputeMain( uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex ) {
@@ -16,6 +16,6 @@ void ComputeMain( uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint
 	}
 
 	b_NextComputeCount[ 0 ] = 0;
-	b_ComputeIndirect[ 0 ].num_groups_x = b_ComputeCount[ 0 ] / 64 + 1;
+	b_ComputeIndirect[ 0 ].num_threadgroups_x = b_ComputeCount[ 0 ] / 64 + 1;
 	b_DrawIndirect[ 0 ].num_instances = b_ComputeCount[ 0 ];
 }

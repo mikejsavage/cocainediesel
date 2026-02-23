@@ -216,8 +216,8 @@ static HashMap< LightEmitter, MAX_LIGHT_EMITTERS > lightEmitters;
 
 static ParticleSystem NewParticleSystem( Allocator * a, BlendFunc blend_func, size_t max_particles ) {
 	u32 zero = 0;
-	DispatchComputeIndirectArguments compute_indirect = { 1, 1, 1 };
-	DrawArraysIndirectArguments draw_indirect = { .count = 6 };
+	IndirectComputeArgs compute_indirect = { 1, 1, 1 };
+	IndirectDrawArgs draw_indirect = { .num_vertices = 6 };
 
 	return ParticleSystem {
 		.max_particles = max_particles,
@@ -787,10 +787,7 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 
 	// NOMERGE TODO use draw_indirect lol
 	Mesh mesh = { .num_vertices = 6 };
-	Draw( RenderPass_Transparent, pipeline, mesh, {
-		// TODO: this is device memory and can't be passed with dynamic offsets, probably just use push descriptors instead
-		{ "b_Particles", ps->gpu_particles2 },
-	} );
+	DrawIndirect( RenderPass_Transparent, pipeline, mesh, ps->draw_indirect, { ps->gpu_particles2 } );
 
 	Swap2( &ps->gpu_particles1, &ps->gpu_particles2 );
 	Swap2( &ps->compute_count1, &ps->compute_count2 );

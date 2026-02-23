@@ -13,7 +13,11 @@ struct VertexOutput {
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 #include "include/standard_material.hlsl"
-[[vk::binding( 0, DescriptorSet_DrawCall )]] StructuredBuffer< TextUniforms > u_Text;
+
+struct DrawCallPushConstants {
+	vk::BufferPointer< TextUniforms > text;
+};
+[[vk::push_constant]] DrawCallPushConstants u_DrawCall;
 
 VertexOutput VertexMain( VertexInput input ) {
 	VertexOutput output;
@@ -33,16 +37,16 @@ float LinearStep( float lo, float hi, float x ) {
 float4 SampleMSDF( float2 uv, float half_pixel_size ) {
 	float d = 2.0 * Median( u_Texture.Sample( u_Sampler, uv ).rgb ) - 1.0f; // rescale to [-1,1], positive being inside
 
-	if( u_Text[ 0 ].has_border != 0 ) {
+	if( u_DrawCall.text.Get().has_border != 0 ) {
 		float border_amount = LinearStep( -half_pixel_size, half_pixel_size, d );
-		float4 color = lerp( u_Text[ 0 ].border_color, u_Text[ 0 ].color, border_amount );
+		float4 color = lerp( u_DrawCall.text.Get().border_color, u_DrawCall.text.Get().color, border_amount );
 
 		float alpha = LinearStep( -3.0f * half_pixel_size, -half_pixel_size, d );
 		return float4( color.rgb, color.a * alpha );
 	}
 
 	float alpha = LinearStep( -half_pixel_size, half_pixel_size, d );
-	return float4( u_Text[ 0 ].color.rgb, u_Text[ 0 ].color.a * alpha );
+	return float4( u_DrawCall.text.Get().color.rgb, u_DrawCall.text.Get().color.a * alpha );
 }
 
 #ifdef DEPTH_ONLY
@@ -53,7 +57,7 @@ float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
 	float2 fw = fwidth( v.uv );
 	float2 texture_size;
 	u_Texture.GetDimensions( texture_size.x, texture_size.y );
-	float half_pixel_size = 0.5f * u_Text[ 0 ].dSDF_dTexel * dot( fw, texture_size );
+	float half_pixel_size = 0.5f * u_DrawCall.text.Get().dSDF_dTexel * dot( fw, texture_size );
 
 	float supersample_offset = 0.35355f; // rsqrt( 2 ) / 2
 	float2 ssx = float2( supersample_offset * fw.x, 0.0f );

@@ -28,13 +28,7 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 
 	const Map * map = FindMap( render_data->base_hash );
 
-	BufferBinding draw_call_bindings[] = {
-		{ "u_ModelTransform", NewTempBuffer( transform ) },
-		{ "u_MaterialColor", frame_static.identity_material_color_uniforms },
-	};
-
-	Span< BufferBinding > bindings = StaticSpan( draw_call_bindings );
-	Span< BufferBinding > depth_only_bindings = Span( draw_call_bindings, 1 );
+	GPUBuffer gpu_transform = NewTempBuffer( transform );
 
 	u32 first_mesh = map->data.models[ render_data->sub_model ].first_mesh;
 	for( u32 i = 0; i < map->data.models[ render_data->sub_model ].num_meshes; i++ ) {
@@ -46,12 +40,12 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 
 		for( u32 j = 0; j < frame_static.shadow_parameters.num_cascades; j++ ) {
 			PipelineState pipeline = { .shader = shaders.depth_only };
-			Draw( RenderPass_ShadowmapCascade0 + j, pipeline, map->render_data, depth_only_bindings, mesh_extras );
+			Draw( RenderPass_ShadowmapCascade0 + j, pipeline, map->render_data, { gpu_transform }, mesh_extras );
 		}
 
 		{
 			PipelineState pipeline = { .shader = shaders.depth_only };
-			Draw( RenderPass_WorldOpaqueZPrepass, pipeline, map->render_data, depth_only_bindings, mesh_extras );
+			Draw( RenderPass_WorldOpaqueZPrepass, pipeline, map->render_data, { gpu_transform }, mesh_extras );
 		}
 
 		{
@@ -59,7 +53,7 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 			PoolHandle< Material2 > material = Default( TryFindMaterial( StringHash( mesh.material ) ), FindMaterial( "world" ) );
 			PipelineState pipeline = MaterialPipelineState( material );
 			pipeline.dynamic_state.depth_func = DepthFunc_EqualNoWrite;
-			Draw( MaterialRenderPass( material ), pipeline, map->render_data, bindings, mesh_extras );
+			Draw( MaterialRenderPass( material ), pipeline, map->render_data, { gpu_transform, frame_static.identity_material_color_uniforms }, mesh_extras );
 		}
 	}
 }

@@ -191,7 +191,7 @@ struct ImGuiShaderAndMaterial {
 
 	Optional< PoolHandle< RenderPipeline > > shader;
 	PoolHandle< BindGroup > material_bind_group;
-	Optional< BufferBinding > buffer;
+	Optional< GPUBuffer > buffer;
 };
 
 inline bool operator==( const ImGuiShaderAndMaterial & lhs, const ImGuiShaderAndMaterial & rhs ) {
@@ -204,9 +204,9 @@ inline bool operator==( const ImGuiShaderAndMaterial & lhs, const ImGuiShaderAnd
 
 	bool same_buffer = lhs.buffer.exists == rhs.buffer.exists;
 	if( same_buffer && !lhs.buffer.exists ) {
-		const BufferBinding & l = lhs.buffer.value;
-		const BufferBinding & r = rhs.buffer.value;
-		same_buffer = l.name == r.name && l.buffer.allocation == r.buffer.allocation && l.buffer.offset == r.buffer.offset && l.buffer.size == r.buffer.size;
+		const GPUBuffer & l = lhs.buffer.value;
+		const GPUBuffer & r = rhs.buffer.value;
+		same_buffer = l.allocation == r.allocation && l.offset == r.offset && l.size == r.size;
 	}
 
 	return same_shader && same_material && same_buffer;

@@ -1,8 +1,8 @@
 #pragma once
 
-float3x4 SkinningMatrix( StructuredBuffer< float3x4 > pose, uint4 indices, float4 weights ) {
-	return weights.x * pose[ indices.x ]
-		+ weights.y * pose[ indices.y ]
-		+ weights.z * pose[ indices.z ]
-		+ weights.w * pose[ indices.w ];
+float3x4 SkinningMatrix( vk::BufferPointer< Float3x4 > pose, uint4 indices, float4 weights ) {
+	return weights.x * LoadIndex( pose, indices.x ).m
+		+ weights.y * LoadIndex( pose, indices.y ).m
+		+ weights.z * LoadIndex( pose, indices.z ).m
+		+ weights.w * LoadIndex( pose, indices.w ).m;
 }

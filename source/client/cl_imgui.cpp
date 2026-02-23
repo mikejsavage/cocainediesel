@@ -202,9 +202,9 @@ static void SubmitDrawCalls() {
 				// TODO NOMERGE
 				// pipeline.bind_uniform( "u_MaterialStatic", lodbias_uniforms );
 
-				Span< const BufferBinding > buffers = { };
+				Span< const GPUBuffer > buffers = { };
 				if( pcmd->TextureId.buffer.exists ) {
-					buffers = Span< const BufferBinding >( &pcmd->TextureId.buffer.value, 1 );
+					buffers = Span< const GPUBuffer >( &pcmd->TextureId.buffer.value, 1 );
 				}
 
 				DrawCallExtras extras = {

@@ -397,21 +397,6 @@ void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitTyp
  * Draw calls
  */
 
-struct IndirectexedDrawArgs {
-	u32 num_vertices;
-	u32 num_instances;
-	u32 first_vertex;
-	u32 base_instance;
-};
-
-struct IndirectIndexedDrawArgs {
-	u32 num_indices;
-	u32 num_instances;
-	u32 first_index;
-	s32 base_vertex;
-	u32 base_instance;
-};
-
 struct PipelineState {
 	PoolHandle< RenderPipeline > shader;
 	RenderPipelineDynamicState dynamic_state;
@@ -424,7 +409,8 @@ struct DrawCallExtras {
 	Optional< u32 > override_num_vertices = NONE;
 };
 
-void EncodeDrawCall( Opaque< CommandBuffer > cmd_buf, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers, DrawCallExtras extras );
+void EncodeDrawCall( Opaque< CommandBuffer > cmd_buf, const PipelineState & pipeline_state, Mesh mesh, Span< const GPUBuffer > buffers, DrawCallExtras extras );
+void EncodeIndirectDrawCall( Opaque< CommandBuffer > cmd_buf, const PipelineState & pipeline_state, Mesh mesh, GPUBuffer indirect_args, Span< const GPUBuffer > buffers );
 // void EncodeBindMesh( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
 // void EncodeBindMaterial( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
 
@@ -437,10 +423,6 @@ void EncodeScissor( Opaque< CommandBuffer > cmd_buf, Optional< Scissor > scissor
 /*
  * Compute passes
  */
-
-struct IndirectComputeArgs {
-	u32 num_threadgroups_x, num_threadgroups_y, num_threadgroups_z;
-};
 
 struct ComputePassConfig {
 	Span< const char > name;
@@ -468,7 +450,8 @@ enum RenderPassDependency {
 	RenderPassDependency_Shadowmap_To_WorldOpaque,
 };
 
-void Draw( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, Span< const BufferBinding > buffers = { }, DrawCallExtras extras = DrawCallExtras() );
+void Draw( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, Span< const GPUBuffer > buffers = { }, DrawCallExtras extras = DrawCallExtras() );
+void DrawIndirect( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, GPUBuffer indirect, Span< const GPUBuffer > buffers );
 void EncodeComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers );
 void EncodeIndirectComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, GPUBuffer indirect_args, Span< const BufferBinding > buffers );
 void EncodeScissor( RenderPass pass, Optional< Scissor > scissor );

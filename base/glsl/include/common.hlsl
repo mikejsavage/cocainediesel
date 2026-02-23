@@ -109,3 +109,14 @@ float3x4 mul34( float3x4 lhs, float3x4 rhs ) {
 
 float2 Broadcast2( float x ) { return float2( x, x ); }
 float3 Broadcast3( float x ) { return float3( x, x, x ); }
+
+template< typename T >
+T LoadIndex( vk::BufferPointer< T > buf, uint64_t idx ) {
+	return vk::RawBufferLoad< T >( ( ( uint64_t ) buf ) + idx * sizeof( T ) );
+}
+
+// NOTE(mike 20260220): if you use vk::BufferPointer< float3x4 > it interprets
+// it as transposed vs vk::BufferPointer< struct { float3x4 } >
+struct Float3x4 {
+	float3x4 m;
+};

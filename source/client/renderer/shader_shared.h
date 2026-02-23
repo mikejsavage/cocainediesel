@@ -6,6 +6,7 @@
   #define shaderconst constexpr
 #else
   #define shaderconst static const
+  typedef int32_t s32;
   typedef uint32_t u32;
   typedef float2 Vec2;
   typedef float3 Vec3;
@@ -59,14 +60,14 @@ enum DescriptorSetType {
 	DescriptorSet_Count
 };
 
-struct DispatchComputeIndirectArguments {
-	u32 num_groups_x;
-	u32 num_groups_y;
-	u32 num_groups_z;
+struct IndirectComputeArgs {
+	u32 num_threadgroups_x;
+	u32 num_threadgroups_y;
+	u32 num_threadgroups_z;
 };
 
-struct DrawArraysIndirectArguments {
-	u32 count;
+struct IndirectDrawArgs {
+	u32 num_vertices;
 	u32 num_instances;
 	u32 base_vertex;
 	u32 base_instance;

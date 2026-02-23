@@ -699,13 +699,13 @@ static void DrawModelNode( const GLTFRenderData::Node * node, bool view_weapon, 
 	PipelineState pipeline = MaterialPipelineState( material ); //, pose_uniforms.exists, &pass );
 	Vec4 color = EvaluateMaterialColor( material, entity_color );
 
-	BoundedDynamicArray< BufferBinding, 3 > buffers = {
-		{ "u_ModelTransform", model_uniforms },
-		{ "u_MaterialColor", NewTempBuffer( color ) },
-	};
+	BoundedDynamicArray< GPUBuffer, 3 > buffers = { model_uniforms, NewTempBuffer( color ) };
 	if( pose_uniforms.exists ) {
-		buffers.must_add( { "u_Pose", pose_uniforms.value } );
+		buffers.must_add( pose_uniforms.value );
 		pipeline.shader = SkinnedShader( pipeline.shader );
+	}
+	else if( !node->mesh.vertex_descriptor.attributes[ VertexAttribute_TexCoord ].exists && pipeline.shader == shaders.standard_shaded ) {
+		pipeline.shader = shaders.standard_flat_shaded;
 	}
 
 	if( flip_cull_face ) {
@@ -720,9 +720,9 @@ static void DrawShadowsNode( const Mesh & mesh, GPUBuffer model_uniforms, Option
 
 	PipelineState pipeline = { .shader = pose_uniforms.exists ? shaders.depth_only_skinned : shaders.depth_only };
 
-	BoundedDynamicArray< BufferBinding, 2 > buffers = { { "u_ModelTransform", model_uniforms } };
+	BoundedDynamicArray< GPUBuffer, 2 > buffers = { model_uniforms };
 	if( pose_uniforms.exists ) {
-		buffers.must_add( { "u_Pose", pose_uniforms.value } );
+		buffers.must_add( pose_uniforms.value );
 	}
 
 	if( flip_cull_face ) {
@@ -746,12 +746,9 @@ static void DrawOutlinesNode( const Mesh & mesh, GPUBuffer model_uniforms, GPUBu
 		pipeline.dynamic_state.cull_face = FlipCullFace( pipeline.dynamic_state.cull_face );
 	}
 
-	BoundedDynamicArray< BufferBinding, 3 > buffers = {
-		{ "u_ModelTransform", model_uniforms },
-		{ "u_Outline", outline_uniforms },
-	};
+	BoundedDynamicArray< GPUBuffer, 3 > buffers = { model_uniforms, outline_uniforms };
 	if( pose_uniforms.exists ) {
-		buffers.must_add( { "u_Pose", pose_uniforms.value } );
+		buffers.must_add( pose_uniforms.value );
 	}
 
 	Draw( RenderPass_NonworldOpaque, pipeline, mesh, buffers.span() );
@@ -764,12 +761,9 @@ static void DrawSilhouetteNode( const Mesh & mesh, GPUBuffer model_uniforms, GPU
 		.shader = pose_uniforms.exists ? shaders.write_silhouette_mask_skinned : shaders.write_silhouette_mask,
 	};
 
-	BoundedDynamicArray< BufferBinding, 3 > buffers = {
-		{ "u_ModelTransform", model_uniforms },
-		{ "u_Silhouette", silhouette_uniforms },
-	};
+	BoundedDynamicArray< GPUBuffer, 3 > buffers = { model_uniforms, silhouette_uniforms };
 	if( pose_uniforms.exists ) {
-		buffers.must_add( { "u_Pose", pose_uniforms.value } );
+		buffers.must_add( pose_uniforms.value );
 	}
 
 	Draw( RenderPass_WriteSilhouetteMask, pipeline, mesh, buffers.span() );

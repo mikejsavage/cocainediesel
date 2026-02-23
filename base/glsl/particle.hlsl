@@ -4,7 +4,11 @@
 [[vk::binding( 0, DescriptorSet_Material )]] StructuredBuffer< MaterialProperties > u_MaterialProperties;
 [[vk::binding( 1, DescriptorSet_Material )]] Texture2DArray< float4 > u_SpriteAtlas;
 [[vk::binding( 2, DescriptorSet_Material )]] SamplerState u_Sampler;
-[[vk::binding( 0, DescriptorSet_DrawCall )]] StructuredBuffer< Particle > b_Particles;
+
+struct DrawCallPushConstants {
+	vk::BufferPointer< Particle > particles;
+};
+[[vk::push_constant]] DrawCallPushConstants u_DrawCall;
 
 #include "include/fog.hlsl"
 
@@ -35,7 +39,7 @@ float2 PositionToTexCoord( float2 p ) {
 }
 
 VertexOutput VertexMain( VertexInput input, uint32_t instance_id : SV_InstanceID, uint32_t vertex_id : SV_VertexID ) {
-	Particle particle = b_Particles[ instance_id ];
+	Particle particle = LoadIndex( u_DrawCall.particles, instance_id );
 
 	float fage = particle.age / particle.lifetime;
 

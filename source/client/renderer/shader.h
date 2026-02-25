@@ -5,6 +5,7 @@
 struct Shaders {
 	PoolHandle< RenderPipeline > standard;
 	PoolHandle< RenderPipeline > standard_shaded;
+	PoolHandle< RenderPipeline > standard_flat_shaded;
 
 	PoolHandle< RenderPipeline > standard_skinned;
 	PoolHandle< RenderPipeline > standard_skinned_shaded;

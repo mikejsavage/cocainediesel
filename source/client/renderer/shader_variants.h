@@ -128,14 +128,21 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.field = &Shaders::standard,
 				.src = "standard",
 				.output_format = standard_output,
-				.mesh_variants = { standard_vertex, gltf_pn, gltf_pnu, gltf_pnuc },
+				.mesh_variants = { standard_vertex, gltf_pnu, gltf_pnuc },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::standard_shaded,
 				.src = "standard",
 				.output_format = standard_output,
 				.features = { "SHADED" },
-				.mesh_variants = { standard_vertex, gltf_pn, gltf_pnu, gltf_pnuc },
+				.mesh_variants = { standard_vertex, gltf_pnu, gltf_pnuc },
+			},
+			GraphicsShaderDescriptor {
+				.field = &Shaders::standard_flat_shaded,
+				.src = "standard",
+				.output_format = standard_output,
+				.features = { "TEXTURELESS", "SHADED" },
+				.mesh_variants = { gltf_pn },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::standard_skinned,
@@ -193,7 +200,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.field = &Shaders::viewmodel,
 				.src = "standard",
 				.output_format = standard_output,
-				.mesh_variants = { standard_vertex, gltf_pn, gltf_pnu, gltf_pnuc },
+				.mesh_variants = { standard_vertex, gltf_pnu, gltf_pnuc },
 				.viewmodel_depth = true,
 			},
 

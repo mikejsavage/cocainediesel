@@ -1,6 +1,8 @@
 #include "qcommon/platform.h"
 #include "renderdoc/renderdoc_app.h"
 
+#include <stdlib.h>
+
 static RENDERDOC_API_1_0_0 * api = NULL;
 
 [[maybe_unused]] static void LoadAPI( void * get_api ) {

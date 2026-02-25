@@ -2229,7 +2229,7 @@ void CopyGPUBufferToBuffer(
 
 void CopyGPUBufferToTexture(
 	Opaque< CommandBuffer > cmd_buf,
-	Opaque< BackendTexture > dest, TextureFormat format, u32 w, u32 h, u32 num_layers, u32 mip_level,
+	Opaque< BackendTexture > dest, TextureFormat format, u32 w, u32 h, u32 layer, u32 mip_level,
 	PoolHandle< GPUAllocation > src, size_t src_offset
 ) {
 	VkBufferImageCopy copy = {
@@ -2237,7 +2237,8 @@ void CopyGPUBufferToTexture(
 		.imageSubresource = {
 			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 			.mipLevel = mip_level,
-			.layerCount = num_layers,
+			.baseArrayLayer = layer,
+			.layerCount = 1,
 		},
 		.imageExtent = {
 			.width = w,
@@ -2283,7 +2284,7 @@ static void GPUUploadTexture( const TextureConfig & config, Opaque< BackendTextu
 		.subresourceRange = {
 			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 			.levelCount = config.num_mipmaps,
-			.layerCount = 1,
+			.layerCount = Default( config.num_layers, 1_u32 ),
 		},
 	} );
 
@@ -2300,7 +2301,7 @@ static void GPUUploadTexture( const TextureConfig & config, Opaque< BackendTextu
 		.subresourceRange = {
 			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 			.levelCount = config.num_mipmaps,
-			.layerCount = 1,
+			.layerCount = Default( config.num_layers, 1_u32 ),
 		},
 	} );
 }

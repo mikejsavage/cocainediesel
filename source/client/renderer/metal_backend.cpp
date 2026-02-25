@@ -258,21 +258,17 @@ void CopyGPUBufferToBuffer(
 
 void CopyGPUBufferToTexture(
 	Opaque< CommandBuffer > cmd_buf,
-	Opaque< BackendTexture > dest, TextureFormat format, u32 w, u32 h, u32 num_layers, u32 mip_level,
+	Opaque< BackendTexture > dest, TextureFormat format, u32 w, u32 h, u32 layer, u32 mip_level,
 	PoolHandle< GPUAllocation > src, size_t src_offset
 ) {
 	u32 block_size = BlockSize( format );
 	u32 bytes_per_row_of_blocks = ( ( w / block_size ) * ( block_size * block_size * BitsPerPixel( format ) ) ) / 8;
 	u32 bytes_per_layer = bytes_per_row_of_blocks * ( h / block_size );
 
-	size_t cursor = src_offset;
-	for( u32 i = 0; i < num_layers; i++ ) {
-		cmd_buf.unwrap()->bce->copyFromBuffer( allocations[ src ].buffer, cursor,
-			bytes_per_row_of_blocks, bytes_per_layer,
-			MTL::Size::Make( w, h, 1 ),
-			dest.unwrap()->texture, i, mip_level, MTL::Origin::Make( 0, 0, 0 ) );
-		cursor += bytes_per_layer;
-	}
+	cmd_buf.unwrap()->bce->copyFromBuffer( allocations[ src ].buffer, src_offset,
+		bytes_per_row_of_blocks, bytes_per_layer,
+		MTL::Size::Make( w, h, 1 ),
+		dest.unwrap()->texture, layer, mip_level, MTL::Origin::Make( 0, 0, 0 ) );
 }
 
 /*

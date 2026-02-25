@@ -121,21 +121,23 @@ void UploadBuffer( GPUBuffer dest, const void * data, size_t n ) {
 	CopyGPUBufferToBuffer( staging_command_buffer, dest.allocation, dest.offset, staging_buffer.allocation, cursor, n );
 }
 
-static void UploadMipLevel( Opaque< BackendTexture > texture, TextureFormat format, u32 w, u32 h, u32 num_layers, u32 mip_level, const void * data, size_t n ) {
+static void UploadTexturePart( Opaque< BackendTexture > texture, TextureFormat format, u32 w, u32 h, u32 layer, u32 mip_level, const void * data, size_t n ) {
 	size_t cursor = Stage( data, n, 16 );
-	CopyGPUBufferToTexture( staging_command_buffer, texture, format, w, h, num_layers, mip_level, staging_buffer.allocation, cursor );
+	CopyGPUBufferToTexture( staging_command_buffer, texture, format, w, h, layer, mip_level, staging_buffer.allocation, cursor );
 }
 
 void UploadTexture( const TextureConfig & config, Opaque< BackendTexture > texture ) {
 	u32 num_layers = Default( config.num_layers, 1_u32 );
 	const char * cursor = ( const char * ) config.data;
-	for( u32 i = 0; i < config.num_mipmaps; i++ ) {
-		u32 mip_w = config.width >> i;
-		u32 mip_h = config.height >> i;
-		size_t mip_bytes = ( mip_w * mip_h * num_layers * BitsPerPixel( config.format ) ) / 8;
-		UploadMipLevel( texture, config.format, mip_w, mip_h, num_layers, i, cursor, mip_bytes );
+	for( u32 mip = 0; mip < config.num_mipmaps; mip++ ) {
+		u32 mip_w = config.width >> mip;
+		u32 mip_h = config.height >> mip;
+		size_t mip_bytes = ( mip_w * mip_h * BitsPerPixel( config.format ) ) / 8;
 
-		cursor += mip_bytes;
+		for( u32 layer = 0; layer < num_layers; layer++ ) {
+			UploadTexturePart( texture, config.format, mip_w, mip_h, layer, mip, cursor, mip_bytes );
+			cursor += mip_bytes;
+		}
 	}
 }
 

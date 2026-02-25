@@ -785,7 +785,6 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 		.material_bind_group = SpriteAtlasBindGroup(),
 	};
 
-	// NOMERGE TODO use draw_indirect lol
 	Mesh mesh = { .num_vertices = 6 };
 	DrawIndirect( RenderPass_Transparent, pipeline, mesh, ps->draw_indirect, { ps->gpu_particles2 } );
 

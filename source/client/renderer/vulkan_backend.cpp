@@ -162,7 +162,6 @@ struct RenderPipeline {
 	VkDescriptorSetLayout descriptor_set_layouts[ DescriptorSet_Count ];
 	ReflectedDescriptorSet reflection[ DescriptorSet_Count ];
 	PushDescriptorTemplate render_pass_push_descriptors;
-	u32 push_constant_size;
 };
 
 struct ComputePipeline {
@@ -198,6 +197,7 @@ static Pool< ComputePipeline, 128 > compute_pipelines;
 static VkSampler samplers[ Sampler_Count ];
 
 static constexpr VkRect2D no_scissor = { .extent = { S32_MAX, S32_MAX } };
+static constexpr size_t MaxPushConstants = 3;
 
 template< typename T >
 void DebugLabel( VkDevice device, T handle, VkObjectType type, const char * name ) {
@@ -948,7 +948,7 @@ static const char * StripPrefix( const char * str, const char * prefix ) {
 	return StartsWith( str, prefix ) ? str + strlen( prefix ) : str;
 }
 
-static void ParseSPIRV( Span< const u32 > spirv, ReflectedDescriptorSet ( &sets )[ DescriptorSet_Count ], u32 * push_constant_size ) {
+static void ParseSPIRV( Span< const u32 > spirv, ReflectedDescriptorSet ( &sets )[ DescriptorSet_Count ] ) {
 	Assert( spirv[ 0 ] == SpvMagicNumber );
 
 	TempAllocator temp = cls.frame_arena.temp();
@@ -1029,10 +1029,7 @@ static void ParseSPIRV( Span< const u32 > spirv, ReflectedDescriptorSet ( &sets 
 			SpirvID resource = ids[ id.next.value ];
 			if( resource.op.exists ) {
 				if( resource.op.value == SpvOpTypeStruct && resource.num_members.exists ) {
-					u32 size = ids[ id.next.value ].num_members.value * sizeof( u64 );
-					// Assert( *push_constant_size == 0 || *push_constant_size == size );
-					// *push_constant_size = size;
-					*push_constant_size = Max2( *push_constant_size, size );
+					Assert( ids[ id.next.value ].num_members.value <= MaxPushConstants );
 				}
 			}
 			continue;
@@ -1074,12 +1071,12 @@ static void ParseSPIRV( Span< const u32 > spirv, ReflectedDescriptorSet ( &sets 
 	}
 }
 
-static VkPipelineShaderStageCreateInfo CompileShader( Span< const char > path, VkShaderStageFlagBits stage, ReflectedDescriptorSet ( &reflected_descriptor_sets )[ DescriptorSet_Count ], u32 * push_constant_size ) {
+static VkPipelineShaderStageCreateInfo CompileShader( Span< const char > path, VkShaderStageFlagBits stage, ReflectedDescriptorSet ( &reflected_descriptor_sets )[ DescriptorSet_Count ] ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	Span< const u32 > spirv = AssetBinary( path ).cast< const u32 >();
 
-	ParseSPIRV( spirv, reflected_descriptor_sets, push_constant_size );
+	ParseSPIRV( spirv, reflected_descriptor_sets );
 
 	const VkShaderModuleCreateInfo create_info = {
 		.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -1221,8 +1218,8 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 	// compile and parse shaders
 	TempAllocator temp = cls.frame_arena.temp();
 	VkPipelineShaderStageCreateInfo stages[] = {
-		CompileShader( temp.sv( "{}.vert.spv", config.path ), VK_SHADER_STAGE_VERTEX_BIT, descriptor_sets, &push_constant_size ),
-		CompileShader( temp.sv( "{}.frag.spv", config.path ), VK_SHADER_STAGE_FRAGMENT_BIT, descriptor_sets, &push_constant_size ),
+		CompileShader( temp.sv( "{}.vert.spv", config.path ), VK_SHADER_STAGE_VERTEX_BIT, descriptor_sets ),
+		CompileShader( temp.sv( "{}.frag.spv", config.path ), VK_SHADER_STAGE_FRAGMENT_BIT, descriptor_sets ),
 	};
 
 	// create descriptor set layouts
@@ -1255,14 +1252,14 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 
 	const VkPushConstantRange push_constant = {
 		.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
-		.size = push_constant_size,
+		.size = MaxPushConstants * sizeof( u64 ),
 	};
 
 	const VkPipelineLayoutCreateInfo pipeline_layout_info = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 		.setLayoutCount = u32( ARRAY_COUNT( descriptor_set_layouts ) ),
 		.pSetLayouts = descriptor_set_layouts,
-		.pushConstantRangeCount = push_constant_size > 0 ? 1_u32 : 0_u32,
+		.pushConstantRangeCount = 1,
 		.pPushConstantRanges = &push_constant,
 	};
 
@@ -1411,7 +1408,6 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 		.mesh_variants = mesh_variants,
 		.layout = layout,
 		.render_pass_push_descriptors = NewPushDescriptorTemplate( descriptor_sets[ DescriptorSet_RenderPass ], VK_PIPELINE_BIND_POINT_GRAPHICS, layout, DescriptorSet_RenderPass ),
-		.push_constant_size = push_constant_size,
 	};
 	memcpy( pso.descriptor_set_layouts, descriptor_set_layouts, sizeof( descriptor_set_layouts ) );
 	memcpy( pso.reflection, descriptor_sets, sizeof( descriptor_sets ) );
@@ -1488,14 +1484,12 @@ static VkCommandBuffer PrepareDraw( Opaque< CommandBuffer > ocb, const PipelineS
 		vkCmdBindDescriptorSets( cb, VK_PIPELINE_BIND_POINT_GRAPHICS, shader.layout, DescriptorSet_Material, 1, &bind_groups[ pipeline_state.material_bind_group.value ].descriptor_set, 0, NULL );
 	}
 
-	if( shader.push_constant_size > 0 ) {
-		TempAllocator temp = cls.frame_arena.temp();
-		Span< u64 > addrs = AllocSpan< u8 >( &temp, shader.push_constant_size ).cast< u64 >();
-		memset( addrs.ptr, 0, addrs.num_bytes() );
+	if( buffers.n > 0 ) {
+		u64 addrs[ MaxPushConstants ] = { };
 		for( size_t i = 0; i < buffers.n; i++ ) {
 			addrs[ i ] = allocations[ buffers[ i ].allocation ].addr + buffers[ i ].offset;
 		}
-		vkCmdPushConstants( cb, shader.layout, VK_SHADER_STAGE_ALL_GRAPHICS, 0, addrs.num_bytes(), addrs.ptr );
+		vkCmdPushConstants( cb, shader.layout, VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof( addrs ), addrs );
 	}
 
 	return cb;
@@ -1540,8 +1534,7 @@ PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path ) {
 
 	// compile and parse shaders
 	ReflectedDescriptorSet descriptor_sets[ DescriptorSet_Count ] = { };
-	u32 push_constant_size = 0;
-	VkPipelineShaderStageCreateInfo stage = CompileShader( temp.sv( "{}.comp.spv", path ), VK_SHADER_STAGE_COMPUTE_BIT, descriptor_sets, &push_constant_size );
+	VkPipelineShaderStageCreateInfo stage = CompileShader( temp.sv( "{}.comp.spv", path ), VK_SHADER_STAGE_COMPUTE_BIT, descriptor_sets );
 
 	// create descriptor set layout
 	VkDescriptorSetLayout descriptor_set_layout;
@@ -1571,17 +1564,10 @@ PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path ) {
 		DebugLabel( descriptor_set_layout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, "descriptor set layout" );
 	}
 
-	const VkPushConstantRange push_constant = {
-		.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
-		.size = push_constant_size,
-	};
-
 	const VkPipelineLayoutCreateInfo pipeline_layout_info = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 		.setLayoutCount = 1,
 		.pSetLayouts = &descriptor_set_layout,
-		.pushConstantRangeCount = push_constant_size > 0 ? 1_u32 : 0_u32,
-		.pPushConstantRanges = &push_constant,
 	};
 
 	VkPipelineLayout layout;

@@ -243,6 +243,7 @@ void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitTyp
 	cmd_buf->command_buffer->commit();
 
 	if( type == SubmitCommandBuffer_Wait ) {
+		TracyZoneScopedNC( "SubmitCommandBuffer_Wait", 0xff0000 );
 		cmd_buf->command_buffer->waitUntilCompleted();
 	}
 }

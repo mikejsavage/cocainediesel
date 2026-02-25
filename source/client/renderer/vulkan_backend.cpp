@@ -2192,6 +2192,7 @@ void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitTyp
 	VK_CHECK( vkQueueSubmit2( global_device.queue, 1, &submit_info, VK_NULL_HANDLE ) );
 
 	if( type == SubmitCommandBuffer_Wait ) {
+		TracyZoneScopedNC( "SubmitCommandBuffer_Wait", 0xff0000 );
 		VK_CHECK( vkDeviceWaitIdle( global_device.device ) );
 	}
 	else if( type == SubmitCommandBuffer_Present ) {

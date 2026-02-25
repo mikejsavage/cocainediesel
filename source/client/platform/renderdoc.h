@@ -1,5 +1,5 @@
 #pragma once
 
-bool IsRenderDocAttached();
-
-inline bool running_in_renderdoc;
+void InitRenderDoc();
+bool RunningInRenderDoc();
+void TriggerRenderDocCapture();

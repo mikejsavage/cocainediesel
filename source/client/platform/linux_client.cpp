@@ -29,8 +29,4 @@ bool OpenInWebBrowser( const char * url ) {
 	return false;
 }
 
-bool IsRenderDocAttached() {
-	return dlopen( "librenderdoc.so", RTLD_NOW | RTLD_NOLOAD ) != NULL;
-}
-
 #endif // #if PLATFORM_LINUX

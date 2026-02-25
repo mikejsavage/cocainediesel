@@ -38,10 +38,6 @@ void ShowErrorMessage( const char * msg, const char * file, int line ) {
 #endif
 }
 
-bool IsRenderDocAttached() {
-	return GetModuleHandleA( "renderdoc.dll" ) != NULL;
-}
-
 bool OpenInWebBrowser( const char * url ) {
 	int ok = int( intptr_t( ShellExecuteA( NULL, "open", url, NULL, NULL, SW_SHOWDEFAULT ) ) );
 	return ok > 32;

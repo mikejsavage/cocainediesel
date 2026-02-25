@@ -12,6 +12,7 @@
 // #include "client/renderer/rgb_noise.h"
 #include "client/renderer/skybox.h"
 #include "client/renderer/text.h"
+#include "client/platform/renderdoc.h"
 
 #include "client/maps.h"
 #include "cgame/cg_dynamics.h"

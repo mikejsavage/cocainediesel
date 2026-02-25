@@ -251,7 +251,7 @@ static void OnKeyPressed( const SDL_KeyboardEvent & e ) {
 	}
 
 	// renderdoc uses F12 to trigger a capture
-	if( e.scancode == SDL_SCANCODE_F12 && running_in_renderdoc ) {
+	if( e.scancode == SDL_SCANCODE_F12 && RunningInRenderDoc() ) {
 		return;
 	}
 
@@ -419,9 +419,8 @@ void ShutdownAudioDevice() {
 static s64 oldtime;
 
 SDL_AppResult SDL_AppInit( void ** appstate, int argc, char ** argv ) {
-	running_in_renderdoc = IsRenderDocAttached();
-
 	InitClientPlatform();
+	InitRenderDoc();
 
 	{
 		TracyZoneScopedN( "Init SDL" );

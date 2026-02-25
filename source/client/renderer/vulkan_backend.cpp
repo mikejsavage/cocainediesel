@@ -295,7 +295,7 @@ static VkInstance createInstance() {
 	BoundedDynamicArray< const char *, 2 > layers = { };
 	BoundedDynamicArray< VkValidationFeatureEnableEXT, 3 > enabledValidationFeatures = { };
 
-	if( IFDEF( ENABLE_VALIDATION_LAYERS ) && !running_in_renderdoc ) {
+	if( IFDEF( ENABLE_VALIDATION_LAYERS ) && !RunningInRenderDoc() ) {
 		layers.must_add( "VK_LAYER_KHRONOS_validation" );
 		enabledValidationFeatures.must_add( VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT );
 	}
@@ -338,7 +338,7 @@ static VkInstance createInstance() {
 
 	const VkInstanceCreateInfo createInfo = {
 		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-		.pNext = !running_in_renderdoc ? &validationFeatures : NULL,
+		.pNext = !RunningInRenderDoc() ? &validationFeatures : NULL,
 		.flags = macOS ? VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR : 0,
 
 		.pApplicationInfo = &appInfo,

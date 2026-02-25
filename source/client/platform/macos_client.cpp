@@ -36,9 +36,4 @@ bool OpenInWebBrowser( const char * url ) {
 	return posix_spawnp( NULL, open, NULL, NULL, argv, environ ) == 0;
 }
 
-bool IsRenderDocAttached() {
-	// RenderDoc doesn't run on macOS
-	return false;
-}
-
 #endif // #if PLATFORM_MACOS

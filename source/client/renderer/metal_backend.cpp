@@ -77,6 +77,7 @@ struct MetalDevice {
 struct GPUAllocation {
 	MTL::Heap * heap;
 	MTL::Buffer * buffer;
+	u64 addr;
 };
 
 struct CommandBuffer {
@@ -171,17 +172,22 @@ PoolHandle< GPUAllocation > AllocateGPUMemory( size_t size ) {
 	defer { descriptor->release(); };
 
 	MTL::Heap * heap = global_device.device->newHeap( descriptor );
+	MTL::Buffer * buffer = heap->newBuffer( size, options, 0 );
 
 	return allocations.allocate( GPUAllocation {
 		.heap = heap,
-		.buffer = heap->newBuffer( size, options, 0 ),
+		.buffer = buffer,
+		.addr = buffer->gpuAddress(),
 	} );
 }
 
 CoherentMemory AllocateCoherentMemory( size_t size ) {
 	MTL::Buffer * buffer = global_device.device->newBuffer( size, MTL::ResourceStorageModeShared | MTL::ResourceHazardTrackingModeUntracked );
 	return CoherentMemory {
-		.allocation = allocations.allocate( { .buffer = buffer } ),
+		.allocation = allocations.allocate( GPUAllocation {
+			.buffer = buffer,
+			.addr = buffer->gpuAddress(),
+		} ),
 		.ptr = buffer->contents(),
 	};
 }
@@ -833,19 +839,14 @@ static void EncodeAndBindArgumentBuffer( MTL::RenderCommandEncoder * rce, Argume
 	BindArgumentBuffer( rce, args, descriptor_set );
 }
 
-static void EncodeAndBindArgumentBuffer( MTL::RenderCommandEncoder * rce, ArgumentBufferEncoder * encoder, Span< const BufferBinding > buffers, DescriptorSetType descriptor_set ) {
-	GPUBuffer args = EncodeArgumentBuffer( encoder, buffers );
-	BindArgumentBuffer( rce, args, descriptor_set );
-}
-
-void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline, Mesh mesh, Span< const BufferBinding > buffers, DrawCallExtras extras ) {
+static MTL::RenderCommandEncoder * PrepareDraw( Opaque< CommandBuffer > ocb, const PipelineState & pipeline, Mesh mesh, Span< const GPUBuffer > buffers ) {
 	CommandBuffer * cb = ocb.unwrap();
 
 	const RenderPipeline & shader = render_pipelines[ pipeline.shader ];
 	const MTL::RenderPipelineState * pso = SelectRenderPipelineVariant( shader, mesh.vertex_descriptor, cb->msaa_samples );
 	if( pso == NULL ) {
 		Com_GGPrint( S_COLOR_YELLOW "No shader variant: {} {}", shader.name, mesh.vertex_descriptor );
-		return;
+		return cb->rce;
 	}
 
 	cb->rce->setRenderPipelineState( pso );
@@ -858,18 +859,48 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline
 		BindBindGroup( cb->rce, pipeline.material_bind_group.value, DescriptorSet_Material );
 	}
 
-	EncodeAndBindArgumentBuffer( cb->rce, &render_pipelines[ pipeline.shader ].draw_call_args, buffers, DescriptorSet_DrawCall );
+	if( buffers.n > 0 ) {
+		BoundedDynamicArray< u64, MaxDrawCallBuffers > addrs = { };
+		for( GPUBuffer buffer : buffers ) {
+			addrs.must_add( allocations[ buffer.allocation ].addr + buffer.offset );
+		}
+		cb->rce->setVertexBytes( addrs.ptr(), addrs.span().num_bytes(), DescriptorSet_DrawCall );
+		cb->rce->setFragmentBytes( addrs.ptr(), addrs.span().num_bytes(), DescriptorSet_DrawCall );
+	}
 
-	MTL::IndexType index_type = mesh.index_format == IndexFormat_U16 ? MTL::IndexTypeUInt16 : MTL::IndexTypeUInt32;
-	u32 num_vertices = Default( extras.override_num_vertices, mesh.num_vertices );
 	if( mesh.index_buffer.exists ) {
 		Assert( mesh.index_buffer.value.offset % 4 == 0 );
+	}
+
+	return cb->rce;
+}
+
+void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline, Mesh mesh, Span< const GPUBuffer > buffers, DrawCallExtras extras ) {
+	MTL::RenderCommandEncoder * rce = PrepareDraw( ocb, pipeline, mesh, buffers );
+
+	u32 num_vertices = Default( extras.override_num_vertices, mesh.num_vertices );
+	if( mesh.index_buffer.exists ) {
+		MTL::IndexType index_type = mesh.index_format == IndexFormat_U16 ? MTL::IndexTypeUInt16 : MTL::IndexTypeUInt32;
 		size_t index_size = mesh.index_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
-		cb->rce->drawIndexedPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, num_vertices, index_type, allocations[ mesh.index_buffer.value.allocation ].buffer, mesh.index_buffer.value.offset + extras.first_index * index_size, 1, extras.base_vertex, 0 );
+		rce->drawIndexedPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, num_vertices, index_type, allocations[ mesh.index_buffer.value.allocation ].buffer, mesh.index_buffer.value.offset + extras.first_index * index_size, 1, extras.base_vertex, 0 );
 	}
 	else {
 		// NOMERGE TODO: set firstVertex?
-		cb->rce->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, NS::UInteger( 0 ), num_vertices );
+		rce->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, NS::UInteger( 0 ), num_vertices );
+	}
+}
+
+void EncodeIndirectDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline, Mesh mesh, GPUBuffer indirect_args, Span< const GPUBuffer > buffers ) {
+	MTL::RenderCommandEncoder * rce = PrepareDraw( ocb, pipeline, mesh, buffers );
+
+	if( mesh.index_buffer.exists ) {
+		MTL::IndexType index_type = mesh.index_format == IndexFormat_U16 ? MTL::IndexTypeUInt16 : MTL::IndexTypeUInt32;
+		rce->drawIndexedPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, index_type,
+			allocations[ mesh.index_buffer.value.allocation ].buffer, mesh.index_buffer.value.offset,
+			allocations[ indirect_args.allocation ].buffer, indirect_args.offset );
+	}
+	else {
+		rce->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, allocations[ indirect_args.allocation ].buffer, indirect_args.offset );
 	}
 }
 
@@ -928,12 +959,12 @@ PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path ) {
 	} );
 }
 
-static CommandBuffer * PrepareCompute( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > pipeline, Span< const BufferBinding > buffers ) {
+static MTL::ComputeCommandEncoder * PrepareCompute( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > pipeline, Span< const BufferBinding > buffers ) {
 	CommandBuffer * cb = ocb.unwrap();
 	cb->cce->setComputePipelineState( compute_pipelines[ pipeline ].pso );
 	GPUBuffer args = EncodeArgumentBuffer( &compute_pipelines[ pipeline ].args, buffers );
 	BindArgumentBuffer( cb->cce, args, DescriptorSetType( 0 ) );
-	return cb;
+	return cb->cce;
 }
 
 static MTL::Size SubgroupSize( PoolHandle< ComputePipeline > pipeline ) {
@@ -947,13 +978,13 @@ static MTL::Size SubgroupSize( PoolHandle< ComputePipeline > pipeline ) {
 }
 
 void EncodeComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > pipeline, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers ) {
-	CommandBuffer * cb = PrepareCompute( ocb, pipeline, buffers );
-	cb->cce->dispatchThreadgroups( MTL::Size::Make( x, y, z ), SubgroupSize( pipeline ) );
+	MTL::ComputeCommandEncoder * cce = PrepareCompute( ocb, pipeline, buffers );
+	cce->dispatchThreadgroups( MTL::Size::Make( x, y, z ), SubgroupSize( pipeline ) );
 }
 
 void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > pipeline, GPUBuffer indirect_args, Span< const BufferBinding > buffers ) {
-	CommandBuffer * cb = PrepareCompute( ocb, pipeline, buffers );
-	cb->cce->dispatchThreadgroups( allocations[ indirect_args.allocation ].buffer, indirect_args.offset, SubgroupSize( pipeline ) );
+	MTL::ComputeCommandEncoder * cce = PrepareCompute( ocb, pipeline, buffers );
+	cce->dispatchThreadgroups( allocations[ indirect_args.allocation ].buffer, indirect_args.offset, SubgroupSize( pipeline ) );
 }
 
 void InitRenderBackend( SDL_Window * window ) {

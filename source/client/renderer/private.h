@@ -134,6 +134,7 @@ size_t FrameSlot();
 constexpr size_t MaxBufferBindings = 8;
 constexpr size_t MaxTextureBindings = 8;
 constexpr size_t MaxBindings = MaxBufferBindings + 2 * MaxTextureBindings;
+constexpr size_t MaxDrawCallBuffers = 3;
 
 constexpr size_t MaxShaderVariants = 4;
 

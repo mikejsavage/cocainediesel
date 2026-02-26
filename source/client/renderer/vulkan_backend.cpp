@@ -197,7 +197,6 @@ static Pool< ComputePipeline, 128 > compute_pipelines;
 static VkSampler samplers[ Sampler_Count ];
 
 static constexpr VkRect2D no_scissor = { .extent = { S32_MAX, S32_MAX } };
-static constexpr size_t MaxPushConstants = 3;
 
 template< typename T >
 void DebugLabel( VkDevice device, T handle, VkObjectType type, const char * name ) {
@@ -1029,7 +1028,7 @@ static void ParseSPIRV( Span< const u32 > spirv, ReflectedDescriptorSet ( &sets 
 			SpirvID resource = ids[ id.next.value ];
 			if( resource.op.exists ) {
 				if( resource.op.value == SpvOpTypeStruct && resource.num_members.exists ) {
-					Assert( ids[ id.next.value ].num_members.value <= MaxPushConstants );
+					Assert( ids[ id.next.value ].num_members.value <= MaxDrawCallBuffers );
 				}
 			}
 			continue;
@@ -1252,7 +1251,7 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 
 	const VkPushConstantRange push_constant = {
 		.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS,
-		.size = MaxPushConstants * sizeof( u64 ),
+		.size = MaxDrawCallBuffers * sizeof( u64 ),
 	};
 
 	const VkPipelineLayoutCreateInfo pipeline_layout_info = {
@@ -1485,7 +1484,8 @@ static VkCommandBuffer PrepareDraw( Opaque< CommandBuffer > ocb, const PipelineS
 	}
 
 	if( buffers.n > 0 ) {
-		u64 addrs[ MaxPushConstants ] = { };
+		Assert( buffers.n <= MaxDrawCallBuffers );
+		u64 addrs[ MaxDrawCallBuffers ] = { };
 		for( size_t i = 0; i < buffers.n; i++ ) {
 			addrs[ i ] = allocations[ buffers[ i ].allocation ].addr + buffers[ i ].offset;
 		}

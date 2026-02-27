@@ -5,9 +5,7 @@
 struct DrawCallPushConstants {
 	vk::BufferPointer< Float3x4 > model_transform;
 	vk::BufferPointer< OutlineUniforms > outline;
-#ifdef SKINNED
 	vk::BufferPointer< Float3x4 > pose;
-#endif
 };
 [[vk::push_constant]] DrawCallPushConstants u_DrawCall;
 

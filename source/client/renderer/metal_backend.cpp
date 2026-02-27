@@ -477,7 +477,7 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 
 	TempAllocator temp = cls.frame_arena.temp();
 	MTL::Texture * texture;
-	if( a != NULL ) {
+	if( !config.dedicated_allocation ) {
 		MTL::SizeAndAlign memory_requirements = global_device.device->heapTextureSizeAndAlign( descriptor );
 		GPUBuffer alloc = NewBuffer( a, temp( "{} texture memory", config.name ), memory_requirements.size, memory_requirements.align, true );
 
@@ -846,7 +846,7 @@ static MTL::RenderCommandEncoder * PrepareDraw( Opaque< CommandBuffer > ocb, con
 	const MTL::RenderPipelineState * pso = SelectRenderPipelineVariant( shader, mesh.vertex_descriptor, cb->msaa_samples );
 	if( pso == NULL ) {
 		Com_GGPrint( S_COLOR_YELLOW "No shader variant: {} {}", shader.name, mesh.vertex_descriptor );
-		return cb->rce;
+		return NULL;
 	}
 
 	cb->rce->setRenderPipelineState( pso );
@@ -877,6 +877,8 @@ static MTL::RenderCommandEncoder * PrepareDraw( Opaque< CommandBuffer > ocb, con
 
 void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline, Mesh mesh, Span< const GPUBuffer > buffers, DrawCallExtras extras ) {
 	MTL::RenderCommandEncoder * rce = PrepareDraw( ocb, pipeline, mesh, buffers );
+	if( rce == NULL )
+		return;
 
 	u32 num_vertices = Default( extras.override_num_vertices, mesh.num_vertices );
 	if( mesh.index_buffer.exists ) {
@@ -892,6 +894,8 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline
 
 void EncodeIndirectDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline, Mesh mesh, GPUBuffer indirect_args, Span< const GPUBuffer > buffers ) {
 	MTL::RenderCommandEncoder * rce = PrepareDraw( ocb, pipeline, mesh, buffers );
+	if( rce == NULL )
+		return;
 
 	if( mesh.index_buffer.exists ) {
 		MTL::IndexType index_type = mesh.index_format == IndexFormat_U16 ? MTL::IndexTypeUInt16 : MTL::IndexTypeUInt32;
@@ -1163,7 +1167,7 @@ static void UseGPUSlabAllocator( T * encoder, GPUSlabAllocator * a ) {
 
 template< typename T >
 static void UseAllocators( T * encoder ) {
-	// TODO: fix this! probably some shitty visitors? also need to use all dedialloc textures
+	// TODO: fix this! probably some shitty visitors? also need to use all dedicated alloc textures
 	// UseGPUSlabAllocator( encoder, &global_device.persistent_allocator );
 	// encoder->useResource( allocations[ global_device.temp_allocator.memory.allocation ].buffer, MTL::ResourceUsageRead | MTL::ResourceUsageWrite );
 }

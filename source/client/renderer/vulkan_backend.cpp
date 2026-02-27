@@ -1469,7 +1469,7 @@ static VkCommandBuffer PrepareDraw( Opaque< CommandBuffer > ocb, const PipelineS
 	VkPipeline pso = SelectRenderPipelineVariant( shader, mesh.vertex_descriptor, ocb.unwrap()->msaa_samples );
 	if( pso == VK_NULL_HANDLE ) {
 		Com_GGPrint( S_COLOR_YELLOW "No shader variant: {} {}", shader.name, mesh.vertex_descriptor );
-		return cb;
+		return VK_NULL_HANDLE;
 	}
 
 	vkCmdBindPipeline( cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pso );
@@ -1497,6 +1497,8 @@ static VkCommandBuffer PrepareDraw( Opaque< CommandBuffer > ocb, const PipelineS
 
 void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline_state, Mesh mesh, Span< const GPUBuffer > buffers, DrawCallExtras extras ) {
 	VkCommandBuffer cb = PrepareDraw( ocb, pipeline_state, mesh, buffers );
+	if( cb == VK_NULL_HANDLE )
+		return;
 
 	u32 num_vertices = Default( extras.override_num_vertices, mesh.num_vertices );
 	if( mesh.index_buffer.exists ) {
@@ -1509,6 +1511,8 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline
 
 void EncodeIndirectDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline_state, Mesh mesh, GPUBuffer indirect_args, Span< const GPUBuffer > buffers ) {
 	VkCommandBuffer cb = PrepareDraw( ocb, pipeline_state, mesh, buffers );
+	if( cb == VK_NULL_HANDLE )
+		return;
 
 	if( mesh.index_buffer.exists ) {
 		vkCmdDrawIndexedIndirect( cb, allocations[ indirect_args.allocation ].buffer, indirect_args.offset, 1, 0 );

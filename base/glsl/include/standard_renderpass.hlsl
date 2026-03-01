@@ -1,3 +1,7 @@
+#pragma once
+
+#include "../../source/client/renderer/shader_shared.h"
+
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 [[vk::binding( 1, DescriptorSet_RenderPass )]] Texture2D< float4 > u_BlueNoise;
 [[vk::binding( 2, DescriptorSet_RenderPass )]] SamplerState u_StandardSampler;

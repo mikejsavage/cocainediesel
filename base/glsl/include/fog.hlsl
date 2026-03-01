@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../../source/client/renderer/shader_shared.h"
+
 static const float FOG_STRENGTH = 0.0007f;
 
 float3 Fog( float3 color, float dist ) {
@@ -28,24 +30,24 @@ float VoidFogAlpha( float alpha, float height ) {
 	return alpha * void_amount;
 }
 
-float3 VoidFog( float3 color, float2 frag_coord, float depth ) {
-	float4 clip_pos = float4( float3( frag_coord / u_View[ 0 ].viewport_size, depth ) * 2.0f - 1.0f, 1.0f );
-	float4 world = mul( u_View[ 0 ].inverse_P, clip_pos );
-	float height = mul( u_View[ 0 ].inverse_V, world / world.w ).z;
+float3 VoidFog( ViewUniforms view, float3 color, float2 frag_coord, float depth ) {
+	float4 clip_pos = float4( float3( frag_coord / view.viewport_size, depth ) * 2.0f - 1.0f, 1.0f );
+	float4 world = mul( view.inverse_P, clip_pos );
+	float height = mul( view.inverse_V, world / world.w ).z;
 	return VoidFog( color, height );
 }
 
-float3 VoidFog( float3 color, float2 frag_coord ) {
-	return VoidFog( color, frag_coord, 0.999f );
+float3 VoidFog( ViewUniforms view, float3 color, float2 frag_coord ) {
+	return VoidFog( view, color, frag_coord, 0.999f );
 }
 
-float VoidFogAlpha( float alpha, float2 frag_coord, float depth ) {
-	float4 clip_pos = float4( float3( frag_coord / u_View[ 0 ].viewport_size, depth ) * 2.0f - 1.0f, 1.0f );
-	float4 world = mul( u_View[ 0 ].inverse_P, clip_pos );
-	float height = mul( u_View[ 0 ].inverse_V, world / world.w ).z;
+float VoidFogAlpha( ViewUniforms view, float alpha, float2 frag_coord, float depth ) {
+	float4 clip_pos = float4( float3( frag_coord / view.viewport_size, depth ) * 2.0f - 1.0f, 1.0f );
+	float4 world = mul( view.inverse_P, clip_pos );
+	float height = mul( view.inverse_V, world / world.w ).z;
 	return VoidFogAlpha( alpha, height );
 }
 
-float VoidFogAlpha( float alpha, float2 frag_coord ) {
-	return VoidFogAlpha( alpha, frag_coord, 0.999f );
+float VoidFogAlpha( ViewUniforms view, float alpha, float2 frag_coord ) {
+	return VoidFogAlpha( view, alpha, frag_coord, 0.999f );
 }

@@ -65,6 +65,6 @@ float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
 		discard;
 	}
 	edgeness = FogAlpha( edgeness, LinearizeDepth( avg_depth ) );
-	edgeness = VoidFogAlpha( edgeness, v.position.xy, avg_depth );
+	edgeness = VoidFogAlpha( u_View[ 0 ], edgeness, v.position.xy, avg_depth );
 	return edgeness * u_OutlineColor[ 0 ];
 }

@@ -1,14 +1,15 @@
 #include "include/common.hlsl"
-#include "include/decals.hlsl"
 #include "include/dither.hlsl"
 #include "include/lighting.hlsl"
-#include "include/lights.hlsl"
 #include "include/fog.hlsl"
-#include "include/shadows.hlsl"
 #include "include/skinning.hlsl"
 
 #include "include/standard_renderpass.hlsl"
 #include "include/standard_material.hlsl"
+
+#include "include/decals.hlsl"
+#include "include/lights.hlsl"
+#include "include/shadows.hlsl"
 
 struct DrawCallPushConstants {
 	vk::BufferPointer< Float3x4 > model_transform;
@@ -115,11 +116,11 @@ FragmentOutput FragmentMain( VertexOutput v ) {
 
 #ifdef APPLY_FOG
 	albedo.rgb = Fog( albedo.rgb, length( v.world_position - u_View[ 0 ].camera_pos ) );
-	albedo.rgb += Dither( u_BlueNoise, v.position.xy );
+	albedo.rgb += Dither( u_BlueNoise, u_StandardSampler, v.position.xy );
 #endif
 
-	albedo.rgb = VoidFog( albedo.rgb, v.world_position.z );
-	albedo.a = VoidFogAlpha( albedo.a, v.world_position.z );
+	albedo.rgb = VoidFog( u_View[ 0 ], albedo.rgb, v.world_position.z );
+	albedo.a = VoidFogAlpha( u_View[ 0 ], albedo.a, v.world_position.z );
 
 	FragmentOutput output;
 	output.albedo = albedo;

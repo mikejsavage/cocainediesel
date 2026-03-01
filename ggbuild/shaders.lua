@@ -79,17 +79,17 @@ rule metallib
 		local src = graphics_shader:match( ReadableWhitespace( "%.src = \"([^\"]+)\"" ) ) .. ".hlsl"
 		local cli_features, filename_features = ParseFeatures( graphics_shader:match( ReadableWhitespace( "%.features = (%b{})" ) ) )
 		local out_filename = StripExtension( src ) .. filename_features
-		local depfile = "build/shaders/" .. out_filename .. ".d"
+		local depfile = "build/shaders/" .. out_filename
 
 		if not dedupe[ out_filename ] then
 			printf( "build %s/shaders/%s.vert.spv: dxc_vertex base/glsl/%s", spv_dir, out_filename, src )
-			printf( "    depfile = %s", depfile )
+			printf( "    depfile = %s.vert.d", depfile )
 			if cli_features ~= "" then
 				printf( "    features = %s", cli_features )
 			end
 
 			printf( "build %s/shaders/%s.frag.spv: dxc_fragment base/glsl/%s", spv_dir, out_filename, src )
-			printf( "    depfile = %s", depfile )
+			printf( "    depfile = %s.frag.d", depfile )
 			if cli_features ~= "" then
 				printf( "    features = %s", cli_features )
 			end

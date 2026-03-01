@@ -172,6 +172,7 @@ GPUBuffer NewBuffer( GPUSlabAllocator * a, const char * label, size_t size, size
 
 		// check if the next slab has its cursor at 0, i.e. the allocator has
 		// been reset, and swap that to the head instead of allocating
+		// TODO NOMERGE this isn't a thing anymore
 		if( a->slabs->next != NULL && a->slabs->next->cursor == 0 && a->slabs->next->capacity > 0 ) {
 			GPUSlabAllocator::Slab * next_next = a->slabs->next->next;
 			GPUSlabAllocator::Slab * next = a->slabs->next;

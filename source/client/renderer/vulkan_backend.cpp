@@ -2298,6 +2298,8 @@ static void GPUUploadTexture( const TextureConfig & config, Opaque< BackendTextu
 }
 
 Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & config ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 	if( config.data == NULL ) {
 		usage = VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -2336,7 +2338,7 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 		VK_CHECK( vkBindImageMemory( global_device.device, image, dedicated_allocation->memory, 0 ) );
 	}
 	else {
-		GPUBuffer alloc = NewBuffer( a, "texture", memory_requirements.size, memory_requirements.alignment, true );
+		GPUBuffer alloc = NewBuffer( a, temp( "{}", config.name ), memory_requirements.size, memory_requirements.alignment, true );
 		VK_CHECK( vkBindImageMemory( global_device.device, image, allocations[ alloc.allocation ].memory, alloc.offset ) );
 	}
 
@@ -2388,7 +2390,6 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 		VK_CHECK( vkCreateImageView( global_device.device, &layer_image_view_info, NULL, &per_layer_image_views[ i ] ) );
 	}
 
-	TempAllocator temp = cls.frame_arena.temp();
 	DebugLabel( image, VK_OBJECT_TYPE_IMAGE, temp( "{}", config.name ) );
 	DebugLabel( image_view, VK_OBJECT_TYPE_IMAGE_VIEW, temp( "{}", config.name ) );
 

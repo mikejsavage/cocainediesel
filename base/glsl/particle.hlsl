@@ -1,4 +1,5 @@
 #include "include/common.hlsl"
+#include "include/fog.hlsl"
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 [[vk::binding( 0, DescriptorSet_Material )]] StructuredBuffer< MaterialProperties > u_MaterialProperties;
@@ -9,8 +10,6 @@ struct DrawCallPushConstants {
 	vk::BufferPointer< Particle > particles;
 };
 [[vk::push_constant]] DrawCallPushConstants u_DrawCall;
-
-#include "include/fog.hlsl"
 
 struct VertexInput {
 	float3 position : POSITION;

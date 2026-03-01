@@ -1,13 +1,12 @@
 #include "include/common.hlsl"
+#include "include/dither.hlsl"
+#include "include/fog.hlsl"
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 [[vk::binding( 1, DescriptorSet_RenderPass )]] StructuredBuffer< float > u_Time;
 [[vk::binding( 2, DescriptorSet_RenderPass )]] Texture2D< float4 > u_RGBNoise;
 [[vk::binding( 3, DescriptorSet_RenderPass )]] Texture2D< float4 > u_BlueNoise;
 [[vk::binding( 4, DescriptorSet_RenderPass )]] SamplerState u_StandardSampler;
-
-#include "include/dither.hlsl"
-#include "include/fog.hlsl"
 
 struct VertexInput {
 	[[vk::location( VertexAttribute_Position )]] float4 position : POSITION;

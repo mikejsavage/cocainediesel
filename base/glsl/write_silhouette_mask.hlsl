@@ -1,4 +1,5 @@
 #include "include/common.hlsl"
+#include "include/skinning.hlsl"
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 
@@ -10,8 +11,6 @@ struct DrawCallPushConstants {
 #endif
 };
 [[vk::push_constant]] DrawCallPushConstants u_DrawCall;
-
-#include "include/skinning.hlsl"
 
 struct VertexInput {
 	[[vk::location( VertexAttribute_Position )]] float3 position : POSITION;

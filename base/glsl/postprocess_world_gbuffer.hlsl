@@ -1,4 +1,5 @@
 #include "include/common.hlsl"
+#include "include/fog.hlsl"
 
 [[vk::binding( 0, DescriptorSet_RenderPass )]] StructuredBuffer< ViewUniforms > u_View;
 [[vk::binding( 1, DescriptorSet_RenderPass )]] StructuredBuffer< float4 > u_OutlineColor;
@@ -10,8 +11,6 @@
 [[vk::binding( 2, DescriptorSet_RenderPass )]] Texture2D< float > u_DepthTexture;
 [[vk::binding( 3, DescriptorSet_RenderPass )]] Texture2D< uint > u_CurvedSurfaceMask;
 #endif
-
-#include "include/fog.hlsl"
 
 struct VertexInput {
 	[[vk::location( VertexAttribute_Position )]] float3 position : POSITION;

@@ -30,24 +30,20 @@ float VoidFogAlpha( float alpha, float height ) {
 	return alpha * void_amount;
 }
 
-float3 VoidFog( ViewUniforms view, float3 color, float2 frag_coord, float depth ) {
+float3 ScreenSpaceVoidFog( ViewUniforms view, float3 color, float2 frag_coord, float depth ) {
 	float4 clip_pos = float4( float3( frag_coord / view.viewport_size, depth ) * 2.0f - 1.0f, 1.0f );
 	float4 world = mul( view.inverse_P, clip_pos );
 	float height = mul( view.inverse_V, world / world.w ).z;
 	return VoidFog( color, height );
 }
 
-float3 VoidFog( ViewUniforms view, float3 color, float2 frag_coord ) {
-	return VoidFog( view, color, frag_coord, 0.999f );
+float3 ScreenSpaceVoidFogAtInfinity( ViewUniforms view, float3 color, float2 frag_coord ) {
+	return ScreenSpaceVoidFog( view, color, frag_coord, 0.999f );
 }
 
-float VoidFogAlpha( ViewUniforms view, float alpha, float2 frag_coord, float depth ) {
+float ScreenSpaceVoidFogAlpha( ViewUniforms view, float alpha, float2 frag_coord, float depth ) {
 	float4 clip_pos = float4( float3( frag_coord / view.viewport_size, depth ) * 2.0f - 1.0f, 1.0f );
 	float4 world = mul( view.inverse_P, clip_pos );
 	float height = mul( view.inverse_V, world / world.w ).z;
 	return VoidFogAlpha( alpha, height );
-}
-
-float VoidFogAlpha( ViewUniforms view, float alpha, float2 frag_coord ) {
-	return VoidFogAlpha( view, alpha, frag_coord, 0.999f );
 }

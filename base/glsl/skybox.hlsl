@@ -64,6 +64,6 @@ float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
 	float m = smoothstep( 30.0f, 0.0f, length( uv ) );
 
 	float3 color = lerp( sky_color, cloud_color, exp( g ) * n * m );
-	color = VoidFog( color, v.position.xy );
 	return float4( color + Dither( u_BlueNoise, v.position.xy ), 1.0f );
+	color = ScreenSpaceVoidFogAtInfinity( u_View[ 0 ], color, v.position.xy );
 }

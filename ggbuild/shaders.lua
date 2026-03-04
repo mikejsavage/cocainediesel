@@ -43,7 +43,7 @@ function write_shaders_ninja_script()
 
 
 # Shaders
-dxcflags = -Ibase/glsl -I. -spirv -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -fspv-preserve-bindings
+dxcflags = -Ibase/glsl -I. -spirv -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -fspv-preserve-bindings -Werror=conversion -Wno-sign-conversion
 rule dxc_vertex
     command = %s
     deps = gcc

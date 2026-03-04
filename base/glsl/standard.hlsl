@@ -78,9 +78,9 @@ FragmentOutput FragmentMain( VertexOutput v ) {
 
 #ifdef APPLY_DYNAMICS
 	float tile_size = float( FORWARD_PLUS_TILE_SIZE );
-	int tile_row = int( ( u_View[ 0 ].viewport_size.y - v.position.y - 1.0f ) / tile_size );
-	int tile_col = int( v.position.x / tile_size );
-	int cols = int( u_View[ 0 ].viewport_size.x + tile_size - 1 ) / int( tile_size );
+	int tile_row = ( int )( ( u_View[ 0 ].viewport_size.y - v.position.y - 1.0f ) / tile_size );
+	int tile_col = ( int )( v.position.x / tile_size );
+	int cols = ( int )( u_View[ 0 ].viewport_size.x + tile_size - 1.0f ) / ( int ) tile_size;
 	int tile_index = tile_row * cols + tile_col;
 	TileCountsUniforms dynamic_tile = u_TileCounts[ tile_index ];
 
@@ -119,8 +119,8 @@ FragmentOutput FragmentMain( VertexOutput v ) {
 	albedo.rgb += Dither( u_BlueNoise, u_StandardSampler, v.position.xy );
 #endif
 
-	albedo.rgb = VoidFog( u_View[ 0 ], albedo.rgb, v.world_position.z );
-	albedo.a = VoidFogAlpha( u_View[ 0 ], albedo.a, v.world_position.z );
+	albedo.rgb = VoidFog( albedo.rgb, v.world_position.z );
+	albedo.a = VoidFogAlpha( albedo.a, v.world_position.z );
 
 	FragmentOutput output;
 	output.albedo = albedo;

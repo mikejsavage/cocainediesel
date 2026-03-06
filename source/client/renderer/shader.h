@@ -48,6 +48,8 @@ struct Shaders {
 
 	PoolHandle< RenderPipeline > postprocess_preui;
 	PoolHandle< RenderPipeline > postprocess;
+
+	PoolHandle< ComputePipeline > debug;
 };
 
 extern Shaders shaders;

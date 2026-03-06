@@ -25,7 +25,9 @@ struct VertexInput {
 #ifdef VERTEX_COLORS
 	[[vk::location( VertexAttribute_Color )]] float4 color : COLOR;
 #endif
+#ifndef TEXTURELESS
 	[[vk::location( VertexAttribute_TexCoord )]] float2 uv : TEXCOORD0;
+	#endif
 #ifdef SKINNED
 	[[vk::location( VertexAttribute_JointIndices )]] uint4 indices : BLENDINDICES;
 	[[vk::location( VertexAttribute_JointWeights )]] float4 weights : BLENDWEIGHT;
@@ -53,7 +55,11 @@ VertexOutput VertexMain( VertexInput input ) {
 	output.world_position = mul34( M, float4( input.position, 1.0f ) ).xyz;
 	output.position = mul( u_View[ 0 ].P, mul34( u_View[ 0 ].V, float4( output.world_position, 1.0f ) ) );
 	output.normal = mul( Adjugate( M ), input.normal );
+#if TEXTURELESS
+	output.uv = 0.0f;
+#else
 	output.uv = input.uv;
+#endif
 #ifdef VERTEX_COLORS
 	output.color = sRGBToLinear( input.color );
 #endif

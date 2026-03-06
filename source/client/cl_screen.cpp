@@ -147,6 +147,8 @@ static void FlashStage( float begin, float t, float end, float from, float to, f
 static void SubmitPostprocessPreuiPass() {
 	TracyZoneScoped;
 
+	return;
+
 	float zoom_time = float( cg.predictedPlayerState.zoom_time ) / float( ZOOMTIME );
 
 	float contrast = 1.0f;

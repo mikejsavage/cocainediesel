@@ -735,14 +735,6 @@ void AllocateParticleBuffers() {
 
 static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 	{
-		// u32 collision = cl.map == NULL ? 0 : 1;
-		// if( collision ) {
-		// 	pipeline.bind_buffer( "b_BSPNodeLinks", cl.map->render_data.nodes );
-		// 	pipeline.bind_buffer( "b_BSPLeaves", cl.map->render_data.leaves );
-		// 	pipeline.bind_buffer( "b_BSPBrushes", cl.map->render_data.brushes );
-		// 	pipeline.bind_buffer( "b_BSPPlanes", cl.map->render_data.planes );
-		// }
-
 		GPUBuffer update = NewTempBuffer( ParticleUpdateUniforms {
 			.collision = 0_u32,
 			.dt = dt,
@@ -786,7 +778,7 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	};
 
 	Mesh mesh = { .num_vertices = 6 };
-	DrawIndirect( RenderPass_Transparent, pipeline, mesh, ps->draw_indirect, { ps->gpu_particles2 } );
+	// DrawIndirect( RenderPass_Transparent, pipeline, mesh, ps->draw_indirect, { ps->gpu_particles2 } );
 
 	Swap2( &ps->gpu_particles1, &ps->gpu_particles2 );
 	Swap2( &ps->compute_count1, &ps->compute_count2 );

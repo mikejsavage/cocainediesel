@@ -341,6 +341,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 			ComputeShaderDescriptor { &Shaders::particle_compute, "particle_compute" },
 			ComputeShaderDescriptor { &Shaders::particle_setup_indirect, "particle_setup_indirect" },
 			ComputeShaderDescriptor { &Shaders::tile_culling, "tile_culling" },
+			ComputeShaderDescriptor { &Shaders::debug, "debug" },
 		},
 	}, rest... );
 }

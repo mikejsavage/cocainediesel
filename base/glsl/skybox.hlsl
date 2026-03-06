@@ -34,15 +34,15 @@ float value( float2 p ) {
 float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
 	float2 uv = v.world_position.xy / v.world_position.z;
 
-	float3 cloud_color = 0.01f;
+	/* float3 cloud_color = 0.01f; */
+	float3 cloud_color = 1.0f;
 	float3 sky_color = 0.06f;
 	float3 sun_color = 1.0f;
 
 	float2 wind = float2( 0.3f, -0.3f );
-	float iterations = 4.0f;
 
 	// sun
-	float sun_fract = max( 0.0f, dot( normalize( v.world_position.xyz ), -u_View[ 0 ].sun_direction ) );
+	float sun_fract = max( 0.0f, dot( normalize( v.world_position ), -u_View[ 0 ].sun_direction ) );
 	sun_fract = pow( sun_fract, 66.6f ) * 4.0f;
 	sky_color = lerp( sky_color, sun_color, sun_fract );
 
@@ -50,11 +50,11 @@ float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
 	float2 h = 0.0f;
 	float a = 1.0f;
 	float s = 1.0f;
-	for( float i = 0.0; i < iterations; i++ ) {
+	for( int i = 0; i < 4; i++ ) {
 		a *= 2.2f;
 		s *= 2.0f;
 		float2 v_uv = uv * s;
-		v_uv += uv * i * 0.5f; // parallax
+		v_uv += uv * float( i ) * 0.5f; // parallax
 		v_uv += wind * u_Time[ 0 ]; // movement
 		v_uv += h.x * a / s * float2( 4.0f, 7.0f ); // warping
 		h += float2( value( v_uv ), 1.0f ) / a;
@@ -64,6 +64,6 @@ float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
 	float m = smoothstep( 30.0f, 0.0f, length( uv ) );
 
 	float3 color = lerp( sky_color, cloud_color, exp( g ) * n * m );
-	return float4( color + Dither( u_BlueNoise, v.position.xy ), 1.0f );
 	color = ScreenSpaceVoidFogAtInfinity( u_View[ 0 ], color, v.position.xy );
+	return float4( color /*+ Dither( u_BlueNoise, v.position.xy )*/, 1.0f );
 }

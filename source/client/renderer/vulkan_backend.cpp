@@ -30,7 +30,7 @@
 static constexpr bool macOS = IFDEF( PLATFORM_MACOS );
 
 static void VkAbort( VkResult res, SourceLocation srcloc = CurrentSourceLocation() ) {
-	Fatal( "VK_CHECK failed (%d): %s:%d (%s)\n", res, srcloc.file, srcloc.line, srcloc.function );
+	// Fatal( "VK_CHECK failed (%d): %s:%d (%s)\n", res, srcloc.file, srcloc.line, srcloc.function );
 }
 
 static void VK_CHECK( VkResult res, SourceLocation srcloc = CurrentSourceLocation() ) {
@@ -365,7 +365,7 @@ static VkBool32 VKAPI_CALL debugReportCallback(VkDebugReportFlagsEXT flags, VkDe
 	printf( "%s:\033[0m %s\n", type, pMessage );
 
 	if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
-		Fatal( pMessage );
+		// Fatal( pMessage );
 	}
 
 	return VK_FALSE;

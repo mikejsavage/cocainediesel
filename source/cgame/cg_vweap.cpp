@@ -80,8 +80,8 @@ static void AddViewWeaponAnimations( Vec3 * origin, EulerDegrees3 * angles, cg_v
 			// TODO: temporary for non-animated models
 			const GLTFRenderData * model = FindGLTFRenderData( GetWeaponModelMetadata( ps->weapon )->model );
 			if( model != NULL ) {
-				u8 animation;
-				if( !FindAnimationByName( model, viewweapon->eventAnim, &animation ) ) {
+				Optional< u8 > animation = FindAnimationByName( model, viewweapon->eventAnim );
+				if( !animation.exists ) {
 					float t = float( ps->weapon_state_time ) / def->reload_time;
 					angles->roll -= Lerp( 0.0f, SmoothStep( t ), 360.0f );
 				}
@@ -188,11 +188,11 @@ void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
 	config.draw_model.enabled = true;
 	config.draw_model.view_weapon = true;
 
-	u8 animation;
-	if( FindAnimationByName( model, viewweapon->eventAnim, &animation ) ) {
+	Optional< u8 > animation = FindAnimationByName( model, viewweapon->eventAnim );
+	if( animation.exists ) {
 		float t = float( cl.serverTime - viewweapon->eventAnimStartTime ) * 0.001f;
 		TempAllocator temp = cls.frame_arena.temp();
-		Span< Transform > pose = SampleAnimation( &temp, model, t, animation );
+		Span< Transform > pose = SampleAnimation( &temp, model, t, animation.value );
 		MatrixPalettes palettes = ComputeMatrixPalettes( &temp, model, pose );
 		DrawGLTFModel( config, model, viewweapon->transform, CG_TeamColorVec4( ps->team ), palettes );
 	}

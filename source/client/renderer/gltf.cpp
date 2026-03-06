@@ -449,8 +449,11 @@ static void LoadAnimation( GLTFRenderData * model, const cgltf_animation * anima
 		}
 		duration = Max2( channel_duration, duration );
 	}
-	model->animations[ index ].name = StringHash( animation->name );
-	model->animations[ index ].duration = duration;
+	model->animations[ index ] = {
+		.name = CloneSpan( sys_allocator, MakeSpan( animation->name ) ),
+		.hash = Hash64( animation->name ),
+		.duration = duration,
+	};
 }
 
 static void LoadSkin( GLTFRenderData * model, const cgltf_skin * skin ) {
@@ -536,6 +539,10 @@ void DeleteGLTFRenderData( GLTFRenderData * render_data ) {
 		}
 		DeleteMesh( node.mesh );
 		Free( sys_allocator, node.animations.ptr );
+	}
+
+	for( GLTFRenderData::Animation animation : render_data->animations ) {
+		Free( sys_allocator, animation.name.ptr );
 	}
 
 	Free( sys_allocator, render_data->name.ptr );
@@ -629,15 +636,14 @@ bool FindNodeByName( const GLTFRenderData * render_data, StringHash name, u8 * i
 	return false;
 }
 
-bool FindAnimationByName( const GLTFRenderData * render_data, StringHash name, u8 * idx ) {
+Optional< u8 > FindAnimationByName( const GLTFRenderData * render_data, StringHash name ) {
 	for( u8 i = 0; i < render_data->animations.n; i++ ) {
-		if( render_data->animations[ i ].name == name ) {
-			*idx = i;
-			return true;
+		if( render_data->animations[ i ].hash == name.hash ) {
+			return i;
 		}
 	}
 
-	return false;
+	return NONE;
 }
 
 static void MergePosesRecursive( Span< Transform > lower, Span< const Transform > upper, const GLTFRenderData * render_data, u8 i ) {
@@ -659,6 +665,32 @@ void MergeLowerUpperPoses( Span< Transform > lower, Span< const Transform > uppe
 	if( node->first_child != U8_MAX ) {
 		MergePosesRecursive( lower, upper, render_data, node->first_child );
 	}
+}
+
+Span< Transform > LerpPoses( Allocator * a, Span< const Transform > pose0, float t, Span< const Transform > pose1 ) {
+	Assert( pose0.n == pose1.n );
+	Span< Transform > blended = AllocSpan< Transform >( a, pose0.n );
+	for( size_t i = 0; i < pose0.n; i++ ) {
+		blended[ i ] = Transform {
+			.rotation = NLerp( pose0[ i ].rotation, t, pose1[ i ].rotation ),
+			.translation = LerpVec3( pose0[ i ].translation, t, pose1[ i ].translation ),
+			.scale = Lerp( pose0[ i ].scale, t, pose1[ i ].scale ),
+		};
+	}
+	return blended;
+}
+
+Span< Transform > AddPoses( Allocator * a, Span< const Transform > pose0, Span< const Transform > pose1 ) {
+	Assert( pose0.n == pose1.n );
+	Span< Transform > added = AllocSpan< Transform >( a, pose0.n );
+	for( size_t i = 0; i < pose0.n; i++ ) {
+		added[ i ] = Transform {
+			.rotation = pose0[ i ].rotation * pose1[ i ].rotation,
+			.translation = pose0[ i ].translation + pose1[ i ].translation,
+			.scale = pose0[ i ].scale * pose1[ i ].scale,
+		};
+	}
+	return added;
 }
 
 static void DrawVfxNode( DrawModelConfig::DrawModel config, const GLTFRenderData::Node * node, const Mat3x4 & transform, const Vec4 & color ) {

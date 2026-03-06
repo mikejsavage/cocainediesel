@@ -30,7 +30,8 @@ struct GLTFRenderData {
 	};
 
 	struct Animation {
-		StringHash name;
+		Span< char > name;
+		u64 hash;
 		float duration;
 	};
 
@@ -107,10 +108,12 @@ const GLTFRenderData * FindGLTFRenderData( StringHash name );
 void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * render_data, const Mat3x4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
 
 bool FindNodeByName( const GLTFRenderData * model, StringHash name, u8 * idx );
-bool FindAnimationByName( const GLTFRenderData * model, StringHash name, u8 * idx );
+Optional< u8 > FindAnimationByName( const GLTFRenderData * model, StringHash name );
 
 Span< Transform > SampleAnimation( Allocator * a, const GLTFRenderData * model, float t, u8 animation = 0 );
 void MergeLowerUpperPoses( Span< Transform > lower, Span< const Transform > upper, const GLTFRenderData * model, u8 upper_root_joint );
+Span< Transform > LerpPoses( Allocator * a, Span< const Transform > pose0, float t, Span< const Transform > pose1 );
+Span< Transform > AddPoses( Allocator * a, Span< const Transform > pose0, Span< const Transform > pose1 );
 MatrixPalettes ComputeMatrixPalettes( Allocator * a, const GLTFRenderData * model, Span< const Transform > local_poses );
 
 void InitGLTFInstancing();

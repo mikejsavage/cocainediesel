@@ -1772,6 +1772,22 @@ static void MainMenu() {
 					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.025f ) } },
 					.custom = { ClayTextCustom( full_subtitle, { .textColor = ui_white.clay, .fontId = ClayFont_BoldItalic }, XAlignment_Left, ClayTextShadow( black.linear, 8.0f ) ) }
 				} );
+
+				ClayVerticalSpacing( CLAY_SIZING_GROW() );
+
+				const char * buf = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
+				CLAY( {
+					.id = CLAY_ID_LOCAL( "Version" ),
+					.layout = {
+						.sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_PERCENT( 0.02f ) },
+					},
+					.custom = {
+						ClayTextCustom( MakeSpan( buf ), {
+							.textColor = ui_white.clay,
+							.fontId = ClayFont_Bold,
+						}, XAlignment_Left )
+					}
+				} );
 			}
 
 			CLAY ( {
@@ -1813,19 +1829,6 @@ static void MainMenu() {
 				.floating = { .attachTo = CLAY_ATTACH_TO_PARENT },
 				.custom = { ClayImGui( cdcdcd_custom, bit_cast< void * >( uintptr_t( 1 ) ) ) },
 			} ) { }
-
-			const char * buf = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
-			CLAY( {
-				.id = CLAY_ID_LOCAL( "Version" ),
-				.layout = {
-					.sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_PERCENT( 0.2f ) },
-				},
-				.custom = { ClayTextCustom( MakeSpan( buf ), {
-						.textColor = ui_white.clay,
-						.fontId = ClayFont_Bold,
-					}, XAlignment_Right )
-				}
-			} );
 		}
 	}
 

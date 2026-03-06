@@ -764,7 +764,7 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 	PM_Friction();
 
 	EulerDegrees3 angles = ps->viewangles;
-	angles.pitch = AngleNormalize180( angles.pitch ) / 3.0f;
+	angles.pitch = NormalizeAngle180( angles.pitch ) / 3.0f;
 	AngleVectors( angles, &pml.forward, &pml.right, &pml.up );
 
 	// hack to work when looking straight up and straight down

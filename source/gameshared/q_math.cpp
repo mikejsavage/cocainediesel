@@ -197,29 +197,21 @@ EulerDegrees3 LerpAngles( EulerDegrees3 a, float t, EulerDegrees3 b ) {
 	);
 }
 
-float AngleNormalize360( float angle ) {
+float NormalizeAngle360( float angle ) {
 	return PositiveMod( angle, 360.0f );
 }
 
-float AngleNormalize180( float angle ) {
-	angle = AngleNormalize360( angle );
+float NormalizeAngle180( float angle ) {
+	angle = NormalizeAngle360( angle );
 	return angle > 180.0f ? angle - 360.0f : angle;
 }
 
-float AngleDelta( float angle1, float angle2 ) {
-	return AngleNormalize180( angle1 - angle2 );
+float AngleDelta180( float angle1, float angle2 ) {
+	return NormalizeAngle180( angle1 - angle2 );
 }
 
-Vec3 AngleDelta( Vec3 angle1, Vec3 angle2 ) {
-	return Vec3(
-		AngleDelta( angle1.x, angle2.x ),
-		AngleDelta( angle1.y, angle2.y ),
-		AngleDelta( angle1.z, angle2.z )
-	);
-}
-
-EulerDegrees2 AngleDelta( EulerDegrees2 a, EulerDegrees2 b ) {
-	return EulerDegrees2( AngleDelta( a.pitch, b.pitch ), AngleDelta( a.yaw, b.yaw ) );
+EulerDegrees2 AngleDelta180( EulerDegrees2 a, EulerDegrees2 b ) {
+	return EulerDegrees2( AngleDelta180( a.pitch, b.pitch ), AngleDelta180( a.yaw, b.yaw ) );
 }
 
 bool BoundsOverlap( const MinMax3 & a, const MinMax3 & b ) {

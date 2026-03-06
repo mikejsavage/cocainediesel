@@ -226,12 +226,12 @@ void CG_Recoil( WeaponType weapon ) {
 
 	float dt = cls.frametime * 0.001f;
 	EulerDegrees2 viewangles = cl.viewangles;
-	EulerDegrees2 recovery_delta = AngleDelta( cg.recoil_initial_angles, viewangles );
+	EulerDegrees2 recovery_delta = AngleDelta180( cg.recoil_initial_angles, viewangles );
 
 	cg.recoil_initial_angles.pitch += Min2( 0.0f, cl.viewangles.pitch - cl.prevviewangles.pitch );
-	cg.recoil_initial_angles.yaw += AngleDelta( cl.viewangles.yaw, cl.prevviewangles.yaw );
+	cg.recoil_initial_angles.yaw += AngleDelta180( cl.viewangles.yaw, cl.prevviewangles.yaw );
 
-	recovery_delta = AngleDelta( cg.recoil_initial_angles, viewangles );
+	recovery_delta = AngleDelta180( cg.recoil_initial_angles, viewangles );
 
 	constexpr float recenter_speed_scale = 1.0f / 16.0f;
 	float recenter_accel = GetWeaponDefProperties( weapon )->recoil_recovery;

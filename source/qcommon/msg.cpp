@@ -365,21 +365,21 @@ static void DeltaString( DeltaBuffer * buf, char ( &str )[ N ], const char ( &ba
 }
 
 static void DeltaAngle( DeltaBuffer * buf, float & x, const float & baseline, float ( *normalize )( float ) ) {
-	u16 angle16 = Quantize01< u16 >( AngleNormalize360( x ) / 360.0f );
-	u16 baseline16 = Quantize01< u16 >( AngleNormalize360( baseline ) / 360.0f );
+	u16 angle16 = Quantize01< u16 >( NormalizeAngle360( x ) / 360.0f );
+	u16 baseline16 = Quantize01< u16 >( NormalizeAngle360( baseline ) / 360.0f );
 	Delta( buf, angle16, baseline16 );
 	x = normalize( Dequantize01< u16 >( angle16 ) * 360.0f );
 }
 
 static void Delta( DeltaBuffer * buf, EulerDegrees2 & a, const EulerDegrees2 & baseline ) {
-	DeltaAngle( buf, a.pitch, baseline.pitch, AngleNormalize180 );
-	DeltaAngle( buf, a.yaw, baseline.yaw, AngleNormalize360 );
+	DeltaAngle( buf, a.pitch, baseline.pitch, NormalizeAngle180 );
+	DeltaAngle( buf, a.yaw, baseline.yaw, NormalizeAngle360 );
 }
 
 static void Delta( DeltaBuffer * buf, EulerDegrees3 & a, const EulerDegrees3 & baseline ) {
-	DeltaAngle( buf, a.pitch, baseline.pitch, AngleNormalize180 );
-	DeltaAngle( buf, a.yaw, baseline.yaw, AngleNormalize360 );
-	DeltaAngle( buf, a.roll, baseline.roll, AngleNormalize360 );
+	DeltaAngle( buf, a.pitch, baseline.pitch, NormalizeAngle180 );
+	DeltaAngle( buf, a.yaw, baseline.yaw, NormalizeAngle360 );
+	DeltaAngle( buf, a.roll, baseline.roll, NormalizeAngle360 );
 }
 
 //==================================================

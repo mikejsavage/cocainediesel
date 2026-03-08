@@ -223,14 +223,14 @@ static ParticleSystem NewParticleSystem( Allocator * a, BlendFunc blend_func, si
 		.max_particles = max_particles,
 		.blend_func = blend_func,
 
-		.gpu_particles1 = NewBuffer( "particles flip", max_particles * sizeof( Particle ), alignof( Particle ) ),
-		.gpu_particles2 = NewBuffer( "particles flop", max_particles * sizeof( Particle ), alignof( Particle ) ),
+		.gpu_particles1 = NewBuffer( "particles flip", max_particles * sizeof( Particle ), alignof( Particle ), false ),
+		.gpu_particles2 = NewBuffer( "particles flop", max_particles * sizeof( Particle ), alignof( Particle ), false ),
 
 		.compute_count1 = NewBuffer( "compute_count flip", zero ),
 		.compute_count2 = NewBuffer( "compute_count flop", zero ),
 
-		.compute_indirect = NewBuffer( "particle compute indirect", &compute_indirect ),
-		.draw_indirect = NewBuffer( "particle draw indirect", &draw_indirect ),
+		.compute_indirect = NewBuffer( "particle compute indirect", compute_indirect ),
+		.draw_indirect = NewBuffer( "particle draw indirect", draw_indirect ),
 	};
 }
 
@@ -773,12 +773,15 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	PipelineState pipeline = {
 		.shader = ps->blend_func == BlendFunc_Add ? shaders.particle_add : shaders.particle_blend,
-		.dynamic_state = { .depth_func = DepthFunc_LessNoWrite },
+		.dynamic_state = {
+			.depth_func = DepthFunc_LessNoWrite,
+			.cull_face = CullFace_Disabled,
+		},
 		.material_bind_group = SpriteAtlasBindGroup(),
 	};
 
 	Mesh mesh = { .num_vertices = 6 };
-	// DrawIndirect( RenderPass_Transparent, pipeline, mesh, ps->draw_indirect, { ps->gpu_particles2 } );
+	DrawIndirect( RenderPass_Transparent, pipeline, mesh, ps->draw_indirect, { ps->gpu_particles2 } );
 
 	Swap2( &ps->gpu_particles1, &ps->gpu_particles2 );
 	Swap2( &ps->compute_count1, &ps->compute_count2 );

@@ -18,7 +18,7 @@ struct VertexInput {
 
 struct VertexOutput {
 	float4 position : SV_Position;
-	float3 world_position : POSITION;
+	nointerpolation float3 world_position : POSITION;
 	float2 uv : TEXCOORD0;
 	nointerpolation float layer : LAYER;
 	float4 color : COLOR;
@@ -49,8 +49,8 @@ VertexOutput VertexMain( VertexInput input, uint32_t instance_id : SV_InstanceID
 	position += 0.5f;
 	position = position * particle.trim.zw + particle.trim.xy;
 	position -= 0.5f;
-	output.uv *= particle.trim.zw + particle.trim.xy;
-	output.uv *= particle.uvwh.zw + particle.uvwh.xy;
+	output.uv = output.uv * particle.trim.zw + particle.trim.xy;
+	output.uv = output.uv * particle.uvwh.zw + particle.uvwh.xy;
 	output.layer = floor( particle.uvwh.x );
 	float scale = lerp( particle.start_size, particle.end_size, fage );
 

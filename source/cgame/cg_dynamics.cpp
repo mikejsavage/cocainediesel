@@ -65,7 +65,7 @@ void ResetDecals() {
 void DrawDecal( Vec3 origin, Quaternion orientation, float radius, StringHash name, Vec4 color, float height ) {
 	Optional< Sprite > sprite = TryFindSprite( name );
 	if( !sprite.exists ) {
-		Com_GGPrint( S_COLOR_YELLOW "Material {} should have decal key", name );
+		Com_GGPrint( S_COLOR_YELLOW "Material {} should have sprite key", name );
 		return;
 	}
 
@@ -83,7 +83,7 @@ void DrawDecal( Vec3 origin, Quaternion orientation, float radius, StringHash na
 void AddPersistentDecal( Vec3 origin, Quaternion orientation, float radius, StringHash name, Vec4 color, Time lifetime, float height ) {
 	Optional< Sprite > sprite = TryFindSprite( name );
 	if( !sprite.exists ) {
-		Com_GGPrint( S_COLOR_YELLOW "Material {} should have decal key", name );
+		Com_GGPrint( S_COLOR_YELLOW "Material {} should have sprite key", name );
 		return;
 	}
 

@@ -229,6 +229,7 @@ static GPUAllocation GPUMalloc( size_t size, bool device_local ) {
 
 	VkBuffer buffer;
 	VK_CHECK( vkCreateBuffer( global_device.device, &buffer_info, NULL, &buffer ) );
+	DebugLabel( buffer, VK_OBJECT_TYPE_BUFFER, "GPUMalloc buffer" );
 
 	VkMemoryRequirements memory_requirements;
 	vkGetBufferMemoryRequirements( global_device.device, buffer, &memory_requirements );

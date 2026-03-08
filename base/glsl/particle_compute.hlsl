@@ -29,12 +29,19 @@ void ComputeMain( uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint
 	// this is a little silly but it's easier than scheduling a copy
 	// command in the right place. num_new_particles is generally very
 	// small so this doesn't need to be optimal
-	uint32_t num_threads = ( ( b_ComputeCountIn[ 0 ] + PARTICLE_THREADGROUP_SIZE - 1 ) / PARTICLE_THREADGROUP_SIZE ) * PARTICLE_THREADGROUP_SIZE;
-	uint32_t new_particles_per_thread = ( b_UpdateStep[ 0 ].num_new_particles + num_threads - 1 ) / num_threads;
-	for( uint32_t i = 0; i < new_particles_per_thread; i++ ) {
-		uint32_t idx = DTid.x * new_particles_per_thread + i;
-		if( idx < b_ComputeCountIn[ 0 ] ) {
-			b_ParticlesOut[ idx ] = b_NewParticles[ idx ];
+	/* uint32_t num_threads = ( ( b_ComputeCountIn[ 0 ] + PARTICLE_THREADGROUP_SIZE - 1 ) / PARTICLE_THREADGROUP_SIZE ) * PARTICLE_THREADGROUP_SIZE; */
+	/* uint32_t new_particles_per_thread = ( b_UpdateStep[ 0 ].num_new_particles + num_threads - 1 ) / num_threads; */
+	/* printf( "%u %u", num_threads, new_particles_per_thread ); */
+	/* for( uint32_t i = 0; i < new_particles_per_thread; i++ ) { */
+	/* 	uint32_t idx = DTid.x * new_particles_per_thread + i; */
+	/* 	if( idx < b_UpdateStep[ 0 ].num_new_particles ) { */
+	/* 		b_ParticlesOut[ idx ] = b_NewParticles[ idx ]; */
+	/* 	} */
+	/* } */
+
+	if( all( DTid == uint3( 0, 0, 0 ) ) ) {
+		for( uint32_t i = 0; i < b_UpdateStep[ 0 ].num_new_particles; i++ ) {
+			b_ParticlesOut[ i ] = b_NewParticles[ i ];
 		}
 	}
 
@@ -47,5 +54,5 @@ void ComputeMain( uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint
 
 	uint32_t out_index;
 	InterlockedAdd( b_ComputeCountOut[ 0 ], 1, out_index );
-	b_ParticlesOut[ out_index ] = SimulateParticle( particle, b_UpdateStep[ 0 ].dt );
+	b_ParticlesOut[ out_index + b_UpdateStep[ 0 ].num_new_particles ] = SimulateParticle( particle, b_UpdateStep[ 0 ].dt );
 }

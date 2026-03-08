@@ -16,6 +16,6 @@ void ComputeMain( uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint
 	}
 
 	b_NextComputeCount[ 0 ] = 0;
-	b_ComputeIndirect[ 0 ].num_threadgroups_x = b_ComputeCount[ 0 ] / 64 + 1;
+	b_ComputeIndirect[ 0 ].num_threadgroups_x = b_ComputeCount[ 0 ] / PARTICLE_THREADGROUP_SIZE + 1;
 	b_DrawIndirect[ 0 ].num_instances = b_ComputeCount[ 0 ];
 }

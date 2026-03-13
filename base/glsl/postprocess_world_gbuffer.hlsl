@@ -5,11 +5,25 @@
 [[vk::binding( 1, DescriptorSet_RenderPass )]] StructuredBuffer< float4 > u_OutlineColor;
 
 #ifdef MSAA
+
 [[vk::binding( 2, DescriptorSet_RenderPass )]] Texture2DMS< float > u_DepthTexture;
 [[vk::binding( 3, DescriptorSet_RenderPass )]] Texture2DMS< uint > u_CurvedSurfaceMask;
+
+template< typename T >
+T ClampedTextureLoadMaybeMSAA( Texture2DMS< T > tex, int2 uv, uint sample_index ) {
+	return ClampedTextureLoad( tex, uv, sample_index );
+}
+
 #else
+
 [[vk::binding( 2, DescriptorSet_RenderPass )]] Texture2D< float > u_DepthTexture;
 [[vk::binding( 3, DescriptorSet_RenderPass )]] Texture2D< uint > u_CurvedSurfaceMask;
+
+template< typename T >
+T ClampedTextureLoadMaybeMSAA( Texture2D< T > tex, int2 uv, uint sample_index ) {
+	return ClampedTextureLoad( tex, uv );
+}
+
 #endif
 
 struct VertexInput {
@@ -35,20 +49,13 @@ float EdgeDetect( float center, float up, float down_left, float down_right, flo
 	return smoothstep( 0.0f, epsilon, abs( delta ) );
 }
 
-#ifdef MSAA
 float4 FragmentMain( VertexOutput v, uint sample_index : SV_SampleIndex ) : FragmentShaderOutput_Albedo {
-#define SAMPLE_INDEX_LAST_ARG , sample_index
-#else
-float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
-#define SAMPLE_INDEX_LAST_ARG
-#endif
-
 	int2 p = int2( v.position.xy );
 
-	float depth =            ClampedTextureLoad( u_DepthTexture, p SAMPLE_INDEX_LAST_ARG );
-	float depth_up =         ClampedTextureLoad( u_DepthTexture, p + int2( +0, -1 ) SAMPLE_INDEX_LAST_ARG );
-	float depth_down_right = ClampedTextureLoad( u_DepthTexture, p + int2( +1, +1 ) SAMPLE_INDEX_LAST_ARG );
-	float depth_down_left  = ClampedTextureLoad( u_DepthTexture, p + int2( -1, +1 ) SAMPLE_INDEX_LAST_ARG );
+	float depth =            ClampedTextureLoadMaybeMSAA( u_DepthTexture, p, sample_index );
+	float depth_up =         ClampedTextureLoadMaybeMSAA( u_DepthTexture, p + int2( +0, -1 ), sample_index );
+	float depth_down_right = ClampedTextureLoadMaybeMSAA( u_DepthTexture, p + int2( +1, +1 ), sample_index );
+	float depth_down_left  = ClampedTextureLoadMaybeMSAA( u_DepthTexture, p + int2( -1, +1 ), sample_index );
 
 #ifdef MSAA
 	uint mask = u_CurvedSurfaceMask.Load( p, sample_index );

@@ -120,13 +120,13 @@ vec3 colorCorrection( vec3 color ) {
     vec3 blend = mix( vec3(1.0), pow( color, vec3( 1.0/0.7 ) ), exposure );
     res = max( 1.0 - ( ( 1.0 - res ) / blend ), 0.0 );
 
-    color = pow(
-    	ExposureSetLuminance(
-    		ExposureSetSaturation( color, ExposureSaturation( res ) ),
-    		ExposureLuminance( res )
-    	),
-    	vec3( ExposureRamp( 1.0 - gamma ) )
-    );
+    /* color = pow( */
+    /* 	ExposureSetLuminance( */
+    /* 		ExposureSetSaturation( color, ExposureSaturation( res ) ), */
+    /* 		ExposureLuminance( res ) */
+    /* 	), */
+    /* 	vec3( ExposureRamp( 1.0 - gamma ) ) */
+    /* ); */
 
 
 	color *= u_Brightness;

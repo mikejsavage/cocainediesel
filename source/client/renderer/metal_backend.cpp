@@ -1229,7 +1229,6 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 		if( target.resolve_target.exists ) {
 			attachment->setStoreAction( MTL::StoreActionMultisampleResolve );
 			attachment->setResolveTexture( target.texture.exists ? textures[ target.texture.value ].backend.unwrap()->texture : frame.swapchain_texture );
-			// attachment->setResolveSlice( target.layer ); NOMERGE
 		}
 		else {
 			attachment->setStoreAction( target.store == StoreOp_Store ? MTL::StoreActionStore : MTL::StoreActionDontCare );
@@ -1244,7 +1243,6 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 
 		if( target.load == LoadOp_Clear ) {
 			attachment->setLoadAction( MTL::LoadActionClear );
-			attachment->setLoadAction( MTL::LoadActionClear );
 			attachment->setClearDepth( target.clear );
 		}
 		else {
@@ -1255,6 +1253,15 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 
 		attachment->setTexture( textures[ target.texture ].backend.unwrap()->texture );
 		attachment->setSlice( target.layer );
+
+		if( target.resolve_target.exists ) {
+			attachment->setStoreAction( MTL::StoreActionMultisampleResolve );
+			attachment->setResolveTexture( textures[ target.texture ].backend.unwrap()->texture );
+			attachment->setDepthResolveFilter( MTL::MultisampleDepthResolveFilterMin );
+		}
+		else {
+			attachment->setStoreAction( target.store == StoreOp_Store ? MTL::StoreActionStore : MTL::StoreActionDontCare );
+		}
 	}
 
 	MTL::RenderCommandEncoder * encoder = command_buffer->renderCommandEncoder( render_pass );

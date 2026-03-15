@@ -184,14 +184,14 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 			GraphicsShaderDescriptor {
 				.field = &Shaders::vfx_add,
 				.src = "simple",
-				.output_format = depthless,
+				.output_format = depthy,
 				.mesh_variants = { vfx },
 				.blend_func = BlendFunc_Add,
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::vfx_blend,
 				.src = "simple",
-				.output_format = depthless,
+				.output_format = depthy,
 				.mesh_variants = { vfx },
 				.blend_func = BlendFunc_Blend,
 			},

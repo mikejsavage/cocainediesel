@@ -829,6 +829,7 @@ static Swapchain CreateSwapchain( VulkanDevice device, VkSurfaceKHR surface, Opt
 
 	for( size_t i = 0; i < images.n; i++ ) {
 		images[ i ].image = vk_images[ i ];
+		DebugLabel( device.device, images[ i ].image, VK_OBJECT_TYPE_IMAGE, temp( "Swapchain image {}", i ) );
 
 		const VkImageViewCreateInfo image_view_info = {
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -843,8 +844,7 @@ static Swapchain CreateSwapchain( VulkanDevice device, VkSurfaceKHR surface, Opt
 		};
 
 		VK_CHECK( vkCreateImageView( device.device, &image_view_info, NULL, &images[ i ].image_view ) );
-
-		DebugLabel( device.device, images[ i ].image, VK_OBJECT_TYPE_IMAGE, temp( "Swapchain image {}", i ) );
+		DebugLabel( device.device, images[ i ].image_view, VK_OBJECT_TYPE_IMAGE_VIEW, temp( "Swapchain imageview {}", i ) );
 	}
 
 	Span< Swapchain::Semaphores > semaphore_pairs;
@@ -1777,13 +1777,28 @@ static Optional< VkMemoryBarrier2 > MakeGlobalBarrier( Span< const GPUBarrier > 
 	return barrier;
 }
 
-static VkImageMemoryBarrier2 MakeImageTransition( VkImage image, u32 num_layers, u32 num_mipmaps, bool is_depth, bool to_attachment ) {
+enum ImageLayoutTransitionType {
+	ImageLayoutTransition_UndefinedToAttachment,
+	ImageLayoutTransition_ReadOnlyToAttachment,
+	ImageLayoutTransition_AttachmentToReadOnly,
+};
+
+static VkImageMemoryBarrier2 MakeImageTransition( VkImage image, u32 num_layers, u32 num_mipmaps, bool is_depth, ImageLayoutTransitionType type ) {
 	constexpr VkImageMemoryBarrier2 color_attachment = {
 		.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 		.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 		.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 		.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 		.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+		.newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+	};
+
+	constexpr VkImageMemoryBarrier2 color_reattachment = {
+		.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+		.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+		.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+		.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+		.oldLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
 		.newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 	};
 
@@ -1805,6 +1820,15 @@ static VkImageMemoryBarrier2 MakeImageTransition( VkImage image, u32 num_layers,
 		.newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 	};
 
+	constexpr VkImageMemoryBarrier2 depth_reattachment = {
+		.srcStageMask = VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+		.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+		.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+		.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+		.oldLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+		.newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+	};
+
 	constexpr VkImageMemoryBarrier2 depth_readonly = {
 		.srcStageMask = VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
 		.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
@@ -1815,10 +1839,16 @@ static VkImageMemoryBarrier2 MakeImageTransition( VkImage image, u32 num_layers,
 	};
 
 	VkImageMemoryBarrier2 barrier;
-	if( !is_depth &&  to_attachment ) barrier = color_attachment;
-	if( !is_depth && !to_attachment ) barrier = color_readonly;
-	if(  is_depth &&  to_attachment ) barrier = depth_attachment;
-	if(  is_depth && !to_attachment ) barrier = depth_readonly;
+	if( !is_depth ) {
+		if( type == ImageLayoutTransition_UndefinedToAttachment ) barrier = color_attachment;
+		if( type == ImageLayoutTransition_ReadOnlyToAttachment ) barrier = color_reattachment;
+		if( type == ImageLayoutTransition_AttachmentToReadOnly ) barrier = color_readonly;
+	}
+	else {
+		if( type == ImageLayoutTransition_UndefinedToAttachment ) barrier = depth_attachment;
+		if( type == ImageLayoutTransition_ReadOnlyToAttachment ) barrier = depth_reattachment;
+		if( type == ImageLayoutTransition_AttachmentToReadOnly ) barrier = depth_readonly;
+	}
 
 	barrier.image = image;
 	barrier.subresourceRange = {
@@ -1829,9 +1859,9 @@ static VkImageMemoryBarrier2 MakeImageTransition( VkImage image, u32 num_layers,
 	return barrier;
 }
 
-static VkImageMemoryBarrier2 MakeImageTransition( PoolHandle< Texture > handle, bool to_attachment ) {
+static VkImageMemoryBarrier2 MakeImageTransition( PoolHandle< Texture > handle, ImageLayoutTransitionType type ) {
 	const Texture & texture = textures[ handle ];
-	return MakeImageTransition( texture.backend.unwrap()->image, texture.num_layers, texture.num_mipmaps, texture.format == TextureFormat_Depth, to_attachment );
+	return MakeImageTransition( texture.backend.unwrap()->image, texture.num_layers, texture.num_mipmaps, texture.format == TextureFormat_Depth, type );
 }
 
 Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
@@ -1956,15 +1986,16 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 	// color/depth + swapchain) or we can just hardcode something big enough
 	BoundedDynamicArray< VkImageMemoryBarrier2, 8 > image_barriers = { };
 	for( PoolHandle< Texture > texture : config.attachment_transitions ) {
-		image_barriers.must_add( MakeImageTransition( texture, true ) );
+		image_barriers.must_add( MakeImageTransition( texture, ImageLayoutTransition_UndefinedToAttachment ) );
 	}
-
+	for( PoolHandle< Texture > texture : config.reattachment_transitions ) {
+		image_barriers.must_add( MakeImageTransition( texture, ImageLayoutTransition_ReadOnlyToAttachment ) );
+	}
 	for( PoolHandle< Texture > texture : config.readonly_transitions ) {
-		image_barriers.must_add( MakeImageTransition( texture, false ) );
+		image_barriers.must_add( MakeImageTransition( texture, ImageLayoutTransition_AttachmentToReadOnly ) );
 	}
-
 	if( config.swapchain_attachment_transition ) {
-		image_barriers.must_add( MakeImageTransition( swapchain.image, 1, 1, false, true ) );
+		image_barriers.must_add( MakeImageTransition( swapchain.image, 1, 1, false, ImageLayoutTransition_UndefinedToAttachment ) );
 	}
 
 	Barriers( command_buffer, MakeGlobalBarrier( config.barriers ), image_barriers.span() );
@@ -2340,6 +2371,7 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 
 	VkImage image;
 	VK_CHECK( vkCreateImage( global_device.device, &image_info, NULL, &image ) );
+	DebugLabel( image, VK_OBJECT_TYPE_IMAGE, temp( "{}", config.name ) );
 
 	VkMemoryRequirements memory_requirements;
 	vkGetImageMemoryRequirements( global_device.device, image, &memory_requirements );
@@ -2393,6 +2425,7 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 
 	VkImageView image_view;
 	VK_CHECK( vkCreateImageView( global_device.device, &image_view_info, NULL, &image_view ) );
+	DebugLabel( image_view, VK_OBJECT_TYPE_IMAGE_VIEW, temp( "{}", config.name ) );
 
 	Span< VkImageView > per_layer_image_views = AllocSpan< VkImageView >( sys_allocator, num_layers );
 	for( u32 i = 0; i < num_layers; i++ ) {
@@ -2400,10 +2433,8 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 		layer_image_view_info.subresourceRange.baseArrayLayer = i;
 		layer_image_view_info.subresourceRange.layerCount = 1;
 		VK_CHECK( vkCreateImageView( global_device.device, &layer_image_view_info, NULL, &per_layer_image_views[ i ] ) );
+		DebugLabel( per_layer_image_views[ i ], VK_OBJECT_TYPE_IMAGE_VIEW, temp( "{} layer {}", config.name, i ) );
 	}
-
-	DebugLabel( image, VK_OBJECT_TYPE_IMAGE, temp( "{}", config.name ) );
-	DebugLabel( image_view, VK_OBJECT_TYPE_IMAGE_VIEW, temp( "{}", config.name ) );
 
 	BackendTexture texture = {
 		.image = image,

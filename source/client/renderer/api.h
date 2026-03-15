@@ -382,6 +382,7 @@ struct RenderPassConfig {
 	// Vulkan synchronization
 	Span< const GPUBarrier > barriers;
 	Span< const PoolHandle< Texture > > attachment_transitions;
+	Span< const PoolHandle< Texture > > reattachment_transitions;
 	Span< const PoolHandle< Texture > > readonly_transitions;
 	bool swapchain_attachment_transition;
 

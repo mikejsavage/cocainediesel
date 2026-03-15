@@ -631,8 +631,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	// RenderPass_AddOutlines, transitions depth_target to readonly
 
 	{
-		PoolHandle< Texture > msaa_attachment_transitions[] = { targets.resolved_color, depth_target, targets.resolved_depth };
-		PoolHandle< Texture > non_msaa_attachment_transitions[] = { targets.resolved_depth };
+		PoolHandle< Texture > msaa_attachment_transitions[] = { targets.resolved_color, targets.resolved_depth };
 
 		frame_static.render_passes[ RenderPass_NonworldOpaque ] = NewRenderPass( RenderPassConfig {
 			.name = "Nonworld opaque + MSAA resolve",
@@ -649,7 +648,8 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 				.load = LoadOp_Load,
 				.resolve_target = msaa ? Optional( targets.resolved_depth ) : NONE,
 			},
-			.attachment_transitions = msaa ? StaticSpan( msaa_attachment_transitions ) : StaticSpan( non_msaa_attachment_transitions ),
+			.attachment_transitions = msaa ? StaticSpan( msaa_attachment_transitions ) : Span< const PoolHandle< Texture > >(),
+			.reattachment_transitions = { depth_target },
 			.representative_shader = shaders.world,
 			.bindings = standard_bindings,
 		} );

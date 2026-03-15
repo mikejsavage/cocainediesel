@@ -145,7 +145,7 @@ struct Particle {
 	float angle;
 	Vec3 velocity;
 	float angular_velocity;
-	float acceleration;
+	float gravity;
 	float drag;
 	float restitution;
 	float PADDING;

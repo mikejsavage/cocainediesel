@@ -258,6 +258,15 @@ static void CreateRenderTargets( bool first_time ) {
 			.msaa_samples = frame_static.msaa_samples,
 			.dedicated_allocation = true,
 		}, frame_static.render_targets.msaa_color );
+
+		frame_static.render_targets.msaa_depth = NewTexture( TextureConfig {
+			.name = "MSAA depth RT",
+			.format = TextureFormat_Depth,
+			.width = frame_static.viewport_width,
+			.height = frame_static.viewport_height,
+			.msaa_samples = frame_static.msaa_samples,
+			.dedicated_allocation = true,
+		}, frame_static.render_targets.msaa_depth );
 	}
 	else {
 		frame_static.render_targets.msaa_color = NONE;
@@ -277,14 +286,13 @@ static void CreateRenderTargets( bool first_time ) {
 		.dedicated_allocation = true,
 	}, first_time ? NONE : Optional( frame_static.render_targets.resolved_color ) );
 
-	frame_static.render_targets.depth = NewTexture( TextureConfig {
+	frame_static.render_targets.resolved_depth = NewTexture( TextureConfig {
 		.name = "Depth RT",
 		.format = TextureFormat_Depth,
 		.width = frame_static.viewport_width,
 		.height = frame_static.viewport_height,
-		.msaa_samples = frame_static.msaa_samples,
 		.dedicated_allocation = true,
-	}, first_time ? NONE : Optional( frame_static.render_targets.depth ) );
+	}, first_time ? NONE : Optional( frame_static.render_targets.resolved_depth ) );
 
 	frame_static.render_targets.shadowmap = NewTexture( TextureConfig {
 		.name = "Shadowmap RT",
@@ -565,16 +573,17 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 
 	bool msaa = frame_static.msaa_samples > 1;
 	PoolHandle< Texture > color_target = msaa ? *targets.msaa_color : targets.resolved_color;
+	PoolHandle< Texture > depth_target = msaa ? *targets.msaa_depth : targets.resolved_depth;
 
 	frame_static.render_passes[ RenderPass_WorldOpaqueZPrepass ] = NewRenderPass( RenderPassConfig {
 		.name = "World Z-prepass",
 		.pass = RenderPass_WorldOpaqueZPrepass,
 		.depth_target = RenderPassConfig::DepthTarget {
-			.texture = targets.depth,
+			.texture = depth_target,
 			.load = LoadOp_Clear,
 			.clear = clear_depth,
 		},
-		.attachment_transitions = { targets.depth },
+		.attachment_transitions = { depth_target },
 		.representative_shader = shaders.depth_only,
 		.bindings = {
 			.buffers = { { "u_View", frame_static.view_uniforms } },
@@ -596,7 +605,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 				.clear = clear_color,
 			},
 		},
-		.depth_target = RenderPassConfig::DepthTarget { .texture = targets.depth, .load = LoadOp_Load },
+		.depth_target = RenderPassConfig::DepthTarget { .texture = depth_target, .load = LoadOp_Load },
 		.barriers = { GPUBarrier_ComputeToFragment, GPUBarrier_FragmentToFragmentSample },
 		.attachment_transitions = { color_target, targets.curved_surface_mask },
 		.readonly_transitions = { targets.shadowmap },
@@ -614,18 +623,16 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 			RenderPassConfig::ColorTarget { .texture = color_target, .load = LoadOp_Load },
 			RenderPassConfig::ColorTarget { .texture = targets.curved_surface_mask, .load = LoadOp_Load },
 		},
-		.depth_target = RenderPassConfig::DepthTarget { .texture = targets.depth, .load = LoadOp_Load },
+		.depth_target = RenderPassConfig::DepthTarget { .texture = depth_target, .load = LoadOp_Load },
 		.representative_shader = shaders.world,
 		.bindings = standard_bindings,
 	} );
 
-	// RenderPass_AddOutlines
+	// RenderPass_AddOutlines, transitions depth_target to readonly
 
 	{
-		BoundedDynamicArray< PoolHandle< Texture >, 2 > attachment_transitions = { targets.depth };
-		if( msaa ) {
-			attachment_transitions.must_add( targets.resolved_color );
-		}
+		PoolHandle< Texture > msaa_attachment_transitions[] = { targets.resolved_color, depth_target, targets.resolved_depth };
+		PoolHandle< Texture > non_msaa_attachment_transitions[] = { targets.resolved_depth };
 
 		frame_static.render_passes[ RenderPass_NonworldOpaque ] = NewRenderPass( RenderPassConfig {
 			.name = "Nonworld opaque + MSAA resolve",
@@ -637,8 +644,12 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 					.resolve_target = msaa ? Optional( targets.resolved_color ) : NONE,
 				},
 			},
-			.depth_target = RenderPassConfig::DepthTarget { .texture = targets.depth, .load = LoadOp_Load },
-			.attachment_transitions = attachment_transitions.span(),
+			.depth_target = RenderPassConfig::DepthTarget {
+				.texture = depth_target,
+				.load = LoadOp_Load,
+				.resolve_target = msaa ? Optional( targets.resolved_depth ) : NONE,
+			},
+			.attachment_transitions = msaa ? StaticSpan( msaa_attachment_transitions ) : StaticSpan( non_msaa_attachment_transitions ),
 			.representative_shader = shaders.world,
 			.bindings = standard_bindings,
 		} );
@@ -648,7 +659,8 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		.name = "Transparent",
 		.pass = RenderPass_Transparent,
 		.color_targets = { RenderPassConfig::ColorTarget { .texture = targets.resolved_color, .load = LoadOp_Load } },
-		.barriers = { GPUBarrier_ComputeToIndirect, GPUBarrier_ComputeToFragment },
+		.depth_target = RenderPassConfig::DepthTarget { .texture = targets.resolved_depth, .load = LoadOp_Load },
+		.barriers = { GPUBarrier_ComputeToIndirect, GPUBarrier_ComputeToFragment, GPUBarrier_FragmentToFragmentOutput },
 		.representative_shader = shaders.particle_add,
 		.bindings = {
 			.buffers = { { "u_View", frame_static.view_uniforms } },

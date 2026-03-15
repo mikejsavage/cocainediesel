@@ -478,6 +478,8 @@ static void DrawOutlines() {
 
 	constexpr RGBA8 gray = RGBA8( 30, 30, 30 );
 
+	PoolHandle< Texture > depth_target = Default( frame_static.render_targets.msaa_depth, frame_static.render_targets.resolved_depth );
+
 	frame_static.render_passes[ RenderPass_AddOutlines ] = NewRenderPass( RenderPassConfig {
 		.name = "Add outlines",
 		.pass = RenderPass_AddOutlines,
@@ -487,7 +489,7 @@ static void DrawOutlines() {
 				.load = LoadOp_Load,
 			},
 		},
-		.readonly_transitions = { frame_static.render_targets.depth, frame_static.render_targets.curved_surface_mask },
+		.readonly_transitions = { depth_target, frame_static.render_targets.curved_surface_mask },
 		.representative_shader = shaders.postprocess_world_gbuffer,
 		.bindings = {
 			.buffers = {
@@ -495,7 +497,7 @@ static void DrawOutlines() {
 				{ "u_OutlineColor", NewTempBuffer( sRGBToLinear( gray ) ) },
 			},
 			.textures = {
-				{ "u_DepthTexture", frame_static.render_targets.depth },
+				{ "u_DepthTexture", depth_target },
 				{ "u_CurvedSurfaceMask", frame_static.render_targets.curved_surface_mask },
 			},
 		},

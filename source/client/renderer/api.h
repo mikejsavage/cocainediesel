@@ -562,7 +562,8 @@ struct FrameStatic {
 		PoolHandle< Texture > curved_surface_mask;
 		Optional< PoolHandle< Texture > > msaa_color;
 		PoolHandle< Texture > resolved_color;
-		PoolHandle< Texture > depth;
+		Optional< PoolHandle< Texture > > msaa_depth;
+		PoolHandle< Texture > resolved_depth;
 		PoolHandle< Texture > shadowmap;
 	} render_targets;
 

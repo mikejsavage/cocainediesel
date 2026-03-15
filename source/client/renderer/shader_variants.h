@@ -311,14 +311,14 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 			GraphicsShaderDescriptor {
 				.field = &Shaders::particle_add,
 				.src = "particle",
-				.output_format = depthless,
+				.output_format = depthy,
 				.mesh_variants = { { } },
 				.blend_func = BlendFunc_Add,
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::particle_blend,
 				.src = "particle",
-				.output_format = depthless,
+				.output_format = depthy,
 				.mesh_variants = { { } },
 				.blend_func = BlendFunc_Blend,
 			},

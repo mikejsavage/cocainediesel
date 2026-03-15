@@ -25,10 +25,10 @@ struct VertexOutput {
 };
 
 static const float2 quad_positions[] = {
-	float2( -0.5f, -0.5f ),
-	float2( 0.5f, -0.5f ),
 	float2( -0.5f, 0.5f ),
 	float2( 0.5f, 0.5f ),
+	float2( -0.5f, -0.5f ),
+	float2( 0.5f, -0.5f ),
 };
 
 static const int index_buffer[] = { 0, 1, 2, 2, 1, 3 };
@@ -71,13 +71,13 @@ VertexOutput VertexMain( VertexInput input, uint32_t instance_id : SV_InstanceID
 		quadPos += normalize( stretch ) * clamp( length( stretch ), 0.0f, scale );
 	}
 	output.world_position = particle.position;
-	output.position = mul( u_View[ 0 ].P, mul34( u_View[ 0 ].V, float4( particle.position + quadPos, 1.0f ) ) );
+	output.position = mul( u_View[ 0 ].P, mul34( u_View[ 0 ].V, float4( particle.position, 1.0f ) ) + float4( quadPos, 0.0f ) );
 	return output;
 }
 
 float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
 	// TODO: soft particles
-	float4 color = float4( float3( 1.0f, 1.0f, 1.0f ), u_SpriteAtlas.Sample( u_Sampler, float3( v.uv, v.layer ) ).a ) * v.color;
+	float4 color = u_SpriteAtlas.Sample( u_Sampler, float3( v.uv, v.layer ) ) * v.color;
 	color.a = FogAlpha( color.a, length( v.world_position - u_View[ 0 ].camera_pos ) );
 	color.a = VoidFogAlpha( color.a, v.world_position.z );
 

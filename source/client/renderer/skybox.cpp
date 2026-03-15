@@ -39,6 +39,8 @@ void InitSkybox() {
 void DrawSkybox( Time time ) {
 	TracyZoneScoped;
 
+	PoolHandle< Texture > depth_target = Default( frame_static.render_targets.msaa_depth, frame_static.render_targets.resolved_depth );
+
 	frame_static.render_passes[ RenderPass_Sky ] = NewRenderPass( RenderPassConfig {
 		.name = "Sky",
 		.pass = RenderPass_Sky,
@@ -48,7 +50,7 @@ void DrawSkybox( Time time ) {
 				.load = LoadOp_Load,
 			},
 		},
-		.depth_target = RenderPassConfig::DepthTarget { .texture = frame_static.render_targets.depth, .load = LoadOp_Load },
+		.depth_target = RenderPassConfig::DepthTarget { .texture = depth_target, .load = LoadOp_Load },
 		.representative_shader = shaders.skybox,
 		.bindings = {
 			.buffers = {

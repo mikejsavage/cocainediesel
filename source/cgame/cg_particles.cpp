@@ -80,12 +80,6 @@ struct RandomDistribution3D {
 	};
 };
 
-enum ParticleCollisionType : u8 {
-	ParticleCollisionType_None,
-	ParticleCollisionType_Point,
-	ParticleCollisionType_Sphere,
-};
-
 struct ParticleEvents {
 	BoundedDynamicArray< StringHash, MAX_PARTICLE_EMITTER_EVENTS > events;
 };
@@ -150,7 +144,7 @@ struct ParticleEmitter {
 
 	ParticleEmitterPosition position;
 
-	float acceleration;
+	float gravity;
 	float drag = 0.0f;
 	float restitution = 0.8f;
 
@@ -322,25 +316,25 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 			else if( key == "acceleration" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
 				if( value == "$gravity" ) {
-					emitter->acceleration = -GRAVITY;
+					emitter->gravity = -GRAVITY;
 				}
 				else if( value == "$negative_gravity" ) {
-					emitter->acceleration = GRAVITY;
+					emitter->gravity = GRAVITY;
 				}
 				else {
-					emitter->acceleration = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+					emitter->gravity = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
 				}
 			}
 			else if( key == "acceleration" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
 				if( value == "$gravity" ) {
-					emitter->acceleration = -GRAVITY;
+					emitter->gravity = -GRAVITY;
 				}
 				else if( value == "$negative_gravity" ) {
-					emitter->acceleration = GRAVITY;
+					emitter->gravity = GRAVITY;
 				}
 				else {
-					emitter->acceleration = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+					emitter->gravity = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
 				}
 			}
 			else if( key == "drag" ) {
@@ -742,12 +736,12 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		} );
 
 		EncodeIndirectComputeCall( RenderPass_ParticleUpdate, shaders.particle_compute, ps->compute_indirect, {
-			{ "b_ParticlesIn", ps->gpu_particles1 },
-			{ "b_ParticlesOut", ps->gpu_particles2 },
+			{ "b_PrevParticles", ps->gpu_particles1 },
+			{ "b_NextParticles", ps->gpu_particles2 },
 			{ "b_NewParticles", ps->new_particles.buffer },
-			{ "b_ComputeCountIn", ps->compute_count1 },
-			{ "b_ComputeCountOut", ps->compute_count2 },
-			{ "b_UpdateStep", update },
+			{ "b_PrevParticleCount", ps->compute_count1 },
+			{ "b_NextParticleCount", ps->compute_count2 },
+			{ "b_UpdateParams", update },
 		} );
 	}
 
@@ -811,7 +805,7 @@ void DrawParticles() {
 	TracyPlotSample( "New Particles", total_new_particles );
 }
 
-static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float angle, float angular_velocity, float acceleration, float drag, float restitution, Vec4 uvwh, Vec4 trim, Vec4 start_color, Vec4 end_color, float start_size, float end_size, ParticleFlags flags ) {
+static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float angle, float angular_velocity, float gravity, float drag, float restitution, Vec4 uvwh, Vec4 trim, Vec4 start_color, Vec4 end_color, float start_size, float end_size, ParticleFlags flags ) {
 	if( ps->num_new_particles == ps->max_particles )
 		return;
 
@@ -821,7 +815,7 @@ static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Ve
 		.angle = angle,
 		.velocity = velocity,
 		.angular_velocity = angular_velocity,
-		.acceleration = acceleration,
+		.gravity = gravity,
 		.drag = drag,
 		.restitution = restitution,
 		.uvwh = uvwh,
@@ -893,7 +887,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 	if( emitter->materials.size() > 0 ) {
 		Optional< Sprite > sprite = TryFindSprite( RandomElement( &cls.rng, emitter->materials.span() ) );
 		if( sprite.exists ) {
-			EmitParticle( ps, lifetime, position, dir * speed, angle, angular_velocity, emitter->acceleration, emitter->drag, emitter->restitution,
+			EmitParticle( ps, lifetime, position, dir * speed, angle, angular_velocity, emitter->gravity, emitter->drag, emitter->restitution,
 				sprite.value.uvwh, sprite.value.trim, start_color, end_color, size, emitter->end_size, emitter->flags );
 		}
 	}

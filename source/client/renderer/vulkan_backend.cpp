@@ -1197,7 +1197,7 @@ static constexpr VkPipelineColorBlendAttachmentState blend_states[ BlendFunc_Cou
 		.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
 		.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
 		.alphaBlendOp = VK_BLEND_OP_ADD,
-		.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+		.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT,
 	},
 	{
 		.blendEnable = VK_TRUE,
@@ -1207,13 +1207,12 @@ static constexpr VkPipelineColorBlendAttachmentState blend_states[ BlendFunc_Cou
 		.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
 		.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO,
 		.alphaBlendOp = VK_BLEND_OP_ADD,
-		.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
+		.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT,
 	},
 };
 
 PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config ) {
 	ReflectedDescriptorSet descriptor_sets[ DescriptorSet_Count ] = { };
-	u32 push_constant_size = 0;
 
 	// compile and parse shaders
 	TempAllocator temp = cls.frame_arena.temp();
@@ -1474,9 +1473,14 @@ static VkCommandBuffer PrepareDraw( Opaque< CommandBuffer > ocb, const PipelineS
 	}
 
 	vkCmdBindPipeline( cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pso );
-	vkCmdSetCullMode( cb, pipeline_state.dynamic_state.cull_face == CullFace_Back ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_FRONT_BIT );
 	vkCmdSetDepthCompareOp( cb, depth_funcs[ pipeline_state.dynamic_state.depth_func ].op );
 	vkCmdSetDepthWriteEnable( cb, depth_funcs[ pipeline_state.dynamic_state.depth_func ].write_depth );
+
+	VkCullModeFlags cull = VK_CULL_MODE_NONE;
+	if( pipeline_state.dynamic_state.cull_face != CullFace_Disabled ) {
+		cull = pipeline_state.dynamic_state.cull_face == CullFace_Back ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_FRONT_BIT;
+	}
+	vkCmdSetCullMode( cb, cull );
 
 	BindMesh( cb, mesh );
 
@@ -1764,8 +1768,8 @@ static Optional< VkMemoryBarrier2 > MakeGlobalBarrier( Span< const GPUBarrier > 
 			case GPUBarrier_FragmentToFragmentOutput:
 				barrier.srcStageMask |= VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
 				barrier.srcAccessMask |= VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-				barrier.dstStageMask |= VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-				barrier.dstAccessMask |= VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT;
+				barrier.dstStageMask |= VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+				barrier.dstAccessMask |= VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
 				break;
 		}
 	}
@@ -1937,6 +1941,13 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 				depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 				depth_attachment.clearValue.depthStencil.depth = target.clear;
 				break;
+		}
+
+		if( target.resolve_target.exists ) {
+			depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			depth_attachment.resolveMode = VK_RESOLVE_MODE_MIN_BIT;
+			depth_attachment.resolveImageView = textures[ target.resolve_target.value ].backend.unwrap()->image_view;
+			depth_attachment.resolveImageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL; // TRY LAYOUT_ATTACHMENT_OPTIMAL
 		}
 	}
 

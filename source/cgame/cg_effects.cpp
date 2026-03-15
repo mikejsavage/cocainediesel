@@ -34,26 +34,29 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash materia
 	float repetitions = beam_aspect_ratio / texture_aspect_ratio;
 	Vec2 half_pixel = HalfPixelSize( material );
 
+	color.w *= width / start_width;
+	RGBA8 color8 = LinearTosRGB( color );
+
 	VFXVertex vertices[] = {
 		{
 			.position = start + start_width * beam_across * 0.5f,
 			.uv = Vec2( half_pixel.x, half_pixel.y ),
-			.color = RGBA8( 255, 255, 255, 255 * width / start_width ),
+			.color = color8,
 		},
 		{
 			.position = start - start_width * beam_across * 0.5f,
 			.uv = Vec2( half_pixel.x, 1.0f - half_pixel.y ),
-			.color = RGBA8( 255, 255, 255, 255 * width / start_width ),
+			.color = color8,
 		},
 		{
 			.position = end + end_width * beam_across * 0.5f,
 			.uv = Vec2( repetitions - half_pixel.x, half_pixel.y ),
-			.color = RGBA8( 255, 255, 255, 255 * width / end_width ),
+			.color = color8,
 		},
 		{
 			.position = end - end_width * beam_across * 0.5f,
 			.uv = Vec2( repetitions - half_pixel.x, 1.0f - half_pixel.y ),
-			.color = RGBA8( 255, 255, 255, 255 * width / end_width ),
+			.color = color8,
 		},
 	};
 

@@ -353,6 +353,7 @@ enum GPUBarrier {
 	GPUBarrier_ComputeToFragment,
 	GPUBarrier_FragmentToFragmentSample,
 	GPUBarrier_FragmentToFragmentOutput,
+	GPUBarrier_MSAAResolveToFragmentOutput,
 };
 
 struct RenderPassConfig {

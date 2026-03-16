@@ -655,17 +655,24 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		} );
 	}
 
-	frame_static.render_passes[ RenderPass_Transparent ] = NewRenderPass( RenderPassConfig {
-		.name = "Transparent",
-		.pass = RenderPass_Transparent,
-		.color_targets = { RenderPassConfig::ColorTarget { .texture = targets.resolved_color, .load = LoadOp_Load } },
-		.depth_target = RenderPassConfig::DepthTarget { .texture = targets.resolved_depth, .load = LoadOp_Load },
-		.barriers = { GPUBarrier_ComputeToIndirect, GPUBarrier_ComputeToFragment, GPUBarrier_FragmentToFragmentOutput },
-		.representative_shader = shaders.particle_add,
-		.bindings = {
-			.buffers = { { "u_View", frame_static.view_uniforms } },
-		},
-	} );
+	{
+		BoundedDynamicArray< GPUBarrier, 3 > barriers = { GPUBarrier_ComputeToIndirect, GPUBarrier_ComputeToFragment };
+		if( msaa ) {
+			barriers.must_add( GPUBarrier_MSAAResolveToFragmentOutput );
+		}
+
+		frame_static.render_passes[ RenderPass_Transparent ] = NewRenderPass( RenderPassConfig {
+			.name = "Transparent",
+			.pass = RenderPass_Transparent,
+			.color_targets = { RenderPassConfig::ColorTarget { .texture = targets.resolved_color, .load = LoadOp_Load } },
+			.depth_target = RenderPassConfig::DepthTarget { .texture = targets.resolved_depth, .load = LoadOp_Load },
+			.barriers = barriers.span(),
+			.representative_shader = shaders.particle_add,
+			.bindings = {
+				.buffers = { { "u_View", frame_static.view_uniforms } },
+			},
+		} );
+	}
 
 	// RenderPass_AddSilhouettes
 	// RenderPass_PreUIPostprocessing

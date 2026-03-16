@@ -1183,8 +1183,6 @@ static VkFormat TextureFormatToVulkan( TextureFormat format ) {
 	}
 }
 
-PoolHandle< GPUAllocation > ShitGuh();
-
 static constexpr VkPipelineColorBlendAttachmentState blend_states[ BlendFunc_Count ] = {
 	{
 		.blendEnable = false,

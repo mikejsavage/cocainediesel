@@ -442,7 +442,7 @@ static bool ParseDecalEmitter( DecalEmitter * emitter, Span< const char > * data
 
 			if( key == "material" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				if( !emitter->materials.add( StringHash( Hash64( value.ptr, value.n ) ) ) ) {
+				if( !emitter->materials.add( StringHash( Hash64( value ) ) ) ) {
 					Com_Printf( S_COLOR_YELLOW "Too many materials in decal emitter!\n" );
 					return false;
 				}
@@ -784,8 +784,6 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 void DrawParticles() {
 	float dt = cls.frametime / 1000.0f;
 
-	s64 total_new_particles = addParticleSystem.num_new_particles + blendParticleSystem.num_new_particles;
-
 	// TODO: probably merge these into one pass
 	frame_static.render_passes[ RenderPass_ParticleUpdate ] = NewComputePass( ComputePassConfig {
 		.name = "Update particles",
@@ -802,6 +800,7 @@ void DrawParticles() {
 	UpdateParticleSystem( &blendParticleSystem, dt );
 	DrawParticleSystem( &blendParticleSystem, dt );
 
+	s64 total_new_particles = addParticleSystem.num_new_particles + blendParticleSystem.num_new_particles;
 	TracyPlotSample( "New Particles", total_new_particles );
 }
 

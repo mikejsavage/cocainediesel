@@ -13,8 +13,8 @@ static_assert( sizeof( Light ) == 1 * 4 * sizeof( float ) );
 static_assert( sizeof( Light ) % alignof( Light ) == 0 );
 
 static GPUBuffer dynamic_count;
-static CoherentBuffer lights_buffer;
-static CoherentBuffer decals_buffer;
+static CoherentSpan< Decal > decals_buffer;
+static CoherentSpan< Light > lights_buffer;
 static GPUBuffer decal_tiles_buffer;
 static GPUBuffer light_tiles_buffer;
 
@@ -168,8 +168,8 @@ void AllocateDecalBuffers() {
 	u32 num_tiles = PixelsToTiles( frame_static.viewport_height ) * PixelsToTiles( frame_static.viewport_width );
 
 	dynamic_count = NewDeviceTempBuffer( "Dynamics tile counts", num_tiles * sizeof( GPUDynamicCount ), alignof( GPUDynamicCount ) );
-	decals_buffer = NewTempBuffer( decals.capacity() * sizeof( Decal ), alignof( Decal ) );
-	lights_buffer = NewTempBuffer( lights.capacity() * sizeof( Light ), alignof( Light ) );
+	decals_buffer = NewCoherentSpan< Decal >( decals.capacity() );
+	lights_buffer = NewCoherentSpan< Light >( lights.capacity() );
 	decal_tiles_buffer = NewDeviceTempBuffer( "Decal tile indices", num_tiles * sizeof( GPUDecalTile ), alignof( GPUDecalTile ) );
 	light_tiles_buffer = NewDeviceTempBuffer( "Light tile indices", num_tiles * sizeof( GPULightTile ), alignof( GPULightTile ) );
 }
@@ -180,8 +180,12 @@ void UploadDecalBuffers() {
 	u32 rows = PixelsToTiles( frame_static.viewport_height );
 	u32 cols = PixelsToTiles( frame_static.viewport_width );
 
-	memcpy( decals_buffer.ptr, decals.ptr(), decals.num_bytes() );
-	memcpy( lights_buffer.ptr, lights.ptr(), lights.num_bytes() );
+	for( size_t i = 0; i < decals.size(); i++ ) {
+		decals_buffer.data[ i ] = decals[ i ];
+	}
+	for( size_t i = 0; i < lights.size(); i++ ) {
+		lights_buffer.data[ i ] = lights[ i ];
+	}
 
 	frame_static.render_passes[ RenderPass_TileCulling ] = NewComputePass( ComputePassConfig {
 		.name = "Decal/light tile culling",

@@ -33,6 +33,12 @@ struct CoherentBuffer {
 	void * ptr;
 };
 
+template< typename T >
+struct CoherentSpan {
+	GPUBuffer buffer;
+	Span< T > data;
+};
+
 GPUBuffer NewBuffer( const char * label, size_t size, size_t alignment, bool texture, const void * data = NULL );
 
 template< typename T >
@@ -57,7 +63,16 @@ GPUBuffer NewTempBuffer( const T & x, size_t alignment = alignof( T ) ) {
 	return NewTempBuffer( &x, sizeof( T ), alignment );
 }
 
-CoherentBuffer NewTempBuffer( size_t size, size_t alignment );
+CoherentBuffer NewCoherentTempBuffer( size_t size, size_t alignment );
+
+template< typename T >
+CoherentSpan< T > NewCoherentSpan( size_t n, size_t alignment = alignof( T ) ) {
+	CoherentBuffer buf = NewCoherentTempBuffer( n * sizeof( T ), alignment );
+	return CoherentSpan< T > {
+		.buffer = buf.buffer,
+		.data = Span< T >( ( T * ) buf.ptr, n ),
+	};
+}
 
 GPUBuffer NewDeviceTempBuffer( const char * label, size_t size, size_t alignment );
 

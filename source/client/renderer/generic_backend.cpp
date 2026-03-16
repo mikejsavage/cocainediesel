@@ -238,7 +238,7 @@ static GPUBuffer NewTempBuffer( GPUArenaAllocator * a, const char * label, size_
 	};
 }
 
-CoherentBuffer NewTempBuffer( size_t size, size_t alignment ) {
+CoherentBuffer NewCoherentTempBuffer( size_t size, size_t alignment ) {
 	GPUBuffer buffer = NewTempBuffer( &coherent_temp_allocator.a, NULL, size, alignment );
 	return CoherentBuffer {
 		.buffer = buffer,
@@ -247,7 +247,7 @@ CoherentBuffer NewTempBuffer( size_t size, size_t alignment ) {
 }
 
 GPUBuffer NewTempBuffer( const void * data, size_t size, size_t alignment ) {
-	CoherentBuffer buffer = NewTempBuffer( size, alignment );
+	CoherentBuffer buffer = NewCoherentTempBuffer( size, alignment );
 	memcpy( buffer.ptr, data, size );
 	return buffer.buffer;
 }

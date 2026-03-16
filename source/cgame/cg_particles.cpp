@@ -92,7 +92,7 @@ struct ParticleSystem {
 	GPUBuffer gpu_particles1;
 	GPUBuffer gpu_particles2;
 
-	CoherentBuffer new_particles;
+	CoherentSpan< Particle > new_particles;
 	u32 num_new_particles;
 	bool clear;
 
@@ -723,8 +723,8 @@ VisualEffectGroup * FindVisualEffectGroup( const char * name ) {
 }
 
 void AllocateParticleBuffers() {
-	addParticleSystem.new_particles = NewTempBuffer( addParticleSystem.max_particles * sizeof( Particle ), alignof( Particle ) );
-	blendParticleSystem.new_particles = NewTempBuffer( blendParticleSystem.max_particles * sizeof( Particle ), alignof( Particle ) );
+	addParticleSystem.new_particles = NewCoherentSpan< Particle >( addParticleSystem.max_particles );
+	blendParticleSystem.new_particles = NewCoherentSpan< Particle >( blendParticleSystem.max_particles );
 }
 
 static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
@@ -808,8 +808,7 @@ static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Ve
 	if( ps->num_new_particles == ps->max_particles )
 		return;
 
-	Particle * new_particles = ( Particle * ) ps->new_particles.ptr;
-	new_particles[ ps->num_new_particles ] = Particle {
+	ps->new_particles.data[ ps->num_new_particles ] = Particle {
 		.position = position,
 		.angle = angle,
 		.velocity = velocity,

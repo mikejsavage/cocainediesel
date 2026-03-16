@@ -359,12 +359,12 @@ static VkBool32 VKAPI_CALL debugReportCallback(VkDebugReportFlagsEXT flags, VkDe
 	if( location == 3357201678 ) return VK_FALSE; // vkCreateGraphicsPipelines(): pCreateInfos[0].pVertexInputState Vertex attribute at location 3 not consumed by vertex shader.
 
 	const char * type =
-		(flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) ? "\033[1;31mERROR" // red
-		: (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) ? "\033[1;33mWARNING" // yellow
-		: (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) ? "\033[1;34mPERF" // blue
+		(flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) ? S_COLOR_RED "ERROR"
+		: (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) ? S_COLOR_YELLOW "WARNING"
+		: (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) ? S_COLOR_BLUE "PERF"
 		: "\033[1;32mINFO"; // green
 
-	printf( "%s:\033[0m %s\n", type, pMessage );
+	Com_Printf( "%s:" S_COLOR_WHITE " %s\n", type, pMessage );
 
 	if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
 		// Fatal( pMessage );

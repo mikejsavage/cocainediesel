@@ -29,9 +29,6 @@ bool SphereInTile( float3 origin, float radius, float3 tile_direction, float con
 void CullTile( uint2 tile ) {
 	float2 tile_min = FORWARD_PLUS_TILE_SIZE * ( tile.xy ) / u_View[ 0 ].viewport_size * 2.0f - 1.0f;
 	float2 tile_max = FORWARD_PLUS_TILE_SIZE * ( tile.xy + 1 ) / u_View[ 0 ].viewport_size * 2.0f - 1.0f;
-	// opengl y flip
-	tile_min.y = -tile_min.y;
-	tile_max.y = -tile_max.y;
 
 	float3 tile_vmin = mul( u_View[ 0 ].inverse_V, mul( u_View[ 0 ].inverse_P, float4( tile_min, 1.0f, 1.0f ) ) );
 	float3 tile_vmax = mul( u_View[ 0 ].inverse_V, mul( u_View[ 0 ].inverse_P, float4( tile_max, 1.0f, 1.0f ) ) );
@@ -40,7 +37,7 @@ void CullTile( uint2 tile ) {
 
 	uint col = tile.x;
 	uint row = tile.y;
-	uint tile_idx = row * u_TileCulling[ 0 ].rows + col;
+	uint tile_idx = row * u_TileCulling[ 0 ].cols + col;
 
 	{
 		TileIndices decal_tile;
@@ -88,7 +85,7 @@ void ComputeMain( uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint
 	uint tile_idx = DTid.x;
 	if( tile_idx > u_TileCulling[ 0 ].cols * u_TileCulling[ 0 ].rows )
 		return;
-	uint col = tile_idx % u_TileCulling[ 0 ].rows;
-	uint row = tile_idx / u_TileCulling[ 0 ].rows;
+	uint col = tile_idx / u_TileCulling[ 0 ].rows;
+	uint row = tile_idx % u_TileCulling[ 0 ].rows;
 	CullTile( uint2( col, row ) );
 }

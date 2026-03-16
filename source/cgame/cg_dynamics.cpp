@@ -168,8 +168,8 @@ void AllocateDecalBuffers() {
 	u32 num_tiles = PixelsToTiles( frame_static.viewport_height ) * PixelsToTiles( frame_static.viewport_width );
 
 	dynamic_count = NewDeviceTempBuffer( "Dynamics tile counts", num_tiles * sizeof( GPUDynamicCount ), alignof( GPUDynamicCount ) );
-	decals_buffer = NewTempBuffer( decals.num_bytes(), alignof( Decal ) );
-	lights_buffer = NewTempBuffer( lights.num_bytes(), alignof( Light ) );
+	decals_buffer = NewTempBuffer( decals.capacity() * sizeof( Decal ), alignof( Decal ) );
+	lights_buffer = NewTempBuffer( lights.capacity() * sizeof( Light ), alignof( Light ) );
 	decal_tiles_buffer = NewDeviceTempBuffer( "Decal tile indices", num_tiles * sizeof( GPUDecalTile ), alignof( GPUDecalTile ) );
 	light_tiles_buffer = NewDeviceTempBuffer( "Light tile indices", num_tiles * sizeof( GPULightTile ), alignof( GPULightTile ) );
 }
@@ -184,7 +184,7 @@ void UploadDecalBuffers() {
 	memcpy( lights_buffer.ptr, lights.ptr(), lights.num_bytes() );
 
 	frame_static.render_passes[ RenderPass_TileCulling ] = NewComputePass( ComputePassConfig {
-		.name = "Particle/light tile culling",
+		.name = "Decal/light tile culling",
 		.pass = RenderPass_TileCulling,
 	} );
 

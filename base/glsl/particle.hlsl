@@ -24,27 +24,27 @@ struct VertexOutput {
 	float4 color : COLOR;
 };
 
-static const float2 quad_positions[] = {
-	float2( -0.5f, 0.5f ),
-	float2( 0.5f, 0.5f ),
-	float2( -0.5f, -0.5f ),
-	float2( 0.5f, -0.5f ),
-};
-
-static const int index_buffer[] = { 0, 1, 2, 2, 1, 3 };
-
 float2 PositionToTexCoord( float2 p ) {
 	return p * float2( 1.0f, -1.0f ) + 0.5f;
 }
 
 VertexOutput VertexMain( VertexInput input, uint32_t instance_id : SV_InstanceID, uint32_t vertex_id : SV_VertexID ) {
+	const float2 vertices[] = {
+		float2( -0.5f, 0.5f ),
+		float2( 0.5f, 0.5f ),
+		float2( -0.5f, -0.5f ),
+		float2( 0.5f, -0.5f ),
+	};
+
+	const int indices[] = { 0, 1, 2, 2, 1, 3 };
+
 	Particle particle = LoadIndex( u_DrawCall.particles, instance_id );
 
 	float fage = particle.age / particle.lifetime;
 
 	VertexOutput output;
 	output.color = lerp( sRGBToLinear( particle.start_color ), sRGBToLinear( particle.end_color ), fage );
-	float2 position = quad_positions[ index_buffer[ vertex_id ] ];
+	float2 position = vertices[ indices[ vertex_id ] ];
 	output.uv = PositionToTexCoord( position );
 	position += 0.5f;
 	position = position * particle.trim.zw + particle.trim.xy;

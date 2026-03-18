@@ -886,6 +886,7 @@ static void PackSpriteAtlas( bool first_time ) {
 			.num_layers = num_layers,
 			.num_mipmaps = num_mipmaps,
 			.data = blocks.ptr,
+			.dedicated_allocation = true,
 		}, first_time ? NONE : Optional( sprite_atlas ) );
 	}
 }

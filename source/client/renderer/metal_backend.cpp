@@ -214,43 +214,38 @@ void DeleteTransferCommandBuffer( Opaque< CommandBuffer > cb ) {
 	cb.unwrap()->bce->endEncoding();
 }
 
-void SignalFirstRenderPass( RenderPass pass ) {
-	MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
-	command_buffer->encodeSignalEvent( global_device.pass_event, global_device.frame_counter * RenderPass_Count + pass );
-	command_buffer->commit();
+void SubmitStagingCommandBuffer( Opaque< CommandBuffer > buffer ) {
+	CommandBuffer * cmd_buf = buffer.unwrap();
+	cmd_buf->bce->endEncoding();
+	cmd_buf->command_buffer->commit();
+	cmd_buf->command_buffer->waitUntilCompleted();
 }
 
-void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitType type, Optional< RenderPass > next_pass ) {
-	TracyZoneScoped;
+void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first_pass ) {
+	Assert( passes.n > 0 );
 
-	CommandBuffer * cmd_buf = buffer.unwrap();
-
-	if( type == SubmitCommandBuffer_Present ) {
-		cmd_buf->command_buffer->addCompletedHandler( [&]( MTL::CommandBuffer * ) {
-			dispatch_semaphore_signal( frame_semaphore );
-		} );
-		cmd_buf->command_buffer->presentDrawable( frame.swapchain_surface );
+	if( first_pass > 0 ) {
+		MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
+		command_buffer->encodeSignalEvent( global_device.pass_event, global_device.frame_counter * RenderPass_Count + first_pass );
+		command_buffer->commit();
 	}
 
-	if( cmd_buf->rce != NULL ) {
-		cmd_buf->rce->endEncoding();
-	}
-	if( cmd_buf->cce != NULL ) {
-		cmd_buf->cce->endEncoding();
-	}
-	if( cmd_buf->bce != NULL ) {
-		cmd_buf->bce->endEncoding();
-	}
+	MTL::CommandBuffer * last = passes[ passes.n - 1 ].buffer.unwrap()->command_buffer;
+	last->addCompletedHandler( [&]( MTL::CommandBuffer * ) {
+		dispatch_semaphore_signal( frame_semaphore );
+	} );
+	last->presentDrawable( frame.swapchain_surface );
 
-	if( next_pass.exists ) {
-		cmd_buf->command_buffer->encodeSignalEvent( global_device.pass_event, global_device.frame_counter * RenderPass_Count + next_pass.value );
-	}
-
-	cmd_buf->command_buffer->commit();
-
-	if( type == SubmitCommandBuffer_Wait ) {
-		TracyZoneScopedNC( "SubmitCommandBuffer_Wait", 0xff0000 );
-		cmd_buf->command_buffer->waitUntilCompleted();
+	for( RenderPassSubmit pass : passes ) {
+		CommandBuffer * cb = pass.buffer.unwrap();
+		if( cb->rce != NULL ) {
+			cb->rce->endEncoding();
+		}
+		else {
+			cb->cce->endEncoding();
+		}
+		cb->command_buffer->encodeSignalEvent( global_device.pass_event, global_device.frame_counter * RenderPass_Count + pass.next_pass );
+		cb->command_buffer->commit();
 	}
 }
 

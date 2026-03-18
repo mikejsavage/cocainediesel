@@ -287,12 +287,6 @@ template<> struct PoolHandleType< BindGroup > { using T = u16; };
 struct CommandBuffer;
 template<> inline constexpr size_t OpaqueSize< CommandBuffer > = 96;
 
-enum CommandBufferSubmitType {
-	SubmitCommandBuffer_Normal,
-	SubmitCommandBuffer_Wait,
-	SubmitCommandBuffer_Present,
-};
-
 struct BufferBinding {
 	StringHash name;
 	GPUBuffer buffer;
@@ -407,8 +401,13 @@ struct RenderPassConfig {
 };
 
 Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & render_pass );
-void SignalFirstRenderPass( RenderPass pass );
-void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitType type = SubmitCommandBuffer_Normal, Optional< RenderPass > next_pass = NONE );
+
+struct RenderPassSubmit {
+	Opaque< CommandBuffer > buffer;
+	RenderPass next_pass;
+};
+
+void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first_pass );
 
 /*
  * Draw calls

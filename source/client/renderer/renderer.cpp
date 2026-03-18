@@ -715,18 +715,20 @@ void RendererEndFrame() {
 		}
 	}
 
-	if( !frame_static.render_passes[ 0 ].exists ) {
-		SignalFirstRenderPass( next_pass[ 0 ] );
-	}
-
+	BoundedDynamicArray< RenderPassSubmit, RenderPass_Count > subs = { };
+	Optional< RenderPass > first_pass = NONE;
 	for( size_t i = 0; i < ARRAY_COUNT( next_pass ); i++ ) {
 		if( !frame_static.render_passes[ i ].exists )
 			continue;
-
-		SubmitCommandBuffer( frame_static.render_passes[ i ].value,
-			next_pass[ i ] == RenderPass_Count ? SubmitCommandBuffer_Present : SubmitCommandBuffer_Normal,
-			next_pass[ i ] );
+		if( !first_pass.exists ) {
+			first_pass = RenderPass( i );
+		}
+		subs.must_add( RenderPassSubmit {
+			.buffer = frame_static.render_passes[ i ].value,
+			.next_pass = next_pass[ i ],
+		} );
 	}
+	SubmitRenderPasses( subs.span(), *first_pass );
 
 	RenderBackendEndFrame();
 }

@@ -114,6 +114,7 @@ void CopyGPUBufferToTexture(
 
 Opaque< CommandBuffer > NewTransferCommandBuffer();
 void DeleteTransferCommandBuffer( Opaque< CommandBuffer > cb );
+void SubmitStagingCommandBuffer( Opaque< CommandBuffer > cb );
 
 void UploadBuffer( GPUBuffer dest, const void * data, size_t n );
 GPUBuffer StageArgumentBuffer( GPUBuffer dest, size_t n, size_t alignment );

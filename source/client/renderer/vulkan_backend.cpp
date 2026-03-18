@@ -2160,36 +2160,53 @@ void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< Compute
 	vkCmdDispatchIndirect( cb, allocations[ indirect_args.allocation ].buffer, indirect_args.offset );
 }
 
-void SignalFirstRenderPass( RenderPass metal_only_dont_care ) {
+void SubmitStagingCommandBuffer( Opaque< CommandBuffer > buffer ) {
+	VkCommandBuffer cb = buffer.unwrap()->buffer;
+
+	const VkCommandBufferSubmitInfo command_buffer_submit_info = {
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+		.commandBuffer = cb,
+	};
+
+	VkSubmitInfo2 submit_info = {
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+		.commandBufferInfoCount = 1,
+		.pCommandBufferInfos = &command_buffer_submit_info,
+	};
+
+	vkCmdEndDebugUtilsLabelEXT( cb );
+	VK_CHECK( vkEndCommandBuffer( cb ) );
+	VK_CHECK( vkQueueSubmit2( global_device.queue, 1, &submit_info, VK_NULL_HANDLE ) );
+	VK_CHECK( vkDeviceWaitIdle( global_device.device ) );
 }
 
-void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitType type, Optional< RenderPass > metal_only_dont_care ) {
-	TracyZoneScoped;
+void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first_pass_metal_only ) {
+	Assert( passes.n > 0 );
 
-	CommandBuffer * command_buffer = buffer.unwrap();
-
-	if( command_buffer->is_render_command_buffer ) {
-		vkCmdEndRendering( command_buffer->buffer );
+	for( RenderPassSubmit pass : passes ) {
+		if( pass.buffer.unwrap()->is_render_command_buffer ) {
+			vkCmdEndRendering( pass.buffer.unwrap()->buffer );
+		}
 	}
 
-	if( type == SubmitCommandBuffer_Present ) {
-		Barrier( command_buffer->buffer, VkImageMemoryBarrier2 {
-			.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-			.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-			.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-			.oldLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-			.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-			.image = global_swapchain.images[ frame.image_index ].image,
-			.subresourceRange = {
-				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-				.levelCount = 1,
-				.layerCount = 1,
-			},
-		} );
-	}
+	Barrier( passes[ passes.n - 1 ].buffer.unwrap()->buffer, VkImageMemoryBarrier2 {
+		.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+		.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+		.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+		.oldLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+		.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+		.image = global_swapchain.images[ frame.image_index ].image,
+		.subresourceRange = {
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.levelCount = 1,
+			.layerCount = 1,
+		},
+	} );
 
-	vkCmdEndDebugUtilsLabelEXT( command_buffer->buffer );
-	VK_CHECK( vkEndCommandBuffer( command_buffer->buffer ) );
+	for( RenderPassSubmit pass : passes ) {
+		vkCmdEndDebugUtilsLabelEXT( pass.buffer.unwrap()->buffer );
+		VK_CHECK( vkEndCommandBuffer( pass.buffer.unwrap()->buffer ) );
+	}
 
 	Swapchain::Semaphores semaphores = global_swapchain.semaphores[ frame_counter % global_swapchain.semaphores.n ];
 
@@ -2213,48 +2230,40 @@ void SubmitCommandBuffer( Opaque< CommandBuffer > buffer, CommandBufferSubmitTyp
 		},
 	};
 
-	const VkCommandBufferSubmitInfo command_buffer_submit_info = {
-		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-		.commandBuffer = command_buffer->buffer,
-	};
+	BoundedDynamicArray< VkCommandBufferSubmitInfo, RenderPass_Count > command_buffer_submit_infos = { };
+	for( RenderPassSubmit pass : passes ) {
+		command_buffer_submit_infos.must_add( VkCommandBufferSubmitInfo {
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+			.commandBuffer = pass.buffer.unwrap()->buffer,
+		} );
+	}
 
+	// NOTE(mike 20260318): this waits on swapchain acquisition, we may need to
+	// split this into two submits so compute/offscreen rendering don't get stalled
 	VkSubmitInfo2 submit_info = {
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+		.waitSemaphoreInfoCount = 1,
 		.pWaitSemaphoreInfos = &present_wait_semaphore,
-		.commandBufferInfoCount = 1,
-		.pCommandBufferInfos = &command_buffer_submit_info,
+		.commandBufferInfoCount = u32( command_buffer_submit_infos.size() ),
+		.pCommandBufferInfos = command_buffer_submit_infos.ptr(),
+		.signalSemaphoreInfoCount = ARRAY_COUNT( present_signal_semaphores ),
 		.pSignalSemaphoreInfos = present_signal_semaphores,
 	};
 
-	if( command_buffer->wait_on_swapchain_acquire ) {
-		submit_info.waitSemaphoreInfoCount = 1;
-	}
-
-	if( type == SubmitCommandBuffer_Present ) {
-		submit_info.signalSemaphoreInfoCount = ARRAY_COUNT( present_signal_semaphores );
-	}
-
 	VK_CHECK( vkQueueSubmit2( global_device.queue, 1, &submit_info, VK_NULL_HANDLE ) );
 
-	if( type == SubmitCommandBuffer_Wait ) {
-		TracyZoneScopedNC( "SubmitCommandBuffer_Wait", 0xff0000 );
-		VK_CHECK( vkDeviceWaitIdle( global_device.device ) );
-	}
-	else if( type == SubmitCommandBuffer_Present ) {
-		TracyZoneScopedN( "vkQueuePresentKHR" );
-		const VkPresentInfoKHR present_info = {
-			.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-			.waitSemaphoreCount = 1,
-			.pWaitSemaphores = &semaphores.present,
-			.swapchainCount = 1,
-			.pSwapchains = &global_swapchain.swapchain,
-			.pImageIndices = &frame.image_index,
-		};
+	const VkPresentInfoKHR present_info = {
+		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &semaphores.present,
+		.swapchainCount = 1,
+		.pSwapchains = &global_swapchain.swapchain,
+		.pImageIndices = &frame.image_index,
+	};
 
-		VkResult res = vkQueuePresentKHR( global_device.queue, &present_info );
-		if( res != VK_SUCCESS && res != VK_SUBOPTIMAL_KHR && res != VK_ERROR_OUT_OF_DATE_KHR ) {
-			VkAbort( res );
-		}
+	VkResult res = vkQueuePresentKHR( global_device.queue, &present_info );
+	if( res != VK_SUCCESS && res != VK_SUBOPTIMAL_KHR && res != VK_ERROR_OUT_OF_DATE_KHR ) {
+		VkAbort( res );
 	}
 }
 

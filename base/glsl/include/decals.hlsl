@@ -67,7 +67,7 @@ void AddDecals( float3 vertex_position, uint count, int tile_index, inout float4
 				( frac( decal.radius_orientation_w ) - 0.5f ) / 0.49f
 			)
 		};
-		float4 decal_color = float4( frac( floor( decal.color_uvwh_height.yzw ) / 256.0f ), 1.0f );
+		float3 decal_color = frac( floor( decal.color_uvwh_height.yzw ) / 256.0f );
 		float decal_height = floor( decal.color_uvwh_height.y / 256.0f );
 		float4 uvwh = float4( decal.color_uvwh_height.x, frac( decal.color_uvwh_height.yzw ) );
 		float layer = floor( decal.color_uvwh_height.x );
@@ -79,7 +79,7 @@ void AddDecals( float3 vertex_position, uint count, int tile_index, inout float4
 			tangent *= radius * 2.0f;
 			bitangent *= radius * -2.0f; // negate because uvs are y-down
 
-			float3 bottom_left = origin - ( tangent + bitangent ) * 0.5;
+			float3 bottom_left = origin - ( tangent + bitangent ) * 0.5f;
 
 			// manually compute UV derivatives because auto derivatives are undefined inside incoherent branches
 			float2 uv = DecalUV( uvwh, vertex_position, bottom_left, tangent, bitangent );
@@ -88,8 +88,8 @@ void AddDecals( float3 vertex_position, uint count, int tile_index, inout float4
 
 			float alpha = u_SpriteAtlas.SampleGrad( u_StandardSampler, float3( uv, layer ), dUV_dx, dUV_dy ).a;
 			float inv_cos_45_degrees = 1.41421356237f;
-			float decal_alpha = min( 1.0f, alpha * decal_color.a * max( 0.0f, dot( decal_normal, surface_normal ) * inv_cos_45_degrees ) );
-			accumulated_color += decal_color.rgb * decal_alpha * accumulated_alpha;
+			float decal_alpha = min( 1.0f, alpha * max( 0.0f, dot( decal_normal, surface_normal ) * inv_cos_45_degrees ) );
+			accumulated_color += decal_color * decal_alpha * accumulated_alpha;
 			accumulated_alpha *= 1.0f - decal_alpha;
 			accumulated_height += decal_height * decal_alpha;
 		}

@@ -53,7 +53,8 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 			PoolHandle< Material2 > material = Default( TryFindMaterial( StringHash( mesh.material ) ), FindMaterial( "world" ) );
 			PipelineState pipeline = MaterialPipelineState( material );
 			pipeline.dynamic_state.depth_func = DepthFunc_EqualNoWrite;
-			Draw( MaterialRenderPass( material ), pipeline, map->render_data, { gpu_transform, frame_static.identity_material_color_uniforms }, mesh_extras );
+			Vec4 material_color = EvaluateMaterialColor( material, color );
+			Draw( MaterialRenderPass( material ), pipeline, map->render_data, { gpu_transform, NewTempBuffer( material_color ) }, mesh_extras );
 		}
 	}
 }

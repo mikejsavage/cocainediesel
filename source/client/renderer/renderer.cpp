@@ -642,6 +642,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 					.load = LoadOp_Load,
 					.resolve_target = msaa ? Optional( targets.resolved_color ) : NONE,
 				},
+				RenderPassConfig::ColorTarget { .texture = targets.curved_surface_mask, .load = LoadOp_Load },
 			},
 			.depth_target = RenderPassConfig::DepthTarget {
 				.texture = depth_target,

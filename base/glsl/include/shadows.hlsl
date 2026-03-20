@@ -47,9 +47,8 @@ float3 GetShadowPosOffset( float nDotL, float3 normal ) {
 	float2 shadowmap_size;
 	float dont_care_layers;
 	u_ShadowmapTextureArray.GetDimensions( shadowmap_size.x, shadowmap_size.y, dont_care_layers );
-	float2 inv_shadowmap_size = 1.0f / shadowmap_size;
-	float texelSize = 2.0f * inv_shadowmap_size.x;
-	float nmlOffsetScale = clamp( 1.0f - nDotL, 0.0f, 1.0f );
+	float texelSize = 2.0f / shadowmap_size.x;
+	float nmlOffsetScale = saturate( 1.0f - nDotL );
 	return texelSize * offset_scale * nmlOffsetScale * normal;
 }
 
@@ -76,7 +75,7 @@ float SampleShadowmapOptimizedPCF( float3 shadowPos, float3 shadowPosDX, float3 
 	float2 base_uv = floor( uv + 0.5f );
 	float s = uv.x + 0.5f - base_uv.x;
 	float t = uv.y + 0.5f - base_uv.y;
-	base_uv -= 0.5f;
+	base_uv -= float2( 0.5f, 0.5f );
 	base_uv *= inv_shadowmap_size;
 
 	float uw0 = (4.0f - 3.0f * s);
@@ -117,11 +116,11 @@ float ShadowCascade( float3 position, float3 normal, uint32_t cascadeIdx ) {
 	float3 cascadeScale = u_Shadowmap[ 0 ].cascades[ cascadeIdx ].scale;
 
 	float3 offset = GetShadowPosOffset( dot( normal, u_View[ 0 ].sun_direction ), normal ) / abs( cascadeScale.z );
-	float3 shadowPos = mul( u_Shadowmap[ 0 ].V, float4( position + offset, 1.0f ) ).xyz;
-	float3 shadowPosDX = ddx( shadowPos ) * cascadeScale;
-	float3 shadowPosDY = ddy( shadowPos ) * cascadeScale;
+	float3 shadowPos = mul34( u_Shadowmap[ 0 ].V, float4( position + offset, 1.0f ) ).xyz;
+	float3 shadowPosDX = ddx_fine( shadowPos ) * cascadeScale;
+	float3 shadowPosDY = ddy_fine( shadowPos ) * cascadeScale;
 	shadowPos = ( shadowPos + cascadeOffset ) * cascadeScale;
-	shadowPos.z = shadowPos.z * 0.5f + 0.5f;
+	/* shadowPos.z = shadowPos.z * 0.5f + 0.5f; */
 
 	return SampleShadowmapOptimizedPCF( shadowPos, shadowPosDX, shadowPosDY, cascadeIdx );
 }
@@ -137,7 +136,7 @@ float GetLight( float3 position, float3 normal ) {
 			float light = ShadowCascade( position, normal, i );
 			float fade_factor = ( plane - view_distance ) / plane;
 			if( fade_factor < blend_threshold ) {
-				float next_light = 1.0f; // fade to nothing if we're on last cascade
+				float next_light = 1.0f; // fade to unshadowed if we're on last cascade
 				if( i + 1 < u_Shadowmap[ 0 ].num_cascades ) {
 					next_light = ShadowCascade( position, normal, i + 1 );
 				}

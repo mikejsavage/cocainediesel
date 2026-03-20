@@ -387,7 +387,7 @@ static void SetupShadowCascades() {
 		cascade_dist[ i + 1 ] = frame_static.shadow_parameters.cascade_dists[ i ];
 	}
 
-	const Vec4 frustum_direction_corners[] = {
+	constexpr Vec4 frustum_direction_corners[] = {
 		Vec4( -1.0f,  1.0f, 1.0f, 1.0f ),
 		Vec4(  1.0f,  1.0f, 1.0f, 1.0f ),
 		Vec4(  1.0f, -1.0f, 1.0f, 1.0f ),
@@ -400,17 +400,14 @@ static void SetupShadowCascades() {
 		frustum_directions[ i ] = Normalize( frame_static.position - corner.xyz() / corner.w );
 	}
 
-	Vec3 frustum_corners[ num_planes ][ 4 ];
+	Vec3 frustum_corners[ num_planes ][ num_corners ];
 	Vec3 frustum_centers[ num_planes ] = { };
-	u32 counts[ num_planes ] = { };
 	for( u32 i = 0; i < num_planes; i++ ) {
 		for( u32 j = 0; j < num_corners; j++ ) {
 			Vec3 corner = frame_static.position + frustum_directions[ j ] * cascade_dist[ i ];
 			frustum_corners[ i ][ j ] = corner;
 			frustum_centers[ i ] += corner;
-			counts[ i ]++;
 			frustum_centers[ ( i + 1 ) % num_planes ] += corner;
-			counts[ ( i + 1 ) % num_planes ]++;
 		}
 	}
 
@@ -418,7 +415,7 @@ static void SetupShadowCascades() {
 	Mat3x4 shadow_views[ num_planes ];
 	Mat4 shadow_projections[ num_planes ];
 	for( u32 i = 0; i < num_planes; i++ ) {
-		frustum_centers[ i ] /= num_corners * 2;
+		frustum_centers[ i ] /= num_corners * 2.0f;
 		float radius = 0.0f;
 		for( u32 j = 0; j < num_corners; j++ ) {
 			float dist = Length( frustum_corners[ i ][ j ] - frustum_centers[ i ] );
@@ -465,7 +462,7 @@ static void SetupShadowCascades() {
 
 		Mat4 inv_shadow_projection = InverseScaleTranslation( shadow_projection );
 
-		Mat4 tex_scale_bias = Mat4( Mat4Translation( 0.5f, 0.5f, 0.0f ) * Mat4Scale( 0.5f, 0.5f, 1.0f ) );
+		Mat4 tex_scale_bias = Mat4( Mat4Translation( 0.5f, 0.5f, 0.0f ) * Mat4Scale( 0.5f, -0.5f, 1.0f ) );
 		Mat4 inv_tex_scale_bias = InverseScaleTranslation( tex_scale_bias );
 
 		Mat4 inv_cascade = Mat4( shadow_views[ 0 ] * inv_shadow_view ) * inv_shadow_projection * inv_tex_scale_bias;
@@ -473,12 +470,14 @@ static void SetupShadowCascades() {
 		Vec3 other_corner = ( inv_cascade * Vec4( 1.0f, 1.0f, 1.0f, 1.0f ) ).xyz();
 
 		uniforms.cascades[ i ] = {
-			.plane = cascade_dist[ i ],
+			.plane = cascade_dist[ i + 1 ],
 			.offset = -cascade_corner,
 			.scale = 1.0f / ( other_corner - cascade_corner ),
 		};
 	}
 
+	// NOTE(mike 20260319): this uploads slightly too much data because
+	// alignof(Mat3x4) is 16 on the CPU and not on the GPU, seems to be benign
 	frame_static.shadow_uniforms = NewTempBuffer( uniforms );
 }
 

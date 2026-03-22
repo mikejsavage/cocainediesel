@@ -1210,7 +1210,7 @@ static constexpr VkPipelineColorBlendAttachmentState blend_states[ BlendFunc_Cou
 	},
 };
 
-PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config ) {
+PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config, Optional< PoolHandle< RenderPipeline > > old_pipeline ) {
 	ReflectedDescriptorSet descriptor_sets[ DescriptorSet_Count ] = { };
 
 	// compile and parse shaders
@@ -1537,7 +1537,7 @@ void EncodeScissor( Opaque< CommandBuffer > ocb, Optional< Scissor > scissor ) {
 	vkCmdSetScissor( ocb.unwrap()->buffer, 0, 1, &vk );
 }
 
-PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path ) {
+PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path, Optional< PoolHandle< ComputePipeline > > old_pipeline ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	// compile and parse shaders

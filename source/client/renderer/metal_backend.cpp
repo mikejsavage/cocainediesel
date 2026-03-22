@@ -591,7 +591,7 @@ dispatch_data_t SpanToDispatchData( Span< const T > data ) {
 }
 
 // NOMERGE: Optional
-PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config ) {
+PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config, Optional< PoolHandle< RenderPipeline > > old_pipeline ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	Span< const u8 > metallib = AssetBinary( temp.sv( "{}.metallib", config.path ) );
@@ -913,7 +913,7 @@ void EncodeScissor( Opaque< CommandBuffer > ocb, Optional< Scissor > scissor ) {
 	}
 }
 
-PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path ) {
+PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path, Optional< PoolHandle< ComputePipeline > > old_pipeline ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	Span< const u8 > metallib = AssetBinary( temp.sv( "{}.metallib", path ) );

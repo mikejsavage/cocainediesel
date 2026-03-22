@@ -225,7 +225,7 @@ struct RenderPipelineConfig {
 struct RenderPipeline;
 template<> struct PoolHandleType< RenderPipeline > { using T = u8; };
 
-PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config );
+PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config, Optional< PoolHandle< RenderPipeline > > old_pipeline );
 
 /*
  * ComputePipeline
@@ -234,7 +234,7 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 struct ComputePipeline;
 template<> struct PoolHandleType< ComputePipeline > { using T = u8; };
 
-PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path );
+PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path, Optional< PoolHandle< ComputePipeline > > old_pipeline );
 
 /*
  * RenderPipelineDynamicState

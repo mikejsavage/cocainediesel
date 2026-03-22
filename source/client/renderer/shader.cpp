@@ -8,8 +8,6 @@
 
 Shaders shaders;
 
-static constexpr Span< const char > ShaderExtension = IFDEF( PLATFORM_MACOS ) ? ".metallib"_sp : ".spv"_sp;
-
 static Span< const char > ShaderFilename( Allocator * a, Span< const char > src_filename, Span< Span< const char > > features ) {
        DynamicString filename( a, "shaders/{}", src_filename );
        for( Span< const char > feature : features ) {
@@ -18,7 +16,7 @@ static Span< const char > ShaderFilename( Allocator * a, Span< const char > src_
        return CloneSpan( a, filename.span() );
 }
 
-static void LoadShaders( const ShaderDescriptors & desc ) {
+static void LoadShaders( const ShaderDescriptors & desc, bool hotload ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	// TODO: hotloading
@@ -30,29 +28,30 @@ static void LoadShaders( const ShaderDescriptors & desc ) {
 			.clamp_depth = shader.clamp_depth,
 			.alpha_to_coverage = shader.alpha_to_coverage,
 			.mesh_variants = shader.mesh_variants,
-		} );
+		}, hotload ? Optional( shaders.*shader.field ) : NONE );
 	}
 
 	for( const ComputeShaderDescriptor & shader : desc.compute_shaders ) {
-		shaders.*shader.field = NewComputePipeline( StripExtension( temp( "shaders/{}", shader.src ) ) );
+		shaders.*shader.field = NewComputePipeline( StripExtension( temp( "shaders/{}", shader.src ) ), hotload ? Optional( shaders.*shader.field ) : NONE );
 	}
 }
 
 void InitShaders() {
 	shaders = { };
-	VisitShaderDescriptors< void >( LoadShaders );
+	VisitShaderDescriptors< void >( LoadShaders, false );
 }
 
 void HotloadShaders() {
-	bool need_hotload = false;
+	bool hotload = false;
 	for( Span< const char > path : ModifiedAssetPaths() ) {
+		constexpr Span< const char > ShaderExtension = IFDEF( PLATFORM_MACOS ) ? ".metallib"_sp : ".spv"_sp;
 		if( StrEqual( FileExtension( path ), ShaderExtension ) ) {
-			need_hotload = true;
+			hotload = true;
 			break;
 		}
 	}
 
-	if( need_hotload ) {
-		VisitShaderDescriptors< void >( LoadShaders );
+	if( hotload ) {
+		VisitShaderDescriptors< void >( LoadShaders, true );
 	}
 }

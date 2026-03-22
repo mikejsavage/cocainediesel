@@ -117,6 +117,7 @@ T LoadIndex( vk::BufferPointer< T > buf, uint64_t idx ) {
 
 // NOTE(mike 20260220): if you use vk::BufferPointer< float3x4 > it interprets
 // it as transposed vs vk::BufferPointer< struct { float3x4 } >
+// NOTE(mike 20260322): dxc has -fspv-use-legacy-buffer-matrix-order which doesn't seem to fix this
 struct Float3x4 {
 	float3x4 m;
 };

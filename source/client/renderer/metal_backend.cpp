@@ -781,7 +781,7 @@ static void BindBindGroup( MTL::RenderCommandEncoder * encoder, PoolHandle< Bind
 }
 
 static GPUBuffer EncodeArgumentBuffer( ArgumentBufferEncoder * encoder, Span< const BufferBinding > buffers ) {
-	GPUBuffer args = NewTempBuffer( encoder->encoder->encodedLength(), encoder->encoder->alignment() ).buffer;
+	GPUBuffer args = NewCoherentTempBuffer( encoder->encoder->encodedLength(), encoder->encoder->alignment() ).buffer;
 
 	encoder->encoder->setArgumentBuffer( allocations[ args.allocation ].buffer, args.offset );
 

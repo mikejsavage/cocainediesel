@@ -432,7 +432,7 @@ int main( int argc, char ** argv ) {
 		Assert( codepoint < ARRAY_COUNT( metadata.glyphs ) );
 		Vec2 atlas_size = Vec2( atlas_width, atlas_height );
 		metadata.glyphs[ codepoint ] = FontMetadata::Glyph {
-			.bounds = MinMax2( scale * Vec2( glyph.x0, glyph.y0 ), scale * Vec2( glyph.x1, glyph.y1 ) ),
+			.bounds = MinMax2( Vec2( glyph.x0, glyph.y0 ), Vec2( glyph.x1, glyph.y1 ) ) * scale,
 			// .tight_uv_bounds = { },
 			.padded_uv_bounds = MinMax2( Vec2( uvs.x, uvs.y + uvs.h ) / atlas_size, Vec2( uvs.x + uvs.w, uvs.y ) / atlas_size ),
 			.advance = advance * scale,

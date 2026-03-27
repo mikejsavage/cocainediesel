@@ -497,6 +497,15 @@ void DeleteDedicatedAllocationTexture( Opaque< BackendTexture > texture ) {
 	texture.unwrap()->texture->release();
 }
 
+bool SwapchainIsNotsRGB() {
+	MTL::PixelFormat swapchain_format = global_device.swapchain->pixelFormat();
+	return false
+		|| swapchain_format == MTL::PixelFormatRGB10A2Unorm
+		|| swapchain_format == MTL::PixelFormatBGR10A2Unorm
+		// according to https://metalcheatsheet.com/ macOS doesn't support XR formats but keep it here just in case
+		|| swapchain_format == MTL::PixelFormatBGR10_XR;
+}
+
 PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, Opaque< BackendTexture > texture, SamplerType sampler, GPUBuffer properties ) {
 	MTL::ArgumentEncoder * encoder = global_device.material_argument_encoder;
 

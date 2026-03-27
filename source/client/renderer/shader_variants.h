@@ -335,6 +335,12 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.output_format = depthless,
 				.mesh_variants = { fullscreen_vertex_descriptor },
 			},
+			GraphicsShaderDescriptor {
+				.field = &Shaders::srgb,
+				.src = "srgb",
+				.output_format = depthless,
+				.mesh_variants = { fullscreen_vertex_descriptor },
+			},
 		},
 
 		.compute_shaders = {

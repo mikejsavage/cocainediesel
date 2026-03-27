@@ -48,6 +48,7 @@ struct Shaders {
 
 	PoolHandle< RenderPipeline > postprocess_preui;
 	PoolHandle< RenderPipeline > postprocess;
+	PoolHandle< RenderPipeline > srgb;
 
 	PoolHandle< ComputePipeline > debug;
 };

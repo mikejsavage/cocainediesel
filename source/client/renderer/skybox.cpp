@@ -46,7 +46,7 @@ void DrawSkybox( Time time ) {
 		.pass = RenderPass_Sky,
 		.color_targets = {
 			RenderPassConfig::ColorTarget {
-				.texture = Default( frame_static.render_targets.msaa_color, frame_static.render_targets.resolved_color ),
+				.texture = Default( frame_static.render_targets.msaa_color, frame_static.render_targets.resolved_color0 ),
 				.load = LoadOp_Load,
 			},
 		},

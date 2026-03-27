@@ -34,8 +34,7 @@ float value( float2 p ) {
 float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
 	float2 uv = v.world_position.xy / v.world_position.z;
 
-	/* float3 cloud_color = 0.01f; */
-	float3 cloud_color = 0.4f;
+	float3 cloud_color = 0.01f;
 	float3 sky_color = 0.06f;
 	float3 sun_color = 1.0f;
 

@@ -178,9 +178,9 @@ static void SubmitPostprocessPreuiPass() {
 		.name = "Pre-UI postprocessing",
 		.pass = RenderPass_PreUIPostprocessing,
 		.color_targets = {
-			RenderPassConfig::ColorTarget { .texture = NONE },
+			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.resolved_color1, .load = LoadOp_DontCare },
 		},
-		.readonly_transitions = { frame_static.render_targets.resolved_color },
+		.readonly_transitions = { frame_static.render_targets.resolved_color0 },
 		.representative_shader = shaders.postprocess,
 		.bindings = {
 			.buffers = {
@@ -188,7 +188,7 @@ static void SubmitPostprocessPreuiPass() {
 				{ "u_Postprocess", NewTempBuffer( uniforms ) },
 			},
 			.textures = {
-				{ "u_Framebuffer", frame_static.render_targets.resolved_color },
+				{ "u_Framebuffer", frame_static.render_targets.resolved_color0 },
 				{ "u_RGBNoise", RGBNoiseTexture() },
 			},
 			.samplers = { { "u_StandardSampler", Sampler_Standard } },
@@ -222,14 +222,18 @@ static void SubmitPostprocessPass() {
 		.crt = chasing_amount,
 	};
 
+	bool explicit_srgb = SwapchainIsNotsRGB();
 	frame_static.render_passes[ RenderPass_Postprocessing ] = NewRenderPass( RenderPassConfig {
 		.name = "Postprocessing",
 		.pass = RenderPass_Postprocessing,
 		.color_targets = {
-			RenderPassConfig::ColorTarget { .texture = NONE, .load = LoadOp_DontCare },
+			RenderPassConfig::ColorTarget {
+				.texture = explicit_srgb ? Optional( frame_static.render_targets.resolved_color1 ) : NONE,
+				.load = LoadOp_DontCare,
+			},
 		},
-		.readonly_transitions = { frame_static.render_targets.resolved_color },
-		.swapchain_attachment_transition = true,
+		.readonly_transitions = { frame_static.render_targets.resolved_color0 },
+		.swapchain_attachment_transition = !explicit_srgb,
 		.representative_shader = shaders.postprocess,
 		.bindings = {
 			.buffers = {
@@ -237,7 +241,7 @@ static void SubmitPostprocessPass() {
 				{ "u_Postprocess", NewTempBuffer( uniforms ) },
 			},
 			.textures = {
-				{ "u_Framebuffer", frame_static.render_targets.resolved_color },
+				{ "u_Framebuffer", frame_static.render_targets.resolved_color0 },
 				{ "u_RGBNoise", RGBNoiseTexture() },
 			},
 			.samplers = { { "u_StandardSampler", Sampler_Standard } },

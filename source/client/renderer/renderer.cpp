@@ -278,13 +278,21 @@ static void CreateRenderTargets( bool first_time ) {
 		// 	.height = frame_static.viewport_height,
 		// } );
 
-	frame_static.render_targets.resolved_color = NewTexture( TextureConfig {
-		.name = "Color RT",
+	frame_static.render_targets.resolved_color0 = NewTexture( TextureConfig {
+		.name = "Color RT flip",
 		.format = TextureFormat_Swapchain,
 		.width = frame_static.viewport_width,
 		.height = frame_static.viewport_height,
 		.dedicated_allocation = true,
-	}, first_time ? NONE : Optional( frame_static.render_targets.resolved_color ) );
+	}, first_time ? NONE : Optional( frame_static.render_targets.resolved_color0 ) );
+
+	frame_static.render_targets.resolved_color1 = NewTexture( TextureConfig {
+		.name = "Color RT flop",
+		.format = TextureFormat_Swapchain,
+		.width = frame_static.viewport_width,
+		.height = frame_static.viewport_height,
+		.dedicated_allocation = true,
+	}, first_time ? NONE : Optional( frame_static.render_targets.resolved_color1 ) );
 
 	frame_static.render_targets.resolved_depth = NewTexture( TextureConfig {
 		.name = "Depth RT",
@@ -571,7 +579,8 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	}
 
 	bool msaa = frame_static.msaa_samples > 1;
-	PoolHandle< Texture > color_target = msaa ? *targets.msaa_color : targets.resolved_color;
+	bool explicit_srgb = SwapchainIsNotsRGB();
+	PoolHandle< Texture > color_target = msaa ? *targets.msaa_color : targets.resolved_color0;
 	PoolHandle< Texture > depth_target = msaa ? *targets.msaa_depth : targets.resolved_depth;
 
 	frame_static.render_passes[ RenderPass_WorldOpaqueZPrepass ] = NewRenderPass( RenderPassConfig {
@@ -630,16 +639,16 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	// RenderPass_AddOutlines, transitions depth_target to readonly
 
 	{
-		PoolHandle< Texture > msaa_attachment_transitions[] = { targets.resolved_color, targets.resolved_depth };
+		PoolHandle< Texture > msaa_attachment_transitions[] = { targets.resolved_color0, targets.resolved_depth };
 
 		frame_static.render_passes[ RenderPass_NonworldOpaque ] = NewRenderPass( RenderPassConfig {
-			.name = "Nonworld opaque + MSAA resolve",
+			.name = msaa ? "Nonworld opaque + MSAA resolve"_sp : "Nonworld opaque"_sp,
 			.pass = RenderPass_NonworldOpaque,
 			.color_targets = {
 				RenderPassConfig::ColorTarget {
 					.texture = color_target,
 					.load = LoadOp_Load,
-					.resolve_target = msaa ? Optional( targets.resolved_color ) : NONE,
+					.resolve_target = msaa ? Optional( targets.resolved_color0 ) : NONE,
 				},
 				RenderPassConfig::ColorTarget { .texture = targets.curved_surface_mask, .load = LoadOp_Load },
 			},
@@ -664,7 +673,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		frame_static.render_passes[ RenderPass_Transparent ] = NewRenderPass( RenderPassConfig {
 			.name = "Transparent",
 			.pass = RenderPass_Transparent,
-			.color_targets = { RenderPassConfig::ColorTarget { .texture = targets.resolved_color, .load = LoadOp_Load } },
+			.color_targets = { RenderPassConfig::ColorTarget { .texture = targets.resolved_color0, .load = LoadOp_Load } },
 			.depth_target = RenderPassConfig::DepthTarget { .texture = targets.resolved_depth, .load = LoadOp_Load },
 			.barriers = barriers.span(),
 			.representative_shader = shaders.particle_add,
@@ -681,8 +690,9 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		.name = "UI before postprocessing",
 		.pass = RenderPass_UIBeforePostprocessing,
 		.color_targets = {
-			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.resolved_color, .load = LoadOp_Load },
+			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.resolved_color0, .load = LoadOp_Load },
 		},
+		// .readonly_transitions = { frame_static.render_targets.resolved_color0 }, TODO NOMERGE, after pre-post is reenabled
 		.representative_shader = shaders.imgui,
 		.bindings = {
 			.buffers = { { "u_View", frame_static.ortho_view_uniforms } },
@@ -694,12 +704,33 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	frame_static.render_passes[ RenderPass_UIAfterPostprocessing ] = NewRenderPass( RenderPassConfig {
 		.name = "UI after postprocessing",
 		.pass = RenderPass_UIAfterPostprocessing,
-		.color_targets = { RenderPassConfig::ColorTarget { .texture = NONE, .load = LoadOp_Load } },
+		.color_targets = {
+			RenderPassConfig::ColorTarget {
+				.texture = explicit_srgb ? Optional( targets.resolved_color1 ) : NONE,
+				.load = LoadOp_Load,
+			},
+		},
 		.representative_shader = shaders.imgui,
 		.bindings = {
 			.buffers = { { "u_View", frame_static.ortho_view_uniforms } },
 		},
 	} );
+
+	if( explicit_srgb ) {
+		frame_static.render_passes[ RenderPass_10BitTosRGB ] = NewRenderPass( RenderPassConfig {
+			.name = "sRGB",
+			.pass = RenderPass_10BitTosRGB,
+			.color_targets = { RenderPassConfig::ColorTarget { .texture = NONE } },
+			.readonly_transitions = { targets.resolved_color1 },
+			.swapchain_attachment_transition = true,
+			.representative_shader = shaders.srgb,
+			.bindings = {
+				.textures = { { "u_Framebuffer", targets.resolved_color1 } },
+			},
+		} );
+
+		Draw( RenderPass_10BitTosRGB, { .shader = shaders.srgb }, FullscreenMesh() );
+	}
 }
 
 void RendererEndFrame() {

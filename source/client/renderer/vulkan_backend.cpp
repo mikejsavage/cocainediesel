@@ -2476,6 +2476,10 @@ void DeleteDedicatedAllocationTexture( Opaque< BackendTexture > texture ) {
 	DeleteTexture( *texture.unwrap() );
 }
 
+bool SwapchainIsNotsRGB() {
+	return global_swapchain.format == VK_FORMAT_A2B10G10R10_UNORM_PACK32;
+}
+
 enum SamplerWrap : u8 {
 	SamplerWrap_Repeat,
 	SamplerWrap_Clamp,

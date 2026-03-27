@@ -456,7 +456,7 @@ static void DrawSilhouettes() {
 		.name = "Add silhouettes",
 		.pass = RenderPass_AddSilhouettes,
 		.color_targets = {
-			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.resolved_color, .load = LoadOp_Load },
+			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.resolved_color0, .load = LoadOp_Load },
 		},
 		.readonly_transitions = { frame_static.render_targets.silhouette_mask },
 		.representative_shader = shaders.postprocess_silhouette_mask,
@@ -485,7 +485,7 @@ static void DrawOutlines() {
 		.pass = RenderPass_AddOutlines,
 		.color_targets = {
 			RenderPassConfig::ColorTarget {
-				.texture = Default( frame_static.render_targets.msaa_color, frame_static.render_targets.resolved_color ),
+				.texture = Default( frame_static.render_targets.msaa_color, frame_static.render_targets.resolved_color0 ),
 				.load = LoadOp_Load,
 			},
 		},

@@ -329,16 +329,18 @@ enum RenderPass {
 	RenderPass_WriteSilhouetteMask,
 	RenderPass_NonworldOpaqueOutlined,
 	RenderPass_AddOutlines,
-	RenderPass_NonworldOpaque,
+	RenderPass_NonworldOpaque, // NOTE(mike 20260327): also MSAA resolve
 
-	RenderPass_Transparent,
+	RenderPass_Transparent, // -> color0
 
-	RenderPass_AddSilhouettes,
+	RenderPass_AddSilhouettes, // -> color0
 
-	RenderPass_PreUIPostprocessing,
-	RenderPass_UIBeforePostprocessing,
-	RenderPass_Postprocessing,
-	RenderPass_UIAfterPostprocessing,
+	RenderPass_PreUIPostprocessing, // color0 -> color1
+	RenderPass_UIBeforePostprocessing, // -> color1
+	RenderPass_Postprocessing, // color1 -> (hdr ? color0 : swapchain)
+	RenderPass_UIAfterPostprocessing, // -> hdr ? color0 : swapchain
+
+	RenderPass_10BitTosRGB, // hdr only, -> swapchain
 
 	RenderPass_Count
 };
@@ -577,7 +579,8 @@ struct FrameStatic {
 		PoolHandle< Texture > silhouette_mask;
 		PoolHandle< Texture > curved_surface_mask;
 		Optional< PoolHandle< Texture > > msaa_color;
-		PoolHandle< Texture > resolved_color;
+		PoolHandle< Texture > resolved_color0;
+		PoolHandle< Texture > resolved_color1;
 		Optional< PoolHandle< Texture > > msaa_depth;
 		PoolHandle< Texture > resolved_depth;
 		PoolHandle< Texture > shadowmap;
@@ -595,3 +598,5 @@ void RendererEndFrame();
 void RenderBackendWaitForNewFrame();
 void RenderBackendBeginFrame( int frames_to_capture );
 void RenderBackendEndFrame();
+
+bool SwapchainIsNotsRGB();

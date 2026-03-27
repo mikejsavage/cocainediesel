@@ -67,7 +67,7 @@ static void AddViewWeaponAnimations( Vec3 * origin, EulerDegrees3 * angles, cg_v
 			float refire_time = GetWeaponDefFire( ps->weapon, ps->weapon_alt_fire )->refire_time;
 			float frac = float( ps->weapon_state_time ) / refire_time;
 			if( ps->weapon == Weapon_Knife ) {
-				*origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 30.0f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				*origin += -FromQFAxis( cg.view.axis, AXIS_UP ) * 30.0f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 				angles->roll += refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 				angles->yaw -= refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 				angles->pitch += refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );

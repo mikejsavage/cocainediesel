@@ -1,4 +1,5 @@
 #pragma once
+// NOMERGE nuke this shit
 
 #include "qcommon/types.h"
 #include "qcommon/srgb.h"

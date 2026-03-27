@@ -458,8 +458,8 @@ void EncodeIndirectComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< Com
  */
 
 struct MatrixPalettes {
-	Span< Mat3x4 > node_transforms;
-	Span< Mat3x4 > skinning_matrices;
+	Span< const Mat3x4 > node_transforms;
+	Span< const Mat3x4 > skinning_matrices;
 };
 
 // NOMERGE: maybe we should do this instead of n->n+1 deps everywhere

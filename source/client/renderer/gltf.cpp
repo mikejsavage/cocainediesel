@@ -566,28 +566,31 @@ MatrixPalettes ComputeMatrixPalettes( Allocator * a, const GLTFRenderData * rend
 
 	Assert( local_poses.n == render_data->nodes.n );
 
-	MatrixPalettes palettes = { };
-	palettes.node_transforms = AllocSpan< Mat3x4 >( a, render_data->nodes.n );
+	Span< Mat3x4 > node_transforms = AllocSpan< Mat3x4 >( a, render_data->nodes.n );
+	Span< Mat3x4 > skinning_matrices = { };
 	if( render_data->skin.n != 0 ) {
-		palettes.skinning_matrices = AllocSpan< Mat3x4 >( a, render_data->skin.n );
+		skinning_matrices = AllocSpan< Mat3x4 >( a, render_data->skin.n );
 	}
 
 	for( u8 i = 0; i < render_data->nodes.n; i++ ) {
 		u8 parent = render_data->nodes[ i ].parent;
 		if( parent == U8_MAX ) {
-			palettes.node_transforms[ i ] = TransformToMat3x4( local_poses[ i ] );
+			node_transforms[ i ] = TransformToMat3x4( local_poses[ i ] );
 		}
 		else {
-			palettes.node_transforms[ i ] = palettes.node_transforms[ parent ] * TransformToMat3x4( local_poses[ i ] );
+			node_transforms[ i ] = node_transforms[ parent ] * TransformToMat3x4( local_poses[ i ] );
 		}
 	}
 
 	for( u8 i = 0; i < render_data->skin.n; i++ ) {
 		u8 node_idx = render_data->skin[ i ].node_idx;
-		palettes.skinning_matrices[ i ] = palettes.node_transforms[ node_idx ] * render_data->skin[ i ].joint_to_bind;
+		skinning_matrices[ i ] = node_transforms[ node_idx ] * render_data->skin[ i ].joint_to_bind;
 	}
 
-	return palettes;
+	return MatrixPalettes {
+		.node_transforms = node_transforms,
+		.skinning_matrices = skinning_matrices,
+	};
 }
 
 bool FindNodeByName( const GLTFRenderData * render_data, StringHash name, u8 * idx ) {

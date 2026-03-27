@@ -470,6 +470,16 @@ inline void format( FormatBuffer * fb, const Mat3 & m, const FormatOpts & opts )
 	format( fb, ")" );
 }
 
+inline void format( FormatBuffer * fb, const Mat3x4 & m, const FormatOpts & opts ) {
+	format( fb, "Mat3x4(" );
+	format( fb, m.row0(), opts );
+	format( fb, ", " );
+	format( fb, m.row1(), opts );
+	format( fb, ", " );
+	format( fb, m.row2(), opts );
+	format( fb, ")" );
+}
+
 inline void format( FormatBuffer * fb, const Mat4 & m, const FormatOpts & opts ) {
 	format( fb, "Mat4(" );
 	format( fb, m.row0(), opts );

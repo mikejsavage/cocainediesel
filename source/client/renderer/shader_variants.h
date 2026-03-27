@@ -260,19 +260,13 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 			GraphicsShaderDescriptor {
 				.field = &Shaders::outline,
 				.src = "outline",
-				.output_format = {
-					.colors = { TextureFormat_Swapchain },
-					.has_depth = true,
-				},
+				.output_format = depthy,
 				.mesh_variants = { standard_vertex },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::outline_skinned,
 				.src = "outline",
-				.output_format = {
-					.colors = { TextureFormat_Swapchain },
-					.has_depth = true,
-				},
+				.output_format = standard_output,
 				.features = { "SKINNED" },
 				.mesh_variants = { gltf_pnuj },
 			},

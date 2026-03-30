@@ -85,6 +85,7 @@ struct VulkanDevice {
 	u32 queue_family_index;
 
 	VkSemaphore frame_timeline_semaphore;
+	VkSemaphore acquire_semaphores[ MaxFramesInFlight ];
 
 	VkDescriptorPool descriptor_pool;
 
@@ -115,11 +116,7 @@ struct Swapchain {
 	struct Image {
 		VkImage image;
 		VkImageView image_view;
-	};
-
-	struct Semaphores {
-		VkSemaphore acquire;
-		VkSemaphore present;
+		VkSemaphore present_semaphore;
 	};
 
 	VkSwapchainKHR swapchain;
@@ -127,7 +124,6 @@ struct Swapchain {
 	VkFormat format;
 
 	Span< Image > images;
-	Span< Semaphores > semaphores;
 };
 
 struct BindGroup {
@@ -451,6 +447,8 @@ static VkPhysicalDevice PickPhysicalDevice( VkInstance instance ) {
 }
 
 static VulkanDevice CreateDevice( VkInstance instance ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	VulkanDevice device = { };
 
 	{
@@ -523,7 +521,6 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 
 		device.queue_family_index = VK_QUEUE_FAMILY_IGNORED;
 
-		TempAllocator temp = cls.frame_arena.temp();
 		Span< VkQueueFamilyProperties > queues = VulkanSpanUnchecked< VkQueueFamilyProperties >( &temp, vkGetPhysicalDeviceQueueFamilyProperties, device.physical_device );
 
 		for( size_t i = 0; i < queues.n; i++ ) {
@@ -645,6 +642,24 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 
 		VK_CHECK( vkCreateSemaphore( device.device, &semaphore_info, NULL, &device.frame_timeline_semaphore ) );
 		DebugLabel( device.device, device.frame_timeline_semaphore, VK_OBJECT_TYPE_SEMAPHORE, "frame sync timeline semaphore" );
+	}
+
+	// allocate acquire semaphores
+	{
+		const VkSemaphoreTypeCreateInfo semaphore_type = {
+			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+			.semaphoreType = VK_SEMAPHORE_TYPE_BINARY,
+		};
+
+		const VkSemaphoreCreateInfo semaphore_info = {
+			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+			.pNext = &semaphore_type,
+		};
+
+		for( size_t i = 0; i < ARRAY_COUNT( device.acquire_semaphores ); i++ ) {
+			VK_CHECK( vkCreateSemaphore( device.device, &semaphore_info, NULL, &device.acquire_semaphores[ i ] ) );
+			DebugLabel( device.device, device.acquire_semaphores[ i ], VK_OBJECT_TYPE_SEMAPHORE, temp( "Acquire semaphore {}", i ) );
+		}
 	}
 
 	// allocate descriptor pool
@@ -852,32 +867,21 @@ static Swapchain CreateSwapchain( VulkanDevice device, VkSurfaceKHR surface, Opt
 
 		VK_CHECK( vkCreateImageView( device.device, &image_view_info, NULL, &images[ i ].image_view ) );
 		DebugLabel( device.device, images[ i ].image_view, VK_OBJECT_TYPE_IMAGE_VIEW, temp( "Swapchain imageview {}", i ) );
-	}
 
-	Span< Swapchain::Semaphores > semaphore_pairs;
-	if( !old_swapchain.exists ) {
-		semaphore_pairs = AllocSpan< Swapchain::Semaphores >( sys_allocator, images.n );
-		for( Swapchain::Semaphores & semaphores : semaphore_pairs ) {
-			VkSemaphoreTypeCreateInfo semaphore_type = {
-				.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
-				.semaphoreType = VK_SEMAPHORE_TYPE_BINARY,
-			};
+		const VkSemaphoreTypeCreateInfo semaphore_type = {
+			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+			.semaphoreType = VK_SEMAPHORE_TYPE_BINARY,
+		};
 
-			const VkSemaphoreCreateInfo semaphore_info = {
-				.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-				.pNext = &semaphore_type,
-			};
+		const VkSemaphoreCreateInfo semaphore_info = {
+			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+			.pNext = &semaphore_type,
+		};
 
-			VK_CHECK( vkCreateSemaphore( device.device, &semaphore_info, NULL, &semaphores.acquire ) );
-			VK_CHECK( vkCreateSemaphore( device.device, &semaphore_info, NULL, &semaphores.present ) );
-		}
-	}
-	else {
-		semaphore_pairs = old_swapchain->semaphores;
-		for( Swapchain::Image image : old_swapchain->images ) {
-			vkDestroyImageView( global_device.device, image.image_view, NULL );
-		}
-		Free( sys_allocator, old_swapchain->images.ptr );
+		// VK_CHECK( vkCreateSemaphore( device.device, &semaphore_info, NULL, &images[ i ].acquire ) );
+		// DebugLabel( device.device, images[ i ].acquire, VK_OBJECT_TYPE_SEMAPHORE, temp( "Swapchain acquire semaphore {}", i ) );
+		VK_CHECK( vkCreateSemaphore( device.device, &semaphore_info, NULL, &images[ i ].present_semaphore ) );
+		DebugLabel( device.device, images[ i ].present_semaphore, VK_OBJECT_TYPE_SEMAPHORE, temp( "Swapchain present semaphore {}", i ) );
 	}
 
 	return Swapchain {
@@ -886,21 +890,17 @@ static Swapchain CreateSwapchain( VulkanDevice device, VkSurfaceKHR surface, Opt
 		.height = capabilities.currentExtent.height,
 		.format = format.format,
 		.images = images,
-		.semaphores = semaphore_pairs,
 	};
 }
 
 static void DeleteSwapchain( Swapchain swapchain ) {
-	for( Swapchain::Semaphores semaphores : swapchain.semaphores ) {
-		vkDestroySemaphore( global_device.device, semaphores.acquire, NULL );
-		vkDestroySemaphore( global_device.device, semaphores.present, NULL );
-	}
-	vkDestroySwapchainKHR( global_device.device, swapchain.swapchain, NULL );
 	for( Swapchain::Image image : swapchain.images ) {
 		vkDestroyImageView( global_device.device, image.image_view, NULL );
+		// vkDestroySemaphore( global_device.device, image.acquire, NULL );
+		vkDestroySemaphore( global_device.device, image.present_semaphore, NULL );
 	}
 	Free( sys_allocator, swapchain.images.ptr );
-	Free( sys_allocator, swapchain.semaphores.ptr );
+	vkDestroySwapchainKHR( global_device.device, swapchain.swapchain, NULL );
 }
 
 static bool MaybeRecreateSwapchain( const VkSurfaceCapabilitiesKHR & surface_capabilities ) {
@@ -2195,13 +2195,15 @@ void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first
 		}
 	}
 
+	const Swapchain::Image & image = global_swapchain.images[ frame.image_index ];
+
 	Barrier( passes[ passes.n - 1 ].buffer.unwrap()->buffer, VkImageMemoryBarrier2 {
 		.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 		.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 		.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 		.oldLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 		.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-		.image = global_swapchain.images[ frame.image_index ].image,
+		.image = image.image,
 		.subresourceRange = {
 			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 			.levelCount = 1,
@@ -2214,18 +2216,16 @@ void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first
 		VK_CHECK( vkEndCommandBuffer( pass.buffer.unwrap()->buffer ) );
 	}
 
-	Swapchain::Semaphores semaphores = global_swapchain.semaphores[ frame_counter % global_swapchain.semaphores.n ];
-
 	VkSemaphoreSubmitInfo present_wait_semaphore = {
 		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-		.semaphore = semaphores.acquire,
+		.semaphore = global_device.acquire_semaphores[ FrameSlot() ],
 		.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 	};
 
 	VkSemaphoreSubmitInfo present_signal_semaphores[] = {
 		{
 			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-			.semaphore = semaphores.present,
+			.semaphore = image.present_semaphore,
 			.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 		},
 		{
@@ -2261,7 +2261,7 @@ void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first
 	const VkPresentInfoKHR present_info = {
 		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &semaphores.present,
+		.pWaitSemaphores = &image.present_semaphore,
 		.swapchainCount = 1,
 		.pSwapchains = &global_swapchain.swapchain,
 		.pImageIndices = &frame.image_index,
@@ -2659,6 +2659,10 @@ void ShutdownRenderBackend() {
 	ShutdownGPUAllocators();
 
 	vkDestroySemaphore( global_device.device, global_device.frame_timeline_semaphore, NULL );
+	for( VkSemaphore sem : global_device.acquire_semaphores ) {
+		vkDestroySemaphore( global_device.device, sem, NULL );
+	}
+
 	DeleteSwapchain( global_swapchain );
 	vkDestroySurfaceKHR( global_instance, global_surface, NULL );
 
@@ -2706,9 +2710,9 @@ void RenderBackendBeginFrame( int frames_to_capture ) {
 
 	{
 		TracyZoneScopedNC( "vkAcquireNextImageKHR", 0xff0000 );
-		Swapchain::Semaphores semaphores = global_swapchain.semaphores[ frame_counter % global_swapchain.semaphores.n ];
+		VkSemaphore acquire_semaphore = global_device.acquire_semaphores[ FrameSlot() ];
 
-		VkResult res = vkAcquireNextImageKHR( global_device.device, global_swapchain.swapchain, U64_MAX, semaphores.acquire, VK_NULL_HANDLE, &frame.image_index );
+		VkResult res = vkAcquireNextImageKHR( global_device.device, global_swapchain.swapchain, U64_MAX, acquire_semaphore, VK_NULL_HANDLE, &frame.image_index );
 		if( res != VK_SUCCESS && res != VK_SUBOPTIMAL_KHR ) {
 			VkAbort( res );
 		}

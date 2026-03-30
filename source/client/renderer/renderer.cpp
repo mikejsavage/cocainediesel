@@ -309,7 +309,7 @@ static void CreateRenderTargets( bool first_time ) {
 		.height = frame_static.shadow_parameters.resolution,
 		.num_layers = frame_static.shadow_parameters.num_cascades,
 		.dedicated_allocation = true,
-	} );
+	}, first_time ? NONE : Optional( frame_static.render_targets.shadowmap ) );
 }
 
 void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {

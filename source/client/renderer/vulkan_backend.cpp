@@ -215,7 +215,7 @@ void DebugLabel( T handle, VkObjectType type, const char * name ) {
 	DebugLabel( global_device.device, handle, type, name );
 }
 
-static GPUAllocation GPUMalloc( size_t size, bool device_local ) {
+static GPUAllocation GPUMalloc( size_t size, bool device_local, Optional< VkImage > dedicated_allocation_image = NONE ) {
 	constexpr VkBufferUsageFlags common_flags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 	constexpr VkBufferUsageFlags device_local_flags = common_flags | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	constexpr VkBufferUsageFlags coherent_flags = common_flags | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -234,8 +234,14 @@ static GPUAllocation GPUMalloc( size_t size, bool device_local ) {
 	VkMemoryRequirements memory_requirements;
 	vkGetBufferMemoryRequirements( global_device.device, buffer, &memory_requirements );
 
+	const VkMemoryDedicatedAllocateInfo dedicated_alloc_info = {
+		.sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
+		.image = dedicated_allocation_image.exists ? dedicated_allocation_image.value : VK_NULL_HANDLE,
+	};
+
 	const VkMemoryAllocateFlagsInfo alloc_flags = {
 		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
+		.pNext = dedicated_allocation_image.exists ? &dedicated_alloc_info : NULL,
 		.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT,
 	};
 

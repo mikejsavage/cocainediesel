@@ -24,7 +24,7 @@ static bool RunUnitTests( bool break_on_fail ) {
 	u32 passed = 0;
 	u32 failed = 0;
 
-	const UnitTest * test = UnitTest::tests_head;
+	const UnitTest * test = UnitTest::tests_head->next;
 	while( test != NULL ) {
 		Time before = Now();
 		bool ok = test->callback();

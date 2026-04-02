@@ -271,8 +271,6 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 	Vec3 right, up;
 	ViewVectors( dir, &right, &up );
 
-	Vec3 muzzle = GetMuzzleTransform( owner ).col3;
-
 	for( int i = 0; i < def->projectile_count; i++ ) {
 		Vec2 spread = FixedSpreadPattern( i, def->spread );
 

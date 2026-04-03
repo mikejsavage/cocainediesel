@@ -51,12 +51,6 @@ void HotloadShaders() {
 	}
 
 	if( hotload ) {
-		// NOTE(mike 20260403): we need to wait for all GPU work to finish before we can destroy the
-		// old shaders, so we need e.g. vkDeviceWaitIdle. from a Vulkan perspective calling
-		// FlushStagingBuffer to achieve this seems pointless, but Metal has no DeviceWaitIdle
-		// equivalent and needs us to create an empty command buffer and call waitUntilCompleted(),
-		// which is pretty much exactly what FlushStagingBuffer does.
-		FlushStagingBuffer();
 		VisitShaderDescriptors< void >( LoadShaders, true );
 	}
 }

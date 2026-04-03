@@ -896,7 +896,6 @@ static Swapchain CreateSwapchain( VulkanDevice device, VkSurfaceKHR surface, Opt
 static void DeleteSwapchain( Swapchain swapchain ) {
 	for( Swapchain::Image image : swapchain.images ) {
 		vkDestroyImageView( global_device.device, image.image_view, NULL );
-		// vkDestroySemaphore( global_device.device, image.acquire, NULL );
 		vkDestroySemaphore( global_device.device, image.present_semaphore, NULL );
 	}
 	Free( sys_allocator, swapchain.images.ptr );

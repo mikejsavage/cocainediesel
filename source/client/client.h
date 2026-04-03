@@ -134,7 +134,7 @@ struct client_static_t {
 
 	int challenge;              // from the server to use for connecting
 
-	PoolHandle< Material2 > white_material;
+	PoolHandle< Material > white_material;
 
 	// these are our reliable messages that go to the server
 	size_t reliableSequence;          // the last one we put in the list to be sent

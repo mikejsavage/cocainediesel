@@ -170,7 +170,7 @@ namespace ImGui
 struct ImGuiShaderAndMaterial {
 	ImGuiShaderAndMaterial() = default;
 
-	ImGuiShaderAndMaterial( PoolHandle< Material2 > material ) {
+	ImGuiShaderAndMaterial( PoolHandle< Material > material ) {
 		*this = { };
 		material_bind_group = MaterialBindGroup( material );
 	}

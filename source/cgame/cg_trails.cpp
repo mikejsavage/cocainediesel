@@ -155,7 +155,7 @@ static void DrawActualTrail( const Trail & trail ) {
 	Span< VFXVertex > vertices = AllocSpan< VFXVertex >( &temp, trail.points.n * 2 );
 	Span< u16 > indices = AllocSpan< u16 >( &temp, ( trail.points.n - 1 ) * 6 );
 
-	PoolHandle< Material2 > material = FindMaterial( trail.material );
+	PoolHandle< Material > material = FindMaterial( trail.material );
 	float texture_aspect_ratio = float( TextureWidth( material ) ) / float( TextureHeight( material ) );
 	float distance = trail.offset / trail.width / texture_aspect_ratio;
 

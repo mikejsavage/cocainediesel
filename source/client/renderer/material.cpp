@@ -33,10 +33,10 @@ constexpr int SPRITE_ATLAS_SIZE = 2048;
 constexpr int SPRITE_ATLAS_BLOCK_SIZE = SPRITE_ATLAS_SIZE / 4;
 
 inline HashPool< Texture, MaxMaterials > textures; // NOTE(mike): this is inline so the backends can read it
-static HashPool< Material2, MaxMaterials > materials;
+static HashPool< Material, MaxMaterials > materials;
 
 static PoolHandle< Texture > missing_texture;
-static PoolHandle< Material2 > missing_material;
+static PoolHandle< Material > missing_material;
 
 static PoolHandle< Texture > rgb_noise;
 static PoolHandle< Texture > blue_noise;
@@ -349,7 +349,7 @@ static void UnloadTexture( PoolHandle< Texture > texture ) {
 	UnloadTexture( &textures[ texture ] );
 }
 
-static Material2 MaterialFromDescriptor( Span< const char > name, const MaterialDescriptor & desc ) {
+static Material MaterialFromDescriptor( Span< const char > name, const MaterialDescriptor & desc ) {
 	RenderPass pass = RenderPass_NonworldOpaque;
 	if( desc.blend_func == BlendFunc_Disabled ) {
 		pass = desc.outlined ? RenderPass_NonworldOpaqueOutlined : RenderPass_NonworldOpaque;
@@ -369,7 +369,7 @@ static Material2 MaterialFromDescriptor( Span< const char > name, const Material
 	GPUBuffer properties = NewBuffer( temp( "{} properties", name ), desc.properties );
 
 	// TODO NOMERGE reuse the old bindgroup
-	return Material2 {
+	return Material {
 		.name = name,
 		.render_pass = pass,
 		.shader = shader,
@@ -381,16 +381,16 @@ static Material2 MaterialFromDescriptor( Span< const char > name, const Material
 	};
 }
 
-static Optional< PoolHandle< Material2 > > AddMaterial( Span< const char > name, const MaterialDescriptor & descriptor ) {
+static Optional< PoolHandle< Material > > AddMaterial( Span< const char > name, const MaterialDescriptor & descriptor ) {
 	u64 hash = Hash64( name );
 
-	Optional< PoolHandle< Material2 > > old_handle = materials.get( hash );
+	Optional< PoolHandle< Material > > old_handle = materials.get( hash );
 	if( old_handle.exists ) {
 		materials[ old_handle.value ] = MaterialFromDescriptor( name, descriptor );
 		return old_handle;
 	}
 
-	Optional< PoolHandle< Material2 > > new_handle = materials.add( hash );
+	Optional< PoolHandle< Material > > new_handle = materials.add( hash );
 	if( new_handle.exists ) {
 		materials[ new_handle.value ] = MaterialFromDescriptor( name, descriptor );
 		return new_handle;
@@ -461,11 +461,11 @@ u32 TextureMSAASamples( PoolHandle< Texture > texture ) {
 	return textures[ texture ].msaa_samples;
 }
 
-u32 TextureWidth( PoolHandle< Material2 > material ) {
+u32 TextureWidth( PoolHandle< Material > material ) {
 	return TextureWidth( materials[ material ].texture );
 }
 
-u32 TextureHeight( PoolHandle< Material2 > material ) {
+u32 TextureHeight( PoolHandle< Material > material ) {
 	return TextureHeight( materials[ material ].texture );
 }
 
@@ -866,7 +866,7 @@ static void PackSpriteAtlas( bool first_time ) {
 	// free temporary bc4s
 	for( size_t i = 0; i < sprites.size(); i++ ) {
 		Texture * texture = &textures.span()[ rects[ i ].id ];
-		const Material2 * material = &materials.span()[ rects[ i ].id ];
+		const Material * material = &materials.span()[ rects[ i ].id ];
 		if( GetTextureFormat( material->texture ) != TextureFormat_RGBA_U8_sRGB )
 			continue;
 
@@ -895,7 +895,7 @@ static void Must( Optional< PoolHandle< Texture > > texture ) {
 	Assert( texture.exists );
 }
 
-static void Must( Optional< PoolHandle< Material2 > > material ) {
+static void Must( Optional< PoolHandle< Material > > material ) {
 	Assert( material.exists );
 }
 
@@ -1180,15 +1180,15 @@ PoolHandle< Texture > BlueNoiseTexture() {
 	return blue_noise;
 }
 
-Optional< PoolHandle< Material2 > > TryFindMaterial( StringHash name ) {
+Optional< PoolHandle< Material > > TryFindMaterial( StringHash name ) {
 	return materials.get( name.hash );
 }
 
-PoolHandle< Material2 > FindMaterial( StringHash name ) {
+PoolHandle< Material > FindMaterial( StringHash name ) {
 	return Default( TryFindMaterial( name ), missing_material );
 }
 
-PoolHandle< Material2 > FindMaterial( const char * name ) {
+PoolHandle< Material > FindMaterial( const char * name ) {
 	return FindMaterial( StringHash( name ) );
 }
 
@@ -1205,20 +1205,20 @@ PoolHandle< BindGroup > SpriteAtlasBindGroup() {
 	return sprite_atlas_bind_group;
 }
 
-Vec2 HalfPixelSize( PoolHandle< Material2 > material ) {
+Vec2 HalfPixelSize( PoolHandle< Material > material ) {
 	return 0.5f / Vec2( TextureWidth( material ), TextureHeight( material ) );
 }
 
-RenderPass MaterialRenderPass( PoolHandle< Material2 > material ) {
+RenderPass MaterialRenderPass( PoolHandle< Material > material ) {
 	return materials[ material ].render_pass;
 }
 
-PoolHandle< BindGroup > MaterialBindGroup( PoolHandle< Material2 > material ) {
+PoolHandle< BindGroup > MaterialBindGroup( PoolHandle< Material > material ) {
 	return materials[ material ].bind_group;
 }
 
-PipelineState MaterialPipelineState( PoolHandle< Material2 > handle ) {
-	const Material2 & material = materials[ handle ];
+PipelineState MaterialPipelineState( PoolHandle< Material > handle ) {
+	const Material & material = materials[ handle ];
 	return PipelineState {
 		.shader = material.shader,
 		.dynamic_state = material.dynamic_state,
@@ -1250,8 +1250,8 @@ static float EvaluateWaveFunc( Wave wave ) {
 	return wave.args[ 0 ] + wave.args[ 1 ] * v;
 }
 
-Vec4 EvaluateMaterialColor( PoolHandle< Material2 > handle, Vec4 entity_color ) {
-	const Material2 & material = materials[ handle ];
+Vec4 EvaluateMaterialColor( PoolHandle< Material > handle, Vec4 entity_color ) {
+	const Material & material = materials[ handle ];
 
 	Vec4 color = entity_color;
 	switch( material.rgbgen.type ) {

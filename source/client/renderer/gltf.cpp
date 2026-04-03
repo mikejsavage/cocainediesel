@@ -697,7 +697,7 @@ static void DrawModelNode( const GLTFRenderData::Node * node, bool view_weapon, 
 		// pipeline.view_weapon_depth_hack = true; NOMERGE
 	}
 
-	PoolHandle< Material2 > material = FindMaterial( node->material ); // NOMERGE, don't call FindMaterial
+	PoolHandle< Material > material = FindMaterial( node->material ); // NOMERGE, don't call FindMaterial
 	RenderPass pass = MaterialRenderPass( material );
 	PipelineState pipeline = MaterialPipelineState( material ); //, pose_uniforms.exists, &pass );
 	Vec4 color = EvaluateMaterialColor( material, entity_color );

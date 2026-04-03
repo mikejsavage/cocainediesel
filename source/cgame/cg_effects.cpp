@@ -28,7 +28,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash materia
 	float end_w = ( VP * Vec4( end, 1.0f ) ).w;
 	float end_width = Max2( width, 8.0f * end_w * pixel_scale );
 
-	PoolHandle< Material2 > material = FindMaterial( material_name );
+	PoolHandle< Material > material = FindMaterial( material_name );
 	float texture_aspect_ratio = float( TextureWidth( material ) ) / float( TextureHeight( material ) );
 	float beam_aspect_ratio = Length( end - start ) / width;
 	float repetitions = beam_aspect_ratio / texture_aspect_ratio;

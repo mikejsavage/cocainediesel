@@ -45,24 +45,6 @@ struct BoundedString {
 	Span< const char > span() const { return Span< const char >( str, n ); }
 };
 
-struct Material {
-	BoundedString< 64 > name;
-	u64 hash;
-
-	PoolHandle< RenderPipeline > shader;
-	PoolHandle< BindGroup > bind_group;
-	PoolHandle< Texture > texture;
-	RenderPipelineDynamicState renderer_dynamic_state;
-
-	ColorGen rgbgen;
-	ColorGen alphagen;
-	bool outlined = true;
-	bool shaded = false;
-	bool world = false;
-	// float specular = 0.0f;
-	// float shininess = 64.0f;
-};
-
 bool CompressedTextureFormat( TextureFormat format );
 u32 BitsPerPixel( TextureFormat format );
 u32 BlockSize( TextureFormat format );
@@ -85,7 +67,7 @@ Optional< Sprite > TryFindSprite( StringHash name );
 PoolHandle< BindGroup > SpriteAtlasBindGroup();
 PoolHandle< Texture > SpriteAtlasTexture();
 
-struct Material2;
-Vec2 HalfPixelSize( PoolHandle< Material2 > material );
+struct Material;
+Vec2 HalfPixelSize( PoolHandle< Material > material );
 
-Vec4 EvaluateMaterialColor( PoolHandle< Material2 > material, Vec4 entity_color );
+Vec4 EvaluateMaterialColor( PoolHandle< Material > material, Vec4 entity_color );

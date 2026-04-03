@@ -502,7 +502,7 @@ struct MaterialDescriptor {
 	};
 };
 
-struct Material2 {
+struct Material {
 	BoundedString< 64 > name;
 
 	RenderPass render_pass;
@@ -515,21 +515,21 @@ struct Material2 {
 	ColorGen alphagen;
 };
 
-template<> struct PoolHandleType< Material2 > { using T = u16; };
+template<> struct PoolHandleType< Material > { using T = u16; };
 // NOMERGE should name go in materialdescriptor?
-PoolHandle< Material2 > NewMaterial( Span< const char > name, const MaterialDescriptor & desc );
+PoolHandle< Material > NewMaterial( Span< const char > name, const MaterialDescriptor & desc );
 PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, PoolHandle< Texture > texture, SamplerType sampler, MaterialProperties properties );
 
-PoolHandle< Material2 > FindMaterial( StringHash name );
-// PoolHandle< Material2 > FindMaterial( const char * name );
-Optional< PoolHandle< Material2 > > TryFindMaterial( StringHash name );
+PoolHandle< Material > FindMaterial( StringHash name );
+// PoolHandle< Material > FindMaterial( const char * name );
+Optional< PoolHandle< Material > > TryFindMaterial( StringHash name );
 
-u32 TextureWidth( PoolHandle< Material2 > material );
-u32 TextureHeight( PoolHandle< Material2 > material );
+u32 TextureWidth( PoolHandle< Material > material );
+u32 TextureHeight( PoolHandle< Material > material );
 
-RenderPass MaterialRenderPass( PoolHandle< Material2 > material );
-PoolHandle< BindGroup > MaterialBindGroup( PoolHandle< Material2 > material );
-PipelineState MaterialPipelineState( PoolHandle< Material2 > material );
+RenderPass MaterialRenderPass( PoolHandle< Material > material );
+PoolHandle< BindGroup > MaterialBindGroup( PoolHandle< Material > material );
+PipelineState MaterialPipelineState( PoolHandle< Material > material );
 
 /*
  * Frame

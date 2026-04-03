@@ -725,7 +725,9 @@ static void PackSpriteAtlas( bool first_time ) {
 
 	for( u32 i = 0; i < textures.span().n; i++ ) {
 		const Texture * texture = &textures.span()[ i ];
-		if( !texture->atlased && texture->format != TextureFormat_BC4 )
+		// TODO NOMERGE the bc4 thing is a hack
+		bool atlased = texture->atlased || ( first_time && texture->format == TextureFormat_BC4 );
+		if( !atlased )
 			continue;
 
 		if( texture->format != TextureFormat_RGBA_U8_sRGB && texture->format != TextureFormat_BC4 ) {

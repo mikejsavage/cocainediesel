@@ -1215,7 +1215,27 @@ static constexpr VkPipelineColorBlendAttachmentState blend_states[ BlendFunc_Cou
 	},
 };
 
+static void DeleteRenderPipeline( RenderPipeline shader ) {
+	Free( sys_allocator, shader.name.ptr );
+	vkDestroyDescriptorUpdateTemplate( global_device.device, shader.render_pass_push_descriptors.update_template, NULL );
+	for( VkDescriptorSetLayout & set : shader.descriptor_set_layouts ) {
+		vkDestroyDescriptorSetLayout( global_device.device, set, NULL );
+	}
+	vkDestroyPipelineLayout( global_device.device, shader.layout, NULL );
+	for( auto [ k, v ] : shader.mesh_variants ) {
+		for( VkPipeline pipeline : v.msaa_variants ) {
+			if( pipeline != VK_NULL_HANDLE ) {
+				vkDestroyPipeline( global_device.device, pipeline, NULL );
+			}
+		}
+	}
+}
+
 PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config, Optional< PoolHandle< RenderPipeline > > old_pipeline ) {
+	if( old_pipeline.exists ) {
+		DeleteRenderPipeline( render_pipelines[ old_pipeline.value ] );
+	}
+
 	ReflectedDescriptorSet descriptor_sets[ DescriptorSet_Count ] = { };
 
 	// compile and parse shaders
@@ -1414,28 +1434,12 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 	};
 	memcpy( pso.descriptor_set_layouts, descriptor_set_layouts, sizeof( descriptor_set_layouts ) );
 	memcpy( pso.reflection, descriptor_sets, sizeof( descriptor_sets ) );
-	return render_pipelines.allocate( pso );
+	return render_pipelines.upsert( old_pipeline, pso );
 }
 
 static VkPipeline SelectRenderPipelineVariant( const RenderPipeline & shader, const VertexDescriptor & mesh_format, u32 msaa ) {
 	const RenderPipeline::Variant * mesh_variant = shader.mesh_variants.get( mesh_format );
 	return mesh_variant == NULL ? VkPipeline( VK_NULL_HANDLE ) : mesh_variant->msaa_variants[ Log2( msaa ) ];
-}
-
-static void DeleteRenderPipeline( RenderPipeline shader ) {
-	Free( sys_allocator, shader.name.ptr );
-	vkDestroyDescriptorUpdateTemplate( global_device.device, shader.render_pass_push_descriptors.update_template, NULL );
-	for( VkDescriptorSetLayout & set : shader.descriptor_set_layouts ) {
-		vkDestroyDescriptorSetLayout( global_device.device, set, NULL );
-	}
-	vkDestroyPipelineLayout( global_device.device, shader.layout, NULL );
-	for( auto [ k, v ] : shader.mesh_variants ) {
-		for( VkPipeline pipeline : v.msaa_variants ) {
-			if( pipeline != VK_NULL_HANDLE ) {
-				vkDestroyPipeline( global_device.device, pipeline, NULL );
-			}
-		}
-	}
 }
 
 static constexpr struct {

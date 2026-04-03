@@ -19,7 +19,6 @@ static Span< const char > ShaderFilename( Allocator * a, Span< const char > src_
 static void LoadShaders( const ShaderDescriptors & desc, bool hotload ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	// TODO: hotloading
 	for( const GraphicsShaderDescriptor & shader : desc.graphics_shaders ) {
 		shaders.*shader.field = NewRenderPipeline( RenderPipelineConfig {
 			.path = ShaderFilename( &temp, shader.src, shader.features ),
@@ -52,6 +51,12 @@ void HotloadShaders() {
 	}
 
 	if( hotload ) {
+		// NOTE(mike 20260403): we need to wait for all GPU work to finish before we can destroy the
+		// old shaders, so we need e.g. vkDeviceWaitIdle. from a Vulkan perspective calling
+		// FlushStagingBuffer to achieve this seems pointless, but Metal has no DeviceWaitIdle
+		// equivalent and needs us to create an empty command buffer and call waitUntilCompleted(),
+		// which is pretty much exactly what FlushStagingBuffer does.
+		FlushStagingBuffer();
 		VisitShaderDescriptors< void >( LoadShaders, true );
 	}
 }

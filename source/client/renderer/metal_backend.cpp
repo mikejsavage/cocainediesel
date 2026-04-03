@@ -594,13 +594,27 @@ static Optional< ArgumentBufferEncoder > ParseArgumentBuffer( MTL::Function * fu
 	return NONE;
 }
 
+static void DeleteRenderPipeline( const RenderPipeline & shader ) {
+	Free( sys_allocator, shader.name.ptr );
+	for( const auto & [ _, mesh_variant ] : shader.mesh_variants ) {
+		for( MTL::RenderPipelineState * pso : mesh_variant.msaa_variants ) {
+			if( pso != NULL ) {
+				pso->release();
+			}
+		}
+	}
+}
+
 template< typename T >
 dispatch_data_t SpanToDispatchData( Span< const T > data ) {
 	return dispatch_data_create( data.ptr, data.num_bytes(), NULL, DISPATCH_DATA_DESTRUCTOR_DEFAULT );
 }
 
-// NOMERGE: Optional
 PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config, Optional< PoolHandle< RenderPipeline > > old_pipeline ) {
+	if( old_pipeline.exists ) {
+		DeleteRenderPipeline( render_pipelines[ old_pipeline.value ] );
+	}
+
 	TempAllocator temp = cls.frame_arena.temp();
 
 	Span< const u8 > metallib = AssetBinary( temp.sv( "{}.metallib", config.path ) );
@@ -744,23 +758,12 @@ PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & con
 	fragment_main->release();
 	library->release();
 
-	return render_pipelines.allocate( shader );
+	return render_pipelines.upsert( old_pipeline, shader );
 }
 
 static const MTL::RenderPipelineState * SelectRenderPipelineVariant( const RenderPipeline & shader, const VertexDescriptor & mesh_format, u32 msaa ) {
 	const RenderPipeline::Variant * mesh_variant = shader.mesh_variants.get( mesh_format );
 	return mesh_variant == NULL ? NULL : mesh_variant->msaa_variants[ Log2( msaa ) ];
-}
-
-static void DeleteRenderPipeline( const RenderPipeline & shader ) {
-	Free( sys_allocator, shader.name.ptr );
-	for( const auto & [ _, mesh_variant ] : shader.mesh_variants ) {
-		for( MTL::RenderPipelineState * pso : mesh_variant.msaa_variants ) {
-			if( pso != NULL ) {
-				pso->release();
-			}
-		}
-	}
 }
 
 static void BindMesh( MTL::RenderCommandEncoder * encoder, const Mesh & mesh ) {

@@ -2169,6 +2169,8 @@ void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< Compute
 }
 
 void SubmitStagingCommandBuffer( Opaque< CommandBuffer > buffer ) {
+	TracyZoneScoped;
+
 	VkCommandBuffer cb = buffer.unwrap()->buffer;
 
 	const VkCommandBufferSubmitInfo command_buffer_submit_info = {
@@ -2185,7 +2187,10 @@ void SubmitStagingCommandBuffer( Opaque< CommandBuffer > buffer ) {
 	vkCmdEndDebugUtilsLabelEXT( cb );
 	VK_CHECK( vkEndCommandBuffer( cb ) );
 	VK_CHECK( vkQueueSubmit2( global_device.queue, 1, &submit_info, VK_NULL_HANDLE ) );
-	VK_CHECK( vkDeviceWaitIdle( global_device.device ) );
+	{
+		TracyZoneScopedNC( "vkDeviceWaitIdle", 0xff0000 );
+		VK_CHECK( vkDeviceWaitIdle( global_device.device ) );
+	}
 }
 
 void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first_pass_metal_only ) {

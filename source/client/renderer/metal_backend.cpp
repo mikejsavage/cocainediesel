@@ -215,10 +215,15 @@ void DeleteTransferCommandBuffer( Opaque< CommandBuffer > cb ) {
 }
 
 void SubmitStagingCommandBuffer( Opaque< CommandBuffer > buffer ) {
+	TracyZoneScoped;
+
 	CommandBuffer * cmd_buf = buffer.unwrap();
 	cmd_buf->bce->endEncoding();
 	cmd_buf->command_buffer->commit();
-	cmd_buf->command_buffer->waitUntilCompleted();
+	{
+		TracyZoneScopedNC( "waitUntilCompleted", 0xff0000 );
+		cmd_buf->command_buffer->waitUntilCompleted();
+	}
 }
 
 void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first_pass ) {

@@ -143,6 +143,8 @@ void UploadTexture( const TextureConfig & config, Opaque< BackendTexture > textu
 
 // NOMERGE figure out how to flush after hotload
 void FlushStagingBuffer() {
+	TracyZoneScoped;
+
 	// TODO: should double buffer this and use semaphores so we can stage and transfer in parallel
 	SubmitStagingCommandBuffer( staging_command_buffer );
 	staging_command_buffer = NewTransferCommandBuffer();

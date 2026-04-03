@@ -11,6 +11,7 @@
 #include "qcommon/threadpool.h"
 #include "qcommon/threads.h"
 #include "client/assets.h"
+#include "client/renderer/api.h"
 
 #include "nanosort/nanosort.hpp"
 
@@ -425,6 +426,9 @@ void HotloadAssets( TempAllocator * temp ) {
 }
 
 void DoneHotloadingAssets() {
+	if( num_modified_assets > 0 ) {
+		FlushStagingBuffer();
+	}
 	num_modified_assets = 0;
 }
 

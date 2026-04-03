@@ -1054,7 +1054,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 		bool sleep = cls.state == CA_DISCONNECTED || !IsWindowFocused();
 
 		if( sleep && minMsec - extraMsec > 1 ) {
-			TracyZoneScopedNC( "Sys_Sleep", 0xff0000 );
+			TracyZoneScopedNC( "Sys_Sleep", TracyColorWait );
 			Sys_Sleep( minMsec - extraMsec - 1 );
 		}
 		return;

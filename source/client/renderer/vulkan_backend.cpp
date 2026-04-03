@@ -2188,7 +2188,7 @@ void SubmitStagingCommandBuffer( Opaque< CommandBuffer > buffer ) {
 	VK_CHECK( vkEndCommandBuffer( cb ) );
 	VK_CHECK( vkQueueSubmit2( global_device.queue, 1, &submit_info, VK_NULL_HANDLE ) );
 	{
-		TracyZoneScopedNC( "vkDeviceWaitIdle", 0xff0000 );
+		TracyZoneScopedNC( "vkDeviceWaitIdle", TracyColorWait );
 		VK_CHECK( vkDeviceWaitIdle( global_device.device ) );
 	}
 }
@@ -2691,7 +2691,7 @@ void ShutdownRenderBackend() {
 }
 
 void RenderBackendWaitForNewFrame() {
-	TracyZoneScopedNC( "RenderBackendWaitForNewFrame", 0xff0000 );
+	TracyZoneScopedNC( "RenderBackendWaitForNewFrame", TracyColorWait );
 
 	const VkSemaphoreWaitInfo wait_info = {
 		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
@@ -2716,7 +2716,7 @@ void RenderBackendBeginFrame( int frames_to_capture ) {
 	}
 
 	{
-		TracyZoneScopedNC( "vkAcquireNextImageKHR", 0xff0000 );
+		TracyZoneScopedNC( "vkAcquireNextImageKHR", TracyColorWait );
 		VkSemaphore acquire_semaphore = global_device.acquire_semaphores[ FrameSlot() ];
 
 		VkResult res = vkAcquireNextImageKHR( global_device.device, global_swapchain.swapchain, U64_MAX, acquire_semaphore, VK_NULL_HANDLE, &frame.image_index );

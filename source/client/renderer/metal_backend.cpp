@@ -221,7 +221,7 @@ void SubmitStagingCommandBuffer( Opaque< CommandBuffer > buffer ) {
 	cmd_buf->bce->endEncoding();
 	cmd_buf->command_buffer->commit();
 	{
-		TracyZoneScopedNC( "waitUntilCompleted", 0xff0000 );
+		TracyZoneScopedNC( "waitUntilCompleted", TracyColorWait );
 		cmd_buf->command_buffer->waitUntilCompleted();
 	}
 }
@@ -1115,7 +1115,7 @@ void ShutdownRenderBackend() {
 }
 
 void RenderBackendWaitForNewFrame() {
-	TracyZoneScopedNC( "RenderBackendWaitForNewFrame", 0xff0000 );
+	TracyZoneScopedNC( "RenderBackendWaitForNewFrame", TracyColorWait );
 	dispatch_semaphore_wait( frame_semaphore, DISPATCH_TIME_FOREVER );
 }
 
@@ -1138,7 +1138,7 @@ void RenderBackendBeginFrame( int frames_to_capture ) {
 	}
 
 	{
-		TracyZoneScopedNC( "Acquire swapchain", 0xff0000 );
+		TracyZoneScopedNC( "Acquire swapchain", TracyColorWait );
 		CA::MetalDrawable * surface = global_device.swapchain->nextDrawable();
 		frame = {
 			.pool = pool,

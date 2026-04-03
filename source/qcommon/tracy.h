@@ -5,6 +5,8 @@
 
 inline bool tracy_is_active = true;
 
+constexpr uint32_t TracyColorWait = 0xff0000_u32;
+
 #define TracyZoneScoped TracyCZone( ___tracy_scoped_zone, tracy_is_active ? 1 : 0 ); defer { TracyCZoneEnd( ___tracy_scoped_zone ); }
 #define TracyZoneScopedN( name ) TracyCZoneN( ___tracy_scoped_zone, name, tracy_is_active ? 1 : 0 ); defer { TracyCZoneEnd( ___tracy_scoped_zone ); }
 #define TracyZoneScopedNC( name, color ) TracyCZoneNC( ___tracy_scoped_zone, name, color, tracy_is_active ? 1 : 0 ); defer { TracyCZoneEnd( ___tracy_scoped_zone ); }

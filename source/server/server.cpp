@@ -100,7 +100,7 @@ int main( int argc, char ** argv ) {
 
 		s64 dt = 0;
 		{
-			TracyZoneScopedNC( "Interframe", 0xff0000 );
+			TracyZoneScopedNC( "Interframe", TracyColorWait );
 			while( dt == 0 ) {
 				dt = Sys_Milliseconds() - oldtime;
 			}

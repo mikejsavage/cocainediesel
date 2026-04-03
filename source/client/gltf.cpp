@@ -72,7 +72,11 @@ static void LoadGLTF( Span< const char > path ) {
 
 	u64 idx = num_gltf_models;
 	if( !gltf_models_hashtable.get( hash, &idx ) ) {
-		Assert( num_gltf_models < ARRAY_COUNT( gltf_models ) );
+		if( num_gltf_models == ARRAY_COUNT( gltf_models ) ) {
+			Com_Printf( S_COLOR_YELLOW "Too many models!\n" );
+			DeleteGLTFRenderData( &render_data );
+			return;
+		}
 		gltf_models_hashtable.add( hash, num_gltf_models );
 		num_gltf_models++;
 	}

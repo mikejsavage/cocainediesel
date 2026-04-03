@@ -56,6 +56,7 @@ bool AddMap( Span< const u8 > data, Span< const char > path ) {
 	TracyZoneScoped;
 	TracyZoneSpan( path );
 
+	// TOOD NOMERGE bounds checks... also use Hashmap
 	Span< const char > name = StripPrefix( StripExtension( path ), "maps/" );
 	StringHash hash = StringHash( name );
 

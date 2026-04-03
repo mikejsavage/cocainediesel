@@ -690,7 +690,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		.name = "UI before postprocessing",
 		.pass = RenderPass_UIBeforePostprocessing,
 		.color_targets = {
-			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.resolved_color0, .load = LoadOp_Load },
+			RenderPassConfig::ColorTarget { .texture = targets.resolved_color0, .load = LoadOp_Load },
 		},
 		// .readonly_transitions = { frame_static.render_targets.resolved_color0 }, TODO NOMERGE, after pre-post is reenabled
 		.representative_shader = shaders.imgui,

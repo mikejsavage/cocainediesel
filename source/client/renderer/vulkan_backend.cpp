@@ -1893,7 +1893,6 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 	VkCommandBuffer command_buffer = NewCommandBuffer();
 	DebugLabel( command_buffer, VK_OBJECT_TYPE_COMMAND_BUFFER, name );
 
-
 	const VkCommandBufferBeginInfo begin_info = {
 		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 		.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,

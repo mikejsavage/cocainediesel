@@ -223,6 +223,11 @@ static void SubmitPostprocessPass() {
 	};
 
 	bool explicit_srgb = SwapchainIsNotsRGB();
+	Span< PoolHandle< Texture > > attachment_transitions = { };
+	if( explicit_srgb ) {
+		attachment_transitions = Span( &frame_static.render_targets.resolved_color1, 1 );
+	}
+
 	frame_static.render_passes[ RenderPass_Postprocessing ] = NewRenderPass( RenderPassConfig {
 		.name = "Postprocessing",
 		.pass = RenderPass_Postprocessing,
@@ -232,6 +237,7 @@ static void SubmitPostprocessPass() {
 				.load = LoadOp_DontCare,
 			},
 		},
+		.attachment_transitions = attachment_transitions,
 		.readonly_transitions = { frame_static.render_targets.resolved_color0 },
 		.swapchain_attachment_transition = !explicit_srgb,
 		.representative_shader = shaders.postprocess,

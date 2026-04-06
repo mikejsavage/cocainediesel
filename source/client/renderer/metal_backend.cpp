@@ -192,9 +192,10 @@ CoherentMemory AllocateCoherentMemory( size_t size ) {
 	};
 }
 
-void AddDebugMarker( PoolHandle< GPUAllocation > allocation, size_t offset, size_t size, const char * label ) {
+void AddDebugMarker( PoolHandle< GPUAllocation > allocation, size_t offset, size_t size, Span< const char > label ) {
 	NS::Range range( checked_cast< NS::UInteger >( offset ), checked_cast< NS::UInteger >( size ) );
-	allocations[ allocation ].buffer->addDebugMarker( NSString( label ), range );
+	TempAllocator temp = cls.frame_arena.temp();
+	allocations[ allocation ].buffer->addDebugMarker( NSString( temp( "{}", label ) ), range );
 }
 
 void RemoveAllDebugMarkers( PoolHandle< GPUAllocation > allocation ) {
@@ -511,7 +512,7 @@ bool SwapchainIsNotsRGB() {
 		|| swapchain_format == MTL::PixelFormatBGR10_XR;
 }
 
-PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, Opaque< BackendTexture > texture, SamplerType sampler, GPUBuffer properties ) {
+PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, Opaque< BackendTexture > texture, SamplerType sampler, GPUBuffer properties, Optional< PoolHandle< BindGroup > > old_bind_group ) {
 	MTL::ArgumentEncoder * encoder = global_device.material_argument_encoder;
 
 	// ArgumentEncoders can't write into private memory so we have to encode

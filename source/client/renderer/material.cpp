@@ -23,6 +23,29 @@
 #include "stb/stb_image.h"
 #include "stb/stb_rect_pack.h"
 
+// NOMERGE consistency between *Config and this
+struct MaterialDescriptor {
+	BlendFunc blend_func = BlendFunc_Disabled;
+
+	RenderPipelineDynamicState dynamic_state;
+	ColorGen rgbgen = { };
+	ColorGen alphagen = { };
+
+	StringHash texture;
+	// PoolHandle< Texture > texture;
+	SamplerType sampler = Sampler_Standard;
+
+	bool outlined = true;
+	bool shaded = false;
+	bool world = false;
+
+	MaterialProperties properties = {
+		.specular = 0.0f,
+		.shininess = 64.0f,
+		.lod_bias = 0.0f,
+	};
+};
+
 struct MaterialSpecKey {
 	Span< const char > keyword;
 	void ( *func )( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data );
@@ -32,6 +55,9 @@ constexpr u32 MAX_SPRITES = 4096;
 constexpr int SPRITE_ATLAS_SIZE = 2048;
 constexpr int SPRITE_ATLAS_BLOCK_SIZE = SPRITE_ATLAS_SIZE / 4;
 
+// NOTE(mike 20260406): maybe we want to split textures into a separate Pool/HashMap, currently
+// render targets are treated exactly the same as regular textures meaning we can use them from
+// materials etc
 inline HashPool< Texture, MaxMaterials > textures; // NOTE(mike): this is inline so the backends can read it
 static HashPool< Material, MaxMaterials > materials;
 
@@ -253,35 +279,28 @@ static void ParseAlphaGen( MaterialDescriptor * material, Span< const char > nam
 	}
 }
 
+static PoolHandle< Texture > FindTexture( StringHash name ) {
+	Optional< PoolHandle< Texture > > handle = textures.get( name.hash );
+	return Default( handle, missing_texture );
+}
+
+template< size_t N >
+static PoolHandle< Texture > FindTexture( const char ( &name )[ N ] ) {
+	return FindTexture( StringHash( name ) );
+}
+
 static PoolHandle< Texture > FindTexture( Span< const char > name ) {
-	/*
-	 * if the lookup fails, reserve a slot in the texture pool but fill it with
-	 * a dummy texture, then return missing_texture until something gets
-	 * hotloaded over the dummy
-	 */
-
-	u64 hash = StringHash( name ).hash;
-	Optional< PoolHandle< Texture > > handle = textures.get( hash );
-	if( handle.exists ) {
-		return handle.value;
-	}
-
-	Optional< PoolHandle< Texture > > new_handle = textures.add( hash );
-	if( !new_handle.exists )
-		return missing_texture;
-	textures[ new_handle.value ] = textures[ missing_texture ];
-	textures[ new_handle.value ].dummy_slot_for_missing_texture = true;
-	return new_handle.value;
+	return FindTexture( StringHash( name ) );
 }
 
 static void ParseTexture( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( StartsWith( token, "." ) ) {
 		TempAllocator temp = cls.frame_arena.temp();
-		material->texture = FindTexture( temp.sv( "{}{}", BasePath( path ), token + 1 ) );
+		material->texture = StringHash( temp.sv( "{}{}", BasePath( path ), token + 1 ) );
 	}
 	else {
-		material->texture = FindTexture( token );
+		material->texture = StringHash( token );
 	}
 }
 
@@ -319,7 +338,7 @@ static void ParseMaterialKey( MaterialDescriptor * material, Span< const char > 
 static bool ParseMaterial( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	TracyZoneScoped;
 
-	material->texture = FindTexture( MakeSpan( "white" ) );
+	material->texture = "white";
 
 	while( true ) {
 		Span< const char > token = ParseToken( data, Parse_DontStopOnNewLine );
@@ -366,18 +385,24 @@ static Material MaterialFromDescriptor( Span< const char > name, const MaterialD
 	}
 
 	TempAllocator temp = cls.frame_arena.temp();
-	GPUBuffer properties = NewBuffer( temp( "{} properties", name ), desc.properties );
+
+	PoolHandle< Texture > texture = FindTexture( desc.texture );
 
 	// TODO NOMERGE reuse the old bindgroup
 	return Material {
 		.name = name,
 		.render_pass = pass,
 		.shader = shader,
-		.bind_group = NewMaterialBindGroup( temp( "{} bind group", name ), textures[ desc.texture ].backend, desc.sampler, properties ),
-		.texture = desc.texture,
+		.bind_group = NewMaterialBindGroup( temp.sv( "{} bind group", name ), texture, desc.sampler, desc.properties ),
 		.dynamic_state = desc.dynamic_state,
 		.rgbgen = desc.rgbgen,
 		.alphagen = desc.alphagen,
+		.stuff_to_recreate_bind_group = {
+			.texture = desc.texture,
+			.sampler = desc.sampler,
+			.properties = desc.properties,
+		},
+		.texture = texture,
 	};
 }
 
@@ -414,30 +439,29 @@ static Texture MakeTexture( const TextureConfig & config, u64 hash ) {
 	};
 }
 
-PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, PoolHandle< Texture > texture, SamplerType sampler, MaterialProperties properties ) {
+PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandle< Texture > texture, SamplerType sampler, const MaterialProperties & properties, Optional< PoolHandle< BindGroup > > old_bind_group ) {
 	TempAllocator temp = cls.frame_arena.temp();
-	return NewMaterialBindGroup( name, textures[ texture ].backend, sampler, NewBuffer( temp( "{} properties", name ), properties ) );
+	return NewMaterialBindGroup( name, textures[ texture ].backend, sampler, NewBuffer( temp.sv( "{} properties", name ), properties ), old_bind_group );
 }
 
-// NOMERGE unify this and addtexture
 PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {
 	Assert( config.name != "" );
 
-	if( old_texture.exists ) {
-		DeleteDedicatedAllocationTexture( textures[ old_texture.value ].backend );
-	}
-
 	u64 hash = Hash64( config.name );
+	Assert( old_texture.exists || !textures.get( hash ).exists );
 
-	// NOMERGE assert that textures[hash] doesn't exist because it should be old_texture
-	Optional< PoolHandle< Texture > > handle = old_texture.exists ? old_texture : textures.get( hash );
-
+	Optional< PoolHandle< Texture > > handle = old_texture;
 	if( !handle.exists ) {
 		handle = textures.add( hash );
-		if( !handle.exists ) {
-			Com_Printf( S_COLOR_YELLOW "Too many textures!\n" );
-			return missing_texture;
-		}
+	}
+	if( !handle.exists ) {
+		Com_Printf( S_COLOR_YELLOW "Too many textures!\n" );
+		return Default( old_texture, missing_texture );
+	}
+
+	if( old_texture.exists ) {
+		UnloadTexture( old_texture.value );
+		DeleteBackendTexture( textures[ old_texture.value ].backend );
 	}
 
 	textures[ handle.value ] = MakeTexture( config, hash );
@@ -469,37 +493,22 @@ u32 TextureHeight( PoolHandle< Material > material ) {
 	return TextureHeight( materials[ material ].texture );
 }
 
-[[nodiscard]] static Optional< PoolHandle< Texture > > AddTexture( const TextureConfig & config ) {
+[[nodiscard]] static Optional< PoolHandle< Texture > > AddTextureAndDefaultMaterial( const TextureConfig & config ) {
 	TracyZoneScoped;
 
-	u64 hash = Hash64( config.name );
-	bool also_add_material = false;
+	StringHash hash = StringHash( config.name );
 
-	Optional< PoolHandle< Texture > > handle;
-	Optional< PoolHandle< Texture > > old_handle = textures.get( hash );
+	Optional< PoolHandle< Texture > > old_handle = textures.get( hash.hash );
 	if( old_handle.exists ) {
+		// formats that editors load/save directly, i.e. WIP textures, take precedence
 		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( textures[ old_handle.value ].format ) ) {
 			return NONE;
 		}
-
-		UnloadTexture( old_handle.value );
-		handle = old_handle;
-	}
-	else {
-		handle = textures.add( hash );
-		also_add_material = true;
 	}
 
-	if( !handle.exists ) {
-		Com_Printf( S_COLOR_YELLOW "Too many textures!\n" );
-		return NONE;
-	}
-
-	textures[ handle.value ] = MakeTexture( config, hash );
-
-	if( also_add_material ) {
-		// TODO NOMERGE: need to recreate the bind group either way to point at the new texture
-		AddMaterial( config.name, MaterialDescriptor { .texture = handle.value } );
+	PoolHandle< Texture > handle = NewTexture( config, old_handle );
+	if( !old_handle.exists ) {
+		AddMaterial( config.name, MaterialDescriptor { .texture = hash } );
 	}
 
 	return handle;
@@ -530,7 +539,7 @@ static void LoadSTBTexture( Span< const char > path, u8 * pixels, int w, int h, 
 		.data = pixels,
 	};
 
-	Optional< PoolHandle< Texture > > texture = AddTexture( config );
+	Optional< PoolHandle< Texture > > texture = AddTextureAndDefaultMaterial( config );
 	if( texture.exists ) {
 		textures[ texture.value ].stb_data = pixels;
 	}
@@ -590,7 +599,7 @@ static void LoadDDSTexture( Span< const char > path ) {
 		return;
 	}
 
-	Optional< PoolHandle< Texture > > texture = AddTexture( config );
+	Optional< PoolHandle< Texture > > texture = AddTextureAndDefaultMaterial( config );
 	if( texture.exists ) {
 		textures[ texture.value ].bc4_data = ( dds + sizeof( DDSHeader ) ).cast< const BC4Block >();
 	}
@@ -868,8 +877,7 @@ static void PackSpriteAtlas( bool first_time ) {
 	// free temporary bc4s
 	for( size_t i = 0; i < sprites.size(); i++ ) {
 		Texture * texture = &textures.span()[ rects[ i ].id ];
-		const Material * material = &materials.span()[ rects[ i ].id ];
-		if( GetTextureFormat( material->texture ) != TextureFormat_RGBA_U8_sRGB )
+		if( texture->format != TextureFormat_RGBA_U8_sRGB )
 			continue;
 
 		Free( sys_allocator, const_cast< BC4Block * >( texture->bc4_data.ptr ) );
@@ -921,7 +929,7 @@ static void LoadBuiltinMaterials() {
 		} );
 
 		missing_material = *AddMaterial( "missing", MaterialDescriptor {
-			.texture = missing_texture,
+			.texture = "Missing texture",
 			.outlined = false,
 		} );
 	}
@@ -936,13 +944,13 @@ static void LoadBuiltinMaterials() {
 			.data = &white,
 		};
 
-		Must( AddTexture( config ) );
+		Must( AddTextureAndDefaultMaterial( config ) );
 	}
 
 	{
 		MaterialDescriptor world_material = MaterialDescriptor {
 			.rgbgen = { .args = { 0.17f, 0.17f, 0.17f, 1.0f } },
-			.texture = FindTexture( "white" ),
+			.texture = "white",
 			.world = true,
 			.properties = {
 				.specular = 3.0f,
@@ -959,7 +967,7 @@ static void LoadBuiltinMaterials() {
 					1.0f,
 				},
 			},
-			.texture = FindTexture( "white" ),
+			.texture = "white",
 			.world = true,
 			.properties = world_material.properties,
 		};
@@ -976,7 +984,7 @@ static void LoadBuiltinMaterials() {
 
 	Must( AddMaterial( "textures/editor/glass", MaterialDescriptor {
 		.rgbgen = { .args = { 0.0f, 0.35f, 0.8f } },
-		.texture = FindTexture( "white" ),
+		.texture = "white",
 		.world = true,
 		.properties = {
 			.specular = 100.0f,
@@ -1116,15 +1124,22 @@ void InitMaterials() {
 
 	{
 		PackSpriteAtlas( true );
-		GPUBuffer buffer = NewBuffer( "Sprite atlas properties", MaterialProperties { } );
-		sprite_atlas_bind_group = NewMaterialBindGroup( "Sprite atlas", textures[ sprite_atlas ].backend, Sampler_Standard, buffer );
+		sprite_atlas_bind_group = NewMaterialBindGroup( "Sprite atlas", sprite_atlas, Sampler_Standard, MaterialProperties { } );
+	}
+}
+
+static void RecreateMaterialBindGroups() {
+	for( Material & material : materials.span() ) {
+		const auto & stuff = material.stuff_to_recreate_bind_group;
+		PoolHandle< Texture > texture = FindTexture( stuff.texture );
+		material.bind_group = NewMaterialBindGroup( material.name.span(), texture, stuff.sampler, stuff.properties, material.bind_group );
 	}
 }
 
 void HotloadMaterials() {
 	TracyZoneScoped;
 
-	bool changes = false;
+	bool hotloaded_any_textures = false;
 
 	for( Span< const char > path : ModifiedAssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
@@ -1141,24 +1156,21 @@ void HotloadMaterials() {
 			}
 
 			LoadSTBTexture( path, pixels, w, h, channels, stbi_failure_reason() );
-
-			changes = true;
+			hotloaded_any_textures = true;
 		}
 
 		if( ext == ".dds" ) {
 			LoadDDSTexture( path );
-			changes = true;
+			hotloaded_any_textures = true;
 		}
-	}
 
-	for( Span< const char > path : ModifiedAssetPaths() ) {
-		if( FileExtension( path ) == ".cdmaterial" ) {
+		if( ext == ".cdmaterial" ) {
 			LoadMaterialFile( path );
-			changes = true;
 		}
 	}
 
-	if( changes ) {
+	if( hotloaded_any_textures ) {
+		RecreateMaterialBindGroups();
 		PackSpriteAtlas( false );
 	}
 }

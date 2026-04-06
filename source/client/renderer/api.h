@@ -39,15 +39,15 @@ struct CoherentSpan {
 	Span< T > data;
 };
 
-GPUBuffer NewBuffer( const char * label, size_t size, size_t alignment, bool texture, const void * data = NULL );
+GPUBuffer NewBuffer( Span< const char > label, size_t size, size_t alignment, bool texture, const void * data = NULL );
 
 template< typename T >
-GPUBuffer NewBuffer( const char * label, const T & x, size_t alignment = alignof( T ) ) {
+GPUBuffer NewBuffer( Span< const char > label, const T & x, size_t alignment = alignof( T ) ) {
 	return NewBuffer( label, sizeof( T ), alignment, false, &x );
 }
 
 template< typename T >
-GPUBuffer NewBuffer( const char * label, Span< const T > xs, size_t alignment = alignof( T ) ) {
+GPUBuffer NewBuffer( Span< const char > label, Span< const T > xs, size_t alignment = alignof( T ) ) {
 	return NewBuffer( label, xs.num_bytes(), alignment, false, xs.ptr );
 }
 
@@ -74,10 +74,10 @@ CoherentSpan< T > NewCoherentSpan( size_t n, size_t alignment = alignof( T ) ) {
 	};
 }
 
-GPUBuffer NewDeviceTempBuffer( const char * label, size_t size, size_t alignment );
+GPUBuffer NewDeviceTempBuffer( Span< const char > label, size_t size, size_t alignment );
 
 template< typename T >
-GPUBuffer NewDeviceTempBuffer( const char * label, size_t alignment = alignof( T ) ) {
+GPUBuffer NewDeviceTempBuffer( Span< const char > label, size_t alignment = alignof( T ) ) {
 	return NewDeviceTempBuffer( label, sizeof( T ), alignment );
 }
 
@@ -478,29 +478,7 @@ void EncodeScissor( RenderPass pass, Optional< Scissor > scissor );
  * Material
  */
 
-#include "material.h"
-
-// NOMERGE consistency between *Config and this
-struct MaterialDescriptor {
-	BlendFunc blend_func = BlendFunc_Disabled;
-
-	RenderPipelineDynamicState dynamic_state;
-	ColorGen rgbgen = { };
-	ColorGen alphagen = { };
-
-	PoolHandle< Texture > texture;
-	SamplerType sampler = Sampler_Standard;
-
-	bool outlined = true;
-	bool shaded = false;
-	bool world = false;
-
-	MaterialProperties properties = {
-		.specular = 0.0f,
-		.shininess = 64.0f,
-		.lod_bias = 0.0f,
-	};
-};
+#include "client/renderer/material.h"
 
 struct Material {
 	BoundedString< 64 > name;
@@ -508,20 +486,32 @@ struct Material {
 	RenderPass render_pass;
 	PoolHandle< RenderPipeline > shader;
 	PoolHandle< BindGroup > bind_group;
-	PoolHandle< Texture > texture;
 	RenderPipelineDynamicState dynamic_state;
 
 	ColorGen rgbgen;
 	ColorGen alphagen;
+
+	struct {
+		// used to recreate material bindgroups after texture hotloading
+		// TODO(mike 20260406): we should only need texture_name here, check
+		// whether we can do partial descriptor set updates in vulkan
+		StringHash texture;
+		SamplerType sampler;
+		MaterialProperties properties;
+	} stuff_to_recreate_bind_group;
+
+	// TODO(mike 20260406): we should get rid of this and expose textures in
+	// the public API since this is only used by things that don't care about
+	// the material anyway, e.g. menu icons and various VFX
+	PoolHandle< Texture > texture;
 };
 
 template<> struct PoolHandleType< Material > { using T = u16; };
-// NOMERGE should name go in materialdescriptor?
-PoolHandle< Material > NewMaterial( Span< const char > name, const MaterialDescriptor & desc );
-PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, PoolHandle< Texture > texture, SamplerType sampler, MaterialProperties properties );
+PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name,
+	PoolHandle< Texture > texture, SamplerType sampler, const MaterialProperties & properties,
+	Optional< PoolHandle< BindGroup > > old_bind_group = NONE );
 
 PoolHandle< Material > FindMaterial( StringHash name );
-// PoolHandle< Material > FindMaterial( const char * name );
 Optional< PoolHandle< Material > > TryFindMaterial( StringHash name );
 
 u32 TextureWidth( PoolHandle< Material > material );

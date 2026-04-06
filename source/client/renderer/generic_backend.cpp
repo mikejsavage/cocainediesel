@@ -152,7 +152,7 @@ void FlushStagingBuffer() {
 	staging_buffer_cursor = 0;
 }
 
-GPUBuffer NewBuffer( GPUSlabAllocator * a, const char * label, size_t size, size_t alignment, bool texture, const void * data ) {
+GPUBuffer NewBuffer( GPUSlabAllocator * a, Span< const char > label, size_t size, size_t alignment, bool texture, const void * data ) {
 	Assert( IsPowerOf2( alignment ) );
 	Assert( IsPowerOf2( a->buffer_image_granularity ) );
 
@@ -215,11 +215,11 @@ GPUBuffer NewBuffer( GPUSlabAllocator * a, const char * label, size_t size, size
 	return buffer;
 }
 
-GPUBuffer NewBuffer( const char * label, size_t size, size_t alignment, bool texture, const void * data ) {
+GPUBuffer NewBuffer( Span< const char > label, size_t size, size_t alignment, bool texture, const void * data ) {
 	return NewBuffer( &persistent_allocator, label, size, alignment, texture, data );
 }
 
-static GPUBuffer NewTempBuffer( GPUArenaAllocator * a, const char * label, size_t size, size_t alignment ) {
+static GPUBuffer NewTempBuffer( GPUArenaAllocator * a, Span< const char > label, size_t size, size_t alignment ) {
 	// alignment and min_alignment are both pow2 so Max2( alignment, min_alignment ) == LeastCommonMultiple( alignment, min_alignment )
 	Assert( IsPowerOf2( alignment ) );
 	size_t aligned_cursor = AlignPow2( a->cursor, Max2( alignment, a->min_alignment ) );
@@ -229,9 +229,7 @@ static GPUBuffer NewTempBuffer( GPUArenaAllocator * a, const char * label, size_
 
 	size_t offset = aligned_cursor + a->capacity * FrameSlot();
 
-	if( label != NULL ) {
-		AddDebugMarker( a->allocation, offset, size, label );
-	}
+	AddDebugMarker( a->allocation, offset, size, label );
 
 	return GPUBuffer {
 		.allocation = a->allocation,
@@ -241,7 +239,7 @@ static GPUBuffer NewTempBuffer( GPUArenaAllocator * a, const char * label, size_
 }
 
 CoherentBuffer NewCoherentTempBuffer( size_t size, size_t alignment ) {
-	GPUBuffer buffer = NewTempBuffer( &coherent_temp_allocator.a, NULL, size, alignment );
+	GPUBuffer buffer = NewTempBuffer( &coherent_temp_allocator.a, "", size, alignment );
 	return CoherentBuffer {
 		.buffer = buffer,
 		.ptr = ( ( char * ) coherent_temp_allocator.ptr ) + buffer.offset,
@@ -254,7 +252,7 @@ GPUBuffer NewTempBuffer( const void * data, size_t size, size_t alignment ) {
 	return buffer.buffer;
 }
 
-GPUBuffer NewDeviceTempBuffer( const char * label, size_t size, size_t alignment ) {
+GPUBuffer NewDeviceTempBuffer( Span< const char > label, size_t size, size_t alignment ) {
 	return NewTempBuffer( &device_temp_allocator, label, size, alignment );
 }
 

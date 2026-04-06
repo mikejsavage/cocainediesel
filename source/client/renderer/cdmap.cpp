@@ -15,9 +15,9 @@ Mesh NewMapRenderData( const MapData & map, Span< const char > name ) {
 	mesh.vertex_descriptor.buffer_strides[ 1 ] = sizeof( MapVertex );
 	mesh.index_format = IndexFormat_U32,
 	mesh.num_vertices = map.vertex_positions.n;
-	mesh.vertex_buffers[ 0 ] = NewBuffer( temp( "{} positions", name ), map.vertex_positions );
-	mesh.vertex_buffers[ 1 ] = NewBuffer( temp( "{} vertices", name ), map.vertices );
-	mesh.index_buffer = NewBuffer( temp( "{} indices", name ), map.vertex_indices );
+	mesh.vertex_buffers[ 0 ] = NewBuffer( temp.sv( "{} positions", name ), map.vertex_positions );
+	mesh.vertex_buffers[ 1 ] = NewBuffer( temp.sv( "{} vertices", name ), map.vertices );
+	mesh.index_buffer = NewBuffer( temp.sv( "{} indices", name ), map.vertex_indices );
 
 	return mesh;
 }

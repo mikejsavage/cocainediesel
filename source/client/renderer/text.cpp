@@ -6,6 +6,7 @@
 #include "qcommon/serialization.h"
 
 #include "client/renderer/api.h"
+#include "client/renderer/private.h"
 #include "client/renderer/shader.h"
 #include "client/renderer/text.h"
 #include "client/client.h"
@@ -24,7 +25,7 @@ struct Font {
 	FontMetadata metadata;
 };
 
-static BoundedDynamicArray< Font, 64 > fonts;
+static BoundedDynamicArray< Font, MaxFonts > fonts;
 
 void InitText() {
 	fonts.clear();
@@ -81,7 +82,7 @@ const Font * RegisterFont( Span< const char > path ) {
 			.data = pixels,
 		} );
 
-		font.bind_group = NewMaterialBindGroup( temp( "{}", path ), font.atlas, Sampler_Standard, MaterialProperties { } );
+		font.bind_group = NewMaterialBindGroup( path, font.atlas, Sampler_Standard, MaterialProperties { } );
 	}
 
 	Optional< Font * > slot = fonts.add();

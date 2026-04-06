@@ -490,7 +490,7 @@ static Optional< Span< const char > > ValidateAndTrimName( const char * name ) {
 }
 
 static void G_SetName( edict_t * ent, const char * name ) {
-	Span< const char > trimmed = Default( ValidateAndTrimName( name ), MakeSpan( "Player" ) );
+	Span< const char > trimmed = Default( ValidateAndTrimName( name ), "Player"_sp );
 	ggformat( ent->r.client->name, sizeof( ent->r.client->name ), "{}", trimmed );
 
 	int trynum = 0;

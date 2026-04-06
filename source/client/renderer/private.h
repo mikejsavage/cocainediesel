@@ -60,7 +60,7 @@ struct CoherentGPUArenaAllocator {
 	void * ptr;
 };
 
-GPUBuffer NewBuffer( GPUSlabAllocator * a, const char * label, size_t size, size_t alignment, bool texture, const void * data = NULL );
+GPUBuffer NewBuffer( GPUSlabAllocator * a, Span< const char > label, size_t size, size_t alignment, bool texture, const void * data = NULL );
 
 PoolHandle< GPUAllocation > AllocateGPUMemory( size_t size );
 CoherentMemory AllocateCoherentMemory( size_t size );
@@ -83,7 +83,6 @@ struct Texture {
 	u32 num_mipmaps;
 	u32 msaa_samples;
 
-	bool dummy_slot_for_missing_texture;
 	void * stb_data;
 	Span< const BC4Block > bc4_data;
 	bool atlased;
@@ -91,7 +90,7 @@ struct Texture {
 
 Opaque< BackendTexture > NewBackendTexture( const TextureConfig & config );
 Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & config );
-void DeleteDedicatedAllocationTexture( Opaque< BackendTexture > texture );
+void DeleteBackendTexture( Opaque< BackendTexture > texture );
 
 u32 TextureWidth( PoolHandle< Texture > texture );
 u32 TextureHeight( PoolHandle< Texture > texture );
@@ -124,11 +123,11 @@ void UploadTexture( const TextureConfig & config, Opaque< BackendTexture > dest 
  * Debug info
  */
 
-void AddDebugMarker( PoolHandle< GPUAllocation > allocation, size_t offset, size_t size, const char * label );
+void AddDebugMarker( PoolHandle< GPUAllocation > allocation, size_t offset, size_t size, Span< const char > label );
 void RemoveAllDebugMarkers( PoolHandle< GPUAllocation > allocation );
 
 // NOMERGE: unsorted
-PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, Opaque< BackendTexture > texture, SamplerType sampler, GPUBuffer properties );
+PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, Opaque< BackendTexture > texture, SamplerType sampler, GPUBuffer properties, Optional< PoolHandle< BindGroup > > old_bind_group );
 
 size_t FrameSlot();
 
@@ -140,5 +139,6 @@ constexpr size_t MaxDrawCallBuffers = 3;
 constexpr size_t MaxShaderVariants = 4;
 
 constexpr size_t MaxMaterials = 4096;
+constexpr size_t MaxFonts = 64;
 
 void format( FormatBuffer * fb, const VertexDescriptor & v, const FormatOpts & opts );

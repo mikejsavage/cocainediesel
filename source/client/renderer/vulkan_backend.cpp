@@ -664,16 +664,19 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 
 	// allocate descriptor pool
 	// TODO: size these according MaxMaterials etc
+	// TODO: check I actually got it right
 	{
+		constexpr size_t ImGuiFontAtlas = 1;
+		constexpr size_t MaxMaterialDescriptorSets = MaxMaterials + MaxFonts + ImGuiFontAtlas;
 		const VkDescriptorPoolSize pool_sizes[] = {
-			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 10000 },
-			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 10000 },
-			{ VK_DESCRIPTOR_TYPE_SAMPLER, 10000 },
+			{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, MaxMaterialDescriptorSets },
+			{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, MaxMaterialDescriptorSets },
+			{ VK_DESCRIPTOR_TYPE_SAMPLER, MaxMaterialDescriptorSets },
 		};
 
 		const VkDescriptorPoolCreateInfo pool_info = {
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-			.maxSets = 10000,
+			.maxSets = MaxMaterialDescriptorSets,
 			.poolSizeCount = ARRAY_COUNT( pool_sizes ),
 			.pPoolSizes = pool_sizes,
 		};
@@ -765,19 +768,6 @@ static VkSurfaceFormatKHR GetSwapchainFormat( VulkanDevice device, VkSurfaceKHR 
 	Assert( formats.n > 0 );
 
 	return formats[ 0 ];
-}
-
-static void DeleteTexture( const BackendTexture & texture ) {
-	vkDestroyImageView( global_device.device, texture.image_view, NULL );
-	for( VkImageView layer_image_view : texture.per_layer_image_views ) {
-		vkDestroyImageView( global_device.device, layer_image_view, NULL );
-	}
-	vkDestroyImage( global_device.device, texture.image, NULL );
-	Free( sys_allocator, texture.per_layer_image_views.ptr );
-
-	if( texture.allocation.exists ) {
-		GPUFree( texture.allocation.value );
-	}
 }
 
 static Swapchain CreateSwapchain( VulkanDevice device, VkSurfaceKHR surface, Optional< Swapchain > old_swapchain ) {
@@ -1674,7 +1664,7 @@ CoherentMemory AllocateCoherentMemory( size_t size ) {
 	};
 }
 
-void AddDebugMarker( PoolHandle< GPUAllocation > allocation, size_t offset, size_t size, const char * label ) {
+void AddDebugMarker( PoolHandle< GPUAllocation > allocation, size_t offset, size_t size, Span< const char > label ) {
 	// Vulkan doesn't have this functionality
 }
 
@@ -2416,7 +2406,7 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 		VK_CHECK( vkBindImageMemory( global_device.device, image, dedicated_allocation->memory, 0 ) );
 	}
 	else {
-		GPUBuffer alloc = NewBuffer( a, temp( "{}", config.name ), memory_requirements.size, memory_requirements.alignment, true );
+		GPUBuffer alloc = NewBuffer( a, "{}", memory_requirements.size, memory_requirements.alignment, true );
 		VK_CHECK( vkBindImageMemory( global_device.device, image, allocations[ alloc.allocation ].memory, alloc.offset ) );
 	}
 
@@ -2484,9 +2474,19 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 	return texture;
 }
 
-void DeleteDedicatedAllocationTexture( Opaque< BackendTexture > texture ) {
-	Assert( texture.unwrap()->allocation.exists );
-	DeleteTexture( *texture.unwrap() );
+void DeleteBackendTexture( Opaque< BackendTexture > opaque ) {
+	BackendTexture texture = *opaque.unwrap();
+
+	vkDestroyImageView( global_device.device, texture.image_view, NULL );
+	for( VkImageView layer_image_view : texture.per_layer_image_views ) {
+		vkDestroyImageView( global_device.device, layer_image_view, NULL );
+	}
+	vkDestroyImage( global_device.device, texture.image, NULL );
+	Free( sys_allocator, texture.per_layer_image_views.ptr );
+
+	if( texture.allocation.exists ) {
+		GPUFree( texture.allocation.value );
+	}
 }
 
 bool SwapchainIsNotsRGB() {
@@ -2546,19 +2546,24 @@ static void CreateSamplers() { // NOMERGE: move this into generic I guess
 	samplers[ Sampler_Shadowmap ] = NewSampler( SamplerConfig { .name = "Shadowmap", .shadowmap_sampler = true } );
 }
 
-PoolHandle< BindGroup > NewMaterialBindGroup( const char * name, Opaque< BackendTexture > texture, SamplerType sampler, GPUBuffer properties ) {
+PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, Opaque< BackendTexture > texture, SamplerType sampler, GPUBuffer properties, Optional< PoolHandle< BindGroup > > old_bind_group ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	const VkDescriptorSetAllocateInfo descriptor_set_info = {
-		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-		.descriptorPool = global_device.descriptor_pool,
-		.descriptorSetCount = 1,
-		.pSetLayouts = &global_device.material_descriptor_set_layout,
-	};
-
 	VkDescriptorSet descriptor_set;
-	VK_CHECK( vkAllocateDescriptorSets( global_device.device, &descriptor_set_info, &descriptor_set ) );
-	DebugLabel( descriptor_set, VK_OBJECT_TYPE_DESCRIPTOR_SET, temp( "{} bind group", name ) );
+	if( old_bind_group.exists ) {
+		descriptor_set = bind_groups[ old_bind_group.value ].descriptor_set;
+	}
+	else {
+		const VkDescriptorSetAllocateInfo descriptor_set_info = {
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+			.descriptorPool = global_device.descriptor_pool,
+			.descriptorSetCount = 1,
+			.pSetLayouts = &global_device.material_descriptor_set_layout,
+		};
+
+		VK_CHECK( vkAllocateDescriptorSets( global_device.device, &descriptor_set_info, &descriptor_set ) );
+		DebugLabel( descriptor_set, VK_OBJECT_TYPE_DESCRIPTOR_SET, temp( "{}", name ) );
+	}
 
 	const VkDescriptorBufferInfo descriptor_buffer_info = {
 		.buffer = allocations[ properties.allocation ].buffer,
@@ -2645,9 +2650,7 @@ void ShutdownRenderBackend() {
 		DeleteSampler( sampler );
 	}
 	for( Texture texture : textures.span() ) {
-		if( !texture.dummy_slot_for_missing_texture ) {
-			DeleteTexture( *texture.backend.unwrap() );
-		}
+		DeleteBackendTexture( texture.backend );
 	}
 	for( GPUAllocation allocation : allocations ) {
 		GPUFree( allocation );

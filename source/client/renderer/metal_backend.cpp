@@ -1094,9 +1094,7 @@ void ShutdownRenderBackend() {
 	}
 
 	for( Texture texture : textures.span() ) {
-		if( !texture.dummy_slot_for_missing_texture ) {
-			texture.backend.unwrap()->texture->release();
-		}
+		texture.backend.unwrap()->texture->release();
 	}
 
 	for( RenderPipeline shader : render_pipelines ) {

@@ -1095,7 +1095,6 @@ void ShutdownRenderBackend() {
 
 	for( Texture texture : textures.span() ) {
 		DeleteBackendTexture( texture.backend );
-		texture.backend.unwrap()->texture->release();
 	}
 
 	for( RenderPipeline shader : render_pipelines ) {

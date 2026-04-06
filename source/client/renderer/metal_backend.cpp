@@ -480,7 +480,7 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 	MTL::Texture * texture;
 	if( !config.dedicated_allocation ) {
 		MTL::SizeAndAlign memory_requirements = global_device.device->heapTextureSizeAndAlign( descriptor );
-		GPUBuffer alloc = NewBuffer( a, temp( "{} texture memory", config.name ), memory_requirements.size, memory_requirements.align, true );
+		GPUBuffer alloc = NewBuffer( a, temp.sv( "{} texture memory", config.name ), memory_requirements.size, memory_requirements.align, true );
 
 		descriptor->setHazardTrackingMode( MTL::HazardTrackingModeUntracked );
 		texture = allocations[ alloc.allocation ].heap->newTexture( descriptor, alloc.offset );
@@ -499,7 +499,7 @@ Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureC
 	return backend;
 }
 
-void DeleteDedicatedAllocationTexture( Opaque< BackendTexture > texture ) {
+void DeleteBackendTexture( Opaque< BackendTexture > texture ) {
 	texture.unwrap()->texture->release();
 }
 
@@ -1094,6 +1094,7 @@ void ShutdownRenderBackend() {
 	}
 
 	for( Texture texture : textures.span() ) {
+		DeleteBackendTexture( texture.backend );
 		texture.backend.unwrap()->texture->release();
 	}
 

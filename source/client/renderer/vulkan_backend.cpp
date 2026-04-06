@@ -70,12 +70,6 @@ struct BackendTexture {
 	Optional< GPUAllocation > allocation;
 };
 
-struct Vertex2 {
-	Vec2 position;
-	Vec2 uv;
-	Vec3 color;
-};
-
 struct VulkanDevice {
 	VkPhysicalDevice physical_device;
 	u32 device_local_memory_type;

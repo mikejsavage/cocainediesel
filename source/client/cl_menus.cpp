@@ -1526,13 +1526,13 @@ static void SubMenuWindow() {
 							}
 
 							ClayButtonData * data = Clone( ClayAllocator(), ClayButtonData{
-								MakeSpan( "go back" ),
+								"go back",
 								[]( const Clay_BoundingBox & bounds, bool, void * userdata ) {
 									const float textOffset = bounds.height * 0.15f;
 									const float textOffsetSize = textOffset * 2.0f;
 
 									DrawShadowedSquare( bounds.x, bounds.y, bounds.height, diesel_red.linear );
-									DrawClayText( MakeSpan( "X" ), {
+									DrawClayText( "X", {
 										.textColor = ui_white.clay,
 										.fontId = ClayFont_Bold
 									}, {

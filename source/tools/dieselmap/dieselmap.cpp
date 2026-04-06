@@ -976,17 +976,18 @@ int main( int argc, char ** argv ) {
 			flat_brush_indices.add_many( VectorToSpan( entity.collision_geometry.brush_indices ) );
 
 			if( entity.render_geometry.size() > 0 || entity.collision_geometry.nodes.size() > 0 ) {
-				MapModel model = { };
-				model.bounds = entity.collision_geometry.bounds;
-				model.solidity = entity.collision_geometry.solidity;
-				model.root_node = base_node;
-				model.first_mesh = first_mesh;
-				model.num_meshes = entity.render_geometry.size();
+				MapModel model = {
+					.bounds = entity.collision_geometry.bounds,
+					.solidity = entity.collision_geometry.solidity,
+					.root_node = checked_cast< u32 >( base_node ),
+					.first_mesh = first_mesh,
+					.num_meshes = checked_cast< u32 >( entity.render_geometry.size() ),
+				};
 
-				ParsedKeyValue kv = { };
-				kv.key = MakeSpan( "model" );
-				kv.value = MakeSpan( arena( "*{}", flat_models.size() ) );
-				entity.key_values.push_back( kv );
+				entity.key_values.push_back( ParsedKeyValue {
+					.key = "model",
+					.value = MakeSpan( arena( "*{}", flat_models.size() ) ),
+				} );
 
 				flat_models.add( model );
 			}

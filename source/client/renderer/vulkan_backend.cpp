@@ -555,8 +555,15 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 #endif
 		};
 
+		VkPhysicalDevicePortabilitySubsetFeaturesKHR features_portability_subset = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR,
+			.pNext = &features13,
+			.imageViewFormatSwizzle = VK_TRUE,
+		};
+
 		VkPhysicalDeviceVulkan13Features features13 = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+			.pNext = macOS ? ( void * ) &features_portability_subset : NULL,
 			// .robustImageAccess = VK_TRUE,
 			.shaderDemoteToHelperInvocation = VK_TRUE,
 			.synchronization2 = VK_TRUE,
@@ -564,15 +571,9 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 			// .maintenance4 = VK_TRUE,
 		};
 
-		VkPhysicalDevicePortabilitySubsetFeaturesKHR features_portability_subset = {
-			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR,
-			.pNext = &features13,
-			.imageViewFormatSwizzle = VK_TRUE,
-		};
-
 		VkPhysicalDeviceVulkan12Features features12 = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-			.pNext = macOS ? ( void * ) &features_portability_subset : ( void * ) &features13,
+			.pNext = &features13,
 			// .drawIndirectCount = VK_TRUE, XXX metal doesn't have this
 			// .storageBuffer8BitAccess = VK_TRUE,
 			// .uniformAndStorageBuffer8BitAccess = VK_TRUE,

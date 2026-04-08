@@ -2606,6 +2606,10 @@ PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, Opaque< B
 
 	vkUpdateDescriptorSets( global_device.device, ARRAY_COUNT( descriptor_writes ), descriptor_writes, 0, NULL );
 
+	if( old_bind_group.exists ) {
+		return old_bind_group.value;
+	}
+
 	return bind_groups.allocate( { descriptor_set } );
 }
 

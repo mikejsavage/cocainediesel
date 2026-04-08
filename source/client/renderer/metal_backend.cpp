@@ -526,7 +526,7 @@ PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, Opaque< B
 	encoder->setTexture( texture.unwrap()->texture, 1 );
 	encoder->setSamplerState( samplers[ sampler ], 2 );
 
-	return bind_groups.allocate( { args } );
+	return bind_groups.upsert( old_bind_group, { args } );
 }
 
 static MTL::VertexFormat VertexFormatToMetal( VertexFormat format ) {

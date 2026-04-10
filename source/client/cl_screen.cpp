@@ -293,16 +293,40 @@ void SCR_UpdateScreen() {
 	else {
 		cg.damage_effect = 0.0f;
 
+		bool explicit_srgb = SwapchainIsNotsRGB();
+		const auto & targets = frame_static.render_targets;
+
 		frame_static.render_passes[ RenderPass_UIAfterPostprocessing ] = NewRenderPass( RenderPassConfig {
 			.name = "UI after postprocessing",
 			.pass = RenderPass_UIAfterPostprocessing,
-			.color_targets = { RenderPassConfig::ColorTarget { .texture = NONE, .load = LoadOp_Clear, .clear = black.linear } },
-			.swapchain_attachment_transition = true,
+			.color_targets = {
+				RenderPassConfig::ColorTarget {
+					.texture = targets.resolved_color0,
+					.load = LoadOp_Clear,
+					.clear = black.linear,
+				},
+			},
 			.representative_shader = shaders.imgui,
 			.bindings = {
 				.buffers = { { "u_View", frame_static.ortho_view_uniforms } },
 			},
 		} );
+
+		if( explicit_srgb ) {
+			frame_static.render_passes[ RenderPass_10BitTosRGB ] = NewRenderPass( RenderPassConfig {
+				.name = "sRGB",
+				.pass = RenderPass_10BitTosRGB,
+				.color_targets = { RenderPassConfig::ColorTarget { .texture = NONE } },
+				.readonly_transitions = { targets.resolved_color0 },
+				.swapchain_attachment_transition = true,
+				.representative_shader = shaders.srgb,
+				.bindings = {
+					.textures = { { "u_Framebuffer", targets.resolved_color0 } },
+				},
+			} );
+
+			Draw( RenderPass_10BitTosRGB, { .shader = shaders.srgb }, FullscreenMesh() );
+		}
 	}
 
 	UI_Refresh();

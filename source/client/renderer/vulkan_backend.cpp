@@ -22,6 +22,8 @@
 #include "vulkan/spirv.h"
 #include "volk/volk.h"
 
+#include "tracy/tracy/TracyVulkan.hpp"
+
 #if !PUBLIC_BUILD
 #define ENABLE_VALIDATION_LAYERS 1
 #define ENABLE_SYNC_VALIDATION 1
@@ -94,6 +96,8 @@ struct VulkanDevice {
 	VkCommandBuffer transfer_command_buffer;
 
 	VkDescriptorSetLayout material_descriptor_set_layout;
+
+	TracyVkCtx tracy;
 
 	struct {
 		size_t vram;
@@ -546,7 +550,7 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 		constexpr const char * extensions[] = {
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 			VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
-			// VK_KHR_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
+			VK_KHR_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
 #if PLATFORM_WINDOWS
 			VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME,
 #endif
@@ -580,6 +584,7 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 			// .shaderInt8 = VK_TRUE,
 			// .samplerFilterMinmax = VK_TRUE,
 			.scalarBlockLayout = VK_TRUE,
+			.hostQueryReset = VK_TRUE,
 			.timelineSemaphore = VK_TRUE,
 			.bufferDeviceAddress = VK_TRUE,
 		};
@@ -739,6 +744,8 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 		VK_CHECK( vkCreateDescriptorSetLayout( device.device, &layout_info, NULL, &device.material_descriptor_set_layout ) );
 		DebugLabel( device.device, device.material_descriptor_set_layout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, "Standard material descriptor set layout" );
 	}
+
+	device.tracy = TracyVkContextHostCalibrated( device.physical_device, device.device, vkResetQueryPool, vkGetPhysicalDeviceCalibrateableTimeDomainsKHR, vkGetCalibratedTimestampsKHR );
 
 	return device;
 }
@@ -1493,6 +1500,8 @@ static VkCommandBuffer PrepareDraw( Opaque< CommandBuffer > ocb, const PipelineS
 }
 
 void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline_state, Mesh mesh, Span< const GPUBuffer > buffers, DrawCallExtras extras ) {
+	TracyVkZone( global_device.tracy, ocb.unwrap()->buffer, "Draw" );
+
 	VkCommandBuffer cb = PrepareDraw( ocb, pipeline_state, mesh, buffers );
 	if( cb == VK_NULL_HANDLE )
 		return;
@@ -1507,6 +1516,8 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline
 }
 
 void EncodeIndirectDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline_state, Mesh mesh, GPUBuffer indirect_args, Span< const GPUBuffer > buffers ) {
+	TracyVkZone( global_device.tracy, ocb.unwrap()->buffer, "Indirect draw" );
+
 	VkCommandBuffer cb = PrepareDraw( ocb, pipeline_state, mesh, buffers );
 	if( cb == VK_NULL_HANDLE )
 		return;
@@ -2143,11 +2154,13 @@ static VkCommandBuffer PrepareCompute( Opaque< CommandBuffer > ocb, PoolHandle< 
 }
 
 void EncodeComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > shader, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers ) {
+	TracyVkZone( global_device.tracy, ocb.unwrap()->buffer, "Compute" );
 	VkCommandBuffer cb = PrepareCompute( ocb, shader, buffers );
 	vkCmdDispatch( cb, x, y, z );
 }
 
 void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > shader, GPUBuffer indirect_args, Span< const BufferBinding > buffers ) {
+	TracyVkZone( global_device.tracy, ocb.unwrap()->buffer, "Indirect compute" );
 	VkCommandBuffer cb = PrepareCompute( ocb, shader, buffers );
 	vkCmdDispatchIndirect( cb, allocations[ indirect_args.allocation ].buffer, indirect_args.offset );
 }
@@ -2201,6 +2214,8 @@ void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first
 			.layerCount = 1,
 		},
 	} );
+
+	TracyVkCollect( global_device.tracy, passes[ passes.n - 1 ].buffer.unwrap()->buffer );
 
 	for( RenderPassSubmit pass : passes ) {
 		vkCmdEndDebugUtilsLabelEXT( pass.buffer.unwrap()->buffer );
@@ -2643,6 +2658,8 @@ void InitRenderBackend( SDL_Window * window ) {
 
 void ShutdownRenderBackend() {
 	VK_CHECK( vkDeviceWaitIdle( global_device.device ) );
+
+	TracyVkDestroy( global_device.tracy );
 
 	for( VkSampler sampler : samplers ) {
 		DeleteSampler( sampler );

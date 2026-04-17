@@ -306,6 +306,7 @@ void SCR_UpdateScreen() {
 					.clear = black.linear,
 				},
 			},
+			.attachment_transitions = { targets.resolved_color0 },
 			.representative_shader = shaders.imgui,
 			.bindings = {
 				.buffers = { { "u_View", frame_static.ortho_view_uniforms } },

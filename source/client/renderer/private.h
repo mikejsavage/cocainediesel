@@ -7,7 +7,7 @@
  * Init
  */
 
-void InitRenderBackend( SDL_Window * window );
+void InitRenderBackend( SDL_Window * window, const WindowMode & window_mode );
 void ShutdownRenderBackend();
 
 void InitShaders();
@@ -128,6 +128,10 @@ void RemoveAllDebugMarkers( PoolHandle< GPUAllocation > allocation );
 
 // NOMERGE: unsorted
 PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, Opaque< BackendTexture > texture, SamplerType sampler, GPUBuffer properties, Optional< PoolHandle< BindGroup > > old_bind_group );
+
+void RenderBackendWaitForNewFrame();
+void RenderBackendBeginFrame( SDL_Window * window, bool fullscreen_exclusive, int frames_to_capture );
+void RenderBackendEndFrame();
 
 size_t FrameSlot();
 

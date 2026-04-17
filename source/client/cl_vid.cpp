@@ -115,7 +115,7 @@ void VID_CheckChanges() {
 	UpdateVidModeCvar();
 }
 
-void VID_Init() {
+WindowMode VID_Init() {
 	TracyZoneScoped;
 
 	vid_mode = NewCvar( "vid_mode", "", CvarFlag_Archive );
@@ -133,6 +133,17 @@ void VID_Init() {
 
 	CreateWindow( mode );
 	UpdateVidModeCvar();
+
+	return mode;
+}
+
+bool WantFullscreenExclusive() {
+	// TODO: this is dumb
+	WindowMode mode;
+	if( !ParseWindowMode( vid_mode->value, &mode ) ) {
+		return true;
+	}
+	return mode.fullscreen == FullscreenMode_Fullscreen;
 }
 
 void CL_ForceVsync( bool force ) {

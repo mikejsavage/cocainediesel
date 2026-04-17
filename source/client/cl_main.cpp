@@ -1080,8 +1080,9 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	// update the screen
 	int viewport_width, viewport_height;
-	GetFramebufferSize( &viewport_width, &viewport_height );
-	RendererBeginFrame( viewport_width, viewport_height );
+	bool minimized;
+	GetFramebufferSize( &viewport_width, &viewport_height, &minimized );
+	RendererBeginFrame( sdl_window, viewport_width, viewport_height, minimized, WantFullscreenExclusive() );
 	ClayBeginFrame();
 
 	SCR_UpdateScreen();
@@ -1126,24 +1127,21 @@ void CL_Init() {
 
 	InitThreadPool();
 
-	{
 #if PLATFORM_WINDOWS
-		// both VID_Init and InitAssets need to run on the main thread on Windows
-		VID_Init();
-		TempAllocator temp = cls.frame_arena.temp();
-		InitAssets( &temp );
+	// both VID_Init and InitAssets need to run on the main thread on Windows
+	WindowMode window_mode = VID_Init();
+	TempAllocator temp = cls.frame_arena.temp();
+	InitAssets( &temp );
 #else
-		// overlap loading assets and creating a window
-		ThreadPoolDo( []( TempAllocator * temp, void * data ) {
-			InitAssets( temp );
-		} );
-		VID_Init();
-
-		ThreadPoolFinish();
+	// overlap loading assets and creating a window
+	ThreadPoolDo( []( TempAllocator * temp, void * data ) {
+		InitAssets( temp );
+	} );
+	WindowMode window_mode = VID_Init();
+	ThreadPoolFinish();
 #endif
-	}
 
-	InitRenderer( sdl_window );
+	InitRenderer( sdl_window, window_mode );
 	InitGLTFModels();
 	InitMaps();
 	InitSound();

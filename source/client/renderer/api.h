@@ -9,7 +9,8 @@
 constexpr size_t MaxFramesInFlight = 2;
 
 struct SDL_Window;
-void InitRenderer( SDL_Window * window );
+struct WindowMode;
+void InitRenderer( SDL_Window * window, const WindowMode & window_mode );
 void ShutdownRenderer();
 
 constexpr u32 MaxMSAA = 8;
@@ -402,10 +403,11 @@ struct RenderPassConfig {
 	GPUBindings bindings;
 };
 
-Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & render_pass );
+Optional< Opaque< CommandBuffer > > NewRenderPass( const RenderPassConfig & render_pass );
 
 struct RenderPassSubmit {
 	Opaque< CommandBuffer > buffer;
+	RenderPass pass;
 	RenderPass next_pass;
 };
 
@@ -544,6 +546,7 @@ struct ShadowParameters {
 struct FrameStatic {
 	u32 viewport_width, viewport_height;
 	Vec2 viewport;
+	bool minimized;
 	bool viewport_resized;
 	float aspect_ratio;
 	u32 msaa_samples;
@@ -581,12 +584,8 @@ struct FrameStatic {
 
 inline FrameStatic frame_static;
 
-void RendererBeginFrame( u32 viewport_width, u32 viewport_height );
+void RendererBeginFrame( SDL_Window * window, int viewport_width, int viewport_height, bool minimized, bool fullscreen_exclusive );
 void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov );
 void RendererEndFrame();
-
-void RenderBackendWaitForNewFrame();
-void RenderBackendBeginFrame( int frames_to_capture );
-void RenderBackendEndFrame();
 
 bool SwapchainIsNotsRGB();

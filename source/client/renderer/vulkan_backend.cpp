@@ -15,6 +15,7 @@
 #include "client/platform/renderdoc.h"
 #include "gameshared/q_math.h"
 
+#include "SDL3/SDL_video.h"
 #include "SDL3/SDL_vulkan.h"
 
 #define VK_ENABLE_BETA_EXTENSIONS
@@ -121,6 +122,7 @@ struct Swapchain {
 
 	VkSwapchainKHR swapchain;
 	u32 width, height;
+	bool fullscreen_exclusive;
 	VkFormat format;
 
 	Span< Image > images;
@@ -781,7 +783,7 @@ static VkSurfaceFormatKHR GetSwapchainFormat( VulkanDevice device, VkSurfaceKHR 
 	return formats[ 0 ];
 }
 
-static Swapchain CreateSwapchain( VulkanDevice device, VkSurfaceKHR surface, Optional< Swapchain > old_swapchain ) {
+static Swapchain CreateSwapchain( SDL_Window * window, VulkanDevice device, VkSurfaceKHR surface, bool fullscreen_exclusive, Optional< Swapchain > old_swapchain ) {
 	VkSurfaceFormatKHR format = GetSwapchainFormat( device, surface );
 
 	VkSurfaceCapabilitiesKHR capabilities;
@@ -822,8 +824,34 @@ static Swapchain CreateSwapchain( VulkanDevice device, VkSurfaceKHR surface, Opt
 		image_count = Min2( image_count, capabilities.maxImageCount );
 	}
 
+#if PLATFORM_WINDOWS
+	SDL_DisplayID display = SDL_GetDisplayForWindow( window );
+	if( display == 0 ) {
+		Fatal( "SDL_GetDisplayForWindow: %s", SDL_GetError() );
+	}
+
+	SDL_PropertiesID display_properties = SDL_GetDisplayProperties( display );
+	HMONITOR hmonitor = HMONITOR( SDL_GetPointerProperty( display_properties, SDL_PROP_DISPLAY_WINDOWS_HMONITOR_POINTER, NULL ) );
+	if( hmonitor == NULL ) {
+		Fatal( "SDL_GetPointerProperty( SDL_PROP_DISPLAY_WINDOWS_HMONITOR_POINTER )" );
+	}
+
+	const VkSurfaceFullScreenExclusiveWin32InfoEXT fullscreen_exclusive_win32_info = {
+		.sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT,
+		.hmonitor = hmonitor,
+	};
+
+	const VkSurfaceFullScreenExclusiveInfoEXT fullscreen_exclusive_info = {
+		.sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT,
+		.fullScreenExclusive = fullscreen_exclusive ? VK_FULL_SCREEN_EXCLUSIVE_ALLOWED_EXT : VK_FULL_SCREEN_EXCLUSIVE_DISALLOWED_EXT,
+	};
+#endif
+
 	const VkSwapchainCreateInfoKHR createInfo = {
 		.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+#if PLATFORM_WINDOWS
+		.pNext = &fullscreen_exclusive_info,
+#endif
 		.surface = surface,
 		.minImageCount = image_count,
 		.imageFormat = format.format,
@@ -889,6 +917,7 @@ static Swapchain CreateSwapchain( VulkanDevice device, VkSurfaceKHR surface, Opt
 		.swapchain = swapchain,
 		.width = capabilities.currentExtent.width,
 		.height = capabilities.currentExtent.height,
+		.fullscreen_exclusive = fullscreen_exclusive,
 		.format = format.format,
 		.images = images,
 	};
@@ -903,12 +932,12 @@ static void DeleteSwapchain( Swapchain swapchain ) {
 	vkDestroySwapchainKHR( global_device.device, swapchain.swapchain, NULL );
 }
 
-static bool MaybeRecreateSwapchain( const VkSurfaceCapabilitiesKHR & surface_capabilities ) {
-	if( surface_capabilities.currentExtent.width == global_swapchain.width && surface_capabilities.currentExtent.height == global_swapchain.height ) {
+static bool MaybeRecreateSwapchain( SDL_Window * window, u32 viewport_width, u32 viewport_height, bool fullscreen_exclusive ) {
+	if( viewport_width == global_swapchain.width && viewport_height == global_swapchain.height && fullscreen_exclusive == global_swapchain.fullscreen_exclusive ) {
 		return false;
 	}
 
-	Swapchain new_swapchain = CreateSwapchain( global_device, global_surface, global_swapchain );
+	Swapchain new_swapchain = CreateSwapchain( window, global_device, global_surface, fullscreen_exclusive, global_swapchain );
 	VK_CHECK( vkDeviceWaitIdle( global_device.device ) );
 	DeleteSwapchain( global_swapchain );
 	global_swapchain = new_swapchain;
@@ -1890,7 +1919,10 @@ static VkImageMemoryBarrier2 MakeImageTransition( PoolHandle< Texture > handle, 
 	return MakeImageTransition( texture.backend.unwrap()->image, texture.num_layers, texture.num_mipmaps, texture.format == TextureFormat_Depth, type );
 }
 
-Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
+Optional< Opaque< CommandBuffer > > NewRenderPass( const RenderPassConfig & config ) {
+	if( frame_static.minimized )
+		return NONE;
+
 	TracyZoneScoped;
 	TracyZoneSpan( config.name );
 
@@ -2098,12 +2130,12 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 
 	vkCmdSetScissor( command_buffer, 0, 1, &no_scissor );
 
-	return CommandBuffer {
+	return Optional( Opaque( CommandBuffer {
 		.buffer = command_buffer,
 		.is_render_command_buffer = true,
 		.wait_on_swapchain_acquire = config.swapchain_attachment_transition,
 		.msaa_samples = *msaa,
-	};
+	} ) );
 }
 
 Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config ) {
@@ -2209,8 +2241,6 @@ void SubmitStagingCommandBuffer( Opaque< CommandBuffer > buffer ) {
 }
 
 void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first_pass_metal_only ) {
-	Assert( passes.n > 0 );
-
 	for( RenderPassSubmit pass : passes ) {
 		if( pass.buffer.unwrap()->is_render_command_buffer ) {
 			vkCmdEndRendering( pass.buffer.unwrap()->buffer );
@@ -2219,46 +2249,55 @@ void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first
 
 	const Swapchain::Image & image = global_swapchain.images[ frame.image_index ];
 
-	Barrier( passes[ passes.n - 1 ].buffer.unwrap()->buffer, VkImageMemoryBarrier2 {
-		.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-		.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-		.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-		.oldLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-		.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-		.image = image.image,
-		.subresourceRange = {
-			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-			.levelCount = 1,
-			.layerCount = 1,
-		},
-	} );
-
-	TracyVkCollect( global_device.tracy, passes[ passes.n - 1 ].buffer.unwrap()->buffer );
-
-	for( RenderPassSubmit pass : passes ) {
-		vkCmdEndDebugUtilsLabelEXT( pass.buffer.unwrap()->buffer );
-		VK_CHECK( vkEndCommandBuffer( pass.buffer.unwrap()->buffer ) );
-	}
-
-	VkSemaphoreSubmitInfo present_wait_semaphore = {
-		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-		.semaphore = global_device.acquire_semaphores[ FrameSlot() ],
-		.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-	};
-
-	VkSemaphoreSubmitInfo present_signal_semaphores[] = {
-		{
-			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-			.semaphore = image.present_semaphore,
-			.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-		},
-		{
+	BoundedDynamicArray< VkSemaphoreSubmitInfo, 1 > submit_wait_semaphores = { };
+	BoundedDynamicArray< VkSemaphoreSubmitInfo, 2 > submit_signal_semaphores = {
+		VkSemaphoreSubmitInfo {
 			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
 			.semaphore = global_device.frame_timeline_semaphore,
 			.value = frame_counter + 1,
 			.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 		},
 	};
+
+	if( !frame_static.minimized ) {
+		Barrier( passes[ passes.n - 1 ].buffer.unwrap()->buffer, VkImageMemoryBarrier2 {
+			.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+			.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+			.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+			.oldLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+			.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+			.image = image.image,
+			.subresourceRange = {
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.levelCount = 1,
+				.layerCount = 1,
+			},
+		} );
+
+		submit_wait_semaphores.must_add( VkSemaphoreSubmitInfo {
+			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+			.semaphore = global_device.acquire_semaphores[ FrameSlot() ],
+			.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+		} );
+
+		submit_signal_semaphores.must_add( VkSemaphoreSubmitInfo {
+			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+			.semaphore = image.present_semaphore,
+			.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+		} );
+	}
+
+	if( passes.n > 0 ) {
+		TracyVkCollect( global_device.tracy, passes[ passes.n - 1 ].buffer.unwrap()->buffer );
+	}
+
+	for( RenderPassSubmit pass : passes ) {
+// #if TRACY_ENABLE
+// 		tracy_render_pass_zones[ pass.pass ].unwrap()->~VkCtxScope();
+// #endif
+		vkCmdEndDebugUtilsLabelEXT( pass.buffer.unwrap()->buffer );
+		VK_CHECK( vkEndCommandBuffer( pass.buffer.unwrap()->buffer ) );
+	}
 
 	BoundedDynamicArray< VkCommandBufferSubmitInfo, RenderPass_Count > command_buffer_submit_infos = { };
 	for( RenderPassSubmit pass : passes ) {
@@ -2272,28 +2311,30 @@ void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first
 	// split this into two submits so compute/offscreen rendering don't get stalled
 	VkSubmitInfo2 submit_info = {
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-		.waitSemaphoreInfoCount = 1,
-		.pWaitSemaphoreInfos = &present_wait_semaphore,
+		.waitSemaphoreInfoCount = u32( submit_wait_semaphores.size() ),
+		.pWaitSemaphoreInfos = submit_wait_semaphores.ptr(),
 		.commandBufferInfoCount = u32( command_buffer_submit_infos.size() ),
 		.pCommandBufferInfos = command_buffer_submit_infos.ptr(),
-		.signalSemaphoreInfoCount = ARRAY_COUNT( present_signal_semaphores ),
-		.pSignalSemaphoreInfos = present_signal_semaphores,
+		.signalSemaphoreInfoCount = u32( submit_signal_semaphores.size() ),
+		.pSignalSemaphoreInfos = submit_signal_semaphores.ptr(),
 	};
 
 	VK_CHECK( vkQueueSubmit2( global_device.queue, 1, &submit_info, VK_NULL_HANDLE ) );
 
-	const VkPresentInfoKHR present_info = {
-		.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-		.waitSemaphoreCount = 1,
-		.pWaitSemaphores = &image.present_semaphore,
-		.swapchainCount = 1,
-		.pSwapchains = &global_swapchain.swapchain,
-		.pImageIndices = &frame.image_index,
-	};
+	if( !frame_static.minimized ) {
+		const VkPresentInfoKHR present_info = {
+			.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+			.waitSemaphoreCount = 1,
+			.pWaitSemaphores = &image.present_semaphore,
+			.swapchainCount = 1,
+			.pSwapchains = &global_swapchain.swapchain,
+			.pImageIndices = &frame.image_index,
+		};
 
-	VkResult res = vkQueuePresentKHR( global_device.queue, &present_info );
-	if( res != VK_SUCCESS && res != VK_SUBOPTIMAL_KHR && res != VK_ERROR_OUT_OF_DATE_KHR ) {
-		VkAbort( res );
+		VkResult res = vkQueuePresentKHR( global_device.queue, &present_info );
+		if( res != VK_SUCCESS && res != VK_SUBOPTIMAL_KHR && res != VK_ERROR_OUT_OF_DATE_KHR ) {
+			VkAbort( res );
+		}
 	}
 }
 
@@ -2646,7 +2687,7 @@ PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, Opaque< B
 	return bind_groups.allocate( { descriptor_set } );
 }
 
-void InitRenderBackend( SDL_Window * window ) {
+void InitRenderBackend( SDL_Window * window, const WindowMode & window_mode ) {
 	VK_CHECK( volkInitialize() );
 	PrintExtensions();
 	global_instance = createInstance();
@@ -2665,7 +2706,7 @@ void InitRenderBackend( SDL_Window * window ) {
 		Fatal( "SDL_Vulkan_CreateSurface: %s", SDL_GetError() );
 	}
 
-	global_swapchain = CreateSwapchain( device, global_surface, NONE );
+	global_swapchain = CreateSwapchain( window, device, global_surface, window_mode.fullscreen == FullscreenMode_Fullscreen, NONE );
 	frame_counter = 0;
 
 	Assert( device.limits.ssbo_range >= ArenaAllocatorSize );
@@ -2739,19 +2780,17 @@ void RenderBackendWaitForNewFrame() {
 	VK_CHECK( vkWaitSemaphores( global_device.device, &wait_info, U64_MAX ) );
 }
 
-void RenderBackendBeginFrame( int frames_to_capture ) {
+void RenderBackendBeginFrame( SDL_Window * window, bool fullscreen_exclusive, int frames_to_capture ) {
 	TracyZoneScoped;
-
-	VkSurfaceCapabilitiesKHR surface_capabilities;
-	VK_CHECK( vkGetPhysicalDeviceSurfaceCapabilitiesKHR( global_device.physical_device, global_surface, &surface_capabilities ) );
-	MaybeRecreateSwapchain( surface_capabilities );
 
 	{
 		TracyZoneScopedN( "vkResetCommandPool" );
 		VK_CHECK( vkResetCommandPool( global_device.device, global_device.command_pools[ FrameSlot() ].pool, 0 ) );
 	}
 
-	{
+	if( !frame_static.minimized ) {
+		MaybeRecreateSwapchain( window, frame_static.viewport_width, frame_static.viewport_height, fullscreen_exclusive );
+
 		TracyZoneScopedNC( "vkAcquireNextImageKHR", TracyColorWait );
 		VkSemaphore acquire_semaphore = global_device.acquire_semaphores[ FrameSlot() ];
 

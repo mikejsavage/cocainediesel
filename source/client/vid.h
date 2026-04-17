@@ -28,12 +28,12 @@ void format( FormatBuffer * fb, WindowMode mode, const FormatOpts & opts );
 
 bool operator!=( WindowMode lhs, WindowMode rhs );
 
-void VID_Init();
+WindowMode VID_Init();
 
 void CreateWindow( WindowMode mode );
 void DestroyWindow();
 
-void GetFramebufferSize( int * width, int * height );
+void GetFramebufferSize( int * width, int * height, bool * minimized );
 float GetContentScale();
 Vec2 GetRelativeMouseMovement();
 Vec2 GetJoystickMovement();
@@ -47,4 +47,5 @@ bool IsWindowFocused();
 WindowMode GetWindowMode();
 void SetWindowMode( WindowMode mode );
 
+bool WantFullscreenExclusive();
 void EnableVSync( bool enabled );

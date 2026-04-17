@@ -30,9 +30,9 @@ const bool is_dedicated_server = false;
 
 static bool route_inputs_to_imgui;
 
-static float content_scale;
-
 static int framebuffer_width, framebuffer_height;
+static bool window_minimized;
+static float content_scale;
 
 template< typename R = bool, typename F, typename... Rest >
 static R TrySDLImpl( const char * function_name, F f, const Rest & ... args ) {
@@ -91,7 +91,7 @@ void CreateWindow( WindowMode mode ) {
 	}
 
 	TrySDL( SDL_GetWindowSizeInPixels, sdl_window, &framebuffer_width, &framebuffer_height );
-
+	window_minimized = false;
 	content_scale = TrySDLR( float, SDL_GetWindowDisplayScale, sdl_window );
 
 	{
@@ -112,9 +112,10 @@ void DestroyWindow() {
 	SDL_DestroyWindow( sdl_window );
 }
 
-void GetFramebufferSize( int * width, int * height ) {
+void GetFramebufferSize( int * width, int * height, bool * minimized ) {
 	*width = framebuffer_width;
 	*height = framebuffer_height;
+	*minimized = window_minimized || framebuffer_width < 1 || framebuffer_height < 1;
 }
 
 float GetContentScale() {
@@ -305,7 +306,7 @@ static void OnWindowResizedOrMoved( const SDL_WindowEvent & e ) {
 		vid_mode->modified = false;
 	}
 
-	if( e.type == SDL_EVENT_WINDOW_RESIZED && e.data1 > 0 && e.data2 > 0 ) {
+	if( e.type == SDL_EVENT_WINDOW_RESIZED ) {
 		framebuffer_width = e.data1;
 		framebuffer_height = e.data2;
 	}
@@ -465,6 +466,11 @@ SDL_AppResult SDL_AppEvent( void * appstate, SDL_Event * event ) {
 		case SDL_EVENT_WINDOW_RESIZED:
 		case SDL_EVENT_WINDOW_MOVED:
 			OnWindowResizedOrMoved( event->window );
+			break;
+
+		case SDL_EVENT_WINDOW_MINIMIZED:
+		case SDL_EVENT_WINDOW_RESTORED:
+			window_minimized = event->type == SDL_EVENT_WINDOW_MINIMIZED;
 			break;
 
 		default: break;

@@ -228,19 +228,29 @@ void SubmitStagingCommandBuffer( Opaque< CommandBuffer > buffer ) {
 }
 
 void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first_pass ) {
-	Assert( passes.n > 0 );
-
 	if( first_pass > 0 ) {
 		MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
 		command_buffer->encodeSignalEvent( global_device.pass_event, global_device.frame_counter * RenderPass_Count + first_pass );
 		command_buffer->commit();
 	}
 
-	MTL::CommandBuffer * last = passes[ passes.n - 1 ].buffer.unwrap()->command_buffer;
-	last->addCompletedHandler( [&]( MTL::CommandBuffer * ) {
-		dispatch_semaphore_signal( frame_semaphore );
-	} );
-	last->presentDrawable( frame.swapchain_surface );
+	if( !minimized ) {
+		MTL::CommandBuffer * last = passes[ passes.n - 1 ].buffer.unwrap()->command_buffer;
+		last->addCompletedHandler( [&]( MTL::CommandBuffer * ) {
+			dispatch_semaphore_signal( frame_semaphore );
+		} );
+		last->presentDrawable( frame.swapchain_surface );
+	}
+	else {
+		MTL::CommandBuffer * cb = global_device.command_queue->commandBufferWithUnretainedReferences();
+		cb->addCompletedHandler( [&]( MTL::CommandBuffer * ) {
+			dispatch_semaphore_signal( frame_semaphore );
+		} );
+		if( passes.n == 0 ) {
+			cb->command_buffer->encodeSignalEvent( global_device.pass_event, global_device.frame_counter * RenderPass_Count + RenderPass_Count );
+		}
+		cb->commit();
+	}
 
 	for( RenderPassSubmit pass : passes ) {
 		CommandBuffer * cb = pass.buffer.unwrap();
@@ -1183,7 +1193,10 @@ static void UseAllocators( T * encoder ) {
 	// encoder->useResource( allocations[ global_device.temp_allocator.memory.allocation ].buffer, MTL::ResourceUsageRead | MTL::ResourceUsageWrite );
 }
 
-Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
+Optional< Opaque< CommandBuffer > > NewRenderPass( const RenderPassConfig & config ) {
+	if( frame_static.minimized )
+		return NONE;
+
 	TracyZoneScoped;
 	TracyZoneSpan( config.name );
 
@@ -1281,12 +1294,12 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 
 	encoder->setFrontFacingWinding( MTL::WindingCounterClockwise );
 
-	return CommandBuffer {
+	return Optional( Opaque( CommandBuffer {
 		.command_buffer = command_buffer,
 		.rce = encoder,
 		.no_scissor = MTL::ScissorRect { .width = *width, .height = *height },
 		.msaa_samples = *msaa,
-	};
+	} ) );
 }
 
 Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config ) {

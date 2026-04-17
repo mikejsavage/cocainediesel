@@ -86,10 +86,10 @@ static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
 	return { };
 }
 
-void InitRenderer( SDL_Window * window ) {
+void InitRenderer( SDL_Window * window, const WindowMode & window_mode ) {
 	TracyZoneScoped;
 
-	InitRenderBackend( window );
+	InitRenderBackend( window, window_mode );
 
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -312,7 +312,7 @@ static void CreateRenderTargets( bool first_time ) {
 	}, first_time ? NONE : Optional( frame_static.render_targets.shadowmap ) );
 }
 
-void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
+void RendererBeginFrame( SDL_Window * window, int viewport_width, int viewport_height, bool minimized, bool fullscreen_exclusive ) {
 	TracyZoneScoped;
 
 	HotloadShaders();
@@ -325,8 +325,18 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	RenderBackendWaitForNewFrame();
 
+	frame_static.viewport_width = Max2( 1, viewport_width );
+	frame_static.viewport_height = Max2( 1, viewport_height ),
+	frame_static.viewport = Vec2( viewport_width, viewport_height );
+	frame_static.minimized = minimized;
+	frame_static.viewport_resized = viewport_width > 0 && viewport_height > 0 && ( viewport_width != last_viewport_width || viewport_height != last_viewport_height );
+	frame_static.aspect_ratio = float( frame_static.viewport_width ) / float( frame_static.viewport_height );
+	frame_static.msaa_samples = r_samples->integer;
+	frame_static.shadow_quality = ShadowQuality( r_shadow_quality->integer );
+	frame_static.shadow_parameters = GetShadowParameters( frame_static.shadow_quality );
+
 	int capture = 0;
-	RenderBackendBeginFrame( capture );
+	RenderBackendBeginFrame( window, fullscreen_exclusive, capture );
 
 	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer < 0 || !HasAnyBit( RenderBackendSupportedMSAA(), u32( r_samples->integer ) ) ) {
 		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
@@ -337,15 +347,6 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		Com_Printf( "Invalid r_shadow_quality value (%d), resetting\n", r_shadow_quality->integer );
 		Cvar_Set( "r_shadow_quality", r_shadow_quality->default_value );
 	}
-
-	frame_static.viewport_width = Max2( u32( 1 ), viewport_width );
-	frame_static.viewport_height = Max2( u32( 1 ), viewport_height );
-	frame_static.viewport = Vec2( frame_static.viewport_width, frame_static.viewport_height );
-	frame_static.viewport_resized = frame_static.viewport_width != last_viewport_width || frame_static.viewport_height != last_viewport_height;
-	frame_static.aspect_ratio = float( frame_static.viewport_width ) / float( frame_static.viewport_height );
-	frame_static.msaa_samples = r_samples->integer;
-	frame_static.shadow_quality = ShadowQuality( r_shadow_quality->integer );
-	frame_static.shadow_parameters = GetShadowParameters( frame_static.shadow_quality );
 
 	if( frame_static.viewport_resized || frame_static.msaa_samples != last_msaa || frame_static.shadow_quality != last_shadow_quality ) {
 		CreateRenderTargets( last_viewport_width == 0 );
@@ -760,10 +761,13 @@ void RendererEndFrame() {
 		}
 		subs.must_add( RenderPassSubmit {
 			.buffer = frame_static.render_passes[ i ].value,
+			.pass = RenderPass( i ),
 			.next_pass = next_pass[ i ],
 		} );
 	}
-	SubmitRenderPasses( subs.span(), *first_pass );
+
+	Assert( subs.size() > 0 || frame_static.minimized );
+	SubmitRenderPasses( subs.span(), Default( first_pass, RenderPass( 0 ) ) );
 
 	RenderBackendEndFrame();
 }
@@ -779,11 +783,15 @@ void EncodeIndirectComputeCall( RenderPass render_pass, PoolHandle< ComputePipel
 }
 
 void Draw( RenderPass render_pass, const PipelineState & pipeline, Mesh mesh, Span< const GPUBuffer > buffers, DrawCallExtras extras ) {
+	if( frame_static.minimized )
+		return;
 	Assert( frame_static.render_passes[ render_pass ].exists );
 	EncodeDrawCall( frame_static.render_passes[ render_pass ].value, pipeline, mesh, buffers, extras );
 }
 
 void DrawIndirect( RenderPass render_pass, const PipelineState & pipeline, Mesh mesh, GPUBuffer indirect_args, Span< const GPUBuffer > buffers ) {
+	if( frame_static.minimized )
+		return;
 	Assert( frame_static.render_passes[ render_pass ].exists );
 	EncodeIndirectDrawCall( frame_static.render_passes[ render_pass ].value, pipeline, mesh, indirect_args, buffers );
 }

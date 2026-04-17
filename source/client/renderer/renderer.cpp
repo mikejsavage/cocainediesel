@@ -329,7 +329,7 @@ void RendererBeginFrame( SDL_Window * window, int viewport_width, int viewport_h
 	frame_static.viewport_height = Max2( 1, viewport_height ),
 	frame_static.viewport = Vec2( viewport_width, viewport_height );
 	frame_static.minimized = minimized;
-	frame_static.viewport_resized = viewport_width > 0 && viewport_height > 0 && ( viewport_width != last_viewport_width || viewport_height != last_viewport_height );
+	frame_static.viewport_resized = viewport_width > 0 && viewport_height > 0 && ( u32( viewport_width ) != last_viewport_width || u32( viewport_height ) != last_viewport_height );
 	frame_static.aspect_ratio = float( frame_static.viewport_width ) / float( frame_static.viewport_height );
 	frame_static.msaa_samples = r_samples->integer;
 	frame_static.shadow_quality = ShadowQuality( r_shadow_quality->integer );

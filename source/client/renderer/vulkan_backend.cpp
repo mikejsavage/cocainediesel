@@ -24,6 +24,8 @@
 
 #include "tracy/tracy/TracyVulkan.hpp"
 
+#include <new>
+
 #if !PUBLIC_BUILD
 #define ENABLE_VALIDATION_LAYERS 1
 #define ENABLE_SYNC_VALIDATION 1
@@ -189,6 +191,14 @@ static Pool< BindGroup, MaxMaterials > bind_groups;
 static Pool< RenderPipeline, 128 > render_pipelines;
 static Pool< ComputePipeline, 128 > compute_pipelines;
 static VkSampler samplers[ Sampler_Count ];
+
+// TODO: tracy requires that we submit zones in the right order, so we will
+// have to implement most of it ourselves, keeping a separate list of tracy
+// zones on the side to submit all at once at the end of the frame
+template<> constexpr size_t OpaqueSize< tracy::VkCtxScope > = sizeof( tracy::VkCtxScope );
+template<> constexpr size_t OpaqueAlignment< tracy::VkCtxScope > = alignof( tracy::VkCtxScope );
+template<> constexpr size_t OpaqueCopyable< tracy::VkCtxScope > = false;
+static Opaque< tracy::VkCtxScope > tracy_render_pass_zones[ RenderPass_Count ];
 
 static constexpr VkRect2D no_scissor = { .extent = { S32_MAX, S32_MAX } };
 
@@ -1500,7 +1510,7 @@ static VkCommandBuffer PrepareDraw( Opaque< CommandBuffer > ocb, const PipelineS
 }
 
 void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline_state, Mesh mesh, Span< const GPUBuffer > buffers, DrawCallExtras extras ) {
-	TracyVkZone( global_device.tracy, ocb.unwrap()->buffer, "Draw" );
+	// TracyVkZone( global_device.tracy, ocb.unwrap()->buffer, "Draw" );
 
 	VkCommandBuffer cb = PrepareDraw( ocb, pipeline_state, mesh, buffers );
 	if( cb == VK_NULL_HANDLE )
@@ -1516,7 +1526,7 @@ void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline
 }
 
 void EncodeIndirectDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline_state, Mesh mesh, GPUBuffer indirect_args, Span< const GPUBuffer > buffers ) {
-	TracyVkZone( global_device.tracy, ocb.unwrap()->buffer, "Indirect draw" );
+	// TracyVkZone( global_device.tracy, ocb.unwrap()->buffer, "Indirect draw" );
 
 	VkCommandBuffer cb = PrepareDraw( ocb, pipeline_state, mesh, buffers );
 	if( cb == VK_NULL_HANDLE )
@@ -1907,6 +1917,10 @@ Opaque< CommandBuffer > NewRenderPass( const RenderPassConfig & config ) {
 		vkCmdBeginDebugUtilsLabelEXT( command_buffer, &label );
 	}
 
+// #if TRACY_ENABLE
+// 	new (tracy_render_pass_zones[ config.pass ].unwrap()) tracy::VkCtxScope( global_device.tracy, __LINE__, __FILE__, strlen( __FILE__ ), __FUNCTION__, strlen( __FUNCTION__ ), config.name.ptr, config.name.n, command_buffer, true );
+// #endif
+
 	Optional< u32 > width = NONE;
 	Optional< u32 > height = NONE;
 	Optional< u32 > msaa = NONE;
@@ -2118,6 +2132,10 @@ Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config ) {
 		vkCmdBeginDebugUtilsLabelEXT( command_buffer, &label );
 	}
 
+// #if TRACY_ENABLE
+// 	new (tracy_render_pass_zones[ config.pass ].unwrap()) tracy::VkCtxScope( global_device.tracy, __LINE__, __FILE__, strlen( __FILE__ ), __FUNCTION__, strlen( __FUNCTION__ ), config.name.ptr, config.name.n, command_buffer, true );
+// #endif
+
 	Barriers( command_buffer, MakeGlobalBarrier( config.barriers ), { } );
 
 	return CommandBuffer {
@@ -2154,13 +2172,13 @@ static VkCommandBuffer PrepareCompute( Opaque< CommandBuffer > ocb, PoolHandle< 
 }
 
 void EncodeComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > shader, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers ) {
-	TracyVkZone( global_device.tracy, ocb.unwrap()->buffer, "Compute" );
+	// TracyVkZone( global_device.tracy, ocb.unwrap()->buffer, "Compute" );
 	VkCommandBuffer cb = PrepareCompute( ocb, shader, buffers );
 	vkCmdDispatch( cb, x, y, z );
 }
 
 void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > shader, GPUBuffer indirect_args, Span< const BufferBinding > buffers ) {
-	TracyVkZone( global_device.tracy, ocb.unwrap()->buffer, "Indirect compute" );
+	// TracyVkZone( global_device.tracy, ocb.unwrap()->buffer, "Indirect compute" );
 	VkCommandBuffer cb = PrepareCompute( ocb, shader, buffers );
 	vkCmdDispatchIndirect( cb, allocations[ indirect_args.allocation ].buffer, indirect_args.offset );
 }

@@ -43,7 +43,7 @@ function write_shaders_ninja_script()
 
 
 # Shaders
-dxcflags = -Ibase/glsl -I. -spirv -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -fspv-preserve-bindings -Werror=conversion -Wno-sign-conversion
+dxcflags = -Isource/client/renderer/hlsl -I. -spirv -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -fspv-preserve-bindings -Werror=conversion -Wno-sign-conversion
 rule dxc_vertex
     command = %s
     deps = gcc
@@ -82,13 +82,13 @@ rule metallib
 		local depfile = "build/shaders/" .. out_filename
 
 		if not dedupe[ out_filename ] then
-			printf( "build %s/shaders/%s.vert.spv: dxc_vertex base/glsl/%s", spv_dir, out_filename, src )
+			printf( "build %s/shaders/%s.vert.spv: dxc_vertex source/client/renderer/hlsl/%s", spv_dir, out_filename, src )
 			printf( "    depfile = %s.vert.d", depfile )
 			if cli_features ~= "" then
 				printf( "    features = %s", cli_features )
 			end
 
-			printf( "build %s/shaders/%s.frag.spv: dxc_fragment base/glsl/%s", spv_dir, out_filename, src )
+			printf( "build %s/shaders/%s.frag.spv: dxc_fragment source/client/renderer/hlsl/%s", spv_dir, out_filename, src )
 			printf( "    depfile = %s.frag.d", depfile )
 			if cli_features ~= "" then
 				printf( "    features = %s", cli_features )
@@ -116,7 +116,7 @@ rule metallib
 		local src = compute_shader:match( ReadableWhitespace( "{.-, \"([^\"]+)\" }" ) ) .. ".hlsl"
 		local out_filename = StripExtension( src )
 
-		printf( "build %s/shaders/%s.comp.spv: dxc_compute base/glsl/%s", spv_dir, out_filename, src )
+		printf( "build %s/shaders/%s.comp.spv: dxc_compute source/client/renderer/hlsl/%s", spv_dir, out_filename, src )
 		printf( "    depfile = build/shaders/%s.d", out_filename )
 
 		if OS == "macos" then

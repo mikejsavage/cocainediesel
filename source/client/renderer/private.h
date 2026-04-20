@@ -11,6 +11,7 @@ void InitRenderBackend( SDL_Window * window, const WindowMode & window_mode );
 void ShutdownRenderBackend();
 
 void InitShaders();
+void ShutdownShaders();
 void HotloadShaders();
 
 /*

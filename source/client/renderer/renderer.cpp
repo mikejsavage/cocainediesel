@@ -132,6 +132,7 @@ void ShutdownRenderer() {
 
 	ShutdownRenderBackend();
 	ShutdownMaterials();
+	ShutdownShaders();
 
 	RemoveCommand( "screenshot" );
 }

@@ -2,7 +2,7 @@
 
 #ifdef APPLY_DYNAMICS
 
-#include "../../source/client/renderer/shader_shared.h"
+#include "../shader_shared.h"
 
 void AddLights( uint count, int tile_index, float3 position, float3 normal, float3 viewDir, inout float3 lambertlight, inout float3 specularlight ) {
 	for( uint i = 0; i < count; i++ ) {

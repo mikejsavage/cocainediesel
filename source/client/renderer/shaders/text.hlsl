@@ -1,4 +1,4 @@
-#include "../../source/client/renderer/shader_shared.h"
+#include "../shader_shared.h"
 #include "include/common.hlsl"
 
 struct VertexInput {

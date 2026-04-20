@@ -1,4 +1,4 @@
-#include "../../source/client/renderer/shader_shared.h"
+#include "../shader_shared.h"
 
 [[vk::binding( 0 )]] StructuredBuffer< Particle > b_PrevParticles;
 [[vk::binding( 1 )]] RWStructuredBuffer< Particle > b_NextParticles;

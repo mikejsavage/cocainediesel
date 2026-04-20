@@ -1,4 +1,4 @@
-#include "../../source/client/renderer/shader_shared.h"
+#include "../shader_shared.h"
 
 [[vk::binding( 0 )]] StructuredBuffer< ViewUniforms > u_View;
 [[vk::binding( 1 )]] StructuredBuffer< TileCullingInputs > u_TileCulling;

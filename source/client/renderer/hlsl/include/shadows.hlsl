@@ -125,7 +125,7 @@ float ShadowCascade( float3 position, float3 normal, uint32_t cascadeIdx ) {
 	return SampleShadowmapOptimizedPCF( shadowPos, shadowPosDX, shadowPosDY, cascadeIdx );
 }
 
-float GetLight( float3 position, float3 normal ) {
+float GetLightGood( float3 position, float3 normal ) {
 	float view_distance = length( u_View[ 0 ].camera_pos - position );
 
 	for( uint32_t i = 0; i < u_Shadowmap[ 0 ].num_cascades; i++ ) {
@@ -148,6 +148,13 @@ float GetLight( float3 position, float3 normal ) {
 	}
 
 	return 1.0f;
+}
+
+float GetLight( float3 position, float3 normal ) {
+	float4 light_pos = mul( u_Shadowmap[ 0 ].P, mul34( u_Shadowmap[ 0 ].V, float4( position, 1.0f ) ) );
+	float3 light_ndc = light_pos.xyz / light_pos.w;
+	light_ndc.xy = light_ndc.xy * 0.5f + 0.5f;
+	return u_ShadowmapTextureArray.SampleCmp( u_ShadowmapSampler, float3( light_ndc.xy, 0.0f ), light_ndc.z );
 }
 
 #endif // #ifdef APPLY_SHADOWS

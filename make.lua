@@ -15,6 +15,7 @@ gcc_global_cxxflags( "-Wall -Wextra -Wcast-align -Wvla -Wformat-security -Wimpli
 gcc_global_cxxflags( "-Werror=format -Werror=implicit-fallthrough" )
 gcc_global_cxxflags( "-Wno-unused-parameter -Wno-missing-field-initializers" )
 gcc_global_cxxflags( "-Wno-switch" ) -- this is too annoying in practice
+gcc_global_cxxflags( "-D_LIBCPP_REMOVE_TRANSITIVE_INCLUDES" )
 
 if OS == "linux" then
 	gcc_global_cxxflags( "-msse4.2 -mpopcnt" )

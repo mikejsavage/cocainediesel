@@ -8,6 +8,7 @@
 
 #include "parsing.h"
 
+#include <algorithm>
 #include <vector>
 
 static constexpr Span< const char > NullSpan( NULL, 0 );

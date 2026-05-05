@@ -234,7 +234,7 @@ void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first
 		command_buffer->commit();
 	}
 
-	if( !minimized ) {
+	if( !frame_static.minimized ) {
 		MTL::CommandBuffer * last = passes[ passes.n - 1 ].buffer.unwrap()->command_buffer;
 		last->addCompletedHandler( [&]( MTL::CommandBuffer * ) {
 			dispatch_semaphore_signal( frame_semaphore );
@@ -247,7 +247,7 @@ void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first
 			dispatch_semaphore_signal( frame_semaphore );
 		} );
 		if( passes.n == 0 ) {
-			cb->command_buffer->encodeSignalEvent( global_device.pass_event, global_device.frame_counter * RenderPass_Count + RenderPass_Count );
+			cb->encodeSignalEvent( global_device.pass_event, global_device.frame_counter * RenderPass_Count + RenderPass_Count );
 		}
 		cb->commit();
 	}
@@ -1059,7 +1059,8 @@ void InitRenderBackend( SDL_Window * window ) {
 
 	InitGPUAllocators( slab_size, constant_buffer_alignment, metal_doesnt_have_buffer_image_granularity );
 
-	GetFramebufferSize( &old_framebuffer_width, &old_framebuffer_height );
+	bool minimized;
+	GetFramebufferSize( &old_framebuffer_width, &old_framebuffer_height, &minimized );
 
 	CreateSamplers();
 	CreateDepthFuncs();
@@ -1135,15 +1136,13 @@ void RenderBackendBeginFrame( int frames_to_capture ) {
 
 	ClearGPUArenaAllocators();
 
-	int framebuffer_width, framebuffer_height;
-	GetFramebufferSize( &framebuffer_width, &framebuffer_height );
-	bool resized = framebuffer_width != old_framebuffer_width || framebuffer_height != old_framebuffer_height;
-	bool nonzero = framebuffer_width > 0 && framebuffer_height > 0;
+	bool resized = frame_static.viewport_width != old_framebuffer_width || frame_static.viewport_height != old_framebuffer_height;
+	bool nonzero = frame_static.viewport_width > 0 && frame_static.viewport_height > 0;
 
 	if( resized && nonzero ) {
-		global_device.swapchain->setDrawableSize( CGSize { CGFloat( framebuffer_width ), CGFloat( framebuffer_height ) } );
-		old_framebuffer_width = framebuffer_width;
-		old_framebuffer_height = framebuffer_height;
+		global_device.swapchain->setDrawableSize( CGSize { CGFloat( frame_static.viewport_width ), CGFloat( frame_static.viewport_height ) } );
+		old_framebuffer_width = frame_static.viewport_width;
+		old_framebuffer_height = frame_static.viewport_height;
 	}
 
 	{

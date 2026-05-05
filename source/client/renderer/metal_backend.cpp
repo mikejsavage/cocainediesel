@@ -1014,7 +1014,7 @@ void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< Compute
 	cce->dispatchThreadgroups( allocations[ indirect_args.allocation ].buffer, indirect_args.offset, SubgroupSize( pipeline ) );
 }
 
-void InitRenderBackend( SDL_Window * window ) {
+void InitRenderBackend( SDL_Window * window, const WindowMode & window_mode ) {
 	frame_semaphore = dispatch_semaphore_create( MaxFramesInFlight );
 
 	MTL::Device * device = MTL::CreateSystemDefaultDevice();
@@ -1129,7 +1129,7 @@ void RenderBackendWaitForNewFrame() {
 	dispatch_semaphore_wait( frame_semaphore, DISPATCH_TIME_FOREVER );
 }
 
-void RenderBackendBeginFrame( int frames_to_capture ) {
+void RenderBackendBeginFrame( SDL_Window * window, bool fullscreen_exclusive, int frames_to_capture ) {
 	TracyZoneScoped;
 
 	NS::AutoreleasePool * pool = NS::AutoreleasePool::alloc()->init();

@@ -99,7 +99,7 @@ struct BackendTexture {
 
 static MetalDevice global_device;
 static dispatch_semaphore_t frame_semaphore;
-static int old_framebuffer_width, old_framebuffer_height;
+static u32 old_framebuffer_width, old_framebuffer_height;
 
 static struct {
 	NS::AutoreleasePool * pool;

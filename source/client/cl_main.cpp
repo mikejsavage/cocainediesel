@@ -1079,7 +1079,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	VID_CheckChanges();
 
 	// update the screen
-	int viewport_width, viewport_height;
+	u32 viewport_width, viewport_height;
 	bool minimized;
 	GetFramebufferSize( &viewport_width, &viewport_height, &minimized );
 	RendererBeginFrame( sdl_window, viewport_width, viewport_height, minimized, WantFullscreenExclusive() );

@@ -33,7 +33,7 @@ WindowMode VID_Init();
 void CreateWindow( WindowMode mode );
 void DestroyWindow();
 
-void GetFramebufferSize( int * width, int * height, bool * minimized );
+void GetFramebufferSize( u32 * width, u32 * height, bool * minimized );
 float GetContentScale();
 Vec2 GetRelativeMouseMovement();
 Vec2 GetJoystickMovement();

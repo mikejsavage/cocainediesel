@@ -112,9 +112,9 @@ void DestroyWindow() {
 	SDL_DestroyWindow( sdl_window );
 }
 
-void GetFramebufferSize( int * width, int * height, bool * minimized ) {
-	*width = framebuffer_width;
-	*height = framebuffer_height;
+void GetFramebufferSize( u32 * width, u32 * height, bool * minimized ) {
+	*width = Max2( 0, framebuffer_width );
+	*height = Max2( 0, framebuffer_height );
 	*minimized = window_minimized || framebuffer_width < 1 || framebuffer_height < 1;
 }
 

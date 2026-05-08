@@ -384,12 +384,14 @@ static Mat4 InverseScaleTranslation( const Mat4 & m ) {
 	return inv;
 }
 
+static Vec3 GGLOL[ 4 ];
+
 static void SetupShadowCascades() {
 	TracyZoneScoped;
 	constexpr float near_plane = 4.0f;
 	float cascade_dist[ 5 ];
 	constexpr u32 num_planes = ARRAY_COUNT( cascade_dist );
-	constexpr u32 num_cascades = num_planes - 1;
+	constexpr u32 num_cascades = num_planes - 1; // TODO NOMERGE: min this and shadow params?
 	constexpr u32 num_corners = 4;
 
 	cascade_dist[ 0 ] = near_plane;
@@ -397,61 +399,50 @@ static void SetupShadowCascades() {
 		cascade_dist[ i + 1 ] = frame_static.shadow_parameters.cascade_dists[ i ];
 	}
 
-	constexpr Vec4 frustum_direction_corners[] = {
-		Vec4( -1.0f,  1.0f, 1.0f, 1.0f ),
-		Vec4(  1.0f,  1.0f, 1.0f, 1.0f ),
-		Vec4(  1.0f, -1.0f, 1.0f, 1.0f ),
-		Vec4( -1.0f, -1.0f, 1.0f, 1.0f ),
-	};
+	// fit a sphere around a segment of the view frustum per cascade
+	constexpr Vec4 frustum_corner_ndc = Vec4( 1.0f, 1.0f, 1.0f, 1.0f );
+	Vec4 frustum_corner = frame_static.inverse_V * ( frame_static.inverse_P * frustum_corner_ndc );
+	Vec3 frustum_corner_direction = Normalize( frustum_corner.xyz() / frustum_corner.w - frame_static.position );
 
-	Vec3 frustum_directions[ num_corners ];
-	for( u32 i = 0; i < num_corners; i++ ) {
-		Vec4 corner = Mat4( frame_static.inverse_V ) * frame_static.inverse_P * frustum_direction_corners[ i ];
-		frustum_directions[ i ] = Normalize( frame_static.position - corner.xyz() / corner.w );
+	Vec3 frustum_centers[ num_cascades ] = { };
+	for( u32 i = 0; i < num_cascades; i++ ) {
+		constexpr Vec4 frustum_center_ndc = Vec4( 0.0f, 0.0f, 0.5f, 1.0f );
+		Vec4 center = frame_static.inverse_V * ( frame_static.inverse_P * frustum_center_ndc );
+		frustum_centers[ i ] = center.xyz() / center.w;
 	}
 
-	Vec3 frustum_corners[ num_planes ][ num_corners ];
-	Vec3 frustum_centers[ num_planes ] = { };
-	for( u32 i = 0; i < num_planes; i++ ) {
-		for( u32 j = 0; j < num_corners; j++ ) {
-			Vec3 corner = frame_static.position + frustum_directions[ j ] * cascade_dist[ i ];
-			frustum_corners[ i ][ j ] = corner;
-			frustum_centers[ i ] += corner;
-			frustum_centers[ ( i + 1 ) % num_planes ] += corner;
-		}
-	}
-
-	Vec3 shadow_camera_positions[ num_planes ];
-	Mat3x4 shadow_views[ num_planes ];
-	Mat4 shadow_projections[ num_planes ];
-	for( u32 i = 0; i < num_planes; i++ ) {
-		frustum_centers[ i ] /= num_corners * 2.0f;
-		float radius = 0.0f;
-		for( u32 j = 0; j < num_corners; j++ ) {
-			float dist = Length( frustum_corners[ i ][ j ] - frustum_centers[ i ] );
-			radius = Max2( radius, dist );
-			dist = Length( frustum_corners[ ( i - 1 ) % num_planes ][ j ] - frustum_centers[ i ] );
-			radius = Max2( radius, dist );
-		}
-		radius = roundf( radius * 16.0f ) / 16.0f;
+	// fit the light view to the sphere around each cascade frustum
+	Vec3 shadow_camera_positions[ num_cascades ];
+	Mat3x4 shadow_views[ num_cascades ];
+	Mat4 shadow_projections[ num_cascades ];
+	for( u32 i = 0; i < num_cascades; i++ ) {
+		Vec3 far_corner = frame_static.position + cascade_dist[ i + 1 ] * frustum_corner_direction;
+		float radius = Length( far_corner - frustum_centers[ i ] );
+		radius = roundf( radius * 16.0f ) / 16.0f; // TODO NOMERGE: do we need to make sure this always rounds up?
 		shadow_camera_positions[ i ] = frustum_centers[ i ] - frame_static.sun_direction * radius;
+
+		GGLOL[ i ] = shadow_camera_positions[ i ];
 
 		shadow_views[ i ] = ViewMatrix( shadow_camera_positions[ i ], frame_static.sun_direction );
 		shadow_projections[ i ] = OrthographicProjection( -radius, radius, radius, -radius, 0.0f, radius * 2.0f );
 	}
 
+	// bake uv remap from [-1,1] -> [0,1] and y = -y into the shadow matrix
+	constexpr Mat4 uv_remap = Mat4( Mat4Translation( 0.5f, -0.5f, 0.0f ) * Mat4Scale( 0.5f, -0.5f, 1.0f ) );
+	Mat4 m = uv_remap * shadow_projections[ 0 ] * Mat4( shadow_views[ 0 ] );
+
 	ShadowmapUniforms uniforms = {
-		.V = shadow_views[ 0 ],
-		.P = shadow_projections[ 0 ],
+		.m = m,
 		.num_cascades = frame_static.shadow_parameters.num_cascades,
 	};
 
 	for( u32 i = 0; i < num_cascades; i++ ) {
-		Mat4 & shadow_projection = shadow_projections[ i + 1 ];
-		const Mat3x4 & shadow_view = shadow_views[ i + 1 ];
-		const Vec3 & shadow_camera_position = shadow_camera_positions[ i + 1 ];
+		Mat4 & shadow_projection = shadow_projections[ i ];
+		const Mat3x4 & shadow_view = shadow_views[ i ];
+		const Vec3 & shadow_camera_position = shadow_camera_positions[ i ];
 		Mat4 shadow_matrix = shadow_projection * Mat4( shadow_view );
 
+		// stabilize cascades
 		{
 			u32 shadowmap_size = frame_static.shadow_parameters.resolution;
 			Vec2 shadow_origin = ( shadow_matrix * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xy();
@@ -462,21 +453,17 @@ static void SetupShadowCascades() {
 			shadow_projection.col3.y += rounded_offset.y;
 		}
 
-		Mat3x4 inv_shadow_view = InvertViewMatrix( shadow_view, shadow_camera_position );
 		frame_static.shadowmap_view_uniforms[ i ] = NewTempBuffer( ViewUniforms {
 			.V = shadow_view,
 			.P = shadow_projection,
-			.camera_pos = shadow_camera_position,
-			.near_clip = cascade_dist[ i ],
-			.sun_direction = frame_static.sun_direction,
 		} );
 
+		// remap i'th cascade uvs to 0'th cascade uvs
+		Mat3x4 inv_shadow_view = InvertViewMatrix( shadow_view, shadow_camera_position );
 		Mat4 inv_shadow_projection = InverseScaleTranslation( shadow_projection );
+		Mat4 inv_uv_remap = InverseScaleTranslation( uv_remap );
 
-		Mat4 tex_scale_bias = Mat4( Mat4Translation( 0.5f, 0.5f, 0.0f ) * Mat4Scale( 0.5f, -0.5f, 1.0f ) );
-		Mat4 inv_tex_scale_bias = InverseScaleTranslation( tex_scale_bias );
-
-		Mat4 inv_cascade = Mat4( shadow_views[ 0 ] * inv_shadow_view ) * inv_shadow_projection * inv_tex_scale_bias;
+		Mat4 inv_cascade = uv_remap * shadow_projections[ 0 ] * Mat4( shadow_views[ 0 ] * inv_shadow_view ) * inv_shadow_projection * inv_uv_remap;
 		Vec3 cascade_corner = ( inv_cascade * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xyz();
 		Vec3 other_corner = ( inv_cascade * Vec4( 1.0f, 1.0f, 1.0f, 1.0f ) ).xyz();
 
@@ -737,6 +724,13 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		} );
 
 		Draw( RenderPass_10BitTosRGB, { .shader = shaders.srgb }, FullscreenMesh() );
+	}
+
+	for( Vec3 p : GGLOL ) {
+		DrawModelConfig lol = {
+			.draw_model = { .enabled = true },
+		};
+		DrawModel( lol, *FindModelRenderData( "models/sphere" ), Mat4Translation( p ) * Mat4Scale( 16.0f ), Vec4( 0.0f, 1.0f, 0.0f, 1.0f ) );
 	}
 }
 

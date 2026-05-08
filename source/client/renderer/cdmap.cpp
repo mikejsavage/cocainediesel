@@ -39,7 +39,7 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 		};
 
 		for( u32 j = 0; j < frame_static.shadow_parameters.num_cascades; j++ ) {
-			PipelineState pipeline = { .shader = shaders.depth_only };
+			PipelineState pipeline = { .shader = shaders.shadowmap };
 			Draw( RenderPass_ShadowmapCascade0 + j, pipeline, map->render_data, { gpu_transform }, mesh_extras );
 		}
 

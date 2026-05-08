@@ -2593,7 +2593,7 @@ static VkSampler NewSampler( const SamplerConfig & config ) {
 		.anisotropyEnable = VK_TRUE,
 		.maxAnisotropy = 16.0f,
 		.compareEnable = config.shadowmap_sampler,
-		.compareOp = VK_COMPARE_OP_LESS,
+		.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
 	};
 
 	VkSampler sampler;

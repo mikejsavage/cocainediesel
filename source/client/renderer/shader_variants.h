@@ -209,7 +209,6 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.src = "depth_only",
 				.output_format = depth_only,
 				.mesh_variants = { standard_vertex, gltf_pn, gltf_pnu, gltf_pnuc },
-				// .clamp_depth = true, NOMERGE clamp_depth on shadowmap shader
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::depth_only_skinned,
@@ -217,7 +216,22 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.output_format = depth_only,
 				.features = { "SKINNED" },
 				.mesh_variants = { gltf_pnuj },
-				// .clamp_depth = true,
+			},
+
+			GraphicsShaderDescriptor {
+				.field = &Shaders::shadowmap,
+				.src = "depth_only",
+				.output_format = depth_only,
+				.mesh_variants = { standard_vertex, gltf_pn, gltf_pnu, gltf_pnuc },
+				.clamp_depth = true,
+			},
+			GraphicsShaderDescriptor {
+				.field = &Shaders::shadowmap_skinned,
+				.src = "depth_only",
+				.output_format = depth_only,
+				.features = { "SKINNED" },
+				.mesh_variants = { gltf_pnuj },
+				.clamp_depth = true,
 			},
 
 			GraphicsShaderDescriptor {
@@ -294,7 +308,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.blend_func = BlendFunc_Blend,
 			},
 			GraphicsShaderDescriptor {
-				.field = &Shaders::text_depth_only,
+				.field = &Shaders::text_shadowmap,
 				.src = "text",
 				.output_format = depth_only,
 				.features = { "DEPTH_ONLY" },

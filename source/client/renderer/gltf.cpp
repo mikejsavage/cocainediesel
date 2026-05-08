@@ -721,7 +721,7 @@ static void DrawModelNode( const GLTFRenderData::Node * node, bool view_weapon, 
 static void DrawShadowsNode( const Mesh & mesh, GPUBuffer model_uniforms, Optional< GPUBuffer > pose_uniforms, bool flip_cull_face ) {
 	TracyZoneScoped;
 
-	PipelineState pipeline = { .shader = pose_uniforms.exists ? shaders.depth_only_skinned : shaders.depth_only };
+	PipelineState pipeline = { .shader = pose_uniforms.exists ? shaders.shadowmap_skinned : shaders.shadowmap };
 
 	BoundedDynamicArray< GPUBuffer, 2 > buffers = { model_uniforms };
 	if( pose_uniforms.exists ) {

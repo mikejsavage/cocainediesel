@@ -24,6 +24,9 @@ struct Shaders {
 	PoolHandle< RenderPipeline > depth_only;
 	PoolHandle< RenderPipeline > depth_only_skinned;
 
+	PoolHandle< RenderPipeline > shadowmap;
+	PoolHandle< RenderPipeline > shadowmap_skinned;
+
 	PoolHandle< RenderPipeline > write_silhouette_mask;
 	PoolHandle< RenderPipeline > write_silhouette_mask_skinned;
 	PoolHandle< RenderPipeline > postprocess_silhouette_mask;
@@ -44,7 +47,7 @@ struct Shaders {
 	PoolHandle< RenderPipeline > skybox;
 
 	PoolHandle< RenderPipeline > text;
-	PoolHandle< RenderPipeline > text_depth_only;
+	PoolHandle< RenderPipeline > text_shadowmap;
 
 	PoolHandle< RenderPipeline > postprocess_preui;
 	PoolHandle< RenderPipeline > postprocess;

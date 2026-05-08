@@ -325,7 +325,7 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Vec3 ori
 
 	Draw( RenderPass_NonworldOpaque, pipeline, mesh, { text_uniforms } );
 
-	pipeline.shader = shaders.text_depth_only;
+	pipeline.shader = shaders.text_shadowmap;
 	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
 		Draw( RenderPass_ShadowmapCascade0 + i, pipeline, mesh, { text_uniforms } );
 	}

@@ -384,8 +384,6 @@ static Mat4 InverseScaleTranslation( const Mat4 & m ) {
 	return inv;
 }
 
-static Vec3 GGLOL[ 4 ];
-
 static void SetupShadowCascades() {
 	TracyZoneScoped;
 	constexpr float near_plane = 4.0f;
@@ -420,8 +418,6 @@ static void SetupShadowCascades() {
 		float radius = Length( far_corner - frustum_centers[ i ] );
 		radius = roundf( radius * 16.0f ) / 16.0f; // TODO NOMERGE: do we need to make sure this always rounds up?
 		shadow_camera_positions[ i ] = frustum_centers[ i ] - frame_static.sun_direction * radius;
-
-		GGLOL[ i ] = shadow_camera_positions[ i ];
 
 		shadow_views[ i ] = ViewMatrix( shadow_camera_positions[ i ], frame_static.sun_direction );
 		shadow_projections[ i ] = OrthographicProjection( -radius, radius, radius, -radius, 0.0f, radius * 2.0f );
@@ -724,13 +720,6 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		} );
 
 		Draw( RenderPass_10BitTosRGB, { .shader = shaders.srgb }, FullscreenMesh() );
-	}
-
-	for( Vec3 p : GGLOL ) {
-		DrawModelConfig lol = {
-			.draw_model = { .enabled = true },
-		};
-		DrawModel( lol, *FindModelRenderData( "models/sphere" ), Mat4Translation( p ) * Mat4Scale( 16.0f ), Vec4( 0.0f, 1.0f, 0.0f, 1.0f ) );
 	}
 }
 

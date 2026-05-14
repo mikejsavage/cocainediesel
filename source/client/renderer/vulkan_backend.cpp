@@ -1476,8 +1476,8 @@ static constexpr struct {
 	VkCompareOp op;
 	bool write_depth;
 } depth_funcs[ DepthFunc_Count ] = {
-	{ VK_COMPARE_OP_LESS, true },
-	{ VK_COMPARE_OP_LESS, false },
+	{ VK_COMPARE_OP_GREATER, true },
+	{ VK_COMPARE_OP_GREATER, false },
 	{ VK_COMPARE_OP_EQUAL, true },
 	{ VK_COMPARE_OP_EQUAL, false },
 	{ VK_COMPARE_OP_ALWAYS, true },
@@ -2030,7 +2030,7 @@ Optional< Opaque< CommandBuffer > > NewRenderPass( const RenderPassConfig & conf
 			case LoadOp_Load: depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD; break;
 			case LoadOp_Clear:
 				depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-				depth_attachment.clearValue.depthStencil.depth = target.clear;
+				depth_attachment.clearValue.depthStencil.depth = 0.0f; // clear to 0 because we use an inverted depth buffer
 				break;
 		}
 
@@ -2593,7 +2593,7 @@ static VkSampler NewSampler( const SamplerConfig & config ) {
 		.anisotropyEnable = VK_TRUE,
 		.maxAnisotropy = 16.0f,
 		.compareEnable = config.shadowmap_sampler,
-		.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+		.compareOp = VK_COMPARE_OP_GREATER_OR_EQUAL,
 	};
 
 	VkSampler sampler;

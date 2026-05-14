@@ -68,7 +68,7 @@ float SampleShadowmapOptimizedPCF( float3 shadowPos, float3 shadowPosDX, float3 
 
 #else
 	float2 receiverPlaneDepthBias = 0.0f;
-	lightDepth -= 0.001f;
+	lightDepth += 0.001f;
 #endif
 
 	float2 uv = shadowPos.xy * shadowmap_size;

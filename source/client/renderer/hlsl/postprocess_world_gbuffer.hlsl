@@ -62,7 +62,7 @@ float4 FragmentMain( VertexOutput v, uint sample_index : SV_SampleIndex ) : Frag
 #else
 	uint mask = u_CurvedSurfaceMask.Load( int3( p, 0 ) );
 #endif
-	float epsilon = ( mask & MASK_CURVED ) == MASK_CURVED ? 0.005f : 0.00001f;
+	float epsilon = ( mask & MASK_CURVED ) == MASK_CURVED ? 0.005f : 0.000001f;
 	float edgeness = EdgeDetect( depth, depth_up, depth_down_left, depth_down_right, epsilon );
 	float avg_depth = 0.25f * ( depth + depth_up + depth_down_left + depth_down_right );
 

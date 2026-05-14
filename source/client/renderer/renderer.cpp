@@ -163,7 +163,15 @@ static Mat4 OrthographicProjection( float left, float top, float right, float bo
 
 static Mat4 PerspectiveProjection( float vertical_fov_degrees, float aspect_ratio, float near_plane ) {
 	float tan_half_vertical_fov = tanf( Radians( vertical_fov_degrees ) / 2.0f );
-	constexpr float epsilon = 4.8e-7f; // http://www.terathon.com/gdc07_lengyel.pdf
+	/*
+	 * NOTE(mike 20260514): see http://www.terathon.com/gdc07_lengyel.pdf we use a projection matrix
+	 * with a [0,1] depth range rather than [-1,1], and an inverse depth buffer so the matrix is
+	 * different, and the epsilon can be smaller. his epsilon is slightly greater than 2 * ulp(2),
+	 * the new epsilon is slightly greater than ulp(1)
+	 * I am not entirely convinced that we don't need to double this because I didn't read the whole
+	 * thing but it seems to work
+	 */
+	constexpr float epsilon = 1.2e-7f;
 
 	return Mat4(
 		1.0f / ( tan_half_vertical_fov * aspect_ratio ),
@@ -178,8 +186,8 @@ static Mat4 PerspectiveProjection( float vertical_fov_degrees, float aspect_rati
 
 		0.0f,
 		0.0f,
-		epsilon - 1.0f,
-		( epsilon - 1.0f ) * near_plane,
+		-epsilon,
+		( 1.0f - epsilon ) * near_plane,
 
 		0.0f,
 		0.0f,
@@ -420,7 +428,7 @@ static void SetupShadowCascades() {
 		shadow_camera_positions[ i ] = frustum_centers[ i ] - frame_static.sun_direction * radius;
 
 		shadow_views[ i ] = ViewMatrix( shadow_camera_positions[ i ], frame_static.sun_direction );
-		shadow_projections[ i ] = OrthographicProjection( -radius, radius, radius, -radius, 0.0f, radius * 2.0f );
+		shadow_projections[ i ] = OrthographicProjection( -radius, radius, radius, -radius, radius * 2.0f, 0.0f );
 	}
 
 	// bake uv remap from [-1,1] -> [0,1] and y = -y into the shadow matrix
@@ -478,7 +486,7 @@ static void SetupShadowCascades() {
 void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	constexpr float near_plane = 4.0f;
+	constexpr float near_plane = 1.0f;
 
 	frame_static.V = ViewMatrix( position, angles );
 	frame_static.inverse_V = InvertViewMatrix( frame_static.V, position );
@@ -538,7 +546,6 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	};
 
 	Vec4 clear_color = Vec4( 0.0f );
-	float clear_depth = 1.0f;
 
 	const auto & targets = frame_static.render_targets;
 
@@ -554,7 +561,6 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 				.texture = targets.shadowmap,
 				.layer = i,
 				.load = LoadOp_Clear,
-				.clear = clear_depth,
 			},
 			.attachment_transitions = Span( &targets.shadowmap, i == 0 ? 1 : 0 ),
 			.representative_shader = shaders.depth_only,
@@ -575,7 +581,6 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		.depth_target = RenderPassConfig::DepthTarget {
 			.texture = depth_target,
 			.load = LoadOp_Clear,
-			.clear = clear_depth,
 		},
 		.attachment_transitions = { depth_target },
 		.representative_shader = shaders.depth_only,

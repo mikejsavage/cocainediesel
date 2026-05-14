@@ -382,7 +382,6 @@ struct RenderPassConfig {
 		PoolHandle< Texture > texture;
 		u32 layer = 0;
 		LoadOp load = LoadOp_DontCare;
-		float clear;
 		StoreOp store = StoreOp_Store;
 		Optional< PoolHandle< Texture > > resolve_target = NONE;
 	};

@@ -151,8 +151,8 @@ static Mat4 OrthographicProjection( float left, float top, float right, float bo
 
 		0.0f,
 		0.0f,
-		-2.0f / ( far_plane - near_plane ),
-		-( far_plane + near_plane ) / ( far_plane - near_plane ),
+		-1.0f / ( far_plane - near_plane ),
+		-( near_plane ) / ( far_plane - near_plane ),
 
 		0.0f,
 		0.0f,
@@ -179,7 +179,7 @@ static Mat4 PerspectiveProjection( float vertical_fov_degrees, float aspect_rati
 		0.0f,
 		0.0f,
 		epsilon - 1.0f,
-		( epsilon - 2.0f ) * near_plane,
+		( epsilon - 1.0f ) * near_plane,
 
 		0.0f,
 		0.0f,

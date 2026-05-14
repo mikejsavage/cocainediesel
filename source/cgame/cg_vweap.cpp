@@ -148,7 +148,12 @@ void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 		0.0f, 0.0f, 0.0f, 1.0f
 	);
 
+	// NOTE(mike 20260514): stop the gun poking into walls, replaces the viewmodel depth hack from previously
+	// technically breaks shadows on the gun but it seems to not be noticeable
+	constexpr float viewmodel_scale = 0.3f;
+
 	origin = ( y_up_to_camera_space * Vec4( -model->nodes[ model->camera_node.value ].global_transform.col3, 1.0f ) ).xyz();
+	origin *= viewmodel_scale;
 
 	// scale forward gun offset depending on fov and aspect ratio
 	constexpr float ZOOM_REDUCE_FALLKICK = 0.7f;
@@ -161,7 +166,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 
 	// TODO: maybe it would be easier to give viewmodels their own render pass with identity view transform. might be required for the depth hack anyway later
 	// TODO: shouldn't this have a model->transform on the end? why does the muzzle transform have it?
-	viewweapon->transform = frame_static.inverse_V * Mat4Translation( origin ) * AnglesToMat3x4( angles );
+	viewweapon->transform = frame_static.inverse_V * Mat4Translation( origin ) * AnglesToMat3x4( angles ) * Mat4Scale( viewmodel_scale );
 
 	u8 muzzle;
 	if( FindNodeByName( model, "muzzle", &muzzle ) ) {

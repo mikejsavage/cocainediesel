@@ -120,7 +120,6 @@ float ShadowCascade( float3 position, float3 normal, uint32_t cascadeIdx ) {
 	float3 shadowPosDX = ddx_fine( shadowPos ) * cascadeScale;
 	float3 shadowPosDY = ddy_fine( shadowPos ) * cascadeScale;
 	shadowPos = ( shadowPos + cascadeOffset ) * cascadeScale;
-	/* shadowPos.z = shadowPos.z * 0.5f + 0.5f; */
 
 	return SampleShadowmapOptimizedPCF( shadowPos, shadowPosDX, shadowPosDY, cascadeIdx );
 }
@@ -149,10 +148,5 @@ float GetLight( float3 position, float3 normal ) {
 
 	return 1.0f;
 }
-
-/* float GetLight( float3 position, float3 normal ) { */
-/* 	float4 light_pos = mul( u_Shadowmap[ 0 ].m, float4( position, 1.0f ) ); */
-/* 	return u_ShadowmapTextureArray.SampleCmp( u_ShadowmapSampler, float3( light_pos.xy, 0.0f ), light_pos.z ); */
-/* } */
 
 #endif // #ifdef APPLY_SHADOWS

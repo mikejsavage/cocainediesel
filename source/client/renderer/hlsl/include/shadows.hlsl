@@ -28,18 +28,12 @@ SOFTWARE.
 
 #ifdef APPLY_SHADOWS
 
-float SampleShadowmap( float2 base_uv, float u, float v, float2 inv_shadowmap_size, uint32_t cascadeIdx, float depth, float2 receiverPlaneDepthBias ) {
-	float2 uv = base_uv + float2( u, v ) * inv_shadowmap_size;
-	float z = depth + dot( float2( u, v ) * inv_shadowmap_size, receiverPlaneDepthBias );
-	return u_ShadowmapTextureArray.SampleCmp( u_ShadowmapSampler, float3( uv, cascadeIdx ), z );
-}
+static const bool EnableBrokenAutoBias = false;
 
-float2 ComputeReceiverPlaneDepthBias( float3 texCoordDX, float3 texCoordDY ) {
-	float2 biasUV;
-	biasUV.x = texCoordDY.y * texCoordDX.z - texCoordDX.y * texCoordDY.z;
-	biasUV.y = texCoordDX.x * texCoordDY.z - texCoordDY.x * texCoordDX.z;
-	biasUV *= 1.0f / ( ( texCoordDX.x * texCoordDY.y ) - ( texCoordDX.y * texCoordDY.x ) );
-	return biasUV;
+float SampleShadowmap( float2 base_uv, float u, float v, float2 inv_shadowmap_size, uint32_t cascadeIdx, float depth, float2 dZ_dUV ) {
+	float2 uv = base_uv + float2( u, v ) * inv_shadowmap_size;
+	float z = depth + dot( float2( u, v ) * inv_shadowmap_size, dZ_dUV );
+	return u_ShadowmapTextureArray.SampleCmp( u_ShadowmapSampler, float3( uv, cascadeIdx ), z );
 }
 
 float3 GetShadowPosOffset( float nDotL, float3 normal ) {
@@ -52,7 +46,7 @@ float3 GetShadowPosOffset( float nDotL, float3 normal ) {
 	return texelSize * offset_scale * nmlOffsetScale * normal;
 }
 
-float SampleShadowmapOptimizedPCF( float3 shadowPos, float3 shadowPosDX, float3 shadowPosDY, uint32_t cascadeIdx ) {
+float SampleShadowmapOptimizedPCF( float3 shadowPos, float2 dZ_dUV, uint32_t cascadeIdx ) {
 	float2 shadowmap_size;
 	float dont_care_layers;
 	u_ShadowmapTextureArray.GetDimensions( shadowmap_size.x, shadowmap_size.y, dont_care_layers );
@@ -60,16 +54,13 @@ float SampleShadowmapOptimizedPCF( float3 shadowPos, float3 shadowPosDX, float3 
 
 	float lightDepth = shadowPos.z;
 
-#if 0
-	float2 receiverPlaneDepthBias = ComputeReceiverPlaneDepthBias( shadowPosDX, shadowPosDY );
-
-        float fractionalSamplingError = 2.0f * dot( inv_shadowmap_size, abs( receiverPlaneDepthBias ) );
-        lightDepth -= min( fractionalSamplingError, 0.01f );
-
-#else
-	float2 receiverPlaneDepthBias = 0.0f;
-	lightDepth += 0.001f;
-#endif
+	if( EnableBrokenAutoBias ) {
+		float fractionalSamplingError = 2.0f * dot( inv_shadowmap_size, abs( dZ_dUV ) );
+		lightDepth += min( fractionalSamplingError, 0.01f );
+	}
+	else {
+		lightDepth += 0.0015f;
+	}
 
 	float2 uv = shadowPos.xy * shadowmap_size;
 	float2 base_uv = floor( uv + 0.5f );
@@ -96,17 +87,17 @@ float SampleShadowmapOptimizedPCF( float3 shadowPos, float3 shadowPosDX, float3 
 
 	float sum = 0.0f;
 
-	sum += uw0 * vw0 * SampleShadowmap( base_uv, u0, v0, inv_shadowmap_size, cascadeIdx, lightDepth, receiverPlaneDepthBias );
-	sum += uw1 * vw0 * SampleShadowmap( base_uv, u1, v0, inv_shadowmap_size, cascadeIdx, lightDepth, receiverPlaneDepthBias );
-	sum += uw2 * vw0 * SampleShadowmap( base_uv, u2, v0, inv_shadowmap_size, cascadeIdx, lightDepth, receiverPlaneDepthBias );
+	sum += uw0 * vw0 * SampleShadowmap( base_uv, u0, v0, inv_shadowmap_size, cascadeIdx, lightDepth, dZ_dUV );
+	sum += uw1 * vw0 * SampleShadowmap( base_uv, u1, v0, inv_shadowmap_size, cascadeIdx, lightDepth, dZ_dUV );
+	sum += uw2 * vw0 * SampleShadowmap( base_uv, u2, v0, inv_shadowmap_size, cascadeIdx, lightDepth, dZ_dUV );
 
-	sum += uw0 * vw1 * SampleShadowmap( base_uv, u0, v1, inv_shadowmap_size, cascadeIdx, lightDepth, receiverPlaneDepthBias );
-	sum += uw1 * vw1 * SampleShadowmap( base_uv, u1, v1, inv_shadowmap_size, cascadeIdx, lightDepth, receiverPlaneDepthBias );
-	sum += uw2 * vw1 * SampleShadowmap( base_uv, u2, v1, inv_shadowmap_size, cascadeIdx, lightDepth, receiverPlaneDepthBias );
+	sum += uw0 * vw1 * SampleShadowmap( base_uv, u0, v1, inv_shadowmap_size, cascadeIdx, lightDepth, dZ_dUV );
+	sum += uw1 * vw1 * SampleShadowmap( base_uv, u1, v1, inv_shadowmap_size, cascadeIdx, lightDepth, dZ_dUV );
+	sum += uw2 * vw1 * SampleShadowmap( base_uv, u2, v1, inv_shadowmap_size, cascadeIdx, lightDepth, dZ_dUV );
 
-	sum += uw0 * vw2 * SampleShadowmap( base_uv, u0, v2, inv_shadowmap_size, cascadeIdx, lightDepth, receiverPlaneDepthBias );
-	sum += uw1 * vw2 * SampleShadowmap( base_uv, u1, v2, inv_shadowmap_size, cascadeIdx, lightDepth, receiverPlaneDepthBias );
-	sum += uw2 * vw2 * SampleShadowmap( base_uv, u2, v2, inv_shadowmap_size, cascadeIdx, lightDepth, receiverPlaneDepthBias );
+	sum += uw0 * vw2 * SampleShadowmap( base_uv, u0, v2, inv_shadowmap_size, cascadeIdx, lightDepth, dZ_dUV );
+	sum += uw1 * vw2 * SampleShadowmap( base_uv, u1, v2, inv_shadowmap_size, cascadeIdx, lightDepth, dZ_dUV );
+	sum += uw2 * vw2 * SampleShadowmap( base_uv, u2, v2, inv_shadowmap_size, cascadeIdx, lightDepth, dZ_dUV );
 
 	return sum * ( 1.0f / 144.0f );
 }
@@ -116,12 +107,28 @@ float ShadowCascade( float3 position, float3 normal, uint32_t cascadeIdx ) {
 	float3 cascadeScale = u_Shadowmap[ 0 ].cascades[ cascadeIdx ].scale;
 
 	float3 offset = GetShadowPosOffset( dot( normal, u_View[ 0 ].sun_direction ), normal ) / abs( cascadeScale.z );
-	float3 shadowPos = mul( u_Shadowmap[ 0 ].m, float4( position + offset, 1.0f ) ).xyz;
-	float3 shadowPosDX = ddx_fine( shadowPos ) * cascadeScale;
-	float3 shadowPosDY = ddy_fine( shadowPos ) * cascadeScale;
-	shadowPos = ( shadowPos + cascadeOffset ) * cascadeScale;
 
-	return SampleShadowmapOptimizedPCF( shadowPos, shadowPosDX, shadowPosDY, cascadeIdx );
+	// https://renderdiagrams.org/2024/12/18/shadowmap-bias/
+	float3 shadow_uvz = mul( u_Shadowmap[ 0 ].m, float4( position + offset, 1.0f ) ).xyz;
+
+	float2 dU_dXY = float2( ddx_fine( shadow_uvz.x ), ddy_fine( shadow_uvz.x ) ) * cascadeScale.x;
+	float2 dV_dXY = float2( ddx_fine( shadow_uvz.y ), ddy_fine( shadow_uvz.y ) ) * cascadeScale.y;
+	float2 dZ_dXY = float2( ddx_fine( shadow_uvz.z ), ddy_fine( shadow_uvz.z ) ) * cascadeScale.z;
+
+	shadow_uvz = ( shadow_uvz + cascadeOffset ) * cascadeScale;
+
+	float2 dZ_dUV = 0.0f;
+
+	if( EnableBrokenAutoBias ) {
+		float det = dU_dXY.x * dV_dXY.y - dU_dXY.y * dV_dXY.x;
+		if( det != 0.0f ) {
+			dZ_dUV.x = dV_dXY.y * dZ_dXY.x - dV_dXY.x * dZ_dXY.y;
+			dZ_dUV.y = dU_dXY.x * dZ_dXY.x - dU_dXY.y * dZ_dXY.y;
+			dZ_dUV *= 1.0f / det;
+		}
+	}
+
+	return SampleShadowmapOptimizedPCF( shadow_uvz, dZ_dUV, cascadeIdx );
 }
 
 float GetLight( float3 position, float3 normal ) {

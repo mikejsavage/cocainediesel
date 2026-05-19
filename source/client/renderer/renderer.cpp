@@ -204,10 +204,10 @@ static Mat4 InvertPerspectiveProjection( const Mat4 & P ) {
 	float e = P.col2.w;
 
 	return Mat4(
-		1.0f / a, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f / b, 0.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f / e,
-		0.0f, 0.0f, 1.0f / d, -c / ( d * e )
+		1.0f / a, 0.0f,     0.0f,     0.0f,
+		0.0f,     1.0f / b, 0.0f,     0.0f,
+		0.0f,     0.0f,     0.0f,     1.0f / e,
+		0.0f,     0.0f,     1.0f / d, -c / ( d * e )
 	);
 }
 

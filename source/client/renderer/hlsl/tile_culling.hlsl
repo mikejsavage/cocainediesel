@@ -30,8 +30,8 @@ void CullTile( uint2 tile ) {
 	float2 tile_min = FORWARD_PLUS_TILE_SIZE * ( tile.xy ) / u_View[ 0 ].viewport_size * 2.0f - 1.0f;
 	float2 tile_max = FORWARD_PLUS_TILE_SIZE * ( tile.xy + 1 ) / u_View[ 0 ].viewport_size * 2.0f - 1.0f;
 
-	float3 tile_vmin = mul( u_View[ 0 ].inverse_V, mul( u_View[ 0 ].inverse_P, float4( tile_min, 1.0f, 1.0f ) ) );
-	float3 tile_vmax = mul( u_View[ 0 ].inverse_V, mul( u_View[ 0 ].inverse_P, float4( tile_max, 1.0f, 1.0f ) ) );
+	float3 tile_vmin = mul( u_View[ 0 ].inverse_V, mul( u_View[ 0 ].inverse_P, float4( tile_min, 0.0f, 1.0f ) ) );
+	float3 tile_vmax = mul( u_View[ 0 ].inverse_V, mul( u_View[ 0 ].inverse_P, float4( tile_max, 0.0f, 1.0f ) ) );
 	float cone_tan = distance( tile_vmin, tile_vmax ) * 0.5;
 	float3 tile_direction = normalize( ( tile_vmin + tile_vmax ) * 0.5f );
 

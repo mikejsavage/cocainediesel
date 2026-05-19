@@ -60,7 +60,7 @@ VertexOutput VertexMain( VertexInput input, uint32_t instance_id : SV_InstanceID
 	float3 quadPos = float3( scale * position, 0.0f );
 	float angle = particle.angle;
 	if( ( particle.flags & ParticleFlag_Rotate ) != 0u ) {
-		angle += atan2( view_velocity.x, -view_velocity.y );
+		angle += atan2( view_velocity.x, view_velocity.y );
 	}
 	float ca = cos( angle );
 	float sa = sin( angle );

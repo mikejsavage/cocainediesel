@@ -1580,7 +1580,18 @@ void EncodeScissor( Opaque< CommandBuffer > ocb, Optional< Scissor > scissor ) {
 	vkCmdSetScissor( ocb.unwrap()->buffer, 0, 1, &vk );
 }
 
+static void DeleteComputePipeline( ComputePipeline pipeline ) {
+	vkDestroyDescriptorUpdateTemplate( global_device.device, pipeline.push_descriptors.update_template, NULL );
+	vkDestroyDescriptorSetLayout( global_device.device, pipeline.descriptor_set_layout, NULL );
+	vkDestroyPipelineLayout( global_device.device, pipeline.layout, NULL );
+	vkDestroyPipeline( global_device.device, pipeline.pipeline, NULL );
+}
+
 PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path, Optional< PoolHandle< ComputePipeline > > old_pipeline ) {
+	if( old_pipeline.exists ) {
+		DeleteComputePipeline( compute_pipelines[ old_pipeline.value ] );
+	}
+
 	TempAllocator temp = cls.frame_arena.temp();
 
 	// compile and parse shaders
@@ -1639,19 +1650,12 @@ PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path, Optio
 
 	vkDestroyShaderModule( global_device.device, stage.module, NULL );
 
-	return compute_pipelines.allocate( ComputePipeline {
+	return compute_pipelines.upsert( old_pipeline, ComputePipeline {
 		.pipeline = pipeline,
 		.layout = layout,
 		.descriptor_set_layout = descriptor_set_layout,
 		.push_descriptors = push_descriptors,
 	} );
-}
-
-static void DeleteComputePipeline( ComputePipeline pipeline ) {
-	vkDestroyDescriptorUpdateTemplate( global_device.device, pipeline.push_descriptors.update_template, NULL );
-	vkDestroyDescriptorSetLayout( global_device.device, pipeline.descriptor_set_layout, NULL );
-	vkDestroyPipelineLayout( global_device.device, pipeline.layout, NULL );
-	vkDestroyPipeline( global_device.device, pipeline.pipeline, NULL );
 }
 
 static void Barriers( VkCommandBuffer command_buffer, Optional< VkMemoryBarrier2 > global_barrier, Span< VkImageMemoryBarrier2 > image_barriers ) {

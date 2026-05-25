@@ -105,8 +105,7 @@ bool OSSocketSend( u64 handle, const void * data, size_t n, const sockaddr_stora
 			if( errno == ECONNRESET || errno == ENETUNREACH ) {
 				return false;
 			}
-			// FatalErrno( "sendto" ); NOMERGE
-			return false;
+			FatalErrno( "sendto" );
 		}
 
 		*sent = checked_cast< size_t >( ret );

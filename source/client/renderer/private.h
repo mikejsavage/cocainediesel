@@ -99,6 +99,25 @@ u32 TextureMSAASamples( PoolHandle< Texture > texture );
 TextureFormat GetTextureFormat( PoolHandle< Texture > texture );
 
 /*
+ * Samplers
+ */
+
+enum SamplerWrap : u8 {
+	SamplerWrap_Repeat,
+	SamplerWrap_Clamp,
+};
+
+struct SamplerConfig {
+	const char * name;
+	SamplerWrap wrap = SamplerWrap_Repeat;
+	bool filter = true;
+	bool shadowmap_sampler = false;
+};
+
+void InitSamplers();
+void NewSampler( SamplerType type, const SamplerConfig & config );
+
+/*
  * Resource transfers
  */
 

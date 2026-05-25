@@ -4,11 +4,7 @@
 #include "client/renderer/api.h"
 
 struct DrawModelConfig {
-	struct DrawModel {
-		bool enabled;
-		bool view_weapon;
-	} draw_model;
-
+	bool draw;
 	bool cast_shadows;
 	Optional< OutlineUniforms > outline;
 	Optional< Vec4 > silhouette_color;

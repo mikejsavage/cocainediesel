@@ -136,9 +136,6 @@ static void SubmitDrawCalls() {
 		return;
 	draw_data->ScaleClipRects( io.DisplayFramebufferScale );
 
-	// NOMERGE: use these
-	GPUBuffer lodbias_uniforms = NewTempBuffer( MaterialProperties { .lod_bias = -1.0f } );
-
 	u32 pass = 0;
 
 	for( int n = 0; n < draw_data->CmdListsCount; n++ ) {
@@ -198,9 +195,6 @@ static void SubmitDrawCalls() {
 					},
 					.material_bind_group = pcmd->TextureId.material_bind_group,
 				};
-
-				// TODO NOMERGE
-				// pipeline.bind_uniform( "u_MaterialStatic", lodbias_uniforms );
 
 				Span< const GPUBuffer > buffers = { };
 				if( pcmd->TextureId.buffer.exists ) {

@@ -76,7 +76,7 @@ DevToolCleanupCallback DrawModelViewer() {
 	Optional< ModelRenderData > maybe_model = FindModelRenderData( StringHash( selected_model ) );
 	if( maybe_model.exists ) {
 		DrawModelConfig config = {
-			.draw_model = { .enabled = true },
+			.draw = true,
 			.cast_shadows = true,
 		};
 		DrawModel( config, maybe_model.value, Mat3x4::Identity(), CG_TeamColorVec4( Team_One ) );

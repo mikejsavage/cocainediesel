@@ -92,7 +92,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 	skybox_vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx4, 0, 0 },
 	skybox_vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec4 );
 
-	struct TextVertex { // NOMERGE
+	struct TextVertex {
 		Vec3 position;
 		Vec2 uv;
 	};

@@ -293,18 +293,6 @@ void CopyGPUBufferToTexture(
  * Back to normal shit
  */
 
-enum SamplerWrap : u8 {
-	SamplerWrap_Repeat,
-	SamplerWrap_Clamp,
-};
-
-struct SamplerConfig {
-	const char * name;
-	SamplerWrap wrap = SamplerWrap_Repeat;
-	bool filter = true;
-	bool shadowmap_sampler = false;
-};
-
 static MTL::SamplerAddressMode SamplerWrapToMetal( SamplerWrap wrap ) {
 	switch( wrap ) {
 		case SamplerWrap_Repeat: return MTL::SamplerAddressModeRepeat;
@@ -312,7 +300,7 @@ static MTL::SamplerAddressMode SamplerWrapToMetal( SamplerWrap wrap ) {
 	}
 }
 
-static MTL::SamplerState * NewSampler( const SamplerConfig & config ) {
+static void NewSampler( SamplerType type, const SamplerConfig & config ) {
 	MTL::SamplerDescriptor * desc = MTL::SamplerDescriptor::alloc()->init();
 	defer { desc->release(); };
 
@@ -333,7 +321,7 @@ static MTL::SamplerState * NewSampler( const SamplerConfig & config ) {
 
 	desc->setSupportArgumentBuffers( true );
 
-	return global_device.device->newSamplerState( desc );
+	samplers[ type ] = global_device.device->newSamplerState( desc );
 }
 
 static void DeleteSampler( MTL::SamplerState * sampler ) {
@@ -341,19 +329,6 @@ static void DeleteSampler( MTL::SamplerState * sampler ) {
 }
 
 static MTL::SamplerState * samplers[ Sampler_Count ];
-
-static void CreateSamplers() {
-	samplers[ Sampler_Standard ] = NewSampler( SamplerConfig { .name = "Standard" } );
-	samplers[ Sampler_Clamp ] = NewSampler( SamplerConfig { .name = "Clamp", .wrap = SamplerWrap_Clamp } );
-	samplers[ Sampler_Unfiltered ] = NewSampler( SamplerConfig { .name = "Unfiltered", .filter = false } );
-	samplers[ Sampler_Shadowmap ] = NewSampler( SamplerConfig { .name = "Shadowmap", .shadowmap_sampler = true } );
-}
-
-static void DeleteSamplers() {
-	for( MTL::SamplerState * sampler : samplers ) {
-		DeleteSampler( sampler );
-	}
-}
 
 struct DepthFuncConfig {
 	MTL::CompareFunction compare_op;
@@ -376,7 +351,7 @@ static void DeleteDepthFunc( MTL::DepthStencilState * depth_func ) {
 
 static MTL::DepthStencilState * depth_funcs[ DepthFunc_Count ];
 
-static void CreateDepthFuncs() {
+static void InitDepthFuncs() {
 	depth_funcs[ DepthFunc_Less ] = NewDepthFunc( DepthFuncConfig { .compare_op = MTL::CompareFunctionLess } );
 	depth_funcs[ DepthFunc_LessNoWrite ] = NewDepthFunc( DepthFuncConfig {
 		.compare_op = MTL::CompareFunctionLess,
@@ -392,12 +367,6 @@ static void CreateDepthFuncs() {
 		.compare_op = MTL::CompareFunctionAlways,
 		.write_depth = false,
 	} );
-}
-
-static void DeleteDepthFuncs() {
-	for( MTL::DepthStencilState * depth_func : depth_funcs ) {
-		DeleteDepthFunc( depth_func );
-	}
 }
 
 static MTL::PixelFormat TextureFormatToMetal( TextureFormat format ) {
@@ -1062,8 +1031,8 @@ void InitRenderBackend( SDL_Window * window, const WindowMode & window_mode ) {
 	bool minimized;
 	GetFramebufferSize( &old_framebuffer_width, &old_framebuffer_height, &minimized );
 
-	CreateSamplers();
-	CreateDepthFuncs();
+	InitSamplers();
+	InitDepthFuncs();
 
 	{
 		MTL::ArgumentDescriptor * buffer_arg = MTL::ArgumentDescriptor::alloc()->init();
@@ -1116,8 +1085,14 @@ void ShutdownRenderBackend() {
 		shader.pso->release();
 	}
 
-	DeleteSamplers();
-	DeleteDepthFuncs();
+	for( MTL::SamplerState * sampler : samplers ) {
+		DeleteSampler( sampler );
+	}
+
+	for( MTL::DepthStencilState * depth_func : depth_funcs ) {
+		DeleteDepthFunc( depth_func );
+	}
+
 	ShutdownGPUAllocators();
 	global_device.command_queue->release();
 	SDL_Metal_DestroyView( global_device.view );

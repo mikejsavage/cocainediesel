@@ -110,7 +110,6 @@ struct ViewUniforms {
 struct MaterialProperties {
 	float specular;
 	float shininess;
-	float lod_bias;
 };
 
 struct ShadowmapUniforms {

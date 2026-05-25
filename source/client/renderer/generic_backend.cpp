@@ -141,7 +141,6 @@ void UploadTexture( const TextureConfig & config, Opaque< BackendTexture > textu
 	}
 }
 
-// NOMERGE figure out how to flush after hotload
 void FlushStagingBuffer() {
 	TracyZoneScoped;
 
@@ -172,26 +171,14 @@ GPUBuffer NewBuffer( GPUSlabAllocator * a, Span< const char > label, size_t size
 	if( aligned_cursor > a->slab_size || a->slabs->capacity - aligned_cursor < size ) {
 		a->wasted += a->slabs->capacity - a->slabs->cursor;
 
-		// check if the next slab has its cursor at 0, i.e. the allocator has
-		// been reset, and swap that to the head instead of allocating
-		// TODO NOMERGE this isn't a thing anymore
-		if( a->slabs->next != NULL && a->slabs->next->cursor == 0 && a->slabs->next->capacity > 0 ) {
-			GPUSlabAllocator::Slab * next_next = a->slabs->next->next;
-			GPUSlabAllocator::Slab * next = a->slabs->next;
-			next->next = a->slabs;
-			a->slabs->next = next_next;
-			a->slabs = next;
-		}
-		else {
-			GPUSlabAllocator::Slab * new_slab = Alloc< GPUSlabAllocator::Slab >( sys_allocator );
-			*new_slab = GPUSlabAllocator::Slab {
-				.buffer = AllocateGPUMemory( a->slab_size ),
-				.cursor = 0,
-				.capacity = a->slab_size,
-				.next = a->slabs,
-			};
-			a->slabs = new_slab;
-		}
+		GPUSlabAllocator::Slab * new_slab = Alloc< GPUSlabAllocator::Slab >( sys_allocator );
+		*new_slab = GPUSlabAllocator::Slab {
+			.buffer = AllocateGPUMemory( a->slab_size ),
+			.cursor = 0,
+			.capacity = a->slab_size,
+			.next = a->slabs,
+		};
+		a->slabs = new_slab;
 		aligned_cursor = 0;
 	}
 
@@ -351,4 +338,11 @@ void format( FormatBuffer * fb, const VertexDescriptor & v, const FormatOpts & o
 		}
 	}
 	format( fb, "] )" );
+}
+
+void InitSamplers() {
+	NewSampler( Sampler_Standard, SamplerConfig { .name = "Standard" } );
+	NewSampler( Sampler_Clamp, SamplerConfig { .name = "Clamp", .wrap = SamplerWrap_Clamp } );
+	NewSampler( Sampler_Unfiltered, SamplerConfig { .name = "Unfiltered", .filter = false } );
+	NewSampler( Sampler_Shadowmap, SamplerConfig { .name = "Shadowmap", .shadowmap_sampler = true } );
 }

@@ -240,7 +240,6 @@ static Mat3x4 InvertViewMatrix( const Mat3x4 & V, Vec3 position ) {
 static void CreateRenderTargets( bool first_time ) {
 	TracyZoneScoped;
 
-	// NOMERGE use NewRenderTargetTexture
 	frame_static.render_targets.silhouette_mask = NewTexture( TextureConfig {
 		.name = "Silhouette mask RT",
 		.format = TextureFormat_RGBA_U8_sRGB,

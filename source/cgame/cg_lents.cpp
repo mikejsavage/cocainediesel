@@ -117,7 +117,7 @@ void DrawGibs() {
 
 		Mat3x4 transform = Mat4Translation( gib->origin ) * Mat4Scale( size );
 		DrawModelConfig config = {
-			.draw_model = { .enabled = true },
+			.draw = true,
 			.cast_shadows = true,
 		};
 		DrawGLTFModel( config, model, transform, gib->color );

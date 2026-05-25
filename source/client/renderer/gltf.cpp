@@ -636,9 +636,9 @@ void MergeLowerUpperPoses( Span< Transform > lower, Span< const Transform > uppe
 	}
 }
 
-static void DrawVfxNode( DrawModelConfig::DrawModel config, const GLTFRenderData::Node * node, const Mat3x4 & transform, const Vec4 & color ) {
+static void DrawVfxNode( bool draw, const GLTFRenderData::Node * node, const Mat3x4 & transform, const Vec4 & color ) {
 	TracyZoneScoped;
-	if( !config.enabled || node->vfx_type == ModelVfxType_None )
+	if( !draw || node->vfx_type == ModelVfxType_None )
 		return;
 
 	// TODO: idk about this cheers
@@ -690,12 +690,8 @@ static PoolHandle< RenderPipeline > SkinnedShader( PoolHandle< RenderPipeline > 
 	return shader;
 }
 
-static void DrawModelNode( const GLTFRenderData::Node * node, bool view_weapon, GPUBuffer model_uniforms, Optional< GPUBuffer > pose_uniforms, Vec4 entity_color, bool flip_cull_face ) {
+static void DrawModelNode( const GLTFRenderData::Node * node, GPUBuffer model_uniforms, Optional< GPUBuffer > pose_uniforms, Vec4 entity_color, bool flip_cull_face ) {
 	TracyZoneScoped;
-
-	if( view_weapon ) {
-		// pipeline.view_weapon_depth_hack = true; NOMERGE
-	}
 
 	PoolHandle< Material > material = FindMaterial( node->material ); // NOMERGE, don't call FindMaterial
 	RenderPass pass = MaterialRenderPass( material );
@@ -805,7 +801,7 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 		}
 		node_transform = transform * render_data->transform * node_transform;
 
-		DrawVfxNode( config.draw_model, node, node_transform, color );
+		DrawVfxNode( config.draw, node, node_transform, color );
 
 		if( node->mesh.num_vertices == 0 )
 			continue;
@@ -813,8 +809,8 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 		GPUBuffer model_uniforms = NewTempBuffer( node_transform );
 		bool flip_cull_face = OddNumberOfReflections( node_transform );
 
-		if( config.draw_model.enabled ) {
-			DrawModelNode( node, config.draw_model.view_weapon, model_uniforms, pose_uniforms, color, flip_cull_face );
+		if( config.draw ) {
+			DrawModelNode( node, model_uniforms, pose_uniforms, color, flip_cull_face );
 		}
 
 		if( config.cast_shadows ) {

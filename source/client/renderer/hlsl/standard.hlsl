@@ -72,7 +72,7 @@ struct FragmentOutput {
 };
 
 FragmentOutput FragmentMain( VertexOutput v ) {
-	float4 albedo = u_Texture.SampleBias( u_Sampler, v.uv, u_MaterialProperties[ 0 ].lod_bias );
+	float4 albedo = u_Texture.Sample( u_Sampler, v.uv );
 	albedo *= u_DrawCall.material_color.Get();
 #ifdef VERTEX_COLORS
 	albedo *= v.color;

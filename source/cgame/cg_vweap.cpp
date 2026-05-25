@@ -189,9 +189,7 @@ void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
 		return;
 	}
 
-	DrawModelConfig config = { };
-	config.draw_model.enabled = true;
-	config.draw_model.view_weapon = true;
+	DrawModelConfig config = { .draw = true };
 
 	u8 animation;
 	if( FindAnimationByName( model, viewweapon->eventAnim, &animation ) ) {

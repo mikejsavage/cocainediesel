@@ -126,13 +126,6 @@ struct TextureConfig {
 	bool dedicated_allocation;
 };
 
-// NOMERGE
-enum TextureLayout {
-	TextureLayout_ReadOnly,
-	TextureLayout_ReadWrite,
-	TextureLayout_Present,
-};
-
 PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture = NONE );
 PoolHandle< Texture > NewRenderTargetTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture );
 
@@ -455,18 +448,12 @@ void EncodeComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipe
 void EncodeIndirectComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, GPUBuffer indirect_args, Span< const BufferBinding > buffers );
 
 /*
- * High level stuff TODO
+ * High level stuff NOMERGE
  */
 
 struct MatrixPalettes {
 	Span< const Mat3x4 > node_transforms;
 	Span< const Mat3x4 > skinning_matrices;
-};
-
-// NOMERGE: maybe we should do this instead of n->n+1 deps everywhere
-enum RenderPassDependency {
-	RenderPassDependency_ParticleUpdate_To_ParticleSetupIndirect,
-	RenderPassDependency_Shadowmap_To_WorldOpaque,
 };
 
 void Draw( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, Span< const GPUBuffer > buffers = { }, DrawCallExtras extras = DrawCallExtras() );

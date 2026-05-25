@@ -2565,18 +2565,6 @@ bool SwapchainIsNotsRGB() {
 	return global_swapchain.format == VK_FORMAT_A2B10G10R10_UNORM_PACK32;
 }
 
-enum SamplerWrap : u8 {
-	SamplerWrap_Repeat,
-	SamplerWrap_Clamp,
-};
-
-struct SamplerConfig {
-	const char * name;
-	SamplerWrap wrap = SamplerWrap_Repeat;
-	bool filter = true;
-	bool shadowmap_sampler = false;
-};
-
 static VkSamplerAddressMode SamplerWrapToVulkan( SamplerWrap wrap ) {
 	switch( wrap ) {
 		case SamplerWrap_Repeat: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -2584,7 +2572,7 @@ static VkSamplerAddressMode SamplerWrapToVulkan( SamplerWrap wrap ) {
 	}
 }
 
-static VkSampler NewSampler( const SamplerConfig & config ) {
+void NewSampler( SamplerType type, const SamplerConfig & config ) {
 	VkFilter filter = config.filter ? VK_FILTER_LINEAR : VK_FILTER_NEAREST;
 	const VkSamplerCreateInfo sampler_info = {
 		.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -2604,18 +2592,7 @@ static VkSampler NewSampler( const SamplerConfig & config ) {
 	VK_CHECK( vkCreateSampler( global_device.device, &sampler_info, NULL, &sampler ) );
 	DebugLabel( sampler, VK_OBJECT_TYPE_SAMPLER, config.name );
 
-	return sampler;
-}
-
-static void DeleteSampler( VkSampler sampler ) {
-	vkDestroySampler( global_device.device, sampler, NULL );
-}
-
-static void CreateSamplers() { // NOMERGE: move this into generic I guess
-	samplers[ Sampler_Standard ] = NewSampler( SamplerConfig { .name = "Standard" } );
-	samplers[ Sampler_Clamp ] = NewSampler( SamplerConfig { .name = "Clamp", .wrap = SamplerWrap_Clamp } );
-	samplers[ Sampler_Unfiltered ] = NewSampler( SamplerConfig { .name = "Unfiltered", .filter = false } );
-	samplers[ Sampler_Shadowmap ] = NewSampler( SamplerConfig { .name = "Shadowmap", .shadowmap_sampler = true } );
+	samplers[ type ] = sampler;
 }
 
 PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, Opaque< BackendTexture > texture, SamplerType sampler, GPUBuffer properties, Optional< PoolHandle< BindGroup > > old_bind_group ) {
@@ -2716,7 +2693,7 @@ void InitRenderBackend( SDL_Window * window, const WindowMode & window_mode ) {
 	Assert( device.limits.ssbo_range >= ArenaAllocatorSize );
 	InitGPUAllocators( GetGoodGPUAllocationSize(), global_device.limits.ssbo_alignment, global_device.limits.buffer_image_granularity );
 
-	CreateSamplers();
+	InitSamplers();
 }
 
 void ShutdownRenderBackend() {
@@ -2725,7 +2702,7 @@ void ShutdownRenderBackend() {
 	TracyVkDestroy( global_device.tracy );
 
 	for( VkSampler sampler : samplers ) {
-		DeleteSampler( sampler );
+		vkDestroySampler( global_device.device, sampler, NULL );
 	}
 	for( Texture texture : textures.span() ) {
 		DeleteBackendTexture( texture.backend );

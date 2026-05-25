@@ -42,5 +42,9 @@ VertexOutput VertexMain( VertexInput input ) {
 }
 
 float4 FragmentMain( VertexOutput v ) : FragmentShaderOutput_Albedo {
-	return u_Texture.SampleBias( u_Sampler, v.uv, u_MaterialProperties[ 0 ].lod_bias ) * v.color;
+#if IMGUI
+	return u_Texture.SampleBias( u_Sampler, v.uv, -1.0f ) * v.color;
+#else
+	return u_Texture.Sample( u_Sampler, v.uv ) * v.color;
+#endif
 }

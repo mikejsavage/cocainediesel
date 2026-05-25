@@ -42,7 +42,6 @@ struct MaterialDescriptor {
 	MaterialProperties properties = {
 		.specular = 0.0f,
 		.shininess = 64.0f,
-		.lod_bias = 0.0f,
 	};
 };
 
@@ -368,7 +367,7 @@ static void UnloadTexture( PoolHandle< Texture > texture ) {
 	UnloadTexture( &textures[ texture ] );
 }
 
-static Material MaterialFromDescriptor( Span< const char > name, const MaterialDescriptor & desc ) {
+static Material MaterialFromDescriptor( Span< const char > name, const MaterialDescriptor & desc, Optional< PoolHandle< BindGroup > > old_bind_group = NONE ) {
 	RenderPass pass = RenderPass_NonworldOpaque;
 	if( desc.blend_func == BlendFunc_Disabled ) {
 		pass = desc.outlined ? RenderPass_NonworldOpaqueOutlined : RenderPass_NonworldOpaque;
@@ -388,12 +387,11 @@ static Material MaterialFromDescriptor( Span< const char > name, const MaterialD
 
 	PoolHandle< Texture > texture = FindTexture( desc.texture );
 
-	// TODO NOMERGE reuse the old bindgroup
 	return Material {
 		.name = name,
 		.render_pass = pass,
 		.shader = shader,
-		.bind_group = NewMaterialBindGroup( temp.sv( "{} bind group", name ), texture, desc.sampler, desc.properties ),
+		.bind_group = NewMaterialBindGroup( temp.sv( "{} bind group", name ), texture, desc.sampler, desc.properties, old_bind_group ),
 		.dynamic_state = desc.dynamic_state,
 		.rgbgen = desc.rgbgen,
 		.alphagen = desc.alphagen,
@@ -411,7 +409,7 @@ static Optional< PoolHandle< Material > > AddMaterial( Span< const char > name, 
 
 	Optional< PoolHandle< Material > > old_handle = materials.get( hash );
 	if( old_handle.exists ) {
-		materials[ old_handle.value ] = MaterialFromDescriptor( name, descriptor );
+		materials[ old_handle.value ] = MaterialFromDescriptor( name, descriptor, materials[ old_handle.value ].bind_group );
 		return old_handle;
 	}
 
@@ -1209,6 +1207,7 @@ PoolHandle< Texture > BlueNoiseTexture() {
 	return blue_noise;
 }
 
+// NOMERGE: reserve slots for missing materials so when they got hotloaded stuff can find them
 Optional< PoolHandle< Material > > TryFindMaterial( StringHash name ) {
 	return materials.get( name.hash );
 }

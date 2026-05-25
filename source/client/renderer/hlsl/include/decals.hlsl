@@ -32,10 +32,9 @@ float ProjectedScale( float3 p, float3 o, float3 d ) {
 	return dot( p - o, d ) / dot( d, d );
 }
 
-float2 DecalUV( float4 uvwh, float3 pos, float3 bottom_left, float3 basis_u, float3 basis_v ) {
-	float2 uv = float2( ProjectedScale( pos, bottom_left, basis_u ), ProjectedScale( pos, bottom_left, basis_v ) );
-	uv = uvwh.xy + uvwh.zw * uv;
-	return uv;
+float2 DecalUV( Decal decal, float3 pos, float3 bottom_left, float3 basis_u, float3 basis_v ) {
+	float2 local_uv = float2( ProjectedScale( pos, bottom_left, basis_u ), ProjectedScale( pos, bottom_left, basis_v ) );
+	return Dequantize01( decal.uv ) + Dequantize01( decal.wh ) * local_uv;
 }
 
 float3x3 float3x4_to_3x3( float3x4 m ) {
@@ -59,39 +58,27 @@ void AddDecals( float3 vertex_position, uint count, int tile_index, inout float4
 		uint idx = count - i - 1;
 		Decal decal = u_Decals[ u_DecalTiles[ tile_index ].indices[ idx ] ];
 
-		float3 origin = floor( decal.origin_orientation_xyz );
-		float radius = floor( decal.radius_orientation_w );
-		Quaternion orientation = {
-			float4(
-				( frac( decal.origin_orientation_xyz ) - 0.5f ) / 0.49f,
-				( frac( decal.radius_orientation_w ) - 0.5f ) / 0.49f
-			)
-		};
-		float3 decal_color = frac( floor( decal.color_uvwh_height.yzw ) / 256.0f );
-		float decal_height = floor( decal.color_uvwh_height.y / 256.0f );
-		float4 uvwh = float4( decal.color_uvwh_height.x, frac( decal.color_uvwh_height.yzw ) );
-		float layer = floor( decal.color_uvwh_height.x );
-
-		if( distance( origin, vertex_position ) < radius ) {
+		if( distance( decal.origin, vertex_position ) < decal.radius ) {
+			Quaternion orientation = { Dequantize11( decal.orientation ) };
 			float3 decal_normal, tangent, bitangent;
 			QuaternionToBasis( orientation, decal_normal, tangent, bitangent );
 
-			tangent *= radius * 2.0f;
-			bitangent *= radius * -2.0f; // negate because uvs are y-down
+			tangent *= decal.radius * 2.0f;
+			bitangent *= decal.radius * -2.0f; // negate because uvs are y-down
 
-			float3 bottom_left = origin - ( tangent + bitangent ) * 0.5f;
+			float3 bottom_left = decal.origin - ( tangent + bitangent ) * 0.5f;
 
 			// manually compute UV derivatives because auto derivatives are undefined inside incoherent branches
-			float2 uv = DecalUV( uvwh, vertex_position, bottom_left, tangent, bitangent );
-			float2 dUV_dx = DecalUV( uvwh, vertex_position + dPos_dx, bottom_left, tangent, bitangent ) - uv;
-			float2 dUV_dy = DecalUV( uvwh, vertex_position + dPos_dy, bottom_left, tangent, bitangent ) - uv;
+			float2 uv = DecalUV( decal, vertex_position, bottom_left, tangent, bitangent );
+			float2 dUV_dx = DecalUV( decal, vertex_position + dPos_dx, bottom_left, tangent, bitangent ) - uv;
+			float2 dUV_dy = DecalUV( decal, vertex_position + dPos_dy, bottom_left, tangent, bitangent ) - uv;
 
-			float alpha = u_SpriteAtlas.SampleGrad( u_StandardSampler, float3( uv, layer ), dUV_dx, dUV_dy ).a;
+			float alpha = u_SpriteAtlas.SampleGrad( u_StandardSampler, float3( uv, decal.layer ), dUV_dx, dUV_dy ).a;
 			float inv_cos_45_degrees = 1.41421356237f;
 			float decal_alpha = min( 1.0f, alpha * max( 0.0f, dot( decal_normal, surface_normal ) * inv_cos_45_degrees ) );
-			accumulated_color += decal_color * decal_alpha * accumulated_alpha;
+			accumulated_color += sRGBToLinear( decal.color ).xyz * decal_alpha * accumulated_alpha;
 			accumulated_alpha *= 1.0f - decal_alpha;
-			accumulated_height += decal_height * decal_alpha;
+			accumulated_height += decal.height * decal_alpha;
 		}
 	}
 

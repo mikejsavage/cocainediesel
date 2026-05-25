@@ -1,16 +1,12 @@
 #include "qcommon/base.h"
 #include "qcommon/array.h"
+#include "qcommon/f16.h"
+#include "qcommon/srgb.h"
 #include "qcommon/time.h"
 #include "cgame/cg_local.h"
 #include "client/renderer/api.h"
 #include "client/renderer/shader.h"
 #include "client/renderer/shader_shared.h"
-
-static_assert( sizeof( Decal ) == 2 * 4 * sizeof( float ) );
-static_assert( sizeof( Decal ) % alignof( Decal ) == 0 );
-
-static_assert( sizeof( Light ) == 1 * 4 * sizeof( float ) );
-static_assert( sizeof( Light ) % alignof( Light ) == 0 );
 
 static GPUBuffer dynamic_count;
 static CoherentSpan< Decal > decals_buffer;
@@ -24,7 +20,8 @@ struct PersistentDecal {
 };
 
 struct PersistentLight {
-	Light light;
+	s16x3 origin;
+	RGBA8 color;
 	float start_intensity;
 	Time spawn_time;
 	Time lifetime;
@@ -62,6 +59,36 @@ void ResetDecals() {
 	persistent_lights.clear();
 }
 
+static s16x3 FloorToS16( Vec3 v ) {
+	return s16x3 {
+		checked_cast< s16 >( floorf( v.x ) ),
+		checked_cast< s16 >( floorf( v.y ) ),
+		checked_cast< s16 >( floorf( v.z ) ),
+	};
+}
+
+static s16x4 QuantizeQuaternion( Quaternion q ) {
+	return s16x4 {
+		.x = Quantize11< s16 >( q.x ),
+		.y = Quantize11< s16 >( q.y ),
+		.z = Quantize11< s16 >( q.z ),
+		.w = Quantize11< s16 >( q.w ),
+	};
+}
+
+static Decal MakeDecal( Vec3 origin, Quaternion orientation, float radius, Vec4 color, float height, Sprite sprite ) {
+	return Decal {
+		.color = LinearTosRGB( color ),
+		.origin = FloorToS16( origin ),
+		.radius = FloatToHalf( radius ),
+		.orientation = QuantizeQuaternion( orientation ),
+		.height = FloatToHalf( height ),
+		.layer = sprite.layer,
+		.uv = sprite.uv,
+		.wh = sprite.wh,
+	};
+}
+
 void DrawDecal( Vec3 origin, Quaternion orientation, float radius, StringHash name, Vec4 color, float height ) {
 	Optional< Sprite > sprite = TryFindSprite( name );
 	if( !sprite.exists ) {
@@ -69,15 +96,7 @@ void DrawDecal( Vec3 origin, Quaternion orientation, float radius, StringHash na
 		return;
 	}
 
-	Vec3 c = Floor( color.xyz() * 255.0f );
-	c.x += floorf( height ) * 256.0f;
-
-	Vec4 uvwh = sprite.value.uvwh;
-	[[maybe_unused]] bool fail_silently = decals.add( Decal {
-		.origin_orientation_xyz = Floor( origin ) + ( orientation.im() * 0.49f + 0.5f ),
-		.radius_orientation_w = floorf( radius ) + ( orientation.w * 0.49f + 0.5f ),
-		.color_uvwh_height = Vec4( uvwh.x, uvwh.y + c.x, uvwh.z + c.y, uvwh.w + c.z ),
-	} );
+	[[maybe_unused]] bool ok = decals.add( MakeDecal( origin, orientation, radius, color, height, sprite.value ) );
 }
 
 void AddPersistentDecal( Vec3 origin, Quaternion orientation, float radius, StringHash name, Vec4 color, Time lifetime, float height ) {
@@ -87,16 +106,8 @@ void AddPersistentDecal( Vec3 origin, Quaternion orientation, float radius, Stri
 		return;
 	}
 
-	Vec3 c = Floor( color.xyz() * 255.0f );
-	c.x += floorf( height ) * 256.0f;
-
-	Vec4 uvwh = sprite.value.uvwh;
-	[[maybe_unused]] bool fail_silently = persistent_decals.add( PersistentDecal {
-		.decal = Decal {
-			.origin_orientation_xyz = Floor( origin ) + ( orientation.im() * 0.49f + 0.5f ),
-			.radius_orientation_w = floorf( radius ) + ( orientation.w * 0.49f + 0.5f ),
-			.color_uvwh_height = Vec4( uvwh.x, uvwh.y + c.x, uvwh.z + c.y, uvwh.w + c.z ),
-		},
+	[[maybe_unused]] bool ok = persistent_decals.add( PersistentDecal {
+		.decal = MakeDecal( origin, orientation, radius, color, height, sprite.value ),
 		.expiration = cls.game_time + lifetime,
 	} );
 }
@@ -118,19 +129,22 @@ void DrawPersistentDecals() {
 	}
 }
 
+static float LightIntensityToRadius( float intensity ) {
+	return sqrtf( intensity / LIGHT_CUTOFF );
+}
+
 void DrawLight( Vec3 origin, Vec3 color, float intensity ) {
 	[[maybe_unused]] bool ok = lights.add( Light {
-		.origin_color = Floor( origin ) + color * 0.9f,
-		.radius = sqrtf( intensity / LIGHT_CUTOFF ),
+		.color = RGBA8( LinearTosRGB( color ) ),
+		.origin = FloorToS16( origin ),
+		.radius = FloatToHalf( LightIntensityToRadius( intensity ) ),
 	} );
 }
 
 void AddPersistentLight( Vec3 origin, Vec3 color, float intensity, Time lifetime ) {
 	[[maybe_unused]] bool ok = persistent_lights.add( PersistentLight {
-		.light = Light {
-			.origin_color = Floor( origin ) + color * 0.9f,
-			.radius = sqrtf( intensity / LIGHT_CUTOFF ),
-		},
+		.origin = FloorToS16( origin ),
+		.color = RGBA8( LinearTosRGB( color ) ),
 		.start_intensity = intensity,
 		.spawn_time = cls.game_time,
 		.lifetime = lifetime,
@@ -151,8 +165,9 @@ void DrawPersistentLights() {
 		float fract = ToSeconds( cls.game_time - light.spawn_time ) / ToSeconds( light.lifetime );
 		float intensity = Lerp( light.start_intensity, fract, 0.0f );
 		Light faded = {
-			.origin_color = light.light.origin_color,
-			.radius = sqrtf( intensity / LIGHT_CUTOFF ),
+			.color = light.color,
+			.origin = light.origin,
+			.radius = FloatToHalf( LightIntensityToRadius( intensity ) ),
 		};
 		if( !lights.add( faded ) ) {
 			break;

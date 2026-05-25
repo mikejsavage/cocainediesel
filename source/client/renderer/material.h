@@ -58,9 +58,9 @@ void ShutdownMaterials();
 // bool TryFindMaterial( StringHash name, const Material ** material );
 
 struct Sprite {
-	// TODO: these do funny arithmetic packing and we should convert them to use f16 etc
-	Vec4 uvwh;
-	Vec4 trim;
+	u16 layer;
+	u16x2 uv, wh;
+	u16x4 trim;
 };
 
 Optional< Sprite > TryFindSprite( StringHash name );

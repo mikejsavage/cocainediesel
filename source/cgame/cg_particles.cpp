@@ -1,5 +1,6 @@
 #include "qcommon/base.h"
 #include "qcommon/array.h"
+#include "qcommon/f16.h"
 #include "qcommon/fs.h"
 #include "qcommon/serialization.h"
 #include "qcommon/time.h"
@@ -308,10 +309,10 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 				// }
 			}
 			else if( key == "stretch" ) {
-				emitter->flags = ParticleFlags( emitter->flags | ParticleFlag_Stretch );
+				emitter->flags |= ParticleFlag_Stretch;
 			}
 			else if( key == "rotate" ) {
-				emitter->flags = ParticleFlags( emitter->flags | ParticleFlag_Rotate );
+				emitter->flags |= ParticleFlag_Rotate;
 			}
 			else if( key == "acceleration" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
@@ -804,27 +805,33 @@ void DrawParticles() {
 	TracyPlotSample( "New Particles", total_new_particles );
 }
 
-static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float angle, float angular_velocity, float gravity, float drag, float restitution, Vec4 uvwh, Vec4 trim, Vec4 start_color, Vec4 end_color, float start_size, float end_size, ParticleFlags flags ) {
+static f16x3 FloatToHalf( Vec3 v ) {
+	return f16x3 { FloatToHalf( v.x ), FloatToHalf( v.y ), FloatToHalf( v.z ) };
+}
+
+static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float angle, float angular_velocity, float gravity, float drag, float restitution, Sprite sprite, Vec4 start_color, Vec4 end_color, float start_size, float end_size, ParticleFlags flags ) {
 	if( ps->num_new_particles == ps->max_particles )
 		return;
 
 	ps->new_particles.data[ ps->num_new_particles ] = Particle {
-		.position = position,
-		.angle = angle,
-		.velocity = velocity,
-		.angular_velocity = angular_velocity,
-		.gravity = gravity,
-		.drag = drag,
-		.restitution = restitution,
-		.uvwh = uvwh,
-		.trim = trim,
 		.start_color = LinearTosRGB( start_color ),
 		.end_color = LinearTosRGB( end_color ),
-		.start_size = start_size,
-		.end_size = end_size,
-		.age = 0.0f,
-		.lifetime = lifetime,
-		.flags = checked_cast< u32 >( flags ),
+		.position = position,
+		.angle = FloatToHalf( angle ),
+		.velocity = FloatToHalf( velocity ),
+		.angular_velocity = FloatToHalf( angular_velocity ),
+		.gravity = FloatToHalf( gravity ),
+		.drag = FloatToHalf( drag ),
+		.restitution = FloatToHalf( restitution ),
+		.layer = sprite.layer,
+		.uv = sprite.uv,
+		.wh = sprite.wh,
+		.trim = sprite.trim,
+		.start_size = FloatToHalf( start_size ),
+		.end_size = FloatToHalf( end_size ),
+		.age = FloatToHalf( 0.0f ),
+		.lifetime = FloatToHalf( lifetime ),
+		.flags = checked_cast< u16 >( flags ),
 	};
 
 	ps->num_new_particles++;
@@ -886,7 +893,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 		Optional< Sprite > sprite = TryFindSprite( RandomElement( &cls.rng, emitter->materials.span() ) );
 		if( sprite.exists ) {
 			EmitParticle( ps, lifetime, position, dir * speed, angle, angular_velocity, emitter->gravity, emitter->drag, emitter->restitution,
-				sprite.value.uvwh, sprite.value.trim, start_color, end_color, size, emitter->end_size, emitter->flags );
+				sprite.value, start_color, end_color, size, emitter->end_size, emitter->flags );
 		}
 	}
 }

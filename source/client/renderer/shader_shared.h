@@ -2,18 +2,39 @@
 
 // types and constants
 #ifdef __cplusplus
-  #include "qcommon/types.h"
-  #define shaderconst constexpr
+	#include "qcommon/types.h"
+	#define shaderconst constexpr
+
+	using f16 = u16;
+
+	struct f16x3 { u16 x, y, z; };
+	struct s16x3 { s16 x, y, z; };
+	struct u16x2 { u16 x, y; };
+	struct u16x4 { u16 x, y, z, w; };
+
+	struct s16x4 { s16 x, y, z, w; };
 #else
-  #define shaderconst static const
-  typedef int32_t s32;
-  typedef uint32_t u32;
-  typedef float2 Vec2;
-  typedef float3 Vec3;
-  typedef float4 Vec4;
-  typedef float3x4 Mat3x4;
-  typedef float4x4 Mat4;
-  typedef uint32_t RGBA8;
+	#define shaderconst static const
+
+	typedef uint16_t u16;
+	typedef int32_t s32;
+	typedef uint32_t u32;
+	typedef half f16;
+	typedef half3 f16x3;
+
+	typedef float2 Vec2;
+	typedef float3 Vec3;
+	typedef float4 Vec4;
+	typedef float3x4 Mat3x4;
+	typedef float4x4 Mat4;
+
+	typedef int16_t3 s16x3;
+	typedef uint16_t2 u16x2;
+	typedef uint16_t4 u16x4;
+
+	typedef int16_t4 s16x4;
+
+	typedef uint32_t RGBA8;
 #endif
 
 shaderconst u32 FORWARD_PLUS_TILE_SIZE = 32;
@@ -120,17 +141,21 @@ struct TileIndices {
 	u32 indices[ FORWARD_PLUS_TILE_CAPACITY ];
 };
 
-// TODO: use half floats etc
 struct Decal {
-	Vec3 origin_orientation_xyz; // floor( origin ) + ( orientation.xyz * 0.49 + 0.5 )
-	float radius_orientation_w; // floor( radius ) + ( orientation.w * 0.49 + 0.5 )
-	Vec4 color_uvwh_height; // vec4( u + layer, v + floor( r * 255 ) + floor( height ) * 256, w + floor( g * 255 ), h + floor( b * 255 ) )
-	// NOTE(msc): uvwh should all be < 1.0
+	RGBA8 color; // note that RGBA8 has 4 byte alignment on the GPU
+	s16x3 origin;
+	f16 radius;
+	s16x4 orientation;
+	f16 height;
+	u16 layer;
+	u16x2 uv;
+	u16x2 wh;
 };
 
 struct Light {
-	Vec3 origin_color; // floor( origin ) + ( color * 0.9 )
-	float radius;
+	RGBA8 color;
+	s16x3 origin;
+	f16 radius;
 };
 
 // outline.hlsl
@@ -141,24 +166,24 @@ struct OutlineUniforms {
 
 // particles
 struct Particle {
-	Vec3 position;
-	float angle;
-	Vec3 velocity;
-	float angular_velocity;
-	float gravity;
-	float drag;
-	float restitution;
-	float PADDING;
-	Vec4 uvwh;
-	Vec4 trim;
 	RGBA8 start_color;
 	RGBA8 end_color;
-	float start_size;
-	float end_size;
-	float age;
-	float lifetime;
-	u32 flags;
-	u32 PADDING2;
+	Vec3 position;
+	f16 angle;
+	f16x3 velocity;
+	f16 angular_velocity;
+	f16 gravity;
+	f16 drag;
+	f16 restitution;
+	u16 layer;
+	u16x2 uv;
+	u16x2 wh;
+	u16x4 trim;
+	f16 start_size;
+	f16 end_size;
+	f16 age;
+	f16 lifetime;
+	u16 flags;
 };
 
 struct NewParticlesUniforms {

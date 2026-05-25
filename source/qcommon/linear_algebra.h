@@ -138,14 +138,6 @@ inline Vec3 SafeNormalize( Vec3 v ) {
 	return Normalize( v );
 }
 
-inline Vec3 Floor( Vec3 v ) {
-	return Vec3(
-		floorf( v.x ),
-		floorf( v.y ),
-		floorf( v.z )
-	);
-}
-
 constexpr Vec3 Clamp( Vec3 lo, Vec3 v, Vec3 hi ) {
 	return Vec3(
 		Clamp( lo.x, v.x, hi.x ),

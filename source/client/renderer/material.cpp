@@ -721,6 +721,19 @@ static Vec4 TrimTexture( Span2D< const BC4Block > bc4 ) {
 	return trim;
 }
 
+static u16x2 QuantizeU16x2( float x, float y ) {
+	return u16x2 { Quantize01< u16 >( x ), Quantize01< u16 >( y ) };
+}
+
+static u16x4 QuantizeU16x4( Vec4 v ) {
+	return u16x4 {
+		Quantize01< u16 >( v.x ),
+		Quantize01< u16 >( v.y ),
+		Quantize01< u16 >( v.z ),
+		Quantize01< u16 >( v.w ),
+	};
+}
+
 static void PackSpriteAtlas( bool first_time ) {
 	TracyZoneScoped;
 
@@ -774,7 +787,7 @@ static void PackSpriteAtlas( bool first_time ) {
 
 	// rect packing
 	u32 num_unpacked = num_sprites;
-	u32 num_layers = 0;
+	u16 num_layers = 0;
 	while( true ) {
 		TracyZoneScopedN( "stb_rect_pack iteration" );
 
@@ -794,9 +807,12 @@ static void PackSpriteAtlas( bool first_time ) {
 			const Texture * texture = &textures.span()[ rects[ i ].id ];
 
 			sprites.add( texture->hash, Sprite {
-				.uvwh = Vec4(
-					rects[ i ].x / float( SPRITE_ATLAS_SIZE ) + num_layers,
-					rects[ i ].y / float( SPRITE_ATLAS_SIZE ),
+				.layer = num_layers,
+				.uv = QuantizeU16x2(
+					rects[ i ].x / float( SPRITE_ATLAS_SIZE ),
+					rects[ i ].y / float( SPRITE_ATLAS_SIZE )
+				),
+				.wh = QuantizeU16x2(
 					texture->width / float( SPRITE_ATLAS_SIZE ),
 					texture->height / float( SPRITE_ATLAS_SIZE )
 				),
@@ -858,13 +874,12 @@ static void PackSpriteAtlas( bool first_time ) {
 			Sprite * sprite = sprites.get( texture->hash );
 			Assert( sprite != NULL );
 
-			u32 layer_idx = u32( sprite->uvwh.x );
-			Span2D< BC4Block > layer( layer_mipmap + mipmap_dim * mipmap_dim * layer_idx, mipmap_dim, mipmap_dim );
+			Span2D< BC4Block > layer( layer_mipmap + mipmap_dim * mipmap_dim * sprite->layer, mipmap_dim, mipmap_dim );
 
 			Span2D< const BC4Block > bc4 = GetMipmap( texture, mipmap_idx );
 
 			if( mipmap_idx == 0 ) {
-				sprite->trim = TrimTexture( bc4 );
+				sprite->trim = QuantizeU16x4( TrimTexture( bc4 ) );
 			}
 
 			u32 mipped_x = rects[ i ].x >> mipmap_idx;

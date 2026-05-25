@@ -43,7 +43,7 @@ function write_shaders_ninja_script()
 
 
 # Shaders
-dxcflags = -Isource/client/renderer/hlsl -I. -spirv -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -fspv-preserve-bindings -Werror=conversion -Wno-sign-conversion
+dxcflags = -Isource/client/renderer/hlsl -I. -spirv -enable-16bit-types -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -fspv-preserve-bindings -Werror=conversion -Wno-sign-conversion
 rule dxc_vertex
     command = %s
     deps = gcc
@@ -54,9 +54,9 @@ rule dxc_compute
     command = %s
     deps = gcc
 ]],
-		PlatformSpecificDxcStuff( "dxc $dxcflags -MD -MF $depfile -T vs_6_0 $features $in && dxc $dxcflags %s -T vs_6_0 -E VertexMain $features -Fo $out $in" ),
-		PlatformSpecificDxcStuff( "dxc $dxcflags -MD -MF $depfile -T ps_6_0 $features $in && dxc $dxcflags %s -T ps_6_0 -E FragmentMain $features -Fo $out $in" ),
-		PlatformSpecificDxcStuff( "dxc $dxcflags -MD -MF $depfile -T cs_6_0 $features $in && dxc $dxcflags %s -T cs_6_0 -E ComputeMain $features -Fo $out $in" )
+		PlatformSpecificDxcStuff( "dxc $dxcflags -MD -MF $depfile -T vs_6_2 $features $in && dxc $dxcflags %s -T vs_6_2 -E VertexMain $features -Fo $out $in" ),
+		PlatformSpecificDxcStuff( "dxc $dxcflags -MD -MF $depfile -T ps_6_2 $features $in && dxc $dxcflags %s -T ps_6_2 -E FragmentMain $features -Fo $out $in" ),
+		PlatformSpecificDxcStuff( "dxc $dxcflags -MD -MF $depfile -T cs_6_2 $features $in && dxc $dxcflags %s -T cs_6_2 -E ComputeMain $features -Fo $out $in" )
 	)
 
 	if OS == "macos" then

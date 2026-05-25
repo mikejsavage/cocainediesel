@@ -75,25 +75,29 @@ double PositiveMod( double x, double y );
 
 template< typename T, u64 Bits = sizeof( T ) * 8 >
 constexpr float Dequantize01( T x ) {
+	static_assert( !IsSigned< T >() );
 	return x / float( ( 1_u64 << Bits ) - 1 );
 }
 
 template< typename T, u64 Bits = sizeof( T ) * 8 >
 constexpr T Quantize01( float x ) {
+	static_assert( !IsSigned< T >() );
 	Assert( x >= 0.0f && x <= 1.0f );
 	return T( x * float( ( 1_u64 << Bits ) - 1 ) + 0.5f );
 }
 
-// these map 2^n - 1 and 2^n - 2 to 1.0f so we can exactly represent 0
+// these map MinInt< T > and -MaxInt< T > to -1 so we can exactly represent 0
 template< typename T, u64 Bits = sizeof( T ) * 8 >
 constexpr float Dequantize11( T x ) {
-	return Min2( 1.0f, ( x / float( ( 1_u64 << Bits ) - 2 ) - 0.5f ) * 2.0f );
+	static_assert( IsSigned< T >() );
+	return Max2( -1.0f, float( x ) / float( ( 1_u64 << ( Bits - 1 ) ) - 1 ) );
 }
 
 template< typename T, u64 Bits = sizeof( T ) * 8 >
 constexpr T Quantize11( float x ) {
+	static_assert( IsSigned< T >() );
 	Assert( x >= -1.0f && x <= 1.0f );
-	return T( ( x * 0.5f + 0.5f ) * float( ( 1_u64 << Bits ) - 2 ) + 0.5f );
+	return T( x * float( ( 1_u64 << ( Bits - 1 ) ) - 1 ) + 0.5f );
 }
 
 struct RNG;

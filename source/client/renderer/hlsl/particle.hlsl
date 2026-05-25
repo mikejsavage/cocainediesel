@@ -20,7 +20,7 @@ struct VertexOutput {
 	float4 position : SV_Position;
 	nointerpolation float3 world_position : POSITION;
 	float2 uv : TEXCOORD0;
-	nointerpolation float layer : LAYER;
+	nointerpolation uint32_t layer : LAYER;
 	float4 color : COLOR;
 };
 
@@ -47,11 +47,11 @@ VertexOutput VertexMain( VertexInput input, uint32_t instance_id : SV_InstanceID
 	float2 position = vertices[ indices[ vertex_id ] ];
 	output.uv = PositionToTexCoord( position );
 	position += 0.5f;
-	position = position * particle.trim.zw + particle.trim.xy;
+	position = position * Dequantize01( particle.trim.zw ) + Dequantize01( particle.trim.xy );
 	position -= 0.5f;
-	output.uv = output.uv * particle.trim.zw + particle.trim.xy;
-	output.uv = output.uv * particle.uvwh.zw + particle.uvwh.xy;
-	output.layer = floor( particle.uvwh.x );
+	output.uv = output.uv * Dequantize01( particle.trim.zw ) + Dequantize01( particle.trim.xy );
+	output.uv = output.uv * Dequantize01( particle.wh ) + Dequantize01( particle.uv );
+	output.layer = particle.layer;
 	float scale = lerp( particle.start_size, particle.end_size, fage );
 
 	// stretched billboards based on

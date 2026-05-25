@@ -121,3 +121,13 @@ T LoadIndex( vk::BufferPointer< T > buf, uint64_t idx ) {
 struct Float3x4 {
 	float3x4 m;
 };
+
+template< typename T, int Dim, uint Bits = sizeof( T ) * 8 >
+vector< float, Dim > Dequantize01( vector< T, Dim > x ) {
+	return x / float( ( uint( 1 ) << Bits ) - 1 );
+}
+
+template< typename T, int Dim, uint Bits = sizeof( T ) * 8 >
+vector< float, Dim > Dequantize11( vector< T, Dim > x ) {
+	return max( -1.0f, x / float( ( uint( 1 ) << ( Bits - 1 ) ) - 1 ) );
+}

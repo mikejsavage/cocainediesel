@@ -8,12 +8,13 @@
 [[vk::binding( 5 )]] StructuredBuffer< ParticleUpdateUniforms > b_UpdateParams;
 
 Particle SimulateParticle( Particle old_particle, float dt ) {
+	half hdt = ( half ) dt;
 	Particle particle = old_particle;
-	particle.age += dt;
+	particle.age += hdt;
 	particle.position += particle.velocity * dt;
-	particle.angle += particle.angular_velocity * dt;
-	particle.velocity.z += particle.gravity * dt;
-	particle.velocity -= particle.velocity * particle.drag * dt;
+	particle.angle += particle.angular_velocity * hdt;
+	particle.velocity.z += particle.gravity * hdt;
+	particle.velocity -= particle.velocity * particle.drag * hdt;
 	return particle;
 }
 

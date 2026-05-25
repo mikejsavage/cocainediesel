@@ -47,9 +47,7 @@ void CullTile( uint2 tile ) {
 				break;
 
 			Decal decal = u_Decals[ i ];
-			float3 origin = floor( decal.origin_orientation_xyz );
-			float radius = floor( decal.radius_orientation_w );
-			if( SphereInTile( origin, radius, tile_direction, cone_tan ) ) {
+			if( SphereInTile( decal.origin, decal.radius, tile_direction, cone_tan ) ) {
 				decal_tile.indices[ decal_count ] = i;
 				decal_count++;
 			}
@@ -67,9 +65,8 @@ void CullTile( uint2 tile ) {
 				break;
 
 			Light light = u_Lights[ i ];
-			float3 origin = floor( light.origin_color.xyz );
 			float radius = light.radius;
-			if( SphereInTile( origin, radius, tile_direction, cone_tan ) ) {
+			if( SphereInTile( light.origin, radius, tile_direction, cone_tan ) ) {
 				light_tile.indices[ light_count ] = i;
 				light_count++;
 			}

@@ -592,7 +592,7 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 			// .drawIndirectCount = VK_TRUE, XXX metal doesn't have this
 			// .storageBuffer8BitAccess = VK_TRUE,
 			// .uniformAndStorageBuffer8BitAccess = VK_TRUE,
-			// .shaderFloat16 = VK_TRUE,
+			.shaderFloat16 = VK_TRUE,
 			// .shaderInt8 = VK_TRUE,
 			// .samplerFilterMinmax = VK_TRUE,
 			.scalarBlockLayout = VK_TRUE,

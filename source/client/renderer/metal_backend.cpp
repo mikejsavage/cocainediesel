@@ -293,6 +293,8 @@ void CopyGPUBufferToTexture(
  * Back to normal shit
  */
 
+static MTL::SamplerState * samplers[ Sampler_Count ];
+
 static MTL::SamplerAddressMode SamplerWrapToMetal( SamplerWrap wrap ) {
 	switch( wrap ) {
 		case SamplerWrap_Repeat: return MTL::SamplerAddressModeRepeat;
@@ -300,7 +302,7 @@ static MTL::SamplerAddressMode SamplerWrapToMetal( SamplerWrap wrap ) {
 	}
 }
 
-static void NewSampler( SamplerType type, const SamplerConfig & config ) {
+void NewSampler( SamplerType type, const SamplerConfig & config ) {
 	MTL::SamplerDescriptor * desc = MTL::SamplerDescriptor::alloc()->init();
 	defer { desc->release(); };
 
@@ -323,12 +325,6 @@ static void NewSampler( SamplerType type, const SamplerConfig & config ) {
 
 	samplers[ type ] = global_device.device->newSamplerState( desc );
 }
-
-static void DeleteSampler( MTL::SamplerState * sampler ) {
-	sampler->release();
-}
-
-static MTL::SamplerState * samplers[ Sampler_Count ];
 
 struct DepthFuncConfig {
 	MTL::CompareFunction compare_op;
@@ -1086,7 +1082,7 @@ void ShutdownRenderBackend() {
 	}
 
 	for( MTL::SamplerState * sampler : samplers ) {
-		DeleteSampler( sampler );
+		sampler->release();
 	}
 
 	for( MTL::DepthStencilState * depth_func : depth_funcs ) {
@@ -1241,7 +1237,7 @@ Optional< Opaque< CommandBuffer > > NewRenderPass( const RenderPassConfig & conf
 
 		if( target.load == LoadOp_Clear ) {
 			attachment->setLoadAction( MTL::LoadActionClear );
-			attachment->setClearDepth( target.clear );
+			attachment->setClearDepth( 0.0f ); // clear to 0 because we use an inverted depth buffer
 		}
 		else {
 			attachment->setLoadAction( target.load == LoadOp_Load ? MTL::LoadActionLoad : MTL::LoadActionDontCare );

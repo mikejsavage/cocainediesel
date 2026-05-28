@@ -49,8 +49,8 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 		}
 
 		{
-			// TODO: remove this fallback at some point
-			PoolHandle< Material > material = Default( TryFindMaterial( StringHash( mesh.material ) ), FindMaterial( "world" ) );
+			// TODO: do this once at load time
+			PoolHandle< Material > material = FindMaterial( StringHash( mesh.material ) );
 			PipelineState pipeline = MaterialPipelineState( material );
 			pipeline.dynamic_state.depth_func = DepthFunc_EqualNoWrite;
 			Vec4 material_color = EvaluateMaterialColor( material, color );

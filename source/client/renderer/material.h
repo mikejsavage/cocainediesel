@@ -53,10 +53,6 @@ void InitMaterials();
 void HotloadMaterials();
 void ShutdownMaterials();
 
-// const Material * FindMaterial( StringHash name );
-// const Material * FindMaterial( const char * name );
-// bool TryFindMaterial( StringHash name, const Material ** material );
-
 struct Sprite {
 	u16 layer;
 	u16x2 uv, wh;

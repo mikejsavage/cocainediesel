@@ -283,15 +283,6 @@ static PoolHandle< Texture > FindTexture( StringHash name ) {
 	return Default( handle, missing_texture );
 }
 
-template< size_t N >
-static PoolHandle< Texture > FindTexture( const char ( &name )[ N ] ) {
-	return FindTexture( StringHash( name ) );
-}
-
-static PoolHandle< Texture > FindTexture( Span< const char > name ) {
-	return FindTexture( StringHash( name ) );
-}
-
 static void ParseTexture( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( StartsWith( token, "." ) ) {
@@ -1192,11 +1183,6 @@ void ShutdownMaterials() {
 	for( Texture & texture : textures.span() ) {
 		UnloadTexture( &texture );
 	}
-
-	// for( u32 i = 0; i < materials_hashtable.size(); i++ ) {
-	// 	Free( sys_allocator, materials[ i ].name.ptr );
-	// }
-	// Free( sys_allocator, missing_material.name.ptr );
 }
 
 PoolHandle< Texture > RGBNoiseTexture() {
@@ -1207,13 +1193,12 @@ PoolHandle< Texture > BlueNoiseTexture() {
 	return blue_noise;
 }
 
-// NOMERGE: reserve slots for missing materials so when they got hotloaded stuff can find them
-Optional< PoolHandle< Material > > TryFindMaterial( StringHash name ) {
-	return materials.get( name.hash );
-}
-
 PoolHandle< Material > FindMaterial( StringHash name ) {
-	return Default( TryFindMaterial( name ), missing_material );
+	Optional< PoolHandle< Material > > material = materials.get( name.hash );
+	if( material.exists )
+		return material.value;
+	material = materials.add( name.hash, materials[ missing_material ] );
+	return Default( material, missing_material );
 }
 
 PoolHandle< Material > FindMaterial( const char * name ) {

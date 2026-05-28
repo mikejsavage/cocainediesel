@@ -500,7 +500,6 @@ PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name,
 	Optional< PoolHandle< BindGroup > > old_bind_group = NONE );
 
 PoolHandle< Material > FindMaterial( StringHash name );
-Optional< PoolHandle< Material > > TryFindMaterial( StringHash name );
 
 u32 TextureWidth( PoolHandle< Material > material );
 u32 TextureHeight( PoolHandle< Material > material );

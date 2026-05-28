@@ -205,7 +205,7 @@ static std::vector< CompiledMesh > BrushToCompiledMeshes( const ParsedBrush & br
 	for( size_t i = 0; i < planes.size(); i++ ) {
 		CompiledMesh material_mesh;
 		material_mesh.material = brush.faces[ i ].material_hash;
-		assert( material_mesh.material != 0 );
+		Assert( material_mesh.material != 0 );
 
 		const EditorMaterial * editor_material = FindEditorMaterial( StringHash( material_mesh.material ) );
 		if( editor_material != NULL && !editor_material->visible_in_maps )
@@ -603,10 +603,6 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 			planes.push_back( plane );
 		}
 
-		if( editor_material == NULL ) {
-			editor_material = FindEditorMaterial( StringHash( "textures/editor/clip" ) ); // default material
-		}
-
 		// compute brush bounds
 		MinMax3 bounds = MinMax3::Empty();
 		for( size_t i = 0; i < planes.size(); i++ ) {
@@ -618,10 +614,11 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 		brush_bounds.push_back( bounds );
 
 		// make MapBrush
+		SolidBits solidity = editor_material == NULL ? FindEditorMaterial( "clip" )->solidity : editor_material->solidity;
 		MapBrush map_brush = {
 			.bounds = bounds,
 			.first_plane = checked_cast< u16 >( kd_tree.planes.size() ),
-			.solidity = editor_material->solidity,
+			.solidity = solidity,
 		};
 
 		size_t num_planes = 0;
@@ -691,8 +688,8 @@ static_assert( ARRAY_COUNT( section_names ) == MapSection_Count );
 
 template< typename T >
 void Pack( DynamicArray< u8 > & packed, MapHeader * header, MapSectionType section, Span< const T > data, size_t * last_alignment ) {
-	assert( packed.size() % alignof( T ) == 0 );
-	assert( alignof( T ) <= *last_alignment );
+	Assert( packed.size() % alignof( T ) == 0 );
+	Assert( alignof( T ) <= *last_alignment );
 	*last_alignment = alignof( T );
 
 	if( data.n > 0 ) {

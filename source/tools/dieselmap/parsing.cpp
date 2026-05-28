@@ -12,10 +12,6 @@
 
 static constexpr Span< const char > NullSpan( NULL, 0 );
 
-// NOTE(mike): Radiant strips the textures/ prefix from material names and we
-// have configured TrenchBroom to do the same, readd it here
-static constexpr u64 textures_prefix_hash = Hash64_CT( "textures/" );
-
 static Span< const char > ParseRange( Span< const char > str, char lo, char hi ) {
 	return str.n > 0 && str[ 0 ] >= lo && str[ 0 ] <= hi ? str + 1 : NullSpan;
 }
@@ -238,11 +234,28 @@ static Span< const char > SkipFlags( Span< const char > str ) {
 	return str;
 }
 
+static Span< const char > ParseMaterial( u64 * hash, Span< const char > str ) {
+	Span< const char > material;
+	str = ParseWord( &material, str );
+
+	static constexpr Span< const char > editor_prefix = "editor/";
+	if( StartsWith( material, editor_prefix ) ) {
+		*hash = Hash64( StripPrefix( material, editor_prefix ) );
+	}
+	else {
+		// NOTE(mike): Radiant strips the textures/ prefix from material names and we
+		// have configured TrenchBroom to do the same, readd it here
+		static constexpr u64 textures_prefix_hash = Hash64_CT( "textures/" );
+		*hash = Hash64( material, textures_prefix_hash );
+	}
+
+	return str;
+}
+
 static Span< const char > ParseQ1Face( ParsedBrushFace * face, Span< const char > str ) {
 	str = ParsePlane( face->plane, str );
-	str = ParseWord( &face->material, str );
+	str = ParseMaterial( &face->material_hash, str );
 
-	face->material_hash = Hash64( face->material, textures_prefix_hash );
 	face->uv_basis_transform = { };
 
 	float u, v, angle, scale_x, scale_y;
@@ -281,9 +294,7 @@ static Span< const char > ParseQ3Face( ParsedBrushFace * face, Span< const char 
 		0.0f, 0.0f, 1.0f, 0.0f
 	);
 
-	str = ParseWord( &face->material, str );
-	face->material_hash = Hash64( face->material, textures_prefix_hash );
-
+	str = ParseMaterial( &face->material_hash, str );
 	str = SkipFlags( str );
 
 	return str;
@@ -309,8 +320,7 @@ static Span< const char > ParsePatch( ParsedPatch * patch, Span< const char > st
 	str = SkipToken( str, "patchDef2" );
 	str = SkipToken( str, "{" );
 
-	str = ParseWord( &patch->material, str );
-	patch->material_hash = Hash64( patch->material, textures_prefix_hash );
+	str = ParseMaterial( &patch->material_hash, str );
 
 	str = SkipToken( str, "(" );
 

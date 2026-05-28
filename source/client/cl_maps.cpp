@@ -1,7 +1,7 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/compression.h"
-#include "qcommon/hashtable.h"
+#include "qcommon/hashmap.h"
 #include "qcommon/string.h"
 #include "client/client.h"
 #include "client/assets.h"
@@ -13,41 +13,26 @@
 
 #include "cgltf/cgltf.h"
 
-constexpr u32 MAX_MAPS = 128;
-constexpr u32 MAX_MAP_MODELS = 1024;
-
-static Map maps[ MAX_MAPS ];
-static Hashtable< MAX_MAPS * 2 > maps_hashtable;
-
-static MapSubModelRenderData map_models[ MAX_MAP_MODELS ];
-static Hashtable< MAX_MAP_MODELS * 2 > map_models_hashtable;
+static HashMap< Map, 128 > maps;
+static HashMap< MapSubModelRenderData, 1024 > map_models;
 
 static CollisionModelStorage collision_models;
-
-static void DeleteMap( Map * map ) {
-	Free( sys_allocator, const_cast< char * >( map->name.ptr ) );
-}
 
 static void FillMapModelsHashtable() {
 	TracyZoneScoped;
 
-	map_models_hashtable.clear();
+	map_models.clear();
 
-	for( u32 i = 0; i < maps_hashtable.size(); i++ ) {
-		const Map * map = &maps[ i ];
+	for( u32 i = 0; i < maps.size(); i++ ) {
+		const Map * map = &maps.span()[ i ];
 		for( size_t j = 0; j < map->data.models.n; j++ ) {
 			String< 16 > suffix( "*{}", j );
 			u64 hash = Hash64( suffix.span(), map->base_hash.hash );
 
-			if( map_models_hashtable.size() == ARRAY_COUNT( map_models ) ) {
+			MapSubModelRenderData submodel = { StringHash( map->base_hash ), checked_cast< u32 >( j ) };
+			if( !map_models.add( hash, submodel ) ) {
 				Fatal( "Too many map submodels" );
 			}
-
-			map_models[ map_models_hashtable.size() ] = {
-				StringHash( map->base_hash ),
-				checked_cast< u32 >( j )
-			};
-			map_models_hashtable.add( hash, map_models_hashtable.size() );
 		}
 	}
 }
@@ -56,34 +41,37 @@ bool AddMap( Span< const u8 > data, Span< const char > path ) {
 	TracyZoneScoped;
 	TracyZoneSpan( path );
 
-	// TOOD NOMERGE bounds checks... also use Hashmap
 	Span< const char > name = StripPrefix( StripExtension( path ), "maps/" );
 	StringHash hash = StringHash( name );
 
-	Map map = { };
-
-	DecodeMapResult res = DecodeMap( &map.data, data );
+	MapData map_data;
+	DecodeMapResult res = DecodeMap( &map_data, data );
 	if( res != DecodeMapResult_Ok ) {
 		return false;
 	}
 
-	map.name = CloneSpan( sys_allocator, name );
-	map.base_hash = hash;
-	map.render_data = NewMapRenderData( map.data, path );
-
-	u64 idx = maps_hashtable.size();
-	if( !maps_hashtable.get( hash.hash, &idx ) ) {
-		maps_hashtable.add( hash.hash, maps_hashtable.size() );
+	Map * slot = maps.get( hash.hash );
+	if( slot == NULL ) {
+		slot = maps.add( hash.hash );
+		if( slot == NULL ) {
+			Com_Printf( S_COLOR_YELLOW "Too many maps!\n" );
+			return false;
+		}
 	}
 	else {
-		DeleteMap( &maps[ idx ] );
+		Free( sys_allocator, const_cast< char * >( slot->name.ptr ) );
 	}
 
-	maps[ idx ] = map;
+	*slot = Map {
+		.name = CloneSpan( sys_allocator, name ),
+		.base_hash = hash,
+		.data = map_data,
+		.render_data = NewMapRenderData( map_data, path ),
+	};
 
 	FillMapModelsHashtable();
 
-	LoadMapCollisionData( &collision_models, &map.data, hash );
+	LoadMapCollisionData( &collision_models, &map_data, hash );
 
 	return true;
 }
@@ -119,8 +107,8 @@ static bool AddGLTFModel( Span< const u8 > data, Span< const char > path ) {
 void InitMaps() {
 	TracyZoneScoped;
 
-	maps_hashtable.clear();
-	map_models_hashtable.clear();
+	maps.clear();
+	map_models.clear();
 
 	InitCollisionModelStorage( &collision_models );
 
@@ -162,21 +150,18 @@ void HotloadMaps() {
 void ShutdownMaps() {
 	TracyZoneScoped;
 
-	for( u32 i = 0; i < maps_hashtable.size(); i++ ) {
-		DeleteMap( &maps[ i ] );
+	for( u32 i = 0; i < maps.size(); i++ ) {
+		Free( sys_allocator, const_cast< char * >( maps.span()[ i ].name.ptr ) );
 	}
 
-	maps_hashtable.clear();
-	map_models_hashtable.clear();
+	maps.clear();
+	map_models.clear();
 
 	ShutdownCollisionModelStorage( &collision_models );
 }
 
 const Map * FindMap( StringHash name ) {
-	u64 idx;
-	if( !maps_hashtable.get( name.hash, &idx ) )
-		return NULL;
-	return &maps[ idx ];
+	return maps.get( name.hash );
 }
 
 const Map * FindMap( const char * name ) {
@@ -184,10 +169,7 @@ const Map * FindMap( const char * name ) {
 }
 
 const MapSubModelRenderData * FindMapSubModelRenderData( StringHash name ) {
-	u64 idx;
-	if( !map_models_hashtable.get( name.hash, &idx ) )
-		return NULL;
-	return &map_models[ idx ];
+	return map_models.get( name.hash );
 }
 
 const MapSharedCollisionData * FindClientMapSharedCollisionData( StringHash name ) {

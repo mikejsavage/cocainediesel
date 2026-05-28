@@ -604,7 +604,8 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 		VkPhysicalDeviceVulkan11Features features11 = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,
 			.pNext = &features12,
-			// .storageBuffer16BitAccess = VK_TRUE,
+			.storageBuffer16BitAccess = VK_TRUE,
+			.storagePushConstant16 = VK_TRUE,
 			.shaderDrawParameters = VK_TRUE,
 		};
 
@@ -619,7 +620,7 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 				.textureCompressionBC = VK_TRUE,
 				// .pipelineStatisticsQuery = VK_TRUE,
 				.shaderInt64 = VK_TRUE,
-				// .shaderInt16 = VK_TRUE,
+				.shaderInt16 = VK_TRUE,
 			},
 		};
 

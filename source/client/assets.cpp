@@ -11,7 +11,6 @@
 #include "qcommon/threadpool.h"
 #include "qcommon/threads.h"
 #include "client/assets.h"
-#include "client/renderer/api.h"
 
 #include "nanosort/nanosort.hpp"
 
@@ -422,20 +421,10 @@ void HotloadAssets( TempAllocator * temp ) {
 		for( Span< const char > path : ModifiedAssetPaths() ) {
 			Com_GGPrint( "    {}", path );
 		}
-
-		// NOTE(mike 20260403): we need to wait for all GPU work to finish before we can destroy GPU
-		// stuff that got hotloaded so we need e.g. vkDeviceWaitIdle. from a Vulkan perspective
-		// calling FlushStagingBuffer to achieve this seems pointless, but Metal has no
-		// DeviceWaitIdle equivalent and needs us to create an empty command buffer and call
-		// waitUntilCompleted(), which is pretty much exactly what FlushStagingBuffer does.
-		FlushStagingBuffer();
 	}
 }
 
 void DoneHotloadingAssets() {
-	if( num_modified_assets > 0 ) {
-		FlushStagingBuffer();
-	}
 	num_modified_assets = 0;
 }
 

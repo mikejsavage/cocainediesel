@@ -4,6 +4,7 @@
 #include "qcommon/string.h"
 #include "qcommon/time.h"
 #include "client/client.h"
+#include "client/assets.h"
 #include "client/gltf.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/cdmap.h"
@@ -323,11 +324,24 @@ static void CreateRenderTargets( bool first_time ) {
 void RendererBeginFrame( SDL_Window * window, u32 viewport_width, u32 viewport_height, bool minimized, bool fullscreen_exclusive ) {
 	TracyZoneScoped;
 
+	if( ModifiedAssetPaths().n > 0 ) {
+		// NOTE(mike 20260403): we need to wait for all GPU work to finish before we can destroy GPU
+		// stuff that got hotloaded so we need e.g. vkDeviceWaitIdle. from a Vulkan perspective
+		// calling FlushStagingBuffer to achieve this seems pointless, but Metal has no
+		// DeviceWaitIdle equivalent and needs us to create an empty command buffer and call
+		// waitUntilCompleted(), which is pretty much exactly what FlushStagingBuffer does.
+		FlushStagingBuffer();
+	}
+
 	HotloadShaders();
 	HotloadMaterials();
 	HotloadGLTFModels();
 	HotloadMaps();
 	HotloadVisualEffects();
+
+	if( ModifiedAssetPaths().n > 0 ) {
+		FlushStagingBuffer();
+	}
 
 	memset( &frame_static.render_passes, 0, sizeof( frame_static.render_passes ) );
 

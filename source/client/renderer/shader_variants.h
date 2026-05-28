@@ -174,7 +174,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::imgui,
-				.src = "simple",
+				.src = "imgui",
 				.output_format = depthless,
 				.features = { "IMGUI" },
 				.mesh_variants = { ImGuiVertexDescriptor() },
@@ -183,14 +183,14 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 
 			GraphicsShaderDescriptor {
 				.field = &Shaders::vfx_add,
-				.src = "simple",
+				.src = "vfx",
 				.output_format = depthy,
 				.mesh_variants = { vfx },
 				.blend_func = BlendFunc_Add,
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::vfx_blend,
-				.src = "simple",
+				.src = "vfx",
 				.output_format = depthy,
 				.mesh_variants = { vfx },
 				.blend_func = BlendFunc_Blend,

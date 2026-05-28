@@ -73,7 +73,10 @@ void AddDecals( float3 vertex_position, uint count, int tile_index, inout float4
 			float2 dUV_dx = DecalUV( decal, vertex_position + dPos_dx, bottom_left, tangent, bitangent ) - uv;
 			float2 dUV_dy = DecalUV( decal, vertex_position + dPos_dy, bottom_left, tangent, bitangent ) - uv;
 
-			// NOMERGE: lodbias
+			static const float lodbias = 0.5f; // 2^-1
+			dUV_dx *= lodbias;
+			dUV_dy *= lodbias;
+
 			float alpha = u_SpriteAtlas.SampleGrad( u_StandardSampler, float3( uv, decal.layer ), dUV_dx, dUV_dy ).a;
 			float inv_cos_45_degrees = 1.41421356237f;
 			float decal_alpha = min( 1.0f, alpha * max( 0.0f, dot( decal_normal, surface_normal ) * inv_cos_45_degrees ) );

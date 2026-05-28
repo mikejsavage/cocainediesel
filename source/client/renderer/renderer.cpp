@@ -333,6 +333,11 @@ void RendererBeginFrame( SDL_Window * window, u32 viewport_width, u32 viewport_h
 
 	RenderBackendWaitForNewFrame();
 
+	if( r_shadow_quality->integer < ShadowQuality_Low || r_shadow_quality->integer > ShadowQuality_Ultra ) {
+		Com_Printf( "Invalid r_shadow_quality value (%d), resetting\n", r_shadow_quality->integer );
+		Cvar_Set( "r_shadow_quality", r_shadow_quality->default_value );
+	}
+
 	frame_static.viewport_width = Max2( 1_u32, viewport_width );
 	frame_static.viewport_height = Max2( 1_u32, viewport_height ),
 	frame_static.viewport = Vec2( viewport_width, viewport_height );
@@ -349,11 +354,6 @@ void RendererBeginFrame( SDL_Window * window, u32 viewport_width, u32 viewport_h
 	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer < 0 || !HasAnyBit( RenderBackendSupportedMSAA(), u32( r_samples->integer ) ) ) {
 		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
 		Cvar_Set( "r_samples", r_samples->default_value );
-	}
-
-	if( r_shadow_quality->integer < ShadowQuality_Low || r_shadow_quality->integer > ShadowQuality_Ultra ) {
-		Com_Printf( "Invalid r_shadow_quality value (%d), resetting\n", r_shadow_quality->integer );
-		Cvar_Set( "r_shadow_quality", r_shadow_quality->default_value );
 	}
 
 	if( frame_static.viewport_resized || frame_static.msaa_samples != last_msaa || frame_static.shadow_quality != last_shadow_quality ) {
@@ -395,9 +395,8 @@ static void SetupShadowCascades() {
 	TracyZoneScoped;
 	constexpr float near_plane = 4.0f;
 	float cascade_dist[ 5 ];
-	constexpr u32 num_planes = ARRAY_COUNT( cascade_dist );
-	constexpr u32 num_cascades = num_planes - 1; // TODO NOMERGE: min this and shadow params?
-	constexpr u32 num_corners = 4;
+	constexpr u32 max_num_cascades = ARRAY_COUNT( cascade_dist ) - 1;
+	u32 num_cascades = Min2( max_num_cascades, frame_static.shadow_parameters.num_cascades );
 
 	cascade_dist[ 0 ] = near_plane;
 	for( u32 i = 0; i < num_cascades; i++ ) {
@@ -409,7 +408,7 @@ static void SetupShadowCascades() {
 	Vec4 frustum_corner = frame_static.inverse_V * ( frame_static.inverse_P * frustum_corner_ndc );
 	Vec3 frustum_corner_direction = Normalize( frustum_corner.xyz() / frustum_corner.w - frame_static.position );
 
-	Vec3 frustum_centers[ num_cascades ] = { };
+	Vec3 frustum_centers[ max_num_cascades ] = { };
 	for( u32 i = 0; i < num_cascades; i++ ) {
 		constexpr Vec4 frustum_center_ndc = Vec4( 0.0f, 0.0f, 0.5f, 1.0f );
 		Vec4 center = frame_static.inverse_V * ( frame_static.inverse_P * frustum_center_ndc );
@@ -417,13 +416,13 @@ static void SetupShadowCascades() {
 	}
 
 	// fit the light view to the sphere around each cascade frustum
-	Vec3 shadow_camera_positions[ num_cascades ];
-	Mat3x4 shadow_views[ num_cascades ];
-	Mat4 shadow_projections[ num_cascades ];
+	Vec3 shadow_camera_positions[ max_num_cascades ];
+	Mat3x4 shadow_views[ max_num_cascades ];
+	Mat4 shadow_projections[ max_num_cascades ];
 	for( u32 i = 0; i < num_cascades; i++ ) {
 		Vec3 far_corner = frame_static.position + cascade_dist[ i + 1 ] * frustum_corner_direction;
 		float radius = Length( far_corner - frustum_centers[ i ] );
-		radius = roundf( radius * 16.0f ) / 16.0f; // TODO NOMERGE: do we need to make sure this always rounds up?
+		radius = ceilf( radius * 16.0f ) / 16.0f;
 		shadow_camera_positions[ i ] = frustum_centers[ i ] - frame_static.sun_direction * radius;
 
 		shadow_views[ i ] = ViewMatrix( shadow_camera_positions[ i ], frame_static.sun_direction );

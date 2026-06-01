@@ -225,8 +225,6 @@ void CL_Changing_f();
 void CL_Precache_f( const Tokenized & args );
 void CL_ServerDisconnect_f( const Tokenized & args );
 
-void CL_ForceVsync( bool force );
-
 //
 // cl_game.c
 //

@@ -271,8 +271,6 @@ void MaybeResetShadertoyTime( bool respawned ) {
 }
 
 void SCR_UpdateScreen() {
-	CL_ForceVsync( cls.state != CA_ACTIVE );
-
 	MaybeResetShadertoyTime( false );
 
 	CL_ImGuiBeginFrame();

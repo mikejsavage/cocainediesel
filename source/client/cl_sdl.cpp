@@ -202,22 +202,6 @@ void SetWindowMode( WindowMode mode ) {
 	}
 }
 
-static Optional< bool > has_gsync;
-void EnableVSync( bool enabled ) {
-	// TODO NOMERGE
-// #if !PLATFORM_MACOS
-// 	if( enabled ) {
-// 		if( !has_gsync.exists ) {
-// 			has_gsync = SDL_GL_SetSwapInterval( -1 );
-// 		}
-// 		TrySDL( SDL_GL_SetSwapInterval, has_gsync.value ? -1 : 1 );
-// 	}
-// 	else {
-// 		TrySDL( SDL_GL_SetSwapInterval, 0 );
-// 	}
-// #endif
-}
-
 bool IsWindowFocused() {
 	return HasAllBits( SDL_GetWindowFlags( sdl_window ), SDL_WINDOW_INPUT_FOCUS );
 }

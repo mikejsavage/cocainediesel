@@ -150,7 +150,7 @@ void RemoveAllDebugMarkers( PoolHandle< GPUAllocation > allocation );
 PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, Opaque< BackendTexture > texture, SamplerType sampler, GPUBuffer properties, Optional< PoolHandle< BindGroup > > old_bind_group );
 
 void RenderBackendWaitForNewFrame();
-void RenderBackendBeginFrame( SDL_Window * window, bool fullscreen_exclusive, int frames_to_capture );
+void RenderBackendBeginFrame( SDL_Window * window, bool fullscreen_exclusive, bool vsync, int frames_to_capture );
 void RenderBackendEndFrame();
 
 size_t FrameSlot();

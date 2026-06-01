@@ -569,7 +569,7 @@ struct FrameStatic {
 
 inline FrameStatic frame_static;
 
-void RendererBeginFrame( SDL_Window * window, u32 viewport_width, u32 viewport_height, bool minimized, bool fullscreen_exclusive );
+void RendererBeginFrame( SDL_Window * window, u32 viewport_width, u32 viewport_height, bool minimized, bool fullscreen_exclusive, bool vsync );
 void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov );
 void RendererEndFrame();
 

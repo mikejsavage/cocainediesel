@@ -321,7 +321,7 @@ static void CreateRenderTargets( bool first_time ) {
 	}, first_time ? NONE : Optional( frame_static.render_targets.shadowmap ) );
 }
 
-void RendererBeginFrame( SDL_Window * window, u32 viewport_width, u32 viewport_height, bool minimized, bool fullscreen_exclusive ) {
+void RendererBeginFrame( SDL_Window * window, u32 viewport_width, u32 viewport_height, bool minimized, bool fullscreen_exclusive, bool vsync ) {
 	TracyZoneScoped;
 
 	if( ModifiedAssetPaths().n > 0 ) {
@@ -363,7 +363,7 @@ void RendererBeginFrame( SDL_Window * window, u32 viewport_width, u32 viewport_h
 	frame_static.shadow_parameters = GetShadowParameters( frame_static.shadow_quality );
 
 	int capture = 0;
-	RenderBackendBeginFrame( window, fullscreen_exclusive, capture );
+	RenderBackendBeginFrame( window, fullscreen_exclusive, vsync, capture );
 
 	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer < 0 || !HasAnyBit( RenderBackendSupportedMSAA(), u32( r_samples->integer ) ) ) {
 		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );

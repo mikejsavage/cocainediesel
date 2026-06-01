@@ -48,4 +48,3 @@ WindowMode GetWindowMode();
 void SetWindowMode( WindowMode mode );
 
 bool WantFullscreenExclusive();
-void EnableVSync( bool enabled );

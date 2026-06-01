@@ -95,11 +95,6 @@ static void UpdateVidModeCvar() {
 }
 
 void VID_CheckChanges() {
-	if( vid_vsync->modified ) {
-		EnableVSync( force_vsync || vid_vsync->integer != 0 );
-		vid_vsync->modified = false;
-	}
-
 	if( !vid_mode->modified )
 		return;
 	vid_mode->modified = false;
@@ -144,11 +139,4 @@ bool WantFullscreenExclusive() {
 		return true;
 	}
 	return mode.fullscreen == FullscreenMode_Fullscreen;
-}
-
-void CL_ForceVsync( bool force ) {
-	if( force != force_vsync ) {
-		force_vsync = force;
-		vid_vsync->modified = true;
-	}
 }

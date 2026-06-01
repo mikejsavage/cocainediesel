@@ -1100,7 +1100,7 @@ void RenderBackendWaitForNewFrame() {
 	dispatch_semaphore_wait( frame_semaphore, DISPATCH_TIME_FOREVER );
 }
 
-void RenderBackendBeginFrame( SDL_Window * window, bool fullscreen_exclusive, int frames_to_capture ) {
+void RenderBackendBeginFrame( SDL_Window * window, bool fullscreen_exclusive, bool vsync, int frames_to_capture ) {
 	TracyZoneScoped;
 
 	NS::AutoreleasePool * pool = NS::AutoreleasePool::alloc()->init();

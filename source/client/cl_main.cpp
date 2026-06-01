@@ -1078,11 +1078,14 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	VID_CheckChanges();
 
+	// force vsync in the menus
+	bool vsync = Cvar_Integer( "vid_vsync" ) != 0 || cls.state != CA_ACTIVE;
+
 	// update the screen
 	u32 viewport_width, viewport_height;
 	bool minimized;
 	GetFramebufferSize( &viewport_width, &viewport_height, &minimized );
-	RendererBeginFrame( sdl_window, viewport_width, viewport_height, minimized, WantFullscreenExclusive() );
+	RendererBeginFrame( sdl_window, viewport_width, viewport_height, minimized, WantFullscreenExclusive(), vsync );
 	ClayBeginFrame();
 
 	SCR_UpdateScreen();

@@ -1047,6 +1047,31 @@ static bool ParseCDTextureAtlased( Span< const char > texture_path ) {
 	return false;
 }
 
+static u8 * StbiLoadFromMemoryConvertRGBToRGBA( Span< const u8 > data, int * width, int * height, int * channels ) {
+	u8 * pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), width, height, channels, 0 );
+	if( *channels != 3 )
+		return pixels;
+
+	TracyZoneScopedN( "RGB -> RGBA" );
+
+	// stb_image uses sys_allocator so this is ok
+	size_t num_pixels = checked_cast< size_t >( *width * *height );
+	RGBA8 * rgba_pixels = AllocMany< RGBA8 >( sys_allocator, num_pixels );
+	for( size_t i = 0; i < num_pixels; i++ ) {
+		rgba_pixels[ i ] = RGBA8(
+			pixels[ i * 3 + 0 ],
+			pixels[ i * 3 + 1 ],
+			pixels[ i * 3 + 2 ],
+			255
+		);
+	}
+
+	stbi_image_free( pixels );
+	*channels = 4;
+
+	return ( u8 * ) rgba_pixels;
+}
+
 void InitMaterials() {
 	TracyZoneScoped;
 
@@ -1089,28 +1114,7 @@ void InitMaterials() {
 			TracyZoneScopedN( "stbi_load_from_memory" );
 			TracyZoneSpan( job->in.path );
 
-			job->out.pixels = stbi_load_from_memory( job->in.data.ptr, job->in.data.num_bytes(), &job->out.width, &job->out.height, &job->out.channels, 0 );
-
-			if( job->out.channels == 3 ) {
-				TracyZoneScopedN( "RGB -> RGBA" );
-
-				// stb_image uses sys_allocator so this is ok
-				size_t num_pixels = checked_cast< size_t >( job->out.width * job->out.height );
-				RGBA8 * rgba_pixels = AllocMany< RGBA8 >( sys_allocator, num_pixels );
-				for( size_t i = 0; i < num_pixels; i++ ) {
-					rgba_pixels[ i ] = RGBA8(
-						job->out.pixels[ i * 3 + 0 ],
-						job->out.pixels[ i * 3 + 1 ],
-						job->out.pixels[ i * 3 + 2 ],
-						255
-					);
-				}
-
-				stbi_image_free( job->out.pixels );
-				job->out.pixels = ( u8 * ) rgba_pixels;
-				job->out.channels = 4;
-			}
-
+			job->out.pixels = StbiLoadFromMemoryConvertRGBToRGBA( job->in.data, &job->out.width, &job->out.height, &job->out.channels );
 		} );
 
 		for( DecodeSTBTextureJob job : jobs ) {
@@ -1155,7 +1159,7 @@ void HotloadMaterials() {
 			{
 				TracyZoneScopedN( "stbi_load_from_memory" );
 				TracyZoneSpan( path );
-				pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
+				pixels = StbiLoadFromMemoryConvertRGBToRGBA( data, &w, &h, &channels );
 			}
 
 			LoadSTBTexture( path, pixels, w, h, channels, stbi_failure_reason() );

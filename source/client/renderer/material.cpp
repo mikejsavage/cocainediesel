@@ -903,6 +903,8 @@ static void PackSpriteAtlas( bool first_time ) {
 			.dedicated_allocation = true,
 		}, first_time ? NONE : Optional( sprite_atlas ) );
 	}
+
+	sprite_atlas_bind_group = NewMaterialBindGroup( "Sprite atlas", sprite_atlas, Sampler_Standard, MaterialProperties { }, first_time ? NONE : Optional( sprite_atlas_bind_group ) );
 }
 
 static void Must( Optional< PoolHandle< Texture > > texture ) {
@@ -1126,10 +1128,7 @@ void InitMaterials() {
 		}
 	}
 
-	{
-		PackSpriteAtlas( true );
-		sprite_atlas_bind_group = NewMaterialBindGroup( "Sprite atlas", sprite_atlas, Sampler_Standard, MaterialProperties { } );
-	}
+	PackSpriteAtlas( true );
 }
 
 static void RecreateMaterialBindGroups() {

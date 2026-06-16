@@ -27,8 +27,8 @@ struct PersistentLight {
 	Time lifetime;
 };
 
-static constexpr u32 MAX_DECALS = 100000;
-static constexpr u32 MAX_LIGHTS = 100000;
+static constexpr u32 MAX_DECALS = 100'000;
+static constexpr u32 MAX_LIGHTS = 100'000;
 
 static BoundedDynamicArray< Decal, MAX_DECALS > decals;
 static BoundedDynamicArray< Light, MAX_LIGHTS > lights;

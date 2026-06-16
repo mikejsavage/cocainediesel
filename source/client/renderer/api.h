@@ -405,10 +405,6 @@ struct RenderPassSubmit {
 
 void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first_pass );
 
-/*
- * Draw calls
- */
-
 struct PipelineState {
 	PoolHandle< RenderPipeline > shader;
 	RenderPipelineDynamicState dynamic_state;
@@ -421,16 +417,24 @@ struct DrawCallExtras {
 	Optional< u32 > override_num_vertices = NONE;
 };
 
-void EncodeDrawCall( Opaque< CommandBuffer > cmd_buf, const PipelineState & pipeline_state, Mesh mesh, Span< const GPUBuffer > buffers, DrawCallExtras extras );
-void EncodeIndirectDrawCall( Opaque< CommandBuffer > cmd_buf, const PipelineState & pipeline_state, Mesh mesh, GPUBuffer indirect_args, Span< const GPUBuffer > buffers );
-// void EncodeBindMesh( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
-// void EncodeBindMaterial( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
-
 struct Scissor {
 	u32 x, y, w, h;
 };
 
+struct MatrixPalettes {
+	Span< const Mat3x4 > node_transforms;
+	Span< const Mat3x4 > skinning_matrices;
+};
+
+void EncodeDrawCall( Opaque< CommandBuffer > cmd_buf, const PipelineState & pipeline_state, Mesh mesh, Span< const GPUBuffer > buffers, DrawCallExtras extras );
+void EncodeIndirectDrawCall( Opaque< CommandBuffer > cmd_buf, const PipelineState & pipeline_state, Mesh mesh, GPUBuffer indirect_args, Span< const GPUBuffer > buffers );
 void EncodeScissor( Opaque< CommandBuffer > cmd_buf, Optional< Scissor > scissor );
+// void EncodeBindMesh( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
+// void EncodeBindMaterial( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
+
+void Draw( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, Span< const GPUBuffer > buffers = { }, DrawCallExtras extras = DrawCallExtras() );
+void DrawIndirect( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, GPUBuffer indirect, Span< const GPUBuffer > buffers );
+void EncodeScissor( RenderPass pass, Optional< Scissor > scissor );
 
 /*
  * Compute passes
@@ -447,20 +451,8 @@ Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config );
 void EncodeComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers );
 void EncodeIndirectComputeCall( Opaque< CommandBuffer > cmd_buf, PoolHandle< ComputePipeline > shader, GPUBuffer indirect_args, Span< const BufferBinding > buffers );
 
-/*
- * High level stuff NOMERGE
- */
-
-struct MatrixPalettes {
-	Span< const Mat3x4 > node_transforms;
-	Span< const Mat3x4 > skinning_matrices;
-};
-
-void Draw( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, Span< const GPUBuffer > buffers = { }, DrawCallExtras extras = DrawCallExtras() );
-void DrawIndirect( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, GPUBuffer indirect, Span< const GPUBuffer > buffers );
 void EncodeComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers );
 void EncodeIndirectComputeCall( RenderPass pass, PoolHandle< ComputePipeline > shader, GPUBuffer indirect_args, Span< const BufferBinding > buffers );
-void EncodeScissor( RenderPass pass, Optional< Scissor > scissor );
 
 /*
  * Material

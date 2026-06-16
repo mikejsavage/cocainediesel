@@ -693,9 +693,9 @@ static PoolHandle< RenderPipeline > SkinnedShader( PoolHandle< RenderPipeline > 
 static void DrawModelNode( const GLTFRenderData::Node * node, GPUBuffer model_uniforms, Optional< GPUBuffer > pose_uniforms, Vec4 entity_color, bool flip_cull_face ) {
 	TracyZoneScoped;
 
-	PoolHandle< Material > material = FindMaterial( node->material ); // NOMERGE, don't call FindMaterial
+	PoolHandle< Material > material = FindMaterial( node->material ); // TODO we should eventually bake this into model nodes
 	RenderPass pass = MaterialRenderPass( material );
-	PipelineState pipeline = MaterialPipelineState( material ); //, pose_uniforms.exists, &pass );
+	PipelineState pipeline = MaterialPipelineState( material );
 	Vec4 color = EvaluateMaterialColor( material, entity_color );
 
 	BoundedDynamicArray< GPUBuffer, 3 > buffers = { model_uniforms, NewTempBuffer( color ) };

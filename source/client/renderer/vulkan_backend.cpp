@@ -476,11 +476,11 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 			VkMemoryPropertyFlags flags = memory_properties.memoryTypes[ i ].propertyFlags;
 			printf( "memory type %x on heap %u\n", flags, memory_properties.memoryTypes[ i ].heapIndex );
 
-			if( ( flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT ) != 0 && !device_local_memory_type.exists ) {
+			if( !device_local_memory_type.exists && HasAllBits( flags, VkMemoryPropertyFlags( VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT ) ) ) {
 				printf( "  device local\n" );
 				device_local_memory_type = i;
 			}
-			if( ( flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ) != 0 && ( flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) != 0 && !coherent_memory_type.exists ) {
+			if( !coherent_memory_type.exists && HasAllBits( flags, VkMemoryPropertyFlags( VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) ) ) {
 				printf( "  coherent\n" );
 				coherent_memory_type = i;
 			}
@@ -584,7 +584,7 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 #endif
 		};
 
-		// optional extensions
+		// optional swapchain_maintenance1
 		{
 			Span< VkExtensionProperties > supported_extensions = VulkanSpan< VkExtensionProperties >( &temp, CurrentSourceLocation(), vkEnumerateDeviceExtensionProperties, device.physical_device, nullptr );
 			bool has_khr_swapchain_maintenance1 = false;

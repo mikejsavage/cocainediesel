@@ -3,6 +3,16 @@
 #include "client/renderer/api.h"
 #include "client/renderer/dds.h"
 
+constexpr size_t MaxBufferBindings = 8;
+constexpr size_t MaxTextureBindings = 8;
+constexpr size_t MaxBindings = MaxBufferBindings + 2 * MaxTextureBindings;
+constexpr size_t MaxDrawCallBuffers = 3;
+
+constexpr size_t MaxShaderVariants = 4;
+
+constexpr size_t MaxMaterials = 4096;
+constexpr size_t MaxFonts = 64;
+
 /*
  * Init
  */
@@ -139,6 +149,8 @@ void UploadBuffer( GPUBuffer dest, const void * data, size_t n );
 GPUBuffer StageArgumentBuffer( GPUBuffer dest, size_t n, size_t alignment );
 void UploadTexture( const TextureConfig & config, Opaque< BackendTexture > dest );
 
+PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, Opaque< BackendTexture > texture, SamplerType sampler, GPUBuffer properties, Optional< PoolHandle< BindGroup > > old_bind_group );
+
 /*
  * Debug info
  */
@@ -146,8 +158,11 @@ void UploadTexture( const TextureConfig & config, Opaque< BackendTexture > dest 
 void AddDebugMarker( PoolHandle< GPUAllocation > allocation, size_t offset, size_t size, Span< const char > label );
 void RemoveAllDebugMarkers( PoolHandle< GPUAllocation > allocation );
 
-// NOMERGE: unsorted
-PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, Opaque< BackendTexture > texture, SamplerType sampler, GPUBuffer properties, Optional< PoolHandle< BindGroup > > old_bind_group );
+void format( FormatBuffer * fb, const VertexDescriptor & v, const FormatOpts & opts );
+
+/*
+ * Frame
+ */
 
 void RenderBackendWaitForNewFrame();
 void RenderBackendBeginFrame( SDL_Window * window, bool fullscreen_exclusive, bool vsync, int frames_to_capture );
@@ -155,14 +170,3 @@ void RenderBackendEndFrame();
 
 size_t FrameSlot();
 
-constexpr size_t MaxBufferBindings = 8;
-constexpr size_t MaxTextureBindings = 8;
-constexpr size_t MaxBindings = MaxBufferBindings + 2 * MaxTextureBindings;
-constexpr size_t MaxDrawCallBuffers = 3;
-
-constexpr size_t MaxShaderVariants = 4;
-
-constexpr size_t MaxMaterials = 4096;
-constexpr size_t MaxFonts = 64;
-
-void format( FormatBuffer * fb, const VertexDescriptor & v, const FormatOpts & opts );

@@ -480,6 +480,7 @@ void DeleteBackendTexture( Opaque< BackendTexture > texture ) {
 
 bool SwapchainIsNotsRGB() {
 	MTL::PixelFormat swapchain_format = global_device.swapchain->pixelFormat();
+	// NOMERGE we actually get to pick the format in InitRenderBackend so apply that info here
 	return false
 		|| swapchain_format == MTL::PixelFormatRGB10A2Unorm
 		|| swapchain_format == MTL::PixelFormatBGR10A2Unorm

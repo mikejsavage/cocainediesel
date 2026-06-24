@@ -448,7 +448,7 @@ void CG_DrawScope() {
 //=============================================================================
 
 static void PushLuaAsset( lua_State * L, StringHash s ) {
-	lua_pushlightuserdata( L, checked_cast< void * >( checked_cast< uintptr_t >( s.hash ) ) );
+	lua_pushlightuserdata( L, ( void * )( checked_cast< uintptr_t >( s.hash ) ) );
 }
 
 static bool CallWithStackTrace( lua_State * L, int args, int results ) {
@@ -614,7 +614,7 @@ static StringHash CheckHash( lua_State * L, int idx ) {
 	if( lua_isnoneornil( L, idx ) )
 		return EMPTY_HASH;
 	luaL_checktype( L, idx, LUA_TLIGHTUSERDATA );
-	return StringHash( checked_cast< u64 >( checked_cast< uintptr_t >( lua_touserdata( L, idx ) ) ) );
+	return StringHash( checked_cast< u64 >( uintptr_t( lua_touserdata( L, idx ) ) ) );
 }
 
 static int LuauDraw2DBox( lua_State * L ) {

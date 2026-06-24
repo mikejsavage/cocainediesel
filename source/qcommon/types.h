@@ -114,6 +114,7 @@ template< typename To, typename From >
 To checked_cast( const From & from ) {
 	To result = To( from );
 	Assert( From( result ) == from );
+	Assert( result < 0 == from < 0 );
 	return result;
 }
 

@@ -1326,6 +1326,11 @@ static void ServerBrowser() {
 static void DemoBrowser() {
 	TempAllocator temp = cls.frame_arena.temp();
 
+	if( ImGui::IsWindowAppearing() ) {
+		RefreshDemoBrowser();
+		yolodemo = false;
+	}
+
 	DemoBrowserFrame();
 
 	ImGui::Checkbox( "Try to force load demos from old versions. Comes with no warranty", &yolodemo );
@@ -1565,6 +1570,7 @@ static void SubMenuWindow() {
 						CLAY( {
 							.layout = { .sizing = { CLAY_SIZING_GROW(), CLAY_SIZING_GROW() } },
 							.custom = { ClayImGui([]( const Clay_BoundingBox & bounds, void * userdata ) {
+								ImGui::PushID( menu_state );
 								ImGui::BeginChild( "tmp old menu", Vec2( bounds.width, bounds.height ) );
 
 								if( menu_state == MenuState_Locker ) {
@@ -1587,6 +1593,7 @@ static void SubMenuWindow() {
 								}
 
 								ImGui::EndChild();
+								ImGui::PopID();
 							} ) }
 						} );
 					}

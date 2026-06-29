@@ -75,36 +75,19 @@ void DemoBrowserFrame() {
 	}
 }
 
-static void FindDemosRecursive( TempAllocator * temp, DynamicString * path, size_t skip ) {
-	Opaque< ListDirHandle > scan = BeginListDir( temp, path->c_str() );
-
-	const char * name;
-	bool dir;
-	while( ListDirNext( &scan, &name, &dir ) ) {
-		// skip ., .., .git, etc
-		if( name[ 0 ] == '.' )
-			continue;
-
-		size_t old_len = path->length();
-		path->append( "/{}", name );
-		if( dir ) {
-			FindDemosRecursive( temp, path, skip );
-		}
-		else if( FileExtension( path->span() + skip ) == APP_DEMO_EXTENSION_STR ) {
-			DemoBrowserEntry demo = { };
-			demo.path = ( *sys_allocator )( "{}", path->span() + skip );
-			demos.add( demo );
-		}
-		path->truncate( old_len );
-	}
-}
-
 void RefreshDemoBrowser() {
 	ClearDemos();
 
 	TempAllocator temp = cls.frame_arena.temp();
-	DynamicString base( &temp, "{}/demos", HomeDirPath() );
-	FindDemosRecursive( &temp, &base, base.length() + 1 );
+
+	Span< const char > base = temp.sv( "{}/demos", HomeDirPath() );
+	for( Span< const char > path : ListDir( &temp, base, ListDir_Recurse ) ) {
+		if( FileExtension( path ) == APP_DEMO_EXTENSION_STR ) {
+			demos.add( DemoBrowserEntry {
+				.path = ( *sys_allocator )( "{}", path + base.n + 1 ),
+			} );
+		}
+	}
 
 	nanosort( demos.begin(), demos.end(), []( const DemoBrowserEntry & a, const DemoBrowserEntry & b ) {
 		return !SortCStringsComparator( a.path, b.path );

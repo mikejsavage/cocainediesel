@@ -121,7 +121,7 @@ bool LoadServerMap( Span< const char > name ) {
 	MapData decoded;
 	DecodeMapResult res = DecodeMap( &decoded, map.data );
 	if( res != DecodeMapResult_Ok ) {
-		Com_GGPrint( "Can't decode map {}", name );
+		Com_GGPrint( "Can't decode map {}: {}", name, res == DecodeMapResult_NotAMap ? "not a map" : "wrong cdmap version" );
 		Free( sys_allocator, map.data.ptr );
 		return false;
 	}

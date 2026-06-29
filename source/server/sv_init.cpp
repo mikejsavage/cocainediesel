@@ -48,13 +48,11 @@ static void SV_CreateBaseline() {
 * SV_SpawnServer
 * Change the server to a new map, taking all connected clients along with it.
 */
-static void SV_SpawnServer( const char *mapname, bool devmap ) {
+static bool SV_SpawnServer( Span< const char > mapname, bool devmap ) {
 	if( devmap ) {
 		Cvar_ForceSet( "sv_cheats", "1" );
 	}
 	ResetCheatCvars();
-
-	Com_Printf( "SpawnServer: %s\n", mapname );
 
 	svs.spawncount++;   // any partially connected client will be restarted
 
@@ -62,7 +60,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 
 	// wipe the entire per-level structure
 	memset( &sv, 0, sizeof( sv ) );
-	SafeStrCpy( sv.mapname, mapname, sizeof( sv.mapname ) );
+	ggformat( sv.mapname, sizeof( sv.mapname ), "{}", mapname );
 
 	SV_ResetClientFrameCounters();
 	svs.gametime = 0;
@@ -80,8 +78,9 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	sv.state = ss_loading;
 	Com_SetServerState( sv.state );
 
-	// load and spawn all other entities
-	G_InitLevel( MakeSpan( sv.mapname ), 0 );
+	if( !G_InitLevel( MakeSpan( sv.mapname ), 0 ) ) {
+		return false;
+	}
 	G_CallVotes_Init();
 
 	// run two frames to allow everything to settle
@@ -93,6 +92,8 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	// all precaches are complete
 	sv.state = ss_game;
 	Com_SetServerState( sv.state );
+
+	return true;
 }
 
 /*
@@ -201,11 +202,7 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 	svs.initialized = false;
 }
 
-/*
-* SV_Map
-* command from the console or progs.
-*/
-void SV_Map( const char * map, bool devmap ) {
+bool SV_Map( Span< const char > map, bool devmap ) {
 	TracyZoneScoped;
 
 	SV_Demo_Stop( true );
@@ -237,6 +234,11 @@ void SV_Map( const char * map, bool devmap ) {
 
 	SV_BroadcastCommand( "changing\n" );
 	SV_SendClientMessages();
-	SV_SpawnServer( map, devmap );
+	if( !SV_SpawnServer( map, devmap ) ) {
+		SV_ShutdownGame( "Server crashed", false );
+		return false;
+	}
 	SV_BroadcastCommand( "reconnect\n" );
+
+	return true;
 }

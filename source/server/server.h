@@ -221,7 +221,7 @@ void SV_UpdateMaster();
 //
 // sv_init.c
 //
-void SV_Map( const char * level, bool devmap );
+bool SV_Map( Span< const char > map, bool devmap );
 
 //
 // sv_send.c

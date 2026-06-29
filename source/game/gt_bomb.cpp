@@ -1098,7 +1098,7 @@ static void Bomb_MatchStateStarted() {
 	}
 }
 
-static void Bomb_Init() {
+static bool Bomb_Init() {
 	server_gs.gameState.gametype = Gametype_Bomb;
 	server_gs.gameState.scorelimit = 10;
 	server_gs.gameState.bomb.attacking_team = initial_attackers;
@@ -1123,6 +1123,8 @@ static void Bomb_Init() {
 
 	g_bomb_roundtime = NewCvar( "g_bomb_roundtime", "60", CvarFlag_Archive );
 	g_bomb_bombtimer = NewCvar( "g_bomb_bombtimer", "30", CvarFlag_Archive );
+
+	return true;
 }
 
 static bool Bomb_SpawnEntity( StringHash classname, edict_t * ent ) {

@@ -3,7 +3,7 @@
 extern Cvar *g_warmup_timelimit;
 
 struct GametypeDef {
-	void ( *Init )();
+	bool ( *Init )();
 	void ( *MatchStateStarted )();
 	void ( *Think )();
 	void ( *PlayerRespawning )( edict_t * ent );
@@ -24,7 +24,7 @@ struct GametypeDef {
 	bool autoRespawn;
 };
 
-void InitGametype();
+bool InitGametype();
 void ShutdownGametype();
 
 //

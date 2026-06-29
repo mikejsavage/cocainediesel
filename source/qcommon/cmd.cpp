@@ -285,37 +285,15 @@ Span< Span< const char > > TabCompleteArgument( TempAllocator * temp, Span< cons
 	return command->tab_completion_callback( temp, tokenized.all_but_first );
 }
 
-static void FindMatchingFilesRecursive( TempAllocator * temp, NonRAIIDynamicArray< Span< const char > > * files, DynamicString * path, Span< const char > prefix, size_t skip, Span< const char > extension ) {
-	Opaque< ListDirHandle > scan = BeginListDir( sys_allocator, path->c_str() );
-
-	const char * name;
-	bool dir;
-	while( ListDirNext( &scan, &name, &dir ) ) {
-		// skip ., .., .git, etc
-		if( name[ 0 ] == '.' )
-			continue;
-
-		size_t old_len = path->length();
-		path->append( "/{}", name );
-		if( dir ) {
-			FindMatchingFilesRecursive( temp, files, path, prefix, skip, extension );
-		}
-		else {
-			bool prefix_matches = CaseStartsWith( path->span() + skip, prefix );
-			bool ext_matches = StrCaseEqual( FileExtension( path->c_str() ), extension );
-			if( prefix_matches && ext_matches ) {
-				files->add( temp->sv( "{}", path->span().slice( skip, path->length() ) ) );
-			}
-		}
-		path->truncate( old_len );
-	}
-}
-
 Span< Span< const char > > TabCompleteFilename( TempAllocator * temp, Span< const char > partial, Span< const char > search_dir, Span< const char > extension ) {
-	DynamicString base_path( sys_allocator, "{}", search_dir );
-
 	NonRAIIDynamicArray< Span< const char > > results( temp );
-	FindMatchingFilesRecursive( temp, &results, &base_path, partial, base_path.length() + 1, extension );
+	size_t skip = search_dir.n + 1;
+
+	for( Span< const char > file : ListDir( temp, search_dir, ListDir_Recurse ) ) {
+		if( StrCaseEqual( FileExtension( file ), extension ) && CaseStartsWith( file + skip, partial ) ) {
+			results.add( file + skip );
+		}
+	}
 
 	nanosort( results.begin(), results.end(), SortSpanStringsComparator );
 

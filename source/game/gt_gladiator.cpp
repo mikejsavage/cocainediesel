@@ -480,7 +480,7 @@ static void LoadArenas() {
 	}
 }
 
-static void Gladiator_Init() {
+static bool Gladiator_Init() {
 	server_gs.gameState.gametype = Gametype_Gladiator;
 	server_gs.gameState.scorelimit = 5;
 
@@ -493,7 +493,13 @@ static void Gladiator_Init() {
 	g_glad_bombtimer = NewCvar( "g_glad_bombtimer", "40", CvarFlag_Archive );
 
 	LoadArenas();
+	if( arenas.size() == 0 ) {
+		Com_Printf( S_COLOR_RED "Couldn't load any gladiator arenas\n" );
+		return false;
+	}
+
 	PickRandomArena();
+	return true;
 }
 
 static void Gladiator_Shutdown() {

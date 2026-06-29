@@ -427,11 +427,11 @@ static bool IsGladiatorMap() {
 	return GetWorldspawnKey( FindServerMap( server_gs.gameState.map ), "gametype" ) == "gladiator";
 }
 
-void InitGametype() {
+bool InitGametype() {
 	g_warmup_timelimit = NewCvar( "g_warmup_timelimit", "5", CvarFlag_Archive );
 
 	level.gametype = IsGladiatorMap() ? GetGladiatorGametype() : GetBombGametype();
-	level.gametype.Init();
+	return level.gametype.Init();
 }
 
 void ShutdownGametype() {

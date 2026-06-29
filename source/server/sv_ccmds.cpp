@@ -50,7 +50,7 @@ static void SV_Map_f( const Tokenized & args ) {
 	sv.state = ss_dead; // don't save current level when changing
 
 	SV_UpdateMaster();
-	SV_Map( temp( "{}", map ), StrCaseEqual( args.tokens[ 0 ], "devmap" ) );
+	SV_Map( map, StrCaseEqual( args.tokens[ 0 ], "devmap" ) );
 }
 
 void SV_Status_f() {

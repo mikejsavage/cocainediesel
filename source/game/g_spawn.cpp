@@ -303,13 +303,7 @@ static void SpawnMapEntities() {
 	SV_LocateEntities( game.edicts, game.numentities );
 }
 
-/*
-* G_InitLevel
-*
-* Creates a server's entity / program execution context by
-* parsing textual entity definitions out of an ent file.
-*/
-void G_InitLevel( Span< const char > mapname, int64_t levelTime ) {
+bool G_InitLevel( Span< const char > mapname, int64_t levelTime ) {
 	ResetEntityIDSequence();
 
 	memset( &level, 0, sizeof( level_locals_t ) );
@@ -317,8 +311,11 @@ void G_InitLevel( Span< const char > mapname, int64_t levelTime ) {
 
 	memset( &server_gs.gameState, 0, sizeof( server_gs.gameState ) );
 	server_gs.gameState.map = StringHash( mapname );
-	LoadServerMap( mapname );// TODO: errors???
-	GClip_ClearWorld(); // clear areas links
+	if( !LoadServerMap( mapname ) ) {
+		return false;
+	}
+
+	GClip_ClearWorld();
 
 	G_SunCycle( Seconds( 0 ) );
 
@@ -333,17 +330,16 @@ void G_InitLevel( Span< const char > mapname, int64_t levelTime ) {
 		game.clients[i].level.timeStamp = level.time;
 	}
 
-	// initialize game subsystems
 	G_InitGameCommands();
 
 	G_Teams_Init();
 
-	InitGametype();
+	if( !InitGametype() ) {
+		return false;
+	}
 
 	SpawnMapEntities();
 
-	// always start in warmup match state and let the thinking code
-	// revert it to wait state if empty ( so gametype based item masks are setup )
 	G_Match_LaunchState( MatchState_Warmup );
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
@@ -357,6 +353,8 @@ void G_InitLevel( Span< const char > mapname, int64_t levelTime ) {
 			G_Teams_JoinAnyTeam( &game.edicts[ i + 1 ], true );
 		}
 	}
+
+	return true;
 }
 
 void G_ResetLevel() {
@@ -370,7 +368,9 @@ void G_ResetLevel() {
 
 void G_RespawnLevel() {
 	ShutdownGametype();
-	G_InitLevel( MakeSpan( sv.mapname ), level.time );
+	if( !G_InitLevel( MakeSpan( sv.mapname ), level.time ) ) {
+		Fatal( "G_InitLevel" );
+	}
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = &game.edicts[ i + 1 ];

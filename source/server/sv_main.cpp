@@ -377,7 +377,9 @@ void SV_Init() {
 	sv_initialized = true;
 
 	if( is_dedicated_server ) {
-		SV_Map( sv_defaultmap->value, false );
+		if( !SV_Map( temp.sv( "{}", sv_defaultmap->value ), false ) ) {
+			Fatal( "Can't start server" );
+		}
 	}
 }
 

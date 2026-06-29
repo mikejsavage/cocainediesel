@@ -443,23 +443,20 @@ static void Gladiator_MatchStateStarted() {
 	}
 }
 
-static void LoadArenaFolder( const char * folder, PerkType perk, TempAllocator & temp ) {
-	const char * maps_dir = temp( "{}/base/maps/gladiator/{}", RootDirPath(), folder );
-	Opaque< ListDirHandle > scan = BeginListDir( sys_allocator, maps_dir );
+static void LoadArenaFolder( Span< const char > folder, PerkType perk ) {
+	TempAllocator temp = svs.frame_arena.temp();
 
-	const char * name;
-	bool dir;
-	while( ListDirNext( &scan, &name, &dir ) ) {
-		// skip ., .., .git, etc
-		if( name[ 0 ] == '.' || dir )
+	Span< const char > base_maps_dir = temp.sv( "{}/base/maps", RootDirPath() );
+	Span< const char > maps_dir = temp.sv( "{}/gladiator/{}", base_maps_dir, folder );
+	Span< Span< char > > maps = ListDir( &temp, maps_dir, ListDir_DontRecurse );
+
+	for( Span< const char > map : maps ) {
+		if( FileExtension( map ) != ".cdmap" && FileExtension( StripExtension( map ) ) != ".cdmap" )
 			continue;
 
-		if( FileExtension( name ) != ".cdmap" && FileExtension( StripExtension( name ) ) != ".cdmap" )
-			continue;
-
-		Span< const char > arena = temp.sv( "gladiator/{}/{}", folder, StripExtension( StripExtension( name ) ) );
-		if( LoadServerMap( arena ) ) {
-			arenas.add( { StringHash( arena ), perk } );
+		Span< const char > name = StripExtension( StripExtension( map + base_maps_dir.n + 1 ) );
+		if( LoadServerMap( name ) ) {
+			arenas.add( { StringHash( name ), perk } );
 		}
 	}
 }
@@ -468,12 +465,11 @@ static void LoadArenas() {
 	arenas.clear();
 
 	if( gladiator_state.randomize_arena ) {
-		TempAllocator temp = svs.frame_arena.temp();
-		LoadArenaFolder( "hooligan", Perk_Hooligan, temp );
-		LoadArenaFolder( "midget", Perk_Midget, temp );
-		LoadArenaFolder( "wheel", Perk_Wheel, temp );
-		LoadArenaFolder( "jetpack", Perk_Jetpack, temp );
-		LoadArenaFolder( "random", Perk_None, temp );
+		LoadArenaFolder( "hooligan", Perk_Hooligan );
+		LoadArenaFolder( "midget", Perk_Midget );
+		LoadArenaFolder( "wheel", Perk_Wheel );
+		LoadArenaFolder( "jetpack", Perk_Jetpack );
+		LoadArenaFolder( "random", Perk_None );
 	}
 	else {
 		arenas.add( { server_gs.gameState.map, Perk_None } );

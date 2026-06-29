@@ -174,10 +174,9 @@ static void ListDirRecursive( Allocator * a, NonRAIIDynamicArray< Span< char > >
 	}
 }
 
-// NOMERGE actually use this
-Span< Span< char > > ListDir( Allocator * a, Span< const char > root, bool recursive ) {
+Span< Span< char > > ListDir( Allocator * a, Span< const char > root, ListDirRecurse recurse ) {
 	NonRAIIDynamicArray< Span< char > > files( a );
 	DynamicString path( a, "{}", root );
-	ListDirRecursive( a, &files, &path, recursive );
+	ListDirRecursive( a, &files, &path, recurse == ListDir_Recurse );
 	return files.span();
 }

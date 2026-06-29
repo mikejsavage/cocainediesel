@@ -52,3 +52,10 @@ struct FSChangeMonitor;
 FSChangeMonitor * NewFSChangeMonitor( Allocator * a, const char * path );
 void DeleteFSChangeMonitor( Allocator * a, FSChangeMonitor * monitor );
 Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor * monitor, const char ** results, size_t n );
+
+enum ListDirRecurse {
+	ListDir_Recurse,
+	ListDir_DontRecurse,
+};
+
+Span< Span< char > > ListDir( Allocator * a, Span< const char > root, ListDirRecurse recurse );

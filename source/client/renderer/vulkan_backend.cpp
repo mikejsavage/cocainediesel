@@ -214,10 +214,11 @@ static constexpr VkRect2D no_scissor = { .extent = { S32_MAX, S32_MAX } };
 
 template< typename T >
 void DebugLabel( VkDevice device, T handle, VkObjectType type, const char * name ) {
+	static_assert( sizeof( T ) == sizeof( u64 ) );
 	const VkDebugUtilsObjectNameInfoEXT name_info = {
 		.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
 		.objectType = type,
-		.objectHandle = checked_cast< u64 >( handle ),
+		.objectHandle = u64( handle ),
 		.pObjectName = name,
 	};
 

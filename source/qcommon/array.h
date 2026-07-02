@@ -43,11 +43,13 @@ public:
 	}
 
 	void remove_swap( T * x ) {
+		Assert( n > 0 );
 		n--;
 		Swap2( x, &elems[ n ] );
 	}
 
 	void remove_swap( size_t idx ) {
+		Assert( idx < n );
 		remove_swap( &elems[ idx ] );
 	}
 

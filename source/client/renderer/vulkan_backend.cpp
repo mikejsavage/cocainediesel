@@ -331,10 +331,10 @@ static VkInstance createInstance() {
 		.pEnabledValidationFeatures = enabledValidationFeatures.ptr(),
 	};
 
-	u32 num_sdl_device_extensions;
-	const char * const * sdl_device_extensions = SDL_Vulkan_GetInstanceExtensions( &num_sdl_device_extensions );
+	u32 num_sdl_instance_extensions;
+	const char * const * sdl_instance_extensions = SDL_Vulkan_GetInstanceExtensions( &num_sdl_instance_extensions );
 
-	constexpr const char * my_device_extensions[] = {
+	constexpr const char * my_instance_extensions[] = {
 		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 		VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
 #if PLATFORM_WINDOWS
@@ -349,12 +349,26 @@ static VkInstance createInstance() {
 	};
 
 	TempAllocator temp = cls.frame_arena.temp();
-	Span< const char * > device_extensions = AllocSpan< const char * >( &temp, num_sdl_device_extensions + ARRAY_COUNT( my_device_extensions ) );
-	for( u32 i = 0; i < num_sdl_device_extensions; i++ ) {
-		device_extensions[ i ] = sdl_device_extensions[ i ];
+	DynamicArray< const char * > instance_extensions( &temp );
+	for( u32 i = 0; i < num_sdl_instance_extensions; i++ ) {
+		instance_extensions.add( sdl_instance_extensions[ i ] );
 	}
-	for( size_t i = 0; i < ARRAY_COUNT( my_device_extensions ); i++ ) {
-		device_extensions[ i + num_sdl_device_extensions ] = my_device_extensions[ i ];
+	for( const char * ext : my_instance_extensions ) {
+		instance_extensions.add( ext );
+	}
+
+	// optional surface_maintenance1
+	// we don't use this directly but it is required by swapchain_maintenance1, so loading both is fine
+	{
+		Span< VkExtensionProperties > supported_extensions = VulkanSpan< VkExtensionProperties >( &temp, CurrentSourceLocation(), vkEnumerateInstanceExtensionProperties, nullptr );
+		for( const VkExtensionProperties & ext : supported_extensions ) {
+			if( StrEqual( ext.extensionName, VK_KHR_SURFACE_MAINTENANCE_1_EXTENSION_NAME ) ) {
+				instance_extensions.add( VK_KHR_SURFACE_MAINTENANCE_1_EXTENSION_NAME );
+			}
+			if( StrEqual( ext.extensionName, VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME ) ) {
+				instance_extensions.add( VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME );
+			}
+		}
 	}
 
 	const VkInstanceCreateInfo createInfo = {
@@ -365,8 +379,8 @@ static VkInstance createInstance() {
 		.pApplicationInfo = &appInfo,
 		.enabledLayerCount = checked_cast< u32 >( layers.size() ),
 		.ppEnabledLayerNames = layers.ptr(),
-		.enabledExtensionCount = u32( device_extensions.n ),
-		.ppEnabledExtensionNames = device_extensions.ptr,
+		.enabledExtensionCount = u32( instance_extensions.size() ),
+		.ppEnabledExtensionNames = instance_extensions.ptr(),
 	};
 
 	VkInstance instance = VK_NULL_HANDLE;

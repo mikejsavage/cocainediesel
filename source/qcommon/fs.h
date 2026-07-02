@@ -58,4 +58,4 @@ enum ListDirRecurse {
 	ListDir_DontRecurse,
 };
 
-Span< Span< char > > ListDir( Allocator * a, Span< const char > root, ListDirRecurse recurse );
+Span< Span< const char > > ListDir( Allocator * a, Span< const char > root, ListDirRecurse recurse );

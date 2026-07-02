@@ -448,7 +448,7 @@ static void LoadArenaFolder( Span< const char > folder, PerkType perk ) {
 
 	Span< const char > base_maps_dir = temp.sv( "{}/base/maps", RootDirPath() );
 	Span< const char > maps_dir = temp.sv( "{}/gladiator/{}", base_maps_dir, folder );
-	Span< Span< char > > maps = ListDir( &temp, maps_dir, ListDir_DontRecurse );
+	Span< Span< const char > > maps = ListDir( &temp, maps_dir, ListDir_DontRecurse );
 
 	for( Span< const char > map : maps ) {
 		if( FileExtension( map ) != ".cdmap" && FileExtension( StripExtension( map ) ) != ".cdmap" )

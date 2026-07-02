@@ -150,7 +150,7 @@ bool CloseFile( FILE * file ) {
 	return ok;
 }
 
-static void ListDirRecursive( Allocator * a, NonRAIIDynamicArray< Span< char > > * files, DynamicString * path, bool recursive ) {
+static void ListDirRecursive( Allocator * a, NonRAIIDynamicArray< Span< const char > > * files, DynamicString * path, bool recursive, SourceLocation src ) {
 	Opaque< ListDirHandle > scan = BeginListDir( a, path->c_str() );
 
 	const char * name;
@@ -164,19 +164,19 @@ static void ListDirRecursive( Allocator * a, NonRAIIDynamicArray< Span< char > >
 		path->append( "/{}", name );
 		if( dir ) {
 			if( recursive ) {
-				ListDirRecursive( a, files, path, true );
+				ListDirRecursive( a, files, path, true, src );
 			}
 		}
 		else {
-			files->add( CloneSpan( a, path->span() ) );
+			files->add( CloneSpan( a, path->span(), src ) );
 		}
 		path->truncate( old_len );
 	}
 }
 
-Span< Span< char > > ListDir( Allocator * a, Span< const char > root, ListDirRecurse recurse ) {
-	NonRAIIDynamicArray< Span< char > > files( a );
+Span< Span< const char > > ListDir( Allocator * a, Span< const char > root, ListDirRecurse recurse, SourceLocation src ) {
+	NonRAIIDynamicArray< Span< const char > > files( a );
 	DynamicString path( a, "{}", root );
-	ListDirRecursive( a, &files, &path, recurse == ListDir_Recurse );
+	ListDirRecursive( a, &files, &path, recurse == ListDir_Recurse, src );
 	return files.span();
 }

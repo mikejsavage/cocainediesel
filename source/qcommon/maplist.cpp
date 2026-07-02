@@ -8,6 +8,8 @@
 
 static NonRAIIDynamicArray< Span< char > > maps;
 
+// TODO(mike 20260701): this should probably be moved into the server so we can
+// use the asset system for the client side map list
 void InitMapList() {
 	TracyZoneScoped;
 
@@ -33,19 +35,28 @@ void RefreshMapList( Allocator * a ) {
 
 	FreeMaps();
 
-	char * path = ( *a )( "{}/base/maps", RootDirPath() );
-	defer { Free( a, path ); };
+	Span< char > maps_dir = a->sv( "{}/base/maps", RootDirPath() );
+	defer { Free( a, maps_dir.ptr ); };
 
-	Opaque< ListDirHandle > scan = BeginListDir( a, path );
+	Span< Span< const char > > files = ListDir( a, maps_dir, ListDir_DontRecurse );
+	defer {
+		FreeAll( a, files );
+		Free( a, files );
+	};
 
-	const char * name;
-	bool dir;
-	while( ListDirNext( &scan, &name, &dir ) ) {
-		if( dir )
-			continue;
+	for( Span< const char > map : files ) {
+		if( FileExtension( map ) == ".cdmap" || FileExtension( StripExtension( map ) ) == ".cdmap" ) {
+			maps.add( CloneSpan( sys_allocator, StripExtension( StripExtension( map + maps_dir.n + 1 ) ) ) );
+		}
+	}
 
-		if( FileExtension( name ) == ".cdmap" || FileExtension( StripExtension( name ) ) == ".cdmap" ) {
-			maps.add( CloneSpan( sys_allocator, StripExtension( StripExtension( name ) ) ) );
+	nanosort( maps.begin(), maps.end(), SortSpanStringsComparator );
+
+	for( size_t i = 1; i < maps.size(); i++ ) {
+		if( StrEqual( maps[ i ], maps[ i - 1 ] ) ) {
+			Free( sys_allocator, maps[ i ].ptr );
+			maps.remove_swap( i );
+			i--;
 		}
 	}
 

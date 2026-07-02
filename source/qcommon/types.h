@@ -272,7 +272,7 @@ struct Allocator {
 	virtual void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src = CurrentSourceLocation() ) = 0;
 	void * allocate( size_t size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
 	void * reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
-	virtual void deallocate( void * ptr, SourceLocation src = CurrentSourceLocation() ) = 0;
+	virtual void deallocate( const void * ptr, SourceLocation src = CurrentSourceLocation() ) = 0;
 
 	template< typename... Rest >
 	char * operator()( SourceLocation src, const char * fmt, const Rest & ... rest );
@@ -309,7 +309,7 @@ Span< T > AllocSpan( Allocator * a, size_t n, SourceLocation src = CurrentSource
 	return Span< T >( AllocMany< T >( a, n, src ), n );
 }
 
-inline void Free( Allocator * a, void * p, SourceLocation src = CurrentSourceLocation() ) {
+inline void Free( Allocator * a, const void * p, SourceLocation src = CurrentSourceLocation() ) {
 	a->deallocate( p, src );
 }
 

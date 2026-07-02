@@ -36,7 +36,7 @@ void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t ne
 
 struct AllocationTracker {
 	void track( void * ptr, SourceLocation src, size_t size ) { }
-	void untrack( void * ptr, SourceLocation src ) { }
+	void untrack( const void * ptr, SourceLocation src ) { }
 };
 
 #else
@@ -54,7 +54,7 @@ struct AllocationTracker {
 		size_t size;
 	};
 
-	std::unordered_map< void *, AllocInfo > allocations;
+	std::unordered_map< const void *, AllocInfo > allocations;
 	Opaque< Mutex > mutex;
 
 	AllocationTracker() {
@@ -99,7 +99,7 @@ struct AllocationTracker {
 		Unlock( &mutex );
 	}
 
-	void untrack( void * ptr, SourceLocation src ) {
+	void untrack( const void * ptr, SourceLocation src ) {
 		if( ptr == NULL )
 			return;
 		Lock( &mutex );
@@ -156,11 +156,11 @@ struct SystemAllocator final : public Allocator {
 		return new_ptr;
 	}
 
-	void deallocate( void * ptr, SourceLocation src ) {
+	void deallocate( const void * ptr, SourceLocation src ) {
 		TracyZoneScoped;
 		TracyCFree( ptr );
 		tracker.untrack( ptr, src );
-		free( ptr );
+		free( const_cast< void * >( ptr ) );
 	}
 };
 
@@ -188,7 +188,7 @@ void * TempAllocator::try_reallocate( void * ptr, size_t current_size, size_t ne
 	return arena->try_temp_reallocate( ptr, current_size, new_size, alignment, src );
 }
 
-void TempAllocator::deallocate( void * ptr, SourceLocation src ) { }
+void TempAllocator::deallocate( const void * ptr, SourceLocation src ) { }
 
 ArenaAllocator::ArenaAllocator( void * mem, size_t size ) {
 	ASAN_POISON_MEMORY_REGION( mem, size );
@@ -247,7 +247,7 @@ void * ArenaAllocator::try_temp_reallocate( void * ptr, size_t current_size, siz
 	return mem;
 }
 
-void ArenaAllocator::deallocate( void * ptr, SourceLocation src ) { }
+void ArenaAllocator::deallocate( const void * ptr, SourceLocation src ) { }
 
 TempAllocator ArenaAllocator::temp() {
 	num_temp_allocators++;

@@ -395,7 +395,8 @@ bool SortCStringsComparator( const char * a, const char * b ) {
 }
 
 bool SortSpanStringsComparator( Span< const char > a, Span< const char > b ) {
-	return a.n != b.n ? a.n < b.n : memcmp( a.ptr, b.ptr, a.n ) < 0;
+	int cmp = memcmp( a.ptr, b.ptr, Min2( a.n, b.n ) );
+	return cmp != 0 ? cmp < 0 : a.n < b.n;
 }
 
 void SafeStrCpy( char * dst, const char * src, size_t dst_size ) {

@@ -12,7 +12,7 @@ struct TempAllocator final : public Allocator {
 
 	void * try_allocate( size_t size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
 	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
-	void deallocate( void * ptr, SourceLocation src = CurrentSourceLocation() );
+	void deallocate( const void * ptr, SourceLocation src = CurrentSourceLocation() );
 
 private:
 	ArenaAllocator * arena;
@@ -27,7 +27,7 @@ struct ArenaAllocator final : public Allocator {
 
 	void * try_allocate( size_t size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
 	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, SourceLocation src = CurrentSourceLocation() );
-	void deallocate( void * ptr, SourceLocation src = CurrentSourceLocation() );
+	void deallocate( const void * ptr, SourceLocation src = CurrentSourceLocation() );
 
 	TempAllocator temp();
 

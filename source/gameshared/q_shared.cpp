@@ -194,7 +194,7 @@ Optional< u64 > SpanToUnsigned( Span< const char > str, u64 max ) {
 Optional< float > SpanToFloat( Span< const char > str ) {
 	char buf[ 128 ];
 	if( str.n == 0 || str.n >= sizeof( buf ) )
-		return false;
+		return NONE;
 
 	memcpy( buf, str.ptr, str.n );
 	buf[ str.n ] = '\0';

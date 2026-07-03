@@ -96,7 +96,7 @@ struct Texture {
 
 	void * stb_data;
 	Span< const BC4Block > bc4_data;
-	bool atlased;
+	bool sprite;
 };
 
 Opaque< BackendTexture > NewBackendTexture( const TextureConfig & config );

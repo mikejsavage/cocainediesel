@@ -299,7 +299,6 @@ static void SkipComment( MaterialDescriptor * material, Span< const char > name,
 }
 
 static constexpr MaterialSpecKey shaderkeys[] = {
-	{ "sprite", SkipComment }, // NOMERGE
 	{ "alphagen", ParseAlphaGen },
 	{ "blendfunc", ParseBlendFunc },
 	{ "cull", ParseCull },
@@ -308,6 +307,7 @@ static constexpr MaterialSpecKey shaderkeys[] = {
 	{ "world", ParseWorld },
 	{ "shininess", ParseShininess },
 	{ "specular", ParseSpecular },
+	{ "sprite", SkipComment },
 	{ "texture", ParseTexture },
 	{ "//", SkipComment },
 };
@@ -723,10 +723,39 @@ static u16x4 QuantizeU16x4( Vec4 v ) {
 	};
 }
 
+static bool ParseCDTextureSprite( Span< const char > texture_name ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
+	Span< const char > cdtexture_path = temp.sv( "{}.cdtexture", texture_name );
+	Span< const char > cdtexture = AssetString( cdtexture_path );
+	if( cdtexture.ptr == NULL )
+		return false;
+
+	// TODO: parse this properly
+	Span< const char > token = ParseToken( &cdtexture, Parse_DontStopOnNewLine );
+	if( token == "" )
+		return false;
+	if( token == "sprite" )
+		return true;
+
+	Com_GGPrint( S_COLOR_YELLOW "Bad cdtexture: {}", cdtexture_path );
+	return false;
+}
+
 static void PackSpriteAtlas( bool first_time ) {
 	TracyZoneScoped;
 
 	sprites.clear();
+
+	for( Texture & texture : textures.span() ) {
+		bool sprite = ParseCDTextureSprite( texture.name.span() );
+		if( sprite && !( texture.format == TextureFormat_RGBA_U8_sRGB || texture.format == TextureFormat_BC4 ) ) {
+			Com_GGPrint( S_COLOR_YELLOW "Sprites must be RGBA or BC4 ({})", texture.name.span() );
+			continue;
+		}
+
+		texture.sprite = sprite;
+	}
 
 	// make a list of textures to be packed
 	stbrp_rect rects[ MAX_SPRITES ];
@@ -736,15 +765,8 @@ static void PackSpriteAtlas( bool first_time ) {
 
 	for( u32 i = 0; i < textures.span().n; i++ ) {
 		const Texture * texture = &textures.span()[ i ];
-		// TODO NOMERGE the bc4 thing is a hack
-		bool atlased = texture->atlased || ( first_time && texture->format == TextureFormat_BC4 );
-		if( !atlased )
+		if( !texture->sprite )
 			continue;
-
-		if( texture->format != TextureFormat_RGBA_U8_sRGB && texture->format != TextureFormat_BC4 ) {
-			Com_GGPrint( S_COLOR_YELLOW "Sprites must be RGBA or BC4 ({})", texture->name.span() );
-			continue;
-		}
 
 		if( texture->width % 4 != 0 || texture->height % 4 != 0 ) {
 			Com_GGPrint( S_COLOR_YELLOW "Sprite dimensions must be a multiple of 4 ({} is {}x{})", texture->name.span(), texture->width, texture->height );
@@ -1031,22 +1053,6 @@ static void LoadBuiltinMaterials() {
 	}
 }
 
-static bool ParseCDTextureAtlased( Span< const char > texture_path ) {
-	TempAllocator temp = cls.frame_arena.temp();
-
-	Span< const char > cdtexture_path = temp.sv( "{}.cdtexture", StripExtension( texture_path ) );
-	Span< const char > cdtexture = AssetString( cdtexture_path );
-
-	// TODO: parse this properly
-	if( cdtexture == "" || cdtexture == "\n" )
-		return false;
-	if( cdtexture == "atlased" || cdtexture == "atlased\n" )
-		return true;
-
-	Com_GGPrint( S_COLOR_YELLOW "Bad cdtexture: {}", cdtexture_path );
-	return false;
-}
-
 static u8 * StbiLoadFromMemoryConvertRGBToRGBA( Span< const u8 > data, int * width, int * height, int * channels ) {
 	u8 * pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), width, height, channels, 0 );
 	if( *channels != 3 )
@@ -1168,6 +1174,10 @@ void HotloadMaterials() {
 
 		if( ext == ".dds" ) {
 			LoadDDSTexture( path );
+			hotloaded_any_textures = true;
+		}
+
+		if( ext == ".cdtexture" ) {
 			hotloaded_any_textures = true;
 		}
 

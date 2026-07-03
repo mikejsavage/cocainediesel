@@ -23,8 +23,7 @@
 #include "stb/stb_image.h"
 #include "stb/stb_rect_pack.h"
 
-// NOMERGE consistency between *Config and this
-struct MaterialDescriptor {
+struct MaterialConfig {
 	BlendFunc blend_func = BlendFunc_Disabled;
 
 	RenderPipelineDynamicState dynamic_state;
@@ -47,7 +46,7 @@ struct MaterialDescriptor {
 
 struct MaterialSpecKey {
 	Span< const char > keyword;
-	void ( *func )( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data );
+	void ( *func )( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data );
 };
 
 constexpr u32 MAX_SPRITES = 4096;
@@ -185,7 +184,7 @@ static Wave ParseWave( Span< const char > * data ) {
 	return wave;
 }
 
-static void ParseCull( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseCull( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "front" ) {
 		material->dynamic_state.cull_face = CullFace_Front;
@@ -195,29 +194,29 @@ static void ParseCull( MaterialDescriptor * material, Span< const char > name, S
 	}
 }
 
-static void ParseShaded( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseShaded( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->shaded = true;
 	if( material->world ) {
 		Com_GGPrint( S_COLOR_YELLOW "{}: world and shaded don't mix", name );
 	}
 }
 
-static void ParseWorld( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseWorld( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->world = true;
 	if( material->shaded ) {
 		Com_GGPrint( S_COLOR_YELLOW "{}: world and shaded don't mix", name );
 	}
 }
 
-static void ParseSpecular( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseSpecular( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->properties.specular = ParseMaterialFloat( data );
 }
 
-static void ParseShininess( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseShininess( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->properties.shininess = ParseMaterialFloat( data );
 }
 
-static void ParseBlendFunc( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseBlendFunc( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "blend" ) {
 		material->blend_func = BlendFunc_Blend;
@@ -228,7 +227,7 @@ static void ParseBlendFunc( MaterialDescriptor * material, Span< const char > na
 	SkipToEndOfLine( data );
 }
 
-static void ParseRGBGen( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseRGBGen( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "wave" ) {
 		material->rgbgen.type = ColorGenType_Wave;
@@ -263,7 +262,7 @@ static void ParseRGBGen( MaterialDescriptor * material, Span< const char > name,
 	}
 }
 
-static void ParseAlphaGen( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseAlphaGen( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "entity" ) {
 		material->alphagen.type = ColorGenType_Entity;
@@ -283,7 +282,7 @@ static PoolHandle< Texture > FindTexture( StringHash name ) {
 	return Default( handle, missing_texture );
 }
 
-static void ParseTexture( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseTexture( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( StartsWith( token, "." ) ) {
 		TempAllocator temp = cls.frame_arena.temp();
@@ -294,7 +293,7 @@ static void ParseTexture( MaterialDescriptor * material, Span< const char > name
 	}
 }
 
-static void SkipComment( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void SkipComment( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	SkipToEndOfLine( data );
 }
 
@@ -312,7 +311,7 @@ static constexpr MaterialSpecKey shaderkeys[] = {
 	{ "//", SkipComment },
 };
 
-static void ParseMaterialKey( MaterialDescriptor * material, Span< const char > token, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseMaterialKey( MaterialConfig * material, Span< const char > token, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	for( MaterialSpecKey key : shaderkeys ) {
 		if( StrCaseEqual( token, key.keyword ) ) {
 			key.func( material, name, path, data );
@@ -325,7 +324,7 @@ static void ParseMaterialKey( MaterialDescriptor * material, Span< const char > 
 	SkipToEndOfLine( data );
 }
 
-static bool ParseMaterial( MaterialDescriptor * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static bool ParseMaterial( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	TracyZoneScoped;
 
 	material->texture = "white";
@@ -358,7 +357,7 @@ static void UnloadTexture( PoolHandle< Texture > texture ) {
 	UnloadTexture( &textures[ texture ] );
 }
 
-static Material MaterialFromDescriptor( Span< const char > name, const MaterialDescriptor & desc, Optional< PoolHandle< BindGroup > > old_bind_group = NONE ) {
+static Material MaterialFromConfig( Span< const char > name, const MaterialConfig & desc, Optional< PoolHandle< BindGroup > > old_bind_group = NONE ) {
 	RenderPass pass = RenderPass_NonworldOpaque;
 	if( desc.blend_func == BlendFunc_Disabled ) {
 		pass = desc.outlined ? RenderPass_NonworldOpaqueOutlined : RenderPass_NonworldOpaque;
@@ -395,18 +394,18 @@ static Material MaterialFromDescriptor( Span< const char > name, const MaterialD
 	};
 }
 
-static Optional< PoolHandle< Material > > AddMaterial( Span< const char > name, const MaterialDescriptor & descriptor ) {
+static Optional< PoolHandle< Material > > AddMaterial( Span< const char > name, const MaterialConfig & config ) {
 	u64 hash = Hash64( name );
 
 	Optional< PoolHandle< Material > > old_handle = materials.get( hash );
 	if( old_handle.exists ) {
-		materials[ old_handle.value ] = MaterialFromDescriptor( name, descriptor, materials[ old_handle.value ].bind_group );
+		materials[ old_handle.value ] = MaterialFromConfig( name, config, materials[ old_handle.value ].bind_group );
 		return old_handle;
 	}
 
 	Optional< PoolHandle< Material > > new_handle = materials.add( hash );
 	if( new_handle.exists ) {
-		materials[ new_handle.value ] = MaterialFromDescriptor( name, descriptor );
+		materials[ new_handle.value ] = MaterialFromConfig( name, config );
 		return new_handle;
 	}
 
@@ -497,7 +496,7 @@ u32 TextureHeight( PoolHandle< Material > material ) {
 
 	PoolHandle< Texture > handle = NewTexture( config, old_handle );
 	if( !old_handle.exists ) {
-		AddMaterial( config.name, MaterialDescriptor { .texture = hash } );
+		AddMaterial( config.name, MaterialConfig { .texture = hash } );
 	}
 
 	return handle;
@@ -604,7 +603,7 @@ static void LoadMaterialFile( Span< const char > path ) {
 
 		ParseToken( &data, Parse_DontStopOnNewLine );
 
-		MaterialDescriptor material = { };
+		MaterialConfig material = { };
 		if( !ParseMaterial( &material, name, path, &data ) )
 			break;
 		AddMaterial( name, material );
@@ -956,7 +955,7 @@ static void LoadBuiltinMaterials() {
 			.data = pixels,
 		} );
 
-		missing_material = *AddMaterial( "missing", MaterialDescriptor {
+		missing_material = *AddMaterial( "missing", MaterialConfig {
 			.texture = "Missing texture",
 			.outlined = false,
 		} );
@@ -976,7 +975,7 @@ static void LoadBuiltinMaterials() {
 	}
 
 	{
-		MaterialDescriptor world_material = MaterialDescriptor {
+		MaterialConfig world_material = {
 			.rgbgen = { .args = { 0.17f, 0.17f, 0.17f, 1.0f } },
 			.texture = "white",
 			.world = true,
@@ -986,7 +985,7 @@ static void LoadBuiltinMaterials() {
 			},
 		};
 
-		MaterialDescriptor wallbang_material = MaterialDescriptor {
+		MaterialConfig wallbang_material = {
 			.rgbgen = {
 				.args = {
 					world_material.rgbgen.args[ 0 ] * 0.45f,
@@ -1010,7 +1009,7 @@ static void LoadBuiltinMaterials() {
 		Must( AddMaterial( "wallbang_visible", wallbang_material ) );
 	}
 
-	Must( AddMaterial( "textures/editor/glass", MaterialDescriptor {
+	Must( AddMaterial( "textures/editor/glass", MaterialConfig {
 		.rgbgen = { .args = { 0.0f, 0.35f, 0.8f } },
 		.texture = "white",
 		.world = true,

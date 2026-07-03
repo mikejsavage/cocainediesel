@@ -40,8 +40,10 @@ void RefreshMapList( Allocator * a ) {
 
 	Span< Span< const char > > files = ListDir( a, maps_dir, ListDir_DontRecurse );
 	defer {
-		FreeAll( a, files );
-		Free( a, files );
+		for( Span< const char > f : files ) {
+			Free( a, f.ptr );
+		}
+		Free( a, files.ptr );
 	};
 
 	for( Span< const char > map : files ) {

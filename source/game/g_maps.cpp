@@ -47,38 +47,20 @@ static bool AddGLTFModel( Span< const u8 > data, Span< const char > path ) {
 	return true;
 }
 
-static void LoadModelsRecursive( TempAllocator * temp, DynamicString * path, size_t skip ) {
-	Opaque< ListDirHandle > scan = BeginListDir( temp, path->c_str() );
-
-	const char * name;
-	bool dir;
-	while( ListDirNext( &scan, &name, &dir ) ) {
-		// skip ., .., .git, etc
-		if( name[ 0 ] == '.' )
-			continue;
-
-		size_t old_len = path->length();
-		path->append( "/{}", name );
-		if( dir ) {
-			LoadModelsRecursive( temp, path, skip );
-		}
-		else if( FileExtension( path->span() ) == ".glb" ) {
-			Span< u8 > data = ReadFileBinary( sys_allocator, path->c_str() );
-			AddGLTFModel( data, StripExtension( path->span() + skip ) );
-			Free( sys_allocator, data.ptr );
-		}
-		path->truncate( old_len );
-	}
-}
-
 void InitServerCollisionModels() {
 	TracyZoneScoped;
 
 	InitCollisionModelStorage( &collision_models );
 
 	TempAllocator temp = svs.frame_arena.temp();
-	DynamicString base( &temp, "{}/base", RootDirPath() );
-	LoadModelsRecursive( &temp, &base, base.length() + 1 );
+	Span< const char > base = temp.sv( "{}/base", RootDirPath() );
+	for( Span< const char > file : ListDir( &temp, base, ListDir_Recurse ) ) {
+		if( FileExtension( file ) == ".glb" ) {
+			Span< u8 > data = ReadFileBinary( sys_allocator, temp( "{}", file ) );
+			AddGLTFModel( data, StripExtension( file + base.n + 1 ) );
+			Free( sys_allocator, data.ptr );
+		}
+	}
 
 	maps.clear();
 }

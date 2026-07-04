@@ -20,11 +20,11 @@ void ShutdownKeys() { }
 void OSServerInit();
 bool OSServerShouldQuit();
 
-static bool RunUnitTests( bool break_on_fail ) {
+static bool RunTests( bool break_on_fail ) {
 	u32 passed = 0;
 	u32 failed = 0;
 
-	const UnitTest * test = UnitTest::tests_head;
+	const Test * test = Test::tests_head;
 	while( test != NULL ) {
 		Time before = Now();
 		bool ok = test->callback();
@@ -81,7 +81,7 @@ static void HangDetector( void * ) {
 
 int main( int argc, char ** argv ) {
 	if( !is_public_build && argc == 2 && ( StrEqual( argv[ 1 ], "--test" ) || StrEqual( argv[ 1 ], "--testdbg" ) ) ) {
-		return RunUnitTests( StrEqual( argv[ 1 ], "--testdbg" ) ) ? 0 : 1;
+		return RunTests( StrEqual( argv[ 1 ], "--testdbg" ) ) ? 0 : 1;
 	}
 
 	OSServerInit();

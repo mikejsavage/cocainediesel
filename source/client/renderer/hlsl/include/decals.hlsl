@@ -87,7 +87,7 @@ void AddDecals( float3 vertex_position, uint count, int tile_index, inout float4
 	}
 
 	float3 decal_normal = float3( ddx( accumulated_alpha ), ddy( accumulated_alpha ), 0.0f ) * accumulated_height;
-	decal_normal = mul( Adjugate( u_View[ 0 ].inverse_V ), decal_normal );
+	decal_normal = mul( transpose( Adjugate( u_View[ 0 ].inverse_V ) ), decal_normal );
 	surface_normal = normalize( surface_normal + decal_normal );
 
 	diffuse.rgb = diffuse.rgb * accumulated_alpha + accumulated_color;

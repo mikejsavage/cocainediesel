@@ -70,13 +70,11 @@ float ClampedTextureLoad( Texture2DMS< float > tex, int2 uv, uint sample_index )
 }
 
 float3x3 Adjugate( float3x4 m ) {
-	float3 col0 = m._m00_m10_m20;
-	float3 col1 = m._m01_m11_m21;
-	float3 col2 = m._m02_m12_m22;
+	float3x3 m33 = ( float3x3 ) m;
     return float3x3(
-		cross( col1, col2 ),
-		cross( col2, col0 ),
-		cross( col0, col1 )
+		cross( m33[ 1 ], m33[ 2 ] ),
+		cross( m33[ 2 ], m33[ 0 ] ),
+		cross( m33[ 0 ], m33[ 1 ] )
 	);
 }
 

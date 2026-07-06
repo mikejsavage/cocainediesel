@@ -54,7 +54,7 @@ VertexOutput VertexMain( VertexInput input ) {
 	VertexOutput output;
 	output.world_position = mul34( M, float4( input.position, 1.0f ) ).xyz;
 	output.position = mul( u_View[ 0 ].P, mul34( u_View[ 0 ].V, float4( output.world_position, 1.0f ) ) );
-	output.normal = mul( transpose( Adjugate( M ) ), input.normal );
+	output.normal = mul( Adjugate( M ), input.normal );
 #if TEXTURELESS
 	output.uv = 0.0f;
 #else

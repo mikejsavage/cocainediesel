@@ -1,7 +1,7 @@
 #include "qcommon/base.h"
 #include "qcommon/time.h"
-#include "client/renderer/renderer.h"
-#include "client/renderer/material.h"
+#include "client/renderer/api.h"
+#include "client/renderer/shader.h"
 
 static Mesh sky_mesh;
 

@@ -7,7 +7,6 @@
 #include "client/clay.h"
 #include "client/dev_tools.h"
 #include "client/keys.h"
-#include "client/renderer/renderer.h"
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
 #include "client/renderer/renderer.h"

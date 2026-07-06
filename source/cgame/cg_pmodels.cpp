@@ -22,7 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "client/assets.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
+#include "client/renderer/gltf.h"
 #include "client/renderer/model.h"
 #include "gameshared/collision.h"
 

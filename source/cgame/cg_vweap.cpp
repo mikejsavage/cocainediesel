@@ -18,7 +18,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
+#include "client/renderer/gltf.h"
+#include "client/renderer/model.h"
 
 static float SmoothStep( float t ) {
 	return t * t * ( 3.0f - 2.0f * t );

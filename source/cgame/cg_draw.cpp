@@ -1,5 +1,5 @@
-#include "cgame/cg_local.h"
-#include "client/renderer/renderer.h"
+#include "qcommon/base.h"
+#include "client/renderer/api.h"
 
 static Vec2 ClipToScreen( Vec2 clip ) {
 	clip.y = -clip.y;

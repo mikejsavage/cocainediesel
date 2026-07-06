@@ -1,5 +1,4 @@
 #include "client/client.h"
-#include "client/renderer/renderer.h"
 
 Cvar * vid_mode;
 static Cvar * vid_vsync;

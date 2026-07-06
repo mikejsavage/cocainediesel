@@ -4,7 +4,8 @@
 #include "client/client.h"
 #include "client/assets.h"
 #include "client/dev_tools.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
+#include "client/renderer/model.h"
 #include "client/renderer/skybox.h"
 #include "cgame/cg_local.h"
 

@@ -2,7 +2,7 @@
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "client/assets.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
 #include "client/renderer/model.h"
 #include "client/renderer/gltf.h"
 #include "gameshared/q_shared.h"

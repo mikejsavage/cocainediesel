@@ -3,9 +3,11 @@
 #include "qcommon/f16.h"
 #include "qcommon/fs.h"
 #include "qcommon/serialization.h"
+#include "qcommon/srgb.h"
 #include "qcommon/time.h"
 #include "client/assets.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
+#include "client/renderer/shader.h"
 #include "client/renderer/shader_shared.h"
 #include "cgame/cg_local.h"
 

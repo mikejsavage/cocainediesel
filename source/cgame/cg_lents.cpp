@@ -2,7 +2,9 @@
 #include "qcommon/array.h"
 #include "qcommon/time.h"
 #include "client/audio/api.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
+#include "client/renderer/gltf.h"
+#include "client/renderer/model.h"
 
 static float RandomRadians() {
 	return RandomUniformFloat( &cls.rng, 0.0f, Radians( 360.0f ) );

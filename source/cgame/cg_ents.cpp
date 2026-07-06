@@ -19,9 +19,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "qcommon/srgb.h"
 #include "qcommon/time.h"
 #include "client/audio/api.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
+#include "client/renderer/gltf.h"
+#include "client/renderer/model.h"
 #include "client/renderer/text.h"
 
 static void CG_UpdateEntities();

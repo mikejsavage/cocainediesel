@@ -18,10 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/base.h"
-#include "qcommon/fs.h"
 #include "qcommon/qcommon.h"
 #include "cgame/cg_local.h"
-#include "client/renderer/renderer.h"
 
 static bool CamIsFree;
 

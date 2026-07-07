@@ -429,8 +429,6 @@ struct MatrixPalettes {
 void EncodeDrawCall( Opaque< CommandBuffer > cmd_buf, const PipelineState & pipeline_state, Mesh mesh, Span< const GPUBuffer > buffers, DrawCallExtras extras );
 void EncodeIndirectDrawCall( Opaque< CommandBuffer > cmd_buf, const PipelineState & pipeline_state, Mesh mesh, GPUBuffer indirect_args, Span< const GPUBuffer > buffers );
 void EncodeScissor( Opaque< CommandBuffer > cmd_buf, Optional< Scissor > scissor );
-// void EncodeBindMesh( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
-// void EncodeBindMaterial( Opaque< CommandBuffer > cmd_buf, const DrawCall & draw );
 
 void Draw( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, Span< const GPUBuffer > buffers = { }, DrawCallExtras extras = DrawCallExtras() );
 void DrawIndirect( RenderPass pass, const PipelineState & pipeline_state, Mesh mesh, GPUBuffer indirect, Span< const GPUBuffer > buffers );

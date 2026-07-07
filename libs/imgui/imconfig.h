@@ -184,11 +184,6 @@ struct ImGuiShaderAndMaterial {
 		*this = { };
 	}
 
-	explicit operator intptr_t() const {
-		return 0;
-		// return intptr_t( material.x );
-	}
-
 	Optional< PoolHandle< RenderPipeline > > shader;
 	PoolHandle< BindGroup > material_bind_group;
 	Optional< GPUBuffer > buffer;

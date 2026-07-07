@@ -357,38 +357,38 @@ static void UnloadTexture( PoolHandle< Texture > texture ) {
 	UnloadTexture( &textures[ texture ] );
 }
 
-static Material MaterialFromConfig( Span< const char > name, const MaterialConfig & desc, Optional< PoolHandle< BindGroup > > old_bind_group = NONE ) {
+static Material MaterialFromConfig( Span< const char > name, const MaterialConfig & config, Optional< PoolHandle< BindGroup > > old_bind_group = NONE ) {
 	RenderPass pass = RenderPass_NonworldOpaque;
-	if( desc.blend_func == BlendFunc_Disabled ) {
-		pass = desc.outlined ? RenderPass_NonworldOpaqueOutlined : RenderPass_NonworldOpaque;
+	if( config.blend_func == BlendFunc_Disabled ) {
+		pass = config.outlined ? RenderPass_NonworldOpaqueOutlined : RenderPass_NonworldOpaque;
 	}
 	else {
 		pass = RenderPass_Transparent;
 	}
 
 	PoolHandle< RenderPipeline > shader = shaders.standard;
-	if( desc.shaded ) shader = shaders.standard_shaded;
-	if( desc.world ) {
+	if( config.shaded ) shader = shaders.standard_shaded;
+	if( config.world ) {
 		pass = RenderPass_WorldOpaque;
 		shader = shaders.world;
 	}
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	PoolHandle< Texture > texture = FindTexture( desc.texture );
+	PoolHandle< Texture > texture = FindTexture( config.texture );
 
 	return Material {
 		.name = name,
 		.render_pass = pass,
 		.shader = shader,
-		.bind_group = NewMaterialBindGroup( temp.sv( "{} bind group", name ), texture, desc.sampler, desc.properties, old_bind_group ),
-		.dynamic_state = desc.dynamic_state,
-		.rgbgen = desc.rgbgen,
-		.alphagen = desc.alphagen,
+		.bind_group = NewMaterialBindGroup( temp.sv( "{} bind group", name ), texture, config.sampler, config.properties, old_bind_group ),
+		.dynamic_state = config.dynamic_state,
+		.rgbgen = config.rgbgen,
+		.alphagen = config.alphagen,
 		.stuff_to_recreate_bind_group = {
-			.texture = desc.texture,
-			.sampler = desc.sampler,
-			.properties = desc.properties,
+			.texture = config.texture,
+			.sampler = config.sampler,
+			.properties = config.properties,
 		},
 		.texture = texture,
 	};

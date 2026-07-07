@@ -471,8 +471,8 @@ struct Material {
 
 	struct {
 		// used to recreate material bindgroups after texture hotloading
-		// TODO(mike 20260406): we should only need texture_name here, check
-		// whether we can do partial descriptor set updates in vulkan
+		// TODO(mike 20260406): Vulkan and Metal both support partial bindgroup updates and
+		// sampler/properties are from the material so it would let us get rid of them
 		StringHash texture;
 		SamplerType sampler;
 		MaterialProperties properties;

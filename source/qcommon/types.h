@@ -72,9 +72,6 @@ consteval u32 operator""_u32( unsigned long long value ) {
 }
 
 consteval u64 operator""_u64( unsigned long long value ) {
-	if( value > U64_MAX ) {
-		integer_constant_too_big();
-	}
 	return value;
 }
 

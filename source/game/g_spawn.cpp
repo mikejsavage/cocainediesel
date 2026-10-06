@@ -54,6 +54,7 @@ static constexpr EntitySpawnCallback spawn_callbacks[] = {
 	{ "misc_teleporter_dest", SP_target_position },
 
 	{ "model", SP_model },
+	{ "misc_model", SP_model }, // netradiant-custom hardcodes model entities to misc_model
 	{ "light", SP_light },
 	{ "decal", SP_decal },
 

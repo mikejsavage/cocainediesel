@@ -13,5 +13,10 @@
 	if exist %vcvarsall% call %vcvarsall% amd64
 )
 
+@set vcvarsall="C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat"
+@if not defined INCLUDE (
+	if exist %vcvarsall% call %vcvarsall% amd64
+)
+
 ggbuild\lua.exe make.lua %1 > build.ninja
 ggbuild\ninja.exe

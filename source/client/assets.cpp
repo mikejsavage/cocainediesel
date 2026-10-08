@@ -220,11 +220,41 @@ static size_t FileSize( HANDLE file ) {
 	return size.QuadPart;
 }
 
+static bool GetOverlappedResultSucks( HANDLE handle, OVERLAPPED * overlapped ) {
+	TracyZoneScoped;
+
+	// as per cblib, GOR( wait = true ) can erroneously signal success when it the
+	// IO is still pending unless you call GOR( wait = false ) first
+	{
+		DWORD r;
+		BOOL ok = GetOverlappedResult( handle, overlapped, &r, FALSE );
+		if( ok == 0 && GetLastError() != ERROR_IO_INCOMPLETE ) {
+			return false;
+		}
+	}
+
+	for( int attempt = 0; attempt < 100; attempt++ ) {
+		DWORD r;
+		BOOL ok = GetOverlappedResult( handle, overlapped, &r, TRUE );
+		if( ok == 0 )
+			return false;
+		if( r > 0 )
+			return true;
+
+		// fake success case
+		Assert( GetLastError() == ERROR_IO_PENDING );
+		if( attempt <= 1 ) YieldProcessor();
+		else if( attempt < 5 ) SwitchToThread();
+		else Sleep( attempt - 5 );
+	}
+
+	return false;
+}
+
 void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip ) {
 	TracyZoneScoped;
 
 	DynamicArray< LoadAssetResult > results( temp );
-
 	Span< HandleAndPath > handles_and_paths = AllocSpan< HandleAndPath >( temp, files.n );
 	{
 		TracyZoneScopedN( "Open files" );
@@ -288,9 +318,7 @@ void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip )
 				size_t prev = i - overlap;
 				if( handles_and_paths[ prev ].handle != INVALID_HANDLE_VALUE && buffers[ prev ].exists ) {
 					if( buffers[ prev ].value.n > 0 ) {
-						DWORD r;
-						BOOL ok = GetOverlappedResult( handles_and_paths[ prev ].handle, &overlapped[ prev % overlap ], &r, TRUE );
-						if( ok == 0 ) {
+						if( !GetOverlappedResultSucks( handles_and_paths[ prev ].handle, &overlapped[ prev % overlap ] ) ) {
 							CheckedVirtualFree( buffers[ prev ].value.ptr );
 							buffers[ prev ] = NONE;
 						}

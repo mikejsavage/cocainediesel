@@ -223,8 +223,12 @@ static size_t FileSize( HANDLE file ) {
 static bool GetOverlappedResultSucks( HANDLE handle, OVERLAPPED * overlapped ) {
 	TracyZoneScoped;
 
-	// as per cblib, GOR( wait = true ) can erroneously signal success when it the
-	// IO is still pending unless you call GOR( wait = false ) first
+	// as per cblib, GOR(wait = true) can erroneously signal success when the IO is still pending,
+	// so add a retry loop
+	// TODO(mike 20261008): I saw that happen on an HDD, where every file would take 10+ retries and
+	// the first file would take ~800ms (40 spins). probably better to just spin a few times then
+	// fall back to using synchronous reads for all subsequent files when this happens. using the
+	// fopen asset system took 12s vs 15s on that machine
 	{
 		DWORD r;
 		BOOL ok = GetOverlappedResult( handle, overlapped, &r, FALSE );

@@ -522,7 +522,6 @@ void CL_ReadPackets() {
 	}
 
 	if( source != cls.netchan.remoteAddress ) {
-		Assert( is_public_build );
 		return;
 	}
 

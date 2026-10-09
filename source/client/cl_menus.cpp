@@ -204,13 +204,13 @@ static void ClayButton( const Clay_BoundingBox & bounds, void * userdata ) {
 	if( pressed ) {
 		button_data->press_callback( bounds, button_data->userdata );
 		if constexpr ( !INSTANT_CLICK ) {
-			PlaySFX( "ui/sounds/click" );
+			PlaySFX( "sounds/ui/click" );
 		}
 	}
 
 	if( ImGui::IsItemHoveredThisFrame() ) {
 		if constexpr ( !INSTANT_CLICK ) {
-			PlaySFX( "ui/sounds/hover" );
+			PlaySFX( "sounds/ui/hover" );
 		}
 	}
 

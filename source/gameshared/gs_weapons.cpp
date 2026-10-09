@@ -248,7 +248,7 @@ static constexpr ItemState generic_gun_refire_state =
 	} );
 
 static UserCommandButton WeaponAttackBits( const WeaponDef * def ) {
-	return def->has_altfire ? ( Button_Attack1 | Button_Attack2 ) : Button_Attack1;
+	return def->altfire.exists ? ( Button_Attack1 | Button_Attack2 ) : Button_Attack1;
 }
 
 static constexpr ItemState generic_gun_states[] = {
@@ -262,7 +262,7 @@ static constexpr ItemState generic_gun_states[] = {
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
 		if( HasAnyBit( cmd->buttons, WeaponAttackBits( def ) ) ) {
-			bool altfire = def->has_altfire && HasAnyBit( cmd->buttons, Button_Attack2 );
+			bool altfire = def->altfire.exists && HasAnyBit( cmd->buttons, Button_Attack2 );
 			if( HasAmmo( ps->weapon, altfire, slot ) ) {
 				FireWeapon( gs, ps, cmd, false, altfire );
 
@@ -279,7 +279,7 @@ static constexpr ItemState generic_gun_states[] = {
 		}
 
 		bool has_ammo = HasAmmo( ps->weapon, false, slot );
-		if ( def->has_altfire ) {
+		if ( def->altfire.exists ) {
 			has_ammo = has_ammo || HasAmmo( ps->weapon, true, slot );
 		}
 
@@ -384,8 +384,8 @@ static constexpr ItemState generic_gun_states[] = {
 
 		slot->ammo++;
 
-		if( ( HasAnyBit( cmd->buttons, Button_Attack1 ) && HasAmmo( ps->weapon, false, slot ) ) || 
-			( GS_GetWeaponDef( ps->weapon )->has_altfire && HasAnyBit( cmd->buttons, Button_Attack2 ) && HasAmmo( ps->weapon, true, slot ) ) )
+		if( ( HasAnyBit( cmd->buttons, Button_Attack1 ) && HasAmmo( ps->weapon, false, slot ) ) ||
+			( GS_GetWeaponDef( ps->weapon )->altfire.exists && HasAnyBit( cmd->buttons, Button_Attack2 ) && HasAmmo( ps->weapon, true, slot ) ) )
 		{
 			return WeaponState_Idle;
 		}

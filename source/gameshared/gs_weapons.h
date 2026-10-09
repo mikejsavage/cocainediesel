@@ -30,7 +30,7 @@ struct WeaponDef {
 	struct Fire {
 		int ammo_use = 1;
 		int projectile_count = 1;
-		
+
 		u16 refire_time = 0;
 		s64 range = 0;
 
@@ -53,18 +53,9 @@ struct WeaponDef {
 		float spread = 0.f;
 	};
 
-	Properties properties;	
+	Properties properties;
 	Fire fire;
-	Fire altfire;
-	bool has_altfire;
-
-	constexpr WeaponDef(const Properties& prop, const Fire& f, bool has_alt_fire):
-		properties{prop}, fire{f}, altfire{f}, has_altfire{has_alt_fire}
-	{ }
-	
-	constexpr WeaponDef(const Properties& prop, const Fire& f1, const Fire& f2):
-		properties{prop}, fire{f1}, altfire{f2}, has_altfire{true}
-	{ }
+	Optional< Fire > altfire = NONE;
 };
 
 struct GadgetDef {

@@ -235,7 +235,7 @@ static void TraceBullet( Vec3 origin, Vec3 dir, Vec2 spread, float range, int ow
 	ViewVectors( dir, &right, &up );
 
 	trace_t trace, wallbang;
-	GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, spread, range, owner, 0 );
+	GS_TraceBullet( &client_gs, &trace, &wallbang, NULL, origin, dir, right, up, spread, range, owner, 0 );
 
 	if( trace.HitSomething() ) {
 		if( trace.ent > 0 && cg_entities[ trace.ent ].current.type == ET_PLAYER ) {

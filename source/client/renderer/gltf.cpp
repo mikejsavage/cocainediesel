@@ -70,7 +70,7 @@ static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf
 
 	StringHash material = prim.material != NULL ? StringHash( prim.material->name ) : EMPTY_HASH;
 	const EditorMaterial * editor_material = prim.material != NULL ? FindEditorMaterial( material ) : NULL;
-	if( editor_material != NULL )
+	if( editor_material != NULL && !editor_material->visible )
 		return;
 
 	Mesh mesh = { };

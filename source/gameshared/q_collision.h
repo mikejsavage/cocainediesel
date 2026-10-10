@@ -13,16 +13,17 @@ enum SolidBits : u16 {
 	Solid_Wallbangable = 1 << 3,
 	Solid_Ladder = 1 << 4,
 	Solid_Trigger = 1 << 5,
+	Solid_Fence = 1 << 6,
 
-	//this should be changed so that only Team enum stays
-	Solid_PlayerTeamOne = 1 << 6,
-	Solid_PlayerTeamTwo = 1 << 7,
-	Solid_PlayerTeamThree = 1 << 8,
-	Solid_PlayerTeamFour = 1 << 9,
-	Solid_PlayerTeamFive = 1 << 10,
-	Solid_PlayerTeamSix = 1 << 11,
-	Solid_PlayerTeamSeven = 1 << 12,
-	Solid_PlayerTeamEight = 1 << 13,
+	// this should be changed so that only Team enum stays
+	Solid_PlayerTeamOne = 1 << 7,
+	Solid_PlayerTeamTwo = 1 << 8,
+	Solid_PlayerTeamThree = 1 << 9,
+	Solid_PlayerTeamFour = 1 << 10,
+	Solid_PlayerTeamFive = 1 << 11,
+	Solid_PlayerTeamSix = 1 << 12,
+	Solid_PlayerTeamSeven = 1 << 13,
+	Solid_PlayerTeamEight = 1 << 14,
 
 
 	Solid_MaskGenerator

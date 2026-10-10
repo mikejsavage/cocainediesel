@@ -24,13 +24,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/gs_public.h"
 #include "gameshared/gs_weapons.h"
 
-void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, Vec3 start, Vec3 dir, Vec3 right, Vec3 up, Vec2 spread, int range, int ignore, int timeDelta ) {
+void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, trace_t * fence_trace, Vec3 start, Vec3 dir, Vec3 right, Vec3 up, Vec2 spread, int range, int ignore, int timeDelta ) {
 	Vec3 end = start + ( dir + right * spread.x + up * spread.y ) * range;
 
 	*trace = gs->api.Trace( start, MinMax3( 0.0f ), end, ignore, SolidMask_WallbangShot, timeDelta );
 
 	if( wallbang_trace != NULL ) {
 		*wallbang_trace = gs->api.Trace( start, MinMax3( 0.0f ), trace->endpos, ignore, Solid_Wallbangable, timeDelta );
+	}
+	if( fence_trace != NULL ) {
+		*fence_trace = gs->api.Trace( start, MinMax3( 0.0f ), trace->endpos, ignore, Solid_Fence, timeDelta );
 	}
 }
 

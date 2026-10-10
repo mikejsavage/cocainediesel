@@ -423,6 +423,8 @@ static constexpr WeaponDef weapon_defs[] = {
 			.knockback = 30,
 
 			.speed = 4500,
+
+			.projectile_fencebang = true,
 		},
 	},
 
@@ -596,6 +598,8 @@ static constexpr WeaponDef weapon_defs[] = {
 			.knockback = 50,
 
 			.speed = 5500,
+
+			.projectile_fencebang = true,
 		},
 	},
 

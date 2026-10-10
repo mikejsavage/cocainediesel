@@ -5,7 +5,7 @@
 
 struct EditorMaterial {
 	StringHash name;
-	bool visible_in_maps;
+	bool visible;
 	SolidBits solidity;
 };
 

@@ -165,6 +165,7 @@ struct ProjectileStats {
 	Vec2 spread;
 	int splash_radius;
 	DamageType damage_type;
+	bool fencebang;
 };
 
 static ProjectileStats WeaponProjectileStats( edict_t * self, WeaponType weapon, bool alt, bool spread = true ) {
@@ -193,6 +194,7 @@ static ProjectileStats WeaponProjectileStats( edict_t * self, WeaponType weapon,
 		.spread = spread ? RandomSpreadPattern( self->r.client->ucmd.entropy, spreadness ) : Vec2( 0.f, 0.f ),
 		.splash_radius = fire->splash_radius,
 		.damage_type = DamageType( weapon, alt ),
+		.fencebang = fire->projectile_fencebang,
 	};
 }
 
@@ -254,7 +256,7 @@ static edict_t * FireProjectile(
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
 
 	projectile->s.override_collision_model = CollisionModelAABB( MinMax3( Vec3( 0.0f ), Vec3( 0.0f ) ) );
-	projectile->s.solidity = SolidMask_Shot;
+	projectile->s.solidity = SolidMask_Shot | ( stats.fencebang ? Solid_NotSolid : Solid_Fence );
 	projectile->s.svflags &= ~SVF_NOCLIENT;
 	projectile->gravity_scale = stats.gravity_scale;
 	projectile->restitution = stats.restitution;
@@ -360,8 +362,8 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, EulerDegrees3 angles, int
 
 	Vec2 spread = RandomSpreadPattern( self->r.client->ucmd.entropy, spreadness );
 
-	trace_t trace, wallbang;
-	GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, spread, fire->range, ENTNUM( self ), timeDelta );
+	trace_t trace, wallbang, fence;
+	GS_TraceBullet( &server_gs, &trace, &wallbang, &fence, start, dir, right, up, spread, fire->range, ENTNUM( self ), timeDelta );
 	if( trace.HitSomething() && game.edicts[ trace.ent ].takedamage ) {
 		int dmgflags = 0;
 		float damage = fire->damage;
@@ -377,6 +379,10 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, EulerDegrees3 angles, int
 
 		G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, damage, fire->knockback, dmgflags, weapon );
 	}
+
+	if( fence.HitSomething() ) {
+		G_PositionedSound( fence.contact, "loadout/_sounds/fence_rattle" );
+	}
 }
 
 static void W_Fire_Shotgun( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, WeaponType weapon, bool alt ) {
@@ -388,11 +394,14 @@ static void W_Fire_Shotgun( edict_t * self, Vec3 start, EulerDegrees3 angles, in
 	float damage_dealt[ MAX_CLIENTS + 1 ] = { };
 	Vec3 hit_locations[ MAX_CLIENTS + 1 ] = { }; // arbitrary trace end pos to use as blood origin
 
+	Vec3 fence_average = Vec3( 0.0f );
+	int fence_hits = 0;
+
 	for( int i = 0; i < fire->projectile_count; i++ ) {
 		Vec2 spread = FixedSpreadPattern( i, fire->spread );
 
-		trace_t trace, wallbang;
-		GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, spread, fire->range, ENTNUM( self ), timeDelta );
+		trace_t trace, wallbang, fence;
+		GS_TraceBullet( &server_gs, &trace, &wallbang, &fence, start, dir, right, up, spread, fire->range, ENTNUM( self ), timeDelta );
 		if( trace.HitSomething() && game.edicts[ trace.ent ].takedamage ) {
 			int dmgflags = 0;
 			float damage = fire->damage;
@@ -402,6 +411,11 @@ static void W_Fire_Shotgun( edict_t * self, Vec3 start, EulerDegrees3 angles, in
 				damage *= fire->wallbang_damage_scale;
 			}
 
+			if( fence.HitSomething() ) {
+				fence_average += fence.contact;
+				fence_hits++;
+			}
+
 			G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, damage, fire->knockback, dmgflags, weapon );
 
 			if( !G_IsTeamDamage( &game.edicts[ trace.ent ].s, &self->s ) && trace.ent <= MAX_CLIENTS ) {
@@ -409,6 +423,10 @@ static void W_Fire_Shotgun( edict_t * self, Vec3 start, EulerDegrees3 angles, in
 				hit_locations[ trace.ent ] = trace.endpos;
 			}
 		}
+	}
+
+	if( fence_hits > 0 ) {
+		G_PositionedSound( fence_average / fence_hits, "loadout/_sounds/fence_rattle" );
 	}
 
 	for( int i = 1; i <= MAX_CLIENTS; i++ ) {

@@ -8,6 +8,8 @@ constexpr const EditorMaterial editor_materials[] = {
 	{ "weaponclip", false, Solid_WeaponClip },
 	{ "trigger", false, SolidMask_Everything },
 	{ "wallbangable", true, Solid_World | Solid_Wallbangable | Solid_PlayerClip },
+	{ "bang_wall", false, Solid_World | Solid_Wallbangable | Solid_PlayerClip }, // second wallbang material for model clips
+	{ "bang_fence", false, Solid_World | Solid_Fence | Solid_PlayerClip },
 	{ "door", true, Solid_World | Solid_WeaponClip },
 };
 

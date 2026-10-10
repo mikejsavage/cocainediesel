@@ -58,8 +58,7 @@ void CG_CheckPredictionError() {
 	if( cg.predictedGroundEntity != -1 ) {
 		const SyncEntityState * ent = &cg_entities[ cg.predictedGroundEntity ].current;
 		if( ent->linearMovement ) {
-			Vec3 move;
-			GS_LinearMovementDelta( ent, cg.oldFrame.serverTime, cg.frame.serverTime, &move );
+			Vec3 move = GS_LinearMovementDelta( ent, cg.oldFrame.serverTime, cg.frame.serverTime );
 			origin = cg.predictedOrigins[frame] + move;
 		}
 	}
@@ -298,9 +297,8 @@ void CG_PredictMovement() {
 	if( pm.groundentity != -1 ) {
 		const SyncEntityState * ent = &cg_entities[pm.groundentity].current;
 		if( ent->linearMovement ) {
-			Vec3 move;
 			s64 serverTime = client_gs.gameState.paused ? cg.frame.serverTime : cl.serverTime + cgs.extrapolationTime;
-			GS_LinearMovementDelta( ent, cg.frame.serverTime, serverTime, &move );
+			Vec3 move = GS_LinearMovementDelta( ent, cg.frame.serverTime, serverTime );
 			cg.predictedPlayerState.pmove.origin = cg.predictedPlayerState.pmove.origin + move;
 		}
 	}

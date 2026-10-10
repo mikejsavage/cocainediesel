@@ -97,8 +97,8 @@ constexpr bool ISWALKABLEPLANE( Vec3 normal ) { return normal.z >= 0.7f; }
 
 Vec3 GS_ClipVelocity( Vec3 in, Vec3 normal );
 
-int GS_LinearMovement( const SyncEntityState *ent, int64_t time, Vec3 * dest );
-void GS_LinearMovementDelta( const SyncEntityState *ent, int64_t oldTime, int64_t curTime, Vec3 * dest );
+Vec3 GS_LinearMovement( const SyncEntityState * ent, int64_t time );
+Vec3 GS_LinearMovementDelta( const SyncEntityState * ent, int64_t oldTime, int64_t curTime );
 
 //==============================================================
 //

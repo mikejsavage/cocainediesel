@@ -22,34 +22,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/gs_synctypes.h"
 
 Vec3 GS_ClipVelocity( Vec3 in, Vec3 normal ) {
-	return in - normal * Dot( in, normal );
+	const float overbounce = 1.0001f;
+	float dot = Dot( in, normal );
+	if( dot < 0.0f ) {
+		dot *= overbounce;
+	}
+	else {
+		dot /= overbounce;
+	}
+	return in - normal * dot;
 }
 
-int GS_LinearMovement( const SyncEntityState *ent, int64_t time, Vec3 * dest ) {
-	int moveTime = time - ent->linearMovementTimeStamp;
-	if( moveTime < 0 ) {
-		moveTime = 0;
+Vec3 GS_LinearMovement( const SyncEntityState * ent, int64_t time ) {
+	int64_t moveTime = Max2( s64( 0 ), time - ent->linearMovementTimeStamp );
+
+	if( ent->linearMovementDuration == 0 ) {
+		return ent->linearMovementBegin + ent->linearMovementVelocity * moveTime * 0.001f;
 	}
 
-	if( ent->linearMovementDuration ) {
-		if( moveTime > (int)ent->linearMovementDuration ) {
-			moveTime = ent->linearMovementDuration;
-		}
-
-		Vec3 dist = ent->linearMovementEnd - ent->linearMovementBegin;
-		float moveFrac = Clamp01( (float)moveTime / (float)ent->linearMovementDuration );
-		*dest = ent->linearMovementBegin + dist * moveFrac;
-	} else {
-		float moveFrac = moveTime * 0.001f;
-		*dest = ent->linearMovementBegin + ent->linearMovementVelocity * moveFrac;
-	}
-
-	return moveTime;
+	moveTime = Min2( moveTime, s64( ent->linearMovementDuration ) );
+	float t = float( moveTime ) / float( ent->linearMovementDuration );
+	return Lerp( ent->linearMovementBegin, t, ent->linearMovementEnd );
 }
 
-void GS_LinearMovementDelta( const SyncEntityState *ent, int64_t oldTime, int64_t curTime, Vec3 * dest ) {
-	Vec3 p1, p2;
-	GS_LinearMovement( ent, oldTime, &p1 );
-	GS_LinearMovement( ent, curTime, &p2 );
-	*dest = p2 - p1;
+Vec3 GS_LinearMovementDelta( const SyncEntityState * ent, int64_t oldTime, int64_t curTime ) {
+	return GS_LinearMovement( ent, curTime ) - GS_LinearMovement( ent, oldTime );
 }

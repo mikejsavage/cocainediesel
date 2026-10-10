@@ -293,8 +293,7 @@ static void SV_Physics_Pusher( edict_t *ent ) {
 	if( ent->velocity != Vec3( 0.0f ) || ent->avelocity != EulerDegrees3( 0.0f, 0.0f, 0.0f ) ) {
 		Vec3 move;
 		if( ent->s.linearMovement ) {
-			GS_LinearMovement( &ent->s, svs.gametime, &move );
-			move -= ent->s.origin;
+			move = GS_LinearMovement( &ent->s, svs.gametime ) - ent->s.origin;
 		}
 		else {
 			move = ent->velocity * FRAMETIME;

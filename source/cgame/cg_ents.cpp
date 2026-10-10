@@ -26,12 +26,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static void CG_UpdateEntities();
 
-static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
-	constexpr int MIN_DRAWDISTANCE_FIRSTPERSON = 86;
-	constexpr int MIN_DRAWDISTANCE_THIRDPERSON = 52;
-
+static bool CG_UpdateLinearProjectilePosition( centity_t * cent ) {
 	SyncEntityState * state = &cent->current;
-
 	if( !state->linearMovement ) {
 		return false;
 	}
@@ -53,25 +49,7 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 	// 	}
 	// }
 
-	Vec3 origin;
-	int moveTime = GS_LinearMovement( state, serverTime, &origin );
-	state->origin = origin;
-
-	if( moveTime < 0 ) {
-		// when flyTime is negative don't offset it backwards more than PROJECTILE_PRESTEP value
-		// FIXME: is this still valid?
-		float maxBackOffset;
-
-		if( ISVIEWERENTITY( state->ownerNum ) ) {
-			maxBackOffset = PROJECTILE_PRESTEP - MIN_DRAWDISTANCE_FIRSTPERSON;
-		} else {
-			maxBackOffset = PROJECTILE_PRESTEP - MIN_DRAWDISTANCE_THIRDPERSON;
-		}
-
-		if( Length( state->origin - state->origin2 ) > maxBackOffset ) {
-			return false;
-		}
-	}
+	state->origin = GS_LinearMovement( state, serverTime );
 
 	return true;
 }
@@ -317,7 +295,7 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	return true;
 }
 
-void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
+static void CG_ExtrapolateLinearProjectile( centity_t * cent ) {
 	cent->linearProjectileCanDraw = CG_UpdateLinearProjectilePosition( cent );
 
 	cent->interpolated.origin = cent->current.origin;
@@ -871,7 +849,7 @@ void CG_LerpEntities() {
 * CG_UpdateEntities
 * Called at receiving a new serverframe. Sets up the model, type, etc to be drawn later on
 */
-void CG_UpdateEntities() {
+static void CG_UpdateEntities() {
 	TracyZoneScoped;
 
 	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {

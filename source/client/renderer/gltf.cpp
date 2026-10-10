@@ -138,6 +138,7 @@ static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf
 	mesh.num_vertices = prim.indices->count;
 
 	render_data->nodes[ node_idx ].material = prim.material == NULL ? EMPTY_HASH : StringHash( prim.material->name );
+	render_data->nodes[ node_idx ].double_sided = prim.material == NULL ? false : prim.material->double_sided;
 	render_data->nodes[ node_idx ].mesh = mesh;
 }
 
@@ -671,23 +672,27 @@ static bool OddNumberOfReflections( const Mat3x4 & transform ) {
 	return determinant3 < 0.0f;
 }
 
-static CullFace FlipCullFace( CullFace cull ) {
-	switch( cull ) {
-		case CullFace_Back: return CullFace_Front;
-		case CullFace_Front: return CullFace_Back;
-		case CullFace_Disabled: return CullFace_Disabled;
-	}
-
-	Assert( false );
-	return { };
-}
-
 static PoolHandle< RenderPipeline > SkinnedShader( PoolHandle< RenderPipeline > shader ) {
 	if( shader == shaders.standard )
 		return shaders.standard_skinned;
 	if( shader == shaders.standard_shaded )
 		return shaders.standard_skinned_shaded;
 	return shader;
+}
+
+static CullFace NodeCullFace( const GLTFRenderData::Node * node, const PipelineState & pipeline, bool flip_cull_face ) {
+	if( node->double_sided )
+		return CullFace_Disabled;
+
+	if( flip_cull_face ) {
+		if( pipeline.dynamic_state.cull_face == CullFace_Back )
+			return CullFace_Front;
+		if( pipeline.dynamic_state.cull_face == CullFace_Front )
+			return CullFace_Back;
+		return CullFace_Disabled;
+	}
+
+	return pipeline.dynamic_state.cull_face;
 }
 
 static void DrawModelNode( const GLTFRenderData::Node * node, GPUBuffer model_uniforms, Optional< GPUBuffer > pose_uniforms, Vec4 entity_color, bool flip_cull_face ) {
@@ -707,14 +712,12 @@ static void DrawModelNode( const GLTFRenderData::Node * node, GPUBuffer model_un
 		pipeline.shader = shaders.standard_flat_shaded;
 	}
 
-	if( flip_cull_face ) {
-		pipeline.dynamic_state.cull_face = FlipCullFace( pipeline.dynamic_state.cull_face );
-	}
+	pipeline.dynamic_state.cull_face = NodeCullFace( node, pipeline, flip_cull_face );
 
 	Draw( pass, pipeline, node->mesh, buffers.span() );
 }
 
-static void DrawShadowsNode( const Mesh & mesh, GPUBuffer model_uniforms, Optional< GPUBuffer > pose_uniforms, bool flip_cull_face ) {
+static void DrawShadowsNode( const GLTFRenderData::Node * node, GPUBuffer model_uniforms, Optional< GPUBuffer > pose_uniforms, bool flip_cull_face ) {
 	TracyZoneScoped;
 
 	PipelineState pipeline = { .shader = pose_uniforms.exists ? shaders.shadowmap_skinned : shaders.shadowmap };
@@ -724,16 +727,14 @@ static void DrawShadowsNode( const Mesh & mesh, GPUBuffer model_uniforms, Option
 		buffers.must_add( pose_uniforms.value );
 	}
 
-	if( flip_cull_face ) {
-		pipeline.dynamic_state.cull_face = FlipCullFace( pipeline.dynamic_state.cull_face );
-	}
+	pipeline.dynamic_state.cull_face = NodeCullFace( node, pipeline, flip_cull_face );
 
 	for( u32 i = 0; i < frame_static.shadow_parameters.entity_cascades; i++ ) {
-		Draw( RenderPass_ShadowmapCascade0 + i, pipeline, mesh, buffers.span() );
+		Draw( RenderPass_ShadowmapCascade0 + i, pipeline, node->mesh, buffers.span() );
 	}
 }
 
-static void DrawOutlinesNode( const Mesh & mesh, GPUBuffer model_uniforms, GPUBuffer outline_uniforms, Optional< GPUBuffer > pose_uniforms, bool flip_cull_face ) {
+static void DrawOutlinesNode( const GLTFRenderData::Node * node, GPUBuffer model_uniforms, GPUBuffer outline_uniforms, Optional< GPUBuffer > pose_uniforms, bool flip_cull_face ) {
 	TracyZoneScoped;
 
 	PipelineState pipeline = {
@@ -741,16 +742,14 @@ static void DrawOutlinesNode( const Mesh & mesh, GPUBuffer model_uniforms, GPUBu
 		.dynamic_state = { .cull_face = CullFace_Front },
 	};
 
-	if( flip_cull_face ) {
-		pipeline.dynamic_state.cull_face = FlipCullFace( pipeline.dynamic_state.cull_face );
-	}
+	pipeline.dynamic_state.cull_face = NodeCullFace( node, pipeline, flip_cull_face );
 
 	BoundedDynamicArray< GPUBuffer, 3 > buffers = { model_uniforms, outline_uniforms };
 	if( pose_uniforms.exists ) {
 		buffers.must_add( pose_uniforms.value );
 	}
 
-	Draw( RenderPass_NonworldOpaque, pipeline, mesh, buffers.span() );
+	Draw( RenderPass_NonworldOpaque, pipeline, node->mesh, buffers.span() );
 }
 
 static void DrawSilhouetteNode( const Mesh & mesh, GPUBuffer model_uniforms, GPUBuffer silhouette_uniforms, Optional< GPUBuffer > pose_uniforms ) {
@@ -814,11 +813,11 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 		}
 
 		if( config.cast_shadows ) {
-			DrawShadowsNode( node->mesh, model_uniforms, pose_uniforms, flip_cull_face );
+			DrawShadowsNode( node, model_uniforms, pose_uniforms, flip_cull_face );
 		}
 
 		if( outline_uniforms.exists ) {
-			DrawOutlinesNode( node->mesh, model_uniforms, outline_uniforms.value, pose_uniforms, flip_cull_face );
+			DrawOutlinesNode( node, model_uniforms, outline_uniforms.value, pose_uniforms, flip_cull_face );
 		}
 
 		if( silhouette_uniforms.exists ) {

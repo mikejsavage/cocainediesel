@@ -65,6 +65,7 @@ struct GLTFRenderData {
 		Transform local_transform;
 
 		StringHash material;
+		bool double_sided;
 		Mesh mesh;
 
 		u8 parent;

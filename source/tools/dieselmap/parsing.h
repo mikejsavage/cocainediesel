@@ -12,7 +12,6 @@ struct ParsedKeyValue {
 
 struct ParsedBrushFace {
 	Vec3 plane[ 3 ];
-	Span< const char > material;
 	u64 material_hash;
 	Mat3x4 uv_basis_transform;
 };
@@ -37,7 +36,6 @@ struct ParsedPatch {
 	const char * first_char;
 	size_t line_number;
 
-	Span< const char > material;
 	u64 material_hash;
 	u32 w, h;
 	ParsedControlPoint control_points[ 1024 ];

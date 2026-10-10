@@ -4,8 +4,7 @@
 #include "gameshared/q_collision.h"
 
 struct EditorMaterial {
-	StringHash radiant_name;
-	StringHash short_name;
+	StringHash name;
 	bool visible_in_maps;
 	SolidBits solidity;
 };

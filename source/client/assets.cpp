@@ -15,10 +15,10 @@
 #include "nanosort/nanosort.hpp"
 
 struct Asset {
-	Span< const char > path;
-	Span< const u8 > data;
+	Span< char > path;
+	Span< u8 > data;
 	bool compressed;
-	bool in_virtual_alloc;
+	bool virtual_free;
 };
 
 static constexpr u32 MAX_ASSETS = 4096;
@@ -41,9 +41,9 @@ enum IsCompressedBool : bool {
 	IsCompressed_Yes = true,
 };
 
-enum InVirtualAlloc : bool {
-	InVirtualAlloc_No = false,
-	InVirtualAlloc_Yes = true,
+enum UseVirtualFree : bool {
+	UseVirtualFree_No = false,
+	UseVirtualFree_Yes = true,
 };
 
 #if PLATFORM_WINDOWS
@@ -51,17 +51,29 @@ enum InVirtualAlloc : bool {
 #include "qcommon/platform/windows_mini_windows_h.h"
 #include "qcommon/platform/windows_utf8.h"
 
-static u8 * virtual_alloc;
+static void CheckedVirtualFree( void * ptr ) {
+	if( VirtualFree( ptr, 0, MEM_RELEASE ) == 0 ) {
+		FatalGLE( "VirtualFree" );
+	}
+}
 
 #endif
 
 static void FreeAssetData( Asset * asset ) {
-	if( !asset->in_virtual_alloc ) {
-		Free( sys_allocator, asset->data.ptr );
+#if PLATFORM_WINDOWS
+	if( asset->virtual_free ) {
+		// this can be NULL because VirtualAlloc( 0 ) returns NULL
+		if( asset->data.ptr != NULL ) {
+			CheckedVirtualFree( asset->data.ptr );
+		}
+		return;
 	}
+#endif
+
+	Free( sys_allocator, asset->data.ptr );
 }
 
-static void AddAsset( Span< const char > path, u64 hash, Span< const u8 > data, IsCompressedBool compressed, bool in_virtual_alloc ) {
+static void AddAsset( Span< const char > path, u64 hash, Span< u8 > data, IsCompressedBool compressed, UseVirtualFree virtual_free ) {
 	TracyZoneScoped;
 
 	Lock( &assets_mutex );
@@ -88,7 +100,7 @@ static void AddAsset( Span< const char > path, u64 hash, Span< const u8 > data, 
 
 	a->data = data;
 	a->compressed = compressed;
-	a->in_virtual_alloc = in_virtual_alloc;
+	a->virtual_free = virtual_free;
 
 	modified_asset_paths[ num_modified_assets ] = a->path;
 	num_modified_assets++;
@@ -102,8 +114,8 @@ static void AddAsset( Span< const char > path, u64 hash, Span< const u8 > data, 
 struct DecompressAssetJob {
 	Span< char > path;
 	u64 hash;
-	Span< const u8 > compressed;
-	bool in_virtual_alloc;
+	Span< u8 > compressed;
+	bool virtual_free;
 };
 
 static void DecompressAsset( TempAllocator * temp, void * data ) {
@@ -116,24 +128,31 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 	Span< char > path_with_zst = temp->sv( "{}.zst", job->path );
 	Span< u8 > decompressed;
 	if( Decompress( path_with_zst, sys_allocator, job->compressed, &decompressed ) ) {
-		AddAsset( job->path, job->hash, decompressed, IsCompressed_Yes, InVirtualAlloc_No );
+		AddAsset( job->path, job->hash, decompressed, IsCompressed_Yes, UseVirtualFree_No );
 	}
 
 	Free( sys_allocator, job->path.ptr );
 
-	if( !job->in_virtual_alloc ) {
+#if PLATFORM_WINDOWS
+	if( job->virtual_free ) {
+		CheckedVirtualFree( job->compressed.ptr );
+	}
+	else {
 		Free( sys_allocator, job->compressed.ptr );
 	}
+#else
+	Free( sys_allocator, job->compressed.ptr );
+#endif
 
 	Free( sys_allocator, job );
 }
 
-static void LaunchDecompressAssetJob( Span< const char > path, u64 hash, Span< const u8 > compressed, InVirtualAlloc in_virtual_alloc ) {
+static void LaunchDecompressAssetJob( Span< const char > path, u64 hash, Span< u8 > compressed, UseVirtualFree virtual_free ) {
 	DecompressAssetJob * job = Alloc< DecompressAssetJob >( sys_allocator );
 	job->path = CloneSpan( sys_allocator, path );
 	job->hash = hash;
 	job->compressed = compressed;
-	job->in_virtual_alloc = in_virtual_alloc;
+	job->virtual_free = virtual_free;
 	ThreadPoolDo( DecompressAsset, job );
 }
 
@@ -173,10 +192,10 @@ static void LoadAsset( TempAllocator * temp, Span< const char > game_path, const
 		return;
 
 	if( compressed ) {
-		LaunchDecompressAssetJob( game_path_no_zst, hash, contents, InVirtualAlloc_No );
+		LaunchDecompressAssetJob( game_path_no_zst, hash, contents, UseVirtualFree_No );
 	}
 	else {
-		AddAsset( game_path, hash, contents, IsCompressed_No, InVirtualAlloc_No );
+		AddAsset( game_path, hash, contents, IsCompressed_No, UseVirtualFree_No );
 	}
 }
 
@@ -206,12 +225,11 @@ void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip )
 		size_t completion_key;
 
 		// out
-		size_t file_size;
-		size_t file_offset;
 		HANDLE file_handle;
 		HANDLE file_iocp;
-		bool reading;
+
 		OVERLAPPED overlapped;
+		Optional< Span< u8 > > buffer;
 	};
 
 	Span< LoadAssetJob > jobs = AllocSpan< LoadAssetJob >( temp, files.n );
@@ -227,6 +245,7 @@ void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip )
 		}
 
 		ParallelFor( jobs, []( TempAllocator * temp, void * data ) {
+			// TODO: handle failures in these
 			LoadAssetJob * job = ( LoadAssetJob * ) data;
 			wchar_t * wide_path = UTF8ToWide( temp, job->path );
 
@@ -240,43 +259,32 @@ void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip )
 				FatalGLE( "CreateIoCompletionPort" );
 			}
 
-			job->file_size = FileSize( job->file_handle );
-			size_t aligned_size = AlignPow2( job->file_size, 4096 );
-		} );
-	}
+			size_t actual_size = FileSize( job->file_handle );
+			size_t aligned_size = AlignPow2( actual_size, 4096 );
 
-	size_t required_size = 0;
-	for( LoadAssetJob & job : jobs ) {
-		job.file_offset = required_size;
-		required_size += AlignPow2( job.file_size, 4096 );
-	}
-
-	// there's no particular reason to use VirtualAlloc beyond it returning 4k aligned allocs
-	virtual_alloc = ( u8 * ) VirtualAlloc( NULL, required_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE );
-	if( virtual_alloc == NULL ) {
-		FatalGLE( "VirtualAlloc" );
-	}
-
-	{
-		TracyZoneScopedN( "Start reads" );
-		ParallelFor( jobs, []( TempAllocator * temp, void * data ) {
-			LoadAssetJob * job = ( LoadAssetJob * ) data;
-
-			if( job->file_size == 0 ) {
-				job->reading = true;
+			// VirtualAlloc( 0 ) fails so return a dummy but non-NONE Span here
+			if( actual_size == 0 ) {
+				job->buffer = Span< u8 >();
+				return;
 			}
-			else if( job->file_size > 0 ) {
-				BOOL ok = ReadFile( job->file_handle, virtual_alloc + job->file_offset, AlignPow2( job->file_size, 4096 ), NULL, &job->overlapped );
-				if( ok == TRUE || GetLastError() == ERROR_IO_PENDING ) {
-					job->reading = true;
-				}
+
+			// there's no particular reason to use VirtualAlloc beyond it returning 4k aligned allocs
+			job->buffer = Span< u8 >( ( u8 * ) VirtualAlloc( NULL, aligned_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE ), actual_size );
+			if( job->buffer.value.ptr == NULL ) {
+				FatalGLE( "VirtualAlloc" );
+			}
+
+			BOOL ok = ReadFile( job->file_handle, job->buffer->ptr, AlignPow2( job->buffer->n, 4096 ), NULL, &job->overlapped );
+			if( ok != TRUE && GetLastError() != ERROR_IO_PENDING ) {
+				CheckedVirtualFree( job->buffer->ptr );
+				job->buffer = NONE;
 			}
 		} );
 	}
 
 	size_t num_reads = 0;
 	for( const LoadAssetJob & job : jobs ) {
-		if( job.reading && job.file_size > 0 ) {
+		if( job.buffer.exists ) {
 			num_reads++;
 		}
 	}
@@ -302,13 +310,12 @@ void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip )
 			const LoadAssetJob & job = jobs[ key ];
 			Span< const char > game_path = MakeSpan( job.path + skip );
 			Span< const char > ext = FileExtension( game_path );
-			Span< const u8 > contents = Span< const u8 >( virtual_alloc + job.file_offset, job.file_size );
 			if( ext == ".zst" ) {
 				game_path.n -= ext.n;
-				LaunchDecompressAssetJob( game_path, Hash64( game_path ), contents, InVirtualAlloc_Yes );
+				LaunchDecompressAssetJob( game_path, Hash64( game_path ), job.buffer.value, UseVirtualFree_Yes );
 			}
 			else {
-				AddAsset( game_path, Hash64( game_path ), contents, IsCompressed_No, InVirtualAlloc_Yes );
+				AddAsset( game_path, Hash64( game_path ), job.buffer.value, IsCompressed_No, UseVirtualFree_Yes );
 			}
 		}
 	}
@@ -420,12 +427,6 @@ void ShutdownAssets() {
 		Free( sys_allocator, assets[ i ].path.ptr );
 		FreeAssetData( &assets[ i ] );
 	}
-
-#if PLATFORM_WINDOWS
-	if( VirtualFree( virtual_alloc, 0, MEM_RELEASE ) == 0 ) {
-		FatalGLE( "VirtualFree" );
-	}
-#endif
 
 	DeleteFSChangeMonitor( sys_allocator, fs_change_monitor );
 

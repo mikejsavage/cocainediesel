@@ -15,8 +15,8 @@
 #include "nanosort/nanosort.hpp"
 
 struct Asset {
-	Span< char > path;
-	Span< u8 > data;
+	Span< const char > path;
+	Span< const u8 > data;
 	bool compressed;
 	bool virtual_free;
 };
@@ -51,8 +51,8 @@ enum UseVirtualFree : bool {
 #include "qcommon/platform/windows_mini_windows_h.h"
 #include "qcommon/platform/windows_utf8.h"
 
-static void CheckedVirtualFree( void * ptr ) {
-	if( VirtualFree( ptr, 0, MEM_RELEASE ) == 0 ) {
+static void CheckedVirtualFree( const void * ptr ) {
+	if( VirtualFree( const_cast< void * >( ptr ), 0, MEM_RELEASE ) == 0 ) {
 		FatalGLE( "VirtualFree" );
 	}
 }
@@ -73,7 +73,7 @@ static void FreeAssetData( Asset * asset ) {
 	Free( sys_allocator, asset->data.ptr );
 }
 
-static void AddAsset( Span< const char > path, u64 hash, Span< u8 > data, IsCompressedBool compressed, UseVirtualFree virtual_free ) {
+static void AddAsset( Span< const char > path, u64 hash, Span< const u8 > data, IsCompressedBool compressed, UseVirtualFree virtual_free ) {
 	TracyZoneScoped;
 
 	Lock( &assets_mutex );
@@ -112,9 +112,9 @@ static void AddAsset( Span< const char > path, u64 hash, Span< u8 > data, IsComp
 }
 
 struct DecompressAssetJob {
-	Span< char > path;
+	Span< const char > path;
 	u64 hash;
-	Span< u8 > compressed;
+	Span< const u8 > compressed;
 	bool virtual_free;
 };
 
@@ -125,7 +125,7 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 
 	TracyZoneSpan( job->path );
 
-	Span< char > path_with_zst = temp->sv( "{}.zst", job->path );
+	Span< const char > path_with_zst = temp->sv( "{}.zst", job->path );
 	Span< u8 > decompressed;
 	if( Decompress( path_with_zst, sys_allocator, job->compressed, &decompressed ) ) {
 		AddAsset( job->path, job->hash, decompressed, IsCompressed_Yes, UseVirtualFree_No );
@@ -147,7 +147,7 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 	Free( sys_allocator, job );
 }
 
-static void LaunchDecompressAssetJob( Span< const char > path, u64 hash, Span< u8 > compressed, UseVirtualFree virtual_free ) {
+static void LaunchDecompressAssetJob( Span< const char > path, u64 hash, Span< const u8 > compressed, UseVirtualFree virtual_free ) {
 	DecompressAssetJob * job = Alloc< DecompressAssetJob >( sys_allocator );
 	job->path = CloneSpan( sys_allocator, path );
 	job->hash = hash;
@@ -187,7 +187,7 @@ static void LoadAsset( TempAllocator * temp, Span< const char > game_path, const
 		}
 	}
 
-	Span< u8 > contents = ReadFileBinary( sys_allocator, full_path );
+	Span< const u8 > contents = ReadFileBinary( sys_allocator, full_path );
 	if( contents.ptr == NULL )
 		return;
 
@@ -245,7 +245,6 @@ void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip )
 		}
 
 		ParallelFor( jobs, []( TempAllocator * temp, void * data ) {
-			// TODO: handle failures in these
 			LoadAssetJob * job = ( LoadAssetJob * ) data;
 			wchar_t * wide_path = UTF8ToWide( temp, job->path );
 

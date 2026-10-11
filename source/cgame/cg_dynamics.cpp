@@ -43,8 +43,8 @@ struct PersistentDynamicLight {
 static_assert( sizeof( DynamicLight ) == 1 * 4 * sizeof( float ) );
 static_assert( sizeof( DynamicLight ) % alignof( DynamicLight ) == 0 );
 
-static constexpr u32 MAX_DECALS = 100000;
-static constexpr u32 MAX_DLIGHTS = 100000;
+static constexpr u32 MAX_DECALS = 100'000;
+static constexpr u32 MAX_DLIGHTS = 100'000;
 
 static BoundedDynamicArray< Decal, MAX_DECALS > decals;
 static BoundedDynamicArray< DynamicLight, MAX_DLIGHTS > dlights;

@@ -321,6 +321,10 @@ struct Optional {
 		value = other;
 		exists = true;
 	}
+
+	const T & operator*() const { Assert( exists ); return value; }
+	T * operator->() { Assert( exists ); return &value; }
+	const T * operator->() const { Assert( exists ); return &value; }
 };
 
 /*

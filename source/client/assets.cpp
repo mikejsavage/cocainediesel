@@ -201,17 +201,6 @@ static void LoadAsset( TempAllocator * temp, Span< const char > game_path, const
 
 #if PLATFORM_WINDOWS
 
-static constexpr size_t MAX_ASYNC_READ_SIZE = Megabytes( 16 );
-
-struct LoadAssetResult {
-	Span< u8 > data;
-};
-
-struct HandleAndPath {
-	HANDLE handle;
-	const char * path;
-};
-
 static size_t FileSize( HANDLE file ) {
 	LARGE_INTEGER size;
 	if( GetFileSizeEx( file, &size ) == 0 ) {
@@ -220,135 +209,125 @@ static size_t FileSize( HANDLE file ) {
 	return size.QuadPart;
 }
 
-static bool GetOverlappedResultSucks( HANDLE handle, OVERLAPPED * overlapped ) {
-	TracyZoneScoped;
-
-	// as per cblib, GOR(wait = true) can erroneously signal success when the IO is still pending,
-	// so add a retry loop
-	// TODO(mike 20261008): I saw that happen on an HDD, where every file would take 10+ retries and
-	// the first file would take ~800ms (40 spins). probably better to just spin a few times then
-	// fall back to using synchronous reads for all subsequent files when this happens. using the
-	// fopen asset system took 12s vs 15s on that machine
-	{
-		DWORD r;
-		BOOL ok = GetOverlappedResult( handle, overlapped, &r, FALSE );
-		if( ok == 0 && GetLastError() != ERROR_IO_INCOMPLETE ) {
-			return false;
-		}
-	}
-
-	for( int attempt = 0; attempt < 100; attempt++ ) {
-		DWORD r;
-		BOOL ok = GetOverlappedResult( handle, overlapped, &r, TRUE );
-		if( ok == 0 )
-			return false;
-		if( r > 0 )
-			return true;
-
-		// fake success case
-		Assert( GetLastError() == ERROR_IO_PENDING );
-		if( attempt <= 1 ) YieldProcessor();
-		else if( attempt < 5 ) SwitchToThread();
-		else Sleep( attempt - 5 );
-	}
-
-	return false;
-}
-
 void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip ) {
 	TracyZoneScoped;
 
-	DynamicArray< LoadAssetResult > results( temp );
-	Span< HandleAndPath > handles_and_paths = AllocSpan< HandleAndPath >( temp, files.n );
+	HANDLE iocp = CreateIoCompletionPort( INVALID_HANDLE_VALUE, NULL, 0, 0 );
+	if( iocp == NULL ) {
+		FatalGLE( "CreateIoCompletionPort" );
+	}
+	defer { CloseHandle( iocp ); };
+
+	struct LoadAssetJob {
+		// in
+		HANDLE shared_iocp;
+		const char * path;
+		size_t completion_key;
+
+		// out
+		HANDLE file_handle;
+		HANDLE file_iocp;
+
+		OVERLAPPED overlapped;
+		Optional< Span< u8 > > buffer;
+	};
+
+	Span< LoadAssetJob > jobs = AllocSpan< LoadAssetJob >( temp, files.n );
 	{
 		TracyZoneScopedN( "Open files" );
 
 		for( size_t i = 0; i < files.n; i++ ) {
-			handles_and_paths[ i ] = { .path = files[ i ] };
+			jobs[ i ] = {
+				.shared_iocp = iocp,
+				.path = files[ i ],
+				.completion_key = i,
+			};
 		}
 
-		ParallelFor( handles_and_paths, []( TempAllocator * temp, void * data ) {
-			HandleAndPath * hp = ( HandleAndPath * ) data;
-			wchar_t * wide_path = UTF8ToWide( temp, hp->path );
-			hp->handle = CreateFileW( wide_path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED | FILE_FLAG_SEQUENTIAL_SCAN | FILE_FLAG_NO_BUFFERING, NULL );
-		} );
-	}
+		ParallelFor( jobs, []( TempAllocator * temp, void * data ) {
+			// TODO: handle failures in these
+			LoadAssetJob * job = ( LoadAssetJob * ) data;
+			wchar_t * wide_path = UTF8ToWide( temp, job->path );
 
-	Span< Optional< Span< u8 > > > buffers = AllocSpan< Optional< Span< u8 > > >( temp, handles_and_paths.n );
-	{
-		TracyZoneScopedN( "VirtualAllocs" );
-		for( size_t i = 0; i < handles_and_paths.n; i++ ) {
-			if( handles_and_paths[ i ].handle == INVALID_HANDLE_VALUE ) {
-				buffers[ i ] = NONE;
-				continue;
+			job->file_handle = CreateFileW( wide_path, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED | FILE_FLAG_SEQUENTIAL_SCAN | FILE_FLAG_NO_BUFFERING, NULL );
+			if( job->file_handle == INVALID_HANDLE_VALUE ) {
+				return;
 			}
 
-			size_t actual_size = FileSize( handles_and_paths[ i ].handle );
+			job->file_iocp = CreateIoCompletionPort( job->file_handle, job->shared_iocp, checked_cast< ULONG_PTR >( job->completion_key ), 1 );
+			if( job->file_iocp == INVALID_HANDLE_VALUE ) {
+				FatalGLE( "CreateIoCompletionPort" );
+			}
+
+			size_t actual_size = FileSize( job->file_handle );
 			size_t aligned_size = AlignPow2( actual_size, 4096 );
 
 			// VirtualAlloc( 0 ) fails so return a dummy but non-NONE Span here
 			if( actual_size == 0 ) {
-				buffers[ i ] = Span< u8 >();
-				continue;
+				job->buffer = Span< u8 >();
+				return;
 			}
 
 			// there's no particular reason to use VirtualAlloc beyond it returning 4k aligned allocs
-			buffers[ i ] = Span< u8 >( ( u8 * ) VirtualAlloc( NULL, aligned_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE ), actual_size );
-			if( buffers[ i ].value.ptr == NULL ) {
+			job->buffer = Span< u8 >( ( u8 * ) VirtualAlloc( NULL, aligned_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE ), actual_size );
+			if( job->buffer.value.ptr == NULL ) {
 				FatalGLE( "VirtualAlloc" );
 			}
+
+			BOOL ok = ReadFile( job->file_handle, job->buffer->ptr, AlignPow2( job->buffer->n, 4096 ), NULL, &job->overlapped );
+			if( ok != TRUE && GetLastError() != ERROR_IO_PENDING ) {
+				CheckedVirtualFree( job->buffer->ptr );
+				job->buffer = NONE;
+			}
+		} );
+	}
+
+	size_t num_reads = 0;
+	for( const LoadAssetJob & job : jobs ) {
+		if( job.buffer.exists ) {
+			num_reads++;
 		}
 	}
 
 	{
-		TracyZoneScopedN( "Async I/O" );
-
-		// keep 32 async reads in flight at a time. chosen semi-arbitrarily by
-		// seeing where perf pleateaus on my computer, which is around 60% of
-		// my SSD's paper bandwidth
-		constexpr size_t overlap = 32;
-		OVERLAPPED overlapped[ overlap ];
-
-		for( size_t i = 0; i < files.n + overlap; i++ ) {
-			if( i < files.n && handles_and_paths[ i ].handle != INVALID_HANDLE_VALUE && buffers[ i ].value.n > 0 ) {
-				overlapped[ i % overlap ] = { };
-				if( ReadFile( handles_and_paths[ i ].handle, buffers[ i ].value.ptr, AlignPow2( buffers[ i ].value.n, 4096 ), NULL, &overlapped[ i % overlap ] ) != TRUE && GetLastError() != ERROR_IO_PENDING ) {
-					CheckedVirtualFree( buffers[ i ].value.ptr );
-					buffers[ i ] = NONE;
+		TracyZoneScopedN( "Add assets" );
+		for( size_t i = 0; i < num_reads; i++ ) {
+			ULONG_PTR key;
+			{
+				TracyZoneScopedNC( "GetQueuedCompletionStatus", TracyColorWait );
+				DWORD r;
+				OVERLAPPED * overlapped = NULL;
+				if( GetQueuedCompletionStatus( iocp, &r, &key, &overlapped, INFINITE ) == FALSE ) {
+					if( overlapped == NULL ) {
+						FatalGLE( "GetQueuedCompletionStatus" );
+					}
+					else {
+						continue;
+					}
 				}
 			}
 
-			if( i >= overlap ) {
-				size_t prev = i - overlap;
-				if( handles_and_paths[ prev ].handle != INVALID_HANDLE_VALUE && buffers[ prev ].exists ) {
-					if( buffers[ prev ].value.n > 0 ) {
-						if( !GetOverlappedResultSucks( handles_and_paths[ prev ].handle, &overlapped[ prev % overlap ] ) ) {
-							CheckedVirtualFree( buffers[ prev ].value.ptr );
-							buffers[ prev ] = NONE;
-						}
-					}
-
-					if( buffers[ prev ].exists ) {
-						Span< const char > game_path = MakeSpan( files[ prev ] + skip );
-						Span< const char > ext = FileExtension( game_path );
-						if( ext == ".zst" ) {
-							game_path.n -= ext.n;
-							LaunchDecompressAssetJob( game_path, Hash64( game_path ), buffers[ prev ].value, UseVirtualFree_Yes );
-						}
-						else {
-							AddAsset( game_path, Hash64( game_path ), buffers[ prev ].value, IsCompressed_No, UseVirtualFree_Yes );
-						}
-					}
-				}
+			const LoadAssetJob & job = jobs[ key ];
+			Span< const char > game_path = MakeSpan( job.path + skip );
+			Span< const char > ext = FileExtension( game_path );
+			if( ext == ".zst" ) {
+				game_path.n -= ext.n;
+				LaunchDecompressAssetJob( game_path, Hash64( game_path ), job.buffer.value, UseVirtualFree_Yes );
+			}
+			else {
+				AddAsset( game_path, Hash64( game_path ), job.buffer.value, IsCompressed_No, UseVirtualFree_Yes );
 			}
 		}
 	}
+
+	ThreadPoolFinish();
 
 	{
 		TracyZoneScopedN( "Cleanup" );
-		ParallelFor( handles_and_paths, []( TempAllocator * temp, void * data ) {
-			HandleAndPath * hp = ( HandleAndPath * ) data;
-			CloseHandle( hp->handle );
+		ParallelFor( jobs, []( TempAllocator * temp, void * data ) {
+			LoadAssetJob * job = ( LoadAssetJob * ) data;
+			CloseHandle( job->file_handle );
+			CloseHandle( job->file_iocp );
 		} );
 	}
 }

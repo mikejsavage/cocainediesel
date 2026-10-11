@@ -172,7 +172,7 @@ static constexpr Span< const char > PLAYER_SOUND_NAMES[] = {
 	"dash",
 };
 
-STATIC_ASSERT( ARRAY_COUNT( PLAYER_SOUND_NAMES ) == PlayerSound_Count );
+static_assert( ARRAY_COUNT( PLAYER_SOUND_NAMES ) == PlayerSound_Count );
 
 static void FindPlayerSounds( PlayerModelMetadata * meta, Span< const char > dir ) {
 	for( size_t i = 0; i < ARRAY_COUNT( meta->sounds ); i++ ) {

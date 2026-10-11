@@ -24,7 +24,7 @@
 
 template< typename To, typename From >
 To bit_cast( const From & from ) {
-	STATIC_ASSERT( sizeof( To ) == sizeof( From ) );
+	static_assert( sizeof( To ) == sizeof( From ) );
 	To result;
 	memcpy( &result, &from, sizeof( result ) );
 	return result;

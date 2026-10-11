@@ -4,7 +4,7 @@
 
 template< size_t N >
 class Hashtable {
-	STATIC_ASSERT( IsPowerOf2( N ) );
+	static_assert( IsPowerOf2( N ) );
 
 	static constexpr u64 DeletedBit = 1_u64 << 63_u64;
 	static constexpr u64 EmptyKey = 0;

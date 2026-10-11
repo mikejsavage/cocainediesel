@@ -169,7 +169,7 @@ static Optional< s64 > SpanToS64( Span< const char > str ) {
 		return false;
 
 	if( str[ 0 ] == '-' ) {
-		STATIC_ASSERT( S64_MAX == -( S64_MIN + 1 ) );
+		static_assert( S64_MAX == -( S64_MIN + 1 ) );
 
 		Optional< u64 > u = SpanToU64( str );
 		if( !u.exists || u.value > u64( S64_MAX ) + 1 ) // S64_MAX + 1 == -S64_MIN

@@ -18,7 +18,7 @@
 
 #include <new>
 
-STATIC_ASSERT( ( SameType< u32, GLuint > ) );
+static_assert( ( SameType< u32, GLuint > ) );
 
 static const u32 UNIFORM_BUFFER_SIZE = 64 * 1024;
 

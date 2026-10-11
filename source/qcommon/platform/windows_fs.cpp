@@ -103,7 +103,7 @@ struct ListDirHandleImpl {
 	bool first;
 };
 
-STATIC_ASSERT( sizeof( ListDirHandleImpl ) <= sizeof( ListDirHandle ) );
+static_assert( sizeof( ListDirHandleImpl ) <= sizeof( ListDirHandle ) );
 
 static ListDirHandleImpl OpaqueToImpl( ListDirHandle opaque ) {
 	ListDirHandleImpl impl;

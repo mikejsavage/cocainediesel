@@ -24,8 +24,8 @@ struct PersistentDecal {
 	Time expiration;
 };
 
-STATIC_ASSERT( sizeof( Decal ) == 2 * 4 * sizeof( float ) );
-STATIC_ASSERT( sizeof( Decal ) % alignof( Decal ) == 0 );
+static_assert( sizeof( Decal ) == 2 * 4 * sizeof( float ) );
+static_assert( sizeof( Decal ) % alignof( Decal ) == 0 );
 
 // gets copied directly to GPU so packing order is important
 struct DynamicLight {
@@ -40,8 +40,8 @@ struct PersistentDynamicLight {
 	Time lifetime;
 };
 
-STATIC_ASSERT( sizeof( DynamicLight ) == 1 * 4 * sizeof( float ) );
-STATIC_ASSERT( sizeof( DynamicLight ) % alignof( DynamicLight ) == 0 );
+static_assert( sizeof( DynamicLight ) == 1 * 4 * sizeof( float ) );
+static_assert( sizeof( DynamicLight ) % alignof( DynamicLight ) == 0 );
 
 static constexpr u32 MAX_DECALS = 100000;
 static constexpr u32 MAX_DLIGHTS = 100000;

@@ -268,6 +268,7 @@ void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip )
 			}
 
 			// there's no particular reason to use VirtualAlloc beyond it returning 4k aligned allocs
+			// NOTE(mike 20261011): using a single VirtualAlloc benchmarks about 10% slower
 			job->buffer = Span< u8 >( ( u8 * ) VirtualAlloc( NULL, aligned_size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE ), actual_size );
 			if( job->buffer.value.ptr == NULL ) {
 				FatalGLE( "VirtualAlloc" );

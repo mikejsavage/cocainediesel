@@ -242,7 +242,7 @@ Vec2 GetRelativeMouseMovement() {
 }
 
 void SwapBuffers() {
-	TracyZoneScopedNC( "SDL_GL_SwapWindow", 0xff0000 );
+	TracyZoneScopedNC( "SDL_GL_SwapWindow", TracyColorWait );
 	TrySDL( SDL_GL_SwapWindow, window );
 }
 
@@ -489,7 +489,7 @@ SDL_AppResult SDL_AppEvent( void * appstate, SDL_Event * event ) {
 SDL_AppResult SDL_AppIterate( void * appstate ) {
 	s64 dt = 0;
 	{
-		TracyZoneScopedNC( "Interframe", 0xff0000 );
+		TracyZoneScopedNC( "Interframe", TracyColorWait );
 		while( dt == 0 ) {
 			dt = Sys_Milliseconds() - oldtime;
 		}

@@ -117,6 +117,8 @@ GPUBuffer StageArgumentBuffer( GPUBuffer dest, size_t n, size_t alignment ) {
 }
 
 void UploadBuffer( GPUBuffer dest, const void * data, size_t n ) {
+	if( n == 0 )
+		return; // vkCmdCopyBuffer requires n > 0
 	size_t cursor = Stage( data, n, 1 );
 	CopyGPUBufferToBuffer( staging_command_buffer, dest.allocation, dest.offset, staging_buffer.allocation, cursor, n );
 }

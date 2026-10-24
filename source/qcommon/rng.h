@@ -52,11 +52,6 @@ float RandomFloat11( RNG * rng );
 
 float RandomUniformFloat( RNG * rng, float lo, float hi );
 
-// return a random double in [0, 1)
-double RandomDouble01( RNG * rng );
-// return a random double in [-1, 1)
-double RandomDouble11( RNG * rng );
-
 // returns true with probability p
 bool Probability( RNG * rng, float p );
 

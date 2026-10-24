@@ -107,24 +107,6 @@ float RandomUniformFloat( RNG * rng, float lo, float hi ) {
 	return Lerp( lo, t, hi );
 }
 
-double RandomDouble01( RNG * rng ) {
-	uint64_t r = Random64( rng );
-	return bit_cast< double >( 0x3FF0000000000000_u64 | ( r >> 12 ) ) - 1.0;
-}
-
-double RandomDouble11( RNG * rng ) {
-	union {
-		uint64_t u;
-		double d;
-	} x;
-	uint64_t r = Random64( rng );
-	uint64_t sign = ( r & 1 ) << 63;
-	x.u = 0x3FF0000000000000_u64 | ( r >> 12 );
-	x.d -= 1.0;
-	x.u |= sign;
-	return x.d;
-}
-
 bool Probability( RNG * rng, float p ) {
 	return RandomFloat01( rng ) < p;
 }

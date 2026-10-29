@@ -631,8 +631,8 @@ static edict_t * FindOrSpawnLaser( edict_t * owner ) {
 	return laser;
 }
 
-static void W_Fire_Laser( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta ) {
-	const WeaponDef::Fire * def = GetWeaponDefFire( Weapon_Rail, true );
+static void W_Fire_Laser( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, WeaponType weap, bool alt ) {
+	const WeaponDef::Fire * def = GetWeaponDefFire( weap, alt );
 
 	edict_t * laser = FindOrSpawnLaser( self );
 
@@ -655,7 +655,7 @@ static void W_Fire_Laser( edict_t * self, Vec3 start, EulerDegrees3 angles, int 
 
 static void W_Fire_Rail( edict_t * self, Vec3 start, EulerDegrees3 angles, int timeDelta, bool alt ) {
 	if ( alt ) {
-		W_Fire_Laser( self, start, angles, timeDelta );
+		W_Fire_Laser( self, start, angles, timeDelta, Weapon_Rail, alt );
 		return;
 	}
 
@@ -978,6 +978,10 @@ void G_FireWeapon( edict_t * ent, u64 parm ) {
 
 		case Weapon_Rifle:
 			W_Fire_Rifle( ent, origin, angles, timeDelta, alt );
+			break;
+
+		case Weapon_Laser:
+			W_Fire_Laser( ent, origin, angles, timeDelta, weapon, alt );
 			break;
 
 		case Weapon_Blaster:

@@ -519,11 +519,11 @@ static constexpr WeaponDef weapon_defs[] = {
 			.ammo_use = 1,
 
 			.refire_time = 50,
-			.range = 900,
+			.range = 1800,
 			.firing_mode = FiringMode_Smooth,
 
-			.damage = 5,
-			.knockback = 14,
+			.damage = 3,
+			.knockback = 0,
 		}
 	),
 
@@ -559,6 +559,44 @@ static constexpr WeaponDef weapon_defs[] = {
 		},
 
 		WEAPON_NO_ALTFIRE
+	),
+
+	WeaponDef (
+		{
+			.name = "laser",
+			.category = WeaponCategory_Primary,
+
+			.clip_size = 0,
+
+			.reload_time = 0,
+
+			.switch_in_time = WEAPONUP_TIME_SLOW,
+			.switch_out_time = WEAPONDOWN_TIME,
+			
+			.recoil_recovery = 0.f,
+		},
+
+		{
+			.ammo_use = 0,
+
+			.refire_time = 50,
+			.range = 900,
+			.firing_mode = FiringMode_Smooth,
+
+			.damage = 4,
+			.knockback = 16,
+		},
+
+		{
+			.ammo_use = 0,
+
+			.refire_time = 50,
+			.range = 900,
+			.firing_mode = FiringMode_Smooth,
+
+			.damage = 4,
+			.knockback = -18,
+		}
 	),
 
 	WeaponDef (

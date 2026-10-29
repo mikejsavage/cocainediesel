@@ -126,7 +126,7 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 	}
 
 	// trace the beam: for tracing we use the real beam origin
-	float range = GetWeaponDefFire( Weapon_Rail, true )->range;
+	float range = GetWeaponDefFire( cent->current.weapon, true )->range; // the 'true' is a hack because we have no way to know if it's altfire in the cent
 	trace_t trace = GS_TraceLaserBeam( &client_gs, laserOrigin, laserAngles, range, cent->current.number, 0 );
 	if( trace.HitSomething() ) {
 		DrawDynamicLight( trace.endpos, color.xyz(), 10000.0f );
@@ -217,6 +217,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon, bool altfire ) {
 			break;
 
 		case Weapon_Rail:
+		case Weapon_Laser:
 		case Weapon_Sniper:
 		case Weapon_Rifle:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_AIMWEAPON, 0, EVENT_CHANNEL );
@@ -607,7 +608,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				WeaponType weapon = WeaponType( parm & 0xFF );
 				bool altfire = ( parm >> 8 ) & 0xFF;
 				
-				if( weapon == Weapon_Rail && altfire ) {
+				if( weapon == Weapon_Laser || ( weapon == Weapon_Rail && altfire ) ) {
 					Vec3 origin = cg.predictedPlayerState.pmove.origin;
 					origin.z += cg.predictedPlayerState.viewheight;
 
@@ -652,12 +653,10 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			Vec3 dir;
 			AngleVectors( angles, &dir, NULL, NULL );
 
-			if( weapon == Weapon_Rail ) {
-				if( altfire ) {
-					CG_Event_LaserBeam( origin, dir, owner );
-				} else {
-					FireRail( origin, dir, owner, false );
-				}
+			if( weapon == Weapon_Laser || ( weapon == Weapon_Rail && altfire ) ) {
+				CG_Event_LaserBeam( origin, dir, owner );
+			} else if( weapon == Weapon_Rail ) {
+				FireRail( origin, dir, owner, false );
 			}
 			else if( weapon == Weapon_Shotgun || weapon == Weapon_SawnOff ) {
 				CG_Event_FireShotgun( origin, dir, owner, team_color, weapon, altfire );

@@ -1,6 +1,6 @@
 #include "qcommon/base.h"
 #include "qcommon/hash.h"
-#include "qcommon/hashtable.h"
+#include "qcommon/hashmap.h"
 #include "client/assets.h"
 #include "client/renderer/api.h"
 #include "client/renderer/model.h"
@@ -12,9 +12,7 @@
 
 static constexpr u32 MAX_MODELS = 1024;
 
-static GLTFRenderData gltf_models[ MAX_MODELS ];
-static u32 num_gltf_models;
-static Hashtable< MAX_MODELS * 2 > gltf_models_hashtable;
+static HashMap< GLTFRenderData, MAX_MODELS > gltf_models;
 
 static bool LoadGLTFRenderData( GLTFRenderData * render_data, Span< const char > path ) {
 	TracyZoneScoped;
@@ -70,27 +68,24 @@ static void LoadGLTF( Span< const char > path ) {
 
 	u64 hash = Hash64( StripExtension( path ) );
 
-	u64 idx = num_gltf_models;
-	if( !gltf_models_hashtable.get( hash, &idx ) ) {
-		if( num_gltf_models == ARRAY_COUNT( gltf_models ) ) {
+	GLTFRenderData * slot = gltf_models.get( hash );
+	if( slot == NULL ) {
+		if( !gltf_models.add( hash, render_data ) ) {
 			Com_Printf( S_COLOR_YELLOW "Too many models!\n" );
 			DeleteGLTFRenderData( &render_data );
 			return;
 		}
-		gltf_models_hashtable.add( hash, num_gltf_models );
-		num_gltf_models++;
 	}
 	else {
-		DeleteGLTFRenderData( &gltf_models[ idx ] );
+		DeleteGLTFRenderData( slot );
+		*slot = render_data;
 	}
-
-	gltf_models[ idx ] = render_data;
 }
 
 void InitGLTFModels() {
 	TracyZoneScoped;
 
-	num_gltf_models = 0;
+	gltf_models.clear();
 
 	for( Span< const char > path : AssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
@@ -101,8 +96,8 @@ void InitGLTFModels() {
 }
 
 void ShutdownGLTFModels() {
-	for( u32 i = 0; i < num_gltf_models; i++ ) {
-		DeleteGLTFRenderData( &gltf_models[ i ] );
+	for( GLTFRenderData & model : gltf_models.span() ) {
+		DeleteGLTFRenderData( &model );
 	}
 }
 
@@ -118,8 +113,5 @@ void HotloadGLTFModels() {
 }
 
 const GLTFRenderData * FindGLTFRenderData( StringHash name ) {
-	u64 idx;
-	if( !gltf_models_hashtable.get( name.hash, &idx ) )
-		return NULL;
-	return &gltf_models[ idx ];
+	return gltf_models.get( name.hash );
 }

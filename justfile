@@ -1,4 +1,4 @@
-exe := if os() == "windows" { "exe" } else if env_var( "WSL_DISTRO_NAME" ) != "" { "exe" } \
+exe := if os() == "windows" { "exe" } else if env( "WSL_DISTRO_NAME", "" ) != "" { "exe" } \
 	else if os() == "macos" { "macos" } else { "linux" }
 
 debug: (_build "")

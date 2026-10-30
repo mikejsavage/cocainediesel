@@ -27,14 +27,10 @@ static Opaque< Mutex > assets_mutex;
 
 static Asset assets[ MAX_ASSETS ];
 static Span< const char > asset_paths[ MAX_ASSETS ];
-static u32 num_assets;
+static Hashtable< MAX_ASSETS * 2 > assets_hashtable;
 
 static FSChangeMonitor * fs_change_monitor;
-
-static Span< const char > modified_asset_paths[ MAX_ASSETS ];
-static u32 num_modified_assets;
-
-static Hashtable< MAX_ASSETS * 2 > assets_hashtable;
+static BoundedDynamicArray< Span< const char >, MAX_ASSETS > modified_asset_paths;
 
 enum IsCompressedBool : bool {
 	IsCompressed_No = false,
@@ -79,36 +75,29 @@ static void AddAsset( Span< const char > path, u64 hash, Span< const u8 > data, 
 	Lock( &assets_mutex );
 	defer { Unlock( &assets_mutex ); };
 
-	if( num_assets == MAX_ASSETS ) {
+	if( assets_hashtable.size() == MAX_ASSETS ) {
 		Com_Printf( S_COLOR_YELLOW "Too many assets\n" );
 		return;
 	}
 
-	u64 idx;
+	u64 idx = assets_hashtable.size();
 	bool exists = assets_hashtable.get( hash, &idx );
 
-	Asset * a;
+	Asset * a = &assets[ idx ];
 	if( exists ) {
-		a = &assets[ idx ];
 		FreeAssetData( a );
 	}
 	else {
-		a = &assets[ num_assets ];
 		a->path = CloneSpan( sys_allocator, path );
-		asset_paths[ num_assets ] = a->path;
+		asset_paths[ idx ] = a->path;
+		assets_hashtable.add( hash, idx );
 	}
 
 	a->data = data;
 	a->compressed = compressed;
 	a->virtual_free = virtual_free;
 
-	modified_asset_paths[ num_modified_assets ] = a->path;
-	num_modified_assets++;
-
-	if( !exists ) {
-		assets_hashtable.add( hash, num_assets );
-		num_assets++;
-	}
+	modified_asset_paths.must_add( a->path );
 }
 
 struct DecompressAssetJob {
@@ -348,9 +337,8 @@ void InitAssets( TempAllocator * temp ) {
 
 	InitMutex( &assets_mutex );
 
-	num_assets = 0;
-	num_modified_assets = 0;
 	assets_hashtable.clear();
+	modified_asset_paths.clear();
 
 	const char * base = ( *temp )( "{}/base", RootDirPath() );
 	Span< const char > base2 = MakeSpan( base );
@@ -389,7 +377,7 @@ void InitAssets( TempAllocator * temp ) {
 
 	LoadAssets( temp, deduped.span(), base2.n + 1 );
 
-	num_modified_assets = 0;
+	modified_asset_paths.clear();
 }
 
 void HotloadAssets( TempAllocator * temp ) {
@@ -408,7 +396,7 @@ void HotloadAssets( TempAllocator * temp ) {
 
 	ThreadPoolFinish();
 
-	if( num_modified_assets > 0 ) {
+	if( modified_asset_paths.size() > 0 ) {
 		Com_Printf( "Hotloading:\n" );
 		for( Span< const char > path : ModifiedAssetPaths() ) {
 			Com_GGPrint( "    {}", path );
@@ -417,13 +405,13 @@ void HotloadAssets( TempAllocator * temp ) {
 }
 
 void DoneHotloadingAssets() {
-	num_modified_assets = 0;
+	modified_asset_paths.clear();
 }
 
 void ShutdownAssets() {
 	TracyZoneScoped;
 
-	for( u32 i = 0; i < num_assets; i++ ) {
+	for( u32 i = 0; i < assets_hashtable.size(); i++ ) {
 		Free( sys_allocator, assets[ i ].path.ptr );
 		FreeAssetData( &assets[ i ] );
 	}
@@ -453,9 +441,9 @@ Span< const u8 > AssetBinary( Span< const char > path ) {
 }
 
 Span< Span< const char > > AssetPaths() {
-	return Span< Span< const char > >( asset_paths, num_assets );
+	return Span< Span< const char > >( asset_paths, assets_hashtable.size() );
 }
 
 Span< Span< const char > > ModifiedAssetPaths() {
-	return Span< Span< const char > >( modified_asset_paths, num_modified_assets );
+	return modified_asset_paths.span();
 }

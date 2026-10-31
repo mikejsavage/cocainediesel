@@ -1,6 +1,6 @@
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
-#include "qcommon/hashtable.h"
+#include "qcommon/hashmap.h"
 #include "qcommon/time.h"
 
 #define OPTIMIZED_TRAILS
@@ -60,65 +60,61 @@ struct Trail {
 	float offset;
 };
 
-constexpr size_t MAX_TRAILS = 512;
+static u64 TrailKey( const Trail & trail ) {
+	return trail.unique_id;
+}
 
-static Trail trails[ MAX_TRAILS ];
-static Hashtable< MAX_TRAILS * 2 > trails_hashtable;
-static u32 num_trails;
+static HashMap< Trail, 512, TrailKey > trails;
 
 void InitTrails() {
-	num_trails = 0;
+	trails.clear();
 }
 
 void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash material, Time duration ) {
-	u64 idx = num_trails;
-	if( !trails_hashtable.get( unique_id, &idx ) ) {
-		if( num_trails == MAX_TRAILS ) {
+	Trail * trail = trails.get( unique_id );
+	if( trail == NULL ) {
+		trail = trails.add( unique_id );
+		if( trail == NULL ) {
 			Com_Printf( S_COLOR_YELLOW "Warning: Too many trails\n" );
 			return;
 		}
-		trails_hashtable.add( unique_id, idx );
-		num_trails++;
-		Trail &trail = trails[ idx ];
-		trail.unique_id = unique_id;
-		trail.width = width;
-		trail.material = material;
-		trail.duration = duration;
-		trail.offset = 0.0f;
 
-		trail.points.clear();
+		trail->unique_id = unique_id,
+		trail->width = width,
+		trail->material = material,
+		trail->duration = duration,
+		trail->points.clear();
 	}
-	Trail &trail = trails[ idx ];
-	trail.color = color;
+	trail->color = color;
 
-	TrailPoint new_point;
-	new_point.p = point;
-	new_point.t = cls.game_time;
+	TrailPoint new_point = {
+		.p = point,
+		.t = cls.game_time,
+	};
 
 	float dist = 1.0f;
-	if( trail.points.n > 0 ) {
-		dist = Length( trail.points[ trail.points.n - 1 ].p - new_point.p );
+	if( trail->points.n > 0 ) {
+		dist = Length( trail->points[ trail->points.n - 1 ].p - new_point.p );
 	}
 
 	if( dist < 0.001f ) { // "same" point
-		trail.points[ trail.points.n - 1 ] = new_point;
+		trail->points[ trail->points.n - 1 ] = new_point;
 	}
 	else {
-
 #ifdef OPTIMIZED_TRAILS
 		constexpr float epsilon = 1.0f;
-		if( trail.points.n > 3 ) {
-			Vec3 a = trail.points[ trail.points.n - 3 ].p;
-			Vec3 b = trail.points[ trail.points.n - 2 ].p;
-			Vec3 c = trail.points[ trail.points.n - 1 ].p;
+		if( trail->points.n > 3 ) {
+			Vec3 a = trail->points[ trail->points.n - 3 ].p;
+			Vec3 b = trail->points[ trail->points.n - 2 ].p;
+			Vec3 c = trail->points[ trail->points.n - 1 ].p;
 			float d = Length( Cross( b - c, a - c ) ) * 0.5f;
 			if( d / dist < epsilon ) { // replace the last point with new one
-				trail.points[ trail.points.n - 1 ] = new_point;
+				trail->points[ trail->points.n - 1 ] = new_point;
 				return;
 			}
 		}
 #endif
-		trail.points.push( new_point );
+		trail->points.push( new_point );
 	}
 }
 
@@ -224,17 +220,12 @@ static void DrawActualTrail( const Trail & trail ) {
 }
 
 void DrawTrails() {
-	for( u32 i = 0; i < num_trails; i++ ) {
-		if( !UpdateTrail( trails[ i ] ) ) {
-			trails_hashtable.remove( trails[ i ].unique_id );
-			if( num_trails > 1 ) {
-				Swap2( &trails[ i ], &trails[ num_trails - 1 ] );
-				trails_hashtable.update( trails[ i ].unique_id, i );
-			}
+	for( u32 i = 0; i < trails.size(); i++ ) {
+		if( !UpdateTrail( trails.span()[ i ] ) ) {
+			trails.remove( trails.span()[ i ].unique_id );
 			i--;
-			num_trails--;
 			continue;
 		}
-		DrawActualTrail( trails[ i ] );
+		DrawActualTrail( trails.span()[ i ] );
 	}
 }

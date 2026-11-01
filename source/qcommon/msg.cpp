@@ -598,7 +598,8 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 
 	Delta( buf, ent.silhouetteColor, baseline.silhouetteColor );
 
-	Delta( buf, ent.id.id, baseline.id.id );
+	Delta( buf, ent.id.slot, baseline.id.slot );
+	Delta( buf, ent.id.generation, baseline.id.generation );
 }
 
 void MSG_WriteEntityNumber( msg_t * msg, int number, bool remove ) {

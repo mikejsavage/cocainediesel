@@ -242,9 +242,7 @@ void G_AddCommand( ClientCommandType command, gamecommandfunc_t cmdfunc );
 // g_utils.c
 //
 
-EntityID NewEntity();
-void ResetEntityIDSequence();
-edict_t * GetEntity( EntityID id );
+void ResetEntityGenerations();
 
 void KillBox( edict_t * ent, DamageType damage_type, Vec3 knockback );
 float LookAtKillerYAW( edict_t * self, edict_t * inflictor, edict_t * attacker );

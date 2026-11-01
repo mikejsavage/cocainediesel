@@ -121,7 +121,7 @@ static CollisionEntity LerpCollisionEntity4D( const CollisionEntity * older, flo
 }
 
 static bool CheckSimilarCollisionEntities( const CollisionEntity * older, const CollisionEntity * newer ) {
-	if( older->id.id != newer->id.id )
+	if( older->id != newer->id )
 		return false;
 
 	if( older->override_collision_model.exists != newer->override_collision_model.exists )

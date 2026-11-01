@@ -22,21 +22,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/hashtable.h"
 #include "qcommon/time.h"
 
-static u64 entity_id_seq;
-static Hashtable< MAX_EDICTS * 2 > entity_id_hashtable;
+static u16 entity_generations[ MAX_EDICTS ];
 
-EntityID NewEntity() {
-	return { entity_id_seq++ };
-}
-
-void ResetEntityIDSequence() {
-	entity_id_seq = 1;
-	entity_id_hashtable.clear();
-}
-
-edict_t * GetEntity( EntityID id ) {
-	u64 idx;
-	return entity_id_hashtable.get( id.id, &idx ) ? &game.edicts[ idx ] : NULL;
+void ResetEntityGenerations() {
+	memset( entity_generations, 0, sizeof( entity_generations ) );
 }
 
 edict_t * G_Find( edict_t * cursor, const StringHash edict_t::* field, StringHash value ) {
@@ -209,7 +198,10 @@ void G_InitEdict( edict_t * e ) {
 
 	memset( e, 0, sizeof( *e ) );
 	e->s.number = ENTNUM( e );
-	e->s.id = NewEntity();
+	e->s.id = EntityID {
+		.slot = u16( ENTNUM( e ) ),
+		.generation = entity_generations[ ENTNUM( e ) ]++,
+	};
 	e->r.inuse = true;
 
 	// bool ok = entity_id_hashtable.add( e->id.id, e->s.number );

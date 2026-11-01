@@ -502,60 +502,20 @@ Optional< RGBA8 > ParseHexColor( Span< const char > str ) {
 //
 //=====================================================================
 
-static bool Info_ValidateValue( const char *value ) {
-	Assert( value );
-
-	if( !value ) {
-		return false;
-	}
-
-	if( strlen( value ) >= MAX_INFO_VALUE ) {
-		return false;
-	}
-
-	if( strchr( value, '\\' ) ) {
-		return false;
-	}
-
-	if( strchr( value, ';' ) ) {
-		return false;
-	}
-
-	if( strchr( value, '"' ) ) {
-		return false;
-	}
-
+static bool Info_ValidateKeyValue( Span< const char > str, size_t max_len ) {
+	if( str.n >= max_len ) return false;
+	if( StrChr( str, '\\' ) ) return false;
+	if( StrChr( str, ';' ) ) return false;
+	if( StrChr( str, '"' ) ) return false;
 	return true;
 }
 
-static bool Info_ValidateKey( const char *key ) {
-	Assert( key );
+static bool Info_ValidateKey( Span< const char > key ) {
+	return Info_ValidateKeyValue( key, MAX_INFO_KEY );
+}
 
-	if( !key ) {
-		return false;
-	}
-
-	if( !key[0] ) {
-		return false;
-	}
-
-	if( strlen( key ) >= MAX_INFO_KEY ) {
-		return false;
-	}
-
-	if( strchr( key, '\\' ) ) {
-		return false;
-	}
-
-	if( strchr( key, ';' ) ) {
-		return false;
-	}
-
-	if( strchr( key, '"' ) ) {
-		return false;
-	}
-
-	return true;
+static bool Info_ValidateValue( Span< const char > value ) {
+	return Info_ValidateKeyValue( value, MAX_INFO_VALUE );
 }
 
 /*
@@ -623,14 +583,14 @@ bool Info_Validate( const char *info ) {
 * Returns the pointer to the \ character if key is found
 * Otherwise returns NULL
 */
-static char *Info_FindKey( const char *info, const char *key ) {
+static char * Info_FindKey( const char * info, const char * key ) {
 	const char *p, *start;
 	size_t key_len;
 
 	Assert( Info_Validate( info ) );
-	Assert( Info_ValidateKey( key ) );
+	Assert( Info_ValidateKey( MakeSpan( key ) ) );
 
-	if( !Info_Validate( info ) || !Info_ValidateKey( key ) ) {
+	if( !Info_Validate( info ) || !Info_ValidateKey( MakeSpan( key ) ) ) {
 		return NULL;
 	}
 
@@ -663,16 +623,16 @@ static char *Info_FindKey( const char *info, const char *key ) {
 * Searches the string for the given
 * key and returns the associated value, or NULL
 */
-char *Info_ValueForKey( const char *info, const char *key ) {
+char * Info_ValueForKey( const char * info, const char * key ) {
 	static char value[2][MAX_INFO_VALUE]; // use two buffers so compares work without stomping on each other
 	static int valueindex;
 	const char *p, *start;
 	size_t len;
 
 	Assert( info && Info_Validate( info ) );
-	Assert( key && Info_ValidateKey( key ) );
+	Assert( key && Info_ValidateKey( MakeSpan( key ) ) );
 
-	if( !Info_Validate( info ) || !Info_ValidateKey( key ) ) {
+	if( !Info_Validate( info ) || !Info_ValidateKey( MakeSpan( key ) ) ) {
 		return NULL;
 	}
 
@@ -708,54 +668,18 @@ char *Info_ValueForKey( const char *info, const char *key ) {
 	return value[valueindex];
 }
 
-void Info_RemoveKey( char *info, const char *key ) {
-	Assert( info && Info_Validate( info ) );
-	Assert( key && Info_ValidateKey( key ) );
-
-	if( !Info_Validate( info ) || !Info_ValidateKey( key ) ) {
-		return;
-	}
-
-	while( true ) {
-		char *start, *p;
-
-		p = Info_FindKey( info, key );
-		if( !p ) {
-			return;
-		}
-
-		start = p;
-
-		p++; // skip the \ char
-		p = strchr( p, '\\' );
-		if( p ) {
-			p++; // skip the \ char
-			p = strchr( p, '\\' );
-		}
-
-		if( !p ) {
-			*start = 0;
-		} else {
-			// aiwa : fixed possible source and destination overlap with strcpy()
-			memmove( start, p, strlen( p ) + 1 );
-		}
-	}
-}
-
-bool Info_SetValueForKey( char *info, const char *key, const char *value ) {
+bool Info_SetValueForKey( char * info, Span< const char > key, Span< const char > value ) {
 	char pair[MAX_INFO_KEY + MAX_INFO_VALUE + 1];
 
 	Assert( info && Info_Validate( info ) );
-	Assert( key && Info_ValidateKey( key ) );
-	Assert( value && Info_ValidateValue( value ) );
+	Assert( Info_ValidateKey( key ) );
+	Assert( Info_ValidateValue( value ) );
 
 	if( !Info_Validate( info ) || !Info_ValidateKey( key ) || !Info_ValidateValue( value ) ) {
 		return false;
 	}
 
-	Info_RemoveKey( info, key );
-
-	snprintf( pair, sizeof( pair ), "\\%s\\%s", key, value );
+	ggprint( pair, sizeof( pair ), "\\{}\\{}", key, value );
 
 	if( strlen( pair ) + strlen( info ) > MAX_INFO_STRING ) {
 		return false;

@@ -129,7 +129,6 @@ struct Swapchain {
 
 	VkSwapchainKHR swapchain;
 	u32 width, height;
-	bool fullscreen_exclusive;
 	VkFormat format;
 
 	Span< Image > images;
@@ -591,9 +590,6 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 			VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
 			VK_KHR_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
-#if PLATFORM_WINDOWS
-			VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME,
-#endif
 #if PLATFORM_MACOS
 			VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
 #endif
@@ -843,7 +839,7 @@ static VkSurfaceFormatKHR GetSwapchainFormat( VulkanDevice device, VkSurfaceKHR 
 	return formats[ 0 ];
 }
 
-static Swapchain CreateSwapchain( SDL_Window * window, VulkanDevice device, VkSurfaceKHR surface, bool fullscreen_exclusive, Optional< Swapchain > old_swapchain ) {
+static Swapchain CreateSwapchain( VulkanDevice device, VkSurfaceKHR surface, Optional< Swapchain > old_swapchain ) {
 	VkSurfaceFormatKHR format = GetSwapchainFormat( device, surface );
 
 	VkSurfaceCapabilitiesKHR capabilities;
@@ -874,42 +870,13 @@ static Swapchain CreateSwapchain( SDL_Window * window, VulkanDevice device, VkSu
 		image_count = Min2( image_count, capabilities.maxImageCount );
 	}
 
-#if PLATFORM_WINDOWS
-	SDL_DisplayID display = SDL_GetDisplayForWindow( window );
-	if( display == 0 ) {
-		Fatal( "SDL_GetDisplayForWindow: %s", SDL_GetError() );
-	}
-
-	SDL_PropertiesID display_properties = SDL_GetDisplayProperties( display );
-	HMONITOR hmonitor = HMONITOR( SDL_GetPointerProperty( display_properties, SDL_PROP_DISPLAY_WINDOWS_HMONITOR_POINTER, NULL ) );
-	if( hmonitor == NULL ) {
-		Fatal( "SDL_GetPointerProperty( SDL_PROP_DISPLAY_WINDOWS_HMONITOR_POINTER )" );
-	}
-
-	const VkSurfaceFullScreenExclusiveWin32InfoEXT fullscreen_exclusive_win32_info = {
-		.sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT,
-		.hmonitor = hmonitor,
-	};
-
-	const VkSurfaceFullScreenExclusiveInfoEXT fullscreen_exclusive_info = {
-		.sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT,
-		.fullScreenExclusive = fullscreen_exclusive ? VK_FULL_SCREEN_EXCLUSIVE_ALLOWED_EXT : VK_FULL_SCREEN_EXCLUSIVE_DISALLOWED_EXT,
-	};
-#endif
-
 	const VkSwapchainPresentModesCreateInfoKHR present_modes_info = {
 		.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODES_CREATE_INFO_KHR,
-#if PLATFORM_WINDOWS
-		.pNext = &fullscreen_exclusive_info,
-#endif
 		.presentModeCount = u32( possible_present_modes.size() ),
 		.pPresentModes = possible_present_modes.ptr(),
 	};
 
 	const void * pnext = NULL;
-#if PLATFORM_WINDOWS
-	pnext = &fullscreen_exclusive_info;
-#endif
 	if( device.has_swapchain_maintenance1 ) {
 		pnext = &present_modes_info;
 	}
@@ -982,7 +949,6 @@ static Swapchain CreateSwapchain( SDL_Window * window, VulkanDevice device, VkSu
 		.swapchain = swapchain,
 		.width = capabilities.currentExtent.width,
 		.height = capabilities.currentExtent.height,
-		.fullscreen_exclusive = fullscreen_exclusive,
 		.format = format.format,
 		.images = images,
 	};
@@ -997,12 +963,12 @@ static void DeleteSwapchain( Swapchain swapchain ) {
 	vkDestroySwapchainKHR( global_device.device, swapchain.swapchain, NULL );
 }
 
-static bool MaybeRecreateSwapchain( SDL_Window * window, u32 viewport_width, u32 viewport_height, bool fullscreen_exclusive ) {
-	if( viewport_width == global_swapchain.width && viewport_height == global_swapchain.height && fullscreen_exclusive == global_swapchain.fullscreen_exclusive ) {
+static bool MaybeRecreateSwapchain( u32 viewport_width, u32 viewport_height ) {
+	if( viewport_width == global_swapchain.width && viewport_height == global_swapchain.height ) {
 		return false;
 	}
 
-	Swapchain new_swapchain = CreateSwapchain( window, global_device, global_surface, fullscreen_exclusive, global_swapchain );
+	Swapchain new_swapchain = CreateSwapchain( global_device, global_surface, global_swapchain );
 	VK_CHECK( vkDeviceWaitIdle( global_device.device ) );
 	DeleteSwapchain( global_swapchain );
 	global_swapchain = new_swapchain;
@@ -2769,7 +2735,7 @@ void InitRenderBackend( SDL_Window * window, const WindowMode & window_mode ) {
 	VulkanDevice device = CreateDevice( global_instance );
 	global_device = device;
 
-	global_swapchain = CreateSwapchain( window, device, global_surface, window_mode.fullscreen == FullscreenMode_Fullscreen, NONE );
+	global_swapchain = CreateSwapchain( device, global_surface, NONE );
 	frame_counter = 0;
 
 	Assert( device.limits.ssbo_range >= ArenaAllocatorSize );
@@ -2843,7 +2809,7 @@ void RenderBackendWaitForNewFrame() {
 	VK_CHECK( vkWaitSemaphores( global_device.device, &wait_info, U64_MAX ) );
 }
 
-void RenderBackendBeginFrame( SDL_Window * window, bool fullscreen_exclusive, bool vsync, int frames_to_capture ) {
+void RenderBackendBeginFrame( bool vsync, int frames_to_capture ) {
 	TracyZoneScoped;
 
 	{
@@ -2852,7 +2818,7 @@ void RenderBackendBeginFrame( SDL_Window * window, bool fullscreen_exclusive, bo
 	}
 
 	if( !frame_static.minimized ) {
-		MaybeRecreateSwapchain( window, frame_static.viewport_width, frame_static.viewport_height, fullscreen_exclusive );
+		MaybeRecreateSwapchain( frame_static.viewport_width, frame_static.viewport_height );
 
 		TracyZoneScopedNC( "vkAcquireNextImageKHR", TracyColorWait );
 		VkSemaphore acquire_semaphore = global_device.acquire_semaphores[ FrameSlot() ];

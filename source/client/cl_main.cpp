@@ -1081,7 +1081,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	u32 viewport_width, viewport_height;
 	bool minimized;
 	GetFramebufferSize( &viewport_width, &viewport_height, &minimized );
-	RendererBeginFrame( sdl_window, viewport_width, viewport_height, minimized, WantFullscreenExclusive(), vsync );
+	RendererBeginFrame( viewport_width, viewport_height, minimized, vsync );
 	ClayBeginFrame();
 
 	SCR_UpdateScreen();
@@ -1128,7 +1128,7 @@ void CL_Init() {
 
 #if PLATFORM_WINDOWS
 	// both VID_Init and InitAssets need to run on the main thread on Windows
-	WindowMode window_mode = VID_Init();
+	VID_Init();
 	{
 		TempAllocator temp = cls.frame_arena.temp();
 		InitAssets( &temp );
@@ -1138,11 +1138,11 @@ void CL_Init() {
 	ThreadPoolDo( []( TempAllocator * temp, void * data ) {
 		InitAssets( temp );
 	} );
-	WindowMode window_mode = VID_Init();
+	VID_Init();
 	ThreadPoolFinish();
 #endif
 
-	InitRenderer( sdl_window, window_mode );
+	InitRenderer( sdl_window );
 	InitGLTFModels();
 	InitMaps();
 	InitSound();

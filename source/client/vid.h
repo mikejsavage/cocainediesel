@@ -10,17 +10,11 @@ struct VideoMode {
 	float refresh_rate;
 };
 
-enum FullscreenMode {
-	FullscreenMode_Windowed,
-	FullscreenMode_Borderless,
-	FullscreenMode_Fullscreen,
-};
-
 struct WindowMode {
 	VideoMode video_mode;
 	int monitor;
 	int x, y;
-	FullscreenMode fullscreen;
+	bool fullscreen;
 };
 
 void format( FormatBuffer * fb, VideoMode mode, const FormatOpts & opts );
@@ -28,7 +22,7 @@ void format( FormatBuffer * fb, WindowMode mode, const FormatOpts & opts );
 
 bool operator!=( WindowMode lhs, WindowMode rhs );
 
-WindowMode VID_Init();
+void VID_Init();
 
 void CreateWindow( WindowMode mode );
 void DestroyWindow();
@@ -46,5 +40,3 @@ bool IsWindowFocused();
 
 WindowMode GetWindowMode();
 void SetWindowMode( WindowMode mode );
-
-bool WantFullscreenExclusive();

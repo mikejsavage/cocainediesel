@@ -6,11 +6,10 @@
 
 #include "client/renderer/shader_shared.h"
 
-constexpr size_t MaxFramesInFlight = 2;
+constexpr u32 MaxFramesInFlight = 2;
 
 struct SDL_Window;
-struct WindowMode;
-void InitRenderer( SDL_Window * window, const WindowMode & window_mode );
+void InitRenderer( SDL_Window * window );
 void ShutdownRenderer();
 
 constexpr u32 MaxMSAA = 8;
@@ -559,7 +558,7 @@ struct FrameStatic {
 
 inline FrameStatic frame_static;
 
-void RendererBeginFrame( SDL_Window * window, u32 viewport_width, u32 viewport_height, bool minimized, bool fullscreen_exclusive, bool vsync );
+void RendererBeginFrame( u32 viewport_width, u32 viewport_height, bool minimized, bool vsync );
 void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov );
 void RendererEndFrame();
 

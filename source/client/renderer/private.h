@@ -17,7 +17,7 @@ constexpr size_t MaxFonts = 64;
  * Init
  */
 
-void InitRenderBackend( SDL_Window * window, const WindowMode & window_mode );
+void InitRenderBackend( SDL_Window * window );
 void ShutdownRenderBackend();
 
 void InitShaders();
@@ -165,7 +165,7 @@ void format( FormatBuffer * fb, const VertexDescriptor & v, const FormatOpts & o
  */
 
 void RenderBackendWaitForNewFrame();
-void RenderBackendBeginFrame( SDL_Window * window, bool fullscreen_exclusive, bool vsync, int frames_to_capture );
+void RenderBackendBeginFrame( bool vsync, int frames_to_capture );
 void RenderBackendEndFrame();
 
 size_t FrameSlot();

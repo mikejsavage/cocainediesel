@@ -70,19 +70,19 @@ void CreateWindow( WindowMode mode ) {
 
 	SDL_DisplayID monitor = DisplayIndexToID( mode.monitor );
 
-	if( mode.fullscreen == FullscreenMode_Windowed ) {
-		TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_X_NUMBER, mode.x == -1 ? SDL_WINDOWPOS_CENTERED : mode.x );
-		TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_Y_NUMBER, mode.y == -1 ? SDL_WINDOWPOS_CENTERED : mode.y );
-	}
-	else {
+	if( mode.fullscreen ) {
 		TrySDL( SDL_SetBooleanProperty, props, SDL_PROP_WINDOW_CREATE_FULLSCREEN_BOOLEAN, true );
 		TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_X_NUMBER, SDL_WINDOWPOS_UNDEFINED_DISPLAY( monitor ) );
 		TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_Y_NUMBER, SDL_WINDOWPOS_UNDEFINED_DISPLAY( monitor ) );
 	}
+	else {
+		TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_X_NUMBER, mode.x == -1 ? SDL_WINDOWPOS_CENTERED : mode.x );
+		TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_Y_NUMBER, mode.y == -1 ? SDL_WINDOWPOS_CENTERED : mode.y );
+	}
 
 	sdl_window = TrySDLR( SDL_Window *, SDL_CreateWindowWithProperties, props );
 
-	if( mode.fullscreen == FullscreenMode_Fullscreen ) {
+	if( mode.fullscreen ) {
 		SDL_DisplayMode closest;
 		if( !SDL_GetClosestFullscreenDisplayMode( monitor, mode.video_mode.width, mode.video_mode.height, mode.video_mode.refresh_rate, true, &closest ) ) {
 			closest = *TrySDLR( const SDL_DisplayMode *, SDL_GetDesktopDisplayMode, monitor );
@@ -140,65 +140,35 @@ VideoMode GetVideoMode( int monitor ) {
 extern "C" int SDL_GetDisplayIndex( SDL_DisplayID displayID );
 
 WindowMode GetWindowMode() {
-	WindowMode mode = { .fullscreen = FullscreenMode_Windowed };
+	WindowMode mode = { .fullscreen = false };
 
 	TrySDL( SDL_GetWindowPosition, sdl_window, &mode.x, &mode.y );
 	TrySDL( SDL_GetWindowSizeInPixels, sdl_window, &mode.video_mode.width, &mode.video_mode.height );
 
 	if( HasAllBits( SDL_GetWindowFlags( sdl_window ), SDL_WINDOW_FULLSCREEN ) ) {
 		const SDL_DisplayMode * fullscreen = SDL_GetWindowFullscreenMode( sdl_window );
-		if( fullscreen != NULL ) {
-			mode.fullscreen = FullscreenMode_Fullscreen;
-			mode.video_mode.refresh_rate = fullscreen->refresh_rate;
-			mode.monitor = SDL_GetDisplayIndex( fullscreen->displayID );
-		}
-		else {
-			mode.fullscreen = FullscreenMode_Borderless;
-
-			int num_monitors;
-			SDL_DisplayID * monitors = SDL_GetDisplays( &num_monitors );
-			defer { SDL_free( monitors ); };
-
-			for( int i = 0; i < num_monitors; i++ ) {
-				SDL_Rect rect;
-				TrySDL( SDL_GetDisplayBounds, monitors[ i ], &rect );
-				if( rect.x == mode.x && rect.y == mode.y ) {
-					mode.monitor = i;
-				}
-			}
-		}
+		mode.fullscreen = true;
+		mode.video_mode.refresh_rate = fullscreen->refresh_rate;
+		mode.monitor = SDL_GetDisplayIndex( fullscreen->displayID );
 	}
 
 	return mode;
 }
 
 void SetWindowMode( WindowMode mode ) {
-	switch( mode.fullscreen ) {
-		case FullscreenMode_Windowed:
-			TrySDL( SDL_SetWindowFullscreen, sdl_window, false );
-			TrySDL( SDL_SetWindowSize, sdl_window, mode.video_mode.width, mode.video_mode.height );
-			TrySDL( SDL_SetWindowPosition, sdl_window, mode.x == -1 ? SDL_WINDOWPOS_CENTERED : mode.x, mode.y == -1 ? SDL_WINDOWPOS_CENTERED : mode.y );
-			break;
-
-		case FullscreenMode_Borderless: {
-			SDL_DisplayID monitor = DisplayIndexToID( mode.monitor );
-			SDL_Rect rect;
-			TrySDL( SDL_GetDisplayBounds, monitor, &rect );
-			TrySDL( SDL_SetWindowFullscreen, sdl_window, true );
-			TrySDL( SDL_SetWindowFullscreenMode, sdl_window, ( SDL_DisplayMode * ) NULL );
-			TrySDL( SDL_SetWindowPosition, sdl_window, rect.x, rect.y );
-			// TrySDL( SDL_SetWindowSize, sdl_window, rect.w, rect.h );
-		} break;
-
-		case FullscreenMode_Fullscreen: {
-			SDL_DisplayID monitor = DisplayIndexToID( mode.monitor );
-			SDL_DisplayMode closest;
-			if( !SDL_GetClosestFullscreenDisplayMode( monitor, mode.video_mode.width, mode.video_mode.height, mode.video_mode.refresh_rate, true, &closest ) ) {
-				closest = *TrySDLR( const SDL_DisplayMode *, SDL_GetDesktopDisplayMode, monitor );
-			}
-			TrySDL( SDL_SetWindowFullscreen, sdl_window, true );
-			TrySDL( SDL_SetWindowFullscreenMode, sdl_window, &closest );
-		} break;
+	if( mode.fullscreen ) {
+		SDL_DisplayID monitor = DisplayIndexToID( mode.monitor );
+		SDL_DisplayMode closest;
+		if( !SDL_GetClosestFullscreenDisplayMode( monitor, mode.video_mode.width, mode.video_mode.height, mode.video_mode.refresh_rate, true, &closest ) ) {
+			closest = *TrySDLR( const SDL_DisplayMode *, SDL_GetDesktopDisplayMode, monitor );
+		}
+		TrySDL( SDL_SetWindowFullscreen, sdl_window, true );
+		TrySDL( SDL_SetWindowFullscreenMode, sdl_window, &closest );
+	}
+	else {
+		TrySDL( SDL_SetWindowFullscreen, sdl_window, false );
+		TrySDL( SDL_SetWindowSize, sdl_window, mode.video_mode.width, mode.video_mode.height );
+		TrySDL( SDL_SetWindowPosition, sdl_window, mode.x == -1 ? SDL_WINDOWPOS_CENTERED : mode.x, mode.y == -1 ? SDL_WINDOWPOS_CENTERED : mode.y );
 	}
 }
 

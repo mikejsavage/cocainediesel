@@ -852,15 +852,6 @@ static void SettingsControls() {
 	ImGui::EndChild();
 }
 
-static const char * FullscreenModeToString( FullscreenMode mode ) {
-	switch( mode ) {
-		case FullscreenMode_Windowed: return "Windowed";
-		case FullscreenMode_Borderless: return "Borderless";
-		case FullscreenMode_Fullscreen: return "Fullscreen";
-	}
-	return NULL;
-}
-
 static const char * ShadowQualityToString( ShadowQuality mode ) {
 	switch( mode ) {
 		case ShadowQuality_Low: return "Rookie";
@@ -881,29 +872,14 @@ static void SettingsVideo() {
 		reset_video_settings = false;
 	}
 
-	SettingLabel( "Window mode" );
-	ImGui::PushItemWidth( 200 * GetContentScale() );
+	SettingLabel( "Fullscreen" );
+	ImGui::Checkbox( "##fullscreen", &mode.fullscreen );
 
-	if( ImGui::BeginCombo( "##fullscreen", FullscreenModeToString( mode.fullscreen ) ) ) {
-		if( ImGui::Selectable( FullscreenModeToString( FullscreenMode_Windowed ), mode.fullscreen == FullscreenMode_Windowed ) ) {
-			mode.fullscreen = FullscreenMode_Windowed;
-		}
-		if( ImGui::Selectable( FullscreenModeToString( FullscreenMode_Borderless ), mode.fullscreen == FullscreenMode_Borderless ) ) {
-			mode.fullscreen = FullscreenMode_Borderless;
-		}
-		if( ImGui::Selectable( FullscreenModeToString( FullscreenMode_Fullscreen ), mode.fullscreen == FullscreenMode_Fullscreen ) ) {
-			mode.fullscreen = FullscreenMode_Fullscreen;
-		}
-		ImGui::EndCombo();
-	}
-
-	ImGui::PopItemWidth();
-
-	if( mode.fullscreen != FullscreenMode_Fullscreen ) {
+	if( !mode.fullscreen ) {
 		mode.video_mode.refresh_rate = 0.0f;
 	}
 
-	if( mode.fullscreen != FullscreenMode_Windowed ) {
+	if( mode.fullscreen ) {
 		int num_monitors;
 		SDL_DisplayID * monitors = SDL_GetDisplays( &num_monitors );
 		defer { SDL_free( monitors ); };
@@ -926,42 +902,40 @@ static void SettingsVideo() {
 			ImGui::PopItemWidth();
 		}
 
-		if( mode.fullscreen == FullscreenMode_Fullscreen ) {
-			SettingLabel( "Resolution" );
-			ImGui::PushItemWidth( 200 * GetContentScale() );
+		SettingLabel( "Resolution" );
+		ImGui::PushItemWidth( 200 * GetContentScale() );
 
-			if( mode.video_mode.refresh_rate == 0.0f ) {
-				mode.video_mode = GetVideoMode( mode.monitor );
-			}
-
-			if( ImGui::BeginCombo( "##resolution", temp( "{}", mode.video_mode ) ) ) {
-				int num_modes;
-				SDL_DisplayMode ** modes = SDL_GetFullscreenDisplayModes( monitors[ mode.monitor ], &num_modes );
-				defer { SDL_free( modes ); };
-
-				for( int i = 0; i < num_modes; i++ ) {
-					int idx = num_modes - i - 1;
-
-					VideoMode m = { };
-					m.width = modes[ idx ]->w;
-					m.height = modes[ idx ]->h;
-					m.refresh_rate = modes[ idx ]->refresh_rate;
-
-					bool is_selected = mode.video_mode.width == m.width && mode.video_mode.height == m.height && mode.video_mode.refresh_rate == m.refresh_rate;
-					if( ImGui::Selectable( temp( "{}", m ), is_selected ) ) {
-						mode.video_mode = m;
-					}
-				}
-				ImGui::EndCombo();
-			}
-
-			ImGui::PopItemWidth();
+		if( mode.video_mode.refresh_rate == 0.0f ) {
+			mode.video_mode = GetVideoMode( mode.monitor );
 		}
+
+		if( ImGui::BeginCombo( "##resolution", temp( "{}", mode.video_mode ) ) ) {
+			int num_modes;
+			SDL_DisplayMode ** modes = SDL_GetFullscreenDisplayModes( monitors[ mode.monitor ], &num_modes );
+			defer { SDL_free( modes ); };
+
+			for( int i = 0; i < num_modes; i++ ) {
+				int idx = num_modes - i - 1;
+
+				VideoMode m = { };
+				m.width = modes[ idx ]->w;
+				m.height = modes[ idx ]->h;
+				m.refresh_rate = modes[ idx ]->refresh_rate;
+
+				bool is_selected = mode.video_mode.width == m.width && mode.video_mode.height == m.height && mode.video_mode.refresh_rate == m.refresh_rate;
+				if( ImGui::Selectable( temp( "{}", m ), is_selected ) ) {
+					mode.video_mode = m;
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+		ImGui::PopItemWidth();
 	}
 
 	if( mode != GetWindowMode() ) {
 		if( ImGui::Button( "Apply changes" ) ) {
-			if( mode.fullscreen == FullscreenMode_Windowed ) {
+			if( !mode.fullscreen ) {
 				const SDL_DisplayMode * primary_mode = SDL_GetDesktopDisplayMode( SDL_GetPrimaryDisplay() );
 				mode.video_mode.width = primary_mode->w * 0.8f;
 				mode.video_mode.height = primary_mode->h * 0.8f;

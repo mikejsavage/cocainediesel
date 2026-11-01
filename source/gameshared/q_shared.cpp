@@ -679,7 +679,7 @@ bool Info_SetValueForKey( char * info, Span< const char > key, Span< const char 
 		return false;
 	}
 
-	ggprint( pair, sizeof( pair ), "\\{}\\{}", key, value );
+	ggformat( pair, sizeof( pair ), "\\{}\\{}", key, value );
 
 	if( strlen( pair ) + strlen( info ) > MAX_INFO_STRING ) {
 		return false;

@@ -20,20 +20,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "cgame/cg_local.h"
 #include "qcommon/hash.h"
-#include "qcommon/hashtable.h"
+#include "qcommon/hashmap.h"
 #include "client/assets.h"
 #include "client/renderer/api.h"
 #include "client/renderer/gltf.h"
 #include "client/renderer/model.h"
 #include "gameshared/collision.h"
 
-constexpr u32 MAX_PLAYER_MODELS = 128;
-
 pmodel_t cg_entPModels[ MAX_EDICTS ];
 
-static PlayerModelMetadata player_model_metadatas[ MAX_PLAYER_MODELS ];
-static u32 num_player_models;
-static Hashtable< MAX_PLAYER_MODELS * 2 > player_models_hashtable;
+static HashMap< PlayerModelMetadata, 128 > player_model_metadatas;
 
 static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, Span< const char > filename ) {
 	int num_clips = 1;
@@ -184,47 +180,41 @@ static void FindPlayerSounds( PlayerModelMetadata * meta, Span< const char > dir
 }
 
 void InitPlayerModels() {
-	num_player_models = 0;
+	player_model_metadatas.clear();
 
 	for( Span< const char > path : AssetPaths() ) {
-		if( num_player_models == ARRAY_COUNT( player_model_metadatas ) ) {
-			Com_Printf( S_COLOR_RED "Too many player models!\n" );
-			break;
-		}
-
 		Span< const char > ext = FileExtension( path );
 		if( ext == ".glb" && StartsWith( path, "players/" ) ) {
 			Span< const char > dir = BasePath( path );
 			u64 hash = Hash64( StripExtension( path ) );
 
-			PlayerModelMetadata * meta = &player_model_metadatas[ num_player_models ];
-			*meta = { };
-			meta->model = StringHash( hash );
+			PlayerModelMetadata meta = {
+				.model = StringHash( hash ),
+			};
 
 			TempAllocator temp = cls.frame_arena.temp();
 			Span< const char > config_path = temp.sv( "{}/model.cfg", dir );
 			if( AssetString( config_path ).ptr == NULL ) {
-				if( !LoadPlayerModelMetadata( meta, path ) ) {
+				if( !LoadPlayerModelMetadata( &meta, path ) ) {
 					continue;
 				}
 			}
-			else if( !ParsePlayerModelConfig( meta, config_path ) ) {
+			else if( !ParsePlayerModelConfig( &meta, config_path ) ) {
 				continue;
 			}
 
-			FindPlayerSounds( meta, dir );
+			FindPlayerSounds( &meta, dir );
 
-			player_models_hashtable.add( hash, num_player_models );
-			num_player_models++;
+			if( !player_model_metadatas.add( hash, meta ) ) {
+				Com_Printf( S_COLOR_RED "Too many player models!\n" );
+				break;
+			}
 		}
 	}
 }
 
 static const PlayerModelMetadata * GetPlayerModelMetadata( StringHash name ) {
-	u64 idx;
-	if( !player_models_hashtable.get( name.hash, &idx ) )
-		return NULL;
-	return &player_model_metadatas[ idx ];
+	return player_model_metadatas.get( name.hash );
 }
 
 const PlayerModelMetadata * GetPlayerModelMetadata( int ent_num ) {
@@ -511,8 +501,7 @@ void CG_PModel_AddAnimation( int entNum, int loweranim, int upperanim, int heada
 //							player model
 //======================================================================
 
-
-void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
+static void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 	mat3_t axis;
 	float speed;
 	EulerDegrees3 leanAngles[PMODEL_PARTS];

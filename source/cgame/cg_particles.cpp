@@ -232,10 +232,10 @@ struct DynamicLightEmitter {
 
 static ParticleSystem addParticleSystem;
 static ParticleSystem blendParticleSystem;
-static Hashmap< VisualEffectGroup, MAX_VISUAL_EFFECT_GROUPS > visualEffectGroups;
-static Hashmap< ParticleEmitter, MAX_PARTICLE_EMITTERS > particleEmitters;
-static Hashmap< DecalEmitter, MAX_DECAL_EMITTERS > decalEmitters;
-static Hashmap< DynamicLightEmitter, MAX_DLIGHT_EMITTERS > dlightEmitters;
+static HashMap< VisualEffectGroup, MAX_VISUAL_EFFECT_GROUPS > visualEffectGroups;
+static HashMap< ParticleEmitter, MAX_PARTICLE_EMITTERS > particleEmitters;
+static HashMap< DecalEmitter, MAX_DECAL_EMITTERS > decalEmitters;
+static HashMap< DynamicLightEmitter, MAX_DLIGHT_EMITTERS > dlightEmitters;
 
 struct ComputeIndirect {
 	u32 x, y, z;

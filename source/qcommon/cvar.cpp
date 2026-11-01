@@ -99,7 +99,7 @@ void Cvar_SetInteger( Span< const char > name, int value ) {
 Cvar * NewCvar( Span< const char > name, Span< const char > value, CvarFlags flags ) {
 	if( HasAnyBit( flags, CvarFlag_UserInfo | CvarFlag_ServerInfo ) ) {
 		Assert( Cvar_InfoValidate( name, true ) );
-		Assert( Cvar_InfoValidate( value, true ) );
+		Assert( Cvar_InfoValidate( value, false ) );
 	}
 
 	Cvar * old_cvar = FindCvar( name );

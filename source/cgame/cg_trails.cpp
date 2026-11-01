@@ -70,7 +70,8 @@ void InitTrails() {
 	trails.clear();
 }
 
-void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash material, Time duration ) {
+void DrawTrail( EntityID ent, Vec3 point, float width, Vec4 color, StringHash material, Time duration ) {
+	u64 unique_id = Hash64( bit_cast< u32 >( ent ) );
 	Trail * trail = trails.get( unique_id );
 	if( trail == NULL ) {
 		trail = trails.add( unique_id );

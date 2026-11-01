@@ -305,7 +305,7 @@ static void SpawnMapEntities() {
 }
 
 bool G_InitLevel( Span< const char > mapname, int64_t levelTime ) {
-	ResetEntityIDSequence();
+	ResetEntityGenerations();
 
 	memset( &level, 0, sizeof( level_locals_t ) );
 	level.time = levelTime;

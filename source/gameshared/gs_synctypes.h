@@ -364,8 +364,13 @@ struct CollisionModel {
 };
 
 struct EntityID {
-	u64 id;
+	u16 slot;
+	u16 generation;
 };
+
+constexpr bool operator==( EntityID a, EntityID b ) {
+	return a.slot == b.slot && a.generation == b.generation;
+}
 
 enum EntityFlags : u16 {
 	SVF_NOCLIENT         = 1 << 0, // don't send entity to clients, even if it has effects

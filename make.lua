@@ -9,6 +9,7 @@ msvc_global_cxxflags( "/wd4244 /wd4267" ) -- silence conversion warnings because
 msvc_global_cxxflags( "/wd4611" ) -- setjmp warning
 msvc_global_cxxflags( "/wd5030" ) -- unrecognized [[gnu::...]] attribute
 msvc_global_cxxflags( "/we4130" ) -- warning C4130: '!=': logical operation on address of string constant
+msvc_global_cxxflags( "/we4477" ) -- warning C4477: 'snprintf' : format string '%s' requires an argument of type 'char *', but variadic argument 2 has type 'Span<const char>'
 msvc_global_cxxflags( "/GR- /EHs-c-" )
 
 gcc_global_cxxflags( "-std=c++20 -fno-exceptions -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fno-math-errno -fvisibility=hidden" )

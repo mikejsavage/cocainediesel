@@ -3,7 +3,7 @@
 #include "qcommon/cvar.h"
 #include "qcommon/fs.h"
 #include "qcommon/hash.h"
-#include "qcommon/hashtable.h"
+#include "qcommon/hashmap.h"
 #include "qcommon/string.h"
 #include "gameshared/q_shared.h"
 
@@ -16,10 +16,7 @@ struct ConsoleCommand {
 	bool disabled;
 };
 
-constexpr size_t MAX_COMMANDS = 1024;
-
-static ConsoleCommand commands[ MAX_COMMANDS ];
-static Hashtable< MAX_COMMANDS * 2 > commands_hashtable;
+static HashMap< ConsoleCommand, 1024 > commands;
 
 static Span< const char > GrabLine( Span< const char > str, bool * eof ) {
 	const char * newline = StrChr( str, '\n' );
@@ -28,11 +25,7 @@ static Span< const char > GrabLine( Span< const char > str, bool * eof ) {
 }
 
 static ConsoleCommand * FindCommand( Span< const char > name ) {
-	u64 hash = CaseHash64( name );
-	u64 idx;
-	if( !commands_hashtable.get( hash, &idx ) )
-		return NULL;
-	return &commands[ idx ];
+	return commands.get( CaseHash64( name ) );
 }
 
 bool Cmd_ExecuteLine( Allocator * a, Span< const char > line, bool warn_on_invalid ) {
@@ -170,10 +163,9 @@ static void Cmd_Config_f( const Tokenized & args ) {
 static Span< Span< const char > > SearchCommands( Allocator * a, Span< const char > partial ) {
 	NonRAIIDynamicArray< Span< const char > > results( a );
 
-	for( size_t i = 0; i < commands_hashtable.size(); i++ ) {
-		const ConsoleCommand * command = &commands[ i ];
-		if( !command->disabled && CaseContains( command->name, partial ) ) {
-			results.add( command->name );
+	for( const ConsoleCommand & command : commands.span() ) {
+		if( !command.disabled && CaseContains( command.name, partial ) ) {
+			results.add( command.name );
 		}
 	}
 
@@ -219,45 +211,34 @@ void ExecDefaultCfg() {
 	ExecConfig( path.c_str() );
 }
 
-void AddCommand( Span< const char > name, ConsoleCommandCallback callback ) {
-	Assert( callback != NULL );
-
+void AddCommand( Span< const char > name, ConsoleCommandCallback callback, TabCompletionCallback tab_completion_callback ) {
 	ConsoleCommand * old_command = FindCommand( name );
 	if( old_command != NULL ) {
-		Assert( old_command->callback == callback && old_command->disabled );
+		Assert( old_command->disabled );
+		Assert( old_command->callback == callback && old_command->tab_completion_callback == tab_completion_callback );
 		old_command->disabled = false;
 		return;
 	}
 
-	Assert( commands_hashtable.size() < ARRAY_COUNT( commands ) );
+	Assert( !commands.full() );
 
-	ConsoleCommand * command = &commands[ commands_hashtable.size() ];
-	*command = { };
-	command->name = name;
-	command->callback = callback;
-
-	u64 hash = CaseHash64( name );
-	bool ok = commands_hashtable.add( hash, commands_hashtable.size() );
-	Assert( ok );
+	commands.add( CaseHash64( name ), ConsoleCommand {
+		.name = name,
+		.callback = callback,
+		.tab_completion_callback = tab_completion_callback,
+	} );
 }
 
 void RemoveCommand( Span< const char > name ) {
 	FindCommand( name )->disabled = true;
 }
 
-void SetTabCompletionCallback( Span< const char > name, TabCompletionCallback callback ) {
-	ConsoleCommand * command = FindCommand( name );
-	Assert( command->tab_completion_callback == NULL || command->tab_completion_callback == callback );
-	command->tab_completion_callback = callback;
-}
-
 Span< Span< const char > > TabCompleteCommand( TempAllocator * temp, Span< const char > partial ) {
 	NonRAIIDynamicArray< Span< const char > > results( temp );
 
-	for( size_t i = 0; i < commands_hashtable.size(); i++ ) {
-		const ConsoleCommand * command = &commands[ i ];
-		if( !command->disabled && CaseStartsWith( command->name, partial ) ) {
-			results.add( command->name );
+	for( const ConsoleCommand & command : commands.span() ) {
+		if( !command.disabled && CaseStartsWith( command.name, partial ) ) {
+			results.add( command.name );
 		}
 	}
 
@@ -330,12 +311,9 @@ static Span< Span< const char > > TabCompleteConfig( TempAllocator * temp, Span<
 }
 
 void Cmd_Init() {
-	AddCommand( "exec", Cmd_Exec_f );
-	AddCommand( "config", Cmd_Config_f );
+	AddCommand( "exec", Cmd_Exec_f, TabCompleteExec );
+	AddCommand( "config", Cmd_Config_f, TabCompleteConfig );
 	AddCommand( "find", Cmd_Find_f );
-
-	SetTabCompletionCallback( "exec", TabCompleteExec );
-	SetTabCompletionCallback( "config", TabCompleteConfig );
 }
 
 void Cmd_Shutdown() {
@@ -343,8 +321,7 @@ void Cmd_Shutdown() {
 	RemoveCommand( "config" );
 	RemoveCommand( "find" );
 
-	for( size_t i = 0; i < commands_hashtable.size(); i++ ) {
-		ConsoleCommand * command = &commands[ i ];
-		Assert( command->disabled );
+	for( const ConsoleCommand & command : commands.span() ) {
+		Assert( command.disabled );
 	}
 }

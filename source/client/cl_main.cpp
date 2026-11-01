@@ -724,15 +724,12 @@ static void CL_InitLocal() {
 	AddCommand( "connect", CL_Connect_f );
 	AddCommand( "reconnect", []( const Tokenized & args ) { CL_Reconnect_f(); } );
 	AddCommand( "disconnect", []( const Tokenized & args ) { CL_Disconnect( NULL ); } );
-	AddCommand( "demo", CL_PlayDemo_f );
+	AddCommand( "demo", CL_PlayDemo_f, TabCompleteDemo );
+	AddCommand( "yolodemo", CL_YoloDemo_f, TabCompleteDemo );
 	AddCommand( "record", CL_Record_f );
 	AddCommand( "stop", []( const Tokenized & args ) { CL_StopRecording( false ); } );
-	AddCommand( "yolodemo", CL_YoloDemo_f );
 	AddCommand( "demopause", []( const Tokenized & args ) { CL_PauseDemo_f(); } );
 	AddCommand( "demojump", CL_DemoJump_f );
-
-	SetTabCompletionCallback( "demo", TabCompleteDemo );
-	SetTabCompletionCallback( "yolodemo", TabCompleteDemo );
 }
 
 static void CL_ShutdownLocal() {

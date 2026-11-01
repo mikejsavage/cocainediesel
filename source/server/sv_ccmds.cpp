@@ -98,8 +98,8 @@ void SV_InitOperatorCommands() {
 	AddCommand( "heartbeat", SV_Heartbeat_f );
 	AddCommand( "status", []( const Tokenized & args ) { SV_Status_f(); } );
 
-	AddCommand( "map", SV_Map_f );
-	AddCommand( "devmap", SV_Map_f );
+	AddCommand( "map", SV_Map_f, CompleteMapName );
+	AddCommand( "devmap", SV_Map_f, CompleteMapName );
 
 	AddCommand( "serverrecord", SV_Demo_Start_f );
 	AddCommand( "serverrecordstop", []( const Tokenized & args ) { SV_Demo_Stop( false ); } );
@@ -107,9 +107,6 @@ void SV_InitOperatorCommands() {
 	if( is_dedicated_server ) {
 		AddCommand( "serverrecordpurge", []( const Tokenized & args ) { SV_DeleteOldDemos(); } );
 	}
-
-	SetTabCompletionCallback( "map", CompleteMapName );
-	SetTabCompletionCallback( "devmap", CompleteMapName );
 }
 
 void SV_ShutdownOperatorCommands() {

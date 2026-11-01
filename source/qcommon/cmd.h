@@ -20,8 +20,7 @@ void Cmd_ExecuteLateCommands( Span< const char * > args );
 using ConsoleCommandCallback = void ( * )( const Tokenized & args );
 using TabCompletionCallback = Span< Span< const char > > ( * )( TempAllocator * temp, Span< const char > partial );
 
-void AddCommand( Span< const char > name, ConsoleCommandCallback function );
-void SetTabCompletionCallback( Span< const char > name, TabCompletionCallback callback );
+void AddCommand( Span< const char > name, ConsoleCommandCallback function, TabCompletionCallback tab = NULL );
 void RemoveCommand( Span< const char > name );
 
 Span< Span< const char > > TabCompleteCommand( TempAllocator * temp, Span< const char > partial );

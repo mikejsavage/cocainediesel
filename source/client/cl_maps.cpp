@@ -23,13 +23,12 @@ static void FillMapModelsHashtable() {
 
 	map_models.clear();
 
-	for( u32 i = 0; i < maps.size(); i++ ) {
-		const Map * map = &maps.span()[ i ];
-		for( size_t j = 0; j < map->data.models.n; j++ ) {
-			String< 16 > suffix( "*{}", j );
-			u64 hash = Hash64( suffix.span(), map->base_hash.hash );
+	for( const Map & map : maps.span() ) {
+		for( size_t i = 0; i < map.data.models.n; i++ ) {
+			String< 16 > suffix( "*{}", i );
+			u64 hash = Hash64( suffix.span(), map.base_hash.hash );
 
-			MapSubModelRenderData submodel = { StringHash( map->base_hash ), checked_cast< u32 >( j ) };
+			MapSubModelRenderData submodel = { StringHash( map.base_hash ), checked_cast< u32 >( i ) };
 			if( !map_models.add( hash, submodel ) ) {
 				Fatal( "Too many map submodels" );
 			}
@@ -150,8 +149,8 @@ void HotloadMaps() {
 void ShutdownMaps() {
 	TracyZoneScoped;
 
-	for( u32 i = 0; i < maps.size(); i++ ) {
-		Free( sys_allocator, const_cast< char * >( maps.span()[ i ].name.ptr ) );
+	for( Map & map : maps.span() ) {
+		Free( sys_allocator, const_cast< char * >( map.name.ptr ) );
 	}
 
 	maps.clear();

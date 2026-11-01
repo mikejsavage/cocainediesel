@@ -21,23 +21,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
 #include "qcommon/hash.h"
-#include "qcommon/hashtable.h"
+#include "qcommon/hashmap.h"
 #include "qcommon/string.h"
 
 #include "nanosort/nanosort.hpp"
 
 struct ConfigEntry {
-	Span< char > name;
-	Span< char > value;
+	Span< const char > name;
+	Span< const char > value;
 };
 
 constexpr size_t MAX_CVARS = 1024;
-
-static Cvar cvars[ MAX_CVARS ];
-static Hashtable< MAX_CVARS * 2 > cvars_hashtable;
-
-static ConfigEntry config_entries[ MAX_CVARS ];
-static Hashtable< MAX_CVARS * 2 > config_entries_hashtable;
+static HashMap< Cvar, MAX_CVARS > cvars;
+static HashMap< ConfigEntry, MAX_CVARS > config_entries;
 
 bool userinfo_modified;
 
@@ -51,11 +47,7 @@ static bool Cvar_InfoValidate( Span< const char > s, bool name ) {
 }
 
 static Cvar * FindCvar( Span< const char > name ) {
-	u64 hash = CaseHash64( name );
-	u64 idx;
-	if( !cvars_hashtable.get( hash, &idx ) )
-		return NULL;
-	return &cvars[ idx ];
+	return cvars.get( CaseHash64( name ) );
 }
 
 Span< const char > Cvar_String( Span< const char > name ) {
@@ -109,26 +101,20 @@ Cvar * NewCvar( Span< const char > name, Span< const char > value, CvarFlags fla
 		return old_cvar;
 	}
 
-	Assert( cvars_hashtable.size() < ARRAY_COUNT( cvars ) );
-
-	Cvar * cvar = &cvars[ cvars_hashtable.size() ];
-	*cvar = { };
-	cvar->name = ( *sys_allocator )( "{}", name );
-	cvar->default_value = CloneSpan( sys_allocator, value );
-	cvar->flags = CvarFlags( flags );
+	Assert( !cvars.full() );
 
 	u64 hash = CaseHash64( name );
-	bool ok = cvars_hashtable.add( hash, cvars_hashtable.size() );
-	Assert( ok );
+	const ConfigEntry * config_entry = config_entries.get( hash );
 
-	u64 idx;
-	if( !HasAllBits( flags, CvarFlag_ReadOnly ) && config_entries_hashtable.get( hash, &idx ) ) {
-		SetCvar( cvar, config_entries[ idx ].value );
-		cvar->from_config = true;
-	}
-	else {
-		SetCvar( cvar, value );
-	}
+	Cvar * cvar = cvars.add( hash );
+	*cvar = {
+		.name = CloneSpan( sys_allocator, name ),
+		.default_value = CloneSpan( sys_allocator, value ),
+		.flags = flags,
+		.from_config = config_entry != NULL,
+	};
+
+	SetCvar( cvar, config_entry == NULL ? value : config_entry->value );
 
 	return cvar;
 }
@@ -184,10 +170,9 @@ void ResetCheatCvars() {
 		return;
 	}
 
-	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
-		Cvar * cvar = &cvars[ i ];
-		if( HasAllBits( cvar->flags, CvarFlag_Cheat ) ) {
-			SetCvar( cvar, cvar->default_value );
+	for( Cvar & cvar : cvars.span() ) {
+		if( HasAllBits( cvar.flags, CvarFlag_Cheat ) ) {
+			SetCvar( &cvar, cvar.default_value );
 		}
 	}
 }
@@ -195,10 +180,9 @@ void ResetCheatCvars() {
 Span< Span< const char > > TabCompleteCvar( TempAllocator * a, Span< const char > partial ) {
 	NonRAIIDynamicArray< Span< const char > > results( a );
 
-	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
-		const Cvar * cvar = &cvars[ i ];
-		if( CaseStartsWith( MakeSpan( cvar->name ), partial ) ) {
-			results.add( MakeSpan( cvar->name ) );
+	for( const Cvar & cvar : cvars.span() ) {
+		if( CaseStartsWith( cvar.name, partial ) ) {
+			results.add( cvar.name );
 		}
 	}
 
@@ -210,10 +194,9 @@ Span< Span< const char > > TabCompleteCvar( TempAllocator * a, Span< const char 
 Span< Span< const char > > SearchCvars( Allocator * a, Span< const char > partial ) {
 	NonRAIIDynamicArray< Span< const char > > results( a );
 
-	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
-		const Cvar * cvar = &cvars[ i ];
-		if( CaseContains( MakeSpan( cvar->name ), partial ) ) {
-			results.add( MakeSpan( cvar->name ) );
+	for( const Cvar & cvar : cvars.span() ) {
+		if( CaseContains( cvar.name, partial ) ) {
+			results.add( cvar.name );
 		}
 	}
 
@@ -249,19 +232,20 @@ static void SetConfigCvar( const Tokenized & args ) {
 	// TODO: if the variable already exists we should set it
 
 	u64 hash = CaseHash64( args.tokens[ 1 ] );
-	u64 idx = config_entries_hashtable.size();
-	if( !config_entries_hashtable.get( hash, &idx ) ) {
-		if( !config_entries_hashtable.add( hash, idx ) ) {
+	ConfigEntry * entry = config_entries.get( hash );
+	if( entry == NULL ) {
+		entry = config_entries.add( hash );
+		if( entry == NULL ) {
 			Com_Printf( S_COLOR_YELLOW "Too many config entries!" );
 			return;
 		}
-
-		config_entries[ idx ].name = CloneSpan( sys_allocator, args.tokens[ 1 ] );
-		config_entries[ idx ].value = { };
+		entry->name = CloneSpan( sys_allocator, args.tokens[ 1 ] );
+	}
+	else {
+		Free( sys_allocator, entry->value.ptr );
 	}
 
-	Free( sys_allocator, config_entries[ idx ].value.ptr );
-	config_entries[ idx ].value = CloneSpan( sys_allocator, args.tokens[ 2 ] );
+	entry->value = CloneSpan( sys_allocator, args.tokens[ 2 ] );
 }
 
 static void Cvar_Reset_f( const Tokenized & args ) {
@@ -282,20 +266,18 @@ static void Cvar_Reset_f( const Tokenized & args ) {
 Span< const char > Cvar_MakeConfig( Allocator * a ) {
 	DynamicArray< Span< char > > lines( a );
 
-	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
-		const Cvar * cvar = &cvars[ i ];
-		if( !HasAllBits( cvar->flags, CvarFlag_Archive ) )
+	for( const Cvar & cvar : cvars.span() ) {
+		if( !HasAllBits( cvar.flags, CvarFlag_Archive ) )
 			continue;
-		if( !cvar->from_config && StrEqual( cvar->value, cvar->default_value ) )
+		if( !cvar.from_config && StrEqual( cvar.value, cvar.default_value ) )
 			continue;
-		lines.add( a->sv( "set {} \"{}\"\r\n", cvar->name, cvar->value ) );
+		lines.add( a->sv( "set {} \"{}\"\r\n", cvar.name, cvar.value ) );
 	}
 
-	for( size_t i = 0; i < config_entries_hashtable.size(); i++ ) {
-		const ConfigEntry * entry = &config_entries[ i ];
-		if( FindCvar( entry->name ) != NULL )
+	for( const ConfigEntry & entry : config_entries.span() ) {
+		if( FindCvar( entry.name ) != NULL )
 			continue;
-		lines.add( a->sv( "set {} \"{}\"\r\n", entry->name, entry->value ) );
+		lines.add( a->sv( "set {} \"{}\"\r\n", entry.name, entry.value ) );
 	}
 
 	nanosort( lines.begin(), lines.end(), SortSpanStringsComparator );
@@ -312,10 +294,9 @@ Span< const char > Cvar_MakeConfig( Allocator * a ) {
 static const char * MakeInfoString( CvarFlags flag ) {
 	static char info[ MAX_INFO_STRING ];
 
-	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
-		const Cvar * cvar = &cvars[ i ];
-		if( HasAllBits( cvar->flags, flag ) ) {
-			Info_SetValueForKey( info, cvar->name, cvar->value );
+	for( const Cvar & cvar : cvars.span() ) {
+		if( HasAllBits( cvar.flags, flag ) ) {
+			Info_SetValueForKey( info, cvar.name, MakeSpan( cvar.value ) );
 		}
 	}
 
@@ -331,8 +312,8 @@ const char * Cvar_GetServerInfo() {
 }
 
 void Cvar_Init() {
-	cvars_hashtable.clear();
-	config_entries_hashtable.clear();
+	cvars.clear();
+	config_entries.clear();
 
 	AddCommand( "set", SetConfigCvar );
 	AddCommand( "reset", Cvar_Reset_f );
@@ -342,14 +323,14 @@ void Cvar_Shutdown() {
 	RemoveCommand( "set" );
 	RemoveCommand( "reset" );
 
-	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
-		Free( sys_allocator, cvars[ i ].name );
-		Free( sys_allocator, cvars[ i ].value );
-		Free( sys_allocator, cvars[ i ].default_value.ptr );
+	for( Cvar & cvar : cvars.span() ) {
+		Free( sys_allocator, cvar.name.ptr );
+		Free( sys_allocator, cvar.value );
+		Free( sys_allocator, cvar.default_value.ptr );
 	}
 
-	for( size_t i = 0; i < config_entries_hashtable.size(); i++ ) {
-		Free( sys_allocator, config_entries[ i ].name.ptr );
-		Free( sys_allocator, config_entries[ i ].value.ptr );
+	for( ConfigEntry & entry : config_entries.span() ) {
+		Free( sys_allocator, entry.name.ptr );
+		Free( sys_allocator, entry.value.ptr );
 	}
 }

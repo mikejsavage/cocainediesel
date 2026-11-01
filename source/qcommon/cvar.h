@@ -18,9 +18,9 @@ constexpr CvarFlags operator|( CvarFlags a, CvarFlags b ) {
 }
 
 struct Cvar {
-	char * name;
+	Span< const char > name;
 	char * value;
-	Span< char > default_value;
+	Span< const char > default_value;
 
 	CvarFlags flags;
 	bool from_config;
@@ -56,5 +56,6 @@ Span< const char > Cvar_MakeConfig( Allocator * a );
 
 void Cvar_Init();
 void Cvar_Shutdown();
+
 const char * Cvar_GetUserInfo();
 const char * Cvar_GetServerInfo();

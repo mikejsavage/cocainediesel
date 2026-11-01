@@ -1,7 +1,7 @@
 #include "game/g_local.h"
 #include "gameshared/gs_public.h"
 
-static const char * bot_names[] = {
+static Span< const char > bot_names[] = {
 	"vic",
 	"crizis",
 	"jal",

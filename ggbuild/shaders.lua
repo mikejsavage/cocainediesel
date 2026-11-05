@@ -28,6 +28,24 @@ local function ParseFeatures( features )
 	return cli, filename
 end
 
+local function HasBin( cmd )
+	cmd = cmd .. ( OS == "windows" and ".exe" or "" )
+
+	local path_pattern = OS == "windows" and "[^;]+" or "[^:]+"
+	local slash = package.config:sub( 1, 1 )
+
+	for p in os.getenv( "PATH" ):gmatch( path_pattern ) do
+		local dequote = p:match( "^\"(.*)\"$" ) or p
+		local f = io.open( dequote .. slash .. cmd, "r" )
+		if f then
+			f:close()
+			return true
+		end
+	end
+
+	return false
+end
+
 local function PlatformSpecificDxcStuff( cmd )
 	-- NOTE(mike 20251117): we have to do `dxc -MD -MF && dxc` because of
 	-- https://github.com/microsoft/DirectXShaderCompiler/issues/5416
@@ -39,6 +57,18 @@ local function PlatformSpecificDxcStuff( cmd )
 end
 
 function write_shaders_ninja_script()
+	if config ~= "release" then
+		if not HasBin( "dxc" ) then
+			io.stderr:write( "Can't find DXC (DirectX Shader Compiler), install the Vulkan SDK if you want to compile shaders\n" )
+			return
+		end
+
+		if OS == "macos" and not HasBin( "spirv-cross" ) then
+			io.stderr:write( "Can't find spirv-cross, install the Vulkan SDK if you want to compile shaders\n" )
+			return
+		end
+	end
+
 	printf( [[
 
 

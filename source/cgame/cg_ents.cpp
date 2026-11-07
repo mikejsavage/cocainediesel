@@ -400,7 +400,7 @@ static void DrawEntityModel( centity_t * cent ) {
 		palettes = ComputeMatrixPalettes( &temp, model.gltf, pose );
 	}
 	else if( cent->current.type == ET_MAPMODEL && model.type == ModelType_GLTF && model.gltf->animations.n > 0 ) {
-		float t = PositiveMod( ToSeconds( cls.monotonicTime ), model.gltf->animations[ 0 ].duration );
+		float t = ToSeconds( cls.monotonicTime % Seconds( model.gltf->animations[ 0 ].duration ) );
 		Span< Transform > pose = SampleAnimation( &temp, model.gltf, t );
 		palettes = ComputeMatrixPalettes( &temp, model.gltf, pose );
 	}

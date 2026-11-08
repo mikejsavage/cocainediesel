@@ -137,10 +137,6 @@ struct client_static_t {
 	PoolHandle< Material > white_material;
 
 	// these are our reliable messages that go to the server
-	size_t reliableSequence;          // the last one we put in the list to be sent
-	size_t reliableSent;              // the last one we sent to the server
-	size_t reliableAcknowledge;       // the last one the server has executed
-
 	struct ReliableCommand {
 		ClientCommandType command;
 		u8 args_buf[ MAX_STRING_CHARS ];
@@ -148,6 +144,8 @@ struct client_static_t {
 	};
 
 	ReliableCommand reliableCommands[ MAX_RELIABLE_COMMANDS ];
+	size_t reliable_cursor; // the last one we put in the list to be sent
+	size_t reliable_acked; // acked by the server
 
 	// reliable messages received from server
 	int64_t lastExecutedServerCommand;          // last server command grabbed or executed with CL_GetServerCommand

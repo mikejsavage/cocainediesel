@@ -78,32 +78,30 @@ CLIENT RELIABLE COMMAND COMMUNICATION
 */
 
 msg_t * CL_AddReliableCommand( ClientCommandType command ) {
-	// if we would be losing an old command that hasn't been acknowledged,
-	// we must drop the connection
-	if( cls.reliableSequence > cls.reliableAcknowledge + MAX_RELIABLE_COMMANDS ) {
-		cls.reliableAcknowledge = cls.reliableSequence; // try to avoid loops
-		Com_Error( "Client command overflow %zu %zu", cls.reliableAcknowledge, cls.reliableSequence );
+	// if we run out of reliable command space then just drop the oldest one
+	// reliable commands are not really used for anything very important during gameplay
+	Assert( cls.reliable_cursor <= cls.reliable_acked + MAX_RELIABLE_COMMANDS );
+
+	if( cls.reliable_cursor > cls.reliable_acked + MAX_RELIABLE_COMMANDS ) {
+		cls.reliable_acked++;
 	}
 
-	cls.reliableSequence++;
+	cls.reliable_cursor++;
 
-	size_t index = cls.reliableSequence % ARRAY_COUNT( cls.reliableCommands );
-	cls.reliableCommands[ index ] = { };
-	cls.reliableCommands[ index ].command = command;
-	cls.reliableCommands[ index ].args = NewMSGWriter( cls.reliableCommands[ index ].args_buf, sizeof( cls.reliableCommands[ index ].args_buf ) );
-	return &cls.reliableCommands[ index ].args;
+	size_t idx = cls.reliable_cursor % ARRAY_COUNT( cls.reliableCommands );
+	cls.reliableCommands[ idx ] = { .command = command };
+	cls.reliableCommands[ idx ].args = NewMSGWriter( cls.reliableCommands[ idx ].args_buf, sizeof( cls.reliableCommands[ idx ].args_buf ) );
+	return &cls.reliableCommands[ idx ].args;
 }
 
 static void SerializeReliableCommands( msg_t * msg ) {
-	for( size_t i = cls.reliableAcknowledge + 1; i <= cls.reliableSequence; i++ ) {
-		size_t index = i % ARRAY_COUNT( cls.reliableCommands );
+	for( size_t i = cls.reliable_acked + 1; i <= cls.reliable_cursor; i++ ) {
+		size_t idx = i % ARRAY_COUNT( cls.reliableCommands );
 		MSG_WriteUint8( msg, clc_clientcommand );
 		MSG_WriteIntBase128( msg, i );
-		MSG_WriteUint8( msg, cls.reliableCommands[ index ].command );
-		MSG_WriteMsg( msg, cls.reliableCommands[ index ].args );
+		MSG_WriteUint8( msg, cls.reliableCommands[ idx ].command );
+		MSG_WriteMsg( msg, cls.reliableCommands[ idx ].args );
 	}
-
-	cls.reliableSent = cls.reliableSequence;
 }
 
 void CL_ServerDisconnect_f( const Tokenized & args ) {
@@ -210,9 +208,8 @@ void CL_ClearState() {
 
 	//userinfo_modified = true;
 	cls.lastExecutedServerCommand = 0;
-	cls.reliableAcknowledge = 0;
-	cls.reliableSequence = 0;
-	cls.reliableSent = 0;
+	cls.reliable_cursor = 0;
+	cls.reliable_acked = 0;
 	memset( cls.reliableCommands, 0, sizeof( cls.reliableCommands ) );
 	// reset ucmds buffer
 	cls.ucmdHead = 0;

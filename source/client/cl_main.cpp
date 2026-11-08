@@ -224,9 +224,69 @@ void CL_ClearState() {
 	cls.lastPacketReceivedTime = 0;
 }
 
-void CL_Disconnect( Optional< Span< const char > > message ) {
-	cls.want_disconnect = true;
-	cls.disconnect_reason = message;
+/*
+* CL_Disconnect_SendCommand
+*
+* Sends a disconnect message to the server
+*/
+static void CL_Disconnect_SendCommand() {
+	// wsw : jal : send the packet 3 times to make sure isn't lost
+	CL_AddReliableCommand( ClientCommand_Disconnect );
+	CL_SendMessagesToServer( true );
+	CL_AddReliableCommand( ClientCommand_Disconnect );
+	CL_SendMessagesToServer( true );
+	CL_AddReliableCommand( ClientCommand_Disconnect );
+	CL_SendMessagesToServer( true );
+}
+
+/*
+* CL_Disconnect
+*
+* Goes from a connected state to full screen console state
+* Sends a disconnect message to the server
+* This is also called on Com_Error, so it shouldn't cause any errors
+*/
+void CL_Disconnect( const char *message ) {
+	CancelDownload();
+
+	if( cls.state == CA_UNINITIALIZED ) {
+		return;
+	}
+	if( cls.state == CA_DISCONNECTED ) {
+		return;
+	}
+
+	SV_ShutdownGame( "Owner left the listen server", false );
+
+	cls.connect_time = NONE;
+	cls.connect_count = 0;
+	cls.rejected = false;
+
+	CL_StopRecording( true );
+
+	if( CL_DemoPlaying() ) {
+		CL_DemoCompleted();
+	} else {
+		CL_Disconnect_SendCommand(); // send a disconnect message to the server
+	}
+
+	Free( sys_allocator, cls.server_name.ptr );
+	cls.server_name = Span< char >();
+
+	Free( sys_allocator, cls.download_url.ptr );
+	cls.download_url = Span< char >();
+
+	StopAllSounds( false );
+
+	CL_GameModule_Shutdown();
+
+	CL_ClearState();
+	CL_SetClientState( CA_DISCONNECTED );
+
+	if( message != NULL ) {
+		TempAllocator temp = cls.frame_arena.temp();
+		Cmd_Execute( &temp, "menu_open connfailed rejectmessage \"{}\"", message );
+	}
 }
 
 /*
@@ -351,6 +411,8 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 
 	// reject packet, used to inform the client that connection attemp didn't succeed
 	if( args.tokens[ 0 ] == "reject" ) {
+		int rejectflag;
+
 		if( cls.state != CA_CONNECTING ) {
 			Com_Printf( "reject packet while not connecting, ignored\n" );
 			return;
@@ -362,7 +424,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 
 		cls.rejected = true;
 
-		int rejectflag = atoi( MSG_ReadStringLine( msg ) );
+		rejectflag = atoi( MSG_ReadStringLine( msg ) );
 
 		SafeStrCpy( cls.rejectmessage, MSG_ReadStringLine( msg ), sizeof( cls.rejectmessage ) );
 		if( strlen( cls.rejectmessage ) > sizeof( cls.rejectmessage ) - 2 ) {
@@ -378,7 +440,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 		else {
 			Com_Printf( "Automatic reconnecting not allowed.\n" );
 
-			CL_Disconnect( "" );
+			CL_Disconnect( NULL );
 			Cmd_Execute( &temp, "menu_open connfailed rejectmessage \"{}\"", cls.rejectmessage );
 		}
 
@@ -500,16 +562,21 @@ void CL_FinishConnect() {
 }
 
 static bool AddDownloadedMap( Span< const char > filename, Span< const u8 > compressed ) {
+	if( compressed.ptr == NULL )
+		return false;
+
 	Span< u8 > data;
 	defer { Free( sys_allocator, data.ptr ); };
 
 	if( !Decompress( filename, sys_allocator, compressed, &data ) ) {
+		Com_Printf( "Downloaded map is corrupt.\n" );
 		return false;
 	}
 
 	TempAllocator temp = cls.frame_arena.temp();
 	Span< const char > clean_filename = StripPrefix( StripExtension( filename ), "base/" );
 	if( !AddMap( data, clean_filename ) ) {
+		Com_Printf( "Downloaded map is corrupt.\n" );
 		return false;
 	}
 
@@ -545,7 +612,7 @@ void CL_Precache_f( const Tokenized & args ) {
 				CL_FinishConnect();
 			}
 			else {
-				CL_Disconnect( "Downloaded map is corrupt" );
+				CL_Disconnect( NULL );
 			}
 		} );
 
@@ -652,7 +719,7 @@ static void CL_InitLocal() {
 
 	AddCommand( "connect", CL_Connect_f );
 	AddCommand( "reconnect", []( const Tokenized & args ) { CL_Reconnect_f(); } );
-	AddCommand( "disconnect", []( const Tokenized & args ) { CL_Disconnect( NONE ); } );
+	AddCommand( "disconnect", []( const Tokenized & args ) { CL_Disconnect( NULL ); } );
 	AddCommand( "demo", CL_PlayDemo_f, TabCompleteDemo );
 	AddCommand( "yolodemo", CL_YoloDemo_f, TabCompleteDemo );
 	AddCommand( "record", CL_Record_f );
@@ -713,8 +780,10 @@ void CL_AdjustServerTime( unsigned int gameMsec ) {
 }
 
 void CL_RestartTimeDeltas( int newTimeDelta ) {
+	int i;
+
 	cl.serverTimeDelta = cl.newServerTimeDelta = newTimeDelta;
-	for( int i = 0; i < MAX_TIMEDELTAS_BACKUP; i++ )
+	for( i = 0; i < MAX_TIMEDELTAS_BACKUP; i++ )
 		cl.serverTimeDeltas[i] = newTimeDelta;
 
 	if( cl_debug_timeDelta->integer ) {
@@ -919,58 +988,11 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 	ServerBrowserFrame();
 }
 
-static void Disconnect() {
-	CancelDownload();
-
-	if( cls.state == CA_UNINITIALIZED ) {
-		return;
-	}
-	if( cls.state == CA_DISCONNECTED ) {
-		return;
-	}
-
-	SV_ShutdownGame( "Owner left the listen server", false );
-
-	cls.connect_time = NONE;
-	cls.connect_count = 0;
-	cls.rejected = false;
-
-	CL_StopRecording( true );
-
-	if( CL_DemoPlaying() ) {
-		CL_DemoCompleted();
-	}
-	else {
-		for( int i = 0; i < 3; i++ ) {
-			// wsw : jal : send the packet 3 times to make sure isn't lost
-			CL_AddReliableCommand( ClientCommand_Disconnect );
-			CL_SendMessagesToServer( true );
-			CL_AddReliableCommand( ClientCommand_Disconnect );
-			CL_SendMessagesToServer( true );
-			CL_AddReliableCommand( ClientCommand_Disconnect );
-			CL_SendMessagesToServer( true );
-		}
-	}
-
-	Free( sys_allocator, cls.server_name.ptr );
-	cls.server_name = Span< char >();
-
-	Free( sys_allocator, cls.download_url.ptr );
-	cls.download_url = Span< char >();
-
-	StopAllSounds( false );
-
-	CL_GameModule_Shutdown();
-
-	CL_ClearState();
-	CL_SetClientState( CA_DISCONNECTED );
-}
-
 void CL_Frame( int realMsec, int gameMsec ) {
 	TracyZoneScoped;
 
 	LivePPFrame();
-	DiscordFrame(); // TODO: this should come after NetFrame?
+	DiscordFrame();
 
 	TracyCPlot( "Client frame arena max utilisation", cls.frame_arena.max_utilisation() );
 	cls.frame_arena.clear();
@@ -999,17 +1021,11 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	allRealMsec += realMsec;
 	allGameMsec += gameMsec;
 
-	CL_UpdateSnapshot(); // TODO: this should come after NetFrame?
+	CL_UpdateSnapshot();
 	CL_AdjustServerTime( gameMsec );
 	CL_UserInputFrame( realMsec );
 	CL_NetFrame( realMsec, gameMsec );
 	PumpDownloads();
-
-	cl.map = FindMap( client_gs.gameState.map );
-	if( cls.state == CA_ACTIVE && cl.map == NULL ) {
-		CL_Disconnect();
-		return;
-	}
 
 	constexpr int absMinFps = 24;
 
@@ -1080,10 +1096,6 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	cl.prevviewangles = cl.viewangles;
 
 	cls.framecount++;
-
-	if( cls.want_disconnect ) {
-		Disconnect();
-	}
 }
 
 void CL_Init() {

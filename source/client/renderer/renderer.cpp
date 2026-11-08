@@ -87,10 +87,10 @@ static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
 	return { };
 }
 
-void InitRenderer( SDL_Window * window ) {
+void InitRenderer( SDL_Window * window, bool vsync ) {
 	TracyZoneScoped;
 
-	InitRenderBackend( window );
+	InitRenderBackend( window, vsync );
 
 	TempAllocator temp = cls.frame_arena.temp();
 

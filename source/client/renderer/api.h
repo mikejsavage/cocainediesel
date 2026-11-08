@@ -9,7 +9,7 @@
 constexpr u32 MaxFramesInFlight = 2;
 
 struct SDL_Window;
-void InitRenderer( SDL_Window * window );
+void InitRenderer( SDL_Window * window, bool vsync );
 void ShutdownRenderer();
 
 constexpr u32 MaxMSAA = 8;

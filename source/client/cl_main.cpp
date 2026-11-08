@@ -1072,7 +1072,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	VID_CheckChanges();
 
 	// force vsync in the menus
-	bool vsync = Cvar_Integer( "vid_vsync" ) != 0 || cls.state != CA_ACTIVE;
+	bool vsync = Cvar_Bool( "vid_vsync" ) || cls.state != CA_ACTIVE;
 
 	// update the screen
 	u32 viewport_width, viewport_height;
@@ -1139,7 +1139,7 @@ void CL_Init() {
 	ThreadPoolFinish();
 #endif
 
-	InitRenderer( sdl_window );
+	InitRenderer( sdl_window, Cvar_Bool( "vid_vsync" ) );
 	InitGLTFModels();
 	InitMaps();
 	InitSound();

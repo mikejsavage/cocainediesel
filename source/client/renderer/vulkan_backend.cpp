@@ -110,14 +110,8 @@ struct VulkanDevice {
 		size_t ssbo_range;
 		size_t ssbo_alignment;
 		u32 msaa;
-
-		struct {
-			bool immediate;
-			bool mailbox;
-		} present_modes;
+		bool present_mode_immediate;
 	} limits;
-
-	bool has_swapchain_maintenance1;
 };
 
 struct Swapchain {
@@ -129,6 +123,7 @@ struct Swapchain {
 
 	VkSwapchainKHR swapchain;
 	u32 width, height;
+	VkPresentModeKHR present_mode;
 	VkFormat format;
 
 	Span< Image > images;
@@ -191,7 +186,6 @@ static u64 frame_counter;
 
 static struct {
 	u32 image_index;
-	bool vsync;
 } frame;
 
 static Pool< GPUAllocation, 1024 > allocations;
@@ -354,20 +348,6 @@ static VkInstance createInstance() {
 	}
 	for( const char * ext : my_instance_extensions ) {
 		instance_extensions.add( ext );
-	}
-
-	// optional surface_maintenance1
-	// we don't use this directly but it is required by swapchain_maintenance1, so loading both is fine
-	{
-		Span< VkExtensionProperties > supported_extensions = VulkanSpan< VkExtensionProperties >( &temp, CurrentSourceLocation(), vkEnumerateInstanceExtensionProperties, nullptr );
-		for( const VkExtensionProperties & ext : supported_extensions ) {
-			if( StrEqual( ext.extensionName, VK_KHR_SURFACE_MAINTENANCE_1_EXTENSION_NAME ) ) {
-				instance_extensions.add( VK_KHR_SURFACE_MAINTENANCE_1_EXTENSION_NAME );
-			}
-			if( StrEqual( ext.extensionName, VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME ) ) {
-				instance_extensions.add( VK_EXT_SURFACE_MAINTENANCE_1_EXTENSION_NAME );
-			}
-		}
 	}
 
 	const VkInstanceCreateInfo createInfo = {
@@ -542,10 +522,7 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 			Span< VkPresentModeKHR > present_modes = VulkanSpan< VkPresentModeKHR >( &temp, CurrentSourceLocation(), vkGetPhysicalDeviceSurfacePresentModesKHR, device.physical_device, global_surface );
 			for( VkPresentModeKHR m : present_modes ) {
 				if( m == VK_PRESENT_MODE_IMMEDIATE_KHR ) {
-					device.limits.present_modes.immediate = true;
-				}
-				if( m == VK_PRESENT_MODE_MAILBOX_KHR ) {
-					device.limits.present_modes.mailbox = true;
+					device.limits.present_mode_immediate = true;
 				}
 			}
 
@@ -595,31 +572,6 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 #endif
 		};
 
-		// optional swapchain_maintenance1
-		{
-			Span< VkExtensionProperties > supported_extensions = VulkanSpan< VkExtensionProperties >( &temp, CurrentSourceLocation(), vkEnumerateDeviceExtensionProperties, device.physical_device, nullptr );
-			bool has_khr_swapchain_maintenance1 = false;
-			bool has_ext_swapchain_maintenance1 = false;
-
-			for( const VkExtensionProperties & ext : supported_extensions ) {
-				if( StrEqual( ext.extensionName, VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME ) ) {
-					has_khr_swapchain_maintenance1 = true;
-				}
-				if( StrEqual( ext.extensionName, VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME ) ) {
-					has_ext_swapchain_maintenance1 = true;
-				}
-			}
-
-			if( has_khr_swapchain_maintenance1 ) {
-				extensions.must_add( VK_KHR_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME );
-			}
-			else if( has_ext_swapchain_maintenance1 ) {
-				extensions.must_add( VK_EXT_SWAPCHAIN_MAINTENANCE_1_EXTENSION_NAME );
-			}
-
-			device.has_swapchain_maintenance1 = has_khr_swapchain_maintenance1 || has_ext_swapchain_maintenance1;
-		}
-
 		VkPhysicalDevicePortabilitySubsetFeaturesKHR features_portability_subset = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR,
 			.imageViewFormatSwizzle = VK_TRUE,
@@ -658,15 +610,9 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 			.shaderDrawParameters = VK_TRUE,
 		};
 
-		VkPhysicalDeviceSwapchainMaintenance1FeaturesKHR swapchain_maintenance1 = {
-			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_KHR,
-			.pNext = &features11,
-			.swapchainMaintenance1 = VK_TRUE,
-		};
-
 		const VkPhysicalDeviceFeatures2 features2 = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-			.pNext = device.has_swapchain_maintenance1 ? ( void * ) &swapchain_maintenance1 : ( void * ) &features11,
+			.pNext = &features11,
 			.features = {
 				.sampleRateShading = VK_TRUE,
 				.multiDrawIndirect = VK_TRUE,
@@ -839,53 +785,21 @@ static VkSurfaceFormatKHR GetSwapchainFormat( VulkanDevice device, VkSurfaceKHR 
 	return formats[ 0 ];
 }
 
-static Swapchain CreateSwapchain( VulkanDevice device, VkSurfaceKHR surface, Optional< Swapchain > old_swapchain ) {
+static Swapchain CreateSwapchain( VulkanDevice device, VkSurfaceKHR surface, VkPresentModeKHR present_mode, Optional< Swapchain > old_swapchain ) {
+	TracyZoneScoped;
+
 	VkSurfaceFormatKHR format = GetSwapchainFormat( device, surface );
 
 	VkSurfaceCapabilitiesKHR capabilities;
 	VK_CHECK( vkGetPhysicalDeviceSurfaceCapabilitiesKHR( device.physical_device, surface, &capabilities ) );
 
-	if( capabilities.minImageCount > MaxFramesInFlight ) {
-		Assert( capabilities.minImageCount <= MaxFramesInFlight );
-		abort();
-	}
-
 	TempAllocator temp = cls.frame_arena.temp();
-
-	// don't support vsync without swapchain_maintenance1 because I can't be bothered
-	// prefer mailbox to immediate without vsync
-	VkPresentModeKHR present_mode = VK_PRESENT_MODE_FIFO_KHR;
-	BoundedDynamicArray< VkPresentModeKHR, 3 > possible_present_modes = { VK_PRESENT_MODE_FIFO_KHR };
-	if( device.limits.present_modes.immediate ) {
-		present_mode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-		possible_present_modes.must_add( VK_PRESENT_MODE_IMMEDIATE_KHR );
-	}
-	if( device.limits.present_modes.mailbox ) {
-		present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
-		possible_present_modes.must_add( VK_PRESENT_MODE_MAILBOX_KHR );
-	}
-
-	u32 image_count = capabilities.minImageCount + 1;
-	if( capabilities.maxImageCount != 0 ) {
-		image_count = Min2( image_count, capabilities.maxImageCount );
-	}
-
-	const VkSwapchainPresentModesCreateInfoKHR present_modes_info = {
-		.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODES_CREATE_INFO_KHR,
-		.presentModeCount = u32( possible_present_modes.size() ),
-		.pPresentModes = possible_present_modes.ptr(),
-	};
-
-	const void * pnext = NULL;
-	if( device.has_swapchain_maintenance1 ) {
-		pnext = &present_modes_info;
-	}
 
 	const VkSwapchainCreateInfoKHR createInfo = {
 		.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-		.pNext = pnext,
+		.pNext = NULL,
 		.surface = surface,
-		.minImageCount = image_count,
+		.minImageCount = Max2( capabilities.minImageCount, MaxFramesInFlight ),
 		.imageFormat = format.format,
 		.imageColorSpace = format.colorSpace,
 		.imageExtent = {
@@ -949,6 +863,7 @@ static Swapchain CreateSwapchain( VulkanDevice device, VkSurfaceKHR surface, Opt
 		.swapchain = swapchain,
 		.width = capabilities.currentExtent.width,
 		.height = capabilities.currentExtent.height,
+		.present_mode = present_mode,
 		.format = format.format,
 		.images = images,
 	};
@@ -963,12 +878,12 @@ static void DeleteSwapchain( Swapchain swapchain ) {
 	vkDestroySwapchainKHR( global_device.device, swapchain.swapchain, NULL );
 }
 
-static bool MaybeRecreateSwapchain( u32 viewport_width, u32 viewport_height ) {
-	if( viewport_width == global_swapchain.width && viewport_height == global_swapchain.height ) {
+static bool MaybeRecreateSwapchain( u32 viewport_width, u32 viewport_height, VkPresentModeKHR present_mode ) {
+	if( viewport_width == global_swapchain.width && viewport_height == global_swapchain.height && present_mode == global_swapchain.present_mode ) {
 		return false;
 	}
 
-	Swapchain new_swapchain = CreateSwapchain( global_device, global_surface, global_swapchain );
+	Swapchain new_swapchain = CreateSwapchain( global_device, global_surface, present_mode, global_swapchain );
 	VK_CHECK( vkDeviceWaitIdle( global_device.device ) );
 	DeleteSwapchain( global_swapchain );
 	global_swapchain = new_swapchain;
@@ -2357,25 +2272,8 @@ void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first
 	VK_CHECK( vkQueueSubmit2( global_device.queue, 1, &submit_info, VK_NULL_HANDLE ) );
 
 	if( !frame_static.minimized ) {
-		VkPresentModeKHR present_mode = VK_PRESENT_MODE_FIFO_KHR;
-		if( !frame.vsync ) {
-			if( global_device.limits.present_modes.immediate ) {
-				present_mode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-			}
-			if( global_device.limits.present_modes.mailbox ) {
-				present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
-			}
-		}
-
-		const VkSwapchainPresentModeInfoKHR present_mode_info = {
-			.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_PRESENT_MODE_INFO_KHR,
-			.swapchainCount = 1,
-			.pPresentModes = &present_mode,
-		};
-
 		const VkPresentInfoKHR present_info = {
 			.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-			.pNext = global_device.has_swapchain_maintenance1 ? &present_mode_info : NULL,
 			.waitSemaphoreCount = 1,
 			.pWaitSemaphores = &image.present_semaphore,
 			.swapchainCount = 1,
@@ -2716,7 +2614,13 @@ PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, Opaque< B
 	return bind_groups.allocate( { descriptor_set } );
 }
 
-void InitRenderBackend( SDL_Window * window, const WindowMode & window_mode ) {
+static VkPresentModeKHR PresentMode( bool vsync ) {
+	return !vsync && global_device.limits.present_mode_immediate ? VK_PRESENT_MODE_IMMEDIATE_KHR : VK_PRESENT_MODE_FIFO_KHR;
+}
+
+void InitRenderBackend( SDL_Window * window, bool vsync ) {
+	TracyZoneScoped;
+
 	VK_CHECK( volkInitialize() );
 	PrintExtensions();
 	global_instance = createInstance();
@@ -2735,7 +2639,7 @@ void InitRenderBackend( SDL_Window * window, const WindowMode & window_mode ) {
 	VulkanDevice device = CreateDevice( global_instance );
 	global_device = device;
 
-	global_swapchain = CreateSwapchain( device, global_surface, NONE );
+	global_swapchain = CreateSwapchain( device, global_surface, PresentMode( vsync ), NONE );
 	frame_counter = 0;
 
 	Assert( device.limits.ssbo_range >= ArenaAllocatorSize );
@@ -2818,7 +2722,7 @@ void RenderBackendBeginFrame( bool vsync, int frames_to_capture ) {
 	}
 
 	if( !frame_static.minimized ) {
-		MaybeRecreateSwapchain( frame_static.viewport_width, frame_static.viewport_height );
+		MaybeRecreateSwapchain( frame_static.viewport_width, frame_static.viewport_height, PresentMode( vsync ) );
 
 		TracyZoneScopedNC( "vkAcquireNextImageKHR", TracyColorWait );
 		VkSemaphore acquire_semaphore = global_device.acquire_semaphores[ FrameSlot() ];
@@ -2828,8 +2732,6 @@ void RenderBackendBeginFrame( bool vsync, int frames_to_capture ) {
 			VkAbort( res );
 		}
 	}
-
-	frame.vsync = vsync;
 
 	ClearGPUArenaAllocators();
 }

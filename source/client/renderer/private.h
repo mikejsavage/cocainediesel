@@ -17,7 +17,7 @@ constexpr size_t MaxFonts = 64;
  * Init
  */
 
-void InitRenderBackend( SDL_Window * window );
+void InitRenderBackend( SDL_Window * window, bool vsync );
 void ShutdownRenderBackend();
 
 void InitShaders();

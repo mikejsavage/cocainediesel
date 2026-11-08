@@ -25,8 +25,6 @@ enum MapSectionType {
 	MapSection_Count
 };
 
-static_assert( MapSection_Source == 0 ); // tools need to be forward compatible so we can recompile maps
-
 struct MapSection {
 	u32 offset, size;
 };
@@ -36,6 +34,10 @@ struct MapHeader {
 	u64 format_version;
 	MapSection sections[ MapSection_Count ];
 };
+
+// assert that the map source chunk pointer never moves so we can always
+// recompile old maps to bring them up to date
+static_assert( offsetof( MapHeader, sections[ MapSection_Source ] ) == 16 );
 
 constexpr const char CDMAP_MAGIC[ sizeof( MapHeader::magic ) ] = "cdmap";
 constexpr u64 CDMAP_FORMAT_VERSION = 2;

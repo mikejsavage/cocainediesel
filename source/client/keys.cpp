@@ -217,7 +217,7 @@ void KeyEvent( Key key, bool down ) {
 		}
 
 		if( cls.state != CA_ACTIVE ) {
-			CL_Disconnect( NULL );
+			CL_Disconnect( "" );
 			return;
 		}
 

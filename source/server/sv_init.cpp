@@ -102,7 +102,7 @@ static bool SV_SpawnServer( Span< const char > mapname, bool devmap ) {
 */
 static void SV_InitGame() {
 	// make sure the client is down
-	CL_Disconnect( NULL );
+	// CL_Disconnect( NULL );
 
 	if( svs.initialized ) {
 		// cause any connected clients to reconnect

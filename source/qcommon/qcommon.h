@@ -240,7 +240,7 @@ CLIENT / SERVER SYSTEMS
 void CL_Init();
 void CL_Shutdown();
 void CL_Frame( int realMsec, int gameMsec );
-void CL_Disconnect( const char *message );
+void CL_Disconnect( Span< const char > reason );
 bool CL_DemoPlaying();
 
 void Con_Print( Span< const char > str );

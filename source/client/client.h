@@ -130,6 +130,9 @@ struct client_static_t {
 	bool rejected;          // these are used when the server rejects our connection
 	char rejectmessage[80];
 
+	bool want_disconnect;
+	Optional< Span< const char > > disconnect_reason;
+
 	netchan_t netchan;
 
 	int challenge;              // from the server to use for connecting

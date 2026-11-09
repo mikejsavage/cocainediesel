@@ -27,10 +27,8 @@
 
 #include <new>
 
-#if !PUBLIC_BUILD
-#define ENABLE_VALIDATION_LAYERS 1
-#define ENABLE_SYNC_VALIDATION 1
-#endif
+static constexpr bool EnableValidation = !is_public_build;
+static constexpr bool EnableSyncValidation = true;
 
 static constexpr bool macOS = IFDEF( PLATFORM_MACOS );
 
@@ -283,6 +281,8 @@ static void GPUFree( GPUAllocation allocation ) {
 }
 
 static void PrintExtensions() {
+	TracyZoneScoped;
+
 	TempAllocator temp = cls.frame_arena.temp();
 	Span< VkExtensionProperties > extensions = VulkanSpan< VkExtensionProperties >( &temp, CurrentSourceLocation(), vkEnumerateInstanceExtensionProperties, nullptr );
 	Span< VkLayerProperties > layers = VulkanSpan< VkLayerProperties >( &temp, CurrentSourceLocation(), vkEnumerateInstanceLayerProperties );
@@ -299,6 +299,8 @@ static void PrintExtensions() {
 }
 
 static VkInstance createInstance() {
+	TracyZoneScoped;
+
 	const VkApplicationInfo appInfo = {
 		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
 		.apiVersion = VK_API_VERSION_1_3,
@@ -309,13 +311,14 @@ static VkInstance createInstance() {
 	BoundedDynamicArray< const char *, 2 > layers = { };
 	BoundedDynamicArray< VkValidationFeatureEnableEXT, 3 > enabledValidationFeatures = { };
 
-	if( IFDEF( ENABLE_VALIDATION_LAYERS ) && !RunningInRenderDoc() ) {
+	if( EnableValidation && !RunningInRenderDoc() ) {
 		layers.must_add( "VK_LAYER_KHRONOS_validation" );
 		enabledValidationFeatures.must_add( VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT );
 	}
-	if( IFDEF( ENABLE_SYNC_VALIDATION ) ) {
+	if( EnableSyncValidation ) {
 		enabledValidationFeatures.must_add( VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT );
 		// VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+		// VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
 	}
 
 	const VkValidationFeaturesEXT validationFeatures = {
@@ -327,24 +330,19 @@ static VkInstance createInstance() {
 	u32 num_sdl_instance_extensions;
 	const char * const * sdl_instance_extensions = SDL_Vulkan_GetInstanceExtensions( &num_sdl_instance_extensions );
 
-	constexpr const char * my_instance_extensions[] = {
-		VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-		VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
-#if PLATFORM_MACOS
-		VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
-#endif
-#if ENABLE_VALIDATION_LAYERS
-		VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-#endif
-	};
-
 	TempAllocator temp = cls.frame_arena.temp();
 	DynamicArray< const char * > instance_extensions( &temp );
 	for( u32 i = 0; i < num_sdl_instance_extensions; i++ ) {
 		instance_extensions.add( sdl_instance_extensions[ i ] );
 	}
-	for( const char * ext : my_instance_extensions ) {
-		instance_extensions.add( ext );
+
+	instance_extensions.add( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
+	instance_extensions.add( VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME );
+	if( macOS ) {
+		instance_extensions.add( VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME );
+	}
+	if( EnableValidation ) {
+		instance_extensions.add( VK_EXT_DEBUG_REPORT_EXTENSION_NAME );
 	}
 
 	const VkInstanceCreateInfo createInfo = {
@@ -794,7 +792,6 @@ static Swapchain CreateSwapchain( VulkanDevice device, VkSurfaceKHR surface, VkP
 
 	const VkSwapchainCreateInfoKHR createInfo = {
 		.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-		.pNext = NULL,
 		.surface = surface,
 		.minImageCount = Max2( capabilities.minImageCount, MaxFramesInFlight ),
 		.imageFormat = format.format,
@@ -910,6 +907,9 @@ static VkFormat VertexFormatToVulkan( VertexFormat format ) {
 		case VertexFormat_Floatx3: return VK_FORMAT_R32G32B32_SFLOAT;
 		case VertexFormat_Floatx4: return VK_FORMAT_R32G32B32A32_SFLOAT;
 	}
+
+	Assert( false );
+	return { };
 }
 
 struct SpirvID {
@@ -1159,6 +1159,9 @@ static VkFormat TextureFormatToVulkan( TextureFormat format ) {
 
 		case TextureFormat_Swapchain: return global_swapchain.format;
 	}
+
+	Assert( false );
+	return { };
 }
 
 static constexpr VkPipelineColorBlendAttachmentState blend_states[ BlendFunc_Count ] = {
@@ -2513,6 +2516,9 @@ static VkSamplerAddressMode SamplerWrapToVulkan( SamplerWrap wrap ) {
 		case SamplerWrap_Repeat: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		case SamplerWrap_Clamp: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 	}
+
+	Assert( false );
+	return { };
 }
 
 void NewSampler( SamplerType type, const SamplerConfig & config ) {
@@ -2539,6 +2545,8 @@ void NewSampler( SamplerType type, const SamplerConfig & config ) {
 }
 
 PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, Opaque< BackendTexture > texture, SamplerType sampler, GPUBuffer properties, Optional< PoolHandle< BindGroup > > old_bind_group ) {
+	TracyZoneScoped;
+
 	TempAllocator temp = cls.frame_arena.temp();
 
 	VkDescriptorSet descriptor_set;
@@ -2621,11 +2629,10 @@ void InitRenderBackend( SDL_Window * window, bool vsync ) {
 	VK_CHECK( volkInitialize() );
 	PrintExtensions();
 	global_instance = createInstance();
-	Assert( global_instance );
 	volkLoadInstanceOnly( global_instance );
 
 	global_debug_callback = VK_NULL_HANDLE;
-	if( IFDEF( ENABLE_VALIDATION_LAYERS ) ) {
+	if( EnableValidation ) {
 		global_debug_callback = RegisterDebugCallback( global_instance );
 	}
 

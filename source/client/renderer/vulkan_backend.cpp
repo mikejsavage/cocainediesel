@@ -31,8 +31,6 @@ static constexpr bool EnableValidation = !is_public_build;
 static constexpr bool EnableGPUValidation = true;
 static constexpr bool EnableSyncValidation = true;
 
-static constexpr bool macOS = IFDEF( PLATFORM_MACOS );
-
 static void VkAbort( VkResult res, SourceLocation srcloc = CurrentSourceLocation() ) {
 	// Fatal( "VK_CHECK failed (%d): %s:%d (%s)\n", res, srcloc.file, srcloc.line, srcloc.function );
 }
@@ -341,7 +339,7 @@ static VkInstance createInstance() {
 
 	instance_extensions.add( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
 	instance_extensions.add( VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME );
-	if( macOS ) {
+	if( IFDEF( PLATFORM_MACOS ) ) {
 		instance_extensions.add( VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME );
 	}
 	if( EnableValidation ) {
@@ -351,7 +349,7 @@ static VkInstance createInstance() {
 	const VkInstanceCreateInfo createInfo = {
 		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 		.pNext = !RunningInRenderDoc() ? &validationFeatures : NULL,
-		.flags = macOS ? VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR : 0,
+		.flags = IFDEF( PLATFORM_MACOS ) ? VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR : 0,
 
 		.pApplicationInfo = &appInfo,
 		.enabledLayerCount = checked_cast< u32 >( layers.size() ),
@@ -579,7 +577,7 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 
 		VkPhysicalDeviceVulkan13Features features13 = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-			.pNext = macOS ? ( void * ) &features_portability_subset : NULL,
+			.pNext = IFDEF( PLATFORM_MACOS ) ? ( void * ) &features_portability_subset : NULL,
 			// .robustImageAccess = VK_TRUE,
 			.shaderDemoteToHelperInvocation = VK_TRUE,
 			.synchronization2 = VK_TRUE,

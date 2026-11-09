@@ -253,15 +253,9 @@ static snapshot_t *SNAP_ParseFrameHeader( msg_t *msg, snapshot_t *newframe, snap
 }
 
 snapshot_t *SNAP_ParseFrame( msg_t *msg, const snapshot_t *lastFrame, snapshot_t *backup, SyncEntityState *baselines, int showNet ) {
-	snapshot_t *deltaframe;
-	int numplayers;
-	int framediff;
-	gcommand_t *gcmd;
-	snapshot_t *newframe;
-
 	// read header
-	newframe = SNAP_ParseFrameHeader( msg, NULL, backup );
-	deltaframe = NULL;
+	snapshot_t * newframe = SNAP_ParseFrameHeader( msg, NULL, backup );
+	snapshot_t * deltaframe = NULL;
 
 	if( showNet == 3 ) {
 		Com_GGPrint( "   frame:{} old:{}{}", newframe->serverFrame, newframe->deltaFrameNum,
@@ -281,6 +275,7 @@ snapshot_t *SNAP_ParseFrame( msg_t *msg, const snapshot_t *lastFrame, snapshot_t
 	}
 
 	size_t numtargets = 0;
+	int framediff;
 	while( ( framediff = MSG_ReadInt16( msg ) ) != -1 ) {
 		const char * text = MSG_ReadString( msg );
 
@@ -295,7 +290,7 @@ snapshot_t *SNAP_ParseFrame( msg_t *msg, const snapshot_t *lastFrame, snapshot_t
 				Com_Error( "SNAP_ParseFrame: too much gamecommands" );
 			}
 
-			gcmd = &newframe->gamecommands[newframe->numgamecommands - 1];
+			gcommand_t * gcmd = &newframe->gamecommands[newframe->numgamecommands - 1];
 			gcmd->all = true;
 
 			SafeStrCpy( newframe->gamecommandsData + newframe->gamecommandsDataHead, text,
@@ -328,7 +323,7 @@ snapshot_t *SNAP_ParseFrame( msg_t *msg, const snapshot_t *lastFrame, snapshot_t
 	SNAP_ParseDeltaGameState( msg, deltaframe, newframe );
 
 	// read playerinfos
-	numplayers = 0;
+	int numplayers = 0;
 	while( ( cmd = MSG_ReadUint8( msg ) ) ) {
 		_SHOWNET( msg, svc_strings[cmd], showNet );
 		if( cmd != svc_playerinfo ) {

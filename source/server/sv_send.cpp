@@ -211,7 +211,7 @@ bool SV_SendClientsFragments() {
 	return sent;
 }
 
-bool SV_Netchan_Transmit( netchan_t *netchan, msg_t *msg ) {
+static bool SV_Netchan_Transmit( netchan_t *netchan, msg_t *msg ) {
 	// if we got here with unsent fragments, fire them all now
 	if( !Netchan_PushAllFragments( svs.socket, netchan ) ) {
 		return false;

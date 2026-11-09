@@ -28,6 +28,7 @@
 #include <new>
 
 static constexpr bool EnableValidation = !is_public_build;
+static constexpr bool EnableGPUValidation = true;
 static constexpr bool EnableSyncValidation = true;
 
 static constexpr bool macOS = IFDEF( PLATFORM_MACOS );
@@ -308,23 +309,25 @@ static VkInstance createInstance() {
 
 	Assert( volkGetInstanceVersion() >= appInfo.apiVersion );
 
-	BoundedDynamicArray< const char *, 2 > layers = { };
-	BoundedDynamicArray< VkValidationFeatureEnableEXT, 3 > enabledValidationFeatures = { };
+	BoundedDynamicArray< const char *, 1 > layers = { };
+	BoundedDynamicArray< VkValidationFeatureEnableEXT, 4 > validation_features = { };
 
 	if( EnableValidation && !RunningInRenderDoc() ) {
 		layers.must_add( "VK_LAYER_KHRONOS_validation" );
-		enabledValidationFeatures.must_add( VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT );
+		validation_features.must_add( VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT );
+	}
+	if( EnableGPUValidation ) {
+		validation_features.must_add( VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT );
+		validation_features.must_add( VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT );
 	}
 	if( EnableSyncValidation ) {
-		enabledValidationFeatures.must_add( VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT );
-		// VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
-		// VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
+		validation_features.must_add( VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT );
 	}
 
 	const VkValidationFeaturesEXT validationFeatures = {
 		.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
-		.enabledValidationFeatureCount = checked_cast< u32 >( enabledValidationFeatures.size() ),
-		.pEnabledValidationFeatures = enabledValidationFeatures.ptr(),
+		.enabledValidationFeatureCount = checked_cast< u32 >( validation_features.size() ),
+		.pEnabledValidationFeatures = validation_features.ptr(),
 	};
 
 	u32 num_sdl_instance_extensions;
@@ -448,6 +451,8 @@ static VkPhysicalDevice PickPhysicalDevice( VkInstance instance ) {
 }
 
 static VulkanDevice CreateDevice( VkInstance instance ) {
+	TracyZoneScoped;
+
 	TempAllocator temp = cls.frame_arena.temp();
 
 	VulkanDevice device = { };

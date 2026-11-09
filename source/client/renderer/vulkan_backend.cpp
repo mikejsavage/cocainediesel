@@ -297,15 +297,15 @@ static void PrintExtensions() {
 	}
 }
 
-static VkInstance createInstance() {
+static VkInstance CreateInstance() {
 	TracyZoneScoped;
 
-	const VkApplicationInfo appInfo = {
+	const VkApplicationInfo app_info = {
 		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
 		.apiVersion = VK_API_VERSION_1_3,
 	};
 
-	Assert( volkGetInstanceVersion() >= appInfo.apiVersion );
+	Assert( volkGetInstanceVersion() >= app_info.apiVersion );
 
 	BoundedDynamicArray< const char *, 1 > layers = { };
 	BoundedDynamicArray< VkValidationFeatureEnableEXT, 4 > validation_features = { };
@@ -322,7 +322,7 @@ static VkInstance createInstance() {
 		validation_features.must_add( VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT );
 	}
 
-	const VkValidationFeaturesEXT validationFeatures = {
+	const VkValidationFeaturesEXT validation = {
 		.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
 		.enabledValidationFeatureCount = checked_cast< u32 >( validation_features.size() ),
 		.pEnabledValidationFeatures = validation_features.ptr(),
@@ -348,10 +348,10 @@ static VkInstance createInstance() {
 
 	const VkInstanceCreateInfo createInfo = {
 		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-		.pNext = !RunningInRenderDoc() ? &validationFeatures : NULL,
+		.pNext = !RunningInRenderDoc() ? &validation : NULL,
 		.flags = IFDEF( PLATFORM_MACOS ) ? VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR : 0,
 
-		.pApplicationInfo = &appInfo,
+		.pApplicationInfo = &app_info,
 		.enabledLayerCount = checked_cast< u32 >( layers.size() ),
 		.ppEnabledLayerNames = layers.ptr(),
 		.enabledExtensionCount = u32( instance_extensions.size() ),
@@ -2631,7 +2631,7 @@ void InitRenderBackend( SDL_Window * window, bool vsync ) {
 
 	VK_CHECK( volkInitialize() );
 	PrintExtensions();
-	global_instance = createInstance();
+	global_instance = CreateInstance();
 	volkLoadInstanceOnly( global_instance );
 
 	global_debug_callback = VK_NULL_HANDLE;

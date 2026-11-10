@@ -149,7 +149,7 @@ struct ServerCommand {
 	Optional< size_t > num_args = NONE;
 };
 
-static const ServerCommand server_commands[] = {
+static constexpr ServerCommand server_commands[] = {
 	{ "pr", CG_SC_Print, 1 },
 	{ "ch", CG_SC_ChatPrint, 2 },
 	{ "tch", CG_SC_ChatPrint, 2 },

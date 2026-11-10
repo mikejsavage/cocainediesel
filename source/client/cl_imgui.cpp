@@ -136,20 +136,16 @@ static void SubmitDrawCalls() {
 		return;
 	draw_data->ScaleClipRects( io.DisplayFramebufferScale );
 
-	u32 pass = 0;
-
 	for( int n = 0; n < draw_data->CmdListsCount; n++ ) {
 		TempAllocator temp = cls.frame_arena.temp();
 
 		const ImDrawList * cmd_list = draw_data->CmdLists[ n ];
 
-		// NOTE: this is the other half of the render pass hack, search for NOTE
-		if( cmd_list->CmdBuffer.Size > 0 ) {
-			const ImDrawCmd * cmd = &cmd_list->CmdBuffer[ 0 ];
-			u32 new_pass = u32( uintptr_t( cmd->UserCallbackData ) );
-			if( new_pass != 0 ) {
-				pass = new_pass;
-			}
+		// NOTE: this is a hack to separate UI drawcalls into pre and post postprocessing passes, search for NOTE in this file for the other half
+		// could maybe use flags for this instead
+		RenderPass rp = RenderPass_UIAfterPostprocessing;
+		if( cmd_list->CmdBuffer.Size > 0 && cmd_list->CmdBuffer[ 0 ].UserCallbackData != NULL ) {
+			rp = RenderPass_UIBeforePostprocessing;
 		}
 
 		if( cmd_list->VtxBuffer.Size == 0 || cmd_list->IdxBuffer.Size == 0 ) {
@@ -177,9 +173,6 @@ static void SubmitDrawCalls() {
 				if( pcmd->ElemCount == 0 )
 					continue;
 
-				// NOMERGE
-				// RenderPass rp = pass == 0 ? RenderPass_UIBeforePostprocessing : RenderPass_UIAfterPostprocessing;
-				RenderPass rp = RenderPass_UIAfterPostprocessing;
 				EncodeScissor( rp, Scissor {
 					.x = u32( Max2( scissor.mins.x, 0.0f ) ),
 					.y = u32( Max2( scissor.mins.y, 0.0f ) ),
@@ -216,6 +209,10 @@ void CL_ImGuiBeginFrame() {
 
 	ImGui_ImplSDL3_NewFrame();
 	ImGui::NewFrame();
+
+	// NOTE: this is a hack to separate UI drawcalls into pre and post postprocessing passes, search for NOTE in this file for the other half
+	// HUD drawcalls go into the background draw list through Draw2DBox
+	ImGui::GetBackgroundDrawList()->AddCallback( NULL, ( void * ) 1 );
 }
 
 void CL_ImGuiEndFrame() {
@@ -238,9 +235,6 @@ namespace ImGui {
 	void Begin( const char * name, WindowZOrder z_order, ImGuiWindowFlags flags ) {
 		ImGui::Begin( name, NULL, flags );
 		ImGui::GetCurrentWindow()->BeginOrderWithinContext = z_order;
-
-		// NOTE: this is a hack to separate UI drawcalls into pre and post postprocessing passes, search for NOTE to find the other half
-		ImGui::GetWindowDrawList()->AddCallback( NULL, ( void * ) 1 );
 	}
 
 	bool Hotkey( ImGuiKey key ) {

@@ -364,19 +364,22 @@ static VkInstance CreateInstance() {
 	return instance;
 }
 
-static VkBool32 VKAPI_CALL debugReportCallback(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData) {
+static VkBool32 VKAPI_CALL DebugReportCallback(
+	VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT object_type, uint64_t object, size_t location,
+	int32_t message_code, const char * layer_prefix, const char * message, void * user_data
+) {
 	if( location == 0x609a13b ) return VK_FALSE; // UNASSIGNED-CoreValidation-Shader-OutputNotConsumed
 	if( location == 3357201678 ) return VK_FALSE; // vkCreateGraphicsPipelines(): pCreateInfos[0].pVertexInputState Vertex attribute at location 3 not consumed by vertex shader.
+	if( location == 2264819489 ) return VK_FALSE; // vkCreateDevice(): Internal Warning: Forcing <blah feature> - apparently GPU_ASSISTED validation force enables some features
 
-	const char * type =
-		(flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) ? S_COLOR_RED "ERROR"
-		: (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT) ? S_COLOR_YELLOW "WARNING"
-		: (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT) ? S_COLOR_BLUE "PERF"
-		: "\033[1;32mINFO"; // green
+	const char * type = S_COLOR_GREEN "INFO";
+	if( flags & VK_DEBUG_REPORT_ERROR_BIT_EXT ) type = S_COLOR_RED "ERROR";
+	if( flags & VK_DEBUG_REPORT_WARNING_BIT_EXT ) type = S_COLOR_YELLOW "WARNING";
+	if( flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT ) type = S_COLOR_BLUE "PERF";
 
-	Com_Printf( "%s:" S_COLOR_WHITE " %s\n", type, pMessage );
+	Com_Printf( "%s:" S_COLOR_WHITE " %s\n", type, message );
 
-	if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT) {
+	if( flags & VK_DEBUG_REPORT_ERROR_BIT_EXT ) {
 		// Fatal( pMessage );
 	}
 
@@ -388,14 +391,14 @@ static VkDebugReportCallbackEXT RegisterDebugCallback( VkInstance instance ) {
 		return VK_NULL_HANDLE;
 	}
 
-	const VkDebugReportCallbackCreateInfoEXT createInfo = {
+	const VkDebugReportCallbackCreateInfoEXT create_info = {
 		.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT,
 		.flags = VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT,
-		.pfnCallback = debugReportCallback,
+		.pfnCallback = DebugReportCallback,
 	};
 
 	VkDebugReportCallbackEXT callback = VK_NULL_HANDLE;
-	VK_CHECK( vkCreateDebugReportCallbackEXT( instance, &createInfo, NULL, &callback ) );
+	VK_CHECK( vkCreateDebugReportCallbackEXT( instance, &create_info, NULL, &callback ) );
 
 	return callback;
 }

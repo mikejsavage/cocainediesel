@@ -1372,6 +1372,46 @@ static void MainMenuHazardTape( const Clay_BoundingBox & bounds, void * userdata
 	Draw2DBoxUV( bounds.x, bounds.y, bounds.width, bounds.height, tl, br, hazard );
 }
 
+static MinMax2 FromClayBounds( const Clay_BoundingBox & bounds ) {
+	return MinMax2(
+		Vec2( bounds.x, bounds.y ),
+		Vec2( bounds.x + bounds.width, bounds.y + bounds.height )
+	);
+}
+
+static void VersionAndCredits( const Clay_BoundingBox & bounds, void * userdata ) {
+	const char * str = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
+	DrawFittedText( cls.fontBoldItalic, MakeSpan( str ), FromClayBounds( bounds ), XAlignment_Left, white.linear );
+
+	if( ImGui::InvisibleButton( "credits", Vec2( bounds.width, bounds.height ) ) ) {
+		ImGui::OpenPopup( "Credits" );
+	}
+
+	ImGuiWindowFlags credits_flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
+	if( ImGui::BeginPopupModal( "Credits", NULL, credits_flags ) ) {
+		ImGui::Text( "Dexter - programming" );
+		ImGui::Text( "general adnic - voice acting" );
+		ImGui::Text( "goochie - art & programming" );
+		ImGui::Text( "MikeJS - programming" );
+		ImGui::Text( "MSC - programming & art" );
+		ImGui::Text( "Obani - music & fx & programming" );
+		ImGui::Text( "Rhodanathema - art" );
+		ImGui::Separator();
+		ImGui::Text( "jwzr - medical research" );
+		ImGui::Text( "naxeron - chief propagandist" );
+		ImGui::Text( "zmiles - american cultural advisor" );
+		ImGui::Separator();
+		ImGui::Text( "Special thanks to the Warsow team except for slk and MWAGA" );
+		ImGui::Spacing();
+
+		if( ImGui::Button( "Close" ) ) {
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndPopup();
+	}
+}
+
 struct MainMenuCategory {
 	StringHash icon_path;
 	Span< const char > name;
@@ -1777,11 +1817,10 @@ static void MainMenu() {
 
 				ClayVerticalSpacing( CLAY_SIZING_GROW() );
 
-				const char * version = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
 				CLAY( {
 					.id = CLAY_ID_LOCAL( "Version" ),
 					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 0.4f ), .height = CLAY_SIZING_PERCENT( 0.025f ) } },
-					.custom = { ClayTextCustom( MakeSpan( version ), { .textColor = ui_white.clay, .fontId = ClayFont_BoldItalic }, XAlignment_Left ) },
+					.custom = { ClayImGui( VersionAndCredits ) },
 				} );
 			}
 
@@ -1835,49 +1874,6 @@ static void MainMenu() {
 		.floating = { .zIndex = S16_MAX, .attachTo = CLAY_ATTACH_TO_PARENT },
 		.custom = { clay_imgui_end },
 	} );
-
-	// {
-	// 	{
-	// 		ScopedStyle( ImGuiStyleVar_FramePadding, Vec2( 0.0f ) );
-	// 		ScopedColor( ImGuiCol_Button, Vec4( 0.0f ) );
-	// 		ScopedColor( ImGuiCol_ButtonHovered, Vec4( 0.0f ) );
-	// 		ScopedColor( ImGuiCol_ButtonActive, Vec4( 0.0f ) );
-    //
-	// 		const char * buf = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
-	// 		ImVec2 size = ImGui::CalcTextSize( buf );
-	// 		ImGui::SetCursorPosY( ImGui::GetWindowHeight() - size.y - 8.0f );
-	// 		ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - 8.0f - Sin( cls.monotonicTime, Milliseconds( 182 ) ) );
-	// 		ImGui::Text( "%s", buf );
-    //
-	// 		// if( ImGui::Button( buf ) ) {
-	// 		// 	ImGui::OpenPopup( "Credits" );
-	// 		// }
-	// 	}
-    //
-	// 	// ImGuiWindowFlags credits_flags = ( ImGuiWindowFlags_NoDecoration & ~ImGuiWindowFlags_NoTitleBar ) | ImGuiWindowFlags_NoMove;
-	// 	// if( ImGui::BeginPopupModal( "Credits", NULL, credits_flags ) ) {
-	// 	// 	ImGui::Text( "Dexter - programming" );
-	// 	// 	ImGui::Text( "general adnic - voice acting" );
-	// 	// 	ImGui::Text( "goochie - art & programming" );
-	// 	// 	ImGui::Text( "MikeJS - programming" );
-	// 	// 	ImGui::Text( "MSC - programming & art" );
-	// 	// 	ImGui::Text( "Obani - music & fx & programming" );
-	// 	// 	ImGui::Text( "Rhodanathema - art" );
-	// 	// 	ImGui::Separator();
-	// 	// 	ImGui::Text( "jwzr - medical research" );
-	// 	// 	ImGui::Text( "naxeron - chief propagandist" );
-	// 	// 	ImGui::Text( "zmiles - american cultural advisor" );
-	// 	// 	ImGui::Separator();
-	// 	// 	ImGui::Text( "Special thanks to the Warsow team except for slk and MWAGA" );
-	// 	// 	ImGui::Spacing();
-    //     //
-	// 	// 	if( ImGui::Button( "Close" ) ) {
-	// 	// 		ImGui::CloseCurrentPopup();
-	// 	// 	}
-    //     //
-	// 	// 	ImGui::EndPopup();
-	// 	// }
-	// }
 }
 
 static void GameMenuButton( const char * label, const char * command, bool * clicked = NULL, int column = -1 ) {

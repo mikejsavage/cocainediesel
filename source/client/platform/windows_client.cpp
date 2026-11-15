@@ -14,12 +14,17 @@ extern "C" __declspec( dllexport ) DWORD NvOptimusEnablement = 1;
 extern "C" __declspec( dllexport ) int AmdPowerXpressRequestHighPerformance = 1;
 
 void InitClientPlatform() {
-	// BOOL reattached = AttachConsole( ATTACH_PARENT_PROCESS );
-	// if( reattached == TRUE ) {
-	// 	FILE * dont_care;
-	// 	freopen_s( &dont_care, "CON", "w", stdout );
-	// 	freopen_s( &dont_care, "CON", "w", stderr );
-	// }
+	return;
+
+	// make CLI output work
+	// it doesn't work well because Windows so it's pretty annoying to leave on
+	// all the time, but sometimes it comes in handy
+	BOOL reattached = AttachConsole( ATTACH_PARENT_PROCESS );
+	if( reattached == TRUE ) {
+		FILE * dont_care;
+		freopen_s( &dont_care, "CON", "w", stdout );
+		freopen_s( &dont_care, "CON", "w", stderr );
+	}
 }
 
 void CreateAutoreleasePoolOnMacOS() { }

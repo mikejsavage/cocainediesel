@@ -16,6 +16,8 @@ namespace ImGui {
 	void PushID( Span< const char > id );
 
 	bool IsItemHoveredThisFrame();
+
+	ImDrawList * GetActiveOrBackgroundDrawList();
 };
 
 #define ScopedChild( ... ) ImGui::BeginChild( __VA_ARGS__ ); defer { ImGui::EndChild(); }

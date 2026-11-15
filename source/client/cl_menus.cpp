@@ -106,25 +106,21 @@ static NonRAIIDynamicArray< char * > masks;
 static Span< const char > MASKS_DIR = "models/masks/";
 
 static void ImGuiHorizontalGradient( const ImVec2 & top_left, const ImVec2 & size, const ImU32 & left_color, const ImU32 & right_color ) {
-	ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
+	ImDrawList* draw_list = ImGui::GetActiveOrBackgroundDrawList();
  	draw_list->AddRectFilledMultiColor( top_left, top_left + size, left_color, right_color, right_color, left_color );
 }
 
 /*static void ImGuiVerticalGradient( const ImVec2 & top_left, const ImVec2 & size, const ImU32 & top_color, const ImU32 & bottom_color ) {
-	ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
+	ImDrawList* draw_list = ImGui::GetActiveOrBackgroundDrawList();
  	draw_list->AddRectFilledMultiColor( top_left, top_left + size, top_color, top_color, bottom_color, bottom_color );
 }*/
 
 static void ClayVerticalSpacing( Clay_SizingAxis spacing ) {
-	CLAY( {
-		.layout = { .sizing = { .height = spacing } },
-	} ) { }
+	CLAY( { .layout = { .sizing = { .height = spacing } } } );
 }
 
 static void ClayHorizontalSpacing( Clay_SizingAxis spacing ) {
-	CLAY( {
-		.layout = { .sizing = { .width = spacing } },
-	} ) { }
+	CLAY( { .layout = { .sizing = { .width = spacing } } } );
 }
 
 struct ClayCallbackAndUserdata {
@@ -137,13 +133,9 @@ static ClayCustomElementConfig * ClayImGui( ClayCustomElementCallback callback, 
 		.type = ClayCustomElementType_Callback,
 		.callback = {
 			.f = []( const Clay_BoundingBox & bounds, void * userdata ) {
-				ImGui::Begin( "mainmenu" );
 				ImGui::SetCursorPos( Vec2( bounds.x, bounds.y ) );
-
 				const ClayCallbackAndUserdata * cb = ( const ClayCallbackAndUserdata * ) userdata;
 				cb->callback( bounds, cb->userdata );
-
-				ImGui::End();
 			},
 			.userdata = Clone( ClayAllocator(), ClayCallbackAndUserdata { callback, userdata } ),
 		},
@@ -1644,12 +1636,29 @@ static void MainMenu_Main() {
 static void MainMenu() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	ImGui::SetNextWindowPos( ImVec2() );
-	ImGui::SetNextWindowSize( frame_static.viewport );
-	ScopedStyle( ImGuiStyleVar_WindowPadding, Vec2( 0.0f ) );
+	ClayCustomElementConfig * clay_imgui_begin = Clone( ClayAllocator(), ClayCustomElementConfig {
+		.type = ClayCustomElementType_Callback,
+		.callback = {
+			.f = []( const Clay_BoundingBox & bounds, void * userdata ) {
+				ImGui::SetNextWindowPos( Vec2( 0.0f ) );
+				ImGui::SetNextWindowSize( frame_static.viewport );
+				ScopedStyle( ImGuiStyleVar_WindowPadding, Vec2( 0.0f ) );
 
-	ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_Interactive );
-	ImGui::Dummy( frame_static.viewport ); // NOTE(mike): needed to fix the ErrorCheckUsingSetCursorPosToExtendParentBoundaries assert
+				ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_Interactive );
+				// NOTE(mike): needed to fix the ErrorCheckUsingSetCursorPosToExtendParentBoundaries assert
+				ImGui::Dummy( frame_static.viewport );
+			},
+		},
+	} );
+
+	ClayCustomElementConfig * clay_imgui_end = Clone( ClayAllocator(), ClayCustomElementConfig {
+		.type = ClayCustomElementType_Callback,
+		.callback = {
+			.f = []( const Clay_BoundingBox & bounds, void * userdata ) {
+				ImGui::End();
+			},
+		},
+	} );
 
 	CLAY( {
 		.id = CLAY_ID_LOCAL( "Background" ),
@@ -1657,6 +1666,7 @@ static void MainMenu() {
 			.sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW() },
 			.layoutDirection = CLAY_TOP_TO_BOTTOM,
 		},
+		.custom = { clay_imgui_begin },
 	} ) {
 		auto cdcdcd_custom = []( const Clay_BoundingBox & bounds, void * userdata ) {
 			constexpr Span< const char > cd = "COCAINE DIESEL ";
@@ -1694,21 +1704,21 @@ static void MainMenu() {
 			CLAY( {
 				.id = CLAY_ID_LOCAL( "Top CDCDCD" ),
 				.layout = { .sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW() } },
-				.floating = { .attachTo = CLAY_ATTACH_TO_PARENT },
 				.custom = { ClayImGui( cdcdcd_custom, bit_cast< void * >( uintptr_t( 0 ) ) ) },
-			} ) { }
+			} );
 
 			if( cl_devtools->integer ) {
 				CLAY( {
 					.id = CLAY_ID_LOCAL( "Dev tools" ),
 					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 1.0f ) } },
+					.floating = { .zIndex = 1, .attachTo = CLAY_ATTACH_TO_PARENT },
 					.custom = { ClayImGui( []( const Clay_BoundingBox & bounds, void * userdata ) {
 						if( ImGui::Button( "Model viewer" ) ) {
 							uistate = UIState_DevTool;
 							devtool_render_callback = DrawModelViewer;
 						}
 					} ) },
-				} ) { }
+				} );
 			}
 		}
 
@@ -1716,7 +1726,7 @@ static void MainMenu() {
 			.id = CLAY_ID_LOCAL( "Top hazard stripes" ),
 			.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( MAIN_MENU_BAR_HAZARD_HEIGHT ) } },
 			.custom = { ClayImGui( MainMenuHazardTape, bit_cast< void * >( -1.0 ) ) },
-		} ) { }
+		} );
 
 		ClayCustomElementConfig * nk_custom = ClayImGui( []( const Clay_BoundingBox & bounds, void * userdata ) {
 			Draw2DBox( bounds.x, bounds.y, bounds.width, bounds.height, FindMaterial( "hud/nk" ) );
@@ -1764,6 +1774,15 @@ static void MainMenu() {
 					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 0.025f ) } },
 					.custom = { ClayTextCustom( full_subtitle, { .textColor = ui_white.clay, .fontId = ClayFont_BoldItalic }, XAlignment_Left, ClayTextShadow( black.linear, 8.0f ) ) }
 				} );
+
+				ClayVerticalSpacing( CLAY_SIZING_GROW() );
+
+				const char * version = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
+				CLAY( {
+					.id = CLAY_ID_LOCAL( "Version" ),
+					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 0.4f ), .height = CLAY_SIZING_PERCENT( 0.025f ) } },
+					.custom = { ClayTextCustom( MakeSpan( version ), { .textColor = ui_white.clay, .fontId = ClayFont_BoldItalic }, XAlignment_Left ) },
+				} );
 			}
 
 			CLAY ( {
@@ -1785,7 +1804,7 @@ static void MainMenu() {
 			.id = CLAY_ID_LOCAL( "Bottom hazard stripes" ),
 			.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( MAIN_MENU_BAR_HAZARD_HEIGHT ) } },
 			.custom = { ClayImGui( MainMenuHazardTape, bit_cast< void * >( 1.0 ) ) },
-		} ) { }
+		} );
 
 		CLAY( {
 			.id = CLAY_ID_LOCAL( "Bottom bar" ),
@@ -1804,22 +1823,18 @@ static void MainMenu() {
 				.layout = { .sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW() } },
 				.floating = { .attachTo = CLAY_ATTACH_TO_PARENT },
 				.custom = { ClayImGui( cdcdcd_custom, bit_cast< void * >( uintptr_t( 1 ) ) ) },
-			} ) { }
-
-			const char * buf = ( const char * ) APP_VERSION u8" \u00A9 AHA CHEERS";
-			CLAY( {
-				.id = CLAY_ID_LOCAL( "Version" ),
-				.layout = {
-					.sizing = { .width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_PERCENT( 0.2f ) },
-				},
-				.custom = { ClayTextCustom( MakeSpan( buf ), {
-						.textColor = ui_white.clay,
-						.fontId = ClayFont_Bold,
-					}, XAlignment_Right )
-				}
 			} );
 		}
 	}
+
+	CLAY( {
+		.id = CLAY_ID_LOCAL( "ImGui::End" ),
+		// NOTE(mike 2026115): clay sorts draws by z index, so this is a hack to make sure ImGui::End comes last
+		// this assumes nobody clays after the menus... would be better to have a clay context for
+		// the menus and another for the hud and just wrap ClaySubmitFrame in ImGui::Begin/End
+		.floating = { .zIndex = S16_MAX, .attachTo = CLAY_ATTACH_TO_PARENT },
+		.custom = { clay_imgui_end },
+	} );
 
 	// {
 	// 	{
@@ -1863,8 +1878,6 @@ static void MainMenu() {
 	// 	// 	ImGui::EndPopup();
 	// 	// }
 	// }
-
-	ImGui::End();
 }
 
 static void GameMenuButton( const char * label, const char * command, bool * clicked = NULL, int column = -1 ) {

@@ -117,7 +117,7 @@ static void DrawBorderCorner( Corner corner, Clay_BoundingBox bounds, const Clay
 		Lerp( bounds.y, cy, bounds.y + bounds.height ) + r * Remap_0To1_1ToNeg1( cy )
 	);
 
-	ImDrawList * draw_list = ImGui::GetBackgroundDrawList();
+	ImDrawList * draw_list = ImGui::GetActiveOrBackgroundDrawList();
 	draw_list->PathArcTo( arc_origin, r - width * 0.5f, Radians( angle ), Radians( angle + 90.0f ) );
 	draw_list->PathStroke( ClayToImGui( color ), 0, width );
 }
@@ -154,8 +154,10 @@ void ClaySubmitFrame() {
 			switch( command.commandType ) {
 				case CLAY_RENDER_COMMAND_TYPE_RECTANGLE: {
 					const Clay_RectangleRenderData & rect = command.renderData.rectangle;
-					ImDrawList * draw_list = ImGui::GetBackgroundDrawList();
-					draw_list->AddRectFilled( Vec2( bounds.x, bounds.y ), Vec2( bounds.x + bounds.width, bounds.y + bounds.height ), ClayToImGui( rect.backgroundColor ), rect.cornerRadius.topLeft );
+					ImDrawList * draw_list = ImGui::GetActiveOrBackgroundDrawList();
+					draw_list->AddRectFilled(
+						Vec2( bounds.x, bounds.y ), Vec2( bounds.x + bounds.width, bounds.y + bounds.height ),
+						ClayToImGui( rect.backgroundColor ), rect.cornerRadius.topLeft );
 				} break;
 
 				case CLAY_RENDER_COMMAND_TYPE_BORDER: {

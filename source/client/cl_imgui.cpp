@@ -140,16 +140,14 @@ static void SubmitDrawCalls() {
 		TempAllocator temp = cls.frame_arena.temp();
 
 		const ImDrawList * cmd_list = draw_data->CmdLists[ n ];
-
-		// NOTE: this is a hack to separate UI drawcalls into pre and post postprocessing passes, search for NOTE in this file for the other half
-		// could maybe use flags for this instead
-		RenderPass rp = RenderPass_UIAfterPostprocessing;
-		if( cmd_list->CmdBuffer.Size > 0 && cmd_list->CmdBuffer[ 0 ].UserCallbackData != NULL ) {
-			rp = RenderPass_UIBeforePostprocessing;
-		}
-
 		if( cmd_list->VtxBuffer.Size == 0 || cmd_list->IdxBuffer.Size == 0 ) {
 			continue;
+		}
+
+		// NOTE: the background draw list is used for the HUD
+		RenderPass rp = RenderPass_UIAfterPostprocessing;
+		if( cmd_list == ImGui::GetBackgroundDrawList() ) {
+			rp = RenderPass_UIBeforePostprocessing;
 		}
 
 		Mesh mesh = {
@@ -209,10 +207,6 @@ void CL_ImGuiBeginFrame() {
 
 	ImGui_ImplSDL3_NewFrame();
 	ImGui::NewFrame();
-
-	// NOTE: this is a hack to separate UI drawcalls into pre and post postprocessing passes, search for NOTE in this file for the other half
-	// HUD drawcalls go into the background draw list through Draw2DBox
-	ImGui::GetBackgroundDrawList()->AddCallback( NULL, ( void * ) 1 );
 }
 
 void CL_ImGuiEndFrame() {
@@ -262,6 +256,12 @@ namespace ImGui {
 		delay = 0.00001f;
 		defer { delay = old_delay; };
 		return ImGui::IsItemHovered( ImGuiHoveredFlags_DelayShort | ImGuiHoveredFlags_NoSharedDelay ) && ImGui::GetCurrentContext()->HoverItemDelayTimer <= ImGui::GetIO().DeltaTime;
+	}
+
+	ImDrawList * GetActiveOrBackgroundDrawList() {
+		const ImGuiContext * imgui = ImGui::GetCurrentContext();
+		bool has_window = !StrEqual( imgui->CurrentWindow->Name, "Debug" );
+		return has_window ? ImGui::GetWindowDrawList() : ImGui::GetBackgroundDrawList();
 	}
 }
 

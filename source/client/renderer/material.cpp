@@ -306,7 +306,6 @@ static constexpr MaterialSpecKey shaderkeys[] = {
 	{ "world", ParseWorld },
 	{ "shininess", ParseShininess },
 	{ "specular", ParseSpecular },
-	{ "sprite", SkipComment },
 	{ "texture", ParseTexture },
 	{ "//", SkipComment },
 };
@@ -730,14 +729,13 @@ static bool ParseCDTextureSprite( Span< const char > texture_name ) {
 	if( cdtexture.ptr == NULL )
 		return false;
 
-	// TODO: parse this properly
 	Span< const char > token = ParseToken( &cdtexture, Parse_DontStopOnNewLine );
 	if( token == "" )
 		return false;
 	if( token == "sprite" )
 		return true;
 
-	Com_GGPrint( S_COLOR_YELLOW "Bad cdtexture: {}", cdtexture_path );
+	Com_GGPrint( S_COLOR_YELLOW "Bad cdtexture, should be \"sprite\" or empty: {}", cdtexture_path );
 	return false;
 }
 

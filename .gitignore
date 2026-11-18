@@ -35,8 +35,5 @@
 /*.lib
 /*.pdb
 /*.gputrace
-*.spv
-*.metal
-*.metallib
 
 *.cddemo

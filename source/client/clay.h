@@ -53,6 +53,9 @@ struct ClayCustomElementConfig {
 	};
 };
 
+void SwitchToClayHUDContext();
+void SwitchToClayMenuContext();
+
 ArenaAllocator * ClayAllocator();
 Clay_String AllocateClayString( Span< const char > str );
 

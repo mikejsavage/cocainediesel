@@ -2342,6 +2342,9 @@ void UI_Refresh() {
 		devtool_cleanup_callback = NULL;
 	}
 
+	SwitchToClayMenuContext();
+	defer { SwitchToClayHUDContext(); };
+
 	if( uistate == UIState_GameMenu ) {
 		GameMenu();
 	}

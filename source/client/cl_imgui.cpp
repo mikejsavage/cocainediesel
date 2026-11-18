@@ -259,7 +259,7 @@ namespace ImGui {
 
 	ImDrawList * GetActiveOrBackgroundDrawList() {
 		const ImGuiContext * imgui = ImGui::GetCurrentContext();
-		bool has_window = !StrEqual( imgui->CurrentWindow->Name, "Debug" );
+		bool has_window = !StrEqual( imgui->CurrentWindow->Name, "Debug##Default" );
 		return has_window ? ImGui::GetWindowDrawList() : ImGui::GetBackgroundDrawList();
 	}
 }

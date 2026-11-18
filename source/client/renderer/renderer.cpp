@@ -693,9 +693,9 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	// RenderPass_AddSilhouettes
 	// RenderPass_PreUIPostprocessing
 
-	frame_static.render_passes[ RenderPass_UIBeforePostprocessing ] = NewRenderPass( RenderPassConfig {
-		.name = "UI before postprocessing",
-		.pass = RenderPass_UIBeforePostprocessing,
+	frame_static.render_passes[ RenderPass_HUD ] = NewRenderPass( RenderPassConfig {
+		.name = "HUD",
+		.pass = RenderPass_HUD,
 		.color_targets = {
 			RenderPassConfig::ColorTarget { .texture = targets.resolved_color0, .load = LoadOp_Load },
 		},
@@ -708,9 +708,9 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 
 	// RenderPass_Postprocessing
 
-	frame_static.render_passes[ RenderPass_UIAfterPostprocessing ] = NewRenderPass( RenderPassConfig {
-		.name = "UI after postprocessing",
-		.pass = RenderPass_UIAfterPostprocessing,
+	frame_static.render_passes[ RenderPass_Menus ] = NewRenderPass( RenderPassConfig {
+		.name = "Menus",
+		.pass = RenderPass_Menus,
 		.color_targets = {
 			RenderPassConfig::ColorTarget {
 				.texture = explicit_srgb ? Optional( targets.resolved_color1 ) : NONE,

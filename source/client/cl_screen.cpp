@@ -174,9 +174,9 @@ static void SubmitPostprocessPreuiPass() {
 		.saturation = Cvar_Float( "saturation" ),
 	};
 
-	frame_static.render_passes[ RenderPass_PreUIPostprocessing ] = NewRenderPass( RenderPassConfig {
-		.name = "Pre-UI postprocessing",
-		.pass = RenderPass_PreUIPostprocessing,
+	frame_static.render_passes[ RenderPass_PreHUDPostprocessing ] = NewRenderPass( RenderPassConfig {
+		.name = "Pre-HUD postprocessing",
+		.pass = RenderPass_PreHUDPostprocessing,
 		.color_targets = {
 			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.resolved_color1, .load = LoadOp_DontCare },
 		},
@@ -200,7 +200,7 @@ static void SubmitPostprocessPreuiPass() {
 		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
 	};
 
-	Draw( RenderPass_PreUIPostprocessing, pipeline, FullscreenMesh() );
+	Draw( RenderPass_PreHUDPostprocessing, pipeline, FullscreenMesh() );
 }
 
 static void SubmitPostprocessPass() {
@@ -228,9 +228,9 @@ static void SubmitPostprocessPass() {
 		attachment_transitions = Span( &frame_static.render_targets.resolved_color1, 1 );
 	}
 
-	frame_static.render_passes[ RenderPass_Postprocessing ] = NewRenderPass( RenderPassConfig {
-		.name = "Postprocessing",
-		.pass = RenderPass_Postprocessing,
+	frame_static.render_passes[ RenderPass_PostHUDPostprocessing ] = NewRenderPass( RenderPassConfig {
+		.name = "Post-HUD postprocessing",
+		.pass = RenderPass_PostHUDPostprocessing,
 		.color_targets = {
 			RenderPassConfig::ColorTarget {
 				.texture = explicit_srgb ? Optional( frame_static.render_targets.resolved_color1 ) : NONE,
@@ -259,7 +259,7 @@ static void SubmitPostprocessPass() {
 		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
 	};
 
-	Draw( RenderPass_Postprocessing, pipeline, FullscreenMesh() );
+	Draw( RenderPass_PostHUDPostprocessing, pipeline, FullscreenMesh() );
 }
 
 void MaybeResetShadertoyTime( bool respawned ) {
@@ -294,9 +294,9 @@ void SCR_UpdateScreen() {
 		bool explicit_srgb = SwapchainIsNotsRGB();
 		const auto & targets = frame_static.render_targets;
 
-		frame_static.render_passes[ RenderPass_UIAfterPostprocessing ] = NewRenderPass( RenderPassConfig {
-			.name = "UI after postprocessing",
-			.pass = RenderPass_UIAfterPostprocessing,
+		frame_static.render_passes[ RenderPass_Menus ] = NewRenderPass( RenderPassConfig {
+			.name = "Menus",
+			.pass = RenderPass_Menus,
 			.color_targets = {
 				RenderPassConfig::ColorTarget {
 					.texture = targets.resolved_color0,

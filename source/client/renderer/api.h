@@ -328,10 +328,10 @@ enum RenderPass {
 
 	RenderPass_AddSilhouettes, // -> color0
 
-	RenderPass_PreUIPostprocessing, // color0 -> color1
-	RenderPass_UIBeforePostprocessing, // -> color1
-	RenderPass_Postprocessing, // color1 -> (hdr ? color0 : swapchain)
-	RenderPass_UIAfterPostprocessing, // -> hdr ? color0 : swapchain
+	RenderPass_PreHUDPostprocessing, // color0 -> color1
+	RenderPass_HUD, // -> color1
+	RenderPass_PostHUDPostprocessing, // color1 -> (hdr ? color0 : swapchain)
+	RenderPass_Menus, // -> hdr ? color0 : swapchain
 
 	RenderPass_10BitTosRGB, // hdr only, -> swapchain
 

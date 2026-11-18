@@ -144,10 +144,9 @@ static void SubmitDrawCalls() {
 			continue;
 		}
 
-		// NOTE: the background draw list is used for the HUD
-		RenderPass rp = RenderPass_UIAfterPostprocessing;
+		RenderPass rp = RenderPass_Menus;
 		if( cmd_list == ImGui::GetBackgroundDrawList() ) {
-			rp = RenderPass_UIBeforePostprocessing;
+			rp = RenderPass_HUD;
 		}
 
 		Mesh mesh = {

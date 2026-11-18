@@ -980,7 +980,7 @@ void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< Compute
 	cce->dispatchThreadgroups( allocations[ indirect_args.allocation ].buffer, indirect_args.offset, SubgroupSize( pipeline ) );
 }
 
-void InitRenderBackend( SDL_Window * window ) {
+void InitRenderBackend( SDL_Window * window, bool vsync ) {
 	TracyZoneScoped;
 
 	frame_semaphore = dispatch_semaphore_create( MaxFramesInFlight );

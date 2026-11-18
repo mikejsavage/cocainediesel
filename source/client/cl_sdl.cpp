@@ -309,7 +309,7 @@ Span< Span< const char > > GetAudioDeviceNames( TempAllocator * temp ) {
 	return names.span();
 }
 
-static void SDLAudioCallback( void * userdata, SDL_AudioStream * stream, int additional_amount, int total_amount ) {
+static void SDLCALL SDLAudioCallback( void * userdata, SDL_AudioStream * stream, int additional_amount, int total_amount ) {
 	AudioBackendCallback callback = AudioBackendCallback( userdata );
 
 	Vec2 samples[ 4096 ];

@@ -11,11 +11,11 @@ Shaders shaders;
 static FSChangeMonitor * fs_change_monitor;
 
 static Span< const char > ShaderFilename( Allocator * a, Span< const char > src_filename, Span< Span< const char > > features ) {
-       DynamicString filename( a, "shaders/{}", src_filename );
-       for( Span< const char > feature : features ) {
-               filename.append( "_{}", feature );
-       }
-       return CloneSpan( a, filename.span() );
+	DynamicString filename( a, "shaders/{}", src_filename );
+	for( Span< const char > feature : features ) {
+		filename.append( "_{}", feature );
+	}
+	return CloneSpan( a, filename.span() );
 }
 
 static void LoadShaders( const ShaderDescriptors & desc, bool hotload ) {

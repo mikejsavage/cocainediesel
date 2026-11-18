@@ -152,9 +152,9 @@ enum VertexFormat : u8 {
 
 	VertexFormat_U10x3_U2x1_01,
 
-    VertexFormat_Floatx2,
-    VertexFormat_Floatx3,
-    VertexFormat_Floatx4,
+	VertexFormat_Floatx2,
+	VertexFormat_Floatx3,
+	VertexFormat_Floatx4,
 };
 
 struct VertexAttribute {
@@ -251,8 +251,8 @@ enum CullFace : u8 {
 };
 
 struct RenderPipelineDynamicState {
-    DepthFunc depth_func : 3 = DepthFunc_Less;
-    CullFace cull_face : 2 = CullFace_Back;
+	DepthFunc depth_func : 3 = DepthFunc_Less;
+	CullFace cull_face : 2 = CullFace_Back;
 };
 
 static_assert( sizeof( RenderPipelineDynamicState ) == 1 );

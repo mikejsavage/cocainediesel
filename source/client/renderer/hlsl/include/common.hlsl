@@ -71,7 +71,7 @@ float ClampedTextureLoad( Texture2DMS< float > tex, int2 uv, uint sample_index )
 
 float3x3 Adjugate( float3x4 m ) {
 	float3x3 m33 = ( float3x3 ) m;
-    return float3x3(
+	return float3x3(
 		cross( m33[ 1 ], m33[ 2 ] ),
 		cross( m33[ 2 ], m33[ 0 ] ),
 		cross( m33[ 0 ], m33[ 1 ] )

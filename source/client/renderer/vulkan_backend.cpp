@@ -564,7 +564,7 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 		};
 
 		// required extensions
-		BoundedDynamicArray< const char *, 8 > extensions = {
+		const char * extensions[] = {
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 			VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
 			VK_KHR_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
@@ -633,8 +633,8 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 			.queueCreateInfoCount = 1,
 			.pQueueCreateInfos = &queueInfo,
 
-			.enabledExtensionCount = u32( extensions.size() ),
-			.ppEnabledExtensionNames = extensions.ptr(),
+			.enabledExtensionCount = ARRAY_COUNT( extensions ),
+			.ppEnabledExtensionNames = extensions,
 		};
 
 		VK_CHECK( vkCreateDevice( device.physical_device, &createInfo, NULL, &device.device ) );

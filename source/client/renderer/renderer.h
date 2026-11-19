@@ -1,5 +1,5 @@
 #pragma once
-// NOMERGE nuke this shit
+// TODO this header should go away
 
 #include "qcommon/types.h"
 #include "qcommon/srgb.h"

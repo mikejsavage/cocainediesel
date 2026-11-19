@@ -27,7 +27,7 @@
 
 #include <new>
 
-static constexpr bool EnableValidation = !is_public_build;
+static constexpr bool EnableValidation = false;
 static constexpr bool EnableGPUValidation = true;
 static constexpr bool EnableSyncValidation = true;
 
@@ -313,13 +313,14 @@ static VkInstance CreateInstance() {
 	if( EnableValidation && !RunningInRenderDoc() ) {
 		layers.must_add( "VK_LAYER_KHRONOS_validation" );
 		validation_features.must_add( VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT );
-	}
-	if( EnableGPUValidation ) {
-		validation_features.must_add( VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT );
-		validation_features.must_add( VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT );
-	}
-	if( EnableSyncValidation ) {
-		validation_features.must_add( VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT );
+
+		if( EnableGPUValidation ) {
+			validation_features.must_add( VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT );
+			validation_features.must_add( VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT );
+		}
+		if( EnableSyncValidation ) {
+			validation_features.must_add( VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT );
+		}
 	}
 
 	const VkValidationFeaturesEXT validation = {

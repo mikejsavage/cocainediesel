@@ -34,7 +34,7 @@
 
 	typedef int16_t4 s16x4;
 
-	typedef uint32_t RGBA8;
+	typedef uint32_t RGBA8; // note that this gives RGBA8 4 byte alignment on the GPU
 #endif
 
 shaderconst u32 FORWARD_PLUS_TILE_SIZE = 32;

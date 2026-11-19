@@ -2196,7 +2196,183 @@ void SubmitStagingCommandBuffer( Opaque< CommandBuffer > buffer ) {
 	}
 }
 
-void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first_pass_metal_only ) {
+static void TakeScreenshot( ScreenshotCallback cb, Span< const VkSemaphoreSubmitInfo > submit_signal_semaphores ) {
+	// TODO: need to fix WRITE_AFTER_PRESENT hazard
+	// TODO: need to fix double srgb
+	const VkImageCreateInfo create_info = {
+		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+		.imageType = VK_IMAGE_TYPE_2D,
+		.format = VK_FORMAT_R8G8B8A8_SRGB,
+		.extent = {
+			.width = global_swapchain.width,
+			.height = global_swapchain.height,
+			.depth = 1,
+		},
+		.mipLevels = 1,
+		.arrayLayers = 1,
+		.samples = VK_SAMPLE_COUNT_1_BIT,
+		.tiling = VK_IMAGE_TILING_LINEAR,
+		.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+		.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+	};
+
+	VkImage image;
+	VK_CHECK( vkCreateImage( global_device.device, &create_info, NULL, &image ) );
+	DebugLabel( image, VK_OBJECT_TYPE_IMAGE, "Screenshot temp destination image" );
+
+	VkMemoryRequirements memory_requirements;
+	vkGetImageMemoryRequirements( global_device.device, image, &memory_requirements );
+	memory_requirements.alignment = Max2( memory_requirements.alignment, alignof( RGBA8 ) );
+
+	GPUAllocation allocation = GPUMalloc( memory_requirements.size, false );
+	VK_CHECK( vkBindImageMemory( global_device.device, image, allocation.memory, 0 ) );
+
+	VkCommandBuffer cmd_buf = NewCommandBuffer();
+	{
+		const VkCommandBufferBeginInfo begin_info = {
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+		};
+
+		VK_CHECK( vkBeginCommandBuffer( cmd_buf, &begin_info ) );
+
+		VkDebugUtilsLabelEXT label = {
+			.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
+			.pLabelName = "Take screenshot",
+		};
+		vkCmdBeginDebugUtilsLabelEXT( cmd_buf, &label );
+	}
+
+	VkImage swapchain = global_swapchain.images[ frame.image_index ].image;
+
+	constexpr VkImageSubresourceRange subresource_range = {
+		.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+		.levelCount = 1,
+		.layerCount = 1,
+	};
+
+	{
+		VkImageMemoryBarrier2 barriers[] = {
+			// screenshot to transfer dst
+			VkImageMemoryBarrier2 {
+				.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+				.srcAccessMask = VK_ACCESS_2_NONE,
+				.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+				.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+				.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+				.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				.image = image,
+				.subresourceRange = subresource_range,
+			},
+
+			// swapchain to transfer src
+			VkImageMemoryBarrier2 {
+				.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+				.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+				.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT,
+				.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				.image = swapchain,
+				.subresourceRange = subresource_range,
+			},
+		};
+
+		Barriers( cmd_buf, NONE, StaticSpan( barriers ) );
+	}
+
+	{
+		VkImageSubresourceLayers subresource = {
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.layerCount = 1,
+		};
+		VkOffset3D bottom_right = { int( global_swapchain.width ), int( global_swapchain.height ), 1 };
+		VkImageBlit blit = {
+			.srcSubresource = subresource,
+			.srcOffsets = { { }, bottom_right },
+			.dstSubresource = subresource,
+			.dstOffsets = { { }, bottom_right },
+		};
+		vkCmdBlitImage( cmd_buf,
+			swapchain, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1, &blit, VK_FILTER_NEAREST );
+	}
+
+	{
+		VkImageMemoryBarrier2 barriers[] = {
+			// screenshot to general
+			VkImageMemoryBarrier2 {
+				.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+				.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+				.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+				.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT,
+				.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				.newLayout = VK_IMAGE_LAYOUT_GENERAL,
+				.image = image,
+				.subresourceRange = subresource_range,
+			},
+
+			// swapchain to present src
+			VkImageMemoryBarrier2 {
+				.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+				.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT,
+				.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+				.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				.image = swapchain,
+				.subresourceRange = subresource_range,
+			},
+		};
+
+		Barriers( cmd_buf, NONE, StaticSpan( barriers ) );
+	}
+
+	vkCmdEndDebugUtilsLabelEXT( cmd_buf );
+	VK_CHECK( vkEndCommandBuffer( cmd_buf ) );
+
+	VkFenceCreateInfo fence_create_info = { .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+	VkFence fence;
+	VK_CHECK( vkCreateFence( global_device.device, &fence_create_info, NULL, &fence ) );
+
+	{
+		const VkCommandBufferSubmitInfo command_buffer_submit_info = {
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+			.commandBuffer = cmd_buf,
+		};
+
+		VkSubmitInfo2 submit_info = {
+			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+			.commandBufferInfoCount = 1,
+			.pCommandBufferInfos = &command_buffer_submit_info,
+			.signalSemaphoreInfoCount = u32( submit_signal_semaphores.n ),
+			.pSignalSemaphoreInfos = submit_signal_semaphores.ptr,
+		};
+
+		VK_CHECK( vkQueueSubmit2( global_device.queue, 1, &submit_info, fence ) );
+
+		u64 one_minute_in_ns = 60'000'000'000;
+		VK_CHECK( vkWaitForFences( global_device.device, 1, &fence, VK_TRUE, one_minute_in_ns ) );
+	}
+
+	VkImageSubresource subresource = { VK_IMAGE_ASPECT_COLOR_BIT };
+	VkSubresourceLayout subresource_layout;
+	vkGetImageSubresourceLayout( global_device.device, image, &subresource, &subresource_layout );
+
+	void * mapped;
+	VK_CHECK( vkMapMemory( global_device.device, allocation.memory, 0, VK_WHOLE_SIZE, 0, &mapped ) );
+
+	void * pixels = ( ( char * ) mapped ) + subresource_layout.offset;
+	Span2D< const RGBA8 > framebuffer = Span2D< const RGBA8 >( ( const RGBA8 * ) pixels, global_swapchain.width, global_swapchain.height );
+	cb( framebuffer );
+
+	vkUnmapMemory( global_device.device, allocation.memory );
+	GPUFree( allocation );
+	vkDestroyImage( global_device.device, image, NULL );
+	vkDestroyFence( global_device.device, fence, NULL );
+}
+
+void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first_pass_metal_only, ScreenshotCallback screenshot_callback ) {
 	for( RenderPassSubmit pass : passes ) {
 		if( pass.buffer.unwrap()->is_render_command_buffer ) {
 			vkCmdEndRendering( pass.buffer.unwrap()->buffer );
@@ -2271,11 +2447,15 @@ void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first
 		.pWaitSemaphoreInfos = submit_wait_semaphores.ptr(),
 		.commandBufferInfoCount = u32( command_buffer_submit_infos.size() ),
 		.pCommandBufferInfos = command_buffer_submit_infos.ptr(),
-		.signalSemaphoreInfoCount = u32( submit_signal_semaphores.size() ),
+		.signalSemaphoreInfoCount = screenshot_callback == NULL ? u32( submit_signal_semaphores.size() ) : 0,
 		.pSignalSemaphoreInfos = submit_signal_semaphores.ptr(),
 	};
 
 	VK_CHECK( vkQueueSubmit2( global_device.queue, 1, &submit_info, VK_NULL_HANDLE ) );
+
+	if( screenshot_callback != NULL ) {
+		TakeScreenshot( screenshot_callback, submit_signal_semaphores.span() );
+	}
 
 	if( !frame_static.minimized ) {
 		const VkPresentInfoKHR present_info = {

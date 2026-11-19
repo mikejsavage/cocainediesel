@@ -2,6 +2,7 @@
 
 #include "client/renderer/api.h"
 #include "client/renderer/dds.h"
+#include "qcommon/span2d.h"
 
 constexpr size_t MaxBufferBindings = 8;
 constexpr size_t MaxTextureBindings = 8;
@@ -170,3 +171,12 @@ void RenderBackendEndFrame();
 
 size_t FrameSlot();
 
+struct RenderPassSubmit {
+	Opaque< CommandBuffer > buffer;
+	RenderPass pass;
+	RenderPass next_pass;
+};
+
+using ScreenshotCallback = void ( * )( Span2D< const RGBA8 > framebuffer );
+
+void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first_pass, ScreenshotCallback screenshot_callback );

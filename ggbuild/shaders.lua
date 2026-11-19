@@ -59,12 +59,12 @@ end
 function write_shaders_ninja_script()
 	if config ~= "release" then
 		if not HasBin( "dxc" ) then
-			io.stderr:write( "Can't find DXC (DirectX Shader Compiler), install the Vulkan SDK if you want to compile shaders\n" )
+			io.stderr:write( "Can't find DXC (DirectX Shader Compiler), install the Vulkan SDK from https://vulkan.lunarg.com/sdk/home if you want to compile shaders\n" )
 			return
 		end
 
 		if OS == "macos" and not HasBin( "spirv-cross" ) then
-			io.stderr:write( "Can't find spirv-cross, install the Vulkan SDK if you want to compile shaders\n" )
+			io.stderr:write( "Can't find spirv-cross, install the Vulkan SDK from https://vulkan.lunarg.com/sdk/home if you want to compile shaders\n" )
 			return
 		end
 	end

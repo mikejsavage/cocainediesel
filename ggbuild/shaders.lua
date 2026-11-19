@@ -73,7 +73,7 @@ function write_shaders_ninja_script()
 
 
 # Shaders
-dxcflags = -Isource/client/renderer/hlsl -I. -spirv -enable-16bit-types -fspv-target-env=vulkan1.2 -fvk-use-scalar-layout -fspv-preserve-bindings -Werror=conversion -Wno-sign-conversion
+dxcflags = -Isource/client/renderer/hlsl -I. -spirv -enable-16bit-types -fspv-target-env=vulkan1.3 -fvk-use-scalar-layout -fspv-preserve-bindings -Werror=conversion -Wno-sign-conversion
 rule dxc_vertex
     command = %s
     deps = gcc

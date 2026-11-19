@@ -227,7 +227,7 @@ void SubmitStagingCommandBuffer( Opaque< CommandBuffer > buffer ) {
 	}
 }
 
-void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first_pass, DownloadFramebufferCallback screenshot_callback ) {
+void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first_pass ) {
 	if( first_pass > 0 ) {
 		MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
 		command_buffer->encodeSignalEvent( global_device.pass_event, global_device.frame_counter * RenderPass_Count + first_pass );

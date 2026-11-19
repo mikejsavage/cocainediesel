@@ -396,6 +396,14 @@ struct RenderPassConfig {
 
 Optional< Opaque< CommandBuffer > > NewRenderPass( const RenderPassConfig & render_pass );
 
+struct RenderPassSubmit {
+	Opaque< CommandBuffer > buffer;
+	RenderPass pass;
+	RenderPass next_pass;
+};
+
+void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first_pass );
+
 struct PipelineState {
 	PoolHandle< RenderPipeline > shader;
 	RenderPipelineDynamicState dynamic_state;

@@ -26,7 +26,6 @@
 
 static Mesh fullscreen_mesh;
 
-static bool take_screenshot;
 static char last_screenshot_date[ 256 ];
 static int same_date_count;
 
@@ -37,40 +36,43 @@ static ShadowQuality last_shadow_quality;
 static Cvar * r_samples;
 static Cvar * r_shadow_quality;
 
-static void SaveScreenshot( Span2D< const RGBA8 > framebuffer ) {
-	// TODO: rgba->rgb
-	// probably write jpg because it's smaller and faster
-
-	int ok = stbi_write_png_to_func( []( void * context, void * png, int png_size ) {
-		char date[ 256 ];
-		FormatCurrentTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
-
-		TempAllocator temp = cls.frame_arena.temp();
-
-		DynamicString path( &temp, "{}/screenshots/{}", HomeDirPath(), date );
-
-		if( StrEqual( date, last_screenshot_date ) ) {
-			same_date_count++;
-			path.append( "_{}", same_date_count );
-		}
-		else {
-			same_date_count = 0;
-		}
-		strcpy( last_screenshot_date, date );
-
-		path.append( ".png" );
-
-		if( WriteFile( &temp, path.c_str(), png, png_size ) ) {
-			Com_Printf( "Wrote %s\n", path.c_str() );
-		}
-		else {
-			Com_Printf( "Couldn't write %s\n", path.c_str() );
-		}
-	}, NULL, frame_static.viewport_width, frame_static.viewport_height, 4, framebuffer.ptr, 0 );
-
-	if( ok == 0 ) {
-		Com_Printf( "Couldn't convert screenshot to PNG\n" );
-	}
+static void TakeScreenshot() {
+	// RGB8 * framebuffer = AllocMany< RGB8 >( sys_allocator, frame_static.viewport_width * frame_static.viewport_height );
+	// defer { Free( sys_allocator, framebuffer ); };
+	// DownloadFramebuffer( framebuffer );
+    //
+	// stbi_flip_vertically_on_write( 1 );
+    //
+	// int ok = stbi_write_png_to_func( []( void * context, void * png, int png_size ) {
+	// 	char date[ 256 ];
+	// 	FormatCurrentTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
+    //
+	// 	TempAllocator temp = cls.frame_arena.temp();
+    //
+	// 	DynamicString path( &temp, "{}/screenshots/{}", HomeDirPath(), date );
+    //
+	// 	if( StrEqual( date, last_screenshot_date ) ) {
+	// 		same_date_count++;
+	// 		path.append( "_{}", same_date_count );
+	// 	}
+	// 	else {
+	// 		same_date_count = 0;
+	// 	}
+	// 	strcpy( last_screenshot_date, date );
+    //
+	// 	path.append( ".png" );
+    //
+	// 	if( WriteFile( &temp, path.c_str(), png, png_size ) ) {
+	// 		Com_Printf( "Wrote %s\n", path.c_str() );
+	// 	}
+	// 	else {
+	// 		Com_Printf( "Couldn't write %s\n", path.c_str() );
+	// 	}
+	// }, NULL, frame_static.viewport_width, frame_static.viewport_height, 3, framebuffer, 0 );
+    //
+	// if( ok == 0 ) {
+	// 	Com_Printf( "Couldn't convert screenshot to PNG\n" );
+	// }
 }
 
 static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
@@ -115,8 +117,7 @@ void InitRenderer( SDL_Window * window, bool vsync ) {
 		fullscreen_mesh.num_vertices = 3;
 	}
 
-	AddCommand( "screenshot", []( const Tokenized & args ) { take_screenshot = true; } );
-	take_screenshot = false;
+	AddCommand( "screenshot", []( const Tokenized & args ) { TakeScreenshot(); } );
 	strcpy( last_screenshot_date, "" );
 	same_date_count = 0;
 
@@ -768,8 +769,7 @@ void RendererEndFrame() {
 	}
 
 	Assert( subs.size() > 0 || frame_static.minimized );
-	SubmitRenderPasses( subs.span(), Default( first_pass, RenderPass( 0 ) ), take_screenshot ? SaveScreenshot : NULL );
-	take_screenshot = false;
+	SubmitRenderPasses( subs.span(), Default( first_pass, RenderPass( 0 ) ) );
 
 	RenderBackendEndFrame();
 }

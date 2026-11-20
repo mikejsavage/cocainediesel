@@ -4,7 +4,7 @@
 #include <string.h>
 
 template< typename T > constexpr size_t OpaqueSize = 0;
-template< typename T > constexpr size_t OpaqueAlignment = sizeof( void * );
+template< typename T > constexpr size_t OpaqueAlignment = alignof( void * );
 template< typename T > constexpr bool OpaqueCopyable = true;
 
 template< typename T >
@@ -30,12 +30,14 @@ struct Opaque {
 	void operator=( const Opaque< T > & ) requires( !OpaqueCopyable< T > ) = delete;
 
 	T * unwrap() {
-		static_assert( sizeof( T ) <= sizeof( opaque ) && alignof( T ) <= OpaqueAlignment< T >, "gg" );
+		static_assert( sizeof( T ) <= sizeof( opaque ) );
+		static_assert( alignof( T ) <= OpaqueAlignment< T > );
 		return ( T * ) opaque;
 	}
 
 	const T * unwrap() const {
-		static_assert( sizeof( T ) <= sizeof( opaque ) && alignof( T ) <= OpaqueAlignment< T >, "gg" );
+		static_assert( sizeof( T ) <= sizeof( opaque ) );
+		static_assert( alignof( T ) <= OpaqueAlignment< T > );
 		return ( const T * ) opaque;
 	}
 };

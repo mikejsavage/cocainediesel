@@ -80,7 +80,6 @@ int main( int argc, char ** argv ) {
 
 	// TODO: should use the stuff in material.cpp instead of duplicating it here
 	constexpr u32 BC4BitsPerPixel = 4;
-	constexpr u32 BC4BlockSize = ( 4 * 4 * BC4BitsPerPixel ) / 8;
 
 	u32 bc4_bytes = ( total_size * BC4BitsPerPixel ) / 8;
 	Span< u8 > bc4 = AllocSpan< u8 >( sys_allocator, bc4_bytes );
@@ -115,9 +114,9 @@ int main( int argc, char ** argv ) {
 				u8 src_block[ 16 ];
 				CopySpan2D( Span2D< u8 >( src_block, 4, 4 ), src );
 
-				Span< u8 > dst = bc4.slice( bc4_cursor, bc4_cursor + BC4BlockSize );
+				Span< u8 > dst = bc4.slice( bc4_cursor, bc4_cursor + sizeof( BC4Block ) );
 				rgbcx::encode_bc4( dst.ptr, src_block, 1 );
-				bc4_cursor += BC4BlockSize;
+				bc4_cursor += sizeof( BC4Block );
 			}
 		}
 	}

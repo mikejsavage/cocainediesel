@@ -34,8 +34,8 @@ static client_t demo_client;
 static s64 demo_gametime;
 static time_t demo_utc_time;
 
-static const char * GetDemoDir( TempAllocator * temp ) {
-	return StrEqual( sv_demodir->value, "" ) ? "demos" : ( *temp )( "demos/{}", sv_demodir->value );
+static Span< const char > GetDemoDir( TempAllocator * temp ) {
+	return StrEqual( sv_demodir->value, "" ) ? "demos"_sp : temp->sv( "demos/{}", sv_demodir->value );
 }
 
 void SV_Demo_WriteSnap() {
@@ -173,21 +173,13 @@ void SV_Demo_Stop( bool silent ) {
 }
 
 static Span< char * > GetServerDemos( TempAllocator * temp ) {
+	Span< const char > dir = GetDemoDir( temp );
+
 	NonRAIIDynamicArray< char * > demos( temp );
-
-	Opaque< ListDirHandle > scan = BeginListDir( sys_allocator, GetDemoDir( temp ) );
-
-	const char * name;
-	bool dir;
-	while( ListDirNext( &scan, &name, &dir ) ) {
-		// skip ., .., .git, etc
-		if( name[ 0 ] == '.' )
-			continue;
-
-		if( dir || FileExtension( name ) != APP_DEMO_EXTENSION_STR )
-			continue;
-
-		demos.add( CopyString( sys_allocator, name ) );
+	for( Span< const char > demo : ListDir( temp, dir, ListDir_DontRecurse ) ) {
+		if( FileExtension( demo ) == APP_DEMO_EXTENSION_STR ) {
+			demos.add( ( *sys_allocator )( "{}", demo + dir.n + 1 ) );
+		}
 	}
 
 	nanosort( demos.begin(), demos.end(), SortCStringsComparator );

@@ -332,28 +332,6 @@ void LoadAssets( TempAllocator * temp, Span< const char * > files, size_t skip )
 
 #endif
 
-static void BuildAssetList( TempAllocator * temp, DynamicArray< const char * > * files, DynamicString * search_path ) {
-	Opaque< ListDirHandle > scan = BeginListDir( temp, search_path->c_str() );
-
-	const char * name;
-	bool dir;
-	while( ListDirNext( &scan, &name, &dir ) ) {
-		// skip ., .., .git, etc
-		if( name[ 0 ] == '.' )
-			continue;
-
-		size_t old_len = search_path->length();
-		search_path->append( "/{}", name );
-		if( dir ) {
-			BuildAssetList( temp, files, search_path );
-		}
-		else {
-			files->add( CopyString( temp, search_path->c_str() ) );
-		}
-		search_path->truncate( old_len );
-	}
-}
-
 void InitAssets( TempAllocator * temp ) {
 	TracyZoneScoped;
 
@@ -362,29 +340,42 @@ void InitAssets( TempAllocator * temp ) {
 	assets_hashtable.clear();
 	modified_asset_paths.clear();
 
-	DynamicString base( temp, "{}/base", RootDirPath() );
-	size_t skip = base.length() + 1;
-	fs_change_monitor = NewFSChangeMonitor( sys_allocator, base.c_str() );
+	const char * base = ( *temp )( "{}/base", RootDirPath() );
+	Span< const char > base2 = MakeSpan( base );
+	fs_change_monitor = NewFSChangeMonitor( sys_allocator, base );
 
-	DynamicArray< const char * > files( temp );
-	{
-		TracyZoneScopedN( "BuildAssetList" );
-		BuildAssetList( temp, &files, &base );
-		{
-			TracyZoneScopedN( "Sort" );
-			nanosort( files.begin(), files.end(), SortCStringsComparator );
+	Span< Span< const char > > files;
+	defer {
+		for( Span< const char > f : files ) {
+			Free( sys_allocator, f.ptr );
 		}
+		Free( sys_allocator, files.ptr );
+	};
+
+	{
+		TracyZoneScopedN( "ListDir" );
+		files = ListDir( sys_allocator, base2, ListDir_Recurse ).cast< Span< const char > >();
+	}
+
+	{
+		TracyZoneScopedN( "Sort" );
+		nanosort( files.begin(), files.end(), SortSpanStringsComparator );
 	}
 
 	// remove file.zst if file is in the list too
-	DynamicArray< const char * > deduped( temp );
-	for( size_t i = 0; i < files.size(); i++ ) {
+	DynamicArray< const char * > deduped( sys_allocator );
+	defer {
+		for( const char * f : deduped ) {
+			Free( sys_allocator, f );
+		}
+	};
+	for( size_t i = 0; i < files.n; i++ ) {
 		if( i == 0 || FileExtension( files[ i ] ) != ".zst" || !StrEqual( StripExtension( files[ i ] ), files[ i - 1 ] ) ) {
-			deduped.add( files[ i ] );
+			deduped.add( ( *sys_allocator )( "{}", files[ i ] ) );
 		}
 	}
 
-	LoadAssets( temp, deduped.span(), skip );
+	LoadAssets( temp, deduped.span(), base2.n + 1 );
 
 	modified_asset_paths.clear();
 }

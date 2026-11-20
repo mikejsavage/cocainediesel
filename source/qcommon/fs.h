@@ -41,11 +41,12 @@ bool RemoveFile( Allocator * a, const char * path );
 
 bool CreatePathForFile( Allocator * a, const char * path );
 
-struct ListDirHandle;
-template<> inline constexpr size_t OpaqueSize< ListDirHandle > = 64;
+enum ListDirRecurse {
+	ListDir_Recurse,
+	ListDir_DontRecurse,
+};
 
-Opaque< ListDirHandle > BeginListDir( Allocator * a, const char * path );
-bool ListDirNext( Opaque< ListDirHandle > * handle, const char ** path, bool * dir );
+Span< Span< const char > > ListDir( Allocator * a, Span< const char > root, ListDirRecurse recurse, SourceLocation src_loc = CurrentSourceLocation() );
 
 struct FSChangeMonitor;
 

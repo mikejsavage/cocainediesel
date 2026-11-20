@@ -1,6 +1,7 @@
 #include "qcommon/base.h"
 #include "qcommon/fs.h"
 #include "qcommon/utf8.h"
+#include "qcommon/string.h"
 #include "qcommon/platform/fs.h"
 #include "gameshared/q_shared.h"
 
@@ -147,4 +148,35 @@ bool CloseFile( FILE * file ) {
 	bool ok = ferror( file ) == 0;
 	fclose( file );
 	return ok;
+}
+
+static void ListDirRecursive( Allocator * a, NonRAIIDynamicArray< Span< const char > > * files, DynamicString * path, bool recursive, SourceLocation src ) {
+	Opaque< ListDirHandle > scan = BeginListDir( a, path->c_str() );
+
+	const char * name;
+	bool dir;
+	while( ListDirNext( &scan, &name, &dir ) ) {
+		// skip ., .., .git, etc
+		if( name[ 0 ] == '.' )
+			continue;
+
+		size_t old_len = path->length();
+		path->append( "/{}", name );
+		if( dir ) {
+			if( recursive ) {
+				ListDirRecursive( a, files, path, true, src );
+			}
+		}
+		else {
+			files->add( CloneSpan( a, path->span(), src ) );
+		}
+		path->truncate( old_len );
+	}
+}
+
+Span< Span< const char > > ListDir( Allocator * a, Span< const char > root, ListDirRecurse recurse, SourceLocation src ) {
+	NonRAIIDynamicArray< Span< const char > > files( a );
+	DynamicString path( a, "{}", root );
+	ListDirRecursive( a, &files, &path, recurse == ListDir_Recurse, src );
+	return files.span();
 }

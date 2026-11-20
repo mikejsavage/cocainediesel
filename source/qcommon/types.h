@@ -302,7 +302,7 @@ struct Optional {
 	T value;
 	bool exists;
 
-	Optional() = default;
+	constexpr Optional() = default;
 
 	constexpr Optional( NoneType ) {
 		value = { };
@@ -313,11 +313,11 @@ struct Optional {
 		exists = true;
 	}
 
-	void operator=( NoneType ) {
+	constexpr void operator=( NoneType ) {
 		value = { };
 		exists = false;
 	}
-	void operator=( const T & other ) {
+	constexpr void operator=( const T & other ) {
 		value = other;
 		exists = true;
 	}

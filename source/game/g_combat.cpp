@@ -340,7 +340,7 @@ void G_SplashFrac( const SyncEntityState * s, const entity_shared_t * r, Vec3 po
 		*frac = Clamp01( sinf( Radians( distance_frac * 80 ) ) );
 	}
 
-	Vec3 center_of_mass = s->origin + Center( EntityBounds( ServerCollisionModelStorage(), s ) );;
+	Vec3 center_of_mass = s->origin + Center( EntityBounds( ServerCollisionModelStorage(), s ) );
 	*pushdir = SafeNormalize( center_of_mass - point );
 }
 

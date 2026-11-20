@@ -576,7 +576,7 @@ static void PerkIdleSounds( centity_t * cent, SyncEntityState * state ) {
 		PlaySFXConfig cfg = PlaySFXConfigEntity( cent->current.number );
 		float speed = Length( cent->velocity.xy() );
 		cfg.pitch = 0.65f + speed * 0.0015f;
-		cfg.volume = 0.25f + speed * 0.001f; 
+		cfg.volume = 0.25f + speed * 0.001f;
 		cent->playing_idle_sound = PlayImmediateSFX( "perks/wheel/idle", cent->playing_idle_sound, cfg );
 	}
 }

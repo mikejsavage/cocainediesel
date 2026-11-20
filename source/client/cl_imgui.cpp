@@ -148,7 +148,7 @@ static void SubmitDrawCalls() {
 
 		u32 pass = frame_static.post_ui_pass;
 		if( cmd_list == ImGui::GetBackgroundDrawList() ) {
-			pass = frame_static.ui_pass;;
+			pass = frame_static.ui_pass;
 		}
 
 		if( cmd_list->VtxBuffer.Size == 0 || cmd_list->IdxBuffer.Size == 0 ) {

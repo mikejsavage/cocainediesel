@@ -279,10 +279,10 @@ void CL_ParseServerMessage( msg_t *msg ) {
 				break;
 
 			case svc_clcack:
-				cls.reliableAcknowledge = MSG_ReadUintBase128( msg );
+				cls.reliable_acked = MSG_ReadUintBase128( msg );
 				cls.ucmdAcknowledged = MSG_ReadUintBase128( msg );
 				if( cl_debug_serverCmd->integer & 4 ) {
-					Com_GGPrint( "svc_clcack:reliable cmd ack:{} ucmdack:{}", cls.reliableAcknowledge, cls.ucmdAcknowledged );
+					Com_GGPrint( "svc_clcack:reliable cmd ack:{} ucmdack:{}", cls.reliable_acked, cls.ucmdAcknowledged );
 				}
 				break;
 

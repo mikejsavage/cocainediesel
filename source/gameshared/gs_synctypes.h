@@ -6,7 +6,7 @@
 #include "gameshared/q_shared.h"
 
 constexpr int MAX_CLIENTS = 16;
-constexpr int MAX_EDICTS = 1024; // must change protocol to increase more
+constexpr int MAX_EDICTS = 1024;
 
 enum Gametype : u8 {
 	Gametype_Bomb,

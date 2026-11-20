@@ -930,10 +930,6 @@ struct SpirvID {
 	Optional< u32 > binding;
 };
 
-static const char * StripPrefix( const char * str, const char * prefix ) {
-	return StartsWith( str, prefix ) ? str + strlen( prefix ) : str;
-}
-
 static void ParseSPIRV( Span< const u32 > spirv, ReflectedDescriptorSet ( &sets )[ DescriptorSet_Count ] ) {
 	Assert( spirv[ 0 ] == SpvMagicNumber );
 
@@ -1048,7 +1044,7 @@ static void ParseSPIRV( Span< const u32 > spirv, ReflectedDescriptorSet ( &sets 
 				default: Assert( false ); break;
 			}
 
-			sets[ id.descriptor_set.value ].bindings.must_add_or_exists( StringHash( StripPrefix( id.name.value, "args." ) ), {
+			sets[ id.descriptor_set.value ].bindings.must_add_or_exists( StringHash( id.name.value ), {
 				.type = descriptor_type,
 				.index = id.binding.value,
 				.stride = Default( type.stride, 0_u32 ),

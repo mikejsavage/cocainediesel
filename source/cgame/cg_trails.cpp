@@ -201,9 +201,7 @@ static void DrawActualTrail( const Trail & trail ) {
 		}
 	}
 
-	PipelineState pipeline = {
-		.shader = shaders.vfx_add,
-	};
+	PipelineState pipeline = { .shader = shaders.vfx_add };
 
 	Mesh mesh = { };
 	mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( VFXVertex, position ) };

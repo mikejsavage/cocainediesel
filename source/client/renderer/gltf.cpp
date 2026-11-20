@@ -952,7 +952,7 @@ void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * rende
 
 template< typename T >
 static void InitModelInstanceGroup( ModelInstanceGroup< T > * group ) {
-       group->instance_data = NewStreamingBuffer( MAX_INSTANCES * sizeof( T ) );
+	group->instance_data = NewStreamingBuffer( MAX_INSTANCES * sizeof( T ) );
 }
 
 void InitGLTFInstancing() {

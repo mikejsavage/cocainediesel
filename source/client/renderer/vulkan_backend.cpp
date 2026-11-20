@@ -197,7 +197,7 @@ static VkSampler samplers[ Sampler_Count ];
 // zones on the side to submit all at once at the end of the frame
 template<> constexpr size_t OpaqueSize< tracy::VkCtxScope > = sizeof( tracy::VkCtxScope );
 template<> constexpr size_t OpaqueAlignment< tracy::VkCtxScope > = alignof( tracy::VkCtxScope );
-template<> constexpr size_t OpaqueCopyable< tracy::VkCtxScope > = false;
+template<> constexpr bool OpaqueCopyable< tracy::VkCtxScope > = false;
 static Opaque< tracy::VkCtxScope > tracy_render_pass_zones[ RenderPass_Count ];
 
 static constexpr VkRect2D no_scissor = { .extent = { S32_MAX, S32_MAX } };
@@ -409,30 +409,12 @@ static VkPhysicalDevice PickPhysicalDevice( VkInstance instance ) {
 	VkPhysicalDevice integrated_gpu = VK_NULL_HANDLE;
 	VkPhysicalDevice very_bad_gpu = VK_NULL_HANDLE;
 
-	printf( "Devices:\n" );
-
 	TempAllocator temp = cls.frame_arena.temp();
 	Span< VkPhysicalDevice > devices = VulkanSpan< VkPhysicalDevice >( &temp, CurrentSourceLocation(), vkEnumeratePhysicalDevices, instance );
 
 	for( const VkPhysicalDevice & device : devices ) {
-		// TODO: need to do more filtering here
-
-		VkPhysicalDeviceMaintenance3Properties props3 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES };
-		VkPhysicalDeviceProperties2 props2 = {
-			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
-			.pNext = &props3,
-		};
+		VkPhysicalDeviceProperties2 props2 = { .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
 		vkGetPhysicalDeviceProperties2( device, &props2 );
-		printf( "    %s v%u:\n", props2.properties.deviceName, props2.properties.driverVersion );
-
-		printf( "        Max allocs: %u\n", props2.properties.limits.maxMemoryAllocationCount ); // 2^30 on MoltenVK, 4096 on nv
-		printf( "        Max alloc size: %llu\n", props3.maxMemoryAllocationSize ); // 2^33 on MoltenVK, 2^32 on nv
-		printf( "        Max textures: %u\n", props2.properties.limits.maxPerStageDescriptorSampledImages ); // 128 on MoltenVK, 2^20 on nv
-		printf( "        Max descriptor set images: %u\n", props2.properties.limits.maxDescriptorSetSampledImages ); // 640 on MoltenVK, 2^20 on nv
-		printf( "        UBO alignment: %llu\n", props2.properties.limits.minUniformBufferOffsetAlignment ); // 16 on MoltenVK, 64 on nv
-		printf( "        SSBO alignment: %llu\n", props2.properties.limits.minStorageBufferOffsetAlignment ); // 16 on MoltenVK/nv
-		printf( "        Optimal buffer copy alignment: %llu\n", props2.properties.limits.optimalBufferCopyOffsetAlignment ); // 16 on MoltenVK, 1 on nv
-		printf( "        Optimal buffer row pitch copy alignment: %llu\n", props2.properties.limits.optimalBufferCopyRowPitchAlignment ); // 1 on MoltenVK/nv
 
 		if( discrete_gpu == VK_NULL_HANDLE && props2.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU ) {
 			discrete_gpu = device;

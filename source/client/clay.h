@@ -53,8 +53,11 @@ struct ClayCustomElementConfig {
 	};
 };
 
+void SwitchToClayHUDContext();
+void SwitchToClayMenuContext();
+
 ArenaAllocator * ClayAllocator();
 Clay_String AllocateClayString( Span< const char > str );
 
 // in cl_clay.cpp
-void DrawClayText( Span<const char>, const Clay_TextElementConfig &, const Clay_BoundingBox &, Optional< FittedTextShadow > = {}, XAlignment alignment = XAlignment_Left, const Clay_Padding & = {} );
+void DrawClayText( Span< const char > text, const Clay_TextElementConfig & config, const Clay_BoundingBox & bounds, Optional< FittedTextShadow > shadow = NONE, XAlignment alignment = XAlignment_Left, const Clay_Padding & padding = { } );

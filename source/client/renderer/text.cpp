@@ -116,8 +116,8 @@ void DrawTextBaseline( const Font * font, float pixel_size, Span< const char > s
 	sam.uniform_name = "u_Text";
 	sam.uniform_block = UploadUniformBlock( color, Default( border_color, Vec4( 0.0f ) ), font->metadata.dSDF_dTexel, border_color.exists ? 1 : 0 );
 
-	ImDrawList * bg = ImGui::GetBackgroundDrawList();
-	bg->PushTextureID( sam );
+	ImDrawList * draw_list = ImGui::GetActiveOrBackgroundDrawList();
+	draw_list->PushTextureID( sam );
 
 	u32 state = 0;
 	u32 c = 0;
@@ -139,15 +139,15 @@ void DrawTextBaseline( const Font * font, float pixel_size, Span< const char > s
 			Vec2 mins = Vec2( x, y ) + pixel_size * flip_y * ( glyph->bounds.mins - font->metadata.glyph_padding );
 			Vec2 maxs = Vec2( x, y ) + pixel_size * flip_y * ( glyph->bounds.maxs + font->metadata.glyph_padding );
 
-			bg->PrimReserve( 6, 4 );
-			bg->PrimRectUV( mins, maxs, glyph->padded_uv_bounds.mins, glyph->padded_uv_bounds.maxs, IM_COL32_WHITE );
+			draw_list->PrimReserve( 6, 4 );
+			draw_list->PrimRectUV( mins, maxs, glyph->padded_uv_bounds.mins, glyph->padded_uv_bounds.maxs, IM_COL32_WHITE );
 		}
 
 		x += pixel_size * glyph->advance;
 		// TODO: kerning
 	}
 
-	bg->PopTextureID();
+	draw_list->PopTextureID();
 }
 
 void DrawFittedText( const Font * font, Span< const char > str, MinMax2 bounds, XAlignment x_alignment, Vec4 color, Optional< Vec4 > border_color ) {

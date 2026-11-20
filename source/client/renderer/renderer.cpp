@@ -819,11 +819,11 @@ void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bott
 
 	RGBA8 rgba = LinearTosRGB( color );
 
-	ImDrawList * bg = ImGui::GetBackgroundDrawList();
-	bg->PushTextureID( ImGuiShaderAndMaterial( material ) );
-	bg->PrimReserve( 6, 4 );
-	bg->PrimRectUV( Vec2( x, y ), Vec2( x + w, y + h ), topleft_uv, bottomright_uv, IM_COL32( rgba.r, rgba.g, rgba.b, rgba.a ) );
-	bg->PopTextureID();
+	ImDrawList * draw_list = ImGui::GetActiveOrBackgroundDrawList();
+	draw_list->PushTextureID( ImGuiShaderAndMaterial( material ) );
+	draw_list->PrimReserve( 6, 4 );
+	draw_list->PrimRectUV( Vec2( x, y ), Vec2( x + w, y + h ), topleft_uv, bottomright_uv, IM_COL32( rgba.r, rgba.g, rgba.b, rgba.a ) );
+	draw_list->PopTextureID();
 }
 
 UniformBlock UploadModelUniforms( const Mat3x4 & M ) {

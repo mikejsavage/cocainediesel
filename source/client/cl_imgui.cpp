@@ -140,21 +140,15 @@ static void SubmitDrawCalls() {
 
 	UniformBlock lodbias_uniforms = UploadMaterialStaticUniforms( 0.0f, 0.0f, -1.0f );
 
-	u32 pass = 0;
-
 	ImVec2 pos = draw_data->DisplayPos;
 	for( int n = 0; n < draw_data->CmdListsCount; n++ ) {
 		TempAllocator temp = cls.frame_arena.temp();
 
 		const ImDrawList * cmd_list = draw_data->CmdLists[ n ];
 
-		// TODO: this is a hack to separate drawcalls into 2 passes
-		if( cmd_list->CmdBuffer.Size > 0 ) {
-			const ImDrawCmd * cmd = &cmd_list->CmdBuffer[ 0 ];
-			u32 new_pass = u32( uintptr_t( cmd->UserCallbackData ) );
-			if( new_pass != 0 ) {
-				pass = new_pass;
-			}
+		u32 pass = frame_static.post_ui_pass;
+		if( cmd_list == ImGui::GetBackgroundDrawList() ) {
+			pass = frame_static.ui_pass;;
 		}
 
 		if( cmd_list->VtxBuffer.Size == 0 || cmd_list->IdxBuffer.Size == 0 ) {
@@ -182,7 +176,7 @@ static void SubmitDrawCalls() {
 				MinMax2 scissor = MinMax2( Vec2( pcmd->ClipRect.x - pos.x, pcmd->ClipRect.y - pos.y ), Vec2( pcmd->ClipRect.z - pos.x, pcmd->ClipRect.w - pos.y ) );
 				if( scissor.mins.x < fb_width && scissor.mins.y < fb_height && scissor.maxs.x >= 0.0f && scissor.maxs.y >= 0.0f ) {
 					PipelineState pipeline;
-					pipeline.pass = pass == 0 ? frame_static.ui_pass : frame_static.post_ui_pass;
+					pipeline.pass = pass;
 					pipeline.shader = pcmd->TextureId.shader;
 					pipeline.depth_func = DepthFunc_Disabled;
 					pipeline.blend_func = BlendFunc_Blend;
@@ -240,7 +234,6 @@ namespace ImGui {
 	void Begin( const char * name, WindowZOrder z_order, ImGuiWindowFlags flags ) {
 		ImGui::Begin( name, NULL, flags );
 		ImGui::GetCurrentWindow()->BeginOrderWithinContext = z_order;
-		ImGui::GetWindowDrawList()->AddCallback( NULL, ( void * ) 1 ); // TODO: this is a hack to separate drawcalls into 2 passes
 	}
 
 	bool Hotkey( ImGuiKey key ) {
@@ -268,6 +261,12 @@ namespace ImGui {
 		delay = 0.00001f;
 		defer { delay = old_delay; };
 		return ImGui::IsItemHovered( ImGuiHoveredFlags_DelayShort | ImGuiHoveredFlags_NoSharedDelay ) && ImGui::GetCurrentContext()->HoverItemDelayTimer <= ImGui::GetIO().DeltaTime;
+	}
+
+	ImDrawList * GetActiveOrBackgroundDrawList() {
+		const ImGuiContext * imgui = ImGui::GetCurrentContext();
+		bool has_window = !StrEqual( imgui->CurrentWindow->Name, "Debug##Default" );
+		return has_window ? ImGui::GetWindowDrawList() : ImGui::GetBackgroundDrawList();
 	}
 }
 

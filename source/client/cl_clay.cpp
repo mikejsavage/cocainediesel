@@ -7,18 +7,18 @@
 
 #include "imgui/imgui.h"
 
+struct ClayContext {
+	Clay_Context * ctx;
+	Clay_Arena arena;
+};
+
+static ClayContext hud_clay;
+static ClayContext menu_clay;
+
 static constexpr size_t TEXT_ARENA_SIZE = Megabytes( 1 );
-static Clay_Arena clay_arena;
 static ArenaAllocator text_arena;
 
-static bool show_debugger;
-
 static const Font * fonts[ ClayFont_Count ];
-
-static void ClayErrorHandler( Clay_ErrorData error ) {
-	// NOTE(mike): normally you can't print a Clay_String with %s but they're all static strings so it works
-	Fatal( "%s", error.errorText.chars );
-}
 
 static Vec4 ClayToCD( Clay_Color color ) {
 	RGBA8 clamped = RGBA8(
@@ -35,16 +35,31 @@ static ImU32 ClayToImGui( Clay_Color clay ) {
 	return IM_COL32( rgba8.r, rgba8.g, rgba8.b, rgba8.a );
 }
 
-void InitClay() {
-	show_debugger = false;
+static void ErrorHandler( Clay_ErrorData error ) {
+	// NOTE(mike): normally you can't print a Clay_String with %s but they're all static strings so it works
+	Fatal( "%s", error.errorText.chars );
+}
 
-	AddCommand( "toggleuidebugger", []( const Tokenized & args ) {
-		show_debugger = !show_debugger;
-		Clay_SetDebugModeEnabled( show_debugger );
-	} );
+static Clay_Dimensions MeasureText(Clay_StringSlice text, Clay_TextElementConfig * config, void * user_data ) {
+	const Font * font = fonts[ config->fontId ];
+	MinMax2 bounds = TextBaselineBounds( font, config->fontSize, Span< const char >( text.chars, text.length ) );
+	Vec2 dims = bounds.maxs - bounds.mins;
+	return { dims.x, dims.y };
+}
 
+static ClayContext NewClayContext() {
 	u32 size = Clay_MinMemorySize();
-	clay_arena = Clay_CreateArenaWithCapacityAndMemory( size, sys_allocator->allocate( size, 16 ) );
+	Clay_Arena arena = Clay_CreateArenaWithCapacityAndMemory( size, sys_allocator->allocate( size, 16 ) );
+	Clay_Context * ctx = Clay_Initialize( arena, { }, { .errorHandlerFunction = ErrorHandler } );
+	Clay_SetMeasureTextFunction( MeasureText, NULL );
+	return ClayContext { ctx, arena };
+}
+
+void DeleteClayContext( ClayContext clay ) {
+	Free( sys_allocator, clay.arena.memory );
+}
+
+void InitClay() {
 	text_arena = ArenaAllocator( AllocMany< char >( sys_allocator, TEXT_ARENA_SIZE ), TEXT_ARENA_SIZE );
 
 	fonts[ ClayFont_Regular ] = RegisterFont( "fonts/Decalotype-Bold" );
@@ -52,31 +67,37 @@ void InitClay() {
 	fonts[ ClayFont_Italic ] = RegisterFont( "fonts/Decalotype-BoldItalic" );
 	fonts[ ClayFont_BoldItalic ] = RegisterFont( "fonts/Decalotype-BlackItalic" );
 
-	Clay_Initialize( clay_arena, { }, { .errorHandlerFunction = ClayErrorHandler } );
-
-	auto measure_text = []( Clay_StringSlice text, Clay_TextElementConfig * config, void * user_data ) -> Clay_Dimensions {
-		const Font * font = fonts[ config->fontId ];
-		MinMax2 bounds = TextBaselineBounds( font, config->fontSize, Span< const char >( text.chars, text.length ) );
-		Vec2 dims = bounds.maxs - bounds.mins;
-		return { dims.x, dims.y };
-	};
-	Clay_SetMeasureTextFunction( measure_text, NULL );
-}
-
-void ShutdownClay() {
-	Free( sys_allocator, clay_arena.memory );
-	Free( sys_allocator, text_arena.get_memory() );
-	Clay_SetCurrentContext( NULL );
-
-	RemoveCommand( "toggleuidebugger" );
+	hud_clay = NewClayContext();
+	menu_clay = NewClayContext();
 }
 
 void ClayBeginFrame() {
 	TracyZoneScopedN( "Clay_BeginLayout" );
+
+	Clay_SetCurrentContext( menu_clay.ctx );
+	Clay_SetLayoutDimensions( Clay_Dimensions { frame_static.viewport.x, frame_static.viewport.y } );
+	Clay_BeginLayout();
+
+	Clay_SetCurrentContext( hud_clay.ctx );
 	Clay_SetLayoutDimensions( Clay_Dimensions { frame_static.viewport.x, frame_static.viewport.y } );
 	Clay_BeginLayout();
 
 	text_arena.clear();
+}
+
+void ShutdownClay() {
+	Free( sys_allocator, hud_clay.arena.memory );
+	Free( sys_allocator, menu_clay.arena.memory );
+	Free( sys_allocator, text_arena.get_memory() );
+	Clay_SetCurrentContext( NULL );
+}
+
+void SwitchToClayHUDContext() {
+	Clay_SetCurrentContext( hud_clay.ctx );
+}
+
+void SwitchToClayMenuContext() {
+	Clay_SetCurrentContext( menu_clay.ctx );
 }
 
 Clay_String AllocateClayString( Span< const char > str ) {
@@ -117,7 +138,7 @@ static void DrawBorderCorner( Corner corner, Clay_BoundingBox bounds, const Clay
 		Lerp( bounds.y, cy, bounds.y + bounds.height ) + r * Remap_0To1_1ToNeg1( cy )
 	);
 
-	ImDrawList * draw_list = ImGui::GetBackgroundDrawList();
+	ImDrawList * draw_list = ImGui::GetActiveOrBackgroundDrawList();
 	draw_list->PathArcTo( arc_origin, r - width * 0.5f, Radians( angle ), Radians( angle + 90.0f ) );
 	draw_list->PathStroke( ClayToImGui( color ), 0, width );
 }
@@ -139,7 +160,9 @@ void DrawClayText( Span<const char> text, const Clay_TextElementConfig & config,
 		ClayToCD( config.textColor ), { } );
 }
 
-void ClaySubmitFrame() {
+static void ClaySubmitFrameContext( ClayContext ctx ) {
+	Clay_SetCurrentContext( ctx.ctx );
+
 	Clay_RenderCommandArray render_commands;
 	{
 		TracyZoneScopedN( "Clay_EndLayout" );
@@ -154,8 +177,10 @@ void ClaySubmitFrame() {
 			switch( command.commandType ) {
 				case CLAY_RENDER_COMMAND_TYPE_RECTANGLE: {
 					const Clay_RectangleRenderData & rect = command.renderData.rectangle;
-					ImDrawList * draw_list = ImGui::GetBackgroundDrawList();
-					draw_list->AddRectFilled( Vec2( bounds.x, bounds.y ), Vec2( bounds.x + bounds.width, bounds.y + bounds.height ), ClayToImGui( rect.backgroundColor ), rect.cornerRadius.topLeft );
+					ImDrawList * draw_list = ImGui::GetActiveOrBackgroundDrawList();
+					draw_list->AddRectFilled(
+						Vec2( bounds.x, bounds.y ), Vec2( bounds.x + bounds.width, bounds.y + bounds.height ),
+						ClayToImGui( rect.backgroundColor ), rect.cornerRadius.topLeft );
 				} break;
 
 				case CLAY_RENDER_COMMAND_TYPE_BORDER: {
@@ -235,6 +260,11 @@ void ClaySubmitFrame() {
 			}
 		}
 	}
+}
+
+void ClaySubmitFrame() {
+	ClaySubmitFrameContext( hud_clay );
+	ClaySubmitFrameContext( menu_clay );
 }
 
 ArenaAllocator * ClayAllocator() {

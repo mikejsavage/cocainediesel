@@ -9,24 +9,27 @@ static constexpr int WEAPONUP_TIME_SLOW = 750;
 static constexpr int WEAPONUP_TIME_VERY_SLOW = 1000;
 static constexpr int HITSCAN_RANGE = 9001;
 
-static constexpr bool WEAPON_NO_ALTFIRE = false;
-static constexpr bool WEAPON_HAS_ALTFIRE = true;
-
 static constexpr float DEFAULT_ADS_ZOOM = 90.f;
 static constexpr float DEFAULT_ZOOM_MOVEMENT_SPEED = 0.5f;
 
+static constexpr WeaponDef CopyFireToAltFire( const WeaponDef & def ) {
+	return WeaponDef {
+		.properties = def.properties,
+		.fire = def.fire,
+		.altfire = def.fire,
+	};
+}
+
 static constexpr WeaponDef weapon_defs[] = {
 	// Weapon_None
-	WeaponDef (
-		{ 
+	WeaponDef {
+		{
 			.name = "",
 			.category = WeaponCategory_Count,
 		},
-		{},
-		WEAPON_NO_ALTFIRE
-	),
+	},
 
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "knife",
 			.category = WeaponCategory_Melee,
@@ -46,11 +49,9 @@ static constexpr WeaponDef weapon_defs[] = {
 			.damage = 10,
 			.spread = 0.15f,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "bat",
 			.category = WeaponCategory_Melee,
@@ -74,11 +75,9 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.spread = 0.2f,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "9mm",
 			.category = WeaponCategory_Backup,
@@ -88,11 +87,11 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_FAST,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
-			
+
 			.recoil_recovery = 2000.0f,
 		},
 
@@ -107,12 +106,10 @@ static constexpr WeaponDef weapon_defs[] = {
 			.wallbang_damage_scale = 0.5f,
 			.knockback = 20,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
-		{ 
+	WeaponDef {
+		{
 			.name = "pistol",
 			.category = WeaponCategory_Backup,
 
@@ -121,11 +118,11 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_FAST,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
-			
+
 			.recoil_recovery = 2000.0f,
 		},
 
@@ -141,11 +138,9 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.speed = 4000,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "smg",
 			.category = WeaponCategory_Secondary,
@@ -155,11 +150,11 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_NORMAL,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
-			
+
 			.recoil_recovery = 1500.0f,
 		},
 
@@ -175,11 +170,9 @@ static constexpr WeaponDef weapon_defs[] = {
 			.wallbang_damage_scale = 0.5f,
 			.knockback = 10,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "deagle",
 			.category = WeaponCategory_Secondary,
@@ -189,7 +182,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_NORMAL,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.recoil_recovery = 3250.0f,
 		},
 
@@ -204,11 +197,9 @@ static constexpr WeaponDef weapon_defs[] = {
 			.wallbang_damage_scale = 0.8f,
 			.knockback = 30,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "shotgun",
 			.category = WeaponCategory_Secondary,
@@ -219,7 +210,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_SLOW,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.recoil_recovery = 1500.0f,
 		},
 
@@ -238,11 +229,9 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.spread = 0.02f,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "sawn-off",
 			.category = WeaponCategory_Secondary,
@@ -253,7 +242,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_SLOW,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.recoil_recovery = 1500.0f,
 		},
 
@@ -272,11 +261,9 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.spread = 0.04f,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "burst",
 			.category = WeaponCategory_Primary,
@@ -286,11 +273,11 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_NORMAL,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
-			
+
 			.recoil_recovery = 2500.0f,
 		},
 
@@ -305,11 +292,9 @@ static constexpr WeaponDef weapon_defs[] = {
 			.wallbang_damage_scale = 0.75,
 			.knockback = 10,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "crossbow",
 			.category = WeaponCategory_Backup,
@@ -319,7 +304,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_NORMAL,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.recoil_recovery = 2000.0f,
 		},
 
@@ -338,11 +323,9 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.speed = 2000,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
+	CopyFireToAltFire( WeaponDef {
 		{
 			.name = "launcher",
 			.category = WeaponCategory_Secondary,
@@ -353,7 +336,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_SLOW,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.recoil_recovery = 2000.0f,
 		},
 
@@ -374,11 +357,9 @@ static constexpr WeaponDef weapon_defs[] = {
 			.speed = 1400,
 			.restitution = 0.5f,
 		},
-		
-		WEAPON_HAS_ALTFIRE
-	),
+	} ),
 
-	WeaponDef (
+	CopyFireToAltFire( WeaponDef {
 		{
 			.name = "bazooka",
 			.category = WeaponCategory_Primary,
@@ -389,7 +370,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_SLOW,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.recoil_recovery = 2000.0f,
 		},
 
@@ -409,11 +390,9 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.speed = 1400,
 		},
+	} ),
 
-		WEAPON_HAS_ALTFIRE
-	),
-
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "assault",
 			.category = WeaponCategory_Primary,
@@ -423,7 +402,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_NORMAL,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
@@ -447,11 +426,9 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.projectile_fencebang = true,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "bubble",
 			.category = WeaponCategory_Backup,
@@ -461,7 +438,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_NORMAL,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.recoil_recovery = 1350.0f,
 		},
 
@@ -482,11 +459,9 @@ static constexpr WeaponDef weapon_defs[] = {
 			.speed = 900,
 			.spread = 0.05f,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "rail",
 			.category = WeaponCategory_Primary,
@@ -497,7 +472,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_SLOW,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.recoil_recovery = 1000.0f,
 		},
 
@@ -515,7 +490,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.knockback = 50,
 		},
 
-		{
+		WeaponDef::Fire {
 			.ammo_use = 1,
 
 			.refire_time = 50,
@@ -525,9 +500,9 @@ static constexpr WeaponDef weapon_defs[] = {
 			.damage = 3,
 			.knockback = 0,
 		}
-	),
+	},
 
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "sniper",
 			.category = WeaponCategory_Primary,
@@ -537,12 +512,12 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_VERY_SLOW,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.zoom_type = Zoom_Scope,
 			.zoom_fov = 25.0f,
 			.unzoom_spread = 0.25f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
-			
+
 			.recoil_recovery = 1750.0f,
 		},
 
@@ -557,11 +532,9 @@ static constexpr WeaponDef weapon_defs[] = {
 			.wallbang_damage_scale = 1.0f,
 			.knockback = 100,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "laser",
 			.category = WeaponCategory_Primary,
@@ -572,7 +545,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_SLOW,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.recoil_recovery = 0.f,
 		},
 
@@ -587,7 +560,7 @@ static constexpr WeaponDef weapon_defs[] = {
 			.knockback = 16,
 		},
 
-		{
+		WeaponDef::Fire {
 			.ammo_use = 0,
 
 			.refire_time = 50,
@@ -597,9 +570,9 @@ static constexpr WeaponDef weapon_defs[] = {
 			.damage = 4,
 			.knockback = -18,
 		}
-	),
+	},
 
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "scout",
 			.category = WeaponCategory_Backup,
@@ -609,12 +582,12 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_NORMAL,
 			.switch_out_time = WEAPONDOWN_TIME,
-		
+
 			.zoom_type = Zoom_Scope,
 			.zoom_fov = 40.0f,
 			.unzoom_spread = 0.1f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
-			
+
 			.recoil_recovery = 900.0f,
 		},
 
@@ -630,11 +603,9 @@ static constexpr WeaponDef weapon_defs[] = {
 			.wallbang_damage_scale = 1.0f,
 			.knockback = 30,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "rifle",
 			.category = WeaponCategory_Secondary,
@@ -644,12 +615,12 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_NORMAL,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.zoom_type = Zoom_ADS,
 			.zoom_fov = DEFAULT_ADS_ZOOM,
 			.unzoom_spread = 0.05f,
 			.zoom_movement_speed = DEFAULT_ZOOM_MOVEMENT_SPEED,
-			
+
 			.recoil_recovery = 1500.0f,
 		},
 
@@ -668,11 +639,9 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.projectile_fencebang = true,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "blaster",
 			.category = WeaponCategory_Backup,
@@ -682,7 +651,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_NORMAL,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.recoil_recovery = 2000.0f,
 		},
 
@@ -702,11 +671,9 @@ static constexpr WeaponDef weapon_defs[] = {
 			.restitution = 0.5f,
 			.spread = 0.0125f,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "roadgun",
 			.category = WeaponCategory_Backup,
@@ -716,7 +683,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_FAST,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.recoil_recovery = 1500.0f,
 		},
 
@@ -733,11 +700,9 @@ static constexpr WeaponDef weapon_defs[] = {
 			.speed = 3000,
 			.restitution = 0.5f,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "sticky",
 			.category = WeaponCategory_Secondary,
@@ -747,7 +712,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_FAST,
 			.switch_out_time = WEAPONDOWN_TIME,
-						
+
 			.recoil_recovery = 1750.0f, // fuse time for sticky
 		},
 
@@ -768,11 +733,9 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.speed = 3000,
 		},
+	},
 
-		WEAPON_NO_ALTFIRE
-	),
-
-	WeaponDef (
+	WeaponDef {
 		{
 			.name = "sawblade",
 			.category = WeaponCategory_Primary,
@@ -782,7 +745,7 @@ static constexpr WeaponDef weapon_defs[] = {
 
 			.switch_in_time = WEAPONUP_TIME_FAST,
 			.switch_out_time = WEAPONDOWN_TIME,
-			
+
 			.recoil_recovery = 1750.0f,
 		},
 
@@ -799,12 +762,10 @@ static constexpr WeaponDef weapon_defs[] = {
 			.speed = 2000,
 			.gravity_scale = 0.0f,
 		},
-
-		WEAPON_NO_ALTFIRE
-	),
+	},
 
 #if 0
-	WeaponDef (
+	WeaponDef {
 		.name = "minigun",
 		.category = WeaponCategory_Backup,
 
@@ -839,8 +800,8 @@ const WeaponDef::Properties * GetWeaponDefProperties( WeaponType weapon ) {
 
 const WeaponDef::Fire * GetWeaponDefFire( WeaponType weapon, bool altfire ) {
 	Assert( weapon < Weapon_Count );
-	Assert( weapon_defs[ weapon ].has_altfire || !altfire ); // check the alt fire exists if you're looking for it
-	return altfire ? &weapon_defs[ weapon ].altfire : &weapon_defs[ weapon ].fire;
+	Assert( weapon_defs[ weapon ].altfire.exists || !altfire ); // check the alt fire exists if you're looking for it
+	return altfire ? &weapon_defs[ weapon ].altfire.value : &weapon_defs[ weapon ].fire;
 }
 
 const GadgetDef gadget_defs[] = {

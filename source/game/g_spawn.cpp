@@ -401,5 +401,4 @@ static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st ) {
 	ent->s.type = ET_MAPMODEL;
 	ent->s.svflags &= ~SVF_NOCLIENT;
 	ent->movetype = MOVETYPE_PUSH;
-
 }

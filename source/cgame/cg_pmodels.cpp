@@ -496,7 +496,6 @@ void CG_PModel_AddAnimation( int entNum, int loweranim, int upperanim, int heada
 		pending.parts[ HEAD ] = headanim;
 }
 
-
 //======================================================================
 //							player model
 //======================================================================
@@ -551,9 +550,9 @@ static void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 	}
 
 	for( int i = LOWER; i < PMODEL_PARTS; i++ ) {
-		pmodel->angles[i].pitch = AngleNormalize180( pmodel->angles[i].pitch + leanAngles[i].pitch );
-		pmodel->angles[i].yaw = AngleNormalize180( pmodel->angles[i].yaw + leanAngles[i].yaw );
-		pmodel->angles[i].roll = AngleNormalize180( pmodel->angles[i].roll + leanAngles[i].roll );
+		pmodel->angles[i].pitch = NormalizeAngle180( pmodel->angles[i].pitch + leanAngles[i].pitch );
+		pmodel->angles[i].yaw = NormalizeAngle180( pmodel->angles[i].yaw + leanAngles[i].yaw );
+		pmodel->angles[i].roll = NormalizeAngle180( pmodel->angles[i].roll + leanAngles[i].roll );
 	}
 }
 
@@ -590,7 +589,7 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	} else {
 		// update smoothed velocities used for animations and leaning angles
 		// rotational yaw velocity
-		float adelta = AngleDelta( cent->current.angles.yaw, cent->prev.angles.yaw );
+		float adelta = AngleDelta180( cent->current.angles.yaw, cent->prev.angles.yaw );
 		adelta = Clamp( -35.0f, adelta, 35.0f );
 
 		// smooth a velocity vector between the last snaps
@@ -599,29 +598,25 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 
 		int count = 0;
 		cent->animVelocity = Vec3( 0.0f );
-		cent->yawVelocity = 0;
+		cent->yawVelocity = 0.0f;
 		for( int i = cg.frame.serverFrame; ( i >= 0 ) && ( count < 3 ) && ( i == cent->lastVelocitiesFrames[i % ARRAY_COUNT( cent->lastVelocitiesFrames )] ); i-- ) {
 			count++;
 			cent->animVelocity += cent->lastVelocities[i % ARRAY_COUNT( cent->lastVelocities )].xyz();
 			cent->yawVelocity += cent->lastVelocities[i % ARRAY_COUNT( cent->lastVelocities )].w;
 		}
 
-		// safety/static code analysis check
-		if( count == 0 ) {
-			count = 1;
+		if( count > 0 ) {
+			cent->animVelocity /= float( count );
+			cent->yawVelocity /= float( count );
 		}
-
-		cent->animVelocity = cent->animVelocity * ( 1.0f / (float)count );
-		cent->yawVelocity /= (float)count;
-
 
 		//
 		// Calculate angles for each model part
 		//
 
 		pmodel->angles[LOWER] = cent->current.angles.yaw_only();
-		pmodel->angles[UPPER] = EulerDegrees3( AngleNormalize180( cent->current.angles.pitch ), 0.0f, 0.0f );
-		pmodel->angles[HEAD] = EulerDegrees3( AngleNormalize180( cent->current.angles.pitch ) / 3.0f, 0.0f, 0.0f );
+		pmodel->angles[UPPER] = EulerDegrees3( NormalizeAngle180( cent->current.angles.pitch ), 0.0f, 0.0f );
+		pmodel->angles[HEAD] = EulerDegrees3( NormalizeAngle180( cent->current.angles.pitch ) / 3.0f, 0.0f, 0.0f );
 
 		CG_PModel_LeanAngles( cent, pmodel );
 	}

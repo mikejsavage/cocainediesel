@@ -106,6 +106,7 @@ enum WeaponType : u8 {
 	Weapon_Bubble,
 	Weapon_Rail,
 	Weapon_Sniper,
+	Weapon_Laser,
 	Weapon_Scout,
 	Weapon_Rifle,
 	Weapon_Blaster,

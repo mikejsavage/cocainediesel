@@ -82,8 +82,8 @@ static void AddViewWeaponAnimations( Vec3 * origin, EulerDegrees3 * angles, cg_v
 			// TODO: temporary for non-animated models
 			const GLTFRenderData * model = FindGLTFRenderData( GetWeaponModelMetadata( ps->weapon )->model );
 			if( model != NULL ) {
-				u8 animation;
-				if( !FindAnimationByName( model, viewweapon->eventAnim, &animation ) ) {
+				Optional< u8 > animation = FindAnimationByName( model, viewweapon->eventAnim );
+				if( !animation.exists ) {
 					float t = float( ps->weapon_state_time ) / def->reload_time;
 					angles->roll -= Lerp( 0.0f, SmoothStep( t ), 360.0f );
 				}
@@ -193,11 +193,11 @@ void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
 
 	DrawModelConfig config = { .draw = true };
 
-	u8 animation;
-	if( FindAnimationByName( model, viewweapon->eventAnim, &animation ) ) {
+	Optional< u8 > animation = FindAnimationByName( model, viewweapon->eventAnim );
+	if( animation.exists ) {
 		float t = float( cl.serverTime - viewweapon->eventAnimStartTime ) * 0.001f;
 		TempAllocator temp = cls.frame_arena.temp();
-		Span< Transform > pose = SampleAnimation( &temp, model, t, animation );
+		Span< Transform > pose = SampleAnimation( &temp, model, t, animation.value );
 		MatrixPalettes palettes = ComputeMatrixPalettes( &temp, model, pose );
 		DrawGLTFModel( config, model, viewweapon->transform, CG_TeamColorVec4( ps->team ), palettes );
 	}
@@ -231,12 +231,12 @@ void CG_Recoil( WeaponType weapon ) {
 
 	float dt = cls.frametime * 0.001f;
 	EulerDegrees2 viewangles = cl.viewangles;
-	EulerDegrees2 recovery_delta = AngleDelta( cg.recoil_initial_angles, viewangles );
+	EulerDegrees2 recovery_delta = AngleDelta180( cg.recoil_initial_angles, viewangles );
 
 	cg.recoil_initial_angles.pitch += Min2( 0.0f, cl.viewangles.pitch - cl.prevviewangles.pitch );
-	cg.recoil_initial_angles.yaw += AngleDelta( cl.viewangles.yaw, cl.prevviewangles.yaw );
+	cg.recoil_initial_angles.yaw += AngleDelta180( cl.viewangles.yaw, cl.prevviewangles.yaw );
 
-	recovery_delta = AngleDelta( cg.recoil_initial_angles, viewangles );
+	recovery_delta = AngleDelta180( cg.recoil_initial_angles, viewangles );
 
 	constexpr float recenter_speed_scale = 1.0f / 16.0f;
 	float recenter_accel = GetWeaponDefProperties( weapon )->recoil_recovery;

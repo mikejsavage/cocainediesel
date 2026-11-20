@@ -8,25 +8,23 @@ struct Test {
 	TestCallback callback;
 	Test * next;
 
-	static inline Test * tests_head = NULL;
-	static inline Test * tests_tail = NULL;
+	Test() = default;
+	static Test dummy;
+	static inline const Test * tests_head = &dummy;
+	static inline Test * tests_tail = &dummy;
 
 	Test( const char * name_, SourceLocation src_loc_, TestCallback callback_ ) {
 		name = name_;
 		src_loc = src_loc_;
 		callback = callback_;
-
-		if( tests_tail == NULL ) {
-			tests_head = this;
-			tests_tail = this;
-		}
-		else {
-			tests_tail->next = this;
-			tests_tail = this;
-		}
 		next = NULL;
+
+		tests_tail->next = this;
+		tests_tail = this;
 	}
 };
+
+inline Test Test::dummy = { };
 
 #if PUBLIC_BUILD
 #define TEST( name ) [[maybe_unused]] static bool COUNTER_NAME( runtest )()

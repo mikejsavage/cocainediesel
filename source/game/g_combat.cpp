@@ -140,7 +140,7 @@ static int G_FindTopAssistor( edict_t * victim, edict_t * attacker ) {
 }
 
 static void G_KnockBackPush( edict_t * targ, const edict_t * attacker, Vec3 basedir, int knockback, int dflags ) {
-	if( knockback < 1 ) {
+	if( knockback == 0 ) {
 		return;
 	}
 
@@ -153,7 +153,7 @@ static void G_KnockBackPush( edict_t * targ, const edict_t * attacker, Vec3 base
 
 	constexpr float MIN_KNOCKBACK_SPEED = 2.5f;
 	float push = 1000.0f * float( knockback ) / float( Max2( targ->mass, 1 ) );
-	if( push < MIN_KNOCKBACK_SPEED ) {
+	if( Abs( push ) < MIN_KNOCKBACK_SPEED ) {
 		return;
 	}
 

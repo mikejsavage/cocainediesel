@@ -1735,10 +1735,7 @@ static void MainMenu() {
 
 		CLAY( {
 			.id = CLAY_ID_LOCAL( "Top bar" ),
-			.layout = {
-				.sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( MAIN_MENU_BAR_HEIGHT ) },
-				.padding = CLAY_PADDING_ALL( u16( 8 * GetContentScale() ) ),
-			},
+			.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( MAIN_MENU_BAR_HEIGHT ) } },
 			.backgroundColor = ui_black.clay,
 		} ) {
 			CLAY( {
@@ -1750,7 +1747,10 @@ static void MainMenu() {
 			if( cl_devtools->integer ) {
 				CLAY( {
 					.id = CLAY_ID_LOCAL( "Dev tools" ),
-					.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 1.0f ) } },
+					.layout = {
+						.sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( 1.0f ) },
+						.padding = CLAY_PADDING_ALL( u16( 8 * GetContentScale() ) ),
+					},
 					.floating = { .zIndex = 1, .attachTo = CLAY_ATTACH_TO_PARENT },
 					.custom = { ClayImGui( []( const Clay_BoundingBox & bounds, void * userdata ) {
 						if( ImGui::Button( "Model viewer" ) ) {
@@ -1849,10 +1849,6 @@ static void MainMenu() {
 			.id = CLAY_ID_LOCAL( "Bottom bar" ),
 			.layout = {
 				.sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( MAIN_MENU_BAR_HEIGHT ) },
-				.padding = {
-					.right = u16( 8 + Sin( cls.monotonicTime, Milliseconds( 182 ) ) * GetContentScale() ),
-					.bottom = 8,
-				},
 				.childAlignment = { CLAY_ALIGN_X_RIGHT, CLAY_ALIGN_Y_BOTTOM },
 			},
 			.backgroundColor = ui_black.clay,

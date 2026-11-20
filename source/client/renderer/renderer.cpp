@@ -10,7 +10,6 @@
 #include "client/renderer/cdmap.h"
 #include "client/renderer/gltf.h"
 #include "client/renderer/private.h"
-// #include "client/renderer/rgb_noise.h"
 #include "client/renderer/skybox.h"
 #include "client/renderer/text.h"
 #include "client/platform/renderdoc.h"

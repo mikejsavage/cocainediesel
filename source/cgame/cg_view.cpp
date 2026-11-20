@@ -280,11 +280,11 @@ static void CG_UpdateChaseCam( UserCommand * cmd ) {
 	}
 }
 
-float WidescreenFov( float fov ) {
+static float WidescreenFov( float fov ) {
 	return atanf( tanf( fov / 360.0f * PI ) * 0.75f ) * ( 360.0f / PI );
 }
 
-float CalcHorizontalFov( const char * caller, float fov_y, float width, float height ) {
+static float CalcHorizontalFov( const char * caller, float fov_y, float width, float height ) {
 	if( fov_y < 1 || fov_y > 179 ) {
 		Com_Printf( S_COLOR_YELLOW "Bad vertical fov: caller = %s, fov_y = %f, width = %f, height = %f\n", caller, fov_y, width, height );
 		return 100.0f;

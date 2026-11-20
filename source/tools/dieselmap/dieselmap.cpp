@@ -614,10 +614,11 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 		brush_bounds.push_back( bounds );
 
 		// make MapBrush
+		SolidBits solidity = editor_material == NULL ? FindEditorMaterial( "clip" )->solidity : editor_material->solidity;
 		MapBrush map_brush = {
 			.bounds = bounds,
 			.first_plane = checked_cast< u16 >( kd_tree.planes.size() ),
-			.solidity = editor_material->solidity,
+			.solidity = solidity,
 		};
 
 		size_t num_planes = 0;

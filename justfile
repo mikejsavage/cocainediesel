@@ -19,3 +19,9 @@ _build config:
 
 _clean config:
 	ggbuild/lua.{{exe}} make.lua {{config}} > build.ninja && ggbuild/ninja.{{exe}} -t clean || true
+
+sort_string_lists:
+	lua ggbuild/sort_lines.lua source/client/subtitles.h
+	lua ggbuild/sort_lines.lua source/cgame/mini_obituaries.h
+	lua ggbuild/sort_lines.lua source/cgame/obituaries.h
+	lua ggbuild/sort_lines.lua source/cgame/prefixes.h

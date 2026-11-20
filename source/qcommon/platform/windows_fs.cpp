@@ -157,26 +157,38 @@ struct FSChangeMonitor {
 };
 
 FSChangeMonitor * NewFSChangeMonitor( Allocator * a, const char * path ) {
-	FSChangeMonitor * monitor = Alloc< FSChangeMonitor >( a );
-
 	wchar_t * wide_path = UTF8ToWide( a, path );
 	defer { Free( a, wide_path ); };
-	monitor->dir = CreateFileW( wide_path, FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL );
+	HANDLE dir = CreateFileW( wide_path, FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL );
+	if( dir == INVALID_HANDLE_VALUE ) {
+		return NULL;
+	}
 
-	monitor->event = CreateEvent( NULL, FALSE, FALSE, NULL );
-	monitor->overlapped.hEvent = monitor->event;
+	FSChangeMonitor * monitor = Alloc< FSChangeMonitor >( a );
+	monitor->dir = dir;
+	monitor->event = CreateEventA( NULL, FALSE, FALSE, NULL );
+	monitor->overlapped.hEvent = monitor->event,
 	monitor->poll_again = true;
+
+	if( monitor->event == NULL ) {
+		FatalGLE( "CreateEventA" );
+	}
 
 	return monitor;
 }
 
 void DeleteFSChangeMonitor( Allocator * a, FSChangeMonitor * monitor ) {
+	if( monitor == NULL )
+		return;
 	CloseHandle( monitor->event );
 	CloseHandle( monitor->dir );
 	Free( a, monitor );
 }
 
 Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor * monitor, const char ** results, size_t n ) {
+	if( monitor == NULL )
+		return Span< const char * >();
+
 	if( monitor->poll_again ) {
 		DWORD filter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE;
 		BOOL ok = ReadDirectoryChangesW( monitor->dir, monitor->buf, sizeof( monitor->buf ), true, filter, NULL, &monitor->overlapped, NULL );

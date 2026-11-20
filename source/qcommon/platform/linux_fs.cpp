@@ -64,6 +64,8 @@ static void AddInotifyWatchesRecursive( Allocator * a, FSChangeMonitor * monitor
 	u32 filter = IN_CREATE | IN_MODIFY | IN_MOVED_TO;
 	int wd = inotify_add_watch( monitor->fd, path->c_str(), filter );
 	if( wd == -1 ) {
+		if( errno == ENOENT )
+			return;
 		FatalErrno( "inotify_add_watch" );
 	}
 

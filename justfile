@@ -26,7 +26,6 @@ sort_string_lists:
 	lua ggbuild/sort_lines.lua source/cgame/obituaries.h
 	lua ggbuild/sort_lines.lua source/cgame/prefixes.h
 
-[arg("dir", long)]
 wc dir="":
 	@find source/{{dir}} \( -name "*.lua" -or -name "*.cpp" -or -name "*.h" -or -name "*.hlsl" \) \
 		-and -not \( -name blue_noise.cpp -or -name icon.cpp -or -name rgb_noise.cpp \

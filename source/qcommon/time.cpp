@@ -71,12 +71,6 @@ float Sin( Time t, Time period ) {
 	return sinf( float( t.flicks ) / float( period.flicks ) * PI * 2.0f );
 }
 
-float Cos( Time t, Time period ) {
-	AssertSmallEnoughToCastToFloat( period );
-	t = t % period;
-	return cosf( float( t.flicks ) / float( period.flicks ) * PI * 2.0f );
-}
-
 float Sawtooth01( Time t, Time period ) {
 	AssertSmallEnoughToCastToFloat( period );
 	t = t % period;

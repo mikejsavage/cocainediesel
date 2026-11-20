@@ -20,9 +20,8 @@ Span< char > GetExePath( Allocator * a ) {
 			Fatal( "_NSGetExecutablePath" );
 		}
 	}
-	else {
-		buf.resize( len );
-	}
+
+	buf.resize( strlen( buf.ptr() ) );
 
 	return buf.span();
 }
@@ -49,7 +48,6 @@ void DeleteFSChangeMonitor( Allocator * a, FSChangeMonitor * monitor ) {
 }
 
 Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor * monitor, const char ** results, size_t n ) {
-	Fatal( "not implemented" );
 	return { };
 }
 

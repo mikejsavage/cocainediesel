@@ -341,16 +341,12 @@ static MTL::DepthStencilState * NewDepthFunc( const DepthFuncConfig & config ) {
 	return global_device.device->newDepthStencilState( desc );
 }
 
-static void DeleteDepthFunc( MTL::DepthStencilState * depth_func ) {
-	depth_func->release();
-}
-
 static MTL::DepthStencilState * depth_funcs[ DepthFunc_Count ];
 
 static void InitDepthFuncs() {
-	depth_funcs[ DepthFunc_Less ] = NewDepthFunc( DepthFuncConfig { .compare_op = MTL::CompareFunctionLess } );
+	depth_funcs[ DepthFunc_Less ] = NewDepthFunc( DepthFuncConfig { .compare_op = MTL::CompareFunctionGreater } );
 	depth_funcs[ DepthFunc_LessNoWrite ] = NewDepthFunc( DepthFuncConfig {
-		.compare_op = MTL::CompareFunctionLess,
+		.compare_op = MTL::CompareFunctionGreater,
 		.write_depth = false,
 	} );
 	depth_funcs[ DepthFunc_Equal ] = NewDepthFunc( DepthFuncConfig { .compare_op = MTL::CompareFunctionEqual } );
@@ -1089,7 +1085,7 @@ void ShutdownRenderBackend() {
 	}
 
 	for( MTL::DepthStencilState * depth_func : depth_funcs ) {
-		DeleteDepthFunc( depth_func );
+		depth_func->release();
 	}
 
 	ShutdownGPUAllocators();

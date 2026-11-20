@@ -923,7 +923,7 @@ static int HUD_DrawDamageNumbers( lua_State * L ) {
 }
 
 static int HUD_DrawPointed( lua_State * L ) {
-	CG_DrawPlayerNames( cls.fontNormalBold, luaL_checknumber( L, 1 ), CheckColor( L, 2 ) );
+	CG_DrawPlayerNames( cls.fontNormalBold, luaL_checknumber( L, 1 ) );
 	return 0;
 }
 

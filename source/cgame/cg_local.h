@@ -273,7 +273,7 @@ void CG_DrawCrosshair( int x, int y );
 void CG_ScreenCrosshairDamageUpdate();
 void CG_ScreenCrosshairShootUpdate( u16 refire_time );
 
-void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color );
+void CG_DrawPlayerNames( const Font * font, float font_size );
 
 void CG_InitDamageNumbers();
 void CG_AddDamageNumber( SyncEntityState * ent, u64 parm );

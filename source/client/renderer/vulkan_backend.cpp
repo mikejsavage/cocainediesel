@@ -279,24 +279,6 @@ static void GPUFree( GPUAllocation allocation ) {
 	vkFreeMemory( global_device.device, allocation.memory, NULL );
 }
 
-static void PrintExtensions() {
-	TracyZoneScoped;
-
-	TempAllocator temp = cls.frame_arena.temp();
-	Span< VkExtensionProperties > extensions = VulkanSpan< VkExtensionProperties >( &temp, CurrentSourceLocation(), vkEnumerateInstanceExtensionProperties, nullptr );
-	Span< VkLayerProperties > layers = VulkanSpan< VkLayerProperties >( &temp, CurrentSourceLocation(), vkEnumerateInstanceLayerProperties );
-
-	printf( "Extensions:\n" );
-	for( const VkExtensionProperties & extension : extensions ) {
-		printf( "    %s\n", extension.extensionName );
-	}
-
-	printf( "Layers:\n" );
-	for( const VkLayerProperties & layer : layers ) {
-		printf( "    %s\n", layer.layerName );
-	}
-}
-
 static VkInstance CreateInstance() {
 	TracyZoneScoped;
 
@@ -443,7 +425,9 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 
 	{
 		device.physical_device = PickPhysicalDevice( instance );
-		Assert( device.physical_device != VK_NULL_HANDLE );
+		if( device.physical_device == VK_NULL_HANDLE ) {
+			Fatal( "Can't find a GPU" );
+		}
 
 		VkPhysicalDeviceMemoryProperties memory_properties;
 		vkGetPhysicalDeviceMemoryProperties( device.physical_device, &memory_properties );
@@ -452,30 +436,20 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 		Optional< u32 > coherent_memory_type = NONE;
 		for( u32 i = 0; i < memory_properties.memoryTypeCount; i++ ) {
 			VkMemoryPropertyFlags flags = memory_properties.memoryTypes[ i ].propertyFlags;
-			printf( "memory type %x on heap %u\n", flags, memory_properties.memoryTypes[ i ].heapIndex );
-
 			if( !device_local_memory_type.exists && HasAllBits( flags, VkMemoryPropertyFlags( VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT ) ) ) {
-				printf( "  device local\n" );
 				device_local_memory_type = i;
 			}
 			if( !coherent_memory_type.exists && HasAllBits( flags, VkMemoryPropertyFlags( VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) ) ) {
-				printf( "  coherent\n" );
 				coherent_memory_type = i;
 			}
 		}
 
-		Assert( device_local_memory_type.exists && coherent_memory_type.exists );
+		if( !device_local_memory_type.exists || !coherent_memory_type.exists ) {
+			Fatal( "Your GPU is weird: can't find device local/coherent memory types" );
+		}
 
 		device.device_local_memory_type = device_local_memory_type.value;
 		device.coherent_memory_type = coherent_memory_type.value;
-
-		for( u32 i = 0; i < memory_properties.memoryHeapCount; i++ ) {
-			VkMemoryHeap heap = memory_properties.memoryHeaps[ i ];
-			printf( "heap %u size %.2fGB flags %u\n", i, heap.size / 1024.0 / 1024.0 / 1024.0, heap.flags );
-			if( heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT ) {
-				printf( "  device local\n" );
-			}
-		}
 
 		{
 			VkPhysicalDevicePortabilitySubsetPropertiesKHR props_portability_subset = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_PROPERTIES_KHR };
@@ -510,10 +484,15 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 				}
 			}
 
-			Assert( IsPowerOf2( device.limits.buffer_image_granularity ) );
-			Assert( IsPowerOf2( device.limits.ssbo_alignment ) );
-
-			printf( "minVertexInputBindingStrideAlignment = %u\n", props_portability_subset.minVertexInputBindingStrideAlignment );
+			if( !IsPowerOf2( device.limits.buffer_image_granularity ) ) {
+				Fatal( "Your GPU is weird: bufferImageGranularity must be pow2" );
+			}
+			if( device.limits.ssbo_range < ArenaAllocatorSize ) {
+				Fatal( "Your GPU is weird: maxStorageBufferRange is too small" );
+			}
+			if( !IsPowerOf2( device.limits.ssbo_alignment ) ) {
+				Fatal( "Your GPU is weird: minStorageBufferOffsetAlignment must be pow2" );
+			}
 		}
 
 		device.queue_family_index = VK_QUEUE_FAMILY_IGNORED;
@@ -2612,7 +2591,6 @@ void InitRenderBackend( SDL_Window * window, bool vsync ) {
 	TracyZoneScoped;
 
 	VK_CHECK( volkInitialize() );
-	PrintExtensions();
 	global_instance = CreateInstance();
 	volkLoadInstanceOnly( global_instance );
 
@@ -2631,7 +2609,6 @@ void InitRenderBackend( SDL_Window * window, bool vsync ) {
 	global_swapchain = CreateSwapchain( device, global_surface, PresentMode( vsync ), NONE );
 	frame_counter = 0;
 
-	Assert( device.limits.ssbo_range >= ArenaAllocatorSize );
 	InitGPUAllocators( GetGoodGPUAllocationSize(), global_device.limits.ssbo_alignment, global_device.limits.buffer_image_granularity );
 
 	InitSamplers();

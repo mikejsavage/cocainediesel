@@ -88,7 +88,7 @@ constexpr Span< T > StaticSpan( T ( &arr )[ N ] ) {
  */
 
 template< typename T >
-T Default( const Optional< T > & opt, const T & def ) {
+constexpr T Default( const Optional< T > & opt, const T & def ) {
 	return opt.exists ? opt.value : def;
 }
 
@@ -104,7 +104,7 @@ bool operator==( const T & x, const Optional< T > & opt ) {
 
 template< typename T >
 bool operator==( const Optional< T > & a, const Optional< T > & b ) {
-	return ( !a.exists && !b.exists ) || ( a.exists && b.exists && a.value == b.value );
+	return a.exists == b.exists && ( !a.exists || a.value == b.value );
 }
 
 template< typename T >

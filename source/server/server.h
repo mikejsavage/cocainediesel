@@ -226,7 +226,6 @@ bool SV_Map( Span< const char > map, bool devmap );
 //
 // sv_send.c
 //
-bool SV_Netchan_Transmit( netchan_t * netchan, msg_t * msg );
 void SV_AddServerCommand( client_t * client, const char *cmd );
 void SV_SendServerCommand( client_t * cl, const char * format, ... );
 void SV_AddGameCommand( client_t * client, const char * cmd );

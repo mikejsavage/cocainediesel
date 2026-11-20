@@ -9,6 +9,7 @@
 #include "client/renderer/blue_noise.h"
 #include "client/renderer/cdmap.h"
 #include "client/renderer/gltf.h"
+#include "client/renderer/rgb_noise.h"
 #include "client/renderer/skybox.h"
 #include "client/renderer/text.h"
 
@@ -23,6 +24,7 @@
 FrameStatic frame_static;
 static u64 frame_counter;
 
+static Texture rgb_noise;
 static Texture blue_noise;
 
 static Mesh fullscreen_mesh;
@@ -123,6 +125,21 @@ void InitRenderer() {
 	last_viewport_height = 0;
 	last_msaa = 0;
 	last_shadow_quality = ShadowQuality_Count;
+
+	{
+		int w, h;
+		u8 * img = stbi_load_from_memory( rgb_noise_png, rgb_noise_png_len, &w, &h, NULL, 4 );
+		Assert( img != NULL );
+
+		rgb_noise = NewTexture( TextureConfig {
+			.format = TextureFormat_RGBA_U8_sRGB,
+			.width = u32( w ),
+			.height = u32( h ),
+			.data = img,
+		} );
+
+		stbi_image_free( img );
+	}
 
 	{
 		int w, h;
@@ -728,6 +745,10 @@ void RendererSubmitFrame() {
 
 size_t FrameSlot() {
 	return frame_counter % MAX_FRAMES_IN_FLIGHT;
+}
+
+const Texture * RGBNoiseTexture() {
+	return &rgb_noise;
 }
 
 const Texture * BlueNoiseTexture() {

@@ -204,7 +204,7 @@ static void SubmitPostprocessPass() {
 	const RenderTarget & rt = frame_static.render_targets.postprocess;
 	pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
 	pipeline.bind_texture_and_sampler( "u_Screen", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Standard );
-	pipeline.bind_texture_and_sampler( "u_Noise", FindMaterial( "textures/noise" )->texture, Sampler_Standard );
+	pipeline.bind_texture_and_sampler( "u_Noise", RGBNoiseTexture(), Sampler_Standard );
 
 	float u_Time = ToSeconds( cls.shadertoy_time );
 	float u_Damage = cg.view.type == ViewType_Player ? cg.damage_effect : 0.0f;

@@ -102,6 +102,7 @@ void RendererSubmitFrame();
 
 size_t FrameSlot();
 
+const Texture * RGBNoiseTexture();
 const Texture * BlueNoiseTexture();
 
 void DrawFullscreenMesh( const PipelineState & pipeline );

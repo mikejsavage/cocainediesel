@@ -91,7 +91,7 @@ void VID_CheckChanges() {
 	UpdateVidModeCvar();
 }
 
-void VID_Init() {
+SDL_Window * VID_Init() {
 	TracyZoneScoped;
 
 	vid_mode = NewCvar( "vid_mode", "", CvarFlag_Archive );
@@ -107,6 +107,7 @@ void VID_Init() {
 		mode.fullscreen = true;
 	}
 
-	CreateWindow( mode );
+	SDL_Window * window = CreateWindow( mode );
 	UpdateVidModeCvar();
+	return window;
 }

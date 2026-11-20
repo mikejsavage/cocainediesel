@@ -32,7 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/livepp.h"
 #include "client/renderer/api.h"
 #include "client/renderer/text.h"
-#include "client/sdl_window.h"
 #include "server/server.h"
 #include "qcommon/compression.h"
 #include "qcommon/csprng.h"
@@ -1125,7 +1124,7 @@ void CL_Init() {
 
 #if PLATFORM_WINDOWS
 	// both VID_Init and InitAssets need to run on the main thread on Windows
-	VID_Init();
+	SDL_Window * window = VID_Init();
 	{
 		TempAllocator temp = cls.frame_arena.temp();
 		InitAssets( &temp );
@@ -1135,11 +1134,11 @@ void CL_Init() {
 	ThreadPoolDo( []( TempAllocator * temp, void * data ) {
 		InitAssets( temp );
 	} );
-	VID_Init();
+	SDL_Window * window = VID_Init();
 	ThreadPoolFinish();
 #endif
 
-	InitRenderer( sdl_window, Cvar_Bool( "vid_vsync" ) );
+	InitRenderer( window, Cvar_Bool( "vid_vsync" ) );
 	InitGLTFModels();
 	InitMaps();
 	InitSound();
@@ -1160,7 +1159,7 @@ void CL_Init() {
 	InitServerBrowser();
 	InitDemoBrowser();
 
-	CL_InitImGui();
+	CL_InitImGui( window );
 	InitClay();
 	UI_Init();
 

@@ -293,7 +293,8 @@ void MaybeResetShadertoyTime( bool respawned );
 //
 // cl_imgui
 //
-void CL_InitImGui();
+struct SDL_Window;
+void CL_InitImGui( SDL_Window * window );
 void CL_ShutdownImGui();
 void CL_ImGuiBeginFrame();
 void CL_ImGuiEndFrame();

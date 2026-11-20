@@ -8,7 +8,6 @@
 #include "qcommon/utf8.h"
 #include "client/client.h"
 #include "client/assets.h"
-#include "client/sdl_window.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/shader_variants.h"
 
@@ -26,12 +25,12 @@ static ImFont * AddFontAsset( StringHash path, float pixel_size ) {
 	return ImGui::GetIO().Fonts->AddFont( &config );
 }
 
-void CL_InitImGui() {
+void CL_InitImGui( SDL_Window * window ) {
 	TracyZoneScoped;
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGui_ImplSDL3_InitForOther( sdl_window );
+	ImGui_ImplSDL3_InitForOther( window );
 
 	ImGuiIO & io = ImGui::GetIO();
 	io.IniFilename = NULL;

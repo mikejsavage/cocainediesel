@@ -1,7 +1,6 @@
 #include "client/client.h"
 #include "client/icon.h"
 #include "client/keys.h"
-#include "client/sdl_window.h"
 #include "client/audio/backend.h"
 #include "client/platform/api.h"
 #include "client/platform/renderdoc.h"
@@ -22,6 +21,8 @@
 #include "sdl/SDL3/SDL_video.h"
 
 #include "stb/stb_image.h"
+
+static SDL_Window * window;
 
 const bool is_dedicated_server = false;
 
@@ -50,7 +51,7 @@ static SDL_DisplayID DisplayIndexToID( int monitor ) {
 	return monitors[ monitor < num_monitors ? monitor : 0 ];
 }
 
-void CreateWindow( WindowMode mode ) {
+SDL_Window * CreateWindow( WindowMode mode ) {
 	TracyZoneScoped;
 
 	SDL_PropertiesID props = TrySDLR( SDL_PropertiesID, SDL_CreateProperties );
@@ -77,19 +78,19 @@ void CreateWindow( WindowMode mode ) {
 		TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_Y_NUMBER, mode.y == -1 ? SDL_WINDOWPOS_CENTERED : mode.y );
 	}
 
-	sdl_window = TrySDLR( SDL_Window *, SDL_CreateWindowWithProperties, props );
+	window = TrySDLR( SDL_Window *, SDL_CreateWindowWithProperties, props );
 
 	if( mode.fullscreen ) {
 		SDL_DisplayMode closest;
 		if( !SDL_GetClosestFullscreenDisplayMode( monitor, mode.video_mode.width, mode.video_mode.height, mode.video_mode.refresh_rate, true, &closest ) ) {
 			closest = *TrySDLR( const SDL_DisplayMode *, SDL_GetDesktopDisplayMode, monitor );
 		}
-		TrySDL( SDL_SetWindowFullscreenMode, sdl_window, &closest );
+		TrySDL( SDL_SetWindowFullscreenMode, window, &closest );
 	}
 
-	TrySDL( SDL_GetWindowSizeInPixels, sdl_window, &framebuffer_width, &framebuffer_height );
+	TrySDL( SDL_GetWindowSizeInPixels, window, &framebuffer_width, &framebuffer_height );
 	window_minimized = false;
-	content_scale = TrySDLR( float, SDL_GetWindowDisplayScale, sdl_window );
+	content_scale = TrySDLR( float, SDL_GetWindowDisplayScale, window );
 
 	{
 		TracyZoneScopedN( "Set window icon" );
@@ -98,15 +99,17 @@ void CreateWindow( WindowMode mode ) {
 		u8 * pixels = stbi_load_from_memory( icon_png, icon_png_len, &w, &h, NULL, 4 );
 		Assert( pixels != NULL );
 		SDL_Surface * icon = TrySDLR( SDL_Surface *, SDL_CreateSurfaceFrom, w, h, SDL_PIXELFORMAT_RGBA8888, pixels, w * 4 );
-		TrySDL( SDL_SetWindowIcon, sdl_window, icon );
+		TrySDL( SDL_SetWindowIcon, window, icon );
 		SDL_DestroySurface( icon );
 		stbi_image_free( pixels );
 	}
+
+	return window;
 }
 
 void DestroyWindow() {
 	TracyZoneScoped;
-	SDL_DestroyWindow( sdl_window );
+	SDL_DestroyWindow( window );
 }
 
 void GetFramebufferSize( u32 * width, u32 * height, bool * minimized ) {
@@ -120,7 +123,7 @@ float GetContentScale() {
 }
 
 void FlashWindow() {
-	SDL_FlashWindow( sdl_window, SDL_FLASH_UNTIL_FOCUSED );
+	SDL_FlashWindow( window, SDL_FLASH_UNTIL_FOCUSED );
 }
 
 VideoMode GetVideoMode( int monitor ) {
@@ -139,11 +142,11 @@ extern "C" int SDL_GetDisplayIndex( SDL_DisplayID displayID );
 WindowMode GetWindowMode() {
 	WindowMode mode = { .fullscreen = false };
 
-	TrySDL( SDL_GetWindowPosition, sdl_window, &mode.x, &mode.y );
-	TrySDL( SDL_GetWindowSizeInPixels, sdl_window, &mode.video_mode.width, &mode.video_mode.height );
+	TrySDL( SDL_GetWindowPosition, window, &mode.x, &mode.y );
+	TrySDL( SDL_GetWindowSizeInPixels, window, &mode.video_mode.width, &mode.video_mode.height );
 
-	if( HasAllBits( SDL_GetWindowFlags( sdl_window ), SDL_WINDOW_FULLSCREEN ) ) {
-		const SDL_DisplayMode * fullscreen = SDL_GetWindowFullscreenMode( sdl_window );
+	if( HasAllBits( SDL_GetWindowFlags( window ), SDL_WINDOW_FULLSCREEN ) ) {
+		const SDL_DisplayMode * fullscreen = SDL_GetWindowFullscreenMode( window );
 		mode.fullscreen = true;
 		mode.video_mode.refresh_rate = fullscreen->refresh_rate;
 		mode.monitor = SDL_GetDisplayIndex( fullscreen->displayID );
@@ -159,18 +162,18 @@ void SetWindowMode( WindowMode mode ) {
 		if( !SDL_GetClosestFullscreenDisplayMode( monitor, mode.video_mode.width, mode.video_mode.height, mode.video_mode.refresh_rate, true, &closest ) ) {
 			closest = *TrySDLR( const SDL_DisplayMode *, SDL_GetDesktopDisplayMode, monitor );
 		}
-		TrySDL( SDL_SetWindowFullscreen, sdl_window, true );
-		TrySDL( SDL_SetWindowFullscreenMode, sdl_window, &closest );
+		TrySDL( SDL_SetWindowFullscreen, window, true );
+		TrySDL( SDL_SetWindowFullscreenMode, window, &closest );
 	}
 	else {
-		TrySDL( SDL_SetWindowFullscreen, sdl_window, false );
-		TrySDL( SDL_SetWindowSize, sdl_window, mode.video_mode.width, mode.video_mode.height );
-		TrySDL( SDL_SetWindowPosition, sdl_window, mode.x == -1 ? SDL_WINDOWPOS_CENTERED : mode.x, mode.y == -1 ? SDL_WINDOWPOS_CENTERED : mode.y );
+		TrySDL( SDL_SetWindowFullscreen, window, false );
+		TrySDL( SDL_SetWindowSize, window, mode.video_mode.width, mode.video_mode.height );
+		TrySDL( SDL_SetWindowPosition, window, mode.x == -1 ? SDL_WINDOWPOS_CENTERED : mode.x, mode.y == -1 ? SDL_WINDOWPOS_CENTERED : mode.y );
 	}
 }
 
 bool IsWindowFocused() {
-	return HasAllBits( SDL_GetWindowFlags( sdl_window ), SDL_WINDOW_INPUT_FOCUS );
+	return HasAllBits( SDL_GetWindowFlags( window ), SDL_WINDOW_INPUT_FOCUS );
 }
 
 Vec2 GetJoystickMovement() {
@@ -277,11 +280,11 @@ static void InputFrame() {
 
 	// grab cursor
 	if( route_inputs_to_imgui ) {
-		TrySDL( SDL_SetWindowRelativeMouseMode, sdl_window, false );
+		TrySDL( SDL_SetWindowRelativeMouseMode, window, false );
 		AllKeysUp();
 	}
 	else {
-		TrySDL( SDL_SetWindowRelativeMouseMode, sdl_window, true );
+		TrySDL( SDL_SetWindowRelativeMouseMode, window, true );
 	}
 }
 

@@ -342,7 +342,7 @@ static u32 BuildKDTreeRecursive( CompiledKDTree * tree, Span< const u32 > brush_
 	{
 		TracyZoneScopedN( "Find best split" );
 
-		float best_cost = INFINITY;
+		float best_cost = Infinity;
 
 		for( int i = 0; i < 3; i++ ) {
 			int axis = ( MaxAxis( node_bounds ) + i ) % 3;
@@ -382,12 +382,12 @@ static u32 BuildKDTreeRecursive( CompiledKDTree * tree, Span< const u32 > brush_
 				}
 			}
 
-			if( best_cost != INFINITY ) {
+			if( best_cost != Infinity ) {
 				break;
 			}
 		}
 
-		if( best_cost == INFINITY ) {
+		if( best_cost == Infinity ) {
 			return MakeLeaf( tree, brush_ids );
 		}
 	}

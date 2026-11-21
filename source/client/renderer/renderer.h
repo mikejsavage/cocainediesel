@@ -133,7 +133,5 @@ UniformBlock UploadModelUniforms( const Mat3x4 & M );
 UniformBlock UploadMaterialStaticUniforms( float specular, float shininess, float lod_bias = 0.0f );
 UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color );
 
-const char * ShadowQualityToString( ShadowQuality mode );
-
 void DrawModelInstances();
 void ClearMaterialStaticUniforms();

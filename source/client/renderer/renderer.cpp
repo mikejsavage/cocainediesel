@@ -87,16 +87,6 @@ static void TakeScreenshot() {
 	}
 }
 
-const char * ShadowQualityToString( ShadowQuality mode ) {
-	switch( mode ) {
-		case ShadowQuality_Low: return "Rookie";
-		case ShadowQuality_Medium: return "Regular";
-		case ShadowQuality_High: return "Made Man";
-		case ShadowQuality_Ultra: return "Murica";
-		default: return "";
-	};
-}
-
 static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
 	switch( mode ) {
 		case ShadowQuality_Low:    return { 2, { 256.0f, 2048.0f, 2048.0f, 2048.0f }, 1024, 2 };

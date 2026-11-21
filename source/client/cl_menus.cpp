@@ -7,7 +7,6 @@
 #include "client/clay.h"
 #include "client/dev_tools.h"
 #include "client/keys.h"
-#include "client/renderer/renderer.h"
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
 #include "client/renderer/renderer.h"
@@ -844,6 +843,16 @@ static void SettingsControls() {
 	}
 
 	ImGui::EndChild();
+}
+
+static const char * ShadowQualityToString( ShadowQuality mode ) {
+	switch( mode ) {
+		case ShadowQuality_Low: return "Rookie";
+		case ShadowQuality_Medium: return "Regular";
+		case ShadowQuality_High: return "Made Man";
+		case ShadowQuality_Ultra: return "Murica";
+		default: return "";
+	};
 }
 
 static void SettingsVideo() {

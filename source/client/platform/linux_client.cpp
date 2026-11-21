@@ -7,6 +7,11 @@
 #include <stdio.h>
 #include <unistd.h>
 
+void InitClientPlatform() { }
+
+void CreateAutoreleasePoolOnMacOS() { }
+void ReleaseAutoreleasePoolOnMacOS() { }
+
 void ShowErrorMessage( const char * msg, const char * file, int line ) {
 	printf( "%s (%s:%d)\n", msg, file, line );
 }
@@ -22,10 +27,6 @@ bool OpenInWebBrowser( const char * url ) {
 	execlp( "xdg-open", "xdg-open", url, ( char * ) 0 );
 
 	return false;
-}
-
-bool IsRenderDocAttached() {
-	return dlopen( "librenderdoc.so", RTLD_NOW | RTLD_NOLOAD ) != NULL;
 }
 
 #endif // #if PLATFORM_LINUX

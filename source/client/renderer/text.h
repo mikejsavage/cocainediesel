@@ -33,8 +33,8 @@ constexpr Alignment Alignment_RightBottom = { XAlignment_Right, YAlignment_Desce
 struct Font;
 
 void InitText();
-void ShutdownText();
 
+struct Font;
 const Font * RegisterFont( Span< const char > path );
 
 void DrawTextBaseline( const Font * font, float pixel_size,

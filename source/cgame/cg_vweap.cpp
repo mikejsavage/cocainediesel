@@ -18,7 +18,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
+#include "client/renderer/gltf.h"
+#include "client/renderer/model.h"
 
 static float SmoothStep( float t ) {
 	return t * t * ( 3.0f - 2.0f * t );
@@ -67,7 +69,7 @@ static void AddViewWeaponAnimations( Vec3 * origin, EulerDegrees3 * angles, cg_v
 			float refire_time = GetWeaponDefFire( ps->weapon, ps->weapon_alt_fire )->refire_time;
 			float frac = float( ps->weapon_state_time ) / refire_time;
 			if( ps->weapon == Weapon_Knife ) {
-				*origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 30.0f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				*origin += -FromQFAxis( cg.view.axis, AXIS_UP ) * 30.0f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 				angles->roll += refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 				angles->yaw -= refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 				angles->pitch += refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
@@ -148,7 +150,12 @@ void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 		0.0f, 0.0f, 0.0f, 1.0f
 	);
 
+	// NOTE(mike 20260514): stop the gun poking into walls, replaces the viewmodel depth hack from previously
+	// technically breaks shadows on the gun but it seems to not be noticeable
+	constexpr float viewmodel_scale = 0.3f;
+
 	origin = ( y_up_to_camera_space * Vec4( -model->nodes[ model->camera_node.value ].global_transform.col3, 1.0f ) ).xyz();
+	origin *= viewmodel_scale;
 
 	// scale forward gun offset depending on fov and aspect ratio
 	constexpr float ZOOM_REDUCE_FALLKICK = 0.7f;
@@ -161,7 +168,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 
 	// TODO: maybe it would be easier to give viewmodels their own render pass with identity view transform. might be required for the depth hack anyway later
 	// TODO: shouldn't this have a model->transform on the end? why does the muzzle transform have it?
-	viewweapon->transform = frame_static.inverse_V * Mat4Translation( origin ) * AnglesToMat3x4( angles );
+	viewweapon->transform = frame_static.inverse_V * Mat4Translation( origin ) * AnglesToMat3x4( angles ) * Mat4Scale( viewmodel_scale );
 
 	u8 muzzle;
 	if( FindNodeByName( model, "muzzle", &muzzle ) ) {
@@ -184,9 +191,7 @@ void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
 		return;
 	}
 
-	DrawModelConfig config = { };
-	config.draw_model.enabled = true;
-	config.draw_model.view_weapon = true;
+	DrawModelConfig config = { .draw = true };
 
 	Optional< u8 > animation = FindAnimationByName( model, viewweapon->eventAnim );
 	if( animation.exists ) {

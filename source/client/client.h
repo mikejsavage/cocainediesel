@@ -30,10 +30,11 @@
 #include "client/maps.h"
 #include "client/console.h"
 #include "client/audio/types.h"
-#include "client/renderer/types.h"
+#include "client/renderer/api.h"
 
 struct ImFont;
 struct snapshot_t;
+struct Font;
 
 //=============================================================================
 
@@ -133,7 +134,7 @@ struct client_static_t {
 
 	int challenge;              // from the server to use for connecting
 
-	const Material * white_material;
+	PoolHandle< Material > white_material;
 
 	// these are our reliable messages that go to the server
 	struct ReliableCommand {
@@ -222,8 +223,6 @@ void CL_Changing_f();
 void CL_Precache_f( const Tokenized & args );
 void CL_ServerDisconnect_f( const Tokenized & args );
 
-void CL_ForceVsync( bool force );
-
 //
 // cl_game.c
 //
@@ -294,7 +293,8 @@ void MaybeResetShadertoyTime( bool respawned );
 //
 // cl_imgui
 //
-void CL_InitImGui();
+struct SDL_Window;
+void CL_InitImGui( SDL_Window * window );
 void CL_ShutdownImGui();
 void CL_ImGuiBeginFrame();
 void CL_ImGuiEndFrame();

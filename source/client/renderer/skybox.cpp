@@ -1,7 +1,7 @@
 #include "qcommon/base.h"
 #include "qcommon/time.h"
-#include "client/renderer/renderer.h"
-#include "client/renderer/material.h"
+#include "client/renderer/api.h"
+#include "client/renderer/shader.h"
 
 static Mesh sky_mesh;
 
@@ -27,30 +27,48 @@ void InitSkybox() {
 		0, 1, 5, 5, 4, 0,
 	};
 
-	MeshConfig mesh_config = { };
-	mesh_config.name = "Skybox";
-	mesh_config.set_attribute( VertexAttribute_Position, NewGPUBuffer( verts, sizeof( verts ), "Skybox vertices" ) );
-	mesh_config.vertex_descriptor.attributes[ VertexAttribute_Position ].value.format = VertexFormat_Floatx4;
-	mesh_config.index_buffer = NewGPUBuffer( indices, sizeof( indices ), "Skybox indices" );
-	mesh_config.num_vertices = ARRAY_COUNT( indices );
-
-	sky_mesh = NewMesh( mesh_config );
-}
-
-void ShutdownSkybox() {
-	DeleteMesh( sky_mesh );
+	sky_mesh = { };
+	sky_mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx4, 0, 0 };
+	sky_mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec4 );
+	sky_mesh.index_format = IndexFormat_U16;
+	sky_mesh.num_vertices = ARRAY_COUNT( indices );
+	sky_mesh.vertex_buffers[ 0 ] = NewBuffer( "Skybox vertices", verts );
+	sky_mesh.index_buffer = NewBuffer( "Skybox indices", indices );
 }
 
 void DrawSkybox( Time time ) {
 	TracyZoneScoped;
 
-	PipelineState pipeline;
-	pipeline.shader = &shaders.skybox;
-	pipeline.pass = frame_static.sky_pass;
-	pipeline.cull_face = CullFace_Front;
-	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.bind_uniform( "u_Time", UploadUniformBlock( ToSeconds( time ) ) );
-	pipeline.bind_texture_and_sampler( "u_Noise", RGBNoiseTexture(), Sampler_Standard );
-	pipeline.bind_texture_and_sampler( "u_BlueNoiseTexture", BlueNoiseTexture(), Sampler_Standard );
-	DrawMesh( sky_mesh, pipeline );
+	PoolHandle< Texture > depth_target = Default( frame_static.render_targets.msaa_depth, frame_static.render_targets.resolved_depth );
+
+	frame_static.render_passes[ RenderPass_Sky ] = NewRenderPass( RenderPassConfig {
+		.name = "Sky",
+		.pass = RenderPass_Sky,
+		.color_targets = {
+			RenderPassConfig::ColorTarget {
+				.texture = Default( frame_static.render_targets.msaa_color, frame_static.render_targets.resolved_color0 ),
+				.load = LoadOp_Load,
+			},
+		},
+		.depth_target = RenderPassConfig::DepthTarget { .texture = depth_target, .load = LoadOp_Load },
+		.representative_shader = shaders.skybox,
+		.bindings = {
+			.buffers = {
+				{ "u_View", frame_static.view_uniforms },
+				{ "u_Time", NewTempBuffer( ToSeconds( time ) ) },
+			},
+			.textures = {
+				{ "u_RGBNoise", RGBNoiseTexture() },
+				{ "u_BlueNoise", BlueNoiseTexture() },
+			},
+			.samplers = { { "u_StandardSampler", Sampler_Standard } },
+		},
+	} );
+
+	PipelineState pipeline = {
+		.shader = shaders.skybox,
+		.dynamic_state = { .cull_face = CullFace_Front },
+	};
+
+	Draw( RenderPass_Sky, pipeline, sky_mesh );
 }

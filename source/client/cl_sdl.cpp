@@ -2,6 +2,7 @@
 #include "client/icon.h"
 #include "client/keys.h"
 #include "client/audio/backend.h"
+#include "client/platform/api.h"
 #include "client/platform/renderdoc.h"
 #include "qcommon/array.h"
 #include "qcommon/version.h"
@@ -9,6 +10,7 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 #include "imgui/imgui_impl_sdl3.h"
+
 
 #define SDL_MAIN_USE_CALLBACKS
 #include "sdl/SDL3/SDL_audio.h"
@@ -20,14 +22,14 @@
 
 #include "stb/stb_image.h"
 
-const bool is_dedicated_server = false;
+static SDL_Window * window;
 
-SDL_Window * window;
-static SDL_GLContext gl_context;
+const bool is_dedicated_server = false;
 
 static bool route_inputs_to_imgui;
 
 static int framebuffer_width, framebuffer_height;
+static bool window_minimized;
 static float content_scale;
 
 template< typename R = bool, typename F, typename... Rest >
@@ -49,28 +51,16 @@ static SDL_DisplayID DisplayIndexToID( int monitor ) {
 	return monitors[ monitor < num_monitors ? monitor : 0 ];
 }
 
-void CreateWindow( WindowMode mode ) {
+SDL_Window * CreateWindow( WindowMode mode ) {
 	TracyZoneScoped;
-
-	TrySDL( SDL_GL_SetAttribute, SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
-	TrySDL( SDL_GL_SetAttribute, SDL_GL_CONTEXT_MAJOR_VERSION, 4 );
-	TrySDL( SDL_GL_SetAttribute, SDL_GL_CONTEXT_MINOR_VERSION, 5 );
-	TrySDL( SDL_GL_SetAttribute, SDL_GL_FRAMEBUFFER_SRGB_CAPABLE, true );
-
-	SDL_GLContextFlag gl_flags = SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG;
-	if( is_public_build ) {
-		TrySDL( SDL_GL_SetAttribute, SDL_GL_CONTEXT_NO_ERROR, true );
-	}
-	else {
-		gl_flags |= SDL_GL_CONTEXT_DEBUG_FLAG;
-	}
-	TrySDL( SDL_GL_SetAttribute, SDL_GL_CONTEXT_FLAGS, gl_flags );
 
 	SDL_PropertiesID props = TrySDLR( SDL_PropertiesID, SDL_CreateProperties );
 	defer { SDL_DestroyProperties( props ); };
 
+	constexpr const char * graphics_api = IFDEF( PLATFORM_MACOS ) && false ? SDL_PROP_WINDOW_CREATE_METAL_BOOLEAN : SDL_PROP_WINDOW_CREATE_VULKAN_BOOLEAN;
+
 	TrySDL( SDL_SetStringProperty, props, SDL_PROP_WINDOW_CREATE_TITLE_STRING, APPLICATION );
-	TrySDL( SDL_SetBooleanProperty, props, SDL_PROP_WINDOW_CREATE_OPENGL_BOOLEAN, true );
+	TrySDL( SDL_SetBooleanProperty, props, graphics_api, true );
 	TrySDL( SDL_SetBooleanProperty, props, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true );
 	TrySDL( SDL_SetBooleanProperty, props, SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN, true );
 
@@ -90,10 +80,8 @@ void CreateWindow( WindowMode mode ) {
 
 	window = TrySDLR( SDL_Window *, SDL_CreateWindowWithProperties, props );
 
-	gl_context = TrySDLR( SDL_GLContext, SDL_GL_CreateContext, window );
-
 	TrySDL( SDL_GetWindowSizeInPixels, window, &framebuffer_width, &framebuffer_height );
-
+	window_minimized = false;
 	content_scale = TrySDLR( float, SDL_GetWindowDisplayScale, window );
 
 	{
@@ -107,17 +95,19 @@ void CreateWindow( WindowMode mode ) {
 		SDL_DestroySurface( icon );
 		stbi_image_free( pixels );
 	}
+
+	return window;
 }
 
 void DestroyWindow() {
 	TracyZoneScoped;
-	TrySDL( SDL_GL_DestroyContext, gl_context );
 	SDL_DestroyWindow( window );
 }
 
-void GetFramebufferSize( int * width, int * height ) {
-	*width = framebuffer_width;
-	*height = framebuffer_height;
+void GetFramebufferSize( u32 * width, u32 * height, bool * minimized ) {
+	*width = Max2( 0, framebuffer_width );
+	*height = Max2( 0, framebuffer_height );
+	*minimized = window_minimized || framebuffer_width < 1 || framebuffer_height < 1;
 }
 
 float GetContentScale() {
@@ -161,19 +151,6 @@ void SetWindowMode( WindowMode mode ) {
 	}
 }
 
-static Optional< bool > has_gsync;
-void EnableVSync( bool enabled ) {
-	if( enabled ) {
-		if( !has_gsync.exists ) {
-			has_gsync = SDL_GL_SetSwapInterval( -1 );
-		}
-		TrySDL( SDL_GL_SetSwapInterval, has_gsync.value ? -1 : 1 );
-	}
-	else {
-		TrySDL( SDL_GL_SetSwapInterval, 0 );
-	}
-}
-
 bool IsWindowFocused() {
 	return HasAllBits( SDL_GetWindowFlags( window ), SDL_WINDOW_INPUT_FOCUS );
 }
@@ -186,11 +163,6 @@ static Vec2 relative_mouse_movement;
 
 Vec2 GetRelativeMouseMovement() {
 	return relative_mouse_movement;
-}
-
-void SwapBuffers() {
-	TracyZoneScopedNC( "SDL_GL_SwapWindow", TracyColorWait );
-	TrySDL( SDL_GL_SwapWindow, window );
 }
 
 Optional< Key > KeyFromSDL( SDL_Scancode sdl );
@@ -267,7 +239,7 @@ static void OnWindowResizedOrMoved( const SDL_WindowEvent & e ) {
 		vid_mode->modified = false;
 	}
 
-	if( e.type == SDL_EVENT_WINDOW_RESIZED && e.data1 > 0 && e.data2 > 0 ) {
+	if( e.type == SDL_EVENT_WINDOW_RESIZED ) {
 		framebuffer_width = e.data1;
 		framebuffer_height = e.data2;
 	}
@@ -380,6 +352,7 @@ void ShutdownAudioDevice() {
 static s64 oldtime;
 
 SDL_AppResult SDL_AppInit( void ** appstate, int argc, char ** argv ) {
+	InitClientPlatform();
 	InitRenderDoc();
 
 	{
@@ -425,6 +398,11 @@ SDL_AppResult SDL_AppEvent( void * appstate, SDL_Event * event ) {
 		case SDL_EVENT_WINDOW_RESIZED:
 		case SDL_EVENT_WINDOW_MOVED:
 			OnWindowResizedOrMoved( event->window );
+			break;
+
+		case SDL_EVENT_WINDOW_MINIMIZED:
+		case SDL_EVENT_WINDOW_RESTORED:
+			window_minimized = event->type == SDL_EVENT_WINDOW_MINIMIZED;
 			break;
 
 		default: break;

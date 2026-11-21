@@ -13,6 +13,23 @@
 extern "C" __declspec( dllexport ) DWORD NvOptimusEnablement = 1;
 extern "C" __declspec( dllexport ) int AmdPowerXpressRequestHighPerformance = 1;
 
+void InitClientPlatform() {
+	return;
+
+	// make CLI output work
+	// it doesn't work well because Windows so it's pretty annoying to leave on
+	// all the time, but sometimes it comes in handy
+	BOOL reattached = AttachConsole( ATTACH_PARENT_PROCESS );
+	if( reattached == TRUE ) {
+		FILE * dont_care;
+		freopen_s( &dont_care, "CON", "w", stdout );
+		freopen_s( &dont_care, "CON", "w", stderr );
+	}
+}
+
+void CreateAutoreleasePoolOnMacOS() { }
+void ReleaseAutoreleasePoolOnMacOS() { }
+
 void ShowErrorMessage( const char * msg, const char * file, int line ) {
 #if NDEBUG
 	MessageBoxA( NULL, msg, "Error", MB_OK );
@@ -24,10 +41,6 @@ void ShowErrorMessage( const char * msg, const char * file, int line ) {
 		_CrtDbgBreak();
 	}
 #endif
-}
-
-bool IsRenderDocAttached() {
-	return GetModuleHandleA( "renderdoc.dll" ) != NULL;
 }
 
 bool OpenInWebBrowser( const char * url ) {

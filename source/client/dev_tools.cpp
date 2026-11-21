@@ -5,7 +5,9 @@
 #include "client/client.h"
 #include "client/assets.h"
 #include "client/dev_tools.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
+#include "client/renderer/gltf.h"
+#include "client/renderer/model.h"
 #include "client/renderer/skybox.h"
 #include "cgame/cg_local.h"
 
@@ -167,8 +169,8 @@ DevToolCleanupCallback DrawModelViewer() {
 
 	if( maybe_model.exists ) {
 		DrawModelConfig config = {
-			.draw_model = { .enabled = true },
-			.draw_shadows = { .enabled = true },
+			.draw = true,
+			.cast_shadows = true,
 		};
 
 		MatrixPalettes pose = { };
@@ -238,7 +240,6 @@ DevToolCleanupCallback DrawModelViewer() {
 	}
 
 	DrawSkybox( cls.shadertoy_time );
-	DrawModelInstances();
 
 	if( ImGui::Button( "Exit" ) ) {
 		UI_ShowMainMenu();

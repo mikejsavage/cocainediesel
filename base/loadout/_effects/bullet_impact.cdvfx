@@ -1,12 +1,12 @@
 {
-  dlight {
+  light {
     intensity 500
     lifetime 2.0
     color 1 1 1
     color_override
   }
 
-  dlight {
+  light {
     intensity 500
     lifetime 0.2
     color 1 1 1
@@ -14,9 +14,9 @@
   }
 
   decal {
-    material loadout/bullet_impact1
-    material loadout/bullet_impact2
-    material loadout/bullet_impact3
+    material loadout/_effects/bullet_impact1
+    material loadout/_effects/bullet_impact2
+    material loadout/_effects/bullet_impact3
     size 3.5
     size_distribution uniform 1.5
     lifetime 20

@@ -1,6 +1,6 @@
 #include "cgame/cg_local.h"
 #include "client/assets.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/gltf.h"
 
 static WeaponModelMetadata weapon_model_metadata[ Weapon_Count ];
 static GadgetModelMetadata gadget_model_metadata[ Gadget_Count ];

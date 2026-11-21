@@ -165,46 +165,50 @@ namespace ImGui
 		continue; \
 	}
 
-#include "qcommon/hash.h"
-#include "client/renderer/shader.h"
+#include "client/renderer/api.h"
 
 struct ImGuiShaderAndMaterial {
-	ImGuiShaderAndMaterial() {
-		shader = NULL;
-		material = NULL;
-		uniform_name = { };
-		uniform_block = { };
+	ImGuiShaderAndMaterial() = default;
+
+	ImGuiShaderAndMaterial( PoolHandle< Material > material ) {
+		*this = { };
+		material_bind_group = MaterialBindGroup( material );
 	}
 
-	ImGuiShaderAndMaterial( const Material * mat ) {
-		shader = &shaders.standard_vertexcolors;
-		material = mat;
-		uniform_name = { };
-		uniform_block = { };
+	ImGuiShaderAndMaterial( PoolHandle< BindGroup > bind_group ) {
+		*this = { };
+		material_bind_group = bind_group;
 	}
 
-	explicit operator intptr_t() const {
-		return intptr_t( shader ) ^ intptr_t( material );
+	ImGuiShaderAndMaterial( const void * null ) {
+		*this = { };
 	}
 
-	const Shader * shader;
-	const Material * material;
-
-	StringHash uniform_name;
-	UniformBlock uniform_block;
+	Optional< PoolHandle< RenderPipeline > > shader;
+	PoolHandle< BindGroup > material_bind_group;
+	Optional< GPUBuffer > buffer;
 };
 
-inline bool operator==( const ImGuiShaderAndMaterial & a, const ImGuiShaderAndMaterial & b ) {
-	return a.shader == b.shader
-		&& a.material == b.material
-		&& a.uniform_name == b.uniform_name
-		&& a.uniform_block.ubo == b.uniform_block.ubo
-		&& a.uniform_block.offset == b.uniform_block.offset
-		&& a.uniform_block.size == b.uniform_block.size;
+inline bool operator==( const ImGuiShaderAndMaterial & lhs, const ImGuiShaderAndMaterial & rhs ) {
+	bool same_shader = lhs.shader.exists == rhs.shader.exists;
+	if( same_shader && !lhs.shader.exists ) {
+		same_shader = lhs.shader.value.x == rhs.shader.value.x;
+	}
+
+	bool same_material = lhs.material_bind_group.x == rhs.material_bind_group.x;
+
+	bool same_buffer = lhs.buffer.exists == rhs.buffer.exists;
+	if( same_buffer && !lhs.buffer.exists ) {
+		const GPUBuffer & l = lhs.buffer.value;
+		const GPUBuffer & r = rhs.buffer.value;
+		same_buffer = l.allocation == r.allocation && l.offset == r.offset && l.size == r.size;
+	}
+
+	return same_shader && same_material && same_buffer;
 }
 
-inline bool operator!=( const ImGuiShaderAndMaterial & a, const ImGuiShaderAndMaterial & b ) {
-	return !( a == b );
+inline bool operator!=( const ImGuiShaderAndMaterial & lhs, const ImGuiShaderAndMaterial & rhs ) {
+	return !( lhs == rhs );
 }
 
 #define ImTextureID ImGuiShaderAndMaterial

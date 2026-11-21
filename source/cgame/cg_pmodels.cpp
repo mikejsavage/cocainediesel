@@ -22,7 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/hash.h"
 #include "qcommon/hashmap.h"
 #include "client/assets.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
+#include "client/renderer/gltf.h"
 #include "client/renderer/model.h"
 #include "gameshared/collision.h"
 
@@ -729,25 +730,30 @@ void CG_DrawPlayer( centity_t * cent ) {
 	bool draw_silhouette = !corpse && draw_model && ( ISREALSPECTATOR() || same_team );
 
 	{
-		DrawModelConfig config = { };
-		config.draw_model.enabled = draw_model;
-		config.draw_shadows.enabled = true;
-		if( draw_silhouette ) {
-			config.draw_silhouette.enabled = true;
-			config.draw_silhouette.silhouette_color = color;
-		}
+		DrawModelConfig config = {
+			.draw = draw_model,
+			.cast_shadows = true,
+			.silhouette_color = draw_silhouette ? Optional( color ) : NONE,
+		};
 
 		if( draw_model && cent->current.perk != Perk_Jetpack ) {
 			float outline_height = CG_OutlineScaleForDist( &cent->interpolated );
 			if( outline_height > 0.0f ) {
-				config.draw_outlines.enabled = true;
-				config.draw_outlines.outline_height = outline_height;
-				config.draw_outlines.outline_color = color * 0.5f;
+				config.outline = {
+					.color = color * 0.5f,
+					.height = outline_height,
+				};
 			}
 		}
 
 		DrawGLTFModel( config, model, transform, color, pose );
 	}
+
+	DrawModelConfig config = {
+		.draw = draw_model,
+		.cast_shadows = true,
+		.silhouette_color = draw_silhouette ? Optional( color ) : NONE,
+	};
 
 	// add weapon model
 	{
@@ -755,15 +761,6 @@ void CG_DrawPlayer( centity_t * cent ) {
 		if( weapon_model != NULL ) {
 			PlayerModelMetadata::Tag tag = cent->current.gadget == Gadget_None ? meta->tag_weapon : meta->tag_gadget;
 			Mat3x4 weapon_transform = unscaled_transform * TagTransform( model, pose, tag ) * InverseNodeTransform( weapon_model, "hand" );
-
-			DrawModelConfig config = { };
-			config.draw_model.enabled = draw_model;
-			config.draw_shadows.enabled = true;
-
-			if( draw_silhouette ) {
-				config.draw_silhouette.enabled = true;
-				config.draw_silhouette.silhouette_color = color;
-			}
 
 			DrawGLTFModel( config, weapon_model, weapon_transform, color );
 
@@ -784,15 +781,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			PlayerModelMetadata::Tag tag = meta->tag_bomb;
 			if( cent->current.effects & EF_HAT )
 				tag = meta->tag_hat;
-
 			Mat3x4 tag_transform = unscaled_transform * TagTransform( model, pose, tag );
-
-			DrawModelConfig config = { };
-			config.draw_model.enabled = draw_model;
-			config.draw_shadows.enabled = true;
-			config.draw_silhouette.enabled = draw_silhouette;
-			config.draw_silhouette.silhouette_color = color;
-
 			DrawGLTFModel( config, attached_model, tag_transform, white.linear );
 		}
 	}
@@ -802,15 +791,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 		const GLTFRenderData * mask_model = FindGLTFRenderData( cent->current.mask );
 		if( mask_model != NULL ) {
 			PlayerModelMetadata::Tag tag = meta->tag_mask;
-
 			Mat3x4 tag_transform = unscaled_transform * TagTransform( model, pose, tag );
-
-			DrawModelConfig config = { };
-			config.draw_model.enabled = draw_model;
-			config.draw_shadows.enabled = true;
-			config.draw_silhouette.enabled = draw_silhouette;
-			config.draw_silhouette.silhouette_color = color;
-
 			DrawGLTFModel( config, mask_model, tag_transform, white.linear );
 		}
 	}

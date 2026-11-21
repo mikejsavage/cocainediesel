@@ -148,18 +148,12 @@ static void DrawActualTrail( const Trail & trail ) {
 		return;
 	}
 
-	struct TrailVertex {
-		Vec3 position;
-		Vec2 uv;
-		RGBA8 color;
-	};
-
 	TempAllocator temp = cls.frame_arena.temp();
-	Span< TrailVertex > vertices = AllocSpan< TrailVertex >( &temp, trail.points.n * 2 );
+	Span< VFXVertex > vertices = AllocSpan< VFXVertex >( &temp, trail.points.n * 2 );
 	Span< u16 > indices = AllocSpan< u16 >( &temp, ( trail.points.n - 1 ) * 6 );
 
-	const Material * material = FindMaterial( trail.material );
-	float texture_aspect_ratio = float( material->texture->width ) / float( material->texture->height );
+	PoolHandle< Material > material = FindMaterial( trail.material );
+	float texture_aspect_ratio = float( TextureWidth( material ) ) / float( TextureHeight( material ) );
 	float distance = trail.offset / trail.width / texture_aspect_ratio;
 
 	for( size_t i = 0; i < trail.points.n; i++ ) {
@@ -207,19 +201,21 @@ static void DrawActualTrail( const Trail & trail ) {
 		}
 	}
 
-	PipelineState pipeline = MaterialToPipelineState( material, trail.color );
-	pipeline.shader = &shaders.standard_vertexcolors;
-	pipeline.blend_func = BlendFunc_Add;
-	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
+	PipelineState pipeline = { .shader = shaders.vfx_add };
 
-	VertexDescriptor vertex_descriptor = { };
-	vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( TrailVertex, position ) };
-	vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( TrailVertex, uv ) };
-	vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( TrailVertex, color ) };
-	vertex_descriptor.buffer_strides[ 0 ] = sizeof( TrailVertex );
+	Mesh mesh = { };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( VFXVertex, position ) };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( VFXVertex, uv ) };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( VFXVertex, color ) };
+	mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( VFXVertex );
+	mesh.num_vertices = indices.n;
+	mesh.vertex_buffers[ 0 ] = NewTempBuffer( vertices );
+	mesh.index_buffer = NewTempBuffer( indices );
 
-	DrawDynamicGeometry( pipeline, vertices, indices, vertex_descriptor );
+	Draw( RenderPass_Transparent, pipeline, mesh, {
+		frame_static.identity_model_transform_uniforms,
+		NewTempBuffer( EvaluateMaterialColor( material, trail.color ) ),
+	} );
 }
 
 void DrawTrails() {

@@ -10,7 +10,7 @@
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
 #include "client/renderer/renderer.h"
-#include "client/platform/browser.h"
+#include "client/platform/api.h"
 #include "qcommon/array.h"
 #include "qcommon/maplist.h"
 #include "qcommon/time.h"
@@ -134,7 +134,6 @@ static ClayCustomElementConfig * ClayImGui( ClayCustomElementCallback callback, 
 		.callback = {
 			.f = []( const Clay_BoundingBox & bounds, void * userdata ) {
 				ImGui::SetCursorPos( Vec2( bounds.x, bounds.y ) );
-
 				const ClayCallbackAndUserdata * cb = ( const ClayCallbackAndUserdata * ) userdata;
 				cb->callback( bounds, cb->userdata );
 			},
@@ -918,16 +917,18 @@ static void SettingsVideo() {
 	{
 		SettingLabel( "Anti-aliasing" );
 
-		int samples = Cvar_Integer( "r_samples" );
+		u32 samples = Cvar_Integer( "r_samples" );
 
 		ImGui::PushItemWidth( 100 * GetContentScale() );
-		if( ImGui::BeginCombo( "##r_samples", samples == 0 ? "Off" : temp( "{}x", samples ) ) ) {
-			if( ImGui::Selectable( "Off", samples == 0 ) )
-				samples = 0;
-			if( samples == 0 )
+		if( ImGui::BeginCombo( "##r_samples", samples == 1 ? "Off" : temp( "{}x", samples ) ) ) {
+			if( ImGui::Selectable( "Off", samples == 1 ) )
+				samples = 1;
+			if( samples == 1 )
 				ImGui::SetItemDefaultFocus();
 
-			for( int i = 2; i <= 8; i *= 2 ) {
+			for( u32 i = 2; i <= MaxMSAA; i *= 2 ) {
+				if( !HasAnyBit( RenderBackendSupportedMSAA(), i ) )
+					continue;
 				if( ImGui::Selectable( temp( "{}x", i ), i == samples ) )
 					samples = i;
 				if( i == samples )
@@ -1256,6 +1257,11 @@ static void ServerBrowser() {
 static void DemoBrowser() {
 	TempAllocator temp = cls.frame_arena.temp();
 
+	if( ImGui::IsWindowAppearing() ) {
+		RefreshDemoBrowser();
+		yolodemo = false;
+	}
+
 	DemoBrowserFrame();
 
 	ImGui::Checkbox( "Try to force load demos from old versions. Comes with no warranty", &yolodemo );
@@ -1322,9 +1328,9 @@ static void CreateServer( bool gladiator ) {
 }
 
 static void MainMenuHazardTape( const Clay_BoundingBox & bounds, void * userdata ) {
-	const Material * hazard = FindMaterial( "hud/tape_hazard_yellow" );
+	PoolHandle< Material > hazard = FindMaterial( "hud/tape_hazard_yellow" );
 	Vec2 half_pixel = HalfPixelSize( hazard );
-	float repetitions = ( bounds.width / bounds.height ) / ( hazard->texture->width / hazard->texture->height );
+	float repetitions = ( bounds.width / bounds.height ) / ( TextureWidth( hazard ) / TextureHeight( hazard ) );
 	float scroll = Sawtooth01( cls.monotonicTime, Seconds( 4 ) );
 	float scale = bit_cast< double >( userdata );
 	Vec2 tl = half_pixel + Vec2( scroll * scale, 0.0f );
@@ -1394,8 +1400,8 @@ static constexpr MainMenuCategory categories[] = {
 };
 
 struct MainSectionButtonData {
-	const Material * icon;
-	Span<const char> name;
+	PoolHandle< Material > icon;
+	Span< const char > name;
 	Vec4 bg_color;
 	MenuState state;
 };
@@ -1424,7 +1430,7 @@ static void DrawShadowedSquare( size_t posX, size_t posY, float size, const Vec4
 		cls.white_material, bg_color );
 }
 
-static void DrawSectionIcon( const Material * icon, size_t posX, size_t posY, float size, const Vec4 & bg_color ) {
+static void DrawSectionIcon( PoolHandle< Material > icon, size_t posX, size_t posY, float size, const Vec4 & bg_color ) {
 	DrawShadowedSquare( posX, posY, size, bg_color );
 
 	Draw2DBox(
@@ -1573,11 +1579,11 @@ static void SubMenuWindow() {
 }
 
 static void MainSectionButton( size_t idx, Vec2 pos, ClayButtonPressedCallback press ) {
-	MainSectionButtonData * data = Clone( ClayAllocator(), MainSectionButtonData{
-		FindMaterial( categories[ idx ].icon_path ),
-		categories[ idx ].name,
-		categories[ idx ].bg_color,
-		categories[ idx ].state
+	MainSectionButtonData * data = Clone( ClayAllocator(), MainSectionButtonData {
+		.icon = FindMaterial( categories[ idx ].icon_path ),
+		.name = categories[ idx ].name,
+		.bg_color = categories[ idx ].bg_color,
+		.state = categories[ idx ].state,
 	} );
 
 	float viewport_width = frame_static.viewport_width * (1.0f - MAIN_MENU_SIZE_WIDTH);
@@ -1695,9 +1701,7 @@ static void MainMenu() {
 
 		CLAY( {
 			.id = CLAY_ID_LOCAL( "Top bar" ),
-			.layout = {
-				.sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( MAIN_MENU_BAR_HEIGHT ) },
-			},
+			.layout = { .sizing = { .width = CLAY_SIZING_PERCENT( 1.0f ), .height = CLAY_SIZING_PERCENT( MAIN_MENU_BAR_HEIGHT ) } },
 			.backgroundColor = ui_black.clay,
 		} ) {
 			CLAY( {
@@ -1855,7 +1859,7 @@ static void SendLoadout() {
 	Cmd_Execute( &temp, "setloadout {}", loadout );
 }
 
-static bool LoadoutButton( Span< const char > label, Vec2 icon_size, const Material * icon, bool selected ) {
+static bool LoadoutButton( Span< const char > label, Vec2 icon_size, PoolHandle< Material > icon, bool selected ) {
 	constexpr RGBA8 button_gray = RGBA8( 200, 200, 200, 255 );
 	Vec2 start_pos = ImGui::GetCursorPos();
 	ImGui::GetCursorPos();
@@ -1897,7 +1901,7 @@ static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 i
 	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
 		const WeaponDef::Properties * def = GetWeaponDefProperties( i );
 		if( def->category == category ) {
-			const Material * icon = FindMaterial( cgs.media.shaderWeaponIcon[ i ] );
+			PoolHandle< Material > icon = FindMaterial( cgs.media.shaderWeaponIcon[ i ] );
 			if( LoadoutButton( ToUpperASCII( &temp, def->name ), icon_size, icon, loadout.weapons[ def->category ] == i ) ) {
 				loadout.weapons[ def->category ] = i;
 				SendLoadout();
@@ -1915,7 +1919,7 @@ static void Perks( Vec2 icon_size ) {
 		if( GetPerkDef( i )->disabled )
 			continue;
 
-		const Material * icon = FindMaterial( cgs.media.shaderPerkIcon[ i ] );
+		PoolHandle< Material > icon = FindMaterial( cgs.media.shaderPerkIcon[ i ] );
 		if( LoadoutButton( ToUpperASCII( &temp, GetPerkDef( i )->name ), icon_size, icon, loadout.perk == i ) ) {
 			loadout.perk = i;
 			SendLoadout();
@@ -1930,7 +1934,7 @@ static void Gadgets( Vec2 icon_size ) {
 
 	for( GadgetType i = GadgetType( Gadget_None + 1 ); i < Gadget_Count; i++ ) {
 		const GadgetDef * def = GetGadgetDef( i );
-		const Material * icon = FindMaterial( cgs.media.shaderGadgetIcon[ i ] );
+		PoolHandle< Material > icon = FindMaterial( cgs.media.shaderGadgetIcon[ i ] );
 		if( LoadoutButton( ToUpperASCII( &temp, def->name ), icon_size, icon, loadout.gadget == i ) ) {
 			loadout.gadget = GadgetType( i );
 			SendLoadout();
@@ -1973,7 +1977,7 @@ static bool LoadoutMenu() {
 
 		ImGui::SetCursorPos( ImVec2( displaySize.x - title_height, 0.0f ) );
 
-		const Material * icon = FindMaterial( "textures/sprays/peekatyou" );
+		PoolHandle< Material > icon = FindMaterial( "textures/sprays/peekatyou" );
 		Vec2 half_pixel = HalfPixelSize( icon );
 		if( ImGui::ImageButton( "random", icon, ImVec2( title_height, title_height ), half_pixel, 1.0f - half_pixel, Vec4( 0.0f ), Vec4( 1.0f ) ) ) {
 			for( WeaponCategory category = WeaponCategory( 0 ); category < WeaponCategory_Count; category++ ) {
@@ -2012,13 +2016,13 @@ static bool LoadoutMenu() {
 
 	bool should_close = false;
 	{
-		constexpr auto PrintMoveText = [] ( Span< const char > text, ImVec2 & textPos ) {
+		constexpr auto PrintMoveText = []( Span< const char > text, ImVec2 & textPos ) {
 			textPos.x -= ImGui::CalcTextSize( text ).x;
 			ImGui::SetCursorPos( textPos );
 			ImGui::Text( text );
 		};
 
-		constexpr auto PrintMoveImage = [] ( const Material * icon, size_t icon_size, ImVec2 & imgPos, ImVec4 color ) {
+		constexpr auto PrintMoveImage = []( PoolHandle< Material > icon, size_t icon_size, ImVec2 & imgPos, ImVec4 color ) {
 			Vec2 half_pixel = HalfPixelSize( icon );
 			imgPos.x -= icon_size;
 			ImGui::SetCursorPos( imgPos );

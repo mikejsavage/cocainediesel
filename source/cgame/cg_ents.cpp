@@ -19,9 +19,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "qcommon/srgb.h"
 #include "qcommon/time.h"
 #include "client/audio/api.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
+#include "client/renderer/gltf.h"
+#include "client/renderer/model.h"
 #include "client/renderer/text.h"
 
 static void CG_UpdateEntities();
@@ -405,14 +408,14 @@ static void DrawEntityModel( centity_t * cent ) {
 		palettes = ComputeMatrixPalettes( &temp, model.gltf, pose );
 	}
 
-	DrawModelConfig config = { };
-	config.draw_model.enabled = true;
-	config.draw_shadows.enabled = true;
+	DrawModelConfig config = {
+		.draw = true,
+		.cast_shadows = true,
+	};
 
 	if( cent->current.silhouetteColor.a > 0 ) {
 		if( ( cent->current.effects & EF_TEAM_SILHOUETTE ) == 0 || ISREALSPECTATOR() || cent->current.team == cg.predictedPlayerState.team ) {
-			config.draw_silhouette.enabled = true;
-			config.draw_silhouette.silhouette_color = sRGBToLinear( cent->current.silhouetteColor );
+			config.silhouette_color = sRGBToLinear( cent->current.silhouetteColor );
 		}
 	}
 
@@ -615,31 +618,31 @@ void DrawEntities() {
 			case ET_BAZOOKA:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/bazooka/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 25600.0f );
+				DrawLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 25600.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_LAUNCHER:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/launcher/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
+				DrawLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_FLASH:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/flash/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
+				DrawLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_ASSAULT:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/assault/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
+				DrawLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_BUBBLE:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/bubble/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
+				DrawLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_RIFLE:
@@ -664,7 +667,7 @@ void DrawEntities() {
 				break;
 			case ET_BLASTER:
 				DrawEntityTrail( cent, "loadout/blaster/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 3200.0f );
+				DrawLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 3200.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_SAWBLADE:
@@ -675,7 +678,7 @@ void DrawEntities() {
 			case ET_STICKY:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "loadout/sticky/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
+				DrawLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_AXE:
@@ -705,7 +708,7 @@ void DrawEntities() {
 				break;
 
 			case ET_LIGHT:
-				DrawDynamicLight( cent->current.origin, sRGBToLinear( cent->current.color.rgb() ), cent->current.radius );
+				DrawLight( cent->current.origin, sRGBToLinear( cent->current.color.rgb() ), cent->current.radius );
 				break;
 
 			case ET_DECAL: {

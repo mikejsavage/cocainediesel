@@ -352,7 +352,7 @@ void CG_SC_Obituary( const Tokenized & args ) {
 	}
 }
 
-static const Material * DamageTypeToIcon( DamageType type ) {
+static PoolHandle< Material > DamageTypeToIcon( DamageType type ) {
 	WeaponType weapon;
 	GadgetType gadget;
 	WorldDamage world;
@@ -407,14 +407,12 @@ void CG_DrawScope() {
 	if( def->zoom_type == Zoom_Scope && def->zoom_fov != 0 && cg.predictedPlayerState.zoom_time > 0 ) {
 		float frac = cg.predictedPlayerState.zoom_time / float( ZOOMTIME );
 
-		PipelineState pipeline;
-		pipeline.pass = frame_static.ui_pass;
-		pipeline.shader = &shaders.scope;
-		pipeline.depth_func = DepthFunc_Disabled;
-		pipeline.blend_func = BlendFunc_Blend;
-		pipeline.write_depth = false;
-		pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-		DrawFullscreenMesh( pipeline );
+		PipelineState pipeline = {
+			.shader = shaders.scope,
+			.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
+		};
+
+		Draw( RenderPass_HUD, pipeline, FullscreenMesh() );
 
 		if( cg.predictedPlayerState.weapon == Weapon_Sniper ) {
 			Vec3 forward = -frame_static.V.row2().xyz();
@@ -987,7 +985,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 			continue;
 		}
 
-		const Material * pic = DamageTypeToIcon( obr->damage_type );
+		PoolHandle< Material > pic = DamageTypeToIcon( obr->damage_type );
 
 		float attacker_width = TextVisualBounds( font, font_size, MakeSpan( obr->attacker ) ).maxs.x;
 		float victim_width = TextVisualBounds( font, font_size, MakeSpan( obr->victim ) ).maxs.x;
@@ -1233,7 +1231,7 @@ static Optional< u16 > CheckClayFont( lua_State * L, int idx ) {
 	if( lua_isnoneornil( L, -1 ) )
 		return NONE;
 
-	constexpr const char * names[ ClayFont_Count + 1 ] = { "regular", "bold", "italic", "bold-italic", NULL };
+	constexpr const char * names[] = { "regular", "bold", "italic", "bold-italic", NULL };
 
 	return luaL_checkoption( L, -1, names[ 0 ], names );
 }

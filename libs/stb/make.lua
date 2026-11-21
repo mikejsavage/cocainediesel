@@ -15,6 +15,7 @@ lib( "stb_rect_pack", { "libs/stb/stb_rect_pack.cpp" } )
 lib( "stb_truetype", { "libs/stb/stb_truetype.cpp" } )
 
 lib( "stb_vorbis", { "libs/stb/stb_vorbis.cpp" } )
-msvc_obj_cxxflags( "libs/stb/stb_vorbis.cpp", "/O2 /wd4244 /wd4245 /wd4456 /wd4457 /wd4701" )
+msvc_obj_cxxflags( "libs/stb/stb_vorbis.cpp", "/wd4244 /wd4245 /wd4456 /wd4457 /wd4701" )
 
+msvc_obj_cxxflags( "libs/stb/.*%.cpp", "/O2" )
 gcc_obj_cxxflags( "libs/stb/.*%.cpp", "-O2 -w" )

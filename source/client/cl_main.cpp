@@ -27,11 +27,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/downloads.h"
 #include "client/gltf.h"
 #include "client/keys.h"
-#include "client/threadpool.h"
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
 #include "client/livepp.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
 #include "client/renderer/text.h"
 #include "server/server.h"
 #include "qcommon/compression.h"
@@ -39,6 +38,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/hash.h"
 #include "qcommon/fs.h"
 #include "qcommon/string.h"
+#include "qcommon/threadpool.h"
 #include "qcommon/time.h"
 #include "qcommon/version.h"
 #include "gameshared/gs_public.h"
@@ -1070,20 +1070,24 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	VID_CheckChanges();
 
+	// force vsync in the menus
+	bool vsync = Cvar_Bool( "vid_vsync" ) || cls.state != CA_ACTIVE;
+
 	// update the screen
-	int viewport_width, viewport_height;
-	GetFramebufferSize( &viewport_width, &viewport_height );
-	RendererBeginFrame( viewport_width, viewport_height );
+	u32 viewport_width, viewport_height;
+	bool minimized;
+	GetFramebufferSize( &viewport_width, &viewport_height, &minimized );
+	RendererBeginFrame( viewport_width, viewport_height, minimized, vsync );
 	ClayBeginFrame();
 
 	SCR_UpdateScreen();
-
-	RendererSubmitFrame();
 
 	// update audio
 	if( cls.state != CA_ACTIVE ) {
 		SoundFrame( Vec3( 0.0f ), Vec3( 0.0f ), Vec3( 1.0f, 0.0f, 0.0f ), Vec3( 0.0f, 0.0f, 1.0f ) );
 	}
+
+	RendererEndFrame();
 
 	allRealMsec = 0;
 	allGameMsec = 0;
@@ -1091,8 +1095,6 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	cl.prevviewangles = cl.viewangles;
 
 	cls.framecount++;
-
-	SwapBuffers();
 }
 
 void CL_Init() {
@@ -1120,24 +1122,23 @@ void CL_Init() {
 
 	InitThreadPool();
 
-	{
 #if PLATFORM_WINDOWS
-		// both VID_Init and InitAssets need to run on the main thread on Windows
-		VID_Init();
+	// both VID_Init and InitAssets need to run on the main thread on Windows
+	SDL_Window * window = VID_Init();
+	{
 		TempAllocator temp = cls.frame_arena.temp();
 		InitAssets( &temp );
-#else
-		// overlap loading assets and creating a window
-		ThreadPoolDo( []( TempAllocator * temp, void * data ) {
-			InitAssets( temp );
-		} );
-		VID_Init();
-
-		ThreadPoolFinish();
-#endif
 	}
+#else
+	// overlap loading assets and creating a window
+	ThreadPoolDo( []( TempAllocator * temp, void * data ) {
+		InitAssets( temp );
+	} );
+	SDL_Window * window = VID_Init();
+	ThreadPoolFinish();
+#endif
 
-	InitRenderer();
+	InitRenderer( window, Cvar_Bool( "vid_vsync" ) );
 	InitGLTFModels();
 	InitMaps();
 	InitSound();
@@ -1158,7 +1159,7 @@ void CL_Init() {
 	InitServerBrowser();
 	InitDemoBrowser();
 
-	CL_InitImGui();
+	CL_InitImGui( window );
 	InitClay();
 	UI_Init();
 
@@ -1166,6 +1167,8 @@ void CL_Init() {
 	cls.fontNormalBold = RegisterFont( "fonts/Decalotype-Black" );
 	cls.fontItalic = RegisterFont( "fonts/Decalotype-BoldItalic" );
 	cls.fontBoldItalic = RegisterFont( "fonts/Decalotype-BlackItalic" );
+
+	FlushStagingBuffer();
 }
 
 void CL_Shutdown() {

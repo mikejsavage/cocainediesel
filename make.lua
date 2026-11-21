@@ -1,5 +1,6 @@
 require( "ggbuild.gen_ninja" )
 require( "ggbuild.git_version" )
+require( "ggbuild.shaders" )
 
 global_cxxflags( "-I source -I libs" )
 
@@ -37,7 +38,6 @@ require( "libs.discord" )
 require( "libs.dr_mp3" )
 require( "libs.freetype" )
 require( "libs.gg" )
-require( "libs.glad" )
 require( "libs.imgui" )
 require( "libs.jsmn" )
 require( "libs.luau" )
@@ -51,6 +51,7 @@ require( "libs.rgbcx" )
 require( "libs.sdl" )
 require( "libs.stb" )
 require( "libs.tracy" )
+require( "libs.volk" )
 require( "libs.zstd" )
 
 require( "source.tools.bc4" )
@@ -66,7 +67,7 @@ obj_cxxflags( "source/client/cl_imgui.cpp", "-I libs/sdl" )
 obj_cxxflags( "source/client/cl_menus.cpp", "-I libs/sdl" )
 obj_cxxflags( "source/client/cl_sdl.cpp", "-I libs/sdl" )
 obj_cxxflags( "source/client/keys.cpp", "-I libs/sdl" )
-obj_cxxflags( "source/client/renderer/backend.cpp", "-I libs/sdl" )
+obj_cxxflags( "source/client/renderer/vulkan_backend.cpp", "-I libs/vulkan-headers -I libs/sdl" )
 
 obj_cxxflags( "source/qcommon/linear_algebra_kernels.cpp", "-O2" )
 
@@ -91,7 +92,6 @@ bin( "client", {
 		"ggentropy",
 		"ggformat",
 		"ggtime",
-		"glad",
 		"jsmn",
 		"luau",
 		"monocypher",
@@ -103,6 +103,7 @@ bin( "client", {
 		"stb_rect_pack",
 		"stb_vorbis",
 		"tracy",
+		"volk",
 		"zstd",
 		platform_curl_libs,
 	},
@@ -140,3 +141,4 @@ bin( "server", {
 } )
 
 write_ninja_script()
+write_shaders_ninja_script()

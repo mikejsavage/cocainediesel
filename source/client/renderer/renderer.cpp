@@ -4,16 +4,18 @@
 #include "qcommon/string.h"
 #include "qcommon/time.h"
 #include "client/client.h"
+#include "client/assets.h"
 #include "client/gltf.h"
 #include "client/renderer/renderer.h"
-#include "client/renderer/blue_noise.h"
 #include "client/renderer/cdmap.h"
 #include "client/renderer/gltf.h"
-#include "client/renderer/rgb_noise.h"
+#include "client/renderer/private.h"
 #include "client/renderer/skybox.h"
 #include "client/renderer/text.h"
+#include "client/platform/renderdoc.h"
 
 #include "client/maps.h"
+#include "cgame/cg_dynamics.h"
 #include "cgame/cg_particles.h"
 
 #include "imgui/imgui.h"
@@ -21,70 +23,55 @@
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
 
-FrameStatic frame_static;
-static u64 frame_counter;
-
-static Texture rgb_noise;
-static Texture blue_noise;
-
 static Mesh fullscreen_mesh;
-
-struct DynamicGeometry {
-	static constexpr size_t BufferSize = Megabytes( 1 );
-
-	StreamingBuffer buffer;
-	size_t cursor;
-};
-
-static DynamicGeometry dynamic_geometry;
 
 static char last_screenshot_date[ 256 ];
 static int same_date_count;
 
 static u32 last_viewport_width, last_viewport_height;
-static int last_msaa;
+static u32 last_msaa;
 static ShadowQuality last_shadow_quality;
 
 static Cvar * r_samples;
 static Cvar * r_shadow_quality;
 
 static void TakeScreenshot() {
-	RGB8 * framebuffer = AllocMany< RGB8 >( sys_allocator, frame_static.viewport_width * frame_static.viewport_height );
-	defer { Free( sys_allocator, framebuffer ); };
-	DownloadFramebuffer( framebuffer );
-
-	stbi_flip_vertically_on_write( 1 );
-
-	int ok = stbi_write_png_to_func( []( void * context, void * png, int png_size ) {
-		char date[ 256 ];
-		FormatCurrentTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
-
-		TempAllocator temp = cls.frame_arena.temp();
-
-		DynamicString path( &temp, "{}/screenshots/{}", HomeDirPath(), date );
-
-		if( StrEqual( date, last_screenshot_date ) ) {
-			same_date_count++;
-			path.append( "_{}", same_date_count );
-		}
-		else {
-			same_date_count = 0;
-		}
-		strcpy( last_screenshot_date, date );
-
-		path.append( ".png" );
-
-		if( WriteFile( &temp, path.c_str(), png, png_size ) ) {
-			Com_Printf( "Wrote %s\n", path.c_str() );
-		}
-		else {
-			Com_Printf( "Couldn't write %s\n", path.c_str() );
-		}
-	}, NULL, frame_static.viewport_width, frame_static.viewport_height, 3, framebuffer, 0 );
-
-	if( ok == 0 ) {
-		Com_Printf( "Couldn't convert screenshot to PNG\n" );
-	}
+	// RGB8 * framebuffer = AllocMany< RGB8 >( sys_allocator, frame_static.viewport_width * frame_static.viewport_height );
+	// defer { Free( sys_allocator, framebuffer ); };
+	// DownloadFramebuffer( framebuffer );
+    //
+	// stbi_flip_vertically_on_write( 1 );
+    //
+	// int ok = stbi_write_png_to_func( []( void * context, void * png, int png_size ) {
+	// 	char date[ 256 ];
+	// 	FormatCurrentTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
+    //
+	// 	TempAllocator temp = cls.frame_arena.temp();
+    //
+	// 	DynamicString path( &temp, "{}/screenshots/{}", HomeDirPath(), date );
+    //
+	// 	if( StrEqual( date, last_screenshot_date ) ) {
+	// 		same_date_count++;
+	// 		path.append( "_{}", same_date_count );
+	// 	}
+	// 	else {
+	// 		same_date_count = 0;
+	// 	}
+	// 	strcpy( last_screenshot_date, date );
+    //
+	// 	path.append( ".png" );
+    //
+	// 	if( WriteFile( &temp, path.c_str(), png, png_size ) ) {
+	// 		Com_Printf( "Wrote %s\n", path.c_str() );
+	// 	}
+	// 	else {
+	// 		Com_Printf( "Couldn't write %s\n", path.c_str() );
+	// 	}
+	// }, NULL, frame_static.viewport_width, frame_static.viewport_height, 3, framebuffer, 0 );
+    //
+	// if( ok == 0 ) {
+	// 	Com_Printf( "Couldn't convert screenshot to PNG\n" );
+	// }
 }
 
 static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
@@ -99,52 +86,21 @@ static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
 	return { };
 }
 
-void InitRenderer() {
+void InitRenderer( SDL_Window * window, bool vsync ) {
 	TracyZoneScoped;
 
-	InitRenderBackend();
+	InitRenderBackend( window, vsync );
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	r_samples = NewCvar( "r_samples", "0", CvarFlag_Archive );
+	r_samples = NewCvar( "r_samples", "1", CvarFlag_Archive );
 	r_shadow_quality = NewCvar( "r_shadow_quality", temp.sv( "{}", ShadowQuality_Ultra ), CvarFlag_Archive );
 
 	frame_static = { };
-	frame_counter = 0;
 	last_viewport_width = 0;
 	last_viewport_height = 0;
 	last_msaa = 0;
 	last_shadow_quality = ShadowQuality_Count;
-
-	{
-		int w, h;
-		u8 * img = stbi_load_from_memory( rgb_noise_png, rgb_noise_png_len, &w, &h, NULL, 4 );
-		Assert( img != NULL );
-
-		rgb_noise = NewTexture( TextureConfig {
-			.format = TextureFormat_RGBA_U8_sRGB,
-			.width = u32( w ),
-			.height = u32( h ),
-			.data = img,
-		} );
-
-		stbi_image_free( img );
-	}
-
-	{
-		int w, h;
-		u8 * img = stbi_load_from_memory( blue_noise_png, blue_noise_png_len, &w, &h, NULL, 1 );
-		Assert( img != NULL );
-
-		blue_noise = NewTexture( TextureConfig {
-			.format = TextureFormat_R_S8,
-			.width = u32( w ),
-			.height = u32( h ),
-			.data = img,
-		} );
-
-		stbi_image_free( img );
-	}
 
 	{
 		constexpr Vec3 positions[] = {
@@ -153,14 +109,12 @@ void InitRenderer() {
 			Vec3( -1.0f, 3.0f, 0.0f ),
 		};
 
-		MeshConfig config = { };
-		config.name = "Fullscreen triangle";
-		config.set_attribute( VertexAttribute_Position, NewGPUBuffer( positions, sizeof( positions ), "Fullscreen triangle vertices" ) );
-		config.num_vertices = 3;
-		fullscreen_mesh = NewMesh( config );
+		fullscreen_mesh = { };
+		fullscreen_mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx3 };
+		fullscreen_mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec3 );
+		fullscreen_mesh.vertex_buffers[ 0 ] = NewBuffer( "Fullscreen triangle vertices", positions );
+		fullscreen_mesh.num_vertices = 3;
 	}
-
-	dynamic_geometry.buffer = NewStreamingBuffer( DynamicGeometry::BufferSize, "Dynamic geometry buffer" );
 
 	AddCommand( "screenshot", []( const Tokenized & args ) { TakeScreenshot(); } );
 	strcpy( last_screenshot_date, "" );
@@ -173,44 +127,14 @@ void InitRenderer() {
 	InitVisualEffects();
 }
 
-static void DeleteRenderTargets() {
-	DeleteRenderTargetAndTextures( frame_static.render_targets.silhouette_mask );
-	DeleteRenderTarget( frame_static.render_targets.postprocess_preui );
-	DeleteRenderTarget( frame_static.render_targets.postprocess );
-	DeleteRenderTarget( frame_static.render_targets.msaa );
-	DeleteRenderTargetAndTextures( frame_static.render_targets.postprocess_masked );
-	DeleteRenderTargetAndTextures( frame_static.render_targets.msaa_masked );
-	DeleteRenderTarget( frame_static.render_targets.postprocess_onlycolor );
-	DeleteRenderTarget( frame_static.render_targets.msaa_onlycolor );
-
-	DeleteTexture( frame_static.render_targets.shadowmaps[ 0 ].depth_attachment );
-	for( RenderTarget & rt : frame_static.render_targets.shadowmaps ) {
-		DeleteRenderTarget( rt );
-	}
-
-	frame_static.render_targets = { };
-}
-
 void ShutdownRenderer() {
 	TracyZoneScoped;
 
-	FlushRenderBackend();
-
-	ShutdownVisualEffects();
-	ShutdownSkybox();
-	ShutdownText();
+	ShutdownRenderBackend();
 	ShutdownMaterials();
 	ShutdownShaders();
 
-	DeleteTexture( blue_noise );
-	DeleteMesh( fullscreen_mesh );
-	DeleteRenderTargets();
-
-	DeleteStreamingBuffer( dynamic_geometry.buffer );
-
 	RemoveCommand( "screenshot" );
-
-	ShutdownRenderBackend();
 }
 
 static Mat4 OrthographicProjection( float left, float top, float right, float bottom, float near_plane, float far_plane ) {
@@ -227,8 +151,8 @@ static Mat4 OrthographicProjection( float left, float top, float right, float bo
 
 		0.0f,
 		0.0f,
-		-2.0f / ( far_plane - near_plane ),
-		-( far_plane + near_plane ) / ( far_plane - near_plane ),
+		-1.0f / ( far_plane - near_plane ),
+		-( near_plane ) / ( far_plane - near_plane ),
 
 		0.0f,
 		0.0f,
@@ -239,7 +163,15 @@ static Mat4 OrthographicProjection( float left, float top, float right, float bo
 
 static Mat4 PerspectiveProjection( float vertical_fov_degrees, float aspect_ratio, float near_plane ) {
 	float tan_half_vertical_fov = tanf( Radians( vertical_fov_degrees ) / 2.0f );
-	constexpr float epsilon = 4.8e-7f; // http://www.terathon.com/gdc07_lengyel.pdf
+	/*
+	 * NOTE(mike 20260514): see http://www.terathon.com/gdc07_lengyel.pdf we use a projection matrix
+	 * with a [0,1] depth range rather than [-1,1], and an inverse depth buffer so the matrix is
+	 * different, and the epsilon can be smaller. his epsilon is slightly greater than 2 * ulp(2),
+	 * the new epsilon is slightly greater than ulp(1)
+	 * I am not entirely convinced that we don't need to double this because I didn't read the whole
+	 * thing but it seems to work
+	 */
+	constexpr float epsilon = 1.2e-7f;
 
 	return Mat4(
 		1.0f / ( tan_half_vertical_fov * aspect_ratio ),
@@ -254,8 +186,8 @@ static Mat4 PerspectiveProjection( float vertical_fov_degrees, float aspect_rati
 
 		0.0f,
 		0.0f,
-		epsilon - 1.0f,
-		( epsilon - 2.0f ) * near_plane,
+		-epsilon,
+		( 1.0f - epsilon ) * near_plane,
 
 		0.0f,
 		0.0f,
@@ -272,10 +204,10 @@ static Mat4 InvertPerspectiveProjection( const Mat4 & P ) {
 	float e = P.col2.w;
 
 	return Mat4(
-		1.0f / a, 0.0f, 0.0f, 0.0f,
-		0.0f, 1.0f / b, 0.0f, 0.0f,
-		0.0f, 0.0f, 0.0f, 1.0f / e,
-		0.0f, 0.0f, 1.0f / d, -c / ( d * e )
+		1.0f / a, 0.0f,     0.0f,     0.0f,
+		0.0f,     1.0f / b, 0.0f,     0.0f,
+		0.0f,     0.0f,     0.0f,     1.0f / e,
+		0.0f,     0.0f,     1.0f / d, -c / ( d * e )
 	);
 }
 
@@ -305,184 +237,140 @@ static Mat3x4 InvertViewMatrix( const Mat3x4 & V, Vec3 position ) {
 	);
 }
 
-static UniformBlock UploadViewUniforms( const Mat3x4 & V, const Mat3x4 & inverse_V, const Mat4 & P, const Mat4 & inverse_P, Vec3 camera_pos, Vec2 viewport_size, float near_plane, int samples, Vec3 light_dir ) {
-	return UploadUniformBlock( V, inverse_V, P, inverse_P, camera_pos, viewport_size, near_plane, samples, light_dir );
-}
+static void CreateRenderTargets( bool first_time ) {
+	TracyZoneScoped;
 
-static void CreateRenderTargets() {
-	DeleteRenderTargets();
+	frame_static.render_targets.silhouette_mask = NewTexture( TextureConfig {
+		.name = "Silhouette mask RT",
+		.format = TextureFormat_RGBA_U8_sRGB,
+		.width = frame_static.viewport_width,
+		.height = frame_static.viewport_height,
+		.dedicated_allocation = true,
+	}, first_time ? NONE : Optional( frame_static.render_targets.silhouette_mask ) );
 
-	{
-		RenderTargetConfig rt;
-		rt.color_attachments[ FragmentShaderOutput_Albedo ] = {
-			NewTexture( TextureConfig {
-				.format = TextureFormat_RGBA_U8_sRGB,
-				.width = frame_static.viewport_width,
-				.height = frame_static.viewport_height,
-			} ),
-		};
-
-		frame_static.render_targets.silhouette_mask = NewRenderTarget( rt );
-	}
+	frame_static.render_targets.curved_surface_mask = NewTexture( TextureConfig {
+		.name = "Curved surface mask RT",
+		.format = TextureFormat_R_UI8,
+		.width = frame_static.viewport_width,
+		.height = frame_static.viewport_height,
+		.msaa_samples = frame_static.msaa_samples,
+		.dedicated_allocation = true,
+	}, first_time ? NONE : Optional( frame_static.render_targets.curved_surface_mask ) );
 
 	if( frame_static.msaa_samples > 1 ) {
-		Texture albedo = NewTexture( TextureConfig {
-			.format = TextureFormat_RGBA_U8_sRGB,
+		frame_static.render_targets.msaa_color = NewTexture( TextureConfig {
+			.name = "MSAA color RT",
+			.format = TextureFormat_Swapchain,
 			.width = frame_static.viewport_width,
 			.height = frame_static.viewport_height,
 			.msaa_samples = frame_static.msaa_samples,
-		} );
+			.dedicated_allocation = true,
+		}, frame_static.render_targets.msaa_color );
 
-		Texture curved_surface_mask = NewTexture( TextureConfig {
-			.format = TextureFormat_R_UI8,
-			.width = frame_static.viewport_width,
-			.height = frame_static.viewport_height,
-			.msaa_samples = frame_static.msaa_samples,
-		} );
-
-		Texture depth = NewTexture( TextureConfig {
+		frame_static.render_targets.msaa_depth = NewTexture( TextureConfig {
+			.name = "MSAA depth RT",
 			.format = TextureFormat_Depth,
 			.width = frame_static.viewport_width,
 			.height = frame_static.viewport_height,
 			.msaa_samples = frame_static.msaa_samples,
-		} );
-
-		{
-			RenderTargetConfig rt;
-			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
-			rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ] = { curved_surface_mask };
-			rt.depth_attachment = { depth };
-			frame_static.render_targets.msaa_masked = NewRenderTarget( rt );
-		}
-
-		{
-			RenderTargetConfig rt;
-			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
-			rt.depth_attachment = { depth };
-			frame_static.render_targets.msaa = NewRenderTarget( rt );
-		}
-
-		{
-			RenderTargetConfig rt;
-			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
-			frame_static.render_targets.msaa_onlycolor = NewRenderTarget( rt );
-		}
+			.dedicated_allocation = true,
+		}, frame_static.render_targets.msaa_depth );
+	}
+	else {
+		frame_static.render_targets.msaa_color = NONE;
 	}
 
-	{
-		Texture albedo_preui = NewTexture( TextureConfig {
-			.format = TextureFormat_RGBA_U8_sRGB,
-			.width = frame_static.viewport_width,
-			.height = frame_static.viewport_height,
-		} );
+		// Texture albedo_preui = NewTexture( TextureConfig {
+		// 	.format = TextureFormat_RGBA_U8_sRGB,
+		// 	.width = frame_static.viewport_width,
+		// 	.height = frame_static.viewport_height,
+		// } );
 
-		Texture albedo = NewTexture( TextureConfig {
-			.format = TextureFormat_RGBA_U8_sRGB,
-			.width = frame_static.viewport_width,
-			.height = frame_static.viewport_height,
-		} );
+	frame_static.render_targets.resolved_color0 = NewTexture( TextureConfig {
+		.name = "Color RT flip",
+		.format = TextureFormat_Swapchain,
+		.width = frame_static.viewport_width,
+		.height = frame_static.viewport_height,
+		.dedicated_allocation = true,
+	}, first_time ? NONE : Optional( frame_static.render_targets.resolved_color0 ) );
 
-		Texture curved_surface_mask = NewTexture( TextureConfig {
-			.format = TextureFormat_R_UI8,
-			.width = frame_static.viewport_width,
-			.height = frame_static.viewport_height,
-		} );
+	frame_static.render_targets.resolved_color1 = NewTexture( TextureConfig {
+		.name = "Color RT flop",
+		.format = TextureFormat_Swapchain,
+		.width = frame_static.viewport_width,
+		.height = frame_static.viewport_height,
+		.dedicated_allocation = true,
+	}, first_time ? NONE : Optional( frame_static.render_targets.resolved_color1 ) );
 
-		Texture depth = NewTexture( TextureConfig {
-			.format = TextureFormat_Depth,
-			.width = frame_static.viewport_width,
-			.height = frame_static.viewport_height,
-		} );
+	frame_static.render_targets.resolved_depth = NewTexture( TextureConfig {
+		.name = "Depth RT",
+		.format = TextureFormat_Depth,
+		.width = frame_static.viewport_width,
+		.height = frame_static.viewport_height,
+		.dedicated_allocation = true,
+	}, first_time ? NONE : Optional( frame_static.render_targets.resolved_depth ) );
 
-		{
-			RenderTargetConfig rt;
-			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo_preui };
-			rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ] = { curved_surface_mask };
-			rt.depth_attachment = { depth };
-			frame_static.render_targets.postprocess_masked = NewRenderTarget( rt );
-		}
-
-		{
-			RenderTargetConfig rt;
-			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo };
-			rt.depth_attachment = { depth };
-			frame_static.render_targets.postprocess = NewRenderTarget( rt );
-		}
-
-		{
-			RenderTargetConfig rt;
-			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo_preui };
-			rt.depth_attachment = { depth };
-			frame_static.render_targets.postprocess_preui = NewRenderTarget( rt );
-		}
-
-		{
-			RenderTargetConfig rt;
-			rt.color_attachments[ FragmentShaderOutput_Albedo ] = { albedo_preui };
-			frame_static.render_targets.postprocess_onlycolor = NewRenderTarget( rt );
-		}
-	}
-
-	{
-		Texture shadowmap = NewTexture( TextureConfig {
-			.format = TextureFormat_Depth,
-			.width = frame_static.shadow_parameters.resolution,
-			.height = frame_static.shadow_parameters.resolution,
-			.num_layers = frame_static.shadow_parameters.num_cascades,
-		} );
-
-		for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
-			frame_static.render_targets.shadowmaps[ i ] = NewRenderTarget( RenderTargetConfig {
-				.depth_attachment = RenderTargetConfig::Attachment { shadowmap, i }
-			} );
-		}
-	}
+	frame_static.render_targets.shadowmap = NewTexture( TextureConfig {
+		.name = "Shadowmap RT",
+		.format = TextureFormat_Depth,
+		.width = frame_static.shadow_parameters.resolution,
+		.height = frame_static.shadow_parameters.resolution,
+		.num_layers = frame_static.shadow_parameters.num_cascades,
+		.dedicated_allocation = true,
+	}, first_time ? NONE : Optional( frame_static.render_targets.shadowmap ) );
 }
 
-namespace tracy {
-struct SourceLocationData {
-	const char * name;
-	const char * function;
-	const char * file;
-	uint32_t line;
-	uint32_t color;
-};
-}
+void RendererBeginFrame( u32 viewport_width, u32 viewport_height, bool minimized, bool vsync ) {
+	TracyZoneScoped;
 
-void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
+	if( ModifiedAssetPaths().n > 0 ) {
+		// NOTE(mike 20260403): we need to wait for all GPU work to finish before we can destroy GPU
+		// stuff that got hotloaded so we need e.g. vkDeviceWaitIdle. from a Vulkan perspective
+		// calling FlushStagingBuffer to achieve this seems pointless, but Metal has no
+		// DeviceWaitIdle equivalent and needs us to create an empty command buffer and call
+		// waitUntilCompleted(), which is pretty much exactly what FlushStagingBuffer does.
+		FlushStagingBuffer();
+	}
+
 	HotloadShaders();
 	HotloadMaterials();
 	HotloadGLTFModels();
 	HotloadMaps();
 	HotloadVisualEffects();
 
-	ClearMaterialStaticUniforms();
-
-	RenderBackendBeginFrame();
-
-	dynamic_geometry.cursor = 0;
-
-	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer > 16 || r_samples->integer == 1 ) {
-		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
-		Cvar_Set( "r_samples", r_samples->default_value );
+	if( ModifiedAssetPaths().n > 0 ) {
+		FlushStagingBuffer();
 	}
+
+	memset( &frame_static.render_passes, 0, sizeof( frame_static.render_passes ) );
+
+	RenderBackendWaitForNewFrame();
 
 	if( r_shadow_quality->integer < ShadowQuality_Low || r_shadow_quality->integer > ShadowQuality_Ultra ) {
 		Com_Printf( "Invalid r_shadow_quality value (%d), resetting\n", r_shadow_quality->integer );
 		Cvar_Set( "r_shadow_quality", r_shadow_quality->default_value );
 	}
 
-	frame_static.viewport_width = Max2( u32( 1 ), viewport_width );
-	frame_static.viewport_height = Max2( u32( 1 ), viewport_height );
-	frame_static.viewport = Vec2( frame_static.viewport_width, frame_static.viewport_height );
-	frame_static.viewport_resized = frame_static.viewport_width != last_viewport_width || frame_static.viewport_height != last_viewport_height;
+	frame_static.viewport_width = Max2( 1_u32, viewport_width );
+	frame_static.viewport_height = Max2( 1_u32, viewport_height ),
+	frame_static.viewport = Vec2( viewport_width, viewport_height );
+	frame_static.minimized = minimized;
+	frame_static.viewport_resized = viewport_width > 0 && viewport_height > 0 && ( viewport_width != last_viewport_width || viewport_height != last_viewport_height );
 	frame_static.aspect_ratio = float( frame_static.viewport_width ) / float( frame_static.viewport_height );
 	frame_static.msaa_samples = r_samples->integer;
 	frame_static.shadow_quality = ShadowQuality( r_shadow_quality->integer );
 	frame_static.shadow_parameters = GetShadowParameters( frame_static.shadow_quality );
 
+	int capture = 0;
+	RenderBackendBeginFrame( vsync, capture );
+
+	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer < 0 || !HasAnyBit( RenderBackendSupportedMSAA(), u32( r_samples->integer ) ) ) {
+		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
+		Cvar_Set( "r_samples", r_samples->default_value );
+	}
+
 	if( frame_static.viewport_resized || frame_static.msaa_samples != last_msaa || frame_static.shadow_quality != last_shadow_quality ) {
-		CreateRenderTargets();
+		CreateRenderTargets( last_viewport_width == 0 );
 	}
 
 	last_viewport_width = viewport_width;
@@ -490,110 +378,22 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	last_msaa = frame_static.msaa_samples;
 	last_shadow_quality = frame_static.shadow_quality;
 
-	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat3x4::Identity(), Mat3x4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples, Vec3() );
-	frame_static.identity_model_uniforms = UploadModelUniforms( Mat3x4::Identity() );
-	frame_static.identity_material_static_uniforms = UploadMaterialStaticUniforms( 0.0f, 64.0f );
-	frame_static.identity_material_dynamic_uniforms = UploadMaterialDynamicUniforms( white.linear );
-
-#define TRACY_HACK( name ) { name, __FUNCTION__, __FILE__, uint32_t( __LINE__ ), 0 }
-	static const tracy::SourceLocationData particle_update_tracy = TRACY_HACK( "Update particles" );
-	static const tracy::SourceLocationData particle_setup_indirect_tracy = TRACY_HACK( "Write particle indirect draw buffer" );
-	static const tracy::SourceLocationData tile_culling_tracy = TRACY_HACK( "Decal/dlight tile culling" );
-	static const tracy::SourceLocationData write_shadowmap_tracy = TRACY_HACK( "Write shadowmap" );
-	static const tracy::SourceLocationData world_opaque_prepass_tracy = TRACY_HACK( "World z-prepass" );
-	static const tracy::SourceLocationData world_opaque_tracy = TRACY_HACK( "Render world opaque" );
-	static const tracy::SourceLocationData sky_tracy = TRACY_HACK( "Render sky" );
-	static const tracy::SourceLocationData write_silhouette_buffer_tracy = TRACY_HACK( "Write silhouette buffer" );
-	static const tracy::SourceLocationData nonworld_opaque_outlined_tracy = TRACY_HACK( "Render nonworld opaque outlined" );
-	static const tracy::SourceLocationData add_outlines_tracy = TRACY_HACK( "Render outlines" );
-	static const tracy::SourceLocationData nonworld_opaque_tracy = TRACY_HACK( "Render nonworld opaque" );
-	static const tracy::SourceLocationData msaa_tracy = TRACY_HACK( "Resolve MSAA" );
-	static const tracy::SourceLocationData transparent_tracy = TRACY_HACK( "Render transparent" );
-	static const tracy::SourceLocationData silhouettes_tracy = TRACY_HACK( "Render silhouettes" );
-	static const tracy::SourceLocationData postprocess_preui_tracy = TRACY_HACK( "Postprocess (before UI)" );
-	static const tracy::SourceLocationData ui_tracy = TRACY_HACK( "Render game HUD" );
-	static const tracy::SourceLocationData postprocess_tracy = TRACY_HACK( "Postprocess" );
-	static const tracy::SourceLocationData post_ui_tracy = TRACY_HACK( "Render non-game UI" );
-#undef TRACY_HACK
-
-	frame_static.particle_update_pass = AddRenderPass( &particle_update_tracy );
-	frame_static.particle_setup_indirect_pass = AddRenderPass( RenderPassConfig {
-		.barrier = true,
-		.tracy = &particle_setup_indirect_tracy,
+	frame_static.ortho_view_uniforms = NewTempBuffer( ViewUniforms {
+		.V = Mat3x4::Identity(),
+		.inverse_V = Mat3x4::Identity(),
+		.P = OrthographicProjection( 0.0f, 0.0f, viewport_width, viewport_height, -1.0f, 1.0f ),
+		.inverse_P = Mat4::Identity(),
+		.camera_pos = Vec3( 0.0f ),
+		.viewport_size = frame_static.viewport,
+		.near_clip = -1.0f,
+		.sun_direction = Vec3( 0.0f ),
 	} );
-	frame_static.tile_culling_pass = AddRenderPass( &tile_culling_tracy );
-
-	Vec4 clear_color = Vec4( 0.0f );
-	float clear_depth = 1.0f;
-
-	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
-		frame_static.shadowmap_pass[ i ] = AddRenderPass( &write_shadowmap_tracy, frame_static.render_targets.shadowmaps[ i ], NONE, clear_depth );
-	}
-
-	bool msaa = frame_static.msaa_samples;
-	if( msaa ) {
-		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.msaa, clear_color, clear_depth );
-		frame_static.world_opaque_pass = AddRenderPass( RenderPassConfig {
-			.target = frame_static.render_targets.msaa_masked,
-			.barrier = true,
-			.tracy = &world_opaque_tracy,
-		} );
-		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.render_targets.msaa );
-	}
-	else {
-		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.render_targets.postprocess_preui, clear_color, clear_depth );
-		frame_static.world_opaque_pass = AddRenderPass( RenderPassConfig {
-			.target = frame_static.render_targets.postprocess_masked,
-			.barrier = true,
-			.tracy = &world_opaque_tracy,
-		} );
-		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.render_targets.postprocess_preui );
-	}
-
-	frame_static.write_silhouette_gbuffer_pass = AddRenderPass( &write_silhouette_buffer_tracy, frame_static.render_targets.silhouette_mask, clear_color, NONE );
-
-	if( msaa ) {
-		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.render_targets.msaa_masked );
-		frame_static.add_outlines_pass = AddRenderPass( &add_outlines_tracy, frame_static.render_targets.msaa_onlycolor );
-		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.render_targets.msaa );
-		AddRenderPass( RenderPassConfig {
-			.type = RenderPass_Blit,
-			.target = frame_static.render_targets.postprocess_preui,
-			.blit_source = frame_static.render_targets.msaa,
-			.tracy = &msaa_tracy,
-		} );
-	}
-	else {
-		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.render_targets.postprocess_masked );
-		frame_static.add_outlines_pass = AddRenderPass( &add_outlines_tracy, frame_static.render_targets.postprocess_onlycolor );
-		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.render_targets.postprocess_preui );
-	}
-
-	frame_static.transparent_pass = AddRenderPass( RenderPassConfig {
-		.target = frame_static.render_targets.postprocess_preui,
-		.barrier = true,
-		.tracy = &transparent_tracy,
-	} );
-
-	frame_static.add_silhouettes_pass = AddRenderPass( &silhouettes_tracy, frame_static.render_targets.postprocess_preui );
-
-	frame_static.postprocess_preui_pass = AddRenderPass( &postprocess_preui_tracy, frame_static.render_targets.postprocess );
-
-	frame_static.ui_pass = AddRenderPass( RenderPassConfig {
-		.target = frame_static.render_targets.postprocess,
-		.sorted = false,
-		.tracy = &ui_tracy,
-	} );
-
-	frame_static.postprocess_pass = AddRenderPass( &postprocess_tracy, clear_color );
-
-	frame_static.post_ui_pass = AddRenderPass( RenderPassConfig {
-		.sorted = false,
-		.tracy = &post_ui_tracy,
-	} );
+	frame_static.identity_model_transform_uniforms = NewTempBuffer( Mat3x4::Identity() );
+	frame_static.identity_material_properties_uniforms = NewTempBuffer( MaterialProperties { .shininess = 64.0f } );
+	frame_static.identity_material_color_uniforms = NewTempBuffer( white.linear );
 }
 
-static Mat4 InverseScaleTranslation( Mat4 m ) {
+static Mat4 InverseScaleTranslation( const Mat4 & m ) {
 	Mat4 inv = Mat4::Identity();
 	inv.col0.x = 1.0f / m.col0.x;
 	inv.col1.y = 1.0f / m.col1.y;
@@ -604,73 +404,60 @@ static Mat4 InverseScaleTranslation( Mat4 m ) {
 	return inv;
 }
 
-void SetupShadowCascades() {
+static void SetupShadowCascades() {
 	TracyZoneScoped;
 	constexpr float near_plane = 4.0f;
 	float cascade_dist[ 5 ];
-	constexpr u32 num_planes = ARRAY_COUNT( cascade_dist );
-	constexpr u32 num_cascades = num_planes - 1;
-	constexpr u32 num_corners = 4;
+	constexpr u32 max_num_cascades = ARRAY_COUNT( cascade_dist ) - 1;
+	u32 num_cascades = Min2( max_num_cascades, frame_static.shadow_parameters.num_cascades );
 
 	cascade_dist[ 0 ] = near_plane;
 	for( u32 i = 0; i < num_cascades; i++ ) {
 		cascade_dist[ i + 1 ] = frame_static.shadow_parameters.cascade_dists[ i ];
 	}
 
-	const Vec4 frustum_direction_corners[] = {
-		Vec4( -1.0f,  1.0f, 1.0f, 1.0f ),
-		Vec4(  1.0f,  1.0f, 1.0f, 1.0f ),
-		Vec4(  1.0f, -1.0f, 1.0f, 1.0f ),
-		Vec4( -1.0f, -1.0f, 1.0f, 1.0f ),
+	// fit a sphere around a segment of the view frustum per cascade
+	constexpr Vec4 frustum_corner_ndc = Vec4( 1.0f, 1.0f, 1.0f, 1.0f );
+	Vec4 frustum_corner = frame_static.inverse_V * ( frame_static.inverse_P * frustum_corner_ndc );
+	Vec3 frustum_corner_direction = Normalize( frustum_corner.xyz() / frustum_corner.w - frame_static.position );
+
+	Vec3 frustum_centers[ max_num_cascades ] = { };
+	for( u32 i = 0; i < num_cascades; i++ ) {
+		constexpr Vec4 frustum_center_ndc = Vec4( 0.0f, 0.0f, 0.5f, 1.0f );
+		Vec4 center = frame_static.inverse_V * ( frame_static.inverse_P * frustum_center_ndc );
+		frustum_centers[ i ] = center.xyz() / center.w;
+	}
+
+	// fit the light view to the sphere around each cascade frustum
+	Vec3 shadow_camera_positions[ max_num_cascades ];
+	Mat3x4 shadow_views[ max_num_cascades ];
+	Mat4 shadow_projections[ max_num_cascades ];
+	for( u32 i = 0; i < num_cascades; i++ ) {
+		Vec3 far_corner = frame_static.position + cascade_dist[ i + 1 ] * frustum_corner_direction;
+		float radius = Length( far_corner - frustum_centers[ i ] );
+		radius = ceilf( radius * 16.0f ) / 16.0f;
+		shadow_camera_positions[ i ] = frustum_centers[ i ] - frame_static.sun_direction * radius;
+
+		shadow_views[ i ] = ViewMatrix( shadow_camera_positions[ i ], frame_static.sun_direction );
+		shadow_projections[ i ] = OrthographicProjection( -radius, radius, radius, -radius, radius * 2.0f, 0.0f );
+	}
+
+	// bake uv remap from [-1,1] -> [0,1] and y = -y into the shadow matrix
+	constexpr Mat4 uv_remap = Mat4( Mat4Translation( 0.5f, -0.5f, 0.0f ) * Mat4Scale( 0.5f, -0.5f, 1.0f ) );
+	Mat4 m = uv_remap * shadow_projections[ 0 ] * Mat4( shadow_views[ 0 ] );
+
+	ShadowmapUniforms uniforms = {
+		.m = m,
+		.num_cascades = frame_static.shadow_parameters.num_cascades,
 	};
 
-	Vec3 frustum_directions[ num_corners ];
-	for( u32 i = 0; i < num_corners; i++ ) {
-		Vec4 corner = Mat4( frame_static.inverse_V ) * frame_static.inverse_P * frustum_direction_corners[ i ];
-		frustum_directions[ i ] = Normalize( frame_static.position - corner.xyz() / corner.w );
-	}
-
-	Vec3 frustum_corners[ num_planes ][ 4 ];
-	Vec3 frustum_centers[ num_planes ] = { };
-	u32 counts[ num_planes ] = { };
-	for( u32 i = 0; i < num_planes; i++ ) {
-		for( u32 j = 0; j < num_corners; j++ ) {
-			Vec3 corner = frame_static.position + frustum_directions[ j ] * cascade_dist[ i ];
-			frustum_corners[ i ][ j ] = corner;
-			frustum_centers[ i ] += corner;
-			counts[ i ]++;
-			frustum_centers[ ( i + 1 ) % num_planes ] += corner;
-			counts[ ( i + 1 ) % num_planes ]++;
-		}
-	}
-
-	Vec3 shadow_camera_positions[ num_planes ];
-	Mat3x4 shadow_views[ num_planes ];
-	Mat4 shadow_projections[ num_planes ];
-	for( u32 i = 0; i < num_planes; i++ ) {
-		frustum_centers[ i ] /= num_corners * 2;
-		float radius = 0.0f;
-		for( u32 j = 0; j < num_corners; j++ ) {
-			float dist = Length( frustum_corners[ i ][ j ] - frustum_centers[ i ] );
-			radius = Max2( radius, dist );
-			dist = Length( frustum_corners[ ( i - 1 ) % num_planes ][ j ] - frustum_centers[ i ] );
-			radius = Max2( radius, dist );
-		}
-		radius = roundf( radius * 16.0f ) / 16.0f;
-		shadow_camera_positions[ i ] = frustum_centers[ i ] - frame_static.light_direction * radius;
-
-		shadow_views[ i ] = ViewMatrix( shadow_camera_positions[ i ], frame_static.light_direction );
-		shadow_projections[ i ] = OrthographicProjection( -radius, radius, radius, -radius, 0.0f, radius * 2.0f );
-	}
-
-	Vec3 cascade_offsets[ num_cascades ];
-	Vec3 cascade_scales[ num_cascades ];
 	for( u32 i = 0; i < num_cascades; i++ ) {
-		Mat4 & shadow_projection = shadow_projections[ i + 1 ];
-		const Mat3x4 & shadow_view = shadow_views[ i + 1 ];
-		const Vec3 & shadow_camera_position = shadow_camera_positions[ i + 1 ];
+		Mat4 & shadow_projection = shadow_projections[ i ];
+		const Mat3x4 & shadow_view = shadow_views[ i ];
+		const Vec3 & shadow_camera_position = shadow_camera_positions[ i ];
 		Mat4 shadow_matrix = shadow_projection * Mat4( shadow_view );
 
+		// stabilize cascades
 		{
 			u32 shadowmap_size = frame_static.shadow_parameters.resolution;
 			Vec2 shadow_origin = ( shadow_matrix * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xy();
@@ -681,32 +468,36 @@ void SetupShadowCascades() {
 			shadow_projection.col3.y += rounded_offset.y;
 		}
 
+		frame_static.shadowmap_view_uniforms[ i ] = NewTempBuffer( ViewUniforms {
+			.V = shadow_view,
+			.P = shadow_projection,
+		} );
+
+		// remap i'th cascade uvs to 0'th cascade uvs
 		Mat3x4 inv_shadow_view = InvertViewMatrix( shadow_view, shadow_camera_position );
-		frame_static.shadowmap_view_uniforms[ i ] = UploadViewUniforms( shadow_view, Mat3x4::Identity(), shadow_projection, Mat4::Identity(), shadow_camera_position, Vec2(), cascade_dist[ i ], 0, frame_static.light_direction );
-
 		Mat4 inv_shadow_projection = InverseScaleTranslation( shadow_projection );
+		Mat4 inv_uv_remap = InverseScaleTranslation( uv_remap );
 
-		Mat4 tex_scale_bias = Mat4( Mat4Translation( 0.5f, 0.5f, 0.0f ) * Mat4Scale( 0.5f, 0.5f, 1.0f ) );
-		Mat4 inv_tex_scale_bias = InverseScaleTranslation( tex_scale_bias );
-
-		Mat4 inv_cascade = Mat4( shadow_views[ 0 ] * inv_shadow_view ) * inv_shadow_projection * inv_tex_scale_bias;
+		Mat4 inv_cascade = uv_remap * shadow_projections[ 0 ] * Mat4( shadow_views[ 0 ] * inv_shadow_view ) * inv_shadow_projection * inv_uv_remap;
 		Vec3 cascade_corner = ( inv_cascade * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xyz();
 		Vec3 other_corner = ( inv_cascade * Vec4( 1.0f, 1.0f, 1.0f, 1.0f ) ).xyz();
 
-		cascade_offsets[ i ] = -cascade_corner;
-		cascade_scales[ i ] = 1.0f / ( other_corner - cascade_corner );
+		uniforms.cascades[ i ] = {
+			.plane = cascade_dist[ i + 1 ],
+			.offset = -cascade_corner,
+			.scale = 1.0f / ( other_corner - cascade_corner ),
+		};
 	}
 
-	frame_static.shadow_uniforms = UploadUniformBlock(
-		s32( frame_static.shadow_parameters.num_cascades ), shadow_views[ 0 ],
-		cascade_dist[ 1 ], cascade_dist[ 2 ], cascade_dist[ 3 ], cascade_dist[ 4 ],
-		cascade_offsets[ 0 ], cascade_offsets[ 1 ], cascade_offsets[ 2 ], cascade_offsets[ 3 ],
-		cascade_scales[ 0 ], cascade_scales[ 1 ], cascade_scales[ 2 ], cascade_scales[ 3 ]
-	);
+	// NOTE(mike 20260319): this uploads slightly too much data because
+	// alignof(Mat3x4) is 16 on the CPU and not on the GPU, seems to be benign
+	frame_static.shadow_uniforms = NewTempBuffer( uniforms );
 }
 
 void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) {
-	float near_plane = 4.0f;
+	TempAllocator temp = cls.frame_arena.temp();
+
+	constexpr float near_plane = 1.0f;
 
 	frame_static.V = ViewMatrix( position, angles );
 	frame_static.inverse_V = InvertViewMatrix( frame_static.V, position );
@@ -721,89 +512,306 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 		t = Unlerp01( client_gs.gameState.sun_moved_from, cls.game_time, client_gs.gameState.sun_moved_to );
 	}
 	EulerDegrees3 sun_angles = LerpAngles( client_gs.gameState.sun_angles_from, t, client_gs.gameState.sun_angles_to );
-	AngleVectors( sun_angles, &frame_static.light_direction, NULL, NULL );
+	AngleVectors( sun_angles, &frame_static.sun_direction, NULL, NULL );
 
 	SetupShadowCascades();
 
-	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.inverse_V, frame_static.P, frame_static.inverse_P, position, frame_static.viewport, near_plane, frame_static.msaa_samples, frame_static.light_direction );
-}
-
-void RendererSubmitFrame() {
-	RenderBackendSubmitFrame();
-	frame_counter++;
-}
-
-size_t FrameSlot() {
-	return frame_counter % MAX_FRAMES_IN_FLIGHT;
-}
-
-const Texture * RGBNoiseTexture() {
-	return &rgb_noise;
-}
-
-const Texture * BlueNoiseTexture() {
-	return &blue_noise;
-}
-
-void DrawFullscreenMesh( const PipelineState & pipeline ) {
-	DrawMesh( fullscreen_mesh, pipeline );
-}
-
-static size_t AlignNonPow2( size_t x, size_t alignment ) {
-	return ( ( x + alignment - 1 ) / alignment ) * alignment;
-}
-
-template< typename T >
-static size_t FillDynamicGeometryBuffer( Span< const T > data, size_t alignment ) {
-	size_t frame_offset = dynamic_geometry.buffer.size * FrameSlot();
-	size_t aligned_offset = AlignNonPow2( frame_offset + dynamic_geometry.cursor, alignment );
-	memcpy( ( ( char * ) dynamic_geometry.buffer.ptr ) + aligned_offset, data.ptr, data.num_bytes() );
-	dynamic_geometry.cursor = aligned_offset + data.num_bytes() - frame_offset;
-	return aligned_offset / alignment;
-}
-
-DynamicDrawData UploadDynamicGeometry( Span< const u8 > vertices, Span< const u16 > indices, const VertexDescriptor & vertex_descriptor ) {
-	for( Optional< VertexAttribute > attr : vertex_descriptor.attributes ) {
-		Assert( !attr.exists || attr.value.buffer == 0 );
-	}
-
-	size_t vertex_size = vertex_descriptor.buffer_strides[ 0 ];
-	size_t frame_offset = dynamic_geometry.buffer.size * FrameSlot();
-	size_t required_size = AlignNonPow2( AlignNonPow2( frame_offset + dynamic_geometry.cursor, vertex_size ) + vertices.num_bytes(), sizeof( u16 ) ) + indices.num_bytes() - frame_offset;
-	if( required_size > DynamicGeometry::BufferSize ) {
-		Com_Printf( S_COLOR_YELLOW "Too much dynamic geometry!\n" );
-		Assert( is_public_build );
-		return { };
-	}
-
-	size_t base_vertex = FillDynamicGeometryBuffer( vertices, vertex_size );
-	size_t first_index = FillDynamicGeometryBuffer( indices, sizeof( u16 ) );
-
-	return { vertex_descriptor, base_vertex, first_index, indices.n };
-}
-
-void DrawDynamicGeometry( const PipelineState & pipeline, const DynamicDrawData & data, Optional< size_t > override_num_vertices, size_t extra_first_index ) {
-	if( data.num_vertices == 0 ) {
-		return;
-	}
-
-	Mesh mesh = NewMesh( MeshConfig {
-		.vertex_descriptor = data.vertex_descriptor,
-		.vertex_buffers = { dynamic_geometry.buffer.buffer },
-		.index_format = IndexFormat_U16,
-		.index_buffer = dynamic_geometry.buffer.buffer,
+	frame_static.view_uniforms = NewTempBuffer( ViewUniforms {
+		.V = frame_static.V,
+		.inverse_V = frame_static.inverse_V,
+		.P = frame_static.P,
+		.inverse_P = frame_static.inverse_P,
+		.camera_pos = position,
+		.viewport_size = frame_static.viewport,
+		.near_clip = near_plane,
+		.sun_direction = frame_static.sun_direction,
 	} );
 
-	size_t num_vertices = Default( override_num_vertices, data.num_vertices );
-	DrawMesh( mesh, pipeline, num_vertices, data.first_index + extra_first_index, data.base_vertex );
+	DynamicsBuffers dynamics_buffers = GetDynamicsBuffers();
+
+	BufferBinding standard_buffers[] = {
+		{ "u_View", frame_static.view_uniforms },
+		{ "u_Shadowmap", frame_static.shadow_uniforms },
+		{ "u_TileCounts", dynamics_buffers.tile_counts },
+		{ "u_DecalTiles", dynamics_buffers.decal_tiles },
+		{ "u_LightTiles", dynamics_buffers.light_tiles },
+		{ "u_Decals", dynamics_buffers.decals },
+		{ "u_Lights", dynamics_buffers.lights },
+	};
+
+	GPUBindings::TextureBinding standard_textures[] = {
+		{ "u_BlueNoise", BlueNoiseTexture() },
+		{ "u_ShadowmapTextureArray", frame_static.render_targets.shadowmap },
+		{ "u_SpriteAtlas", SpriteAtlasTexture() },
+	};
+
+	GPUBindings::SamplerBinding standard_samplers[] = {
+		{ "u_StandardSampler", Sampler_Standard },
+		{ "u_ShadowmapSampler", Sampler_Shadowmap },
+	};
+
+	GPUBindings standard_bindings = {
+		.buffers = StaticSpan( standard_buffers ),
+		.textures = StaticSpan( standard_textures ),
+		.samplers = StaticSpan( standard_samplers ),
+	};
+
+	Vec4 clear_color = Vec4( 0.0f );
+
+	const auto & targets = frame_static.render_targets;
+
+	// RenderPass_ParticleUpdate
+	// RenderPass_ParticleSetupIndirect
+	// RenderPass_TileCulling
+
+	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
+		frame_static.render_passes[ RenderPass_ShadowmapCascade0 + i ] = NewRenderPass( RenderPassConfig {
+			.name = temp.sv( "Shadowmap cascade {}", i ),
+			.pass = RenderPass_ShadowmapCascade0 + i,
+			.depth_target = RenderPassConfig::DepthTarget {
+				.texture = targets.shadowmap,
+				.layer = i,
+				.load = LoadOp_Clear,
+			},
+			.attachment_transitions = Span( &targets.shadowmap, i == 0 ? 1 : 0 ),
+			.representative_shader = shaders.depth_only,
+			.bindings = {
+				.buffers = { { "u_View", frame_static.shadowmap_view_uniforms[ i ] } },
+			},
+		} );
+	}
+
+	bool msaa = frame_static.msaa_samples > 1;
+	bool explicit_srgb = SwapchainIsNotsRGB();
+	PoolHandle< Texture > color_target = msaa ? *targets.msaa_color : targets.resolved_color0;
+	PoolHandle< Texture > depth_target = msaa ? *targets.msaa_depth : targets.resolved_depth;
+
+	frame_static.render_passes[ RenderPass_WorldOpaqueZPrepass ] = NewRenderPass( RenderPassConfig {
+		.name = "World Z-prepass",
+		.pass = RenderPass_WorldOpaqueZPrepass,
+		.depth_target = RenderPassConfig::DepthTarget {
+			.texture = depth_target,
+			.load = LoadOp_Clear,
+		},
+		.attachment_transitions = { depth_target },
+		.representative_shader = shaders.depth_only,
+		.bindings = {
+			.buffers = { { "u_View", frame_static.view_uniforms } },
+		},
+	} );
+
+	frame_static.render_passes[ RenderPass_WorldOpaque ] = NewRenderPass( RenderPassConfig {
+		.name = "World opaque",
+		.pass = RenderPass_WorldOpaque,
+		.color_targets = {
+			RenderPassConfig::ColorTarget {
+				.texture = color_target,
+				.load = LoadOp_Clear,
+				.clear = clear_color,
+			},
+			RenderPassConfig::ColorTarget {
+				.texture = targets.curved_surface_mask,
+				.load = LoadOp_Clear,
+				.clear = clear_color,
+			},
+		},
+		.depth_target = RenderPassConfig::DepthTarget { .texture = depth_target, .load = LoadOp_Load },
+		.barriers = { GPUBarrier_ComputeToFragment, GPUBarrier_FragmentToFragmentSample },
+		.attachment_transitions = { color_target, targets.curved_surface_mask },
+		.readonly_transitions = { targets.shadowmap },
+		.representative_shader = shaders.world,
+		.bindings = standard_bindings,
+	} );
+
+	// RenderPass_Sky
+	// RenderPass_WriteSilhouetteMask
+
+	frame_static.render_passes[ RenderPass_NonworldOpaqueOutlined ] = NewRenderPass( RenderPassConfig {
+		.name = "Nonworld opaque outlined",
+		.pass = RenderPass_NonworldOpaqueOutlined,
+		.color_targets = {
+			RenderPassConfig::ColorTarget { .texture = color_target, .load = LoadOp_Load },
+			RenderPassConfig::ColorTarget { .texture = targets.curved_surface_mask, .load = LoadOp_Load },
+		},
+		.depth_target = RenderPassConfig::DepthTarget { .texture = depth_target, .load = LoadOp_Load },
+		.representative_shader = shaders.world,
+		.bindings = standard_bindings,
+	} );
+
+	// RenderPass_AddOutlines, transitions depth_target to readonly
+
+	{
+		BoundedDynamicArray< PoolHandle< Texture >, 3 > attachment_transitions = { targets.curved_surface_mask };
+		if( msaa ) {
+			attachment_transitions.must_add( targets.resolved_color0 );
+			attachment_transitions.must_add( targets.resolved_depth );
+		}
+
+		frame_static.render_passes[ RenderPass_NonworldOpaque ] = NewRenderPass( RenderPassConfig {
+			.name = msaa ? "Nonworld opaque + MSAA resolve"_sp : "Nonworld opaque"_sp,
+			.pass = RenderPass_NonworldOpaque,
+			.color_targets = {
+				RenderPassConfig::ColorTarget {
+					.texture = color_target,
+					.load = LoadOp_Load,
+					.resolve_target = msaa ? Optional( targets.resolved_color0 ) : NONE,
+				},
+				RenderPassConfig::ColorTarget { .texture = targets.curved_surface_mask, .load = LoadOp_Load },
+			},
+			.depth_target = RenderPassConfig::DepthTarget {
+				.texture = depth_target,
+				.load = LoadOp_Load,
+				.resolve_target = msaa ? Optional( targets.resolved_depth ) : NONE,
+			},
+			.attachment_transitions = attachment_transitions.span(),
+			.reattachment_transitions = { depth_target },
+			.representative_shader = shaders.world,
+			.bindings = standard_bindings,
+		} );
+	}
+
+	{
+		BoundedDynamicArray< GPUBarrier, 3 > barriers = { GPUBarrier_ComputeToIndirect, GPUBarrier_ComputeToFragment };
+		if( msaa ) {
+			barriers.must_add( GPUBarrier_MSAAResolveToFragmentOutput );
+		}
+
+		frame_static.render_passes[ RenderPass_Transparent ] = NewRenderPass( RenderPassConfig {
+			.name = "Transparent",
+			.pass = RenderPass_Transparent,
+			.color_targets = { RenderPassConfig::ColorTarget { .texture = targets.resolved_color0, .load = LoadOp_Load } },
+			.depth_target = RenderPassConfig::DepthTarget { .texture = targets.resolved_depth, .load = LoadOp_Load },
+			.barriers = barriers.span(),
+			.representative_shader = shaders.particle_add,
+			.bindings = {
+				.buffers = { { "u_View", frame_static.view_uniforms } },
+			},
+		} );
+	}
+
+	// RenderPass_AddSilhouettes
+	// RenderPass_PreUIPostprocessing
+
+	frame_static.render_passes[ RenderPass_HUD ] = NewRenderPass( RenderPassConfig {
+		.name = "HUD",
+		.pass = RenderPass_HUD,
+		.color_targets = {
+			RenderPassConfig::ColorTarget { .texture = targets.resolved_color0, .load = LoadOp_Load },
+		},
+		// .readonly_transitions = { frame_static.render_targets.resolved_color0 }, TODO NOMERGE, after pre-post is reenabled
+		.representative_shader = shaders.imgui,
+		.bindings = {
+			.buffers = { { "u_View", frame_static.ortho_view_uniforms } },
+		},
+	} );
+
+	// RenderPass_Postprocessing
+
+	frame_static.render_passes[ RenderPass_Menus ] = NewRenderPass( RenderPassConfig {
+		.name = "Menus",
+		.pass = RenderPass_Menus,
+		.color_targets = {
+			RenderPassConfig::ColorTarget {
+				.texture = explicit_srgb ? Optional( targets.resolved_color1 ) : NONE,
+				.load = LoadOp_Load,
+			},
+		},
+		.representative_shader = shaders.imgui,
+		.bindings = {
+			.buffers = { { "u_View", frame_static.ortho_view_uniforms } },
+		},
+	} );
+
+	if( explicit_srgb ) {
+		frame_static.render_passes[ RenderPass_10BitTosRGB ] = NewRenderPass( RenderPassConfig {
+			.name = "sRGB",
+			.pass = RenderPass_10BitTosRGB,
+			.color_targets = { RenderPassConfig::ColorTarget { .texture = NONE } },
+			.readonly_transitions = { targets.resolved_color1 },
+			.swapchain_attachment_transition = true,
+			.representative_shader = shaders.srgb,
+			.bindings = {
+				.textures = { { "u_Framebuffer", targets.resolved_color1 } },
+			},
+		} );
+
+		Draw( RenderPass_10BitTosRGB, { .shader = shaders.srgb }, FullscreenMesh() );
+	}
 }
 
-void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color ) {
+void RendererEndFrame() {
+	TracyZoneScoped;
+
+	RenderPass next_pass[ ARRAY_COUNT( frame_static.render_passes ) ];
+	RenderPass next = RenderPass_Count;
+	for( size_t i = 0; i < ARRAY_COUNT( next_pass ); i++ ) {
+		size_t idx = ARRAY_COUNT( next_pass ) - i - 1;
+		next_pass[ idx ] = next;
+		if( frame_static.render_passes[ idx ].exists ) {
+			next = RenderPass( idx );
+		}
+	}
+
+	BoundedDynamicArray< RenderPassSubmit, RenderPass_Count > subs = { };
+	Optional< RenderPass > first_pass = NONE;
+	for( size_t i = 0; i < ARRAY_COUNT( next_pass ); i++ ) {
+		if( !frame_static.render_passes[ i ].exists )
+			continue;
+		if( !first_pass.exists ) {
+			first_pass = RenderPass( i );
+		}
+		subs.must_add( RenderPassSubmit {
+			.buffer = frame_static.render_passes[ i ].value,
+			.pass = RenderPass( i ),
+			.next_pass = next_pass[ i ],
+		} );
+	}
+
+	Assert( subs.size() > 0 || frame_static.minimized );
+	SubmitRenderPasses( subs.span(), Default( first_pass, RenderPass( 0 ) ) );
+
+	RenderBackendEndFrame();
+}
+
+void EncodeComputeCall( RenderPass render_pass, PoolHandle< ComputePipeline > pipeline, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers ) {
+	Assert( frame_static.render_passes[ render_pass ].exists );
+	EncodeComputeCall( frame_static.render_passes[ render_pass ].value, pipeline, x, y, z, buffers );
+}
+
+void EncodeIndirectComputeCall( RenderPass render_pass, PoolHandle< ComputePipeline > pipeline, GPUBuffer indirect_args, Span< const BufferBinding > buffers ) {
+	Assert( frame_static.render_passes[ render_pass ].exists );
+	EncodeIndirectComputeCall( frame_static.render_passes[ render_pass ].value, pipeline, indirect_args, buffers );
+}
+
+void Draw( RenderPass render_pass, const PipelineState & pipeline, Mesh mesh, Span< const GPUBuffer > buffers, DrawCallExtras extras ) {
+	if( frame_static.minimized )
+		return;
+	Assert( frame_static.render_passes[ render_pass ].exists );
+	EncodeDrawCall( frame_static.render_passes[ render_pass ].value, pipeline, mesh, buffers, extras );
+}
+
+void DrawIndirect( RenderPass render_pass, const PipelineState & pipeline, Mesh mesh, GPUBuffer indirect_args, Span< const GPUBuffer > buffers ) {
+	if( frame_static.minimized )
+		return;
+	Assert( frame_static.render_passes[ render_pass ].exists );
+	EncodeIndirectDrawCall( frame_static.render_passes[ render_pass ].value, pipeline, mesh, indirect_args, buffers );
+}
+
+void EncodeScissor( RenderPass render_pass, Optional< Scissor > scissor ) {
+	Assert( frame_static.render_passes[ render_pass ].exists );
+	EncodeScissor( frame_static.render_passes[ render_pass ].value, scissor );
+}
+
+Mesh FullscreenMesh() {
+	return fullscreen_mesh;
+}
+
+void Draw2DBox( float x, float y, float w, float h, PoolHandle< Material > material, Vec4 color ) {
 	Vec2 half_pixel = HalfPixelSize( material );
 	Draw2DBoxUV( x, y, w, h, half_pixel, 1.0f - half_pixel, material, color );
 }
 
-void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color ) {
+void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, PoolHandle< Material > material, Vec4 color ) {
 	if( w <= 0.0f || h <= 0.0f || color.w <= 0.0f )
 		return;
 
@@ -814,18 +822,6 @@ void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bott
 	draw_list->PrimReserve( 6, 4 );
 	draw_list->PrimRectUV( Vec2( x, y ), Vec2( x + w, y + h ), topleft_uv, bottomright_uv, IM_COL32( rgba.r, rgba.g, rgba.b, rgba.a ) );
 	draw_list->PopTextureID();
-}
-
-UniformBlock UploadModelUniforms( const Mat3x4 & M ) {
-	return UploadUniformBlock( M );
-}
-
-UniformBlock UploadMaterialStaticUniforms( float specular, float shininess, float lod_bias ) {
-	return UploadUniformBlock( specular, shininess, lod_bias );
-}
-
-UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color ) {
-	return UploadUniformBlock( color );
 }
 
 Optional< ModelRenderData > FindModelRenderData( StringHash name ) {

@@ -3,11 +3,11 @@
 #include "qcommon/fpe.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashmap.h"
+#include "qcommon/threadpool.h"
 #include "qcommon/time.h"
 #include "client/audio/api.h"
 #include "client/audio/backend.h"
 #include "client/assets.h"
-#include "client/threadpool.h"
 #include "cgame/cg_local.h"
 #include "gameshared/gs_public.h"
 

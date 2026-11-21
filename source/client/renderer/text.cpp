@@ -5,7 +5,9 @@
 #include "qcommon/hash.h"
 #include "qcommon/serialization.h"
 
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
+#include "client/renderer/private.h"
+#include "client/renderer/shader.h"
 #include "client/renderer/text.h"
 #include "client/client.h"
 #include "client/assets.h"
@@ -18,21 +20,15 @@
 
 struct Font {
 	u32 path_hash;
-	Texture atlas;
-	Material material;
+	PoolHandle< Texture > atlas;
+	PoolHandle< BindGroup > bind_group;
 	FontMetadata metadata;
 };
 
-static BoundedDynamicArray< Font, 64 > fonts;
+static BoundedDynamicArray< Font, MaxFonts > fonts;
 
 void InitText() {
 	fonts.clear();
-}
-
-void ShutdownText() {
-	for( Font font : fonts ) {
-		DeleteTexture( font.atlas );
-	}
 }
 
 const Font * RegisterFont( Span< const char > path ) {
@@ -79,23 +75,23 @@ const Font * RegisterFont( Span< const char > path ) {
 		}
 
 		font.atlas = NewTexture( TextureConfig {
+			.name = temp.sv( "Font {}", path ),
 			.format = TextureFormat_RGBA_U8,
 			.width = checked_cast< u32 >( w ),
 			.height = checked_cast< u32 >( h ),
 			.data = pixels,
 		} );
+
+		font.bind_group = NewMaterialBindGroup( path, font.atlas, Sampler_Standard, MaterialProperties { } );
 	}
 
-	// this is a little silly because Font has an internal pointer
 	Optional< Font * > slot = fonts.add();
 	if( !slot.exists ) {
 		Com_Printf( S_COLOR_YELLOW "Too many fonts\n" );
-		DeleteTexture( font.atlas );
 		return NULL;
 	}
 
 	*slot.value = font;
-	slot.value->material.texture = &slot.value->atlas;
 
 	return slot.value;
 }
@@ -110,14 +106,18 @@ void DrawTextBaseline( const Font * font, float pixel_size, Span< const char > s
 	if( font == NULL )
 		return;
 
-	ImGuiShaderAndMaterial sam;
-	sam.shader = &shaders.text;
-	sam.material = &font->material;
-	sam.uniform_name = "u_Text";
-	sam.uniform_block = UploadUniformBlock( color, Default( border_color, Vec4( 0.0f ) ), font->metadata.dSDF_dTexel, border_color.exists ? 1 : 0 );
+	ImGuiShaderAndMaterial imgui;
+	imgui.shader = shaders.text;
+	imgui.material_bind_group = font->bind_group;
+	imgui.buffer = NewTempBuffer( TextUniforms {
+		.color = color,
+		.border_color = Default( border_color, Vec4( 0.0f ) ),
+		.dSDF_dTexel = font->metadata.dSDF_dTexel,
+		.has_border = border_color.exists ? 1_u32 : 0_u32,
+	} );
 
 	ImDrawList * draw_list = ImGui::GetActiveOrBackgroundDrawList();
-	draw_list->PushTextureID( sam );
+	draw_list->PushTextureID( imgui );
 
 	u32 state = 0;
 	u32 c = 0;
@@ -136,11 +136,11 @@ void DrawTextBaseline( const Font * font, float pixel_size, Span< const char > s
 			// TODO: this is bogus. it should expand glyphs by 1 or
 			// 2 pixels to allow for border/antialiasing, up to a
 			// limit determined by font->glyph_padding
-			Vec2 mins = Vec2( x, y ) + pixel_size * flip_y * ( glyph->bounds.mins - font->metadata.glyph_padding );
-			Vec2 maxs = Vec2( x, y ) + pixel_size * flip_y * ( glyph->bounds.maxs + font->metadata.glyph_padding );
+			Vec2 bl = Vec2( x, y ) + pixel_size * flip_y * ( glyph->bounds.mins - font->metadata.glyph_padding );
+			Vec2 tr = Vec2( x, y ) + pixel_size * flip_y * ( glyph->bounds.maxs + font->metadata.glyph_padding );
 
 			draw_list->PrimReserve( 6, 4 );
-			draw_list->PrimRectUV( mins, maxs, glyph->padded_uv_bounds.mins, glyph->padded_uv_bounds.maxs, IM_COL32_WHITE );
+			draw_list->PrimRectUV( bl, tr, glyph->padded_uv_bounds.mins, glyph->padded_uv_bounds.maxs, IM_COL32_WHITE );
 		}
 
 		x += pixel_size * glyph->advance;
@@ -303,39 +303,30 @@ void Draw3DText( const Font * font, float size, Span< const char > str, Vec3 ori
 		cursor += dx * glyph->advance;
 	}
 
-	UniformBlock text_uniforms = UploadUniformBlock( color, color, font->metadata.dSDF_dTexel, 0 );
+	GPUBuffer text_uniforms = NewTempBuffer( TextUniforms {
+		.color = color,
+		.dSDF_dTexel = font->metadata.dSDF_dTexel,
+	} );
 
-	VertexDescriptor vertex_descriptor = { };
-	vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx3, 0, offsetof( TextVertex, position ) };
-	vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( TextVertex, uv ) };
-	vertex_descriptor.buffer_strides[ 0 ] = sizeof( TextVertex );
-	DynamicDrawData draw_data = UploadDynamicGeometry( vertices.span().cast< const u8 >(), indices.span(), vertex_descriptor );
+	Mesh mesh = { };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx3, 0, offsetof( TextVertex, position ) };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = { VertexFormat_Floatx2, 0, offsetof( TextVertex, uv ) };
+	mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( TextVertex );
+	mesh.index_format = IndexFormat_U16;
+	mesh.num_vertices = indices.size();
+	mesh.vertex_buffers[ 0 ] = NewTempBuffer( vertices.span() );
+	mesh.index_buffer = NewTempBuffer( indices.span() );
 
-	{
-		PipelineState pipeline;
-		pipeline.pass = frame_static.nonworld_opaque_pass;
-		pipeline.shader = &shaders.text;
-		pipeline.cull_face = CullFace_Disabled;
-		pipeline.alpha_to_coverage = true;
-		pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-		pipeline.bind_uniform( "u_Text", text_uniforms );
-		pipeline.bind_texture_and_sampler( "u_BaseTexture", font->material.texture, Sampler_Standard );
+	PipelineState pipeline = {
+		.shader = shaders.text,
+		.dynamic_state = { .cull_face = CullFace_Disabled },
+		.material_bind_group = font->bind_group,
+	};
 
-		DrawDynamicGeometry( pipeline, draw_data );
-	}
+	Draw( RenderPass_NonworldOpaque, pipeline, mesh, { text_uniforms } );
 
-	{
-		for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
-			PipelineState pipeline;
-			pipeline.pass = frame_static.shadowmap_pass[ i ];
-			pipeline.shader = &shaders.text_alphatest;
-			pipeline.cull_face = CullFace_Disabled;
-			pipeline.clamp_depth = true;
-			pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ i ] );
-			pipeline.bind_uniform( "u_Text", text_uniforms );
-			pipeline.bind_texture_and_sampler( "u_BaseTexture", font->material.texture, Sampler_Standard );
-
-			DrawDynamicGeometry( pipeline, draw_data );
-		}
+	pipeline.shader = shaders.text_shadowmap;
+	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
+		Draw( RenderPass_ShadowmapCascade0 + i, pipeline, mesh, { text_uniforms } );
 	}
 }

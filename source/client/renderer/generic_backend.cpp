@@ -1,0 +1,346 @@
+#include "qcommon/base.h"
+#include "client/assets.h"
+#include "client/renderer/api.h"
+#include "client/renderer/private.h"
+#include "client/renderer/dds.h"
+
+static constexpr size_t STAGING_BUFFER_CAPACITY = 32 * 1024 * 1024;
+static CoherentMemory staging_buffer;
+static Opaque< CommandBuffer > staging_command_buffer;
+static size_t staging_buffer_cursor;
+
+static GPUSlabAllocator persistent_allocator;
+static GPUArenaAllocator device_temp_allocator;
+static CoherentGPUArenaAllocator coherent_temp_allocator;
+
+static GPUSlabAllocator NewGPUSlabAllocator( size_t slab_size, size_t min_alignment, size_t buffer_image_granularity ) {
+	GPUSlabAllocator::Slab * dummy = Alloc< GPUSlabAllocator::Slab >( sys_allocator );
+	*dummy = { };
+	return GPUSlabAllocator {
+		.slab_size = slab_size,
+		.slabs = dummy,
+		.min_alignment = min_alignment,
+		.buffer_image_granularity = buffer_image_granularity,
+	};
+}
+
+static void DeleteGPUSlabAllocator( GPUSlabAllocator * a ) {
+	printf( "used %zu bytes, wasted %zu bytes, unused %zu bytes\n", a->used, a->wasted, a->slabs == NULL ? 0 : a->slabs->capacity - a->slabs->cursor );
+
+	GPUSlabAllocator::Slab * slab = a->slabs;
+	while( slab != NULL ) {
+		GPUSlabAllocator::Slab * next = slab->next;
+		Free( sys_allocator, slab );
+		slab = next;
+	}
+}
+
+static GPUArenaAllocator NewDeviceGPUArenaAllocator( size_t size, size_t min_alignment ) {
+	Assert( IsPowerOf2( min_alignment ) );
+
+	return GPUArenaAllocator {
+		.allocation = AllocateGPUMemory( size * MaxFramesInFlight ),
+		.min_alignment = min_alignment,
+		.capacity = size,
+	};
+}
+
+static CoherentGPUArenaAllocator NewCoherentGPUArenaAllocator( size_t size, size_t min_alignment ) {
+	Assert( IsPowerOf2( min_alignment ) );
+
+	CoherentMemory memory = AllocateCoherentMemory( size * MaxFramesInFlight );
+	return CoherentGPUArenaAllocator {
+		.a = GPUArenaAllocator {
+			.allocation = memory.allocation,
+			.min_alignment = min_alignment,
+			.capacity = size,
+		},
+		.ptr = memory.ptr,
+	};
+}
+
+static void ClearGPUArenaAllocator( GPUArenaAllocator * a ) {
+	a->cursor = 0;
+	RemoveAllDebugMarkers( a->allocation );
+}
+
+void ClearGPUArenaAllocators() {
+	ClearGPUArenaAllocator( &device_temp_allocator );
+	ClearGPUArenaAllocator( &coherent_temp_allocator.a );
+}
+
+void InitGPUAllocators( size_t slab_size, size_t constant_buffer_alignment, size_t buffer_image_granularity ) {
+	staging_buffer = AllocateCoherentMemory( STAGING_BUFFER_CAPACITY );
+	staging_buffer_cursor = 0;
+	staging_command_buffer = NewTransferCommandBuffer();
+
+	persistent_allocator = NewGPUSlabAllocator( slab_size, constant_buffer_alignment, buffer_image_granularity );
+	device_temp_allocator = NewDeviceGPUArenaAllocator( ArenaAllocatorSize, constant_buffer_alignment );
+	coherent_temp_allocator = NewCoherentGPUArenaAllocator( ArenaAllocatorSize, constant_buffer_alignment );
+}
+
+void ShutdownGPUAllocators() {
+	DeleteTransferCommandBuffer( staging_command_buffer );
+	DeleteGPUSlabAllocator( &persistent_allocator );
+}
+
+static size_t Reserve( size_t n, size_t alignment ) {
+	Assert( n <= STAGING_BUFFER_CAPACITY );
+
+	if( AlignPow2( staging_buffer_cursor, alignment ) + n > STAGING_BUFFER_CAPACITY ) {
+		FlushStagingBuffer();
+	}
+
+	size_t cursor = AlignPow2( staging_buffer_cursor, alignment );
+	staging_buffer_cursor = cursor + n;
+	return cursor;
+}
+
+static size_t Stage( const void * data, size_t n, size_t alignment ) {
+	size_t cursor = Reserve( n, alignment );
+	memcpy( ( ( char * ) staging_buffer.ptr ) + cursor, data, n );
+	return cursor;
+}
+
+GPUBuffer StageArgumentBuffer( GPUBuffer dest, size_t n, size_t alignment ) {
+	size_t cursor = Reserve( n, alignment );
+	CopyGPUBufferToBuffer( staging_command_buffer, dest.allocation, dest.offset, staging_buffer.allocation, cursor, n );
+	return GPUBuffer {
+		.allocation = staging_buffer.allocation,
+		.offset = cursor,
+		.size = n,
+	};
+}
+
+void UploadBuffer( GPUBuffer dest, const void * data, size_t n ) {
+	if( n == 0 )
+		return; // vkCmdCopyBuffer requires n > 0
+	size_t cursor = Stage( data, n, 1 );
+	CopyGPUBufferToBuffer( staging_command_buffer, dest.allocation, dest.offset, staging_buffer.allocation, cursor, n );
+}
+
+static void UploadTexturePart( Opaque< BackendTexture > texture, TextureFormat format, u32 w, u32 h, u32 layer, u32 mip_level, const void * data, size_t n ) {
+	size_t cursor = Stage( data, n, 16 );
+	CopyGPUBufferToTexture( staging_command_buffer, texture, format, w, h, layer, mip_level, staging_buffer.allocation, cursor );
+}
+
+void UploadTexture( const TextureConfig & config, Opaque< BackendTexture > texture ) {
+	u32 num_layers = Default( config.num_layers, 1_u32 );
+	const char * cursor = ( const char * ) config.data;
+	for( u32 mip = 0; mip < config.num_mipmaps; mip++ ) {
+		u32 mip_w = config.width >> mip;
+		u32 mip_h = config.height >> mip;
+		size_t mip_bytes = ( mip_w * mip_h * BitsPerPixel( config.format ) ) / 8;
+
+		for( u32 layer = 0; layer < num_layers; layer++ ) {
+			UploadTexturePart( texture, config.format, mip_w, mip_h, layer, mip, cursor, mip_bytes );
+			cursor += mip_bytes;
+		}
+	}
+}
+
+void FlushStagingBuffer() {
+	TracyZoneScoped;
+
+	// TODO: should double buffer this and use semaphores so we can stage and transfer in parallel
+	SubmitStagingCommandBuffer( staging_command_buffer );
+	staging_command_buffer = NewTransferCommandBuffer();
+
+	staging_buffer_cursor = 0;
+}
+
+GPUBuffer NewBuffer( GPUSlabAllocator * a, Span< const char > label, size_t size, size_t alignment, bool texture, const void * data ) {
+	Assert( IsPowerOf2( alignment ) );
+	Assert( IsPowerOf2( a->buffer_image_granularity ) );
+
+	// https://vulkan.gpuinfo.org/displaycoreproperty.php?core=1.1&name=maxMemoryAllocationSize&platform=all
+	// lowest max alloc size is still 500MB, which is bigger than anything we
+	// should need to allocate
+	Assert( size < a->slab_size );
+
+	alignment = Max2( alignment, a->min_alignment );
+
+	if( a->last_allocation_was_buffer == texture ) {
+		// bufferImageGranularity is specced to be pow2 so this is ok
+		alignment = Max2( alignment, a->buffer_image_granularity );
+	}
+
+	size_t aligned_cursor = AlignPow2( a->slabs->cursor, alignment );
+	if( aligned_cursor > a->slab_size || a->slabs->capacity - aligned_cursor < size ) {
+		a->wasted += a->slabs->capacity - a->slabs->cursor;
+
+		GPUSlabAllocator::Slab * new_slab = Alloc< GPUSlabAllocator::Slab >( sys_allocator );
+		*new_slab = GPUSlabAllocator::Slab {
+			.buffer = AllocateGPUMemory( a->slab_size ),
+			.cursor = 0,
+			.capacity = a->slab_size,
+			.next = a->slabs,
+		};
+		a->slabs = new_slab;
+		aligned_cursor = 0;
+	}
+
+	a->used += size;
+	a->wasted += aligned_cursor - a->slabs->cursor;
+	a->slabs->cursor = aligned_cursor + size;
+	a->last_allocation_was_buffer = !texture;
+
+	AddDebugMarker( a->slabs->buffer, aligned_cursor, size, label );
+
+	GPUBuffer buffer = {
+		.allocation = a->slabs->buffer,
+		.offset = aligned_cursor,
+		.size = size,
+	};
+
+	if( data != NULL ) {
+		UploadBuffer( buffer, data, size );
+	}
+
+	return buffer;
+}
+
+GPUBuffer NewBuffer( Span< const char > label, size_t size, size_t alignment, bool texture, const void * data ) {
+	return NewBuffer( &persistent_allocator, label, size, alignment, texture, data );
+}
+
+static GPUBuffer NewTempBuffer( GPUArenaAllocator * a, Span< const char > label, size_t size, size_t alignment ) {
+	// alignment and min_alignment are both pow2 so Max2( alignment, min_alignment ) == LeastCommonMultiple( alignment, min_alignment )
+	Assert( IsPowerOf2( alignment ) );
+	size_t aligned_cursor = AlignPow2( a->cursor, Max2( alignment, a->min_alignment ) );
+	Assert( a->capacity - aligned_cursor >= size );
+
+	a->cursor = aligned_cursor + size;
+
+	size_t offset = aligned_cursor + a->capacity * FrameSlot();
+
+	AddDebugMarker( a->allocation, offset, size, label );
+
+	return GPUBuffer {
+		.allocation = a->allocation,
+		.offset = offset,
+		.size = size,
+	};
+}
+
+CoherentBuffer NewCoherentTempBuffer( size_t size, size_t alignment ) {
+	GPUBuffer buffer = NewTempBuffer( &coherent_temp_allocator.a, "", size, alignment );
+	return CoherentBuffer {
+		.buffer = buffer,
+		.ptr = ( ( char * ) coherent_temp_allocator.ptr ) + buffer.offset,
+	};
+}
+
+GPUBuffer NewTempBuffer( const void * data, size_t size, size_t alignment ) {
+	CoherentBuffer buffer = NewCoherentTempBuffer( size, alignment );
+	memcpy( buffer.ptr, data, size );
+	return buffer.buffer;
+}
+
+GPUBuffer NewDeviceTempBuffer( Span< const char > label, size_t size, size_t alignment ) {
+	return NewTempBuffer( &device_temp_allocator, label, size, alignment );
+}
+
+Opaque< BackendTexture > NewBackendTexture( const TextureConfig & config ) {
+	return NewBackendTexture( &persistent_allocator, config );
+}
+
+bool operator==( const VertexAttribute & lhs, const VertexAttribute & rhs ) {
+	return lhs.format == rhs.format && lhs.buffer == rhs.buffer && lhs.offset == rhs.offset;
+}
+
+bool operator==( const VertexDescriptor & lhs, const VertexDescriptor & rhs ) {
+	for( size_t i = 0; i < ARRAY_COUNT( lhs.attributes ); i++ ) {
+		if( lhs.attributes[ i ] != rhs.attributes[ i ] ) {
+			return false;
+		}
+	}
+
+	for( size_t i = 0; i < ARRAY_COUNT( lhs.buffer_strides ); i++ ) {
+		if( lhs.buffer_strides[ i ] != rhs.buffer_strides[ i ] ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+struct PersistentBufferAllocator {
+	PoolHandle< GPUAllocation > memory;
+	size_t capacity;
+	size_t cursor;
+};
+
+static Span< const char > VertexAttributeToString( VertexAttributeType attr ) {
+	switch( attr ) {
+		case VertexAttribute_Position: return "Pos";
+		case VertexAttribute_Normal: return "Norm";
+		case VertexAttribute_TexCoord: return "UV";
+		case VertexAttribute_Color: return "Col";
+		case VertexAttribute_JointIndices: return "JIdx";
+		case VertexAttribute_JointWeights: return "JWgt";
+	}
+
+	Assert( false );
+	return "";
+}
+
+static Span< const char > VertexFormatToString( VertexFormat format ) {
+	switch( format ) {
+		case VertexFormat_U8x2: return "U8x2";
+		case VertexFormat_U8x2_01: return "U8x2_01";
+		case VertexFormat_U8x3: return "U8x3";
+		case VertexFormat_U8x3_01: return "U8x3_01";
+		case VertexFormat_U8x4: return "U8x4";
+		case VertexFormat_U8x4_01: return "U8x4_01";
+
+		case VertexFormat_U16x2: return "U16x2";
+		case VertexFormat_U16x2_01: return "U16x2_01";
+		case VertexFormat_U16x3: return "U16x3";
+		case VertexFormat_U16x3_01: return "U16x3_01";
+		case VertexFormat_U16x4: return "U16x4";
+		case VertexFormat_U16x4_01: return "U16x4_01";
+
+		case VertexFormat_U10x3_U2x1_01: return "U10x3_U2x1_01";
+
+		case VertexFormat_Floatx2: return "Floatx2";
+		case VertexFormat_Floatx3: return "Floatx3";
+		case VertexFormat_Floatx4: return "Floatx4";
+	}
+
+	Assert( false );
+	return "";
+}
+
+void format( FormatBuffer * fb, const VertexDescriptor & v, const FormatOpts & opts ) {
+	format( fb, "VertexDescriptor( " );
+
+	for( size_t i = 0; i < VertexAttribute_Count; i++ ) {
+		if( v.attributes[ i ].exists ) {
+			VertexAttribute attr = v.attributes[ i ].value;
+			ggformat_impl( fb, "{}:{}@{}+{}, ",
+				VertexAttributeToString( VertexAttributeType( i ) ),
+				VertexFormatToString( attr.format ),
+				attr.buffer, attr.offset );
+		}
+	}
+
+	format( fb, "[" );
+	bool first = true;
+	for( size_t i = 0; i < ARRAY_COUNT( v.buffer_strides ); i++ ) {
+		if( v.buffer_strides[ i ].exists ) {
+			if( !first )
+				format( fb, " ", { } );
+			format( fb, v.buffer_strides[ i ].value, { } );
+			first = false;
+		}
+	}
+	format( fb, "] )" );
+}
+
+void InitSamplers() {
+	NewSampler( Sampler_Standard, SamplerConfig { .name = "Standard" } );
+	NewSampler( Sampler_Clamp, SamplerConfig { .name = "Clamp", .wrap = SamplerWrap_Clamp } );
+	NewSampler( Sampler_Unfiltered, SamplerConfig { .name = "Unfiltered", .filter = false } );
+	NewSampler( Sampler_Shadowmap, SamplerConfig { .name = "Shadowmap", .shadowmap_sampler = true } );
+}

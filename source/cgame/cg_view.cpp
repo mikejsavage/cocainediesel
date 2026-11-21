@@ -20,8 +20,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "cgame/cg_local.h"
 #include "client/audio/api.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
+#include "client/renderer/shader.h"
 #include "client/renderer/skybox.h"
+#include "qcommon/srgb.h"
 #include "qcommon/time.h"
 
 #include "gameshared/collision.h"
@@ -433,38 +435,82 @@ static void CG_SetupViewDef( cg_viewdef_t *view, ViewType type, UserCommand * cm
 static void DrawSilhouettes() {
 	TracyZoneScoped;
 
-	PipelineState pipeline;
-	pipeline.pass = frame_static.add_silhouettes_pass;
-	pipeline.shader = &shaders.postprocess_silhouette_gbuffer;
-	pipeline.depth_func = DepthFunc_Disabled;
-	pipeline.blend_func = BlendFunc_Blend;
-	pipeline.write_depth = false;
+	frame_static.render_passes[ RenderPass_WriteSilhouetteMask ] = NewRenderPass( RenderPassConfig {
+		.name = "Write silhouette masks",
+		.pass = RenderPass_WriteSilhouetteMask,
+		.color_targets = {
+			RenderPassConfig::ColorTarget {
+				.texture = frame_static.render_targets.silhouette_mask,
+				.load = LoadOp_Clear,
+				.clear = black.linear,
+			},
+		},
+		.attachment_transitions = { frame_static.render_targets.silhouette_mask },
+		.representative_shader = shaders.write_silhouette_mask,
+		.bindings = {
+			.buffers = {
+				{ "u_View", frame_static.view_uniforms },
+			},
+		},
+	} );
 
-	const RenderTarget & rt = frame_static.render_targets.silhouette_mask;
-	pipeline.bind_texture_and_sampler( "u_SilhouetteTexture", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Clamp );
-	pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
-	DrawFullscreenMesh( pipeline );
+	frame_static.render_passes[ RenderPass_AddSilhouettes ] = NewRenderPass( RenderPassConfig {
+		.name = "Add silhouettes",
+		.pass = RenderPass_AddSilhouettes,
+		.color_targets = {
+			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.resolved_color0, .load = LoadOp_Load },
+		},
+		.readonly_transitions = { frame_static.render_targets.silhouette_mask },
+		.representative_shader = shaders.postprocess_silhouette_mask,
+		.bindings = {
+			.textures = { { "u_SilhouetteMask", frame_static.render_targets.silhouette_mask } },
+		},
+	} );
+
+	PipelineState pipeline = {
+		.shader = shaders.postprocess_silhouette_mask,
+		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
+	};
+
+	Draw( RenderPass_AddSilhouettes, pipeline, FullscreenMesh() );
 }
 
 static void DrawOutlines() {
-	bool msaa = frame_static.msaa_samples >= 1;
+	bool msaa = frame_static.msaa_samples > 1;
 
-	PipelineState pipeline;
-	pipeline.pass = frame_static.add_outlines_pass;
-	pipeline.shader = msaa ? &shaders.postprocess_world_gbuffer_msaa : &shaders.postprocess_world_gbuffer;
-	pipeline.depth_func = DepthFunc_Disabled;
-	pipeline.blend_func = BlendFunc_Blend;
-	pipeline.write_depth = false;
+	constexpr RGBA8 gray = RGBA8( 30, 30, 30 );
 
-	constexpr RGB8 default_gray = RGB8( 30, 30, 30 );
-	RGBA8 outline_color = RGBA8( Default( cl.map->render_data.outline_color, default_gray ) );
+	PoolHandle< Texture > depth_target = Default( frame_static.render_targets.msaa_depth, frame_static.render_targets.resolved_depth );
 
-	const RenderTarget & rt = msaa ? frame_static.render_targets.msaa_masked : frame_static.render_targets.postprocess_masked;
-	pipeline.bind_texture_and_sampler( "u_DepthTexture", &rt.depth_attachment, Sampler_Standard );
-	pipeline.bind_texture_and_sampler( "u_CurvedSurfaceMask", &rt.color_attachments[ FragmentShaderOutput_CurvedSurfaceMask ], Sampler_Unfiltered );
-	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.bind_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( outline_color ) ) );
-	DrawFullscreenMesh( pipeline );
+	frame_static.render_passes[ RenderPass_AddOutlines ] = NewRenderPass( RenderPassConfig {
+		.name = "Add outlines",
+		.pass = RenderPass_AddOutlines,
+		.color_targets = {
+			RenderPassConfig::ColorTarget {
+				.texture = Default( frame_static.render_targets.msaa_color, frame_static.render_targets.resolved_color0 ),
+				.load = LoadOp_Load,
+			},
+		},
+		.readonly_transitions = { depth_target, frame_static.render_targets.curved_surface_mask },
+		.representative_shader = shaders.postprocess_world_gbuffer,
+		.bindings = {
+			.buffers = {
+				{ "u_View", frame_static.ortho_view_uniforms },
+				{ "u_OutlineColor", NewTempBuffer( sRGBToLinear( gray ) ) },
+			},
+			.textures = {
+				{ "u_DepthTexture", depth_target },
+				{ "u_CurvedSurfaceMask", frame_static.render_targets.curved_surface_mask },
+			},
+		},
+	} );
+
+	PipelineState pipeline = {
+		.shader = msaa ? shaders.postprocess_world_gbuffer_msaa : shaders.postprocess_world_gbuffer,
+		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
+	};
+
+	Draw( RenderPass_AddOutlines, pipeline, FullscreenMesh() );
 }
 
 void CG_RenderView( unsigned extrapolationTime ) {
@@ -526,6 +572,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	}
 
 	AllocateDecalBuffers();
+	AllocateParticleBuffers();
 
 	CG_UpdateChaseCam( &cmd );
 
@@ -544,20 +591,18 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	DoVisualEffect( "vfx/rain", cg.view.origin );
 
+	DrawSilhouettes();
 	DrawEntities();
 	DrawOutlines();
-	DrawSilhouettes();
 	CG_AddViewWeapon( &cg.weapon );
 	DrawGibs();
 	DrawParticles();
 	DrawPersistentBeams();
 	DrawPersistentDecals();
-	DrawPersistentDynamicLights();
+	DrawPersistentLights();
 	DrawTrails();
 	DrawSkybox( cls.shadertoy_time );
 	DrawSprays();
-
-	DrawModelInstances();
 
 	CG_ReleaseAnnouncerEvents();
 

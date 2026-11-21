@@ -255,11 +255,8 @@ bool Netchan_PushAllFragments( Socket socket, netchan_t * chan ) {
 */
 bool Netchan_Transmit( Socket socket, netchan_t * chan, msg_t * msg ) {
 	Assert( msg );
+	Assert( msg->cursize <= MAX_MSGLEN );
 
-	if( msg->cursize > MAX_MSGLEN ) {
-		Com_Error( "Netchan_Transmit: Excessive length = %li", msg->cursize );
-		return false;
-	}
 	chan->unsentFragmentStart = 0;
 	chan->unsentIsCompressed = false;
 

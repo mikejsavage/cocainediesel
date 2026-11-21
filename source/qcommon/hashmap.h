@@ -22,7 +22,7 @@ public:
 
 	bool add( u64 key, const T & x ) {
 		T * slot = add( key );
-		if( !slot )
+		if( slot == NULL )
 			return false;
 		*slot = x;
 		return true;
@@ -66,4 +66,48 @@ public:
 
 	Span< T > span() { return Span< T >( values, hashtable.size() ); }
 	Span< const T > span() const { return Span< const T >( values, hashtable.size() ); }
+};
+
+template< typename T, size_t N >
+class HashPool {
+	HashMap< T, N > map;
+
+	Optional< PoolHandle< T > > handle( T * slot ) const {
+		if( slot == NULL )
+			return NONE;
+		return PoolHandle< T > { typename PoolHandleType< T >::T( slot - map.span().ptr ) };
+	}
+
+public:
+	Optional< PoolHandle< T > > add( u64 key ) {
+		return handle( map.add( key ) );
+	}
+
+	Optional< PoolHandle< T > > add( u64 key, const T & x ) {
+		T * slot = map.add( key );
+		if( slot == NULL )
+			return NONE;
+		*slot = x;
+		return handle( slot );
+	}
+
+	Optional< PoolHandle< T > > get( u64 key ) {
+		return handle( map.get( key ) );
+	}
+
+	Optional< PoolHandle< T > > upsert( Optional< PoolHandle< T > > old_handle, u64 key, const T & x ) {
+		if( old_handle.exists ) {
+			( *this )[ old_handle.value ] = x;
+			return old_handle;
+		}
+		return add( key, x );
+	}
+
+	void clear() { map.clear(); }
+
+	Span< T > span() { return map.span(); }
+	Span< const T > span() const { return map.span(); }
+
+	T & operator[]( PoolHandle< T > handle ) { return span()[ handle.x ]; }
+	const T & operator[]( PoolHandle< T > handle ) const { return span()[ handle.x ]; }
 };

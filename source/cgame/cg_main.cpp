@@ -18,7 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
-#include "client/renderer/renderer.h"
 
 cg_static_t cgs;
 cg_state_t cg;
@@ -167,7 +166,6 @@ void CG_Shutdown() {
 	CG_ShutdownChat();
 	CG_ShutdownInput();
 	CG_ShutdownHUD();
-	ShutdownDecals();
 
 	RemoveCommand( "printmap" );
 }

@@ -1,11 +1,14 @@
 #include "qcommon/base.h"
 #include "qcommon/array.h"
+#include "qcommon/f16.h"
 #include "qcommon/fs.h"
 #include "qcommon/serialization.h"
+#include "qcommon/srgb.h"
 #include "qcommon/time.h"
 #include "client/assets.h"
-#include "client/renderer/renderer.h"
-#include "client/renderer/shader_constants.h"
+#include "client/renderer/api.h"
+#include "client/renderer/shader.h"
+#include "client/renderer/shader_shared.h"
 #include "cgame/cg_local.h"
 
 #include "qcommon/hash.h"
@@ -21,31 +24,10 @@ static constexpr u32 MAX_PARTICLE_EMITTER_MATERIALS = 32;
 static constexpr u32 MAX_DECAL_EMITTERS = 512;
 static constexpr u32 MAX_DECAL_EMITTER_MATERIALS = 8;
 
-static constexpr u32 MAX_DLIGHT_EMITTERS = 512;
+static constexpr u32 MAX_LIGHT_EMITTERS = 512;
 
 static constexpr u32 MAX_VISUAL_EFFECT_GROUPS = 512;
 static constexpr u32 MAX_VISUAL_EFFECTS = 16;
-
-struct GPUParticle {
-	Vec3 position;
-	float angle;
-	Vec3 velocity;
-	float angular_velocity;
-	float acceleration;
-	float drag;
-	float restitution;
-	float PADDING;
-	Vec4 uvwh;
-	Vec4 trim;
-	RGBA8 start_color;
-	RGBA8 end_color;
-	float start_size;
-	float end_size;
-	float age;
-	float lifetime;
-	ParticleFlags flags;
-	u32 PADDING2;
-};
 
 enum EasingFunction {
 	EasingFunction_Linear,
@@ -101,12 +83,6 @@ struct RandomDistribution3D {
 	};
 };
 
-enum ParticleCollisionType : u8 {
-	ParticleCollisionType_None,
-	ParticleCollisionType_Point,
-	ParticleCollisionType_Sphere,
-};
-
 struct ParticleEvents {
 	BoundedDynamicArray< StringHash, MAX_PARTICLE_EMITTER_EVENTS > events;
 };
@@ -119,7 +95,7 @@ struct ParticleSystem {
 	GPUBuffer gpu_particles1;
 	GPUBuffer gpu_particles2;
 
-	StreamingBuffer new_particles;
+	CoherentSpan< Particle > new_particles;
 	u32 num_new_particles;
 	bool clear;
 
@@ -128,14 +104,12 @@ struct ParticleSystem {
 
 	GPUBuffer compute_indirect;
 	GPUBuffer draw_indirect;
-
-	Mesh mesh;
 };
 
 enum VisualEffectType : u8 {
 	VisualEffectType_Particles,
 	VisualEffectType_Decal,
-	VisualEffectType_DynamicLight,
+	VisualEffectType_Light,
 };
 
 struct VisualEffect {
@@ -173,7 +147,7 @@ struct ParticleEmitter {
 
 	ParticleEmitterPosition position;
 
-	float acceleration;
+	float gravity;
 	float drag = 0.0f;
 	float restitution = 0.8f;
 
@@ -218,7 +192,7 @@ struct DecalEmitter {
 	float height = 0.0f;
 };
 
-struct DynamicLightEmitter {
+struct LightEmitter {
 	Vec3 color = Vec3( 1.0f );
 	RandomDistribution red_distribution, green_distribution, blue_distribution;
 	bool color_override;
@@ -235,54 +209,26 @@ static ParticleSystem blendParticleSystem;
 static HashMap< VisualEffectGroup, MAX_VISUAL_EFFECT_GROUPS > visualEffectGroups;
 static HashMap< ParticleEmitter, MAX_PARTICLE_EMITTERS > particleEmitters;
 static HashMap< DecalEmitter, MAX_DECAL_EMITTERS > decalEmitters;
-static HashMap< DynamicLightEmitter, MAX_DLIGHT_EMITTERS > dlightEmitters;
-
-struct ComputeIndirect {
-	u32 x, y, z;
-};
-
-struct DrawArraysIndirect {
-	u32 count;
-	u32 primCount;
-	u32 baseVertex;
-	u32 baseInstance;
-};
+static HashMap< LightEmitter, MAX_LIGHT_EMITTERS > lightEmitters;
 
 static ParticleSystem NewParticleSystem( Allocator * a, BlendFunc blend_func, size_t max_particles ) {
 	u32 zero = 0;
-	ComputeIndirect compute_indirect = { 1, 1, 1 };
-	DrawArraysIndirect draw_indirect = { .count = 6 };
+	IndirectComputeArgs compute_indirect = { 1, 1, 1 };
+	IndirectDrawArgs draw_indirect = { .num_vertices = 6 };
 
 	return ParticleSystem {
 		.max_particles = max_particles,
 		.blend_func = blend_func,
 
-		.gpu_particles1 = NewGPUBuffer( NULL, max_particles * sizeof( GPUParticle ), "particles flip" ),
-		.gpu_particles2 = NewGPUBuffer( NULL, max_particles * sizeof( GPUParticle ), "particles flop" ),
-		.new_particles = NewStreamingBuffer( max_particles * sizeof( GPUParticle ), "new particles" ),
+		.gpu_particles1 = NewBuffer( "particles flip", max_particles * sizeof( Particle ), alignof( Particle ), false ),
+		.gpu_particles2 = NewBuffer( "particles flop", max_particles * sizeof( Particle ), alignof( Particle ), false ),
 
-		.compute_count1 = NewGPUBuffer( &zero, sizeof( u32 ), "compute_count flip" ),
-		.compute_count2 = NewGPUBuffer( &zero, sizeof( u32 ), "compute_count flop" ),
+		.compute_count1 = NewBuffer( "compute_count flip", zero ),
+		.compute_count2 = NewBuffer( "compute_count flop", zero ),
 
-		.compute_indirect = NewGPUBuffer( &compute_indirect, sizeof( compute_indirect ), "compute_indirect" ),
-		.draw_indirect = NewGPUBuffer( &draw_indirect, sizeof( draw_indirect ), "draw_indirect" ),
-
-		.mesh = NewMesh( MeshConfig {
-			.name = "Particle quad",
-			.num_vertices = 6,
-		} ),
+		.compute_indirect = NewBuffer( "particle compute indirect", compute_indirect ),
+		.draw_indirect = NewBuffer( "particle draw indirect", draw_indirect ),
 	};
-}
-
-static void DeleteParticleSystem( Allocator * a, ParticleSystem * ps ) {
-	DeleteGPUBuffer( ps->gpu_particles1 );
-	DeleteGPUBuffer( ps->gpu_particles2 );
-	DeleteStreamingBuffer( ps->new_particles );
-	DeleteGPUBuffer( ps->compute_count1 );
-	DeleteGPUBuffer( ps->compute_count2 );
-	DeleteGPUBuffer( ps->compute_indirect );
-	DeleteGPUBuffer( ps->draw_indirect );
-	DeleteMesh( ps->mesh );
 }
 
 static RandomDistribution ParseRandomDistribution( Span< const char > * data, ParseStopOnNewLine stop ) {
@@ -365,33 +311,33 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 				// }
 			}
 			else if( key == "stretch" ) {
-				emitter->flags = ParticleFlags( emitter->flags | ParticleFlag_Stretch );
+				emitter->flags |= ParticleFlag_Stretch;
 			}
 			else if( key == "rotate" ) {
-				emitter->flags = ParticleFlags( emitter->flags | ParticleFlag_Rotate );
+				emitter->flags |= ParticleFlag_Rotate;
 			}
 			else if( key == "acceleration" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
 				if( value == "$gravity" ) {
-					emitter->acceleration = -GRAVITY;
+					emitter->gravity = -GRAVITY;
 				}
 				else if( value == "$negative_gravity" ) {
-					emitter->acceleration = GRAVITY;
+					emitter->gravity = GRAVITY;
 				}
 				else {
-					emitter->acceleration = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+					emitter->gravity = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
 				}
 			}
 			else if( key == "acceleration" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
 				if( value == "$gravity" ) {
-					emitter->acceleration = -GRAVITY;
+					emitter->gravity = -GRAVITY;
 				}
 				else if( value == "$negative_gravity" ) {
-					emitter->acceleration = GRAVITY;
+					emitter->gravity = GRAVITY;
 				}
 				else {
-					emitter->acceleration = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+					emitter->gravity = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
 				}
 			}
 			else if( key == "drag" ) {
@@ -499,7 +445,7 @@ static bool ParseDecalEmitter( DecalEmitter * emitter, Span< const char > * data
 
 			if( key == "material" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				if( !emitter->materials.add( StringHash( Hash64( value.ptr, value.n ) ) ) ) {
+				if( !emitter->materials.add( StringHash( Hash64( value ) ) ) ) {
 					Com_Printf( S_COLOR_YELLOW "Too many materials in decal emitter!\n" );
 					return false;
 				}
@@ -548,7 +494,7 @@ static bool ParseDecalEmitter( DecalEmitter * emitter, Span< const char > * data
 	return true;
 }
 
-static bool ParseDynamicLightEmitter( DynamicLightEmitter * emitter, Span< const char > * data ) {
+static bool ParseLightEmitter( LightEmitter * emitter, Span< const char > * data ) {
 	while( true ) {
 		Span< const char > opening_brace = ParseToken( data, Parse_DontStopOnNewLine );
 		if( opening_brace == "" )
@@ -673,19 +619,19 @@ static bool ParseVisualEffectGroup( VisualEffectGroup * group, Span< const char 
 					return false;
 				}
 			}
-			else if( key == "dlight" ) {
-				DynamicLightEmitter emitter = { };
-				if( !ParseDynamicLightEmitter( &emitter, data ) )
+			else if( key == "light" ) {
+				LightEmitter emitter = { };
+				if( !ParseLightEmitter( &emitter, data ) )
 					return false;
 
 				size_t n = group->effects.size();
 				VisualEffect e = {
-					.type = VisualEffectType_DynamicLight,
+					.type = VisualEffectType_Light,
 					.hash = Hash64( &n, sizeof( n ), base_hash ),
 				};
 
-				if( !dlightEmitters.upsert( e.hash, emitter ) ) {
-					Com_Printf( S_COLOR_YELLOW "Too many dlight emitters\n" );
+				if( !lightEmitters.upsert( e.hash, emitter ) ) {
+					Com_Printf( S_COLOR_YELLOW "Too many light emitters\n" );
 					return false;
 				}
 
@@ -739,18 +685,13 @@ static void CreateParticleSystems() {
 	blendParticleSystem = NewParticleSystem( sys_allocator, BlendFunc_Blend, blend_max_particles );
 }
 
-void ShutdownParticleSystems() {
-	DeleteParticleSystem( sys_allocator, &addParticleSystem );
-	DeleteParticleSystem( sys_allocator, &blendParticleSystem );
-}
-
 void InitVisualEffects() {
 	TracyZoneScoped;
 
 	visualEffectGroups.clear();
 	particleEmitters.clear();
 	decalEmitters.clear();
-	dlightEmitters.clear();
+	lightEmitters.clear();
 
 	for( Span< const char > path : AssetPaths() ) {
 		if( FileExtension( path ) == ".cdvfx" ) {
@@ -759,10 +700,6 @@ void InitVisualEffects() {
 	}
 
 	CreateParticleSystems();
-}
-
-void ShutdownVisualEffects() {
-	ShutdownParticleSystems();
 }
 
 void HotloadVisualEffects() {
@@ -776,7 +713,6 @@ void HotloadVisualEffects() {
 		}
 	}
 	if( restart_systems ) {
-		ShutdownParticleSystems();
 		CreateParticleSystems();
 	}
 }
@@ -789,38 +725,42 @@ VisualEffectGroup * FindVisualEffectGroup( const char * name ) {
 	return FindVisualEffectGroup( StringHash( name ) );
 }
 
+void AllocateParticleBuffers() {
+	addParticleSystem.new_particles = NewCoherentSpan< Particle >( addParticleSystem.max_particles );
+	blendParticleSystem.new_particles = NewCoherentSpan< Particle >( blendParticleSystem.max_particles );
+}
+
 static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 	{
-		PipelineState pipeline;
-		pipeline.pass = frame_static.particle_update_pass;
-		pipeline.shader = &shaders.particle_compute;
-		pipeline.bind_buffer( "b_ParticlesIn", ps->gpu_particles1 );
-		pipeline.bind_buffer( "b_ParticlesOut", ps->gpu_particles2 );
-		pipeline.bind_streaming_buffer( "b_NewParticles", ps->new_particles );
-		pipeline.bind_buffer( "b_ComputeCountIn", ps->compute_count1 );
-		pipeline.bind_buffer( "b_ComputeCountOut", ps->compute_count2 );
-		// u32 collision = cl.map == NULL ? 0 : 1;
-		u32 collision = 0;
-		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, dt, ps->num_new_particles ) );
-		// if( collision ) {
-		// 	pipeline.bind_buffer( "b_BSPNodeLinks", cl.map->render_data.nodes );
-		// 	pipeline.bind_buffer( "b_BSPLeaves", cl.map->render_data.leaves );
-		// 	pipeline.bind_buffer( "b_BSPBrushes", cl.map->render_data.brushes );
-		// 	pipeline.bind_buffer( "b_BSPPlanes", cl.map->render_data.planes );
-		// }
-		DispatchComputeIndirect( pipeline, ps->compute_indirect );
+		GPUBuffer update = NewTempBuffer( ParticleUpdateUniforms {
+			.collision = 0_u32,
+			.dt = dt,
+			.num_new_particles = ps->num_new_particles,
+		} );
+
+		EncodeIndirectComputeCall( RenderPass_ParticleUpdate, shaders.particle_compute, ps->compute_indirect, {
+			{ "b_PrevParticles", ps->gpu_particles1 },
+			{ "b_NextParticles", ps->gpu_particles2 },
+			{ "b_NewParticles", ps->new_particles.buffer },
+			{ "b_PrevParticleCount", ps->compute_count1 },
+			{ "b_NextParticleCount", ps->compute_count2 },
+			{ "b_UpdateParams", update },
+		} );
 	}
 
 	{
-		PipelineState pipeline;
-		pipeline.pass = frame_static.particle_setup_indirect_pass;
-		pipeline.shader = &shaders.particle_setup_indirect;
-		pipeline.bind_buffer( "b_NextComputeCount", ps->compute_count1 );
-		pipeline.bind_buffer( "b_ComputeCount", ps->compute_count2 );
-		pipeline.bind_buffer( "b_ComputeIndirect", ps->compute_indirect );
-		pipeline.bind_buffer( "b_DrawIndirect", ps->draw_indirect );
-		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( ps->num_new_particles, ps->clear ? u32( 1 ) : u32( 0 ) ) );
-		DispatchCompute( pipeline, 1, 1, 1 );
+		NewParticlesUniforms new_particles = {
+			.num_new_particles = ps->num_new_particles,
+			.clear = ps->clear ? 1_u32 : 0_u32,
+		};
+
+		EncodeComputeCall( RenderPass_ParticleSetupIndirect, shaders.particle_setup_indirect, 1, 1, 1, {
+			{ "b_NextComputeCount", ps->compute_count1 },
+			{ "b_ComputeCount", ps->compute_count2 },
+			{ "b_ComputeIndirect", ps->compute_indirect },
+			{ "b_DrawIndirect", ps->draw_indirect },
+			{ "b_NewParticles", NewTempBuffer( new_particles ) },
+		} );
 	}
 
 	ps->num_new_particles = 0;
@@ -828,16 +768,17 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 }
 
 static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
-	PipelineState pipeline;
-	pipeline.pass = frame_static.transparent_pass;
-	pipeline.shader = &shaders.particle;
-	pipeline.blend_func = ps->blend_func;
-	pipeline.cull_face = CullFace_Disabled;
-	pipeline.write_depth = false;
-	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.bind_texture_and_sampler( "u_DecalAtlases", DecalAtlasTextureArray(), Sampler_Standard );
-	pipeline.bind_buffer( "b_Particles", ps->gpu_particles2 );
-	DrawMeshIndirect( ps->mesh, pipeline, ps->draw_indirect );
+	PipelineState pipeline = {
+		.shader = ps->blend_func == BlendFunc_Add ? shaders.particle_add : shaders.particle_blend,
+		.dynamic_state = {
+			.depth_func = DepthFunc_LessNoWrite,
+			.cull_face = CullFace_Disabled,
+		},
+		.material_bind_group = SpriteAtlasBindGroup(),
+	};
+
+	Mesh mesh = { .num_vertices = 6 };
+	DrawIndirect( RenderPass_Transparent, pipeline, mesh, ps->draw_indirect, { ps->gpu_particles2 } );
 
 	Swap2( &ps->gpu_particles1, &ps->gpu_particles2 );
 	Swap2( &ps->compute_count1, &ps->compute_count2 );
@@ -846,39 +787,53 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 void DrawParticles() {
 	float dt = cls.frametime / 1000.0f;
 
-	s64 total_new_particles = addParticleSystem.num_new_particles + blendParticleSystem.num_new_particles;
+	// TODO: probably merge these into one pass
+	frame_static.render_passes[ RenderPass_ParticleUpdate ] = NewComputePass( ComputePassConfig {
+		.name = "Update particles",
+		.pass = RenderPass_ParticleUpdate,
+	} );
+	frame_static.render_passes[ RenderPass_ParticleSetupIndirect ] = NewComputePass( ComputePassConfig {
+		.name = "Particle setup indirect",
+		.pass = RenderPass_ParticleSetupIndirect,
+		.barriers = { GPUBarrier_ComputeToCompute },
+	} );
 
 	UpdateParticleSystem( &addParticleSystem, dt );
 	DrawParticleSystem( &addParticleSystem, dt );
 	UpdateParticleSystem( &blendParticleSystem, dt );
 	DrawParticleSystem( &blendParticleSystem, dt );
 
+	s64 total_new_particles = addParticleSystem.num_new_particles + blendParticleSystem.num_new_particles;
 	TracyPlotSample( "New Particles", total_new_particles );
 }
 
-static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float angle, float angular_velocity, float acceleration, float drag, float restitution, Vec4 uvwh, Vec4 trim, Vec4 start_color, Vec4 end_color, float start_size, float end_size, ParticleFlags flags ) {
-	TracyZoneScopedN( "Store Particle" );
+static f16x3 FloatToHalf( Vec3 v ) {
+	return f16x3 { FloatToHalf( v.x ), FloatToHalf( v.y ), FloatToHalf( v.z ) };
+}
+
+static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float angle, float angular_velocity, float gravity, float drag, float restitution, Sprite sprite, Vec4 start_color, Vec4 end_color, float start_size, float end_size, ParticleFlags flags ) {
 	if( ps->num_new_particles == ps->max_particles )
 		return;
 
-	GPUParticle * new_particles = ( GPUParticle * ) GetStreamingBufferMemory( ps->new_particles );
-	new_particles[ ps->num_new_particles ] = GPUParticle {
-		.position = position,
-		.angle = angle,
-		.velocity = velocity,
-		.angular_velocity = angular_velocity,
-		.acceleration = acceleration,
-		.drag = drag,
-		.restitution = restitution,
-		.uvwh = uvwh,
-		.trim = trim,
+	ps->new_particles.data[ ps->num_new_particles ] = Particle {
 		.start_color = LinearTosRGB( start_color ),
 		.end_color = LinearTosRGB( end_color ),
-		.start_size = start_size,
-		.end_size = end_size,
-		.age = 0.0f,
-		.lifetime = lifetime,
-		.flags = flags,
+		.position = position,
+		.angle = FloatToHalf( angle ),
+		.velocity = FloatToHalf( velocity ),
+		.angular_velocity = FloatToHalf( angular_velocity ),
+		.gravity = FloatToHalf( gravity ),
+		.drag = FloatToHalf( drag ),
+		.restitution = FloatToHalf( restitution ),
+		.layer = sprite.layer,
+		.uv = sprite.uv,
+		.wh = sprite.wh,
+		.trim = sprite.trim,
+		.start_size = FloatToHalf( start_size ),
+		.end_size = FloatToHalf( end_size ),
+		.age = FloatToHalf( 0.0f ),
+		.lifetime = FloatToHalf( lifetime ),
+		.flags = checked_cast< u16 >( flags ),
 	};
 
 	ps->num_new_particles++;
@@ -937,10 +892,10 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 	start_color = Clamp01( start_color );
 
 	if( emitter->materials.size() > 0 ) {
-		Vec4 uvwh = Vec4( 0.0f );
-		Vec4 trim = Vec4( 0.0f, 0.0f, 1.0f, 1.0f );
-		if( TryFindDecal( RandomElement( &cls.rng, emitter->materials.span() ), &uvwh, &trim ) ) {
-			EmitParticle( ps, lifetime, position, dir * speed, angle, angular_velocity, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, trim, start_color, end_color, size, emitter->end_size, emitter->flags );
+		Optional< Sprite > sprite = TryFindSprite( RandomElement( &cls.rng, emitter->materials.span() ) );
+		if( sprite.exists ) {
+			EmitParticle( ps, lifetime, position, dir * speed, angle, angular_velocity, emitter->gravity, emitter->drag, emitter->restitution,
+				sprite.value, start_color, end_color, size, emitter->end_size, emitter->flags );
 		}
 	}
 }
@@ -1039,7 +994,7 @@ static void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 co
 	AddPersistentDecal( origin, QuaternionFromNormalAndRadians( normal, angle ), size, material, actual_color, Seconds( lifetime ), emitter->height );
 }
 
-static void EmitDynamicLight( DynamicLightEmitter * emitter, Vec3 origin, Vec3 color ) {
+static void EmitLight( LightEmitter * emitter, Vec3 origin, Vec3 color ) {
 	float lifetime = Max2( 0.0f, emitter->lifetime + SampleRandomDistribution( &cls.rng, emitter->lifetime_distribution ) );
 	float intensity = Max2( 0.0f, emitter->intensity + SampleRandomDistribution( &cls.rng, emitter->intensity_distribution ) );
 
@@ -1051,7 +1006,7 @@ static void EmitDynamicLight( DynamicLightEmitter * emitter, Vec3 origin, Vec3 c
 	actual_color.y += SampleRandomDistribution( &cls.rng, emitter->green_distribution );
 	actual_color.z += SampleRandomDistribution( &cls.rng, emitter->blue_distribution );
 	actual_color = Clamp01( actual_color );
-	AddPersistentDynamicLight( origin, actual_color, intensity, Seconds( lifetime ) );
+	AddPersistentLight( origin, actual_color, intensity, Seconds( lifetime ) );
 }
 
 void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec4 color, float decal_lifetime_scale ) {
@@ -1075,10 +1030,10 @@ void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec
 				EmitDecal( emitter, origin, normal, color, decal_lifetime_scale );
 			}
 		}
-		else if( e.type == VisualEffectType_DynamicLight ) {
-			DynamicLightEmitter * emitter = dlightEmitters.get( e.hash );
+		else if( e.type == VisualEffectType_Light ) {
+			LightEmitter * emitter = lightEmitters.get( e.hash );
 			if( emitter != NULL ) {
-				EmitDynamicLight( emitter, origin, color.xyz() );
+				EmitLight( emitter, origin, color.xyz() );
 			}
 		}
 	}

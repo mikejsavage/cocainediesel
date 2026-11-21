@@ -1,7 +1,7 @@
 #pragma once
 
 #include "qcommon/types.h"
-#include "client/renderer/types.h"
+#include "client/renderer/api.h"
 
 enum GLTFInterpolationMode {
 	GLTFInterpolationMode_Step,
@@ -12,7 +12,7 @@ enum GLTFInterpolationMode {
 enum ModelVfxType {
 	ModelVfxType_None,
 	ModelVfxType_Vfx,
-	ModelVfxType_DynamicLight,
+	ModelVfxType_Light,
 	ModelVfxType_Decal,
 };
 
@@ -46,7 +46,7 @@ struct GLTFRenderData {
 		Vec4 color;
 	};
 
-	struct DynamicLightNode {
+	struct LightNode {
 		Vec3 color;
 		float intensity;
 	};
@@ -66,6 +66,7 @@ struct GLTFRenderData {
 		Transform local_transform;
 
 		StringHash material;
+		bool double_sided;
 		Mesh mesh;
 
 		u8 parent;
@@ -78,7 +79,7 @@ struct GLTFRenderData {
 		ModelVfxType vfx_type;
 		union {
 			VfxNode vfx_node;
-			DynamicLightNode dlight_node;
+			LightNode dlight_node;
 			DecalNode decal_node;
 		};
 	};
@@ -115,6 +116,3 @@ void MergeLowerUpperPoses( Span< Transform > lower, Span< const Transform > uppe
 Span< Transform > LerpPoses( Allocator * a, Span< const Transform > pose0, float t, Span< const Transform > pose1 );
 Span< Transform > AddPoses( Allocator * a, Span< const Transform > pose0, Span< const Transform > pose1 );
 MatrixPalettes ComputeMatrixPalettes( Allocator * a, const GLTFRenderData * model, Span< const Transform > local_poses );
-
-void InitGLTFInstancing();
-void ShutdownGLTFInstancing();

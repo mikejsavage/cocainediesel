@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/client.h"
 #include "client/clay_init.h"
 #include "client/renderer/renderer.h"
+#include "client/renderer/shader_shared.h"
 #include "cgame/cg_local.h"
 #include "qcommon/time.h"
 
@@ -146,13 +147,9 @@ static void FlashStage( float begin, float t, float end, float from, float to, f
 static void SubmitPostprocessPreuiPass() {
 	TracyZoneScoped;
 
-	float zoom_time = float( cg.predictedPlayerState.zoom_time ) / float( ZOOMTIME );
+	return;
 
-	PipelineState pipeline;
-	pipeline.pass = frame_static.postprocess_preui_pass;
-	pipeline.shader = &shaders.postprocess_preui;
-	pipeline.depth_func = DepthFunc_Disabled;
-	pipeline.write_depth = false;
+	float zoom_time = float( cg.predictedPlayerState.zoom_time ) / float( ZOOMTIME );
 
 	float contrast = 1.0f;
 	if( client_gs.gameState.exploding ) {
@@ -163,59 +160,106 @@ static void SubmitPostprocessPreuiPass() {
 		FlashStage( 0.05f, t, 0.10f, -1.0f, 1.0f, &contrast );
 		FlashStage( 0.10f, t, 0.15f, 1.0f, -1.0f, &contrast );
 		FlashStage( 0.15f, t, 0.80f, -1.0f, -1.0f, &contrast );
+		// FlashStage( 0.50f, t, 0.80f, -1.0f, -1.0f, &contrast );
 		FlashStage( 0.80f, t, 1.00f, -1.0f, 1.0f, &contrast );
 	}
 
-	const RenderTarget & rt = frame_static.render_targets.postprocess_preui;
-	pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
-	pipeline.bind_texture_and_sampler( "u_Screen", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Standard );
-	
+	PostprocessPreUIUniforms uniforms = {
+		.vignette = zoom_time,
+		.radial_blur = zoom_time,
+		.exposure = Cvar_Float( "exposure" ),
+		.gamma = Cvar_Float( "gamma" ),
+		.brightness = Cvar_Float( "brightness" ),
+		.contrast = Cvar_Float( "contrast" ) * contrast,
+		.saturation = Cvar_Float( "saturation" ),
+	};
 
-	float u_Vignette = zoom_time;
-	float u_RadialBlur = zoom_time;
-	float u_Exposure = Cvar_Float( "exposure" );
-	float u_Gamma = Cvar_Float( "gamma" );
-	float u_Brightness = Cvar_Float( "brightness" );
-	float u_Contrast = Cvar_Float( "contrast" ) * contrast;
-	float u_Saturation = Cvar_Float( "saturation" );
+	frame_static.render_passes[ RenderPass_PreHUDPostprocessing ] = NewRenderPass( RenderPassConfig {
+		.name = "Pre-HUD postprocessing",
+		.pass = RenderPass_PreHUDPostprocessing,
+		.color_targets = {
+			RenderPassConfig::ColorTarget { .texture = frame_static.render_targets.resolved_color1, .load = LoadOp_DontCare },
+		},
+		.readonly_transitions = { frame_static.render_targets.resolved_color0 },
+		.representative_shader = shaders.postprocess,
+		.bindings = {
+			.buffers = {
+				{ "u_View", frame_static.ortho_view_uniforms },
+				{ "u_Postprocess", NewTempBuffer( uniforms ) },
+			},
+			.textures = {
+				{ "u_Framebuffer", frame_static.render_targets.resolved_color0 },
+				{ "u_RGBNoise", RGBNoiseTexture() },
+			},
+			.samplers = { { "u_StandardSampler", Sampler_Standard } },
+		},
+	} );
 
-	pipeline.bind_uniform( "u_PostProcess",
-		UploadUniformBlock(
-			u_Vignette,
-			u_RadialBlur,
-			u_Exposure,
-			u_Gamma,
-			u_Brightness,
-			u_Contrast,
-			u_Saturation ) );
+	PipelineState pipeline = {
+		.shader = shaders.postprocess_preui,
+		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
+	};
 
-	DrawFullscreenMesh( pipeline );
+	Draw( RenderPass_PreHUDPostprocessing, pipeline, FullscreenMesh() );
 }
 
 static void SubmitPostprocessPass() {
 	TracyZoneScoped;
 
-	PipelineState pipeline;
-	pipeline.pass = frame_static.postprocess_pass;
-	pipeline.shader = &shaders.postprocess;
-	pipeline.depth_func = DepthFunc_Disabled;
-	pipeline.write_depth = false;
+	static float chasing_amount = 0.0f;
+	constexpr float chasing_speed = 4.0f;
+	bool chasing = cls.cgameActive && !CL_DemoPlaying() && cg.predictedPlayerState.team != Team_None && cg.predictedPlayerState.POVnum != cgs.playerNum + 1;
+	if( chasing ) {
+		chasing_amount += cls.frametime * 0.001f * chasing_speed;
+	} else {
+		chasing_amount -= cls.frametime * 0.001f * chasing_speed;
+	}
+	chasing_amount = Clamp01( chasing_amount );
 
-	const RenderTarget & rt = frame_static.render_targets.postprocess;
-	pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
-	pipeline.bind_texture_and_sampler( "u_Screen", &rt.color_attachments[ FragmentShaderOutput_Albedo ], Sampler_Standard );
-	pipeline.bind_texture_and_sampler( "u_Noise", RGBNoiseTexture(), Sampler_Standard );
+	PostprocessUniforms uniforms = {
+		.time = ToSeconds( cls.shadertoy_time ),
+		.damage = cg.view.type == ViewType_Player ? cg.damage_effect : 0.0f,
+		.crt = chasing_amount,
+	};
 
-	float u_Time = ToSeconds( cls.shadertoy_time );
-	float u_Damage = cg.view.type == ViewType_Player ? cg.damage_effect : 0.0f;
-	float u_CrtEffect = cg.animationState.chasing;
+	bool explicit_srgb = SwapchainIsNotsRGB();
+	Span< PoolHandle< Texture > > attachment_transitions = { };
+	if( explicit_srgb ) {
+		attachment_transitions = Span( &frame_static.render_targets.resolved_color1, 1 );
+	}
 
-	pipeline.bind_uniform( "u_PostProcess", UploadUniformBlock(
-		u_Time,
-		u_Damage,
-		u_CrtEffect ) );
+	frame_static.render_passes[ RenderPass_PostHUDPostprocessing ] = NewRenderPass( RenderPassConfig {
+		.name = "Post-HUD postprocessing",
+		.pass = RenderPass_PostHUDPostprocessing,
+		.color_targets = {
+			RenderPassConfig::ColorTarget {
+				.texture = explicit_srgb ? Optional( frame_static.render_targets.resolved_color1 ) : NONE,
+				.load = LoadOp_DontCare,
+			},
+		},
+		.attachment_transitions = attachment_transitions,
+		.readonly_transitions = { frame_static.render_targets.resolved_color0 },
+		.swapchain_attachment_transition = !explicit_srgb,
+		.representative_shader = shaders.postprocess,
+		.bindings = {
+			.buffers = {
+				{ "u_View", frame_static.ortho_view_uniforms },
+				{ "u_Postprocess", NewTempBuffer( uniforms ) },
+			},
+			.textures = {
+				{ "u_Framebuffer", frame_static.render_targets.resolved_color0 },
+				{ "u_RGBNoise", RGBNoiseTexture() },
+			},
+			.samplers = { { "u_StandardSampler", Sampler_Standard } },
+		},
+	} );
 
-	DrawFullscreenMesh( pipeline );
+	PipelineState pipeline = {
+		.shader = shaders.postprocess,
+		.dynamic_state = { .depth_func = DepthFunc_AlwaysNoWrite },
+	};
+
+	Draw( RenderPass_PostHUDPostprocessing, pipeline, FullscreenMesh() );
 }
 
 void MaybeResetShadertoyTime( bool respawned ) {
@@ -227,14 +271,14 @@ void MaybeResetShadertoyTime( bool respawned ) {
 }
 
 void SCR_UpdateScreen() {
-	CL_ForceVsync( cls.state == CA_DISCONNECTED );
-
 	MaybeResetShadertoyTime( false );
 
 	CL_ImGuiBeginFrame();
 
 	if( cls.state == CA_ACTIVE ) {
 		SCR_RenderView();
+		SubmitPostprocessPreuiPass();
+		SubmitPostprocessPass();
 
 		if( scr_timegraph->integer ) {
 			SCR_DebugGraph( cls.frametime * 0.3f, 1, 1, 1 );
@@ -246,10 +290,43 @@ void SCR_UpdateScreen() {
 	}
 	else {
 		cg.damage_effect = 0.0f;
-	}
 
-	SubmitPostprocessPreuiPass();
-	SubmitPostprocessPass();
+		bool explicit_srgb = SwapchainIsNotsRGB();
+		const auto & targets = frame_static.render_targets;
+
+		frame_static.render_passes[ RenderPass_Menus ] = NewRenderPass( RenderPassConfig {
+			.name = "Menus",
+			.pass = RenderPass_Menus,
+			.color_targets = {
+				RenderPassConfig::ColorTarget {
+					.texture = targets.resolved_color0,
+					.load = LoadOp_Clear,
+					.clear = black.linear,
+				},
+			},
+			.attachment_transitions = { targets.resolved_color0 },
+			.representative_shader = shaders.imgui,
+			.bindings = {
+				.buffers = { { "u_View", frame_static.ortho_view_uniforms } },
+			},
+		} );
+
+		if( explicit_srgb ) {
+			frame_static.render_passes[ RenderPass_10BitTosRGB ] = NewRenderPass( RenderPassConfig {
+				.name = "sRGB",
+				.pass = RenderPass_10BitTosRGB,
+				.color_targets = { RenderPassConfig::ColorTarget { .texture = NONE } },
+				.readonly_transitions = { targets.resolved_color0 },
+				.swapchain_attachment_transition = true,
+				.representative_shader = shaders.srgb,
+				.bindings = {
+					.textures = { { "u_Framebuffer", targets.resolved_color0 } },
+				},
+			} );
+
+			Draw( RenderPass_10BitTosRGB, { .shader = shaders.srgb }, FullscreenMesh() );
+		}
+	}
 
 	UI_Refresh();
 

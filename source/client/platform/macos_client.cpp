@@ -9,6 +9,20 @@
 #include <sys/types.h>
 #include <sys/sysctl.h>
 
+#include "Foundation/NSAutoreleasePool.hpp"
+
+static NS::AutoreleasePool * global_pool;
+
+void InitClientPlatform() { }
+
+void CreateAutoreleasePoolOnMacOS() {
+	global_pool = NS::AutoreleasePool::alloc()->init();
+}
+
+void ReleaseAutoreleasePoolOnMacOS() {
+	global_pool->release();
+}
+
 // TODO: do something like https://github.com/aaronmjacobs/Boxer/blob/master/src/boxer_mac.mm
 void ShowErrorMessage( const char * msg, const char * file, int line ) {
 	printf( "%s (%s:%d)\n", msg, file, line );
@@ -20,11 +34,6 @@ bool OpenInWebBrowser( const char * url ) {
 	char open[] = "open";
 	char * argv[] = { open, const_cast< char * >( url ), NULL };
 	return posix_spawnp( NULL, open, NULL, NULL, argv, environ ) == 0;
-}
-
-bool IsRenderDocAttached() {
-	// RenderDoc doesn't run on macOS
-	return false;
 }
 
 #endif // #if PLATFORM_MACOS

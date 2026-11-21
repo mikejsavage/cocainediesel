@@ -9,11 +9,11 @@
 #include "client/client.h"
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
+#include "client/renderer/shader_variants.h"
 
 #include <algorithm>
 
-static Texture atlas_texture;
-static Material atlas_material;
+static PoolHandle< Texture > atlas_texture;
 
 static ImFont * AddFontAsset( StringHash path, float pixel_size ) {
 	Span< const u8 > data = AssetBinary( path );
@@ -25,10 +25,7 @@ static ImFont * AddFontAsset( StringHash path, float pixel_size ) {
 	return ImGui::GetIO().Fonts->AddFont( &config );
 }
 
-struct SDL_Window;
-extern SDL_Window * window;
-
-void CL_InitImGui() {
+void CL_InitImGui( SDL_Window * window ) {
 	TracyZoneScoped;
 
 	IMGUI_CHECKVERSION();
@@ -62,13 +59,15 @@ void CL_InitImGui() {
 		io.Fonts->GetTexDataAsAlpha8( &pixels, &width, &height );
 
 		atlas_texture = NewTexture( TextureConfig {
+			.name = "ImGui font atlas",
 			.format = TextureFormat_A_U8,
 			.width = checked_cast< u32 >( width ),
 			.height = checked_cast< u32 >( height ),
 			.data = pixels,
 		} );
-		atlas_material.texture = &atlas_texture;
-		io.Fonts->TexID = ImGuiShaderAndMaterial( &atlas_material );
+
+		PoolHandle< BindGroup > atlas_bind_group = NewMaterialBindGroup( "ImGui font atlas", atlas_texture, Sampler_Standard, MaterialProperties { } );
+		io.Fonts->TexID = ImGuiShaderAndMaterial( atlas_bind_group );
 	}
 
 	{
@@ -120,8 +119,6 @@ void CL_InitImGui() {
 }
 
 void CL_ShutdownImGui() {
-	DeleteTexture( atlas_texture );
-
 	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext();
 }
@@ -138,34 +135,24 @@ static void SubmitDrawCalls() {
 		return;
 	draw_data->ScaleClipRects( io.DisplayFramebufferScale );
 
-	UniformBlock lodbias_uniforms = UploadMaterialStaticUniforms( 0.0f, 0.0f, -1.0f );
-
-	ImVec2 pos = draw_data->DisplayPos;
 	for( int n = 0; n < draw_data->CmdListsCount; n++ ) {
 		TempAllocator temp = cls.frame_arena.temp();
 
 		const ImDrawList * cmd_list = draw_data->CmdLists[ n ];
-
-		u32 pass = frame_static.post_ui_pass;
-		if( cmd_list == ImGui::GetBackgroundDrawList() ) {
-			pass = frame_static.ui_pass;
-		}
-
 		if( cmd_list->VtxBuffer.Size == 0 || cmd_list->IdxBuffer.Size == 0 ) {
 			continue;
 		}
 
-		VertexDescriptor vertex_descriptor = { };
-		vertex_descriptor.attributes[ VertexAttribute_Position ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, pos ) };
-		vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = VertexAttribute { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, uv ) };
-		vertex_descriptor.attributes[ VertexAttribute_Color ] = VertexAttribute { VertexFormat_U8x4_01, 0, offsetof( ImDrawVert, col ) };
-		vertex_descriptor.buffer_strides[ 0 ] = sizeof( ImDrawVert );
+		RenderPass rp = RenderPass_Menus;
+		if( cmd_list == ImGui::GetBackgroundDrawList() ) {
+			rp = RenderPass_HUD;
+		}
 
-		DynamicDrawData dynamic_geometry = UploadDynamicGeometry(
-			Span< const ImDrawVert >( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size ).cast< const u8 >(),
-			Span< const ImDrawIdx >( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size ),
-			vertex_descriptor
-		);
+		Mesh mesh = {
+			.vertex_descriptor = ImGuiVertexDescriptor(),
+			.vertex_buffers = { NewTempBuffer( Span< const ImDrawVert >( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size ), alignof( ImDrawVert ) ) },
+			.index_buffer = NewTempBuffer( Span< const ImDrawIdx >( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size ), alignof( u16 ) ),
+		};
 
 		for( int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++ ) {
 			const ImDrawCmd * pcmd = &cmd_list->CmdBuffer[ cmd_i ];
@@ -173,35 +160,41 @@ static void SubmitDrawCalls() {
 				pcmd->UserCallback( cmd_list, pcmd );
 			}
 			else {
-				MinMax2 scissor = MinMax2( Vec2( pcmd->ClipRect.x - pos.x, pcmd->ClipRect.y - pos.y ), Vec2( pcmd->ClipRect.z - pos.x, pcmd->ClipRect.w - pos.y ) );
-				if( scissor.mins.x < fb_width && scissor.mins.y < fb_height && scissor.maxs.x >= 0.0f && scissor.maxs.y >= 0.0f ) {
-					PipelineState pipeline;
-					pipeline.pass = pass;
-					pipeline.shader = pcmd->TextureId.shader;
-					pipeline.depth_func = DepthFunc_Disabled;
-					pipeline.blend_func = BlendFunc_Blend;
-					pipeline.cull_face = CullFace_Disabled;
-					pipeline.write_depth = false;
-					pipeline.scissor = {
-						u32( Max2( scissor.mins.x, 0.f ) ),
-						u32( Max2( scissor.mins.y, 0.f ) ),
-						u32( scissor.maxs.x - scissor.mins.x ),
-						u32( scissor.maxs.y - scissor.mins.y ),
-					};
+				MinMax2 scissor = MinMax2(
+					Vec2( pcmd->ClipRect.x, pcmd->ClipRect.y ) - draw_data->DisplayPos,
+					Vec2( pcmd->ClipRect.z, pcmd->ClipRect.w ) - draw_data->DisplayPos
+				);
+				if( scissor.maxs.x <= scissor.mins.x || scissor.maxs.y <= scissor.mins.y )
+					continue;
+				if( pcmd->ElemCount == 0 )
+					continue;
 
-					pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
-					pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
-					pipeline.bind_uniform( "u_MaterialStatic", lodbias_uniforms );
-					pipeline.bind_uniform( "u_MaterialDynamic", frame_static.identity_material_dynamic_uniforms );
+				EncodeScissor( rp, Scissor {
+					.x = u32( Max2( scissor.mins.x, 0.0f ) ),
+					.y = u32( Max2( scissor.mins.y, 0.0f ) ),
+					.w = u32( scissor.maxs.x - scissor.mins.x ),
+					.h = u32( scissor.maxs.y - scissor.mins.y ),
+				} );
 
-					if( pcmd->TextureId.uniform_name != EMPTY_HASH ) {
-						pipeline.bind_uniform( pcmd->TextureId.uniform_name, pcmd->TextureId.uniform_block );
-					}
+				PipelineState pipeline = {
+					.shader = Default( pcmd->TextureId.shader, shaders.imgui ),
+					.dynamic_state = {
+						.depth_func = DepthFunc_AlwaysNoWrite,
+						.cull_face = CullFace_Disabled,
+					},
+					.material_bind_group = pcmd->TextureId.material_bind_group,
+				};
 
-					pipeline.bind_texture_and_sampler( "u_BaseTexture", pcmd->TextureId.material->texture, Sampler_Standard );
-
-					DrawDynamicGeometry( pipeline, dynamic_geometry, pcmd->ElemCount, pcmd->IdxOffset );
+				Span< const GPUBuffer > buffers = { };
+				if( pcmd->TextureId.buffer.exists ) {
+					buffers = Span< const GPUBuffer >( &pcmd->TextureId.buffer.value, 1 );
 				}
+
+				DrawCallExtras extras = {
+					.first_index = pcmd->IdxOffset,
+					.override_num_vertices = pcmd->ElemCount,
+				};
+				Draw( rp, pipeline, mesh, buffers, extras );
 			}
 		}
 	}

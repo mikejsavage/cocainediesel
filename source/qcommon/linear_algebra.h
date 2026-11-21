@@ -138,14 +138,6 @@ inline Vec3 SafeNormalize( Vec3 v ) {
 	return Normalize( v );
 }
 
-inline Vec3 Floor( Vec3 v ) {
-	return Vec3(
-		floorf( v.x ),
-		floorf( v.y ),
-		floorf( v.z )
-	);
-}
-
 constexpr Vec3 Clamp( Vec3 lo, Vec3 v, Vec3 hi ) {
 	return Vec3(
 		Clamp( lo.x, v.x, hi.x ),
@@ -462,6 +454,16 @@ inline void format( FormatBuffer * fb, const Vec4 & v, const FormatOpts & opts )
 
 inline void format( FormatBuffer * fb, const Mat3 & m, const FormatOpts & opts ) {
 	format( fb, "Mat3(" );
+	format( fb, m.row0(), opts );
+	format( fb, ", " );
+	format( fb, m.row1(), opts );
+	format( fb, ", " );
+	format( fb, m.row2(), opts );
+	format( fb, ")" );
+}
+
+inline void format( FormatBuffer * fb, const Mat3x4 & m, const FormatOpts & opts ) {
+	format( fb, "Mat3x4(" );
 	format( fb, m.row0(), opts );
 	format( fb, ", " );
 	format( fb, m.row1(), opts );

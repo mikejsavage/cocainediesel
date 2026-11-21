@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_MSG_STRING_CHARS    2048
 
 msg_t NewMSGWriter( u8 * data, size_t n ) {
+	Assert( n <= MAX_MSGLEN );
 	msg_t msg = { };
 	msg.data = data;
 	msg.maxsize = n;
@@ -31,6 +32,7 @@ msg_t NewMSGWriter( u8 * data, size_t n ) {
 }
 
 msg_t NewMSGReader( u8 * data, size_t n, size_t data_size ) {
+	Assert( n <= MAX_MSGLEN );
 	msg_t msg = { };
 	msg.data = data;
 	msg.maxsize = data_size;

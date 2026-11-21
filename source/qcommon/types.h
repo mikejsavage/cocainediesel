@@ -175,6 +175,24 @@ template< typename T > constexpr bool SameType< T, T > = true;
  * Span
  */
 
+// workaround for
+// candidate template ignored: deduced conflicting types for parameter 'T' ('const char **' vs. 'const char *const *')
+template< typename R, typename T >
+R * DestupidInitializerLists( T x ) {
+	return x;
+}
+
+template<>
+inline const char ** DestupidInitializerLists( const char * const * str ) {
+	return const_cast< const char ** >( str );
+}
+
+template< typename T > struct Span;
+template<>
+inline Span< const char > * DestupidInitializerLists( const Span< const char > * str ) {
+	return const_cast< Span< const char > * >( str );
+}
+
 template< typename T >
 struct Span {
 	T * ptr;
@@ -182,7 +200,9 @@ struct Span {
 
 	constexpr Span() : ptr( NULL ), n( 0 ) { }
 	constexpr Span( T * ptr_, size_t n_ ) : ptr( ptr_ ), n( n_ ) { }
-	constexpr Span( std::initializer_list< T > && elems ) : ptr( elems.begin() ), n( elems.size() ) { }
+
+	// it's not safe to pass anything but temporaries here, so make elems an r-value reference
+	constexpr Span( std::initializer_list< T > && elems ) : ptr( DestupidInitializerLists< T >( elems.begin() ) ), n( elems.size() ) { }
 
 	/*
 	 * require S is explicitly const char so this doesn't compile:
@@ -326,6 +346,21 @@ struct Optional {
 	T * operator->() { Assert( exists ); return &value; }
 	const T * operator->() const { Assert( exists ); return &value; }
 };
+
+/*
+ * PoolHandle
+ */
+
+template< typename T > struct PoolHandleType { };
+template< typename T >
+struct PoolHandle {
+	typename PoolHandleType< T >::T x;
+};
+
+template< typename T >
+bool operator==( PoolHandle< T > lhs, PoolHandle< T > rhs ) {
+	return lhs.x == rhs.x;
+}
 
 /*
  * maths types
@@ -532,13 +567,17 @@ struct Quaternion {
 	Quaternion() = default;
 	constexpr Quaternion( float x_, float y_, float z_, float w_ ) : x( x_ ), y( y_ ), z( z_ ), w( w_ ) { }
 
-	Vec3 im() const { return Vec3( x, y, z ); }
-
 	float * ptr() { return &x; }
 
 	static constexpr Quaternion Identity() {
-		return Quaternion( 0, 0, 0, 1 );
+		return Quaternion( 0.0f, 0.0f, 0.0f, 1.0f );
 	}
+};
+
+struct Transform {
+	Quaternion rotation;
+	Vec3 translation;
+	float scale;
 };
 
 struct Plane {
@@ -606,7 +645,7 @@ struct RGBA8 {
 	u8 r, g, b, a;
 
 	RGBA8() = default;
-	constexpr RGBA8( u8 r_, u8 g_, u8 b_, u8 a_ ) : r( r_ ), g( g_ ), b( b_ ), a( a_ ) { }
+	constexpr RGBA8( u8 r_, u8 g_, u8 b_, u8 a_ = 255 ) : r( r_ ), g( g_ ), b( b_ ), a( a_ ) { }
 	explicit constexpr RGBA8( RGB8 rgb, u8 a_ = 255 ) : r( rgb.r ), g( rgb.g ), b( rgb.b ), a( a_ ) { }
 
 	constexpr RGB8 rgb() const { return RGB8( r, g, b ); }
@@ -626,6 +665,7 @@ template< typename E > concept IsEnum = __is_enum( E );
 template< typename E > using UnderlyingType = __underlying_type( E );
 
 template< IsEnum E > void operator++( E & x, int ) { x = E( UnderlyingType< E >( x ) + 1 ); }
+template< IsEnum E, typename T > constexpr E operator+( E lhs, T rhs ) { return E( UnderlyingType< E >( lhs ) + UnderlyingType< E >( rhs ) ); }
 template< IsEnum E > constexpr E operator&( E lhs, E rhs ) { return E( UnderlyingType< E >( lhs ) & UnderlyingType< E >( rhs ) ); }
 template< IsEnum E > constexpr E operator|( E lhs, E rhs ) { return E( UnderlyingType< E >( lhs ) | UnderlyingType< E >( rhs ) ); }
 template< IsEnum E > constexpr E operator~( E x ) { return E( ~UnderlyingType< E >( x ) ); }

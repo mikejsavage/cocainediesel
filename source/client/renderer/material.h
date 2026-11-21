@@ -2,7 +2,7 @@
 
 #include "qcommon/types.h"
 #include "qcommon/hash.h"
-#include "client/renderer/backend.h"
+#include "client/renderer/api.h"
 
 enum WaveFunc {
 	WaveFunc_Sin,
@@ -29,40 +29,41 @@ struct ColorGen {
 	Wave wave = { };
 };
 
-struct Material {
-	Span< char > name;
-	u64 hash;
+// TODO
+template< size_t N >
+struct BoundedString {
+	char str[ N ];
+	size_t n;
 
-	const Texture * texture;
+	BoundedString() = default;
 
-	ColorGen rgbgen;
-	ColorGen alphagen;
-	BlendFunc blend_func = BlendFunc_Disabled;
-	bool double_sided = false;
-	bool decal = false;
-	bool mask_outlines = false;
-	bool outlined = true;
-	bool shaded = false;
-	bool world = false;
-	float specular = 0.0f;
-	float shininess = 64.0f;
-	SamplerType sampler = Sampler_Standard;
+	BoundedString( Span< const char > str_ ) {
+		n = Min2( str_.n, N );
+		memcpy( str, str_.ptr, n );
+	}
+
+	Span< const char > span() const { return Span< const char >( str, n ); }
 };
 
 bool CompressedTextureFormat( TextureFormat format );
 u32 BitsPerPixel( TextureFormat format );
+u32 BlockSize( TextureFormat format );
 
 void InitMaterials();
 void HotloadMaterials();
 void ShutdownMaterials();
 
-const Material * FindMaterial( StringHash name );
-const Material * FindMaterial( const char * name );
-bool TryFindMaterial( StringHash name, const Material ** material );
+struct Sprite {
+	u16 layer;
+	u16x2 uv, wh;
+	u16x4 trim;
+};
 
-Sampler GetSampler( SamplerType sampler );
+Optional< Sprite > TryFindSprite( StringHash name );
+PoolHandle< BindGroup > SpriteAtlasBindGroup();
+PoolHandle< Texture > SpriteAtlasTexture();
 
-bool TryFindDecal( StringHash name, Vec4 * uvwh, Vec4 * trim );
-const Texture * DecalAtlasTextureArray();
+struct Material;
+Vec2 HalfPixelSize( PoolHandle< Material > material );
 
-Vec2 HalfPixelSize( const Material * material );
+Vec4 EvaluateMaterialColor( PoolHandle< Material > material, Vec4 entity_color );

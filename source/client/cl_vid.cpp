@@ -1,5 +1,4 @@
 #include "client/client.h"
-#include "client/renderer/renderer.h"
 
 Cvar * vid_mode;
 static Cvar * vid_vsync;
@@ -69,11 +68,6 @@ static void UpdateVidModeCvar() {
 }
 
 void VID_CheckChanges() {
-	if( vid_vsync->modified ) {
-		EnableVSync( force_vsync || vid_vsync->integer != 0 );
-		vid_vsync->modified = false;
-	}
-
 	if( !vid_mode->modified )
 		return;
 	vid_mode->modified = false;
@@ -89,7 +83,7 @@ void VID_CheckChanges() {
 	UpdateVidModeCvar();
 }
 
-void VID_Init() {
+SDL_Window * VID_Init() {
 	TracyZoneScoped;
 
 	vid_mode = NewCvar( "vid_mode", "", CvarFlag_Archive );
@@ -102,13 +96,7 @@ void VID_Init() {
 		.fullscreen = true,
 	} );
 
-	CreateWindow( mode );
+	SDL_Window * window = CreateWindow( mode );
 	UpdateVidModeCvar();
-}
-
-void CL_ForceVsync( bool force ) {
-	if( force != force_vsync ) {
-		force_vsync = force;
-		vid_vsync->modified = true;
-	}
+	return window;
 }

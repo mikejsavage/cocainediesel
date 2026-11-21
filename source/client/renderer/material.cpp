@@ -1,14 +1,21 @@
 #include "qcommon/base.h"
 #include "qcommon/hash.h"
-#include "qcommon/hashtable.h"
+#include "qcommon/hashmap.h"
+#include "qcommon/pool.h"
 #include "qcommon/string.h"
 #include "qcommon/span2d.h"
+#include "qcommon/srgb.h"
+#include "qcommon/threadpool.h"
 #include "gameshared/q_shared.h"
 #include "client/client.h"
 #include "client/assets.h"
-#include "client/threadpool.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
+#include "client/renderer/blue_noise.h"
 #include "client/renderer/dds.h"
+#include "client/renderer/rgb_noise.h"
+#include "client/renderer/shader.h"
+#include "client/renderer/material.h"
+#include "client/renderer/private.h"
 #include "cgame/cg_dynamics.h"
 
 #include "nanosort/nanosort.hpp"
@@ -16,45 +23,51 @@
 #include "stb/stb_image.h"
 #include "stb/stb_rect_pack.h"
 
-struct MaterialSpecKey {
-	const char * keyword;
-	void ( *func )( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data );
+struct MaterialConfig {
+	BlendFunc blend_func = BlendFunc_Disabled;
+
+	RenderPipelineDynamicState dynamic_state;
+	ColorGen rgbgen = { };
+	ColorGen alphagen = { };
+
+	StringHash texture;
+	// PoolHandle< Texture > texture;
+	SamplerType sampler = Sampler_Standard;
+
+	bool outlined = true;
+	bool shaded = false;
+	bool world = false;
+
+	MaterialProperties properties = {
+		.specular = 0.0f,
+		.shininess = 64.0f,
+	};
 };
 
-constexpr u32 MAX_TEXTURES = 4096;
-constexpr u32 MAX_MATERIALS = 4096;
+struct MaterialSpecKey {
+	Span< const char > keyword;
+	void ( *func )( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data );
+};
 
-constexpr u32 MAX_DECALS = 4096;
-constexpr int DECAL_ATLAS_SIZE = 2048;
-constexpr int DECAL_ATLAS_BLOCK_SIZE = DECAL_ATLAS_SIZE / 4;
+constexpr u32 MAX_SPRITES = 4096;
+constexpr int SPRITE_ATLAS_SIZE = 2048;
+constexpr int SPRITE_ATLAS_BLOCK_SIZE = SPRITE_ATLAS_SIZE / 4;
 
-static Texture textures[ MAX_TEXTURES ];
-static void * texture_stb_data[ MAX_TEXTURES ];
-static Span< const BC4Block > texture_bc4_data[ MAX_TEXTURES ];
-static Hashtable< MAX_TEXTURES * 2 > textures_hashtable;
+// NOTE(mike 20260406): maybe we want to split textures into a separate Pool/HashMap, currently
+// render targets are treated exactly the same as regular textures meaning we can use them from
+// materials etc
+inline HashPool< Texture, MaxMaterials > textures; // NOTE(mike): this is inline so the backends can read it
+static HashPool< Material, MaxMaterials > materials;
 
-static Texture missing_texture;
-static Material missing_material;
+static PoolHandle< Texture > missing_texture;
+static PoolHandle< Material > missing_material;
 
-static Material materials[ MAX_MATERIALS ];
-static Hashtable< MAX_MATERIALS * 2 > materials_hashtable;
+static PoolHandle< Texture > rgb_noise;
+static PoolHandle< Texture > blue_noise;
 
-static Sampler samplers[ Sampler_Count ];
-
-static Vec4 decal_uvwhs[ MAX_DECALS ];
-static Vec4 decal_trims[ MAX_DECALS ];
-static u32 num_decals;
-static Hashtable< MAX_DECALS * 2 > decals_hashtable;
-static Texture decals_atlases;
-
-static UniformBlock material_static_uniforms[ MAX_MATERIALS ];
-static Hashtable< MAX_MATERIALS * 2 > material_static_uniforms_hashtable;
-static u32 num_material_static_uniforms;
-
-void ClearMaterialStaticUniforms() {
-	material_static_uniforms_hashtable.clear();
-	num_material_static_uniforms = 0;
-}
+static HashMap< Sprite, MAX_SPRITES > sprites;
+static PoolHandle< Texture > sprite_atlas;
+static PoolHandle< BindGroup > sprite_atlas_bind_group;
 
 bool CompressedTextureFormat( TextureFormat format ) {
 	switch( format ) {
@@ -71,21 +84,39 @@ bool CompressedTextureFormat( TextureFormat format ) {
 
 u32 BitsPerPixel( TextureFormat format ) {
 	switch( format ) {
-		case TextureFormat_BC1_sRGB:
-			return 4;
+		case TextureFormat_R_U8: return 8;
+		case TextureFormat_R_U8_sRGB: return 8;
+		case TextureFormat_R_S8: return 8;
+		case TextureFormat_R_UI8: return 8;
 
-		case TextureFormat_BC3_sRGB:
-			return 8;
+		case TextureFormat_A_U8: return 8;
 
-		case TextureFormat_BC4:
-			return 4;
+		case TextureFormat_RA_U8: return 16;
 
-		case TextureFormat_BC5:
-			return 8;
+		case TextureFormat_RGBA_U8: return 32;
+		case TextureFormat_RGBA_U8_sRGB: return 32;
+
+		case TextureFormat_BC1_sRGB: return 4;
+		case TextureFormat_BC3_sRGB: return 8;
+		case TextureFormat_BC4: return 4;
+		case TextureFormat_BC5: return 8;
 
 		default:
 			Assert( false );
 			return 0;
+	}
+}
+
+u32 BlockSize( TextureFormat format ) {
+	switch( format ) {
+		case TextureFormat_BC1_sRGB:
+		case TextureFormat_BC3_sRGB:
+		case TextureFormat_BC4:
+		case TextureFormat_BC5:
+			return 4;
+
+		default:
+			return 1;
 	}
 }
 
@@ -153,44 +184,39 @@ static Wave ParseWave( Span< const char > * data ) {
 	return wave;
 }
 
-static void ParseCull( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseCull( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
-	if( token == "disable" || token == "none" || token == "twosided" ) {
-		material->double_sided = true;
+	if( token == "front" ) {
+		material->dynamic_state.cull_face = CullFace_Front;
+	}
+	else if( token == "disable" || token == "none" || token == "twosided" ) {
+		material->dynamic_state.cull_face = CullFace_Disabled;
 	}
 }
 
-static void ParseDecal( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
-	material->decal = true;
-}
-
-static void ParseMaskOutlines( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
-	material->mask_outlines = true;
-}
-
-static void ParseShaded( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseShaded( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->shaded = true;
 	if( material->world ) {
 		Com_GGPrint( S_COLOR_YELLOW "{}: world and shaded don't mix", name );
 	}
 }
 
-static void ParseWorld( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseWorld( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	material->world = true;
 	if( material->shaded ) {
 		Com_GGPrint( S_COLOR_YELLOW "{}: world and shaded don't mix", name );
 	}
 }
 
-static void ParseSpecular( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
-	material->specular = ParseMaterialFloat( data );
+static void ParseSpecular( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+	material->properties.specular = ParseMaterialFloat( data );
 }
 
-static void ParseShininess( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
-	material->shininess = ParseMaterialFloat( data );
+static void ParseShininess( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+	material->properties.shininess = ParseMaterialFloat( data );
 }
 
-static void ParseBlendFunc( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseBlendFunc( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "blend" ) {
 		material->blend_func = BlendFunc_Blend;
@@ -201,7 +227,7 @@ static void ParseBlendFunc( Material * material, Span< const char > name, Span< 
 	SkipToEndOfLine( data );
 }
 
-static void ParseRGBGen( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseRGBGen( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "wave" ) {
 		material->rgbgen.type = ColorGenType_Wave;
@@ -236,7 +262,7 @@ static void ParseRGBGen( Material * material, Span< const char > name, Span< con
 	}
 }
 
-static void ParseAlphaGen( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseAlphaGen( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "entity" ) {
 		material->alphagen.type = ColorGenType_Entity;
@@ -251,32 +277,30 @@ static void ParseAlphaGen( Material * material, Span< const char > name, Span< c
 	}
 }
 
-static const Texture * FindTexture( Span< const char > name ) {
-	u64 idx;
-	return textures_hashtable.get( StringHash( name ).hash, &idx ) ? &textures[ idx ] : missing_material.texture;
+static PoolHandle< Texture > FindTexture( StringHash name ) {
+	Optional< PoolHandle< Texture > > handle = textures.get( name.hash );
+	return Default( handle, missing_texture );
 }
 
-static void ParseTexture( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseTexture( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( StartsWith( token, "." ) ) {
 		TempAllocator temp = cls.frame_arena.temp();
-		material->texture = FindTexture( temp.sv( "{}{}", BasePath( path ), token + 1 ) );
+		material->texture = StringHash( temp.sv( "{}{}", BasePath( path ), token + 1 ) );
 	}
 	else {
-		material->texture = FindTexture( token );
+		material->texture = StringHash( token );
 	}
 }
 
-static void SkipComment( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void SkipComment( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	SkipToEndOfLine( data );
 }
 
-static const MaterialSpecKey shaderkeys[] = {
+static constexpr MaterialSpecKey shaderkeys[] = {
 	{ "alphagen", ParseAlphaGen },
 	{ "blendfunc", ParseBlendFunc },
 	{ "cull", ParseCull },
-	{ "decal", ParseDecal },
-	{ "maskoutlines", ParseMaskOutlines },
 	{ "rgbgen", ParseRGBGen },
 	{ "shaded", ParseShaded },
 	{ "world", ParseWorld },
@@ -286,7 +310,7 @@ static const MaterialSpecKey shaderkeys[] = {
 	{ "//", SkipComment },
 };
 
-static void ParseMaterialKey( Material * material, Span< const char > token, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static void ParseMaterialKey( MaterialConfig * material, Span< const char > token, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	for( MaterialSpecKey key : shaderkeys ) {
 		if( StrCaseEqual( token, key.keyword ) ) {
 			key.func( material, name, path, data );
@@ -299,10 +323,10 @@ static void ParseMaterialKey( Material * material, Span< const char > token, Spa
 	SkipToEndOfLine( data );
 }
 
-static bool ParseMaterial( Material * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
+static bool ParseMaterial( MaterialConfig * material, Span< const char > name, Span< const char > path, Span< const char > * data ) {
 	TracyZoneScoped;
 
-	material->texture = FindTexture( MakeSpan( "white" ) );
+	material->texture = "white";
 
 	while( true ) {
 		Span< const char > token = ParseToken( data, Parse_DontStopOnNewLine );
@@ -322,81 +346,159 @@ static bool ParseMaterial( Material * material, Span< const char > name, Span< c
 	return true;
 }
 
-static void CreateSamplers() {
-	samplers[ Sampler_Standard ] = NewSampler( SamplerConfig { } );
-	samplers[ Sampler_Clamp ] = NewSampler( SamplerConfig {
-		.wrap = SamplerWrap_Clamp,
-	} );
-	samplers[ Sampler_Unfiltered ] = NewSampler( SamplerConfig {
-		.filter = false,
-	} );
-	samplers[ Sampler_Shadowmap ] = NewSampler( SamplerConfig {
-		.shadowmap_sampler = true,
-	} );
+static void UnloadTexture( Texture * texture ) {
+	stbi_image_free( texture->stb_data );
+	texture->stb_data = NULL;
+	texture->bc4_data = Span< const BC4Block >();
 }
 
-static void DeleteSamplers() {
-	for( Sampler sampler : samplers ) {
-		DeleteSampler( sampler );
-	}
+static void UnloadTexture( PoolHandle< Texture > texture ) {
+	UnloadTexture( &textures[ texture ] );
 }
 
-static void UnloadTexture( u64 idx ) {
-	stbi_image_free( texture_stb_data[ idx ] );
-
-	texture_stb_data[ idx ] = NULL;
-	texture_bc4_data[ idx ] = Span< const BC4Block >();
-
-	DeleteTexture( textures[ idx ] );
-}
-
-static void AddMaterial( Span< const char > name, u64 hash, Material material ) {
-	if( materials_hashtable.size() == ARRAY_COUNT( materials ) ) {
-		Com_Printf( S_COLOR_YELLOW "Too many materials!\n" );
-		return;
-	}
-
-	material.hash = hash;
-
-	u64 idx = materials_hashtable.size();
-	if( !materials_hashtable.get( material.hash, &idx ) ) {
-		materials_hashtable.add( material.hash, idx );
-		material.name = CloneSpan( sys_allocator, name );
+static Material MaterialFromConfig( Span< const char > name, const MaterialConfig & config, Optional< PoolHandle< BindGroup > > old_bind_group = NONE ) {
+	RenderPass pass = RenderPass_NonworldOpaque;
+	if( config.blend_func == BlendFunc_Disabled ) {
+		pass = config.outlined ? RenderPass_NonworldOpaqueOutlined : RenderPass_NonworldOpaque;
 	}
 	else {
-		material.name = materials[ idx ].name;
+		pass = RenderPass_Transparent;
 	}
 
-	materials[ idx ] = material;
+	PoolHandle< RenderPipeline > shader = shaders.standard;
+	if( config.shaded ) shader = shaders.standard_shaded;
+	if( config.world ) {
+		pass = RenderPass_WorldOpaque;
+		shader = shaders.world;
+	}
+
+	TempAllocator temp = cls.frame_arena.temp();
+
+	PoolHandle< Texture > texture = FindTexture( config.texture );
+
+	return Material {
+		.name = name,
+		.render_pass = pass,
+		.shader = shader,
+		.bind_group = NewMaterialBindGroup( temp.sv( "{} bind group", name ), texture, config.sampler, config.properties, old_bind_group ),
+		.dynamic_state = config.dynamic_state,
+		.rgbgen = config.rgbgen,
+		.alphagen = config.alphagen,
+		.stuff_to_recreate_bind_group = {
+			.texture = config.texture,
+			.sampler = config.sampler,
+			.properties = config.properties,
+		},
+		.texture = texture,
+	};
 }
 
-static void AddMaterial( Span< const char > name, const Material & material ) {
-	AddMaterial( name, Hash64( name ), material );
+static Optional< PoolHandle< Material > > AddMaterial( Span< const char > name, const MaterialConfig & config ) {
+	u64 hash = Hash64( name );
+
+	Optional< PoolHandle< Material > > old_handle = materials.get( hash );
+	if( old_handle.exists ) {
+		materials[ old_handle.value ] = MaterialFromConfig( name, config, materials[ old_handle.value ].bind_group );
+		return old_handle;
+	}
+
+	Optional< PoolHandle< Material > > new_handle = materials.add( hash );
+	if( new_handle.exists ) {
+		materials[ new_handle.value ] = MaterialFromConfig( name, config );
+		return new_handle;
+	}
+
+	Com_Printf( S_COLOR_YELLOW "Too many materials!\n" );
+	return NONE;
 }
 
-static Optional< size_t > AddTexture( Span< const char > name, u64 hash, const TextureConfig & config ) {
+static Texture MakeTexture( const TextureConfig & config, u64 hash ) {
+	return Texture {
+		.name = config.name,
+		.hash = hash,
+		.backend = NewBackendTexture( config ),
+		.format = config.format,
+		.width = config.width,
+		.height = config.height,
+		.num_layers = Default( config.num_layers, 1_u32 ),
+		.num_mipmaps = config.num_mipmaps,
+		.msaa_samples = config.msaa_samples,
+	};
+}
+
+PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, PoolHandle< Texture > texture, SamplerType sampler, const MaterialProperties & properties, Optional< PoolHandle< BindGroup > > old_bind_group ) {
+	TempAllocator temp = cls.frame_arena.temp();
+	return NewMaterialBindGroup( name, textures[ texture ].backend, sampler, NewBuffer( temp.sv( "{} properties", name ), properties ), old_bind_group );
+}
+
+PoolHandle< Texture > NewTexture( const TextureConfig & config, Optional< PoolHandle< Texture > > old_texture ) {
+	Assert( config.name != "" );
+
+	u64 hash = Hash64( config.name );
+	Assert( old_texture.exists || !textures.get( hash ).exists );
+
+	Optional< PoolHandle< Texture > > handle = old_texture;
+	if( !handle.exists ) {
+		handle = textures.add( hash );
+	}
+	if( !handle.exists ) {
+		Com_Printf( S_COLOR_YELLOW "Too many textures!\n" );
+		return Default( old_texture, missing_texture );
+	}
+
+	if( old_texture.exists ) {
+		UnloadTexture( old_texture.value );
+		DeleteBackendTexture( textures[ old_texture.value ].backend );
+	}
+
+	textures[ handle.value ] = MakeTexture( config, hash );
+
+	return handle.value;
+}
+
+TextureFormat GetTextureFormat( PoolHandle< Texture > texture ) {
+	return textures[ texture ].format;
+}
+
+u32 TextureWidth( PoolHandle< Texture > texture ) {
+	return textures[ texture ].width;
+}
+
+u32 TextureHeight( PoolHandle< Texture > texture ) {
+	return textures[ texture ].height;
+}
+
+u32 TextureMSAASamples( PoolHandle< Texture > texture ) {
+	return textures[ texture ].msaa_samples;
+}
+
+u32 TextureWidth( PoolHandle< Material > material ) {
+	return TextureWidth( materials[ material ].texture );
+}
+
+u32 TextureHeight( PoolHandle< Material > material ) {
+	return TextureHeight( materials[ material ].texture );
+}
+
+[[nodiscard]] static Optional< PoolHandle< Texture > > AddTextureAndDefaultMaterial( const TextureConfig & config ) {
 	TracyZoneScoped;
 
-	if( textures_hashtable.size() == ARRAY_COUNT( textures ) ) {
-		Com_Printf( S_COLOR_YELLOW "Too many textures!\n" );
-		return NONE;
-	}
+	StringHash hash = StringHash( config.name );
 
-	u64 idx = textures_hashtable.size();
-	if( !textures_hashtable.get( hash, &idx ) ) {
-		textures_hashtable.add( hash, idx );
-		AddMaterial( name, hash, Material { .texture = &textures[ idx ] } );
-	}
-	else {
-		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( textures[ idx ].format ) ) {
+	Optional< PoolHandle< Texture > > old_handle = textures.get( hash.hash );
+	if( old_handle.exists ) {
+		// formats that editors load/save directly, i.e. WIP textures, take precedence
+		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( textures[ old_handle.value ].format ) ) {
 			return NONE;
 		}
-
-		UnloadTexture( idx );
 	}
 
-	textures[ idx ] = NewTexture( config );
-	return idx;
+	PoolHandle< Texture > handle = NewTexture( config, old_handle );
+	if( !old_handle.exists ) {
+		AddMaterial( config.name, MaterialConfig { .texture = hash } );
+	}
+
+	return handle;
 }
 
 static void LoadSTBTexture( Span< const char > path, u8 * pixels, int w, int h, int channels, const char * failure_reason ) {
@@ -417,15 +519,16 @@ static void LoadSTBTexture( Span< const char > path, u8 * pixels, int w, int h, 
 	};
 
 	TextureConfig config = {
+		.name = StripExtension( path ),
 		.format = formats[ channels - 1 ],
 		.width = checked_cast< u32 >( w ),
 		.height = checked_cast< u32 >( h ),
 		.data = pixels,
 	};
 
-	Optional< size_t > idx = AddTexture( path, Hash64( StripExtension( path ) ), config );
-	if( idx.exists ) {
-		texture_stb_data[ idx.value ] = pixels;
+	Optional< PoolHandle< Texture > > texture = AddTextureAndDefaultMaterial( config );
+	if( texture.exists ) {
+		textures[ texture.value ].stb_data = pixels;
 	}
 }
 
@@ -447,10 +550,13 @@ static void LoadDDSTexture( Span< const char > path ) {
 		return;
 	}
 
-	TextureConfig config;
-	config.width = header->width;
-	config.height = header->height;
-	config.data = dds.ptr + sizeof( DDSHeader );
+	TextureConfig config = {
+		.name = StripExtension( path ),
+		.width = header->width,
+		.height = header->height,
+		.num_mipmaps = Max2( header->mipmap_count, u32( 1 ) ),
+		.data = dds.ptr + sizeof( DDSHeader ),
+	};
 
 	switch( header->format ) {
 		case DDSTextureFormat_BC1:
@@ -474,16 +580,15 @@ static void LoadDDSTexture( Span< const char > path ) {
 			return;
 	}
 
-	config.num_mipmaps = Max2( header->mipmap_count, u32( 1 ) );
 	size_t expected_data_size = MipmappedByteSize( config.width, config.height, config.num_mipmaps, config.format );
 	if( dds.num_bytes() - sizeof( DDSHeader ) != expected_data_size ) {
 		Com_GGPrint( S_COLOR_YELLOW "{} has bad data size. Got {}, expected {}", path, dds.num_bytes() - sizeof( DDSHeader ), expected_data_size );
 		return;
 	}
 
-	Optional< size_t > idx = AddTexture( path, Hash64( StripExtension( path ) ), config );
-	if( idx.exists ) {
-		texture_bc4_data[ idx.value ] = ( dds + sizeof( DDSHeader ) ).cast< const BC4Block >();
+	Optional< PoolHandle< Texture > > texture = AddTextureAndDefaultMaterial( config );
+	if( texture.exists ) {
+		textures[ texture.value ].bc4_data = ( dds + sizeof( DDSHeader ) ).cast< const BC4Block >();
 	}
 }
 
@@ -497,7 +602,7 @@ static void LoadMaterialFile( Span< const char > path ) {
 
 		ParseToken( &data, Parse_DontStopOnNewLine );
 
-		Material material;
+		MaterialConfig material = { };
 		if( !ParseMaterial( &material, name, path, &data ) )
 			break;
 		AddMaterial( name, material );
@@ -508,6 +613,7 @@ struct DecodeSTBTextureJob {
 	struct {
 		Span< const char > path;
 		Span< const u8 > data;
+		bool atlased;
 	} in;
 
 	struct {
@@ -518,8 +624,8 @@ struct DecodeSTBTextureJob {
 	} out;
 };
 
-struct DecalAtlasLayer {
-	BC4Block blocks[ DECAL_ATLAS_BLOCK_SIZE * DECAL_ATLAS_BLOCK_SIZE ];
+struct SpriteAtlasLayer {
+	BC4Block blocks[ SPRITE_ATLAS_BLOCK_SIZE * SPRITE_ATLAS_BLOCK_SIZE ];
 };
 
 static BC4Block FastBC4( Span2D< const RGBA8 > rgba ) {
@@ -556,12 +662,11 @@ static Span2D< BC4Block > RGBAToBC4( Span2D< const RGBA8 > rgba ) {
 	return bc4;
 }
 
-static Span2D< const BC4Block > GetMipmap( const Material * material, u32 mipmap ) {
-	u64 texture_idx = material->texture - textures;
-	u32 w = material->texture->width / 4;
-	u32 h = material->texture->height / 4;
+static Span2D< const BC4Block > GetMipmap( const Texture * texture, u32 mipmap ) {
+	u32 w = texture->width / 4;
+	u32 h = texture->height / 4;
 
-	Span< const BC4Block > cursor = texture_bc4_data[ texture_idx ];
+	Span< const BC4Block > cursor = texture->bc4_data;
 	for( u32 i = 0; i < mipmap; i++ ) {
 		cursor += ( w >> i ) * ( h >> i );
 	}
@@ -572,7 +677,7 @@ static Span2D< const BC4Block > GetMipmap( const Material * material, u32 mipmap
 	return Span2D< const BC4Block >( cursor.slice( 0, mip_w * mip_h ).ptr, mip_w, mip_h );
 }
 
-static Vec4 TrimTexture( Span2D< const BC4Block > bc4, const Material * material ) {
+static Vec4 TrimTexture( Span2D< const BC4Block > bc4 ) {
 	TracyZoneScoped;
 
 	u32 min_x = bc4.w;
@@ -600,45 +705,82 @@ static Vec4 TrimTexture( Span2D< const BC4Block > bc4, const Material * material
 		float( max_y - min_y + 1 ) / float( bc4.h )
 	);
 
-	// Com_GGPrint( "{} : {}", material->name, trim );
-
 	return trim;
 }
 
-static void PackDecalAtlas() {
+static u16x2 QuantizeU16x2( float x, float y ) {
+	return u16x2 { Quantize01< u16 >( x ), Quantize01< u16 >( y ) };
+}
+
+static u16x4 QuantizeU16x4( Vec4 v ) {
+	return u16x4 {
+		Quantize01< u16 >( v.x ),
+		Quantize01< u16 >( v.y ),
+		Quantize01< u16 >( v.z ),
+		Quantize01< u16 >( v.w ),
+	};
+}
+
+static bool ParseCDTextureSprite( Span< const char > texture_name ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
+	Span< const char > cdtexture_path = temp.sv( "{}.cdtexture", texture_name );
+	Span< const char > cdtexture = AssetString( cdtexture_path );
+	if( cdtexture.ptr == NULL )
+		return false;
+
+	Span< const char > token = ParseToken( &cdtexture, Parse_DontStopOnNewLine );
+	if( token == "" )
+		return false;
+	if( token == "sprite" )
+		return true;
+
+	Com_GGPrint( S_COLOR_YELLOW "Bad cdtexture, should be \"sprite\" or empty: {}", cdtexture_path );
+	return false;
+}
+
+static void PackSpriteAtlas( bool first_time ) {
 	TracyZoneScoped;
 
-	decals_hashtable.clear();
+	sprites.clear();
 
-	// make a list of textures to be packed
-	stbrp_rect rects[ MAX_DECALS ];
-	num_decals = 0;
-
-	u32 num_mipmaps = U32_MAX;
-
-	for( u32 i = 0; i < materials_hashtable.size(); i++ ) {
-		const Texture * texture = materials[ i ].texture;
-		if( !materials[ i ].decal || texture == NULL )
-			continue;
-
-		if( texture->format != TextureFormat_RGBA_U8_sRGB && texture->format != TextureFormat_BC4 ) {
-			Com_GGPrint( S_COLOR_YELLOW "Decals must be RGBA or BC4 ({})", materials[ i ].name );
+	for( Texture & texture : textures.span() ) {
+		bool sprite = ParseCDTextureSprite( texture.name.span() );
+		if( sprite && !( texture.format == TextureFormat_RGBA_U8_sRGB || texture.format == TextureFormat_BC4 ) ) {
+			Com_GGPrint( S_COLOR_YELLOW "Sprites must be RGBA or BC4 ({})", texture.name.span() );
 			continue;
 		}
 
+		texture.sprite = sprite;
+	}
+
+	// make a list of textures to be packed
+	stbrp_rect rects[ MAX_SPRITES ];
+	size_t num_sprites = 0;
+
+	u32 num_mipmaps = U32_MAX;
+
+	for( u32 i = 0; i < textures.span().n; i++ ) {
+		const Texture * texture = &textures.span()[ i ];
+		if( !texture->sprite )
+			continue;
+
 		if( texture->width % 4 != 0 || texture->height % 4 != 0 ) {
-			Com_GGPrint( S_COLOR_YELLOW "Decal dimensions must be a multiple of 4 ({} is {}x{})", materials[ i ].name, texture->width, texture->height );
+			Com_GGPrint( S_COLOR_YELLOW "Sprite dimensions must be a multiple of 4 ({} is {}x{})", texture->name.span(), texture->width, texture->height );
 			continue;
 		}
 
 		if( texture->num_mipmaps < 3 ) {
-			Com_GGPrint( S_COLOR_YELLOW "{} has a small number of mipmaps ({}) and will mess up the decal atlas", materials[ i ].name, texture->num_mipmaps );
+			Com_GGPrint( S_COLOR_YELLOW "{} has a small number of mipmaps ({}) and will mess up the sprite atlas", texture->name.span(), texture->num_mipmaps );
 		}
 
-		Assert( num_decals < ARRAY_COUNT( rects ) );
+		if( num_sprites == ARRAY_COUNT( rects ) ) {
+			Com_GGPrint( S_COLOR_YELLOW "Too many sprites!" );
+			break;
+		}
 
-		stbrp_rect * rect = &rects[ num_decals ];
-		num_decals++;
+		stbrp_rect * rect = &rects[ num_sprites ];
+		num_sprites++;
 
 		rect->id = i;
 		rect->w = texture->width;
@@ -647,19 +789,19 @@ static void PackDecalAtlas() {
 		num_mipmaps = Min2( texture->num_mipmaps, num_mipmaps );
 	}
 
-	if( num_decals == 0 ) {
+	if( num_sprites == 0 ) {
 		num_mipmaps = 1;
 	}
 
 	// rect packing
-	u32 num_unpacked = num_decals;
-	u32 num_layers = 0;
+	u32 num_unpacked = num_sprites;
+	u16 num_layers = 0;
 	while( true ) {
 		TracyZoneScopedN( "stb_rect_pack iteration" );
 
-		stbrp_node nodes[ MAX_TEXTURES ];
+		stbrp_node nodes[ MAX_SPRITES ];
 		stbrp_context packer;
-		stbrp_init_target( &packer, DECAL_ATLAS_SIZE, DECAL_ATLAS_SIZE, nodes, ARRAY_COUNT( nodes ) );
+		stbrp_init_target( &packer, SPRITE_ATLAS_SIZE, SPRITE_ATLAS_SIZE, nodes, ARRAY_COUNT( nodes ) );
 		stbrp_setup_allow_out_of_mem( &packer, 1 );
 
 		bool all_packed = stbrp_pack_rects( &packer, rects, num_unpacked ) == 1;
@@ -670,14 +812,19 @@ static void PackDecalAtlas() {
 				continue;
 			none_packed = false;
 
-			const Material * material = &materials[ rects[ i ].id ];
+			const Texture * texture = &textures.span()[ rects[ i ].id ];
 
-			size_t decal_idx = decals_hashtable.size();
-			decals_hashtable.add( material->hash, decal_idx );
-			decal_uvwhs[ decal_idx ].x = rects[ i ].x / float( DECAL_ATLAS_SIZE ) + num_layers;
-			decal_uvwhs[ decal_idx ].y = rects[ i ].y / float( DECAL_ATLAS_SIZE );
-			decal_uvwhs[ decal_idx ].z = material->texture->width / float( DECAL_ATLAS_SIZE );
-			decal_uvwhs[ decal_idx ].w = material->texture->height / float( DECAL_ATLAS_SIZE );
+			sprites.add( texture->hash, Sprite {
+				.layer = num_layers,
+				.uv = QuantizeU16x2(
+					rects[ i ].x / float( SPRITE_ATLAS_SIZE ),
+					rects[ i ].y / float( SPRITE_ATLAS_SIZE )
+				),
+				.wh = QuantizeU16x2(
+					texture->width / float( SPRITE_ATLAS_SIZE ),
+					texture->height / float( SPRITE_ATLAS_SIZE )
+				),
+			} );
 		}
 
 		num_layers++;
@@ -685,7 +832,7 @@ static void PackDecalAtlas() {
 			break;
 
 		if( none_packed ) {
-			Fatal( "Can't pack decals" );
+			Fatal( "Can't pack sprites" );
 		}
 
 		// repack rects array
@@ -700,21 +847,20 @@ static void PackDecalAtlas() {
 	}
 
 	// convert pngs to temporary bc4s
-	for( u32 i = 0; i < num_decals; i++ ) {
-		const Material * material = &materials[ rects[ i ].id ];
-		if( material->texture->format != TextureFormat_RGBA_U8_sRGB )
+	for( u32 i = 0; i < num_sprites; i++ ) {
+		Texture * texture = &textures.span()[ rects[ i ].id ];
+		if( texture->format != TextureFormat_RGBA_U8_sRGB )
 			continue;
 
-		u64 texture_idx = material->texture - textures;
-		Span2D< const RGBA8 > rgba = Span2D< const RGBA8 >( ( const RGBA8 * ) texture_stb_data[ texture_idx ], material->texture->width, material->texture->height );
+		Span2D< const RGBA8 > rgba = Span2D< const RGBA8 >( ( const RGBA8 * ) texture->stb_data, texture->width, texture->height );
 		Span2D< const BC4Block > bc4 = RGBAToBC4( rgba );
-		texture_bc4_data[ texture_idx ] = Span< const BC4Block >( bc4.ptr, bc4.w * bc4.h );
+		texture->bc4_data = Span< const BC4Block >( bc4.ptr, bc4.w * bc4.h );
 	}
 
 	// copy texture data into atlases
 	u32 num_blocks = 0;
 	for( u32 i = 0; i < num_mipmaps; i++ ) {
-		num_blocks += Square( DECAL_ATLAS_BLOCK_SIZE >> i );
+		num_blocks += Square( SPRITE_ATLAS_BLOCK_SIZE >> i );
 	}
 	num_blocks *= num_layers;
 
@@ -725,24 +871,24 @@ static void PackDecalAtlas() {
 	Span< BC4Block > cursor = blocks;
 
 	for( u32 mipmap_idx = 0; mipmap_idx < num_mipmaps; mipmap_idx++ ) {
-		u32 mipmap_dim = DECAL_ATLAS_BLOCK_SIZE >> mipmap_idx;
+		u32 mipmap_dim = SPRITE_ATLAS_BLOCK_SIZE >> mipmap_idx;
 		u32 mipmap_blocks = mipmap_dim * mipmap_dim * num_layers;
 		Span< BC4Block > layer_mipmap = cursor.slice( 0, mipmap_blocks );
 		cursor += mipmap_blocks;
 
-		for( u32 i = 0; i < num_decals; i++ ) {
-			const Material * material = &materials[ rects[ i ].id ];
-			u64 decal_idx;
-			bool ok = decals_hashtable.get( material->hash, &decal_idx );
-			Assert( ok );
+		for( u32 i = 0; i < num_sprites; i++ ) {
+			const Texture * texture = &textures.span()[ rects[ i ].id ];
 
-			u32 layer_idx = u32( decal_uvwhs[ decal_idx ].x );
-			Span2D< BC4Block > layer( layer_mipmap + mipmap_dim * mipmap_dim * layer_idx, mipmap_dim, mipmap_dim );
+			Sprite * sprite = sprites.get( texture->hash );
+			Assert( sprite != NULL );
 
-			Span2D< const BC4Block > bc4 = GetMipmap( material, mipmap_idx );
+			Span2D< BC4Block > layer( layer_mipmap + mipmap_dim * mipmap_dim * sprite->layer, mipmap_dim, mipmap_dim );
 
-			if( mipmap_idx == 0 )
-				decal_trims[ decal_idx ] = TrimTexture( bc4, material );
+			Span2D< const BC4Block > bc4 = GetMipmap( texture, mipmap_idx );
+
+			if( mipmap_idx == 0 ) {
+				sprite->trim = QuantizeU16x4( TrimTexture( bc4 ) );
+			}
 
 			u32 mipped_x = rects[ i ].x >> mipmap_idx;
 			u32 mipped_y = rects[ i ].y >> mipmap_idx;
@@ -752,55 +898,44 @@ static void PackDecalAtlas() {
 	}
 
 	// free temporary bc4s
-	for( u32 i = 0; i < num_decals; i++ ) {
-		const Material * material = &materials[ rects[ i ].id ];
-		if( material->texture->format != TextureFormat_RGBA_U8_sRGB )
+	for( size_t i = 0; i < sprites.size(); i++ ) {
+		Texture * texture = &textures.span()[ rects[ i ].id ];
+		if( texture->format != TextureFormat_RGBA_U8_sRGB )
 			continue;
 
-		u64 texture_idx = material->texture - textures;
-		Free( sys_allocator, const_cast< BC4Block * >( texture_bc4_data[ texture_idx ].ptr ) );
-		texture_bc4_data[ texture_idx ] = Span< const BC4Block >();
+		Free( sys_allocator, const_cast< BC4Block * >( texture->bc4_data.ptr ) );
+		texture->bc4_data = Span< const BC4Block >();
 	}
 
 	// upload atlases
 	{
 		TracyZoneScopedN( "Upload atlas" );
 
-		DeleteTexture( decals_atlases );
-
-		TextureConfig config;
-		config.format = TextureFormat_BC4;
-		config.width = DECAL_ATLAS_SIZE;
-		config.height = DECAL_ATLAS_SIZE;
-		config.num_layers = num_layers;
-		config.num_mipmaps = num_mipmaps;
-		config.data = blocks.ptr;
-
-		decals_atlases = NewTexture( config );
+		sprite_atlas = NewTexture( TextureConfig {
+			.name = "Sprite atlas",
+			.format = TextureFormat_BC4,
+			.width = SPRITE_ATLAS_SIZE,
+			.height = SPRITE_ATLAS_SIZE,
+			.num_layers = num_layers,
+			.num_mipmaps = num_mipmaps,
+			.data = blocks.ptr,
+			.dedicated_allocation = true,
+		}, first_time ? NONE : Optional( sprite_atlas ) );
 	}
+
+	sprite_atlas_bind_group = NewMaterialBindGroup( "Sprite atlas", sprite_atlas, Sampler_Standard, MaterialProperties { }, first_time ? NONE : Optional( sprite_atlas_bind_group ) );
+}
+
+static void Must( Optional< PoolHandle< Texture > > texture ) {
+	Assert( texture.exists );
+}
+
+static void Must( Optional< PoolHandle< Material > > material ) {
+	Assert( material.exists );
 }
 
 static void LoadBuiltinMaterials() {
 	TracyZoneScoped;
-
-	missing_material = Material {
-		.name = CloneSpan( sys_allocator, "missing material"_sp ),
-		.texture = &missing_texture,
-		.sampler = Sampler_Unfiltered,
-	};
-
-	{
-		u8 white = 255;
-		TextureConfig config = TextureConfig {
-			.format = TextureFormat_R_U8,
-			.width = 1,
-			.height = 1,
-			.data = &white,
-		};
-
-		AddTexture( "white", Hash64( "white" ), config );
-		AddTexture( "$whiteimage", Hash64( "$whiteimage" ), config );
-	}
 
 	{
 		constexpr RGBA8 pixels[] = {
@@ -811,24 +946,44 @@ static void LoadBuiltinMaterials() {
 		};
 
 		missing_texture = NewTexture( TextureConfig {
+			.name = "Missing texture",
 			.format = TextureFormat_RGBA_U8_sRGB,
 			.width = 2,
 			.height = 2,
 			.data = pixels,
 		} );
+
+		missing_material = *AddMaterial( "missing", MaterialConfig {
+			.texture = "Missing texture",
+			.outlined = false,
+		} );
 	}
 
 	{
-		Material world_material = Material {
-			.texture = FindTexture( "white" ),
-			.rgbgen = { .args = { 0.17f, 0.17f, 0.17f, 1.0f } },
-			.world = true,
-			.specular = 3.0f,
-			.shininess = 8.0f,
+		u8 white = 255;
+		TextureConfig config = TextureConfig {
+			.name = "white",
+			.format = TextureFormat_R_U8,
+			.width = 1,
+			.height = 1,
+			.data = &white,
 		};
 
-		Material wallbang_material = Material {
-			.texture = FindTexture( "white" ),
+		Must( AddTextureAndDefaultMaterial( config ) );
+	}
+
+	{
+		MaterialConfig world_material = {
+			.rgbgen = { .args = { 0.17f, 0.17f, 0.17f, 1.0f } },
+			.texture = "white",
+			.world = true,
+			.properties = {
+				.specular = 3.0f,
+				.shininess = 8.0f,
+			},
+		};
+
+		MaterialConfig wallbang_material = {
 			.rgbgen = {
 				.args = {
 					world_material.rgbgen.args[ 0 ] * 0.45f,
@@ -837,38 +992,95 @@ static void LoadBuiltinMaterials() {
 					1.0f,
 				},
 			},
+			.texture = "white",
 			.world = true,
-			.specular = world_material.specular,
-			.shininess = world_material.shininess,
+			.properties = world_material.properties,
 		};
 
-		AddMaterial( "textures/editor/world", world_material );
-		AddMaterial( "world", world_material );
+		Must( AddMaterial( "editor/world", world_material ) );
+		Must( AddMaterial( "world", world_material ) );
 
-		AddMaterial( "textures/editor/wallbangable", wallbang_material );
-		AddMaterial( "wallbangable", wallbang_material );
+		Must( AddMaterial( "editor/wallbangable", wallbang_material ) );
+		Must( AddMaterial( "wallbangable", wallbang_material ) );
 
 		// for use in models, wallbangable is for collision geometry
-		AddMaterial( "wallbang_visible", wallbang_material );
+		Must( AddMaterial( "wallbang_visible", wallbang_material ) );
 	}
 
-	AddMaterial( "textures/editor/glass", Material {
-		.texture = FindTexture( "white" ),
+	Must( AddMaterial( "textures/editor/glass", MaterialConfig {
 		.rgbgen = { .args = { 0.0f, 0.35f, 0.8f } },
+		.texture = "white",
 		.world = true,
-		.specular = 100.0f,
-		.shininess = 100.0f,
-	} );
+		.properties = {
+			.specular = 100.0f,
+			.shininess = 100.0f,
+		},
+	} ) );
+
+	{
+		int w, h;
+		u8 * img = stbi_load_from_memory( rgb_noise_png, rgb_noise_png_len, &w, &h, NULL, 4 );
+		Assert( img != NULL );
+
+		rgb_noise = NewTexture( TextureConfig {
+			.name = "RGB noise",
+			.format = TextureFormat_RGBA_U8_sRGB,
+			.width = u32( w ),
+			.height = u32( h ),
+			.data = img,
+		} );
+
+		stbi_image_free( img );
+	}
+
+	{
+		int w, h;
+		u8 * img = stbi_load_from_memory( blue_noise_png, blue_noise_png_len, &w, &h, NULL, 1 );
+		Assert( img != NULL );
+
+		blue_noise = NewTexture( TextureConfig {
+			.name = "Blue noise",
+			.format = TextureFormat_R_S8,
+			.width = u32( w ),
+			.height = u32( h ),
+			.data = img,
+		} );
+
+		stbi_image_free( img );
+	}
+}
+
+static u8 * StbiLoadFromMemoryConvertRGBToRGBA( Span< const u8 > data, int * width, int * height, int * channels ) {
+	u8 * pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), width, height, channels, 0 );
+	if( *channels != 3 )
+		return pixels;
+
+	TracyZoneScopedN( "RGB -> RGBA" );
+
+	// stb_image uses sys_allocator so this is ok
+	size_t num_pixels = checked_cast< size_t >( *width * *height );
+	RGBA8 * rgba_pixels = AllocMany< RGBA8 >( sys_allocator, num_pixels );
+	for( size_t i = 0; i < num_pixels; i++ ) {
+		rgba_pixels[ i ] = RGBA8(
+			pixels[ i * 3 + 0 ],
+			pixels[ i * 3 + 1 ],
+			pixels[ i * 3 + 2 ],
+			255
+		);
+	}
+
+	stbi_image_free( pixels );
+	*channels = 4;
+
+	return ( u8 * ) rgba_pixels;
 }
 
 void InitMaterials() {
 	TracyZoneScoped;
 
-	textures_hashtable.clear();
-	materials_hashtable.clear();
-	ClearMaterialStaticUniforms();
+	textures.clear();
+	materials.clear();
 
-	CreateSamplers();
 	LoadBuiltinMaterials();
 
 	{
@@ -905,28 +1117,7 @@ void InitMaterials() {
 			TracyZoneScopedN( "stbi_load_from_memory" );
 			TracyZoneSpan( job->in.path );
 
-			job->out.pixels = stbi_load_from_memory( job->in.data.ptr, job->in.data.num_bytes(), &job->out.width, &job->out.height, &job->out.channels, 0 );
-
-			if( job->out.channels == 3 ) {
-				TracyZoneScopedN( "RGB -> RGBA" );
-
-				// stb_image uses sys_allocator so this is ok
-				size_t num_pixels = checked_cast< size_t >( job->out.width * job->out.height );
-				RGBA8 * rgba_pixels = AllocMany< RGBA8 >( sys_allocator, num_pixels );
-				for( size_t i = 0; i < num_pixels; i++ ) {
-					rgba_pixels[ i ] = RGBA8(
-						job->out.pixels[ i * 3 + 0 ],
-						job->out.pixels[ i * 3 + 1 ],
-						job->out.pixels[ i * 3 + 2 ],
-						255
-					);
-				}
-
-				stbi_image_free( job->out.pixels );
-				job->out.pixels = ( u8 * ) rgba_pixels;
-				job->out.channels = 4;
-			}
-
+			job->out.pixels = StbiLoadFromMemoryConvertRGBToRGBA( job->in.data, &job->out.width, &job->out.height, &job->out.channels );
 		} );
 
 		for( DecodeSTBTextureJob job : jobs ) {
@@ -944,13 +1135,21 @@ void InitMaterials() {
 		}
 	}
 
-	PackDecalAtlas();
+	PackSpriteAtlas( true );
+}
+
+static void RecreateMaterialBindGroups() {
+	for( Material & material : materials.span() ) {
+		const auto & stuff = material.stuff_to_recreate_bind_group;
+		PoolHandle< Texture > texture = FindTexture( stuff.texture );
+		material.bind_group = NewMaterialBindGroup( material.name.span(), texture, stuff.sampler, stuff.properties, material.bind_group );
+	}
 }
 
 void HotloadMaterials() {
 	TracyZoneScoped;
 
-	bool changes = false;
+	bool hotloaded_any_textures = false;
 
 	for( Span< const char > path : ModifiedAssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
@@ -963,84 +1162,91 @@ void HotloadMaterials() {
 			{
 				TracyZoneScopedN( "stbi_load_from_memory" );
 				TracyZoneSpan( path );
-				pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
+				pixels = StbiLoadFromMemoryConvertRGBToRGBA( data, &w, &h, &channels );
 			}
 
 			LoadSTBTexture( path, pixels, w, h, channels, stbi_failure_reason() );
-
-			changes = true;
+			hotloaded_any_textures = true;
 		}
 
 		if( ext == ".dds" ) {
 			LoadDDSTexture( path );
-			changes = true;
+			hotloaded_any_textures = true;
 		}
-	}
 
-	for( Span< const char > path : ModifiedAssetPaths() ) {
-		if( FileExtension( path ) == ".cdmaterial" ) {
+		if( ext == ".cdtexture" ) {
+			hotloaded_any_textures = true;
+		}
+
+		if( ext == ".cdmaterial" ) {
 			LoadMaterialFile( path );
-			changes = true;
 		}
 	}
 
-	if( changes ) {
-		PackDecalAtlas();
+	if( hotloaded_any_textures ) {
+		RecreateMaterialBindGroups();
+		PackSpriteAtlas( false );
 	}
 }
 
 void ShutdownMaterials() {
-	for( u32 i = 0; i < textures_hashtable.size(); i++ ) {
-		UnloadTexture( i );
+	for( Texture & texture : textures.span() ) {
+		UnloadTexture( &texture );
 	}
-
-	for( u32 i = 0; i < materials_hashtable.size(); i++ ) {
-		Free( sys_allocator, materials[ i ].name.ptr );
-	}
-	Free( sys_allocator, missing_material.name.ptr );
-
-	DeleteSamplers();
-	DeleteTexture( missing_texture );
-	DeleteTexture( decals_atlases );
 }
 
-bool TryFindMaterial( StringHash name, const Material ** material ) {
-	u64 idx;
-	if( !materials_hashtable.get( name.hash, &idx ) )
-		return false;
-	*material = &materials[ idx ];
-	return true;
+PoolHandle< Texture > RGBNoiseTexture() {
+	return rgb_noise;
 }
 
-const Material * FindMaterial( StringHash name ) {
-	const Material * material;
-	return TryFindMaterial( name, &material ) ? material : &missing_material;
+PoolHandle< Texture > BlueNoiseTexture() {
+	return blue_noise;
 }
 
-const Material * FindMaterial( const char * name ) {
+PoolHandle< Material > FindMaterial( StringHash name ) {
+	Optional< PoolHandle< Material > > material = materials.get( name.hash );
+	if( material.exists )
+		return material.value;
+	material = materials.add( name.hash, materials[ missing_material ] );
+	return Default( material, missing_material );
+}
+
+PoolHandle< Material > FindMaterial( const char * name ) {
 	return FindMaterial( StringHash( name ) );
 }
 
-bool TryFindDecal( StringHash name, Vec4 * uvwh, Vec4 * trim ) {
-	u64 idx;
-	if( !decals_hashtable.get( name.hash, &idx ) )
-		return false;
-	*uvwh = decal_uvwhs[ idx ];
-	if( trim != NULL )
-		*trim = decal_trims[ idx ];
-	return true;
+Optional< Sprite > TryFindSprite( StringHash name ) {
+	const Sprite * sprite = sprites.get( name.hash );
+	return sprite == NULL ? NONE : Optional( *sprite );
 }
 
-const Texture * DecalAtlasTextureArray() {
-	return &decals_atlases;
+PoolHandle< Texture > SpriteAtlasTexture() {
+	return sprite_atlas;
 }
 
-Sampler GetSampler( SamplerType sampler ) {
-	return samplers[ sampler ];
+PoolHandle< BindGroup > SpriteAtlasBindGroup() {
+	return sprite_atlas_bind_group;
 }
 
-Vec2 HalfPixelSize( const Material * material ) {
-	return 0.5f / Vec2( material->texture->width, material->texture->height );
+Vec2 HalfPixelSize( PoolHandle< Material > material ) {
+	return 0.5f / Vec2( TextureWidth( material ), TextureHeight( material ) );
+}
+
+RenderPass MaterialRenderPass( PoolHandle< Material > material ) {
+	return materials[ material ].render_pass;
+}
+
+PoolHandle< BindGroup > MaterialBindGroup( PoolHandle< Material > material ) {
+	return materials[ material ].bind_group;
+}
+
+PipelineState MaterialPipelineState( PoolHandle< Material > handle ) {
+	const Material & material = materials[ handle ];
+	return PipelineState {
+		.shader = material.shader,
+		.dynamic_state = material.dynamic_state,
+		.material_bind_group = material.bind_group,
+	};
 }
 
 static float EvaluateWaveFunc( Wave wave ) {
@@ -1052,7 +1258,7 @@ static float EvaluateWaveFunc( Wave wave ) {
 			 break;
 
 		case WaveFunc_Triangle:
-			 v = t < 0.5f ? t * 4 - 1 : 1 - ( t - 0.5f ) * 4;
+			 v = t < 0.5f ? t * 4.0f - 1.0f : 1.0f - ( t - 0.5f ) * 4.0f;
 			 break;
 
 		case WaveFunc_Sawtooth:
@@ -1067,120 +1273,44 @@ static float EvaluateWaveFunc( Wave wave ) {
 	return wave.args[ 0 ] + wave.args[ 1 ] * v;
 }
 
-PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned, GPUMaterial * gpu_material ) {
-	TracyZoneScoped;
+Vec4 EvaluateMaterialColor( PoolHandle< Material > handle, Vec4 entity_color ) {
+	const Material & material = materials[ handle ];
 
-	if( material->mask_outlines ) {
-		PipelineState pipeline;
-		pipeline.pass = frame_static.world_opaque_pass;
-		pipeline.shader = &shaders.depth_only;
-		return pipeline;
-	}
-
-	// evaluate rgbgen/alphagen
-	switch( material->rgbgen.type ) {
+	Vec4 color = entity_color;
+	switch( material.rgbgen.type ) {
 		case ColorGenType_Constant:
-			color.x = material->rgbgen.args[ 0 ];
-			color.y = material->rgbgen.args[ 1 ];
-			color.z = material->rgbgen.args[ 2 ];
+			color.x = material.rgbgen.args[ 0 ];
+			color.y = material.rgbgen.args[ 1 ];
+			color.z = material.rgbgen.args[ 2 ];
 			break;
 
 		case ColorGenType_Entity:
-			color = Vec4( color.xyz() * material->rgbgen.args[ 0 ], color.w );
+			color = Vec4( entity_color.xyz() * material.rgbgen.args[ 0 ], entity_color.w );
 			break;
 
 		case ColorGenType_Wave:
-			color = Vec4( Vec3( EvaluateWaveFunc( material->rgbgen.wave ) ), color.w );
+			color = Vec4( Vec3( EvaluateWaveFunc( material.rgbgen.wave ) ), entity_color.w );
 			break;
 
 		case ColorGenType_EntityWave:
-			color = Vec4( color.xyz() + EvaluateWaveFunc( material->rgbgen.wave ), color.w );
+			color = Vec4( entity_color.xyz() + EvaluateWaveFunc( material.rgbgen.wave ), entity_color.w );
 			break;
 	}
 
-	if( material->alphagen.type == ColorGenType_Constant ) {
-		color.w = material->alphagen.args[ 0 ];
-	}
-	else if( material->alphagen.type == ColorGenType_Wave || material->alphagen.type == ColorGenType_EntityWave ) {
-		float wave = EvaluateWaveFunc( material->rgbgen.wave );
-		if( material->alphagen.type == ColorGenType_EntityWave ) {
-			color.w += wave;
-		}
-		else {
-			color.w = wave;
-		}
+	switch( material.alphagen.type ) {
+		case ColorGenType_Constant:
+			color.w = material.alphagen.args[ 0 ];
+			break;
+
+		case ColorGenType_Entity:
+			break;
+
+		case ColorGenType_Wave:
+		case ColorGenType_EntityWave: {
+			float wave = EvaluateWaveFunc( material.alphagen.wave );
+			color.w = ( material.alphagen.type == ColorGenType_EntityWave ? color.w : 0.0f ) + wave;
+		} break;
 	}
 
-	PipelineState pipeline;
-	if( material->blend_func == BlendFunc_Disabled ) {
-		pipeline.pass = material->outlined ? frame_static.nonworld_opaque_outlined_pass : frame_static.nonworld_opaque_pass;
-	}
-	else {
-		pipeline.pass = frame_static.transparent_pass;
-	}
-	pipeline.cull_face = material->double_sided ? CullFace_Disabled : CullFace_Back;
-	pipeline.blend_func = material->blend_func;
-
-	if( material->blend_func != BlendFunc_Disabled ) {
-		pipeline.write_depth = false;
-	}
-
-	pipeline.bind_texture_and_sampler( "u_BaseTexture", material->texture, material->sampler );
-
-	{
-		u64 hash = Hash64( u64( material ) );
-
-		u64 idx = num_material_static_uniforms;
-		if( !material_static_uniforms_hashtable.get( hash, &idx ) ) {
-			Assert( num_material_static_uniforms < ARRAY_COUNT( material_static_uniforms ) );
-			material_static_uniforms_hashtable.add( hash, num_material_static_uniforms );
-			material_static_uniforms[ idx ] = UploadMaterialStaticUniforms( material->specular, material->shininess );
-			num_material_static_uniforms++;
-		}
-
-		pipeline.bind_uniform( "u_MaterialStatic", material_static_uniforms[ idx ] );
-	}
-
-	if( skinned || gpu_material == NULL ) {
-		pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color ) );
-	}
-	if( gpu_material != NULL ) {
-		// instanced material
-		gpu_material->color = color;
-	}
-
-	if( material->world ) {
-		Assert( !skinned );
-		pipeline.shader = gpu_material == NULL ? &shaders.world : &shaders.world_instanced;
-		pipeline.pass = frame_static.world_opaque_pass;
-		pipeline.bind_texture_and_sampler( "u_BlueNoiseTexture", BlueNoiseTexture(), Sampler_Standard );
-		if( gpu_material == NULL ) {
-			pipeline.bind_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( material->specular, material->shininess ) );
-			pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color ) );
-		}
-		pipeline.bind_texture_and_sampler( "u_ShadowmapTextureArray", &frame_static.render_targets.shadowmaps[ 0 ].depth_attachment, Sampler_Shadowmap );
-		pipeline.bind_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
-		pipeline.bind_texture_and_sampler( "u_DecalAtlases", DecalAtlasTextureArray(), Sampler_Standard );
-		AddDynamicsToPipeline( &pipeline );
-	}
-	else if( skinned ) {
-		if( material->shaded ) {
-			pipeline.shader = &shaders.standard_skinned_shaded;
-			AddDynamicsToPipeline( &pipeline );
-		}
-		else {
-			pipeline.shader = &shaders.standard_skinned;
-		}
-	}
-	else {
-		if( material->shaded ) {
-			pipeline.shader = &shaders.standard_shaded_instanced;
-			AddDynamicsToPipeline( &pipeline );
-		}
-		else {
-			pipeline.shader = &shaders.standard_instanced;
-		}
-	}
-
-	return pipeline;
+	return color;
 }

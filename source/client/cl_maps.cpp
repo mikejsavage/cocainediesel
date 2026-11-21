@@ -18,11 +18,6 @@ static HashMap< MapSubModelRenderData, 1024 > map_models;
 
 static CollisionModelStorage collision_models;
 
-static void DeleteMap( Map * map ) {
-	Free( sys_allocator, const_cast< char * >( map->name.ptr ) );
-	DeleteMapRenderData( map->render_data );
-}
-
 static void FillMapModelsHashtable() {
 	TracyZoneScoped;
 
@@ -155,7 +150,7 @@ void ShutdownMaps() {
 	TracyZoneScoped;
 
 	for( Map & map : maps.span() ) {
-		DeleteMap( &map );
+		Free( sys_allocator, const_cast< char * >( map.name.ptr ) );
 	}
 
 	maps.clear();

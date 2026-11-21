@@ -1,46 +1,25 @@
 #include "qcommon/base.h"
 #include "client/client.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
+#include "client/renderer/shader.h"
 #include "gameshared/cdmap.h"
 
-static Optional< RGB8 > ParseOutlineColor( const MapData & map ) {
-	Span< const char > value = GetWorldspawnKey( &map, "outline_color" );
-
-	Optional< u8 > r = SpanToUnsigned< u8 >( ParseToken( &value, Parse_StopOnNewLine ) );
-	Optional< u8 > g = SpanToUnsigned< u8 >( ParseToken( &value, Parse_StopOnNewLine ) );
-	Optional< u8 > b = SpanToUnsigned< u8 >( ParseToken( &value, Parse_StopOnNewLine ) );
-
-	return r.exists && b.exists && g.exists ? Optional( RGB8( r.value, g.value, b.value ) ) : NONE;
-}
-
-MapSharedRenderData NewMapRenderData( const MapData & map, Span< const char > name ) {
+Mesh NewMapRenderData( const MapData & map, Span< const char > name ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	MeshConfig mesh_config = { };
-	mesh_config.name = name;
-	mesh_config.set_attribute( VertexAttribute_Position, 0, 0 );
-	mesh_config.set_attribute( VertexAttribute_Normal, 1, offsetof( MapVertex, normal ) );
-	mesh_config.set_attribute( VertexAttribute_TexCoord, 1, offsetof( MapVertex, uv ) );
-	mesh_config.vertex_buffers[ 0 ] = NewGPUBuffer( map.vertex_positions, temp.sv( "{} positions", name ) );
-	mesh_config.vertex_buffers[ 1 ] = NewGPUBuffer( map.vertices, temp.sv( "{} normals/UVs", name ) );
-	mesh_config.vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec3 );
-	mesh_config.vertex_descriptor.buffer_strides[ 1 ] = sizeof( MapVertex );
-	mesh_config.index_buffer = NewGPUBuffer( map.vertex_indices, temp.sv( "{} indices", name ) );
-	mesh_config.index_format = IndexFormat_U32;
-	mesh_config.num_vertices = map.vertex_indices.n;
+	Mesh mesh = { };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx3, 0, 0 };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_Normal ] = { VertexFormat_Floatx3, 1, offsetof( MapVertex, normal ) };
+	mesh.vertex_descriptor.attributes[ VertexAttribute_TexCoord ] = { VertexFormat_Floatx2, 1, offsetof( MapVertex, uv ) };
+	mesh.vertex_descriptor.buffer_strides[ 0 ] = sizeof( Vec3 );
+	mesh.vertex_descriptor.buffer_strides[ 1 ] = sizeof( MapVertex );
+	mesh.index_format = IndexFormat_U32,
+	mesh.num_vertices = map.vertex_positions.n;
+	mesh.vertex_buffers[ 0 ] = NewBuffer( temp.sv( "{} positions", name ), map.vertex_positions );
+	mesh.vertex_buffers[ 1 ] = NewBuffer( temp.sv( "{} vertices", name ), map.vertices );
+	mesh.index_buffer = NewBuffer( temp.sv( "{} indices", name ), map.vertex_indices );
 
-	return MapSharedRenderData {
-		.mesh = NewMesh( mesh_config ),
-		.outline_color = ParseOutlineColor( map ),
-	};
-}
-
-void DeleteMapRenderData( const MapSharedRenderData & render_data ) {
-	DeleteMesh( render_data.mesh );
-	// DeleteGPUBuffer( render_data.nodes );
-	// DeleteGPUBuffer( render_data.leaves );
-	// DeleteGPUBuffer( render_data.brushes );
-	// DeleteGPUBuffer( render_data.planes );
+	return mesh;
 }
 
 void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData * render_data, const Mat3x4 & transform, const Vec4 & color ) {
@@ -49,44 +28,33 @@ void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData *
 
 	const Map * map = FindMap( render_data->base_hash );
 
+	GPUBuffer gpu_transform = NewTempBuffer( transform );
+
 	u32 first_mesh = map->data.models[ render_data->sub_model ].first_mesh;
 	for( u32 i = 0; i < map->data.models[ render_data->sub_model ].num_meshes; i++ ) {
 		const MapMesh & mesh = map->data.meshes[ i + first_mesh ];
+		DrawCallExtras mesh_extras = {
+			.first_index = mesh.first_vertex_index,
+			.override_num_vertices = mesh.num_vertices,
+		};
 
 		for( u32 j = 0; j < frame_static.shadow_parameters.num_cascades; j++ ) {
-			PipelineState pipeline;
-			pipeline.pass = frame_static.shadowmap_pass[ j ];
-			pipeline.shader = &shaders.depth_only;
-			pipeline.clamp_depth = true;
-			pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
-			pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
-
-			DrawMesh( map->render_data.mesh, pipeline, mesh.num_vertices, mesh.first_vertex_index );
+			PipelineState pipeline = { .shader = shaders.shadowmap };
+			Draw( RenderPass_ShadowmapCascade0 + j, pipeline, map->render_data, { gpu_transform }, mesh_extras );
 		}
 
 		{
-			PipelineState pipeline = MaterialToPipelineState( FindMaterial( StringHash( mesh.material ) ) );
-			pipeline.pass = frame_static.world_opaque_prepass_pass;
-			pipeline.shader = &shaders.depth_only;
-			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-			pipeline.bind_uniform( "u_Model", UploadModelUniforms( transform ) );
-
-			DrawMesh( map->render_data.mesh, pipeline, mesh.num_vertices, mesh.first_vertex_index );
+			PipelineState pipeline = { .shader = shaders.depth_only };
+			Draw( RenderPass_WorldOpaqueZPrepass, pipeline, map->render_data, { gpu_transform }, mesh_extras );
 		}
 
 		{
-			const Material * material;
-			if( !TryFindMaterial( StringHash( mesh.material ), &material ) ) {
-				material = FindMaterial( "world" );
-			}
-
-			PipelineState pipeline = MaterialToPipelineState( material );
-			pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
-			pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
-			pipeline.write_depth = false;
-			pipeline.depth_func = DepthFunc_Equal;
-
-			DrawMesh( map->render_data.mesh, pipeline, mesh.num_vertices, mesh.first_vertex_index );
+			// TODO: do this once at load time
+			PoolHandle< Material > material = FindMaterial( StringHash( mesh.material ) );
+			PipelineState pipeline = MaterialPipelineState( material );
+			pipeline.dynamic_state.depth_func = DepthFunc_EqualNoWrite;
+			Vec4 material_color = EvaluateMaterialColor( material, color );
+			Draw( MaterialRenderPass( material ), pipeline, map->render_data, { gpu_transform, NewTempBuffer( material_color ) }, mesh_extras );
 		}
 	}
 }

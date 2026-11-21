@@ -2,7 +2,9 @@
 #include "qcommon/array.h"
 #include "qcommon/time.h"
 #include "client/audio/api.h"
-#include "client/renderer/renderer.h"
+#include "client/renderer/api.h"
+#include "client/renderer/gltf.h"
+#include "client/renderer/model.h"
 
 static float RandomRadians() {
 	return RandomUniformFloat( &cls.rng, 0.0f, Radians( 360.0f ) );
@@ -116,9 +118,10 @@ void DrawGibs() {
 		}
 
 		Mat3x4 transform = Mat4Translation( gib->origin ) * Mat4Scale( size );
-		DrawModelConfig config = { };
-		config.draw_model.enabled = true;
-		config.draw_shadows.enabled = true;
+		DrawModelConfig config = {
+			.draw = true,
+			.cast_shadows = true,
+		};
 		DrawGLTFModel( config, model, transform, gib->color );
 
 		gib->origin = next_origin;

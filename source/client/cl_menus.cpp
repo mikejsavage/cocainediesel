@@ -867,10 +867,6 @@ static void SettingsVideo() {
 	SettingLabel( "Fullscreen" );
 	ImGui::Checkbox( "##fullscreen", &mode.fullscreen );
 
-	if( !mode.fullscreen ) {
-		mode.video_mode.refresh_rate = 0.0f;
-	}
-
 	if( mode.fullscreen ) {
 		int num_monitors;
 		SDL_DisplayID * monitors = SDL_GetDisplays( &num_monitors );
@@ -893,46 +889,16 @@ static void SettingsVideo() {
 
 			ImGui::PopItemWidth();
 		}
-
-		SettingLabel( "Resolution" );
-		ImGui::PushItemWidth( 200 * GetContentScale() );
-
-		if( mode.video_mode.refresh_rate == 0.0f ) {
-			mode.video_mode = GetVideoMode( mode.monitor );
-		}
-
-		if( ImGui::BeginCombo( "##resolution", temp( "{}", mode.video_mode ) ) ) {
-			int num_modes;
-			SDL_DisplayMode ** modes = SDL_GetFullscreenDisplayModes( monitors[ mode.monitor ], &num_modes );
-			defer { SDL_free( modes ); };
-
-			for( int i = 0; i < num_modes; i++ ) {
-				int idx = num_modes - i - 1;
-
-				VideoMode m = { };
-				m.width = modes[ idx ]->w;
-				m.height = modes[ idx ]->h;
-				m.refresh_rate = modes[ idx ]->refresh_rate;
-
-				bool is_selected = mode.video_mode.width == m.width && mode.video_mode.height == m.height && mode.video_mode.refresh_rate == m.refresh_rate;
-				if( ImGui::Selectable( temp( "{}", m ), is_selected ) ) {
-					mode.video_mode = m;
-				}
-			}
-			ImGui::EndCombo();
-		}
-
-		ImGui::PopItemWidth();
 	}
 
 	if( mode != GetWindowMode() ) {
 		if( ImGui::Button( "Apply changes" ) ) {
 			if( !mode.fullscreen ) {
 				const SDL_DisplayMode * primary_mode = SDL_GetDesktopDisplayMode( SDL_GetPrimaryDisplay() );
-				mode.video_mode.width = primary_mode->w * 0.8f;
-				mode.video_mode.height = primary_mode->h * 0.8f;
 				mode.x = -1;
 				mode.y = -1;
+				mode.width = primary_mode->w * 0.8f;
+				mode.height = primary_mode->h * 0.8f;
 			}
 
 			Cvar_Set( "vid_mode", temp.sv( "{}", mode ) );

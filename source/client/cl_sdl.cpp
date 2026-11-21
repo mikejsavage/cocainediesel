@@ -63,8 +63,6 @@ SDL_Window * CreateWindow( WindowMode mode ) {
 	TrySDL( SDL_SetBooleanProperty, props, graphics_api, true );
 	TrySDL( SDL_SetBooleanProperty, props, SDL_PROP_WINDOW_CREATE_RESIZABLE_BOOLEAN, true );
 	TrySDL( SDL_SetBooleanProperty, props, SDL_PROP_WINDOW_CREATE_HIGH_PIXEL_DENSITY_BOOLEAN, true );
-	TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, mode.video_mode.width );
-	TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, mode.video_mode.height );
 
 	SDL_DisplayID monitor = DisplayIndexToID( mode.monitor );
 
@@ -76,17 +74,11 @@ SDL_Window * CreateWindow( WindowMode mode ) {
 	else {
 		TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_X_NUMBER, mode.x == -1 ? SDL_WINDOWPOS_CENTERED : mode.x );
 		TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_Y_NUMBER, mode.y == -1 ? SDL_WINDOWPOS_CENTERED : mode.y );
+		TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_WIDTH_NUMBER, mode.width );
+		TrySDL( SDL_SetNumberProperty, props, SDL_PROP_WINDOW_CREATE_HEIGHT_NUMBER, mode.height );
 	}
 
 	window = TrySDLR( SDL_Window *, SDL_CreateWindowWithProperties, props );
-
-	if( mode.fullscreen ) {
-		SDL_DisplayMode closest;
-		if( !SDL_GetClosestFullscreenDisplayMode( monitor, mode.video_mode.width, mode.video_mode.height, mode.video_mode.refresh_rate, true, &closest ) ) {
-			closest = *TrySDLR( const SDL_DisplayMode *, SDL_GetDesktopDisplayMode, monitor );
-		}
-		TrySDL( SDL_SetWindowFullscreenMode, window, &closest );
-	}
 
 	TrySDL( SDL_GetWindowSizeInPixels, window, &framebuffer_width, &framebuffer_height );
 	window_minimized = false;
@@ -126,48 +118,35 @@ void FlashWindow() {
 	SDL_FlashWindow( window, SDL_FLASH_UNTIL_FOCUSED );
 }
 
-VideoMode GetVideoMode( int monitor ) {
-	const SDL_DisplayMode * sdl_mode = SDL_GetDesktopDisplayMode( DisplayIndexToID( monitor ) );
-	return VideoMode {
-		.width = sdl_mode->w,
-		.height = sdl_mode->h,
-		.refresh_rate = sdl_mode->refresh_rate,
-	};
-}
-
 // top secret SDL API
 // obviously you can write this yourself but not without allocating
 extern "C" int SDL_GetDisplayIndex( SDL_DisplayID displayID );
 
 WindowMode GetWindowMode() {
-	WindowMode mode = { .fullscreen = false };
-
-	TrySDL( SDL_GetWindowPosition, window, &mode.x, &mode.y );
-	TrySDL( SDL_GetWindowSizeInPixels, window, &mode.video_mode.width, &mode.video_mode.height );
-
 	if( HasAllBits( SDL_GetWindowFlags( window ), SDL_WINDOW_FULLSCREEN ) ) {
 		const SDL_DisplayMode * fullscreen = SDL_GetWindowFullscreenMode( window );
-		mode.fullscreen = true;
-		mode.video_mode.refresh_rate = fullscreen->refresh_rate;
-		mode.monitor = SDL_GetDisplayIndex( fullscreen->displayID );
+		return {
+			.fullscreen = true,
+			.monitor = SDL_GetDisplayIndex( fullscreen->displayID ),
+		};
 	}
 
+	WindowMode mode = { .fullscreen = false };
+	TrySDL( SDL_GetWindowPosition, window, &mode.x, &mode.y );
+	TrySDL( SDL_GetWindowSizeInPixels, window, &mode.width, &mode.height );
 	return mode;
 }
 
 void SetWindowMode( WindowMode mode ) {
 	if( mode.fullscreen ) {
 		SDL_DisplayID monitor = DisplayIndexToID( mode.monitor );
-		SDL_DisplayMode closest;
-		if( !SDL_GetClosestFullscreenDisplayMode( monitor, mode.video_mode.width, mode.video_mode.height, mode.video_mode.refresh_rate, true, &closest ) ) {
-			closest = *TrySDLR( const SDL_DisplayMode *, SDL_GetDesktopDisplayMode, monitor );
-		}
+		const SDL_DisplayMode * desktop_mode = TrySDLR( const SDL_DisplayMode *, SDL_GetDesktopDisplayMode, monitor );
 		TrySDL( SDL_SetWindowFullscreen, window, true );
-		TrySDL( SDL_SetWindowFullscreenMode, window, &closest );
+		TrySDL( SDL_SetWindowFullscreenMode, window, desktop_mode );
 	}
 	else {
 		TrySDL( SDL_SetWindowFullscreen, window, false );
-		TrySDL( SDL_SetWindowSize, window, mode.video_mode.width, mode.video_mode.height );
+		TrySDL( SDL_SetWindowSize, window, mode.width, mode.height );
 		TrySDL( SDL_SetWindowPosition, window, mode.x == -1 ? SDL_WINDOWPOS_CENTERED : mode.x, mode.y == -1 ? SDL_WINDOWPOS_CENTERED : mode.y );
 	}
 }

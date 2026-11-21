@@ -5,19 +5,13 @@
 struct Cvar;
 extern Cvar * vid_mode;
 
-struct VideoMode {
-	int width, height;
-	float refresh_rate;
-};
-
 struct WindowMode {
-	VideoMode video_mode;
+	bool fullscreen;
 	int monitor;
 	int x, y;
-	bool fullscreen;
+	int width, height;
 };
 
-void format( FormatBuffer * fb, VideoMode mode, const FormatOpts & opts );
 void format( FormatBuffer * fb, WindowMode mode, const FormatOpts & opts );
 
 bool operator!=( WindowMode lhs, WindowMode rhs );
@@ -36,7 +30,6 @@ void VID_CheckChanges();
 
 void FlashWindow();
 
-VideoMode GetVideoMode( int monitor );
 bool IsWindowFocused();
 
 WindowMode GetWindowMode();

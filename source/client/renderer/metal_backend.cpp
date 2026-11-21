@@ -1,0 +1,1300 @@
+#include "qcommon/platform.h"
+
+#if PLATFORM_MACOS
+
+#include "qcommon/base.h"
+#include "qcommon/array.h"
+#include "qcommon/arraymap.h"
+#include "qcommon/hash.h"
+#include "qcommon/hashmap.h"
+#include "qcommon/pool.h"
+#include "client/client.h"
+#include "client/assets.h"
+#include "client/renderer/api.h"
+#include "client/renderer/private.h"
+
+namespace MTL {
+	class VertexDescriptor;
+}
+#include "SingleHeader/Metal.hpp"
+
+#include "SDL3/SDL_metal.h"
+
+#include <dispatch/dispatch.h>
+
+// #include "tracy/tracy/Tracy.hpp"
+
+static NS::String * NSString( const char * str ) {
+	return NS::String::string( str, NS::UTF8StringEncoding );
+}
+
+struct ArgumentBufferEncoder {
+	MTL::ArgumentEncoder * encoder;
+	ArrayMap< StringHash, u32, MaxBufferBindings > buffers;
+	ArrayMap< StringHash, u32, MaxTextureBindings > textures;
+	ArrayMap< StringHash, u32, MaxTextureBindings > samplers;
+};
+
+struct RenderPipeline {
+	Span< char > name;
+
+	struct Variant {
+		MTL::RenderPipelineState * msaa_variants[ Log2( MaxMSAA ) + 1 ];
+	};
+
+	ArrayMap< VertexDescriptor, Variant, MaxShaderVariants > mesh_variants;
+
+	ArgumentBufferEncoder render_pass_args;
+	ArgumentBufferEncoder draw_call_args;
+	bool clamp_depth;
+
+	static constexpr size_t FirstVertexAttributeIndex = DescriptorSet_Count;
+};
+
+struct ComputePipeline {
+	Span< const char > name;
+	MTL::ComputePipelineState * pso;
+	ArgumentBufferEncoder args;
+};
+
+/*
+ * Staging buffer shit
+ */
+
+struct MetalDevice {
+	MTL::Device * device;
+	SDL_MetalView view;
+	CA::MetalLayer * swapchain;
+	MTL::CommandQueue * command_queue;
+	u64 frame_counter;
+	MTL::Event * pass_event;
+	MTL::ArgumentEncoder * material_argument_encoder;
+	MTL::ArgumentBuffersTier argument_buffers_tier;
+	u32 msaa;
+	Optional< int > capture;
+};
+
+struct GPUAllocation {
+	MTL::Heap * heap;
+	MTL::Buffer * buffer;
+	u64 addr;
+};
+
+struct CommandBuffer {
+	MTL::CommandBuffer * command_buffer;
+	MTL::RenderCommandEncoder * rce;
+	MTL::ComputeCommandEncoder * cce;
+	MTL::BlitCommandEncoder * bce;
+	MTL::ScissorRect no_scissor;
+	u32 msaa_samples;
+};
+
+struct BindGroup {
+	GPUBuffer argument_buffer;
+};
+
+struct BackendTexture {
+	MTL::Texture * texture;
+};
+
+static MetalDevice global_device;
+static dispatch_semaphore_t frame_semaphore;
+static u32 old_framebuffer_width, old_framebuffer_height;
+
+static struct {
+	NS::AutoreleasePool * pool;
+	CA::MetalDrawable * swapchain_surface;
+	MTL::Texture * swapchain_texture;
+} frame;
+
+static void StartCapture( MTL::Device * gpu, int frames ) {
+	MTL::CaptureManager * capture_manager = MTL::CaptureManager::sharedCaptureManager();
+	if( !capture_manager->supportsDestination( MTL::CaptureDestinationGPUTraceDocument ) ) {
+		printf( "Capture support is not enabled\n" );
+		abort();
+	}
+
+	char filename[ NAME_MAX ];
+	time_t now;
+	time( &now );
+	strftime( filename, NAME_MAX, "trace-%Y%m%d%H%M%S.gputrace", localtime( &now ) );
+
+	NS::String * capture_filename = NS::String::string( filename, NS::UTF8StringEncoding );
+	NS::URL * url = NS::URL::alloc()->initFileURLWithPath( capture_filename );
+
+	MTL::CaptureDescriptor * capture = MTL::CaptureDescriptor::alloc()->init();
+	capture->setDestination( MTL::CaptureDestinationGPUTraceDocument );
+	capture->setOutputURL( url );
+	capture->setCaptureObject( gpu );
+
+	printf( "Capturing into %s...\n", capture_filename->utf8String() );
+
+	NS::Error * error = NULL;
+	if( !capture_manager->startCapture( capture, &error ) ) {
+		printf( "Failed to start capture: %s\n", error->localizedDescription()->utf8String() );
+		abort();
+	}
+
+	url->release();
+	capture->release();
+
+	global_device.capture = frames;
+}
+
+static void MaybeEndCapture() {
+	if( !global_device.capture.exists )
+		return;
+
+	global_device.capture.value--;
+	if( global_device.capture.value == 0 ) {
+		MTL::CaptureManager::sharedCaptureManager()->stopCapture();
+		global_device.capture = NONE;
+		printf( "Captured\n" );
+	}
+}
+
+static Pool< GPUAllocation, 1024 > allocations;
+inline HashPool< Texture, MaxMaterials > textures;
+static Pool< BindGroup, MaxMaterials > bind_groups;
+static Pool< RenderPipeline, 128 > render_pipelines;
+static Pool< ComputePipeline, 128 > compute_pipelines;
+
+PoolHandle< GPUAllocation > AllocateGPUMemory( size_t size ) {
+	MTL::ResourceOptions options = MTL::ResourceStorageModePrivate | MTL::ResourceHazardTrackingModeUntracked;
+
+	NS::UInteger allocation_size = global_device.device->heapBufferSizeAndAlign( size, options ).size;
+
+	MTL::HeapDescriptor * descriptor = MTL::HeapDescriptor::alloc()->init();
+	descriptor->setSize( allocation_size );
+	descriptor->setStorageMode( MTL::StorageModePrivate );
+	descriptor->setType( MTL::HeapTypePlacement );
+	descriptor->setHazardTrackingMode( MTL::HazardTrackingModeUntracked );
+	defer { descriptor->release(); };
+
+	MTL::Heap * heap = global_device.device->newHeap( descriptor );
+	MTL::Buffer * buffer = heap->newBuffer( size, options, 0 );
+
+	return allocations.allocate( GPUAllocation {
+		.heap = heap,
+		.buffer = buffer,
+		.addr = buffer->gpuAddress(),
+	} );
+}
+
+CoherentMemory AllocateCoherentMemory( size_t size ) {
+	MTL::Buffer * buffer = global_device.device->newBuffer( size, MTL::ResourceStorageModeShared | MTL::ResourceHazardTrackingModeUntracked );
+	return CoherentMemory {
+		.allocation = allocations.allocate( GPUAllocation {
+			.buffer = buffer,
+			.addr = buffer->gpuAddress(),
+		} ),
+		.ptr = buffer->contents(),
+	};
+}
+
+void AddDebugMarker( PoolHandle< GPUAllocation > allocation, size_t offset, size_t size, Span< const char > label ) {
+	NS::Range range( checked_cast< NS::UInteger >( offset ), checked_cast< NS::UInteger >( size ) );
+	TempAllocator temp = cls.frame_arena.temp();
+	allocations[ allocation ].buffer->addDebugMarker( NSString( temp( "{}", label ) ), range );
+}
+
+void RemoveAllDebugMarkers( PoolHandle< GPUAllocation > allocation ) {
+	allocations[ allocation ].buffer->removeAllDebugMarkers();
+}
+
+Opaque< CommandBuffer > NewTransferCommandBuffer() {
+	MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
+	command_buffer->setLabel( NSString( "Transfer" ) );
+	return CommandBuffer {
+		.command_buffer = command_buffer,
+		.bce = command_buffer->blitCommandEncoder(),
+	};
+}
+
+void DeleteTransferCommandBuffer( Opaque< CommandBuffer > cb ) {
+	cb.unwrap()->bce->endEncoding();
+}
+
+void SubmitStagingCommandBuffer( Opaque< CommandBuffer > buffer ) {
+	TracyZoneScoped;
+
+	CommandBuffer * cmd_buf = buffer.unwrap();
+	cmd_buf->bce->endEncoding();
+	cmd_buf->command_buffer->commit();
+	{
+		TracyZoneScopedNC( "waitUntilCompleted", TracyColorWait );
+		cmd_buf->command_buffer->waitUntilCompleted();
+	}
+}
+
+void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first_pass ) {
+	if( first_pass > 0 ) {
+		MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
+		command_buffer->encodeSignalEvent( global_device.pass_event, global_device.frame_counter * RenderPass_Count + first_pass );
+		command_buffer->commit();
+	}
+
+	if( !frame_static.minimized ) {
+		MTL::CommandBuffer * last = passes[ passes.n - 1 ].buffer.unwrap()->command_buffer;
+		last->addCompletedHandler( [&]( MTL::CommandBuffer * ) {
+			dispatch_semaphore_signal( frame_semaphore );
+		} );
+		last->presentDrawable( frame.swapchain_surface );
+	}
+	else {
+		MTL::CommandBuffer * cb = global_device.command_queue->commandBufferWithUnretainedReferences();
+		cb->addCompletedHandler( [&]( MTL::CommandBuffer * ) {
+			dispatch_semaphore_signal( frame_semaphore );
+		} );
+		if( passes.n == 0 ) {
+			cb->encodeSignalEvent( global_device.pass_event, global_device.frame_counter * RenderPass_Count + RenderPass_Count );
+		}
+		cb->commit();
+	}
+
+	for( RenderPassSubmit pass : passes ) {
+		CommandBuffer * cb = pass.buffer.unwrap();
+		if( cb->rce != NULL ) {
+			cb->rce->endEncoding();
+		}
+		else {
+			cb->cce->endEncoding();
+		}
+		cb->command_buffer->encodeSignalEvent( global_device.pass_event, global_device.frame_counter * RenderPass_Count + pass.next_pass );
+		cb->command_buffer->commit();
+	}
+}
+
+void CopyGPUBufferToBuffer(
+	Opaque< CommandBuffer > cmd_buf,
+	PoolHandle< GPUAllocation > dest, size_t dest_offset,
+	PoolHandle< GPUAllocation > src, size_t src_offset,
+	size_t n
+) {
+	cmd_buf.unwrap()->bce->copyFromBuffer( allocations[ src ].buffer, src_offset, allocations[ dest ].buffer, dest_offset, n );
+}
+
+void CopyGPUBufferToTexture(
+	Opaque< CommandBuffer > cmd_buf,
+	Opaque< BackendTexture > dest, TextureFormat format, u32 w, u32 h, u32 layer, u32 mip_level,
+	PoolHandle< GPUAllocation > src, size_t src_offset
+) {
+	u32 block_size = BlockSize( format );
+	u32 bytes_per_row_of_blocks = ( ( w / block_size ) * ( block_size * block_size * BitsPerPixel( format ) ) ) / 8;
+	u32 bytes_per_layer = bytes_per_row_of_blocks * ( h / block_size );
+
+	cmd_buf.unwrap()->bce->copyFromBuffer( allocations[ src ].buffer, src_offset,
+		bytes_per_row_of_blocks, bytes_per_layer,
+		MTL::Size::Make( w, h, 1 ),
+		dest.unwrap()->texture, layer, mip_level, MTL::Origin::Make( 0, 0, 0 ) );
+}
+
+/*
+ * Back to normal shit
+ */
+
+static MTL::SamplerState * samplers[ Sampler_Count ];
+
+static MTL::SamplerAddressMode SamplerWrapToMetal( SamplerWrap wrap ) {
+	switch( wrap ) {
+		case SamplerWrap_Repeat: return MTL::SamplerAddressModeRepeat;
+		case SamplerWrap_Clamp: return MTL::SamplerAddressModeClampToEdge;
+	}
+}
+
+void NewSampler( SamplerType type, const SamplerConfig & config ) {
+	MTL::SamplerDescriptor * desc = MTL::SamplerDescriptor::alloc()->init();
+	defer { desc->release(); };
+
+	desc->setLabel( NSString( config.name ) );
+	desc->setSAddressMode( SamplerWrapToMetal( config.wrap ) );
+	desc->setTAddressMode( SamplerWrapToMetal( config.wrap ) );
+
+	MTL::SamplerMinMagFilter min_mag_filter = config.filter ? MTL::SamplerMinMagFilterLinear : MTL::SamplerMinMagFilterNearest;
+	desc->setMinFilter( min_mag_filter );
+	desc->setMagFilter( min_mag_filter );
+	desc->setMaxAnisotropy( 16 );
+
+	desc->setMipFilter( config.filter ? MTL::SamplerMipFilterLinear : MTL::SamplerMipFilterNearest );
+
+	if( config.shadowmap_sampler ) {
+		desc->setCompareFunction( MTL::CompareFunctionLess );
+	}
+
+	desc->setSupportArgumentBuffers( true );
+
+	samplers[ type ] = global_device.device->newSamplerState( desc );
+}
+
+struct DepthFuncConfig {
+	MTL::CompareFunction compare_op;
+	bool write_depth = true;
+};
+
+static MTL::DepthStencilState * NewDepthFunc( const DepthFuncConfig & config ) {
+	MTL::DepthStencilDescriptor * desc = MTL::DepthStencilDescriptor::alloc()->init();
+	defer { desc->release(); };
+
+	desc->setDepthCompareFunction( config.compare_op );
+	desc->setDepthWriteEnabled( config.write_depth );
+
+	return global_device.device->newDepthStencilState( desc );
+}
+
+static MTL::DepthStencilState * depth_funcs[ DepthFunc_Count ];
+
+static void InitDepthFuncs() {
+	depth_funcs[ DepthFunc_Less ] = NewDepthFunc( DepthFuncConfig { .compare_op = MTL::CompareFunctionGreater } );
+	depth_funcs[ DepthFunc_LessNoWrite ] = NewDepthFunc( DepthFuncConfig {
+		.compare_op = MTL::CompareFunctionGreater,
+		.write_depth = false,
+	} );
+	depth_funcs[ DepthFunc_Equal ] = NewDepthFunc( DepthFuncConfig { .compare_op = MTL::CompareFunctionEqual } );
+	depth_funcs[ DepthFunc_EqualNoWrite ] = NewDepthFunc( DepthFuncConfig {
+		.compare_op = MTL::CompareFunctionEqual,
+		.write_depth = false,
+	} );
+	depth_funcs[ DepthFunc_Always ] = NewDepthFunc( DepthFuncConfig { .compare_op = MTL::CompareFunctionAlways } );
+	depth_funcs[ DepthFunc_AlwaysNoWrite ] = NewDepthFunc( DepthFuncConfig {
+		.compare_op = MTL::CompareFunctionAlways,
+		.write_depth = false,
+	} );
+}
+
+static MTL::PixelFormat TextureFormatToMetal( TextureFormat format ) {
+	switch( format ) {
+		case TextureFormat_R_U8: return MTL::PixelFormatR8Unorm;
+		case TextureFormat_R_U8_sRGB: return MTL::PixelFormatR8Unorm_sRGB;
+		case TextureFormat_R_S8: return MTL::PixelFormatR8Snorm;
+		case TextureFormat_R_UI8: return MTL::PixelFormatR8Uint;
+
+		case TextureFormat_A_U8: return MTL::PixelFormatA8Unorm;
+
+		case TextureFormat_RA_U8: return MTL::PixelFormatRG8Unorm;
+
+		case TextureFormat_RGBA_U8: return MTL::PixelFormatRGBA8Unorm;
+		case TextureFormat_RGBA_U8_sRGB: return MTL::PixelFormatRGBA8Unorm_sRGB;
+
+		case TextureFormat_BC1_sRGB: return MTL::PixelFormatBC1_RGBA_sRGB;
+		case TextureFormat_BC3_sRGB: return MTL::PixelFormatBC3_RGBA_sRGB;
+		case TextureFormat_BC4: return MTL::PixelFormatBC4_RUnorm;
+		case TextureFormat_BC5: return MTL::PixelFormatBC5_RGUnorm;
+
+		case TextureFormat_Depth: return MTL::PixelFormatDepth32Float;
+
+		case TextureFormat_Swapchain: return global_device.swapchain->pixelFormat();
+	}
+}
+
+Opaque< BackendTexture > NewBackendTexture( GPUSlabAllocator * a, const TextureConfig & config ) {
+	MTL::TextureType type;
+	if( !config.num_layers.exists ) {
+		type = config.msaa_samples > 1 ? MTL::TextureType2DMultisample : MTL::TextureType2D;
+	}
+	else {
+		type = config.msaa_samples > 1 ? MTL::TextureType2DMultisampleArray : MTL::TextureType2DArray;
+	}
+
+	constexpr MTL::TextureSwizzle R = MTL::TextureSwizzleRed;
+	constexpr MTL::TextureSwizzle G = MTL::TextureSwizzleGreen;
+	constexpr MTL::TextureSwizzle A = MTL::TextureSwizzleAlpha;
+	constexpr MTL::TextureSwizzle ONE = MTL::TextureSwizzleOne;
+
+	Optional< MTL::TextureSwizzleChannels > swizzle = NONE;
+
+	MTL::TextureUsage usage = MTL::TextureUsageShaderRead;
+	if( config.data == NULL ) {
+		usage |= MTL::TextureUsageRenderTarget;
+	}
+
+	// NOTE(mike 20251016): "Texture Descriptor Validation Texture swizzling is not compatable with MTLTextureUsageRenderTarget"
+	if( !HasAnyBit( usage, MTL::TextureUsage( MTL::TextureUsageRenderTarget ) ) ) {
+		switch( config.format ) {
+			default: break;
+
+			case TextureFormat_R_U8:
+			case TextureFormat_R_U8_sRGB:
+			case TextureFormat_R_S8:
+			case TextureFormat_R_UI8:
+				 swizzle = { R, R, R, ONE };
+				 break;
+
+			case TextureFormat_A_U8:
+				 swizzle = { ONE, ONE, ONE, A };
+				 break;
+
+			case TextureFormat_BC4:
+				 swizzle = { ONE, ONE, ONE, R };
+				 break;
+
+			case TextureFormat_RA_U8:
+				 swizzle = { R, R, R, G };
+				 break;
+		}
+	}
+
+	MTL::TextureDescriptor * descriptor = MTL::TextureDescriptor::alloc()->init();
+	descriptor->setTextureType( type );
+	descriptor->setPixelFormat( TextureFormatToMetal( config.format ) );
+	descriptor->setWidth( config.width );
+	descriptor->setHeight( config.height );
+	descriptor->setArrayLength( Default( config.num_layers, 1_u32 ) );
+	descriptor->setMipmapLevelCount( config.num_mipmaps );
+	if( swizzle.exists ) {
+		descriptor->setSwizzle( swizzle.value );
+	}
+	descriptor->setStorageMode( MTL::StorageModePrivate );
+	descriptor->setUsage( usage );
+	defer { descriptor->release(); };
+
+	TempAllocator temp = cls.frame_arena.temp();
+	MTL::Texture * texture;
+	if( !config.dedicated_allocation ) {
+		MTL::SizeAndAlign memory_requirements = global_device.device->heapTextureSizeAndAlign( descriptor );
+		GPUBuffer alloc = NewBuffer( a, temp.sv( "{} texture memory", config.name ), memory_requirements.size, memory_requirements.align, true );
+
+		descriptor->setHazardTrackingMode( MTL::HazardTrackingModeUntracked );
+		texture = allocations[ alloc.allocation ].heap->newTexture( descriptor, alloc.offset );
+	}
+	else {
+		texture = global_device.device->newTexture( descriptor );
+	}
+
+	texture->setLabel( NSString( temp( "{}", config.name ) ) );
+
+	BackendTexture backend = { texture };
+	if( config.data != NULL ) {
+		UploadTexture( config, backend );
+	}
+
+	return backend;
+}
+
+void DeleteBackendTexture( Opaque< BackendTexture > texture ) {
+	texture.unwrap()->texture->release();
+}
+
+bool SwapchainIsNotsRGB() {
+	MTL::PixelFormat swapchain_format = global_device.swapchain->pixelFormat();
+	// NOMERGE we actually get to pick the format in InitRenderBackend so apply that info here
+	return false
+		|| swapchain_format == MTL::PixelFormatRGB10A2Unorm
+		|| swapchain_format == MTL::PixelFormatBGR10A2Unorm
+		// according to https://metalcheatsheet.com/ macOS doesn't support XR formats but keep it here just in case
+		|| swapchain_format == MTL::PixelFormatBGR10_XR;
+}
+
+PoolHandle< BindGroup > NewMaterialBindGroup( Span< const char > name, Opaque< BackendTexture > texture, SamplerType sampler, GPUBuffer properties, Optional< PoolHandle< BindGroup > > old_bind_group ) {
+	MTL::ArgumentEncoder * encoder = global_device.material_argument_encoder;
+
+	// ArgumentEncoders can't write into private memory so we have to encode
+	// into a coherent buffer and upload that, i.e. run it through the staging
+	// buffer
+	GPUBuffer args = NewBuffer( name, encoder->encodedLength(), encoder->alignment(), false );
+	GPUBuffer staging = StageArgumentBuffer( args, encoder->encodedLength(), encoder->alignment() );
+
+	encoder->setArgumentBuffer( allocations[ staging.allocation ].buffer, staging.offset );
+	encoder->setBuffer( allocations[ properties.allocation ].buffer, properties.offset, 0 );
+	encoder->setTexture( texture.unwrap()->texture, 1 );
+	encoder->setSamplerState( samplers[ sampler ], 2 );
+
+	return bind_groups.upsert( old_bind_group, { args } );
+}
+
+static MTL::VertexFormat VertexFormatToMetal( VertexFormat format ) {
+	switch( format ) {
+		case VertexFormat_U8x2: return MTL::VertexFormatUChar2;
+		case VertexFormat_U8x2_01: return MTL::VertexFormatUChar2Normalized;
+		case VertexFormat_U8x3: return MTL::VertexFormatUChar3;
+		case VertexFormat_U8x3_01: return MTL::VertexFormatUChar3Normalized;
+		case VertexFormat_U8x4: return MTL::VertexFormatUChar4;
+		case VertexFormat_U8x4_01: return MTL::VertexFormatUChar4Normalized;
+
+		case VertexFormat_U16x2: return MTL::VertexFormatUChar2;
+		case VertexFormat_U16x2_01: return MTL::VertexFormatUChar2Normalized;
+		case VertexFormat_U16x3: return MTL::VertexFormatUChar3;
+		case VertexFormat_U16x3_01: return MTL::VertexFormatUChar3Normalized;
+		case VertexFormat_U16x4: return MTL::VertexFormatUChar4;
+		case VertexFormat_U16x4_01: return MTL::VertexFormatUChar4Normalized;
+
+		case VertexFormat_U10x3_U2x1_01: return MTL::VertexFormatUInt1010102Normalized;
+
+		case VertexFormat_Floatx2: return MTL::VertexFormatFloat2;
+		case VertexFormat_Floatx3: return MTL::VertexFormatFloat3;
+		case VertexFormat_Floatx4: return MTL::VertexFormatFloat4;
+	}
+}
+
+static const char * StripPrefix( const char * str, const char * prefix ) {
+	return StartsWith( str, prefix ) ? str + strlen( prefix ) : str;
+}
+
+static Optional< ArgumentBufferEncoder > ParseArgumentBuffer( MTL::Function * func, const NS::Array * args, DescriptorSetType descriptor_set ) {
+	constexpr const char * descriptor_set_prefix = "spvDescriptorSet";
+
+	for( size_t i = 0; i < args->count(); i++ ) {
+		const MTL::Argument * arg = args->object< const MTL::Argument >( i );
+		const char * name = arg->name()->utf8String();
+
+		if( arg->type() != MTL::ArgumentTypeBuffer || !StartsWith( name, descriptor_set_prefix ) )
+			continue;
+
+		if( DescriptorSetType( arg->index() ) != descriptor_set )
+			continue;
+
+		ArgumentBufferEncoder buffer = {
+			.encoder = func->newArgumentEncoder( arg->index() ),
+		};
+
+		const NS::Array * members = arg->bufferStructType()->members();
+		for( size_t i = 0; i < members->count(); i++ ) {
+			const MTL::StructMember * member = members->object< const MTL::StructMember >( i );
+
+			// NOTE(mike 20251103): slang adds args_ to descriptor names
+			StringHash name = StringHash( StripPrefix( member->name()->utf8String(), "args_" ) );
+			switch( member->dataType() ) {
+				case MTL::DataTypePointer:
+					buffer.buffers.must_add( name, member->argumentIndex() );
+					break;
+				case MTL::DataTypeTexture:
+					buffer.textures.must_add( name, member->argumentIndex() );
+					break;
+				case MTL::DataTypeSampler:
+					buffer.samplers.must_add( name, member->argumentIndex() );
+					break;
+				default: break;
+			}
+		}
+
+		return buffer;
+	}
+
+	return NONE;
+}
+
+static void DeleteRenderPipeline( const RenderPipeline & shader ) {
+	Free( sys_allocator, shader.name.ptr );
+	for( const auto & [ _, mesh_variant ] : shader.mesh_variants ) {
+		for( MTL::RenderPipelineState * pso : mesh_variant.msaa_variants ) {
+			if( pso != NULL ) {
+				pso->release();
+			}
+		}
+	}
+}
+
+template< typename T >
+dispatch_data_t SpanToDispatchData( Span< const T > data ) {
+	return dispatch_data_create( data.ptr, data.num_bytes(), NULL, DISPATCH_DATA_DESTRUCTOR_DEFAULT );
+}
+
+PoolHandle< RenderPipeline > NewRenderPipeline( const RenderPipelineConfig & config, Optional< PoolHandle< RenderPipeline > > old_pipeline ) {
+	if( old_pipeline.exists ) {
+		DeleteRenderPipeline( render_pipelines[ old_pipeline.value ] );
+	}
+
+	TempAllocator temp = cls.frame_arena.temp();
+
+	Span< const u8 > metallib = AssetBinary( temp.sv( "{}.metallib", config.path ) );
+
+	MTL::Library * library;
+	{
+		NS::Error * error = NULL;
+		library = global_device.device->newLibrary( SpanToDispatchData( metallib ), &error );
+		if( library == NULL ) {
+			ggprint( "NewRenderPipeline( {} ): {}\n", config.path, error->localizedDescription()->utf8String() );
+			abort();
+		}
+	}
+
+	MTL::Function * vertex_main = library->newFunction( NSString( "VertexMain" ) );
+	MTL::Function * fragment_main = library->newFunction( NSString( "FragmentMain" ) );
+
+	if( vertex_main == NULL || fragment_main == NULL ) {
+		printf( "missing mains\n" );
+		abort();
+	}
+
+	RenderPipeline shader = { };
+	shader.name = CloneSpan( sys_allocator, config.path );
+	shader.clamp_depth = config.clamp_depth;
+
+	bool first = true;
+
+	for( size_t i = 0; i < config.mesh_variants.n; i++ ) {
+		const VertexDescriptor & mesh_variant = config.mesh_variants[ i ];
+
+		RenderPipeline::Variant * variant = shader.mesh_variants.add( mesh_variant );
+		Assert( variant != NULL );
+
+		for( u32 msaa = 1; msaa <= MaxMSAA; msaa *= 2 ) {
+			if( !HasAnyBit( global_device.msaa, msaa ) )
+				continue;
+
+			MTL::RenderPipelineDescriptor * pipeline = MTL::RenderPipelineDescriptor::alloc()->init();
+			defer { pipeline->release(); };
+			pipeline->setLabel( NSString( temp( "{}", shader.name ) ) );
+			pipeline->setVertexFunction( vertex_main );
+			pipeline->setFragmentFunction( fragment_main );
+
+			// Metal needs this for rendering to multi-layer textures, i.e. shadow
+			// cascades, but we only draw triangles so just hardcode it
+			// https://developer.apple.com/documentation/metal/render_passes/rendering_to_multiple_texture_slices_in_a_draw_command#3362353
+			pipeline->setInputPrimitiveTopology( MTL::PrimitiveTopologyClassTriangle );
+
+			for( size_t color_output_index = 0; color_output_index < config.output_format.colors.n; color_output_index++ ) {
+				MTL::RenderPipelineColorAttachmentDescriptor * attachment = pipeline->colorAttachments()->object( color_output_index );
+				attachment->setPixelFormat( TextureFormatToMetal( config.output_format.colors[ color_output_index ] ) );
+
+				if( config.blend_func == BlendFunc_Blend ) {
+					attachment->setBlendingEnabled( true );
+					attachment->setSourceRGBBlendFactor( MTL::BlendFactorSourceAlpha );
+					attachment->setSourceAlphaBlendFactor( MTL::BlendFactorSourceAlpha );
+					attachment->setDestinationRGBBlendFactor( MTL::BlendFactorOneMinusSourceAlpha );
+					attachment->setDestinationAlphaBlendFactor( MTL::BlendFactorOneMinusSourceAlpha );
+					attachment->setRgbBlendOperation( MTL::BlendOperationAdd );
+					attachment->setAlphaBlendOperation( MTL::BlendOperationAdd );
+				}
+				else if( config.blend_func == BlendFunc_Add ) {
+					attachment->setBlendingEnabled( true );
+					attachment->setSourceRGBBlendFactor( MTL::BlendFactorSourceAlpha );
+					attachment->setSourceAlphaBlendFactor( MTL::BlendFactorOne );
+					attachment->setDestinationRGBBlendFactor( MTL::BlendFactorOne );
+					attachment->setDestinationAlphaBlendFactor( MTL::BlendFactorOne );
+					attachment->setRgbBlendOperation( MTL::BlendOperationAdd );
+					attachment->setAlphaBlendOperation( MTL::BlendOperationAdd );
+				}
+			}
+
+			if( config.output_format.has_depth ) {
+				pipeline->setDepthAttachmentPixelFormat( MTL::PixelFormat::PixelFormatDepth32Float );
+			}
+
+			pipeline->setAlphaToCoverageEnabled( config.alpha_to_coverage );
+
+			MTL::VertexDescriptor * vertex_descriptor = MTL::VertexDescriptor::alloc()->init();
+			defer { vertex_descriptor->release(); };
+
+			for( size_t j = 0; j < ARRAY_COUNT( mesh_variant.attributes ); j++ ) {
+				if( !mesh_variant.attributes[ j ].exists )
+					continue;
+
+				const VertexAttribute & attr = mesh_variant.attributes[ j ].value;
+
+				MTL::VertexAttributeDescriptor * metal = vertex_descriptor->attributes()->object( j );
+				metal->setFormat( VertexFormatToMetal( attr.format ) );
+				metal->setOffset( attr.offset );
+				metal->setBufferIndex( attr.buffer + RenderPipeline::FirstVertexAttributeIndex );
+			}
+
+			for( size_t j = 0; j < ARRAY_COUNT( mesh_variant.buffer_strides ); j++ ) {
+				if( mesh_variant.buffer_strides[ j ].exists ) {
+					vertex_descriptor->layouts()->object( j + RenderPipeline::FirstVertexAttributeIndex )->setStride( mesh_variant.buffer_strides[ j ].value );
+				}
+			}
+
+			pipeline->setVertexDescriptor( vertex_descriptor );
+
+			pipeline->setRasterSampleCount( msaa );
+
+			NS::Error * error = NULL;
+			MTL::AutoreleasedRenderPipelineReflection reflection = NULL;
+			MTL::RenderPipelineState * pso = global_device.device->newRenderPipelineState( pipeline, MTL::PipelineOptionBufferTypeInfo, &reflection, &error );
+			if( pso == NULL ) {
+				ggprint( "NewRenderPipeline( {} ): {}\n", config.path, error->localizedDescription()->utf8String() );
+				abort();
+			}
+
+			if( first ) {
+				const NS::Array * vertex_args = reflection->vertexArguments();
+				const NS::Array * fragment_args = reflection->fragmentArguments();
+
+				Optional< ArgumentBufferEncoder > render_pass_args = ParseArgumentBuffer( vertex_main, vertex_args, DescriptorSet_RenderPass );
+				if( !render_pass_args.exists ) {
+					render_pass_args = ParseArgumentBuffer( fragment_main, fragment_args, DescriptorSet_RenderPass );
+				}
+				if( render_pass_args.exists ) {
+					shader.render_pass_args = render_pass_args.value;
+				}
+
+				Optional< ArgumentBufferEncoder > draw_call_args = ParseArgumentBuffer( vertex_main, vertex_args, DescriptorSet_DrawCall );
+				if( !draw_call_args.exists ) {
+					draw_call_args = ParseArgumentBuffer( fragment_main, fragment_args, DescriptorSet_DrawCall );
+				}
+				if( draw_call_args.exists ) {
+					shader.draw_call_args = draw_call_args.value;
+				}
+
+				first = false;
+			}
+
+			variant->msaa_variants[ Log2( msaa ) ] = pso;
+		}
+	}
+
+	vertex_main->release();
+	fragment_main->release();
+	library->release();
+
+	return render_pipelines.upsert( old_pipeline, shader );
+}
+
+static const MTL::RenderPipelineState * SelectRenderPipelineVariant( const RenderPipeline & shader, const VertexDescriptor & mesh_format, u32 msaa ) {
+	const RenderPipeline::Variant * mesh_variant = shader.mesh_variants.get( mesh_format );
+	return mesh_variant == NULL ? NULL : mesh_variant->msaa_variants[ Log2( msaa ) ];
+}
+
+static void BindMesh( MTL::RenderCommandEncoder * encoder, const Mesh & mesh ) {
+	for( size_t i = 0; i < ARRAY_COUNT( mesh.vertex_buffers ); i++ ) {
+		size_t idx = i + RenderPipeline::FirstVertexAttributeIndex;
+		if( mesh.vertex_buffers[ i ].exists ) {
+			encoder->setVertexBuffer( allocations[ mesh.vertex_buffers[ i ].value.allocation ].buffer, mesh.vertex_buffers[ i ].value.offset, idx );
+		}
+		else {
+			encoder->setVertexBuffer( NULL, 0, idx );
+		}
+	}
+}
+
+static MTL::CullMode CullFaceToMetal( CullFace cull ) {
+	switch( cull ) {
+		case CullFace_Back: return MTL::CullModeBack;
+		case CullFace_Front: return MTL::CullModeFront;
+		case CullFace_Disabled: return MTL::CullModeNone;
+	}
+}
+
+static void BindBindGroup( MTL::RenderCommandEncoder * encoder, PoolHandle< BindGroup > handle, DescriptorSetType type ) {
+	const BindGroup & bind_group = bind_groups[ handle ];
+	encoder->setVertexBuffer( allocations[ bind_group.argument_buffer.allocation ].buffer, bind_group.argument_buffer.offset, type );
+	encoder->setFragmentBuffer( allocations[ bind_group.argument_buffer.allocation ].buffer, bind_group.argument_buffer.offset, type );
+}
+
+static GPUBuffer EncodeArgumentBuffer( ArgumentBufferEncoder * encoder, Span< const BufferBinding > buffers ) {
+	GPUBuffer args = NewCoherentTempBuffer( encoder->encoder->encodedLength(), encoder->encoder->alignment() ).buffer;
+
+	encoder->encoder->setArgumentBuffer( allocations[ args.allocation ].buffer, args.offset );
+
+	for( size_t i = 0; i < buffers.n; i++ ) {
+		const BufferBinding & b = buffers[ i ];
+		Optional< u32 > idx = encoder->buffers.get2( b.name );
+		if( !idx.exists ) {
+			ggprint( "can't bind {}\n", b.name );
+			continue;
+		}
+		encoder->encoder->setBuffer( allocations[ b.buffer.allocation ].buffer, b.buffer.offset, idx.value );
+	}
+
+	return args;
+}
+
+static void BindArgumentBuffer( MTL::RenderCommandEncoder * rce, GPUBuffer args, DescriptorSetType descriptor_set ) {
+	rce->setVertexBuffer( allocations[ args.allocation ].buffer, args.offset, descriptor_set );
+	rce->setFragmentBuffer( allocations[ args.allocation ].buffer, args.offset, descriptor_set );
+}
+
+static void BindArgumentBuffer( MTL::ComputeCommandEncoder * cce, GPUBuffer args, DescriptorSetType descriptor_set ) {
+	cce->setBuffer( allocations[ args.allocation ].buffer, args.offset, descriptor_set );
+}
+
+static void EncodeAndBindArgumentBuffer( MTL::RenderCommandEncoder * rce, ArgumentBufferEncoder * encoder, const GPUBindings & bindings, DescriptorSetType descriptor_set ) {
+	GPUBuffer args = EncodeArgumentBuffer( encoder, bindings.buffers );
+
+	for( size_t i = 0; i < bindings.textures.n; i++ ) {
+		const GPUBindings::TextureBinding & b = bindings.textures[ i ];
+
+		Optional< u32 > idx = encoder->textures.get2( b.name );
+		if( !idx.exists ) {
+			ggprint( "can't bind {}\n", b.name );
+			continue;
+		}
+		encoder->encoder->setTexture( textures[ b.texture ].backend.unwrap()->texture, idx.value );
+	}
+
+	for( size_t i = 0; i < bindings.samplers.n; i++ ) {
+		const GPUBindings::SamplerBinding & b = bindings.samplers[ i ];
+		Optional< u32 > idx = encoder->samplers.get2( b.name );
+		if( !idx.exists ) {
+			ggprint( "can't bind {}\n", b.name );
+			continue;
+		}
+		encoder->encoder->setSamplerState( samplers[ b.sampler ], idx.value );
+	}
+
+	BindArgumentBuffer( rce, args, descriptor_set );
+}
+
+static MTL::RenderCommandEncoder * PrepareDraw( Opaque< CommandBuffer > ocb, const PipelineState & pipeline, Mesh mesh, Span< const GPUBuffer > buffers ) {
+	CommandBuffer * cb = ocb.unwrap();
+
+	const RenderPipeline & shader = render_pipelines[ pipeline.shader ];
+	const MTL::RenderPipelineState * pso = SelectRenderPipelineVariant( shader, mesh.vertex_descriptor, cb->msaa_samples );
+	if( pso == NULL ) {
+		Com_GGPrint( S_COLOR_YELLOW "No shader variant: {} {}", shader.name, mesh.vertex_descriptor );
+		return NULL;
+	}
+
+	cb->rce->setRenderPipelineState( pso );
+	cb->rce->setDepthClipMode( render_pipelines[ pipeline.shader ].clamp_depth ? MTL::DepthClipModeClamp : MTL::DepthClipModeClip );
+	cb->rce->setCullMode( CullFaceToMetal( pipeline.dynamic_state.cull_face ) );
+	cb->rce->setDepthStencilState( depth_funcs[ pipeline.dynamic_state.depth_func ] );
+
+	BindMesh( cb->rce, mesh );
+	if( pipeline.material_bind_group.exists ) {
+		BindBindGroup( cb->rce, pipeline.material_bind_group.value, DescriptorSet_Material );
+	}
+
+	if( buffers.n > 0 ) {
+		BoundedDynamicArray< u64, MaxDrawCallBuffers > addrs = { };
+		for( GPUBuffer buffer : buffers ) {
+			addrs.must_add( allocations[ buffer.allocation ].addr + buffer.offset );
+		}
+		cb->rce->setVertexBytes( addrs.ptr(), addrs.span().num_bytes(), DescriptorSet_DrawCall );
+		cb->rce->setFragmentBytes( addrs.ptr(), addrs.span().num_bytes(), DescriptorSet_DrawCall );
+	}
+
+	if( mesh.index_buffer.exists ) {
+		Assert( mesh.index_buffer.value.offset % 4 == 0 );
+	}
+
+	return cb->rce;
+}
+
+void EncodeDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline, Mesh mesh, Span< const GPUBuffer > buffers, DrawCallExtras extras ) {
+	MTL::RenderCommandEncoder * rce = PrepareDraw( ocb, pipeline, mesh, buffers );
+	if( rce == NULL )
+		return;
+
+	u32 num_vertices = Default( extras.override_num_vertices, mesh.num_vertices );
+	if( mesh.index_buffer.exists ) {
+		MTL::IndexType index_type = mesh.index_format == IndexFormat_U16 ? MTL::IndexTypeUInt16 : MTL::IndexTypeUInt32;
+		size_t index_size = mesh.index_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
+		rce->drawIndexedPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, num_vertices, index_type, allocations[ mesh.index_buffer.value.allocation ].buffer, mesh.index_buffer.value.offset + extras.first_index * index_size, 1, extras.base_vertex, 0 );
+	}
+	else {
+		// NOMERGE TODO: set firstVertex?
+		rce->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, NS::UInteger( 0 ), num_vertices );
+	}
+}
+
+void EncodeIndirectDrawCall( Opaque< CommandBuffer > ocb, const PipelineState & pipeline, Mesh mesh, GPUBuffer indirect_args, Span< const GPUBuffer > buffers ) {
+	MTL::RenderCommandEncoder * rce = PrepareDraw( ocb, pipeline, mesh, buffers );
+	if( rce == NULL )
+		return;
+
+	if( mesh.index_buffer.exists ) {
+		MTL::IndexType index_type = mesh.index_format == IndexFormat_U16 ? MTL::IndexTypeUInt16 : MTL::IndexTypeUInt32;
+		rce->drawIndexedPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, index_type,
+			allocations[ mesh.index_buffer.value.allocation ].buffer, mesh.index_buffer.value.offset,
+			allocations[ indirect_args.allocation ].buffer, indirect_args.offset );
+	}
+	else {
+		rce->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, allocations[ indirect_args.allocation ].buffer, indirect_args.offset );
+	}
+}
+
+void EncodeScissor( Opaque< CommandBuffer > ocb, Optional< Scissor > scissor ) {
+	if( scissor.exists ) {
+		Scissor s = scissor.value;
+		ocb.unwrap()->rce->setScissorRect( MTL::ScissorRect { s.x, s.y, s.w, s.y } );
+	}
+	else {
+		ocb.unwrap()->rce->setScissorRect( ocb.unwrap()->no_scissor );
+	}
+}
+
+PoolHandle< ComputePipeline > NewComputePipeline( Span< const char > path, Optional< PoolHandle< ComputePipeline > > old_pipeline ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
+	Span< const u8 > metallib = AssetBinary( temp.sv( "{}.metallib", path ) );
+
+	MTL::Library * library;
+	{
+		NS::Error * error = NULL;
+		library = global_device.device->newLibrary( SpanToDispatchData( metallib ), &error );
+		if( library == NULL ) {
+			ggprint( "NewComputePipeline( {} ): {}\n", path, error->localizedDescription()->utf8String() );
+			abort();
+		}
+	}
+	defer { library->release(); };
+
+	MTL::Function * compute_main = library->newFunction( NSString( "ComputeMain" ) );
+	if( compute_main == NULL ) {
+		printf( "missing main\n" );
+		abort();
+	}
+	defer { compute_main->release(); };
+
+	MTL::ComputePipelineDescriptor * pipeline = MTL::ComputePipelineDescriptor::alloc()->init();
+	pipeline->setLabel( NSString( temp( "{}", path ) ) );
+	pipeline->setComputeFunction( compute_main );
+
+	NS::Error * error = NULL;
+	MTL::AutoreleasedComputePipelineReflection reflection = NULL;
+	MTL::ComputePipelineState * pso = global_device.device->newComputePipelineState( pipeline, MTL::PipelineOptionBufferTypeInfo, &reflection, &error );
+	if( pso == NULL ) {
+		printf( "NewComputePipeline: %s\n", error->localizedDescription()->utf8String() );
+		abort();
+	}
+
+	Optional< ArgumentBufferEncoder > args = ParseArgumentBuffer( compute_main, reflection->arguments(), DescriptorSetType( 0 ) );
+	Assert( args.exists );
+
+	return compute_pipelines.allocate( ComputePipeline {
+		.name = path,
+		.pso = pso,
+		.args = args.value,
+	} );
+}
+
+static MTL::ComputeCommandEncoder * PrepareCompute( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > pipeline, Span< const BufferBinding > buffers ) {
+	CommandBuffer * cb = ocb.unwrap();
+	cb->cce->setComputePipelineState( compute_pipelines[ pipeline ].pso );
+	GPUBuffer args = EncodeArgumentBuffer( &compute_pipelines[ pipeline ].args, buffers );
+	BindArgumentBuffer( cb->cce, args, DescriptorSetType( 0 ) );
+	return cb->cce;
+}
+
+static MTL::Size SubgroupSize( PoolHandle< ComputePipeline > pipeline ) {
+	// https://developer.apple.com/documentation/metal/compute_passes/calculating_threadgroup_and_grid_sizes
+	const MTL::ComputePipelineState * pso = compute_pipelines[ pipeline ].pso;
+	MTL::Size size;
+	size.width = pso->threadExecutionWidth();
+	size.height = pso->maxTotalThreadsPerThreadgroup() / size.width;
+	size.depth = 1;
+	return size;
+}
+
+void EncodeComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > pipeline, u32 x, u32 y, u32 z, Span< const BufferBinding > buffers ) {
+	MTL::ComputeCommandEncoder * cce = PrepareCompute( ocb, pipeline, buffers );
+	cce->dispatchThreadgroups( MTL::Size::Make( x, y, z ), SubgroupSize( pipeline ) );
+}
+
+void EncodeIndirectComputeCall( Opaque< CommandBuffer > ocb, PoolHandle< ComputePipeline > pipeline, GPUBuffer indirect_args, Span< const BufferBinding > buffers ) {
+	MTL::ComputeCommandEncoder * cce = PrepareCompute( ocb, pipeline, buffers );
+	cce->dispatchThreadgroups( allocations[ indirect_args.allocation ].buffer, indirect_args.offset, SubgroupSize( pipeline ) );
+}
+
+void InitRenderBackend( SDL_Window * window, bool vsync ) {
+	TracyZoneScoped;
+
+	frame_semaphore = dispatch_semaphore_create( MaxFramesInFlight );
+
+	MTL::Device * device = MTL::CreateSystemDefaultDevice();
+	if( device == NULL ) {
+		Fatal( "MTL::CreateSystemDefaultDevice" );
+	}
+
+	MTL::CommandQueue * command_queue = device->newCommandQueue();
+	MTL::Event * pass_event = device->newEvent();
+
+	SDL_MetalView view = SDL_Metal_CreateView( window );
+	if( view == NULL ) {
+		Fatal( "SDL_Metal_CreateView: %s", SDL_GetError() );
+	}
+
+	// see some combination of
+	// https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
+	// https://developer.apple.com/documentation/metal/mtlcomputecommandencoder/2928169-setbuffers
+	constexpr size_t slab_size = Megabytes( 128 );
+	constexpr size_t constant_buffer_alignment = 4;
+	constexpr size_t metal_doesnt_have_buffer_image_granularity = 0; // or rather it is baked into heap texture alignment requirements
+
+	global_device = MetalDevice {
+		.device = device,
+		.view = view,
+		.swapchain = ( CA::MetalLayer * ) SDL_Metal_GetLayer( view ),
+		.command_queue = command_queue,
+		.frame_counter = 0,
+		.pass_event = pass_event,
+		.argument_buffers_tier = device->argumentBuffersSupport(),
+	};
+
+	global_device.swapchain->setDevice( device );
+	global_device.swapchain->setPixelFormat( MTL::PixelFormatBGRA8Unorm ); // NOMERGE: hdr
+	global_device.swapchain->setFramebufferOnly( true );
+
+	for( u32 i = 1; i <= MaxMSAA; i *= 2 ) {
+		if( device->supportsTextureSampleCount( i ) ) {
+			global_device.msaa |= i;
+		}
+	}
+
+	InitGPUAllocators( slab_size, constant_buffer_alignment, metal_doesnt_have_buffer_image_granularity );
+
+	bool minimized;
+	GetFramebufferSize( &old_framebuffer_width, &old_framebuffer_height, &minimized );
+
+	InitSamplers();
+	InitDepthFuncs();
+
+	{
+		MTL::ArgumentDescriptor * buffer_arg = MTL::ArgumentDescriptor::alloc()->init();
+		buffer_arg->setDataType( MTL::DataTypePointer );
+		buffer_arg->setIndex( 0 );
+		defer { buffer_arg->release(); };
+
+		MTL::ArgumentDescriptor * texture_arg = MTL::ArgumentDescriptor::alloc()->init();
+		texture_arg->setDataType( MTL::DataTypeTexture );
+		texture_arg->setIndex( 1 );
+		texture_arg->setTextureType( MTL::TextureType2D );
+		defer { texture_arg->release(); };
+
+		MTL::ArgumentDescriptor * sampler_arg = MTL::ArgumentDescriptor::alloc()->init();
+		sampler_arg->setDataType( MTL::DataTypeSampler );
+		sampler_arg->setIndex( 2 );
+		defer { sampler_arg->release(); };
+
+		NS::Object * args_c[] = { buffer_arg, texture_arg, sampler_arg };
+		NS::Array * args = NS::Array::alloc()->init( args_c, ARRAY_COUNT( args_c ) );
+		defer { args->release(); };
+
+		global_device.material_argument_encoder = global_device.device->newArgumentEncoder( args );
+	}
+}
+
+void ShutdownRenderBackend() {
+	for( u64 i = 0; i < Min2( global_device.frame_counter, u64( MaxFramesInFlight ) ); i++ ) {
+		dispatch_semaphore_wait( frame_semaphore, DISPATCH_TIME_FOREVER );
+	}
+
+	global_device.material_argument_encoder->release();
+
+	for( GPUAllocation allocation : allocations ) {
+		if( allocation.heap != NULL ) {
+			allocation.heap->release();
+		}
+		allocation.buffer->release();
+	}
+
+	for( Texture texture : textures.span() ) {
+		DeleteBackendTexture( texture.backend );
+	}
+
+	for( RenderPipeline shader : render_pipelines ) {
+		DeleteRenderPipeline( shader );
+	}
+
+	for( ComputePipeline shader : compute_pipelines ) {
+		shader.pso->release();
+	}
+
+	for( MTL::SamplerState * sampler : samplers ) {
+		sampler->release();
+	}
+
+	for( MTL::DepthStencilState * depth_func : depth_funcs ) {
+		depth_func->release();
+	}
+
+	ShutdownGPUAllocators();
+	global_device.command_queue->release();
+	SDL_Metal_DestroyView( global_device.view );
+	global_device.device->release();
+}
+
+void RenderBackendWaitForNewFrame() {
+	TracyZoneScopedNC( "RenderBackendWaitForNewFrame", TracyColorWait );
+	dispatch_semaphore_wait( frame_semaphore, DISPATCH_TIME_FOREVER );
+}
+
+void RenderBackendBeginFrame( bool vsync, int frames_to_capture ) {
+	TracyZoneScoped;
+
+	NS::AutoreleasePool * pool = NS::AutoreleasePool::alloc()->init();
+
+	ClearGPUArenaAllocators();
+
+	bool resized = frame_static.viewport_width != old_framebuffer_width || frame_static.viewport_height != old_framebuffer_height;
+	bool nonzero = frame_static.viewport_width > 0 && frame_static.viewport_height > 0;
+
+	if( resized && nonzero ) {
+		global_device.swapchain->setDrawableSize( CGSize { CGFloat( frame_static.viewport_width ), CGFloat( frame_static.viewport_height ) } );
+		old_framebuffer_width = frame_static.viewport_width;
+		old_framebuffer_height = frame_static.viewport_height;
+	}
+
+	{
+		TracyZoneScopedNC( "Acquire swapchain", TracyColorWait );
+		CA::MetalDrawable * surface = global_device.swapchain->nextDrawable();
+		frame = {
+			.pool = pool,
+			.swapchain_surface = surface,
+			.swapchain_texture = surface->texture(),
+		};
+	}
+
+	if( frames_to_capture > 0 ) {
+		StartCapture( global_device.device, frames_to_capture );
+	}
+}
+
+void RenderBackendEndFrame() {
+	MaybeEndCapture();
+	frame.pool->release();
+	global_device.frame_counter++;
+}
+
+u32 RenderBackendSupportedMSAA() {
+	return global_device.msaa;
+}
+
+size_t FrameSlot() {
+	return global_device.frame_counter % MaxFramesInFlight;
+}
+
+template< typename T >
+static void UseGPUSlabAllocator( T * encoder, GPUSlabAllocator * a ) {
+	const GPUSlabAllocator::Slab * slab = a->slabs;
+	while( slab != NULL ) {
+		if( slab->capacity > 0 ) {
+			encoder->useHeap( allocations[ slab->buffer ].heap );
+		}
+		slab = slab->next;
+	}
+}
+
+template< typename T >
+static void UseAllocators( T * encoder ) {
+	// TODO: fix this! probably some shitty visitors? also need to use all dedicated alloc textures
+	// UseGPUSlabAllocator( encoder, &global_device.persistent_allocator );
+	// encoder->useResource( allocations[ global_device.temp_allocator.memory.allocation ].buffer, MTL::ResourceUsageRead | MTL::ResourceUsageWrite );
+}
+
+Optional< Opaque< CommandBuffer > > NewRenderPass( const RenderPassConfig & config ) {
+	if( frame_static.minimized )
+		return NONE;
+
+	TracyZoneScoped;
+	TracyZoneSpan( config.name );
+
+	TempAllocator temp = cls.frame_arena.temp();
+	const char * name = temp( "{}", config.name );
+
+	MTL::RenderPassDescriptor * render_pass = MTL::RenderPassDescriptor::alloc()->init();
+	defer { render_pass->release(); };
+
+	MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
+	command_buffer->setLabel( NSString( name ) );
+
+	Optional< u32 > width = NONE;
+	Optional< u32 > height = NONE;
+	Optional< u32 > msaa = NONE;
+
+	auto set_rt_params = [&]( u32 w, u32 h, u32 m ) {
+		Assert( !width.exists || ( *width == w && *height == h ) );
+		Assert( !msaa.exists || *msaa == m );
+		width = w;
+		height = h;
+		msaa = m;
+	};
+
+	auto set_rt_params_optional = [&]( Optional< PoolHandle< Texture > > texture ) {
+		if( texture.exists ) {
+			set_rt_params( TextureWidth( texture.value ), TextureHeight( texture.value ), TextureMSAASamples( texture.value ) );
+		}
+		else {
+			set_rt_params( frame_static.viewport_width, frame_static.viewport_height, 1 );
+		}
+	};
+
+	command_buffer->encodeWait( global_device.pass_event, global_device.frame_counter * RenderPass_Count + config.pass );
+
+	for( size_t i = 0; i < config.color_targets.n; i++ ) {
+		const RenderPassConfig::ColorTarget & target = config.color_targets[ i ];
+		MTL::RenderPassColorAttachmentDescriptor * attachment = render_pass->colorAttachments()->object( i );
+
+		set_rt_params_optional( target.texture );
+
+		if( target.load == LoadOp_Clear ) {
+			attachment->setLoadAction( MTL::LoadActionClear );
+			Vec4 color = target.clear;
+			attachment->setClearColor( MTL::ClearColor( color.x, color.y, color.z, color.w ) );
+		}
+		else {
+			attachment->setLoadAction( target.load == LoadOp_Load ? MTL::LoadActionLoad : MTL::LoadActionDontCare );
+		}
+
+		attachment->setTexture( target.texture.exists ? textures[ target.texture.value ].backend.unwrap()->texture : frame.swapchain_texture );
+		attachment->setSlice( target.layer );
+
+		if( target.resolve_target.exists ) {
+			attachment->setStoreAction( MTL::StoreActionMultisampleResolve );
+			attachment->setResolveTexture( target.texture.exists ? textures[ target.texture.value ].backend.unwrap()->texture : frame.swapchain_texture );
+		}
+		else {
+			attachment->setStoreAction( target.store == StoreOp_Store ? MTL::StoreActionStore : MTL::StoreActionDontCare );
+		}
+	}
+
+	if( config.depth_target.exists ) {
+		const RenderPassConfig::DepthTarget & target = config.depth_target.value;
+		MTL::RenderPassDepthAttachmentDescriptor * attachment = render_pass->depthAttachment();
+
+		set_rt_params( TextureWidth( target.texture ), TextureHeight( target.texture ), TextureMSAASamples( target.texture ) );
+
+		if( target.load == LoadOp_Clear ) {
+			attachment->setLoadAction( MTL::LoadActionClear );
+			attachment->setClearDepth( 0.0f ); // clear to 0 because we use an inverted depth buffer
+		}
+		else {
+			attachment->setLoadAction( target.load == LoadOp_Load ? MTL::LoadActionLoad : MTL::LoadActionDontCare );
+		}
+
+		// NOMERGE MSAA DEPTH
+
+		attachment->setTexture( textures[ target.texture ].backend.unwrap()->texture );
+		attachment->setSlice( target.layer );
+
+		if( target.resolve_target.exists ) {
+			attachment->setStoreAction( MTL::StoreActionMultisampleResolve );
+			attachment->setResolveTexture( textures[ target.texture ].backend.unwrap()->texture );
+			attachment->setDepthResolveFilter( MTL::MultisampleDepthResolveFilterMin );
+		}
+		else {
+			attachment->setStoreAction( target.store == StoreOp_Store ? MTL::StoreActionStore : MTL::StoreActionDontCare );
+		}
+	}
+
+	MTL::RenderCommandEncoder * encoder = command_buffer->renderCommandEncoder( render_pass );
+	UseAllocators( encoder );
+	EncodeAndBindArgumentBuffer( encoder, &render_pipelines[ config.representative_shader ].render_pass_args, config.bindings, DescriptorSet_RenderPass );
+
+	encoder->setFrontFacingWinding( MTL::WindingCounterClockwise );
+
+	return Optional( Opaque( CommandBuffer {
+		.command_buffer = command_buffer,
+		.rce = encoder,
+		.no_scissor = MTL::ScissorRect { .width = *width, .height = *height },
+		.msaa_samples = *msaa,
+	} ) );
+}
+
+Opaque< CommandBuffer > NewComputePass( const ComputePassConfig & config ) {
+	TracyZoneScoped;
+	TracyZoneSpan( config.name );
+
+	TempAllocator temp = cls.frame_arena.temp();
+	const char * name = temp( "{}", config.name );
+
+	MTL::ComputePassDescriptor * compute_pass = MTL::ComputePassDescriptor::alloc()->init();
+	compute_pass->setDispatchType( MTL::DispatchTypeSerial );
+
+	MTL::CommandBuffer * command_buffer = global_device.command_queue->commandBufferWithUnretainedReferences();
+	command_buffer->setLabel( NSString( name ) );
+
+	command_buffer->encodeWait( global_device.pass_event, global_device.frame_counter * RenderPass_Count + config.pass );
+
+	MTL::ComputeCommandEncoder * encoder = command_buffer->computeCommandEncoder( compute_pass );
+	UseAllocators( encoder );
+
+	compute_pass->release();
+
+	return CommandBuffer {
+		.command_buffer = command_buffer,
+		.cce = encoder,
+	};
+}
+
+#endif // #if PLATFORM_MACOS

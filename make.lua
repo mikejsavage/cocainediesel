@@ -43,6 +43,7 @@ require( "libs.jsmn" )
 require( "libs.luau" )
 require( "libs.mbedtls" )
 require( "libs.meshoptimizer" )
+require( "libs.metal-cpp" )
 require( "libs.monocypher" )
 require( "libs.msdfgen" )
 require( "libs.openal" )
@@ -67,7 +68,9 @@ obj_cxxflags( "source/client/cl_imgui.cpp", "-I libs/sdl" )
 obj_cxxflags( "source/client/cl_menus.cpp", "-I libs/sdl" )
 obj_cxxflags( "source/client/cl_sdl.cpp", "-I libs/sdl" )
 obj_cxxflags( "source/client/keys.cpp", "-I libs/sdl" )
+obj_cxxflags( "source/client/renderer/metal_backend.cpp", "-I libs/metal-cpp -I libs/sdl" )
 obj_cxxflags( "source/client/renderer/vulkan_backend.cpp", "-I libs/vulkan-headers -I libs/sdl" )
+obj_cxxflags( "source/client/platform/macos_client.cpp", "-I libs/metal-cpp" )
 
 obj_cxxflags( "source/qcommon/linear_algebra_kernels.cpp", "-O2" )
 
@@ -106,13 +109,14 @@ bin( "client", {
 		"volk",
 		"zstd",
 		platform_curl_libs,
+		{ OS == "macos" and "metal-cpp" or nil },
 	},
 
 	rc = "source/client/platform/client",
 	plist = config == "debug" and "source/client/platform/enable_metal_capture.plist",
 
 	windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib setupapi.lib /SUBSYSTEM:WINDOWS",
-	macos_ldflags = "-lcurl -framework AudioToolbox -framework Cocoa -framework CoreAudio -framework CoreHaptics -framework CoreVideo -framework IOKit -framework GameController -framework ForceFeedback -framework Carbon -framework UniformTypeIdentifiers -framework QuartzCore",
+	macos_ldflags = "-lcurl -framework AppKit -framework AudioToolbox -framework Cocoa -framework CoreAudio -framework CoreHaptics -framework CoreVideo -framework IOKit -framework Metal -framework GameController -framework ForceFeedback -framework Carbon -framework UniformTypeIdentifiers -framework QuartzCore",
 	linux_ldflags = "-lm -lpthread -ldl",
 	no_static_link = true,
 } )

@@ -7,6 +7,7 @@
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/string.h"
+#include "qcommon/platform/fs.h"
 
 #include <errno.h>
 #include <fcntl.h>
@@ -84,7 +85,7 @@ static void AddInotifyWatchesRecursive( Allocator * a, FSChangeMonitor * monitor
 	monitor->wd_to_path.add( Hash64( wd ), monitor->num_wd_paths );
 	monitor->num_wd_paths++;
 
-	ListDirHandle scan = BeginListDir( a, path->c_str() );
+	Opaque< ListDirHandle > scan = BeginListDir( a, path->c_str() );
 
 	const char * name;
 	bool dir;

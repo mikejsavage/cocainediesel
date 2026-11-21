@@ -342,7 +342,7 @@ static u32 BuildKDTreeRecursive( CompiledKDTree * tree, Span< const u32 > brush_
 	{
 		TracyZoneScopedN( "Find best split" );
 
-		float best_cost = INFINITY;
+		Optional< float > best_cost = NONE;
 
 		for( int i = 0; i < 3; i++ ) {
 			int axis = ( MaxAxis( node_bounds ) + i ) % 3;
@@ -370,7 +370,7 @@ static u32 BuildKDTreeRecursive( CompiledKDTree * tree, Span< const u32 > brush_
 					constexpr float intersect_cost = 80.0f;
 					float cost = traversal_cost + intersect_cost * empty_bonus * ( frac_below * num_below + frac_above * num_above );
 
-					if( cost < best_cost ) {
+					if( !best_cost.exists || cost < *best_cost ) {
 						best_cost = cost;
 						best_axis = axis;
 						best_plane = j;
@@ -382,12 +382,12 @@ static u32 BuildKDTreeRecursive( CompiledKDTree * tree, Span< const u32 > brush_
 				}
 			}
 
-			if( best_cost != INFINITY ) {
+			if( best_cost.exists ) {
 				break;
 			}
 		}
 
-		if( best_cost == INFINITY ) {
+		if( !best_cost.exists ) {
 			return MakeLeaf( tree, brush_ids );
 		}
 	}

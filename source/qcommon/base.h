@@ -10,8 +10,8 @@
 #include "gg/ggformat.h"
 #include "qcommon/allocators.h"
 #include "qcommon/linear_algebra.h"
-#include "qcommon/tracy.h"
 #include "qcommon/testing.h"
+#include "qcommon/tracy.h"
 
 /*
  * helpers

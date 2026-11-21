@@ -70,76 +70,73 @@ obj_cxxflags( "source/client/renderer/backend.cpp", "-I libs/sdl" )
 
 obj_cxxflags( "source/qcommon/linear_algebra_kernels.cpp", "-O2" )
 
-do
-	bin( "client", {
-		srcs = {
-			"source/cgame/*.cpp",
-			"source/client/**.cpp",
-			"source/game/**.cpp",
-			"source/gameshared/*.cpp",
-			"source/qcommon/**.cpp",
-			"source/server/sv_*.cpp",
-		},
+bin( "client", {
+	srcs = {
+		"source/cgame/*.cpp",
+		"source/client/**.cpp",
+		"source/game/**.cpp",
+		"source/gameshared/*.cpp",
+		"source/qcommon/**.cpp",
+		"source/server/sv_*.cpp",
+	},
 
-		libs = {
-			"imgui",
+	libs = {
+		"imgui",
 
-			"cgltf",
-			"clay",
-			"discord",
-			"dr_mp3",
-			"freetype",
-			"ggentropy",
-			"ggformat",
-			"ggtime",
-			"glad",
-			"jsmn",
-			"luau",
-			"monocypher",
-			"openal",
-			"picohttpparser",
-			"sdl",
-			"stb_image",
-			"stb_image_write",
-			"stb_rect_pack",
-			"stb_vorbis",
-			"tracy",
-			"zstd",
-			platform_curl_libs,
-		},
+		"cgltf",
+		"clay",
+		"discord",
+		"dr_mp3",
+		"freetype",
+		"ggentropy",
+		"ggformat",
+		"ggtime",
+		"glad",
+		"jsmn",
+		"luau",
+		"monocypher",
+		"openal",
+		"picohttpparser",
+		"sdl",
+		"stb_image",
+		"stb_image_write",
+		"stb_rect_pack",
+		"stb_vorbis",
+		"tracy",
+		"zstd",
+		platform_curl_libs,
+	},
 
-		rc = "source/client/platform/client",
+	rc = "source/client/platform/client",
+	plist = config == "debug" and "source/client/platform/enable_metal_capture.plist",
 
-		windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib setupapi.lib /SUBSYSTEM:WINDOWS",
-		macos_ldflags = "-lcurl -framework AudioToolbox -framework Cocoa -framework CoreAudio -framework CoreHaptics -framework CoreVideo -framework IOKit -framework GameController -framework ForceFeedback -framework Carbon -framework UniformTypeIdentifiers -framework QuartzCore",
-		linux_ldflags = "-lm -lpthread -ldl",
-		no_static_link = true,
-	} )
-end
+	windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib setupapi.lib /SUBSYSTEM:WINDOWS",
+	macos_ldflags = "-lcurl -framework AudioToolbox -framework Cocoa -framework CoreAudio -framework CoreHaptics -framework CoreVideo -framework IOKit -framework GameController -framework ForceFeedback -framework Carbon -framework UniformTypeIdentifiers -framework QuartzCore",
+	linux_ldflags = "-lm -lpthread -ldl",
+	no_static_link = true,
+} )
 
-do
-	bin( "server", {
-		srcs = {
-			"source/game/**.cpp",
-			"source/gameshared/*.cpp",
-			"source/qcommon/**.cpp",
-			"source/server/**.cpp",
-		},
+bin( "server", {
+	srcs = {
+		"source/game/**.cpp",
+		"source/gameshared/*.cpp",
+		"source/qcommon/**.cpp",
+		"source/server/**.cpp",
+	},
 
-		libs = {
-			"cgltf",
-			"ggentropy",
-			"ggformat",
-			"ggtime",
-			"monocypher",
-			"picohttpparser",
-			"tracy",
-			"zstd",
-		},
+	libs = {
+		"cgltf",
+		"ggentropy",
+		"ggformat",
+		"ggtime",
+		"monocypher",
+		"picohttpparser",
+		"tracy",
+		"zstd",
+	},
 
-		windows_ldflags = "ole32.lib ws2_32.lib crypt32.lib shell32.lib user32.lib advapi32.lib",
-		linux_ldflags = "-lm -lpthread",
-	} )
-end
+	windows_ldflags = "ole32.lib ws2_32.lib crypt32.lib shell32.lib user32.lib advapi32.lib",
+	linux_ldflags = "-lm -lpthread",
+} )
 
 write_ninja_script()

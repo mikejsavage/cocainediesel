@@ -24,14 +24,6 @@ extern "C" float copysignf( float, float );
 
 constexpr float PI = 3.14159265358979323846f;
 
-#if COMPILER_MSVC
-constexpr float Infinity = __infinity;
-#elif COMPILER_GCC_OR_CLANG
-constexpr float Infinity = __builtin_huge_val();
-#else
-#error new compiler
-#endif
-
 constexpr float Radians( float d ) { return d * PI / 180.0f; }
 constexpr float Degrees( float r ) { return r * 180.0f / PI; }
 

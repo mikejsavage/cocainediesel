@@ -254,7 +254,7 @@ R VisitShaderDescriptors( F f, Rest... rest ) {
 				.field = &Shaders::write_silhouette_mask,
 				.src = "write_silhouette_mask",
 				.output_format = { .colors = { TextureFormat_RGBA_U8_sRGB } },
-				.mesh_variants = { standard_vertex },
+				.mesh_variants = { standard_vertex, gltf_pn, gltf_pnu, gltf_pnuc },
 			},
 			GraphicsShaderDescriptor {
 				.field = &Shaders::write_silhouette_mask_skinned,

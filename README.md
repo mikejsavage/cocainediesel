@@ -12,7 +12,7 @@
 | --- | --- |
 | [Engine](https://github.com/mikejsavage/cocainediesel) | **Windows:** [![Windows engine build](https://ci.appveyor.com/api/projects/status/gm4uucsa58bpgx57?svg=true)](https://ci.appveyor.com/project/mikejsavage/cocainediesel-windows)<br>**Linux:** [![Linux build](https://ci.appveyor.com/api/projects/status/5w58n5uk3dfekm1m?svg=true)](https://ci.appveyor.com/project/mikejsavage/cocainediesel-linux) |
 | [Launcher](https://github.com/mikejsavage/cocainediesel-launcher) | **Windows:** [![Windows launcher build](https://ci.appveyor.com/api/projects/status/0xprq9d61lojw3yn?svg=true)](https://ci.appveyor.com/project/mikejsavage/cocainediesel-launcher-windows)<br>**Linux:** [![Linux launcher build](https://ci.appveyor.com/api/projects/status/bj5c143bdn2juabl?svg=true)](https://ci.appveyor.com/project/mikejsavage/cocainediesel-launcher-linux) |
-| [Libs](https://github.com/mikejsavage/cocainediesel-libs) | [![CI](https://api.cirrus-ci.com/github/mikejsavage/cocainediesel-libs.svg)](https://cirrus-ci.com/github/mikejsavage/cocainediesel-libs) |
+| [Libs](https://github.com/mikejsavage/cocainediesel-libs) | [![CI](https://dl.circleci.com/status-badge/img/circleci/TSTV8hQ457D1jT6XU3oQ9y/MgfeSejb7rES8uhJZZNqy7/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/circleci/TSTV8hQ457D1jT6XU3oQ9y/MgfeSejb7rES8uhJZZNqy7/tree/master) |
 
 
 `Hearts rebuilt from hope resurrect dreams killed by hate.`

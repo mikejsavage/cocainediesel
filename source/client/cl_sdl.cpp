@@ -124,10 +124,32 @@ extern "C" int SDL_GetDisplayIndex( SDL_DisplayID displayID );
 
 WindowMode GetWindowMode() {
 	if( HasAllBits( SDL_GetWindowFlags( window ), SDL_WINDOW_FULLSCREEN ) ) {
+		int monitor = 0;
 		const SDL_DisplayMode * fullscreen = SDL_GetWindowFullscreenMode( window );
+		if( fullscreen != NULL ) {
+			monitor = SDL_GetDisplayIndex( fullscreen->displayID );
+		}
+		else {
+			int window_x, window_y;
+			TrySDL( SDL_GetWindowPosition, window, &window_x, &window_y );
+
+			int num_monitors;
+			SDL_DisplayID * monitors = SDL_GetDisplays( &num_monitors );
+			defer { SDL_free( monitors ); };
+
+			for( int i = 0; i < num_monitors; i++ ) {
+				SDL_Rect rect;
+				TrySDL( SDL_GetDisplayBounds, monitors[ i ], &rect );
+				if( rect.x == window_x && rect.y == window_y ) {
+					monitor = i;
+					break;
+				}
+			}
+		}
+
 		return {
 			.fullscreen = true,
-			.monitor = SDL_GetDisplayIndex( fullscreen->displayID ),
+			.monitor = monitor,
 		};
 	}
 

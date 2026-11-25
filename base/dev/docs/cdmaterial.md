@@ -1,5 +1,11 @@
 # .cdmaterial
 
+Surfaces are assigned materials, not raw textures. Materials have some properties, including an
+albedo texture, which are listed below.
+
+Textures create an implicit material of the same name pointing at the same texture and with the
+`world` key.
+
 `.cdmaterial` files look like:
 
 ```

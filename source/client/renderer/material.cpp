@@ -495,7 +495,10 @@ u32 TextureHeight( PoolHandle< Material > material ) {
 
 	PoolHandle< Texture > handle = NewTexture( config, old_handle );
 	if( !old_handle.exists ) {
-		AddMaterial( config.name, MaterialConfig { .texture = hash } );
+		AddMaterial( config.name, MaterialConfig {
+			.texture = hash,
+			.world = true,
+		} );
 	}
 
 	return handle;

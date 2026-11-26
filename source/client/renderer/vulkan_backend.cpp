@@ -2155,6 +2155,8 @@ void SubmitStagingCommandBuffer( Opaque< CommandBuffer > buffer ) {
 }
 
 void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first_pass_metal_only ) {
+	TracyZoneScoped;
+
 	for( RenderPassSubmit pass : passes ) {
 		if( pass.buffer.unwrap()->is_render_command_buffer ) {
 			vkCmdEndRendering( pass.buffer.unwrap()->buffer );
@@ -2168,7 +2170,7 @@ void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first
 		VkSemaphoreSubmitInfo {
 			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
 			.semaphore = global_device.frame_timeline_semaphore,
-			.value = frame_counter + 1,
+			.value = frame_counter + MaxFramesInFlight,
 			.stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 		},
 	};
@@ -2236,6 +2238,8 @@ void SubmitRenderPasses( Span< const RenderPassSubmit > passes, RenderPass first
 	VK_CHECK( vkQueueSubmit2( global_device.queue, 1, &submit_info, VK_NULL_HANDLE ) );
 
 	if( !frame_static.minimized ) {
+		TracyZoneScopedN( "vkQueuePresentKHR" );
+
 		const VkPresentInfoKHR present_info = {
 			.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 			.waitSemaphoreCount = 1,

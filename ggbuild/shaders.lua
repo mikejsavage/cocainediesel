@@ -59,7 +59,11 @@ end
 function write_shaders_ninja_script()
 	if config ~= "release" then
 		if not HasBin( "dxc" ) then
-			io.stderr:write( "Can't find dxc (DirectX Shader Compiler), install the Vulkan SDK from https://vulkan.lunarg.com/sdk/home if you want to compile shaders\n" )
+			if OS ~= "linux" then
+				io.stderr:write( "Can't find dxc (DirectX Shader Compiler), install the Vulkan SDK from https://vulkan.lunarg.com/sdk/home if you want to compile shaders\n" )
+			else
+				io.stderr:write( "Can't find dxc, install the directx-shader-compiler package if you want to compile shaders (and vulkan-validation-layers if you want to work on VK stuff)\n" )
+			end
 			return
 		end
 

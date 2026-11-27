@@ -108,6 +108,7 @@ struct VulkanDevice {
 		size_t ssbo_alignment;
 		u32 msaa;
 		bool present_mode_immediate;
+		bool present_wait;
 	} limits;
 };
 
@@ -517,32 +518,69 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 		}
 
 		const float queue_priorities[] = { 1.0f };
-
-		const VkDeviceQueueCreateInfo queueInfo = {
+		const VkDeviceQueueCreateInfo queue_info = {
 			.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
 			.queueFamilyIndex = device.queue_family_index,
 			.queueCount = 1,
 			.pQueuePriorities = queue_priorities,
 		};
 
-		// required extensions
-		const char * extensions[] = {
+		BoundedDynamicArray< const char *, 8 > enabled_extensions = {
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 			VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME,
 			VK_KHR_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
-#if PLATFORM_MACOS
-			VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
-#endif
 		};
 
-		VkPhysicalDevicePortabilitySubsetFeaturesKHR features_portability_subset = {
-			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR,
-			.imageViewFormatSwizzle = VK_TRUE,
+		if( IFDEF( PLATFORM_MACOS ) ) {
+			enabled_extensions.must_add( VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME );
+		}
+
+		// VK_KHR_present_wait
+		bool has_present_id = false;
+		bool has_present_wait = false;
+		for( VkExtensionProperties e : VulkanSpan< VkExtensionProperties >( &temp, CurrentSourceLocation(), vkEnumerateDeviceExtensionProperties, device.physical_device, nullptr ) ) {
+			if( strcmp( e.extensionName, VK_KHR_PRESENT_ID_EXTENSION_NAME ) ) {
+				has_present_id = true;
+			}
+			if( strcmp( e.extensionName, VK_KHR_PRESENT_WAIT_EXTENSION_NAME ) ) {
+				has_present_wait = true;
+			}
+		}
+
+		if( has_present_id && has_present_wait ) {
+			device.limits.present_wait = true;
+			enabled_extensions.must_add( VK_KHR_PRESENT_ID_EXTENSION_NAME );
+			enabled_extensions.must_add( VK_KHR_PRESENT_WAIT_EXTENSION_NAME );
+		}
+
+		VkPhysicalDevicePresentIdFeaturesKHR present_id_features = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR,
+			.presentId = VK_TRUE,
 		};
+
+		VkPhysicalDevicePresentWaitFeaturesKHR present_wait_features = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR,
+			.pNext = &present_id_features,
+			.presentWait = VK_TRUE,
+		};
+
+		VkPhysicalDevicePortabilitySubsetFeaturesKHR portability_subset_features = {
+			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR,
+			.pNext = device.limits.present_wait ? &present_wait_features : NULL,
+			.imageViewFormatSwizzle = IFDEF( PLATFORM_MACOS ),
+		};
+
+		void * after_features13 = NULL;
+		if( IFDEF( PLATFORM_MACOS ) ) {
+			after_features13 = &portability_subset_features;
+		}
+		else if( device.limits.present_wait ) {
+			after_features13 = &present_wait_features;
+		}
 
 		VkPhysicalDeviceVulkan13Features features13 = {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-			.pNext = IFDEF( PLATFORM_MACOS ) ? ( void * ) &features_portability_subset : NULL,
+			.pNext = after_features13,
 			// .robustImageAccess = VK_TRUE,
 			.shaderDemoteToHelperInvocation = VK_TRUE,
 			.synchronization2 = VK_TRUE,
@@ -588,18 +626,18 @@ static VulkanDevice CreateDevice( VkInstance instance ) {
 			},
 		};
 
-		const VkDeviceCreateInfo createInfo = {
+		const VkDeviceCreateInfo device_create_info = {
 			.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 			.pNext = &features2,
 
 			.queueCreateInfoCount = 1,
-			.pQueueCreateInfos = &queueInfo,
+			.pQueueCreateInfos = &queue_info,
 
-			.enabledExtensionCount = ARRAY_COUNT( extensions ),
-			.ppEnabledExtensionNames = extensions,
+			.enabledExtensionCount = u32( enabled_extensions.size() ),
+			.ppEnabledExtensionNames = enabled_extensions.ptr(),
 		};
 
-		VK_CHECK( vkCreateDevice( device.physical_device, &createInfo, NULL, &device.device ) );
+		VK_CHECK( vkCreateDevice( device.physical_device, &device_create_info, NULL, &device.device ) );
 		volkLoadDevice( device.device );
 		vkGetDeviceQueue( device.device, device.queue_family_index, 0, &device.queue );
 	}
@@ -2681,6 +2719,11 @@ void RenderBackendWaitForNewFrame() {
 	};
 
 	VK_CHECK( vkWaitSemaphores( global_device.device, &wait_info, U64_MAX ) );
+
+	if( global_device.limits.present_wait ) {
+		constexpr u64 k16ms = 16'666'667;
+		vkWaitForPresentKHR( global_device.device, global_swapchain.swapchain, frame_counter, k16ms );
+	}
 }
 
 void RenderBackendBeginFrame( bool vsync, int frames_to_capture ) {
